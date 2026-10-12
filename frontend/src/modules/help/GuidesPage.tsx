@@ -6,6 +6,7 @@ import { Select } from '@/shared/components/ui/select'
 import { useMe } from '@/shared/hooks/use-me'
 import { findNavItem } from '@/shared/lib/nav-items'
 import { searchGuides, visibleGuides, type Guide } from './guides'
+import { t } from '@/shared/lib/i18n'
 
 const pageLabel = (route: string) => findNavItem(route)?.label ?? route
 
@@ -33,13 +34,13 @@ export function GuidesPage() {
 
   return (
     <div className="max-w-3xl space-y-6" data-density="comfortable">
-      <PageHeader title="Ghiduri" description="Pași scurți pentru paginile pe care le folosești." />
+      <PageHeader title={t('common:nav.guides')} description={t('help:description')} />
 
       {mine.length === 0 ? (
         <EmptyState
           kind="new"
-          title="Încă nu există ghiduri pentru paginile tale"
-          description="Dacă ceva nu e limpede, deschide un tichet din Suport."
+          title={t('help:emptyTitle')}
+          description={t('help:emptyHint')}
         />
       ) : (
         <>
@@ -48,11 +49,11 @@ export function GuidesPage() {
               className="max-w-xs"
               value={query}
               onChange={(event) => setParam('q', event.target.value)}
-              placeholder="Caută în ghiduri"
-              aria-label="Caută în ghiduri"
+              placeholder={t('help:searchPlaceholder')}
+              aria-label={t('help:searchPlaceholder')}
             />
-            <Select className="max-w-52" aria-label="Pagina" value={route} onChange={(event) => setParam('pagina', event.target.value)}>
-              <option value="">Toate paginile</option>
+            <Select className="max-w-52" aria-label={t('help:pageFilter')} value={route} onChange={(event) => setParam('pagina', event.target.value)}>
+              <option value="">{t('help:allPages')}</option>
               {routes.map((r) => (
                 <option key={r} value={r}>
                   {pageLabel(r)}
@@ -62,7 +63,7 @@ export function GuidesPage() {
           </div>
 
           {groups.length === 0 ? (
-            <EmptyState kind="filtered" title="Niciun ghid nu se potrivește" onReset={() => setSearchParams({}, { replace: true })} />
+            <EmptyState kind="filtered" title={t('help:noMatch')} onReset={() => setSearchParams({}, { replace: true })} />
           ) : (
             groups.map((group) => (
               <section key={group.route} className="space-y-4">
@@ -91,7 +92,7 @@ function GuideArticle({ guide }: { guide: Guide }) {
       </ol>
       {guide.videoUrl ? (
         <a href={guide.videoUrl} target="_blank" rel="noreferrer" className="inline-block text-sm underline underline-offset-4">
-          Vezi înregistrarea
+          {t('help:seeRecording')}
         </a>
       ) : null}
     </article>

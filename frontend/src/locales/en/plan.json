@@ -1,0 +1,40 @@
+{
+  "step": {
+    "updated": "Step updated",
+    "added": "Step added",
+    "deleted": "Step deleted",
+    "editTitle": "Edit the step",
+    "new": "New step",
+    "note": "Note / how you get there (optional)",
+    "deadline": "Deadline (optional)",
+    "targetPrice": "Target price (optional)",
+    "targetPricePlaceholder": "e.g. 150000",
+    "tier": "Tier",
+    "monthlyCost": "Monthly cost (RON, optional)",
+    "monthlyCostPlaceholder": "e.g. sales commission, VA",
+    "thresholdType": "Threshold type",
+    "manual": "Manual",
+    "currentMrr": "Current MRR (RON)",
+    "mrrThreshold": "MRR threshold (RON)",
+    "thresholdHint": "Ticking “done” always stays manual; the threshold is only informative: it shows the progress and triggers nothing by itself.",
+    "deleteTitle": "Delete the step “{{title}}”",
+    "deleteConfirm": "Delete the step"
+  },
+  "mrrThresholdTag": "MRR threshold",
+  "deadline": "deadline: {{targetDate}}",
+  "markDone": "Mark as done",
+  "emptyTrack": "No step in this track yet.",
+  "coveredByMrr": "covered by the current MRR",
+  "description": "You can tick any step at any time; the order is only a guide and does not block completion.",
+  "tiers": {
+    "operational": "Tier 1: Operational",
+    "acquisition": "Tier 2: Acquisition",
+    "retention": "Tier 3: Retention",
+    "cashCow": "Tier 4: Cash cow / Prestige"
+  },
+  "perMonth": "{{amount}}/month",
+  "mrrProgress": "{{current}} / {{target}} MRR",
+  "totalVsMrr": "Total monthly cost of the plan: {{cost}} vs. current MRR {{mrr}}",
+  "gap": "gap of {{amount}}",
+  "cumulativeGap": "cumulative gap of {{amount}}"
+}

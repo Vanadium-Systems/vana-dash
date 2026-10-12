@@ -7,6 +7,7 @@ import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
+import { t } from '@/shared/lib/i18n'
 
 interface CompanyAddress {
   county: string
@@ -62,7 +63,7 @@ function joinAddress(addr: CompanyAddress): string {
 async function copy(value: string) {
   if (!value) return
   await navigator.clipboard.writeText(value)
-  toast.success('Copiat')
+  toast.success(t('common:states.copied'))
 }
 
 function CopyButton({ value }: { value: string }) {
@@ -73,7 +74,7 @@ function CopyButton({ value }: { value: string }) {
       size="icon"
       className="w-9 shrink-0"
       disabled={!value}
-      aria-label="Copiază"
+      aria-label={t('common:actions.copy')}
       onClick={() => void copy(value)}
     >
       <Copy className="h-4 w-4" />
@@ -119,42 +120,42 @@ function AddressFields({
       <div className="grid gap-3 sm:grid-cols-2">
         <FieldRow
           id={`${idPrefix}-county`}
-          label="Județ"
+          label={t('common:labels.county')}
           value={address.county}
-          placeholder="Județ Cluj"
+          placeholder={t('settings:company.countyPlaceholder')}
           onChange={(county) => onChange({ ...address, county })}
         />
         <FieldRow
           id={`${idPrefix}-city`}
-          label="Localitate"
+          label={t('settings:company.locality')}
           value={address.city}
-          placeholder="Municipiul Cluj-Napoca"
+          placeholder={t('settings:company.localityPlaceholder')}
           onChange={(city) => onChange({ ...address, city })}
         />
         <FieldRow
           id={`${idPrefix}-street`}
-          label="Stradă"
+          label={t('settings:company.street')}
           value={address.street}
-          placeholder="Str. Exemplu"
+          placeholder={t('settings:company.streetPlaceholder')}
           onChange={(street) => onChange({ ...address, street })}
         />
         <FieldRow
           id={`${idPrefix}-number`}
-          label="Nr."
+          label={t('common:labels.number')}
           value={address.number}
-          placeholder="Nr. 10"
+          placeholder={t('settings:company.numberPlaceholder')}
           onChange={(number) => onChange({ ...address, number })}
         />
       </div>
       <FieldRow
         id={`${idPrefix}-details`}
-        label="Detalii (bloc, scară, etaj, apartament, birou)"
+        label={t('settings:company.addressDetails')}
         value={address.details}
-        placeholder="Bloc A, Scara 1, Etaj 2, Ap. 4"
+        placeholder={t('settings:company.addressDetailsPlaceholder')}
         onChange={(details) => onChange({ ...address, details })}
       />
       <div className="space-y-1">
-        <Label>Adresă completă</Label>
+        <Label>{t('settings:company.fullAddress')}</Label>
         <div className="flex gap-1">
           <Input value={joinAddress(address)} readOnly className="text-muted-foreground" />
           <CopyButton value={joinAddress(address)} />
@@ -179,9 +180,9 @@ function WorkLocationBlock({
         <div className="flex-1">
           <FieldRow
             id={`loc-${location.id}-label`}
-            label="Etichetă (opțional)"
+            label={t('settings:company.siteLabel')}
             value={location.label}
-            placeholder="Depozit Cluj"
+            placeholder={t('settings:company.siteLabelPlaceholder')}
             onChange={(label) => onChange({ ...location, label })}
           />
         </div>
@@ -190,7 +191,7 @@ function WorkLocationBlock({
           variant="ghost"
           size="icon"
           className="mb-[1px] w-9 shrink-0"
-          aria-label="Șterge punctul de lucru"
+          aria-label={t('settings:company.deleteSite')}
           onClick={onRemove}
         >
           <Trash2 className="h-4 w-4" />
@@ -222,7 +223,7 @@ export function CompanyProfileCard() {
     mutationFn: (next: CompanyProfile) => api.put<{ profile: CompanyProfile }>('/api/settings/company-profile', next),
     onSuccess: (data) => {
       queryClient.setQueryData(['settings', 'company-profile'], data)
-      toast.success('Date firmă salvate')
+      toast.success(t('settings:company.saved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -236,45 +237,45 @@ export function CompanyProfileCard() {
     <Card>
       <CardContent className="space-y-5 pt-6">
         <div>
-          <CardTitle className="text-base">Date firmă</CardTitle>
+          <CardTitle className="text-base">{t('settings:company.title')}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Fișă de referință — copiază rapid ce completezi mereu prin formulare, contracte sau înregistrări.
+            {t('settings:company.hint')}
           </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <FieldRow id="company-name" label="Nume firmă" value={profile.name} onChange={(v) => set('name', v)} />
-          <FieldRow id="company-cui" label="CUI" value={profile.cui} onChange={(v) => set('cui', v)} />
+          <FieldRow id="company-name" label={t('settings:company.name')} value={profile.name} onChange={(v) => set('name', v)} />
+          <FieldRow id="company-cui" label={t('settings:company.cui')} value={profile.cui} onChange={(v) => set('cui', v)} />
           <FieldRow
             id="company-vat-intra"
-            label="Cod TVA intracomunitar"
+            label={t('settings:company.vatCode')}
             value={profile.vatIntraCode}
             onChange={(v) => set('vatIntraCode', v)}
           />
           <FieldRow
             id="company-reg-com"
-            label="Înregistrare Registrul Comerțului"
+            label={t('settings:company.tradeRegister')}
             value={profile.regCom}
             onChange={(v) => set('regCom', v)}
           />
         </div>
 
         <div className="space-y-3 border-t pt-4">
-          <p className="text-sm font-medium">Alte date</p>
+          <p className="text-sm font-medium">{t('settings:company.other')}</p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <FieldRow id="company-caen" label="Cod CAEN principal" value={profile.caenCode} onChange={(v) => set('caenCode', v)} />
+            <FieldRow id="company-caen" label={t('settings:company.caen')} value={profile.caenCode} onChange={(v) => set('caenCode', v)} />
             <FieldRow
               id="company-capital"
-              label="Capital social"
+              label={t('settings:company.shareCapital')}
               value={profile.capitalSocial}
               onChange={(v) => set('capitalSocial', v)}
             />
             <FieldRow id="company-iban" label="IBAN" value={profile.iban} onChange={(v) => set('iban', v)} />
-            <FieldRow id="company-bank" label="Bancă" value={profile.bank} onChange={(v) => set('bank', v)} />
-            <FieldRow id="company-phone" label="Telefon firmă" value={profile.phone} onChange={(v) => set('phone', v)} />
-            <FieldRow id="company-email" label="Email firmă" value={profile.email} onChange={(v) => set('email', v)} />
+            <FieldRow id="company-bank" label={t('settings:company.bank')} value={profile.bank} onChange={(v) => set('bank', v)} />
+            <FieldRow id="company-phone" label={t('settings:company.phone')} value={profile.phone} onChange={(v) => set('phone', v)} />
+            <FieldRow id="company-email" label={t('settings:company.email')} value={profile.email} onChange={(v) => set('email', v)} />
             <div className="space-y-1">
-              <Label htmlFor="company-turnover">Cifră de afaceri anuală (lei)</Label>
+              <Label htmlFor="company-turnover">{t('settings:company.turnover')}</Label>
               <div className="flex gap-1">
                 <Input
                   id="company-turnover"
@@ -284,13 +285,13 @@ export function CompanyProfileCard() {
                 />
                 <CopyButton value={profile.annualTurnoverRon} />
               </div>
-              <p className="text-xs text-muted-foreground">Pragul folosit la filtrarea de eligibilitate în Licitații (Secțiunea 3 SICAP).</p>
+              <p className="text-xs text-muted-foreground">{t('settings:company.turnoverHint')}</p>
             </div>
           </div>
         </div>
 
         <div className="space-y-3 border-t pt-4">
-          <p className="text-sm font-medium">Sediu social</p>
+          <p className="text-sm font-medium">{t('settings:company.registeredOffice')}</p>
           <AddressFields
             idPrefix="office"
             address={profile.registeredOffice}
@@ -299,7 +300,7 @@ export function CompanyProfileCard() {
         </div>
 
         <div className="space-y-3 border-t pt-4">
-          <p className="text-sm font-medium">Puncte de lucru</p>
+          <p className="text-sm font-medium">{t('settings:company.workSites')}</p>
           <div className="space-y-3">
             {profile.workLocations.map((location) => (
               <WorkLocationBlock
@@ -322,14 +323,14 @@ export function CompanyProfileCard() {
               set('workLocations', [...profile.workLocations, { id: crypto.randomUUID(), label: '', ...EMPTY_ADDRESS }])
             }
           >
-            <Plus className="h-4 w-4" /> Punct de lucru nou
+            <Plus className="h-4 w-4" /> {t('settings:company.newWorkSite')}
           </Button>
         </div>
 
         <div className="flex justify-end border-t pt-4">
           <Button disabled={save.isPending} onClick={() => save.mutate(profile)}>
             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Salvează
+            {t('common:actions.save')}
           </Button>
         </div>
       </CardContent>

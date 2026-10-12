@@ -1,0 +1,124 @@
+{
+  "chart": {
+    "candlesUnavailable": "Candles are not available right now.",
+    "changeInRange": "{{value}}% in the range",
+    "line": "Line",
+    "candles": "Candles",
+    "unavailable": "The chart is not available right now."
+  },
+  "range": {
+    "oneYear": "1 year"
+  },
+  "coin": {
+    "backToCrypto": "Back to Crypto",
+    "about": "About {{name}}",
+    "loadFailed": "The coin could not be loaded: {{reason}}",
+    "missing": "it does not exist"
+  },
+  "favorites": {
+    "inFavorites": "In favorites",
+    "add": "Add to favorites",
+    "title": "Favorites",
+    "empty": "No favorite yet. Search for a coin above and press it to add it.",
+    "remove": "Remove from favorites"
+  },
+  "order": {
+    "orderFor": "Order {{binanceSymbol}}",
+    "orderOn": "Order on {{symbol}}USDT",
+    "liveSent": "Live order sent to Binance",
+    "newTitle": "New order: Binance",
+    "hint": "Preview → execute. Live needs the kill switch on in Settings; without it, paper only.",
+    "pair": "Pair",
+    "side": "Side",
+    "buy": "Buy",
+    "sell": "Sell",
+    "limitPrice": "Limit price",
+    "stepPreview": "Step 1 · Preview",
+    "stepExecute": "Step 2 · Execute",
+    "paperFilled": "Paper order filled",
+    "paperOpen": "Paper order open",
+    "previewLine": "Reference: {{reference}} · Estimate: {{estimate}}",
+    "mode": "Mode: {{mode}}",
+    "killSwitchOff": " (kill switch OFF, the live order will be rejected)",
+    "typeMarket": "Market",
+    "typeLimit": "Limit"
+  },
+  "stats": {
+    "marketCap": "Market cap",
+    "volume24h": "24h volume",
+    "circulatingSupply": "Circulating supply",
+    "fromAth": "From ATH",
+    "fromAtl": "From ATL",
+    "binancePair": "Binance pair",
+    "orderButtonHint": "the Order button opens the form"
+  },
+  "search": {
+    "placeholder": "Search any coin or DEX pool…",
+    "noResult": "No result.",
+    "dexOnlyHint": "DEX only: it can be followed and alerted on, not traded on a CEX"
+  },
+  "alert": {
+    "created": "Price alert created",
+    "create": "Create a price alert",
+    "whenPrice": "Alert when the price is…",
+    "above": "Above",
+    "below": "Below",
+    "thresholdPlaceholder": "USD threshold"
+  },
+  "mode": {
+    "live": "Live trading on",
+    "paper": "Paper mode"
+  },
+  "tabs": {
+    "market": "Market",
+    "bot": "Bot"
+  },
+  "portfolio": {
+    "title": "Portfolio",
+    "empty": "No position. Connect Binance in Settings and place paper orders.",
+    "asset": "Asset",
+    "realizedPnl": "Realized P&L (paper): {{value}}"
+  },
+  "orders": {
+    "recent": "Recent orders",
+    "none": "No order placed yet."
+  },
+  "market": {
+    "topMarketCap": "Top market cap",
+    "perPage": "{{n}} coins per page",
+    "emptyCategory": "No coin for this category.",
+    "coin": "Coin",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "page {{page}}",
+    "pageOf": "page {{page}} of {{total}}"
+  },
+  "settings": {
+    "connected": "Exchange connected. The key is encrypted in the database",
+    "disconnected": "Exchange disconnected",
+    "liveOn": "Live trading switched ON",
+    "liveOff": "Live trading switched OFF",
+    "keyHint": "A key with read + spot trading permissions, WITHOUT withdrawal. An IP whitelist on the server's IP is recommended.",
+    "killSwitch": "Live trading kill switch",
+    "killSwitchHint": "Off = live orders are rejected; paper stays available.",
+    "apiKey": "API key",
+    "apiSecret": "API secret"
+  },
+  "bot": {
+    "loadFailed": "The bot status could not be loaded. Retrying automatically in a minute.",
+    "noDataTitle": "The bot has not sent data yet",
+    "noDataHint": "The first snapshot shows up after the bot's export runs with the ingest token configured.",
+    "prices": "Prices",
+    "newsLine": "News 24h {{count}} · labeled {{labeled}}",
+    "sourceErrors": "Sources with errors: {{list}}",
+    "errorSince": "{{source}} ({{error}}, for {{since}})"
+  },
+  "learning": {
+    "title": "What it learns",
+    "newsHint": "Important news, with Jeff's sentiment",
+    "model": "LightGBM model: {{state}}",
+    "promoted": "promoted",
+    "promotedWithHoldout": "promoted, {{pct}} on holdout",
+    "notPromoted": "not promoted; the trader stays flat until it passes the gate"
+  }
+}

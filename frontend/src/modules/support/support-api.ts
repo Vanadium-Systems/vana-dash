@@ -3,6 +3,7 @@ import type { StateTone } from '@/shared/components/ui/state-pill'
 import { api } from '@/shared/lib/api'
 import { useMe } from '@/shared/hooks/use-me'
 import type { SupportTicketStatus } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Aceleași ecrane servesc două priviri: tichetele mele (`mine`) și toate tichetele, pentru
 // contul de platformă (`platform`). Diferă doar prefixul de API și cel de rută.
@@ -14,9 +15,9 @@ export const SUPPORT_PATHS: Record<SupportScope, { api: string; route: string }>
 }
 
 export const STATUS_LABEL: Record<SupportTicketStatus, string> = {
-  deschis: 'Deschis',
-  raspuns: 'Răspuns',
-  inchis: 'Închis',
+  deschis: t('support:status.open'),
+  raspuns: t('support:status.answered'),
+  inchis: t('support:status.closed'),
 }
 
 export const STATUS_TONE: Record<SupportTicketStatus, StateTone> = {

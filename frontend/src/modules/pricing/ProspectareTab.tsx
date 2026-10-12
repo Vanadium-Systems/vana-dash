@@ -22,6 +22,7 @@ import { ProspectStatusesCard } from './ProspectStatusesCard'
 import { ScoringConfigCard } from './ScoringConfigCard'
 import { StatusDot } from './status-colors'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { t } from '@/shared/lib/i18n'
 
 const PRIORITY_VARIANT: Record<ProspectPriority, 'destructive' | 'warning' | 'secondary' | 'outline'> = {
   HOT: 'destructive',
@@ -125,7 +126,7 @@ export function ProspectareTab() {
     mutationFn: (id: string) => api.delete<void>(`/api/prospects/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
-      toast.success('Prospect șters')
+      toast.success(t('pricing:prospects.deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -134,7 +135,7 @@ export function ProspectareTab() {
     mutationFn: (id: string) => api.post<Prospect>(`/api/prospects/${id}/archive`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
-      toast.success('Prospect arhivat')
+      toast.success(t('pricing:prospects.archived'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -143,7 +144,7 @@ export function ProspectareTab() {
     mutationFn: (id: string) => api.post<Prospect>(`/api/prospects/${id}/unarchive`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
-      toast.success('Prospect dezarhivat')
+      toast.success(t('pricing:prospects.unarchived'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -153,7 +154,7 @@ export function ProspectareTab() {
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
       setSelectedIds(new Set())
-      toast.success(`${data.archived} prospecți arhivați`)
+      toast.success(t('pricing:prospects.archivedMany', { count: data.archived }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -163,7 +164,7 @@ export function ProspectareTab() {
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
       setSelectedIds(new Set())
-      toast.success(`${data.unarchived} prospecți dezarhivați`)
+      toast.success(t('pricing:prospects.unarchivedMany', { count: data.unarchived }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -178,7 +179,7 @@ export function ProspectareTab() {
     },
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
-      toast.success(`Import reușit — ${data.imported} noi, ${data.updated} actualizați`)
+      toast.success(t('pricing:prospects.importDone', { imported: data.imported, updated: data.updated }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -196,11 +197,11 @@ export function ProspectareTab() {
     },
     onSuccess: (rows) => {
       if (!rows.length) {
-        toast.error('Niciun prospect nu se încadrează în filtrele bifate')
+        toast.error(t('pricing:prospects.noneMatchFilters'))
         return
       }
       downloadCsv(`prospecti-${new Date().toISOString().slice(0, 10)}.csv`, [
-        ['Prioritate', 'Scor', 'Firmă', 'CIF', 'Telefon', 'Email', 'Contact', 'Status', 'Notițe', 'Angajați', 'CA', 'Sursă', 'Arhivat'],
+        [t('common:labels.priority'), t('pricing:prospects.score'), t('common:labels.company'), t('common:labels.cif'), t('common:labels.phone'), t('common:labels.email'), t('pricing:prospects.contact'), t('common:labels.status'), t('common:nav.notes'), t('pricing:prospects.employees'), t('pricing:prospects.turnoverShort'), t('common:labels.source'), t('pricing:prospects.archivedFlag')],
         ...rows.map((p) => [
           p.priority,
           p.score ?? '',
@@ -217,7 +218,7 @@ export function ProspectareTab() {
           p.archivedAt ? 'da' : 'nu',
         ]),
       ])
-      toast.success(`${rows.length} prospecți exportați`)
+      toast.success(t('pricing:prospects.exported', { count: rows.length }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -229,16 +230,16 @@ export function ProspectareTab() {
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[10rem] flex-1 space-y-1">
-          <label className="text-xs text-muted-foreground">Căutare (nume/CIF/telefon/email/contact)</label>
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ex: Acme, CUI, 0722, office@... sau nume persoană" />
+          <label className="text-xs text-muted-foreground">{t('pricing:prospects.searchLabel')}</label>
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('pricing:prospects.searchPlaceholder')} />
         </div>
         <div className="w-40 space-y-1">
-          <label className="text-xs text-muted-foreground">Sursă import (opțional)</label>
-          <Input value={importSource} onChange={(e) => setImportSource(e.target.value)} placeholder="ex: BUC 2025" />
+          <label className="text-xs text-muted-foreground">{t('pricing:prospects.importSource')}</label>
+          <Input value={importSource} onChange={(e) => setImportSource(e.target.value)} placeholder={t('pricing:prospects.importSourcePlaceholder')} />
         </div>
         <label className="flex items-center gap-2 pb-2 text-xs text-muted-foreground">
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
-          Arată arhivate
+          {t('pricing:prospects.showArchived')}
         </label>
         <input
           ref={fileInputRef}
@@ -252,13 +253,13 @@ export function ProspectareTab() {
           }}
         />
         <Button type="button" variant="outline" disabled={importCsv.isPending} onClick={() => fileInputRef.current?.click()}>
-          <Upload className="h-4 w-4" /> {importCsv.isPending ? 'Se importă…' : 'Import CSV'}
+          <Upload className="h-4 w-4" /> {importCsv.isPending ? t('pricing:prospects.importing') : t('pricing:prospects.importCsv')}
         </Button>
       </div>
 
       <div className="flex flex-wrap items-start gap-4">
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Prioritate (bifează ce vrei să vezi — nimic bifat = toate)</label>
+          <label className="text-xs text-muted-foreground">{t('pricing:prospects.priorityFilter')}</label>
           <div className="flex flex-wrap gap-1">
             {(['HOT', 'WARM', 'NURTURE', 'SKIP'] as const).map((p) => {
               const active = priorityFilter.includes(p)
@@ -277,7 +278,7 @@ export function ProspectareTab() {
           </div>
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Status (bifează ce vrei să vezi — nimic bifat = toate)</label>
+          <label className="text-xs text-muted-foreground">{t('pricing:prospects.statusFilter')}</label>
           <div className="flex flex-wrap gap-1">
             {statusCatalog.map((s) => {
               const active = statusFilter.includes(s.key)
@@ -299,32 +300,32 @@ export function ProspectareTab() {
         <div className="ml-auto flex items-end gap-3">
           <label className="flex items-center gap-2 pb-2 text-xs text-muted-foreground">
             <input type="checkbox" checked={exportIncludeArchived} onChange={(e) => setExportIncludeArchived(e.target.checked)} />
-            Din arhivă
+            {t('pricing:prospects.fromArchive')}
           </label>
           <Button type="button" variant="outline" disabled={exportCsv.isPending} onClick={() => exportCsv.mutate()}>
-            <Download className="h-4 w-4" /> {exportCsv.isPending ? 'Se exportă…' : 'Export CSV'}
+            <Download className="h-4 w-4" /> {exportCsv.isPending ? t('pricing:prospects.exporting') : t('common:actions.exportCsv')}
           </Button>
         </div>
       </div>
 
       {selectedIds.size > 0 ? (
         <div className="flex items-center justify-between rounded-md border bg-muted/50 px-3 py-2">
-          <span className="text-sm">{selectedIds.size} selectat{selectedIds.size === 1 ? '' : 'i'}</span>
+          <span className="text-sm">{t('pricing:prospects.selected', { count: selectedIds.size })}</span>
           <div className="flex items-center gap-2">
             <Button type="button" onClick={() => setAddToSequenceTargets(visibleProspects.filter((p) => selectedIds.has(p.id)))}>
-              Adaugă în secvență
+              {t('pricing:prospects.addToSequence')}
             </Button>
             {showArchived ? (
               <Button type="button" variant="outline" onClick={() => unarchiveBulk.mutate([...selectedIds])}>
-                <ArchiveRestore className="h-4 w-4" /> Dezarhivează selecția
+                <ArchiveRestore className="h-4 w-4" /> {t('pricing:prospects.unarchiveSelection')}
               </Button>
             ) : (
               <Button type="button" variant="outline" onClick={() => archiveBulk.mutate([...selectedIds])}>
-                <Archive className="h-4 w-4" /> Arhivează selecția
+                <Archive className="h-4 w-4" /> {t('pricing:prospects.archiveSelection')}
               </Button>
             )}
             <Button type="button" variant="ghost" onClick={() => setSelectedIds(new Set())}>
-              Golește selecția
+              {t('pricing:prospects.clearSelection')}
             </Button>
           </div>
         </div>
@@ -335,9 +336,9 @@ export function ProspectareTab() {
           {prospects.isPending ? (
             <Skeleton className="h-64 w-full" />
           ) : !prospects.data?.length ? (
-            <p className="text-sm text-muted-foreground">Niciun prospect încă — importă un CSV pentru a începe.</p>
+            <p className="text-sm text-muted-foreground">{t('pricing:prospects.empty')}</p>
           ) : !visibleProspects.length ? (
-            <p className="text-sm text-muted-foreground">Niciun prospect nu se încadrează în filtrele bifate — debifează câteva.</p>
+            <p className="text-sm text-muted-foreground">{t('pricing:prospects.noneMatchFiltersHint')}</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -352,15 +353,15 @@ export function ProspectareTab() {
                         }
                       />
                     </TableHead>
-                    <TableHead>Prioritate</TableHead>
-                    <TableHead>Scor</TableHead>
-                    <TableHead>Firmă</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Notițe</TableHead>
-                    <TableHead>Angajați</TableHead>
-                    <TableHead>CA</TableHead>
-                    <TableHead>Acțiuni</TableHead>
+                    <TableHead>{t('common:labels.priority')}</TableHead>
+                    <TableHead>{t('pricing:prospects.score')}</TableHead>
+                    <TableHead>{t('common:labels.company')}</TableHead>
+                    <TableHead>{t('pricing:prospects.contact')}</TableHead>
+                    <TableHead>{t('common:labels.status')}</TableHead>
+                    <TableHead>{t('common:nav.notes')}</TableHead>
+                    <TableHead>{t('pricing:prospects.employees')}</TableHead>
+                    <TableHead>{t('pricing:prospects.turnoverShort')}</TableHead>
+                    <TableHead>{t('common:labels.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -386,14 +387,14 @@ export function ProspectareTab() {
                       <TableCell className="font-mono text-xs">{p.score ?? '—'}</TableCell>
                       <TableCell>
                         <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-muted-foreground">{p.cif ?? 'fără CIF'}</div>
+                        <div className="text-xs text-muted-foreground">{p.cif ?? t('pricing:prospects.noCif')}</div>
                       </TableCell>
                       <TableCell className="min-w-[11rem] space-y-1 text-xs">
                         {editingContactId === p.id ? (
                           <>
                             <Input
                               className="h-control-sm"
-                              placeholder="Telefon"
+                              placeholder={t('common:labels.phone')}
                               autoComplete="off"
                               defaultValue={p.phone ?? ''}
                               onBlur={(e) => {
@@ -402,7 +403,7 @@ export function ProspectareTab() {
                             />
                             <Input
                               className="h-control-sm"
-                              placeholder="Email"
+                              placeholder={t('common:labels.email')}
                               autoComplete="off"
                               defaultValue={p.email ?? ''}
                               onBlur={(e) => {
@@ -411,7 +412,7 @@ export function ProspectareTab() {
                             />
                             <Input
                               className="h-control-sm"
-                              placeholder="Persoană de contact"
+                              placeholder={t('pricing:prospects.contactPerson')}
                               autoComplete="off"
                               defaultValue={p.contactName ?? ''}
                               onBlur={(e) => {
@@ -419,7 +420,7 @@ export function ProspectareTab() {
                               }}
                             />
                             <Button size="sm" type="button" variant="outline" className="gap-1" onClick={() => setEditingContactId(null)}>
-                              <Check className="h-3 w-3" /> Gata
+                              <Check className="h-3 w-3" /> {t('pricing:prospects.done')}
                             </Button>
                           </>
                         ) : (
@@ -464,7 +465,7 @@ export function ProspectareTab() {
                               type="button"
                               variant="outline"
                               className="shrink-0"
-                              title="Editează telefon/email/contact"
+                              title={t('pricing:prospects.editContactHint')}
                               onClick={() => setEditingContactId(p.id)}
                             >
                               <Pencil className="h-3 w-3" />
@@ -505,19 +506,19 @@ export function ProspectareTab() {
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           <Button type="button" variant="outline" onClick={() => navigate(`/pricing?tab=calculator&prospectId=${p.id}`)}>
-                            Calculează preț
+                            {t('pricing:prospects.calculatePrice')}
                           </Button>
                           {!p.billingClientId && (
                             <Button type="button" variant="outline" onClick={() => setPromoteTarget(p)}>
-                              Promovează
+                              {t('pricing:prospects.promote')}
                             </Button>
                           )}
                           {showArchived ? (
                             <Button type="button" variant="outline" onClick={() => unarchiveProspect.mutate(p.id)}>
-                              <ArchiveRestore className="h-4 w-4" /> Dezarhivează
+                              <ArchiveRestore className="h-4 w-4" /> {t('pricing:prospects.unarchive')}
                             </Button>
                           ) : (
-                            <Button type="button" variant="ghost" title="Arhivează" onClick={() => archiveProspect.mutate(p.id)}>
+                            <Button type="button" variant="ghost" title={t('common:actions.archive')} onClick={() => archiveProspect.mutate(p.id)}>
                               <Archive className="h-4 w-4" />
                             </Button>
                           )}
@@ -525,7 +526,7 @@ export function ProspectareTab() {
                             type="button"
                             variant="ghost"
                             onClick={() => {
-                              void confirm({ title: `Șterge prospectul „${p.name}”`, consequence: 'Dispare din listă împreună cu notițele și statusul lui.', confirmLabel: 'Șterge prospectul', destructive: true }).then((ok) => ok && removeProspect.mutate(p.id))
+                              void confirm({ title: t('pricing:prospects.deleteTitle', { name: p.name }), consequence: t('pricing:prospects.deleteBody'), confirmLabel: t('pricing:prospects.deleteConfirm'), destructive: true }).then((ok) => ok && removeProspect.mutate(p.id))
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -541,7 +542,7 @@ export function ProspectareTab() {
           {visibleProspects.length > 0 && (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
-                <span>Rânduri/pagină</span>
+                <span>{t('pricing:prospects.rowsPerPage')}</span>
                 <Select
                   className="w-auto"
                   size="sm"
@@ -560,13 +561,13 @@ export function ProspectareTab() {
               </div>
               <div className="flex items-center gap-2">
                 <span>
-                  {clampedPage * pageSize + 1}–{Math.min((clampedPage + 1) * pageSize, visibleProspects.length)} din {visibleProspects.length}
+                  {t('pricing:pagination.range', { from: clampedPage * pageSize + 1, to: Math.min((clampedPage + 1) * pageSize, visibleProspects.length), total: visibleProspects.length })}
                 </span>
                 <Button type="button" variant="outline" disabled={clampedPage === 0} onClick={() => setPage(clampedPage - 1)}>
-                  Înapoi
+                  {t('common:actions.back')}
                 </Button>
                 <Button type="button" variant="outline" disabled={clampedPage >= pageCount - 1} onClick={() => setPage(clampedPage + 1)}>
-                  Înainte
+                  {t('pricing:prospects.nextPage')}
                 </Button>
               </div>
             </div>

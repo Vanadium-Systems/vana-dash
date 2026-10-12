@@ -16,16 +16,17 @@ import { formatNumber } from '@/shared/lib/format'
 import { calculatePrice } from './calc'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 function exportCalculatorCsv(result: PricingResult, platformName: string) {
   downloadCsv(`calculator-pret-${new Date().toISOString().slice(0, 10)}.csv`, [
-    ['Platformă', platformName],
+    [t('common:labels.platform'), platformName],
     ['Plan', result.planName ?? '—'],
-    ['Total lunar (EUR)', String(result.totalMonthly)],
-    ['Total anual (EUR)', String(result.totalAnnual)],
-    ['Taxă de inițiere — one-time (EUR)', String(result.onboardingTotal)],
+    [t('pricing:calc.csv.monthlyTotal'), String(result.totalMonthly)],
+    [t('pricing:calc.csv.yearlyTotal'), String(result.totalAnnual)],
+    [t('pricing:calc.csv.setupFee'), String(result.onboardingTotal)],
     [],
-    ['Componentă', 'Valoare (EUR)'],
+    [t('pricing:calc.csv.component'), t('pricing:calc.csv.value')],
     ...result.breakdown.map((row) => [row.label, String(row.value)]),
   ])
 }
@@ -117,18 +118,18 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
     // prețul e afișat și în lista de clienți din acest tab (['billing-clients'])
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
-      toast.success('Preț aplicat clientului (EUR)')
+      toast.success(t('pricing:calc.csv.appliedPrice'))
     },
     onError: (err) => toast.error(err.message),
   })
 
   if (!platformId) {
-    return <p className="text-sm text-muted-foreground">Nicio platformă conectată încă — adaugă una din pagina Platforms.</p>
+    return <p className="text-sm text-muted-foreground">{t('pricing:noPlatform')}</p>
   }
 
   if (config.isPending) return <Skeleton className="h-64 w-full" />
   if (!config.data?.config) {
-    return <p className="text-sm text-muted-foreground">Configurează mai întâi prețul din tab-ul "Config preț" pentru această platformă.</p>
+    return <p className="text-sm text-muted-foreground">{t('pricing:calc.configureFirst')}</p>
   }
 
   const activeBundle = config.data.config.bundles.find((b) => b.key === input.selectedBundleKey)
@@ -138,7 +139,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
     <div className="space-y-6">
       <div className="w-56 space-y-1">
         <Label htmlFor="calc-platform" className="text-xs text-muted-foreground">
-          Platformă
+          {t('common:labels.platform')}
         </Label>
         <Select
           id="calc-platform"
@@ -155,33 +156,33 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
-          <CardTitle>Calculator</CardTitle>
+          <CardTitle>{t('pricing:tabs.calculator')}</CardTitle>
           <Button
             type="button"
             variant="outline"
             onClick={() => window.open(`/api/pricing/price-sheet?platformId=${platformId}`, '_blank')}
           >
-            <Download className="h-4 w-4" /> Fișă prețuri (PDF)
+            <Download className="h-4 w-4" /> {t('pricing:calc.priceSheet')}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             <div className="space-y-1">
               <Label htmlFor="calc-flux" className="flex h-4 items-center text-xs">
-                Flux
+                {t('pricing:calc.flow')}
               </Label>
               <Select
                 id="calc-flux"
                 value={input.flux}
                 onChange={(e) => setInput((i) => ({ ...i, flux: e.target.value as 'standard' | 'deee' }))}
               >
-                <option value="standard">Standard</option>
+                <option value="standard">{t('pricing:calc.flowStandard')}</option>
                 <option value="deee">DEEE / DBA</option>
               </Select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="calc-op-desktop" className="flex h-4 items-center text-xs">
-                Operatori desktop
+                {t('pricing:fields.desktopOperators')}
               </Label>
               <Input id="calc-op-desktop" inputMode="numeric" value={input.opDesktop} onChange={(e) => setInput((i) => ({ ...i, opDesktop: parseRoDecimal(e.target.value) || 0 }))} />
             </div>
@@ -196,26 +197,26 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                     if (!e.target.checked) setInput((i) => ({ ...i, opMobil: 0 }))
                   }}
                 />
-                Aplicație mobilă
+                {t('pricing:calc.mobileApp')}
               </label>
               <Input
                 id="calc-op-mobil"
                 inputMode="numeric"
                 disabled={!mobilEnabled}
-                placeholder="Operatori mobil"
+                placeholder={t('pricing:fields.mobileOperators')}
                 value={input.opMobil}
                 onChange={(e) => setInput((i) => ({ ...i, opMobil: parseRoDecimal(e.target.value) || 0 }))}
               />
             </div>
             <div className="space-y-1">
               <Label htmlFor="calc-puncte" className="flex h-4 items-center text-xs">
-                Puncte de lucru
+                {t('pricing:fields.workSites')}
               </Label>
               <Input id="calc-puncte" inputMode="numeric" value={input.puncte} onChange={(e) => setInput((i) => ({ ...i, puncte: parseRoDecimal(e.target.value) || 0 }))} />
             </div>
             <div className="space-y-1">
               <Label htmlFor="calc-documente" className="flex h-4 items-center text-xs">
-                Documente/lună
+                {t('pricing:fields.documentsPerMonth')}
               </Label>
               <Input id="calc-documente" inputMode="numeric" value={input.documente} onChange={(e) => setInput((i) => ({ ...i, documente: parseRoDecimal(e.target.value) || 0 }))} />
             </div>
@@ -230,13 +231,13 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                     if (!e.target.checked) setInput((i) => ({ ...i, siatd: 0 }))
                   }}
                 />
-                Robot SIATD
+                {t('pricing:calc.siatdRobot')}
               </label>
               <Input
                 id="calc-siatd"
                 inputMode="numeric"
                 disabled={!siatdEnabled}
-                placeholder="Achiziții/lună"
+                placeholder={t('pricing:calc.purchasesPerMonth')}
                 value={input.siatd}
                 onChange={(e) => setInput((i) => ({ ...i, siatd: parseRoDecimal(e.target.value) || 0 }))}
               />
@@ -252,13 +253,13 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                     if (!e.target.checked) setInput((i) => ({ ...i, cantare: 0 }))
                   }}
                 />
-                Cântare smart conectate
+                {t('pricing:calc.connectedScales')}
               </label>
               <Input
                 id="calc-cantare"
                 inputMode="numeric"
                 disabled={!cantareEnabled}
-                placeholder="Nr. cântare"
+                placeholder={t('pricing:calc.scalesCount')}
                 value={input.cantare}
                 onChange={(e) => setInput((i) => ({ ...i, cantare: parseRoDecimal(e.target.value) || 0 }))}
               />
@@ -267,7 +268,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
           {config.data.config.bundles.length > 0 ? (
             <div className="w-56 space-y-1">
               <Label htmlFor="calc-bundle" className="text-xs">
-                Pachet (preț fix, combinabil cu add-on-uri din afara lui)
+                {t('pricing:calc.bundle')}
               </Label>
               <Select
                 id="calc-bundle"
@@ -291,7 +292,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                   if (bundle?.cantare) setCantareEnabled(true)
                 }}
               >
-                <option value="">Niciun pachet</option>
+                <option value="">{t('pricing:calc.noBundle')}</option>
                 {config.data.config.bundles.map((b) => (
                   <option key={b.key} value={b.key}>
                     {b.label}
@@ -314,7 +315,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                         type="checkbox"
                         checked={includedInBundle || selected}
                         disabled={includedInBundle}
-                        title={includedInBundle ? `Inclus deja în „${activeBundle?.label}"` : undefined}
+                        title={includedInBundle ? t('pricing:calc.includedIn', { label: activeBundle?.label }) : undefined}
                         onChange={(e) =>
                           setInput((i) => ({
                             ...i,
@@ -348,7 +349,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
 
           {config.data.config.equipmentItems.length > 0 ? (
             <div className="space-y-2 border-t pt-3">
-              <Label className="text-xs text-muted-foreground">Echipamente</Label>
+              <Label className="text-xs text-muted-foreground">{t('pricing:calc.equipment')}</Label>
               <div className="flex flex-wrap gap-4">
                 {config.data.config.equipmentItems.map((equipment) => (
                   <label key={equipment.id} className="flex items-center gap-2 text-sm">
@@ -372,25 +373,25 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
           ) : null}
 
           <Button onClick={() => calc.mutate()} disabled={calc.isPending}>
-            {calc.isPending ? 'Se calculează…' : 'Calculează'}
+            {calc.isPending ? t('common:states.calculating') : t('pricing:calc.calculate')}
           </Button>
 
           {result && (
             <div className="space-y-3 rounded-md bg-muted/50 p-4">
               {isLocalResult && (
                 <p className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning dark:bg-transparent">
-                  ⚠ Calculat local — offline. Rezultatul nu a fost confirmat de server, verifică din nou când revine conexiunea.
+                  {t('pricing:calc.offlineWarning')}
                 </p>
               )}
               {result.manualReviewNeeded && (
                 <p className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning dark:bg-transparent">
-                  ⚠ Volum peste pragul calculat automat — NU te baza pe cifra de mai jos ca preț final, discută manual.
+                  {t('pricing:calc.overThreshold')}
                 </p>
               )}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 {result.planName ? (
                   <div className="inline-flex w-fit items-center rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                    Plan: {result.planName}
+                    {t('pricing:calc.plan', { planName: result.planName })}
                   </div>
                 ) : (
                   <div />
@@ -400,20 +401,20 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                   variant="outline"
                   onClick={() => exportCalculatorCsv(result, platforms.find((p) => p.id === platformId)?.name ?? platformId)}
                 >
-                  <Download className="h-4 w-4" /> Exportă CSV
+                  <Download className="h-4 w-4" /> {t('pricing:actions.exportCsv')}
                 </Button>
               </div>
               <div className="flex flex-wrap gap-6">
                 <div>
-                  <div className="text-xs text-muted-foreground">Lunar</div>
+                  <div className="text-xs text-muted-foreground">{t('common:labels.monthly')}</div>
                   <div className="text-xl font-bold">{formatNumber(result.totalMonthly, 'EUR')}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">Anual</div>
+                  <div className="text-xs text-muted-foreground">{t('common:labels.yearly')}</div>
                   <div className="text-xl font-bold">{formatNumber(result.totalAnnual, 'EUR')}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">Taxă inițiere (one-time)</div>
+                  <div className="text-xs text-muted-foreground">{t('pricing:calc.setupFee')}</div>
                   <div className="text-xl font-bold">{formatNumber(result.onboardingTotal, 'EUR')}</div>
                 </div>
               </div>
@@ -429,14 +430,14 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
               <div className="flex flex-wrap items-end gap-2 border-t pt-3">
                 <div className="min-w-[14rem] flex-1 space-y-1">
                   <Label htmlFor="calc-apply-client" className="text-xs">
-                    Aplică la client
+                    {t('pricing:calc.applyToClient')}
                   </Label>
                   <Select
                     id="calc-apply-client"
                     value={billingClientId}
                     onChange={(e) => setBillingClientId(e.target.value)}
                   >
-                    <option value="">— alege client —</option>
+                    <option value="">{t('pricing:calc.pickClient')}</option>
                     {(clients.data ?? []).map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -448,12 +449,12 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                   type="button"
                   variant="outline"
                   disabled={!billingClientId || applyToClient.isPending || isLocalResult}
-                  title={isLocalResult ? 'Rezultat calculat local (offline) — nu poate fi aplicat până la confirmarea de la server' : undefined}
+                  title={isLocalResult ? t('pricing:calc.offlineCannotApply') : undefined}
                   onClick={() => {
-                    void confirm({ title: 'Aplică prețul calculat clientului', consequence: 'Prețul de abonament actual al clientului se înlocuiește cu valoarea de mai sus.', confirmLabel: 'Aplică prețul' }).then((ok) => ok && applyToClient.mutate())
+                    void confirm({ title: t('pricing:calc.applyTitle'), consequence: t('pricing:calc.applyBody'), confirmLabel: t('pricing:calc.applyConfirm') }).then((ok) => ok && applyToClient.mutate())
                   }}
                 >
-                  Aplică la client
+                  {t('pricing:calc.applyToClient')}
                 </Button>
               </div>
             </div>

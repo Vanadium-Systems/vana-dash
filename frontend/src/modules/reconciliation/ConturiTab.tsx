@@ -16,6 +16,7 @@ import { MatchDialog } from './MatchDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 export function ConturiTab() {
   const confirm = useConfirm()
@@ -47,7 +48,7 @@ export function ConturiTab() {
     mutationFn: (id: string) => api.post(`/api/reconciliation/accounts/${id}/sync`),
     onSuccess: () => {
       invalidate()
-      toast.success('Sync bancar rulat')
+      toast.success(t('reconciliation:accounts.syncDone'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -56,7 +57,7 @@ export function ConturiTab() {
     mutationFn: (id: string) => api.delete<void>(`/api/reconciliation/accounts/${id}`),
     onSuccess: () => {
       invalidate()
-      toast.success('Cont șters')
+      toast.success(t('reconciliation:accounts.deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -66,7 +67,7 @@ export function ConturiTab() {
     onSuccess: () => {
       invalidate()
       void queryClient.invalidateQueries({ queryKey: ['accounting'] })
-      toast.success('Match anulat — factura readusă la neplătită')
+      toast.success(t('reconciliation:transactions.matchCancelled'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -80,32 +81,31 @@ export function ConturiTab() {
             setAccountDialogOpen(true)
           }}
         >
-          <Plus className="h-4 w-4" /> Adaugă cont bancar
+          <Plus className="h-4 w-4" /> {t('reconciliation:account.add')}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Conturi bancare</CardTitle>
+          <CardTitle>{t('reconciliation:accounts.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {accounts.isPending ? (
             <Skeleton className="h-20 w-full" />
           ) : !accounts.data?.length ? (
             <p className="text-sm text-muted-foreground">
-              Niciun cont conectat. Adaugă contul Revolut Business — cheia OAuth se configurează separat, în tab-ul
-              Setări.
+              {t('reconciliation:accounts.empty')}
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nume</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Monedă</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ultimul sync</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('common:labels.name')}</TableHead>
+                  <TableHead>{t('reconciliation:labels.provider')}</TableHead>
+                  <TableHead>{t('common:labels.currency')}</TableHead>
+                  <TableHead>{t('common:labels.status')}</TableHead>
+                  <TableHead>{t('reconciliation:accounts.lastSync')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -124,7 +124,7 @@ export function ConturiTab() {
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
-                          title="Sync now"
+                          title={t('reconciliation:accounts.syncNow')}
                           disabled={syncNow.isPending}
                           onClick={() => syncNow.mutate(account.id)}
                         >
@@ -132,7 +132,7 @@ export function ConturiTab() {
                         </Button>
                         <Button
                           variant="outline"
-                          title="Editează"
+                          title={t('common:actions.edit')}
                           onClick={() => {
                             setEditingAccount(account)
                             setAccountDialogOpen(true)
@@ -142,9 +142,9 @@ export function ConturiTab() {
                         </Button>
                         <Button
                           variant="outline"
-                          title="Șterge"
+                          title={t('common:actions.delete')}
                           onClick={() => {
-                            void confirm({ title: `Șterge contul „${account.name}”`, consequence: 'Sincronizarea se oprește. Tranzacțiile importate și potrivirile făcute rămân.', confirmLabel: 'Șterge contul', destructive: true }).then((ok) => ok && removeAccount.mutate(account.id))
+                            void confirm({ title: t('reconciliation:accounts.deleteTitle', { name: account.name }), consequence: t('reconciliation:accounts.deleteBody'), confirmLabel: t('reconciliation:accounts.deleteConfirm'), destructive: true }).then((ok) => ok && removeAccount.mutate(account.id))
                           }}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -162,14 +162,14 @@ export function ConturiTab() {
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle>Tranzacții</CardTitle>
+            <CardTitle>{t('reconciliation:transactions.title')}</CardTitle>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input
                 type="checkbox"
                 checked={unmatchedOnly}
                 onChange={(e) => setUnmatchedOnly(e.target.checked)}
               />
-              Doar nematchuite
+              {t('reconciliation:transactions.onlyUnmatched')}
             </label>
           </div>
         </CardHeader>
@@ -178,20 +178,20 @@ export function ConturiTab() {
             <Skeleton className="h-32 w-full" />
           ) : !transactions.data?.length ? (
             unmatchedOnly ? (
-              <EmptyState kind="filtered" title="Toate tranzacțiile sunt potrivite cu facturi" description="Filtrul arată doar ce e nepotrivit." onReset={() => setUnmatchedOnly(false)} />
+              <EmptyState kind="filtered" title={t('reconciliation:transactions.allMatchedTitle')} description={t('reconciliation:transactions.allMatchedHint')} onReset={() => setUnmatchedOnly(false)} />
             ) : (
-              <EmptyState kind="new" title="Nicio tranzacție importată încă" description="Apar după primul sync al contului bancar." />
+              <EmptyState kind="new" title={t('reconciliation:transactions.emptyTitle')} description={t('reconciliation:transactions.emptyHint')} />
             )
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Contrapartidă</TableHead>
-                  <TableHead>Referință</TableHead>
-                  <TableHead className="text-right">Sumă</TableHead>
-                  <TableHead>Match</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('common:labels.date')}</TableHead>
+                  <TableHead>{t('reconciliation:transactions.counterparty')}</TableHead>
+                  <TableHead>{t('reconciliation:transactions.reference')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
+                  <TableHead>{t('reconciliation:transactions.match')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -230,10 +230,10 @@ export function ConturiTab() {
                                     style={{ width: `${Math.round(Number(txn.match.confidence) * 100)}%` }}
                                   />
                                 </span>
-                                auto {Number(txn.match.confidence).toFixed(2)}
+                                {t('reconciliation:transactions.auto')} {Number(txn.match.confidence).toFixed(2)}
                               </>
                             ) : (
-                              'manual'
+                              t('reconciliation:transactions.manual')
                             )}
                             )
                           </span>
@@ -249,14 +249,14 @@ export function ConturiTab() {
                         {canMatch && txn.match?.id ? (
                           <Button
                             variant="outline"
-                            title="Anulează match-ul"
+                            title={t('reconciliation:transactions.cancelMatch')}
                             disabled={unmatch.isPending}
                             onClick={() => unmatch.mutate(txn.id)}
                           >
                             <Link2Off className="h-4 w-4" />
                           </Button>
                         ) : canMatch && txn.direction === 'in' ? (
-                          <Button variant="outline" title="Match manual" onClick={() => setMatching(txn)}>
+                          <Button variant="outline" title={t('reconciliation:match.manual')} onClick={() => setMatching(txn)}>
                             <Link2 className="h-4 w-4" />
                           </Button>
                         ) : null}

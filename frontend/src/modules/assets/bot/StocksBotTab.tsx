@@ -9,6 +9,8 @@ import { formatSeconds, type StocksOverview, type StocksSnapshot } from '@/share
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { formatSessionTime, pricesLate } from './session'
+import { t } from '@/shared/lib/i18n'
+import { tNodes } from '@/shared/lib/i18n-nodes'
 
 // Tab „Bot" din Assets: portofoliul pe hârtie al jeffbot pe ETF-uri americane (PLAN.md
 // Contract C/D). Simularea rulează pe serverul botului, Alpaca dă doar prețurile și programul bursei.
@@ -23,15 +25,15 @@ export function StocksBotTab() {
   if (overview.isPending) return <BotSkeleton />
   if (overview.isError) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">Nu am putut încărca starea botului. Reîncerc automat într-un minut.</p>
+      <p className="py-12 text-center text-sm text-muted-foreground">{t('crypto:bot.loadFailed')}</p>
     )
   }
   if (!overview.data) {
     return (
       <div className="py-12 text-center">
-        <p className="text-sm font-medium">Botul n-a trimis încă date de bursă</p>
+        <p className="text-sm font-medium">{t('assets:bot.noDataTitle')}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tab-ul se umple după ce serviciul jeffbot-stocks trimite primul snapshot.
+          {t('assets:bot.noDataHint')}
         </p>
       </div>
     )
@@ -50,7 +52,7 @@ export function StocksBotTab() {
           <NewsList
             news={snapshot.news ?? []}
             tags={(n) => [n.etfs.join(', '), n.category ? n.category.replaceAll('_', ' ') : '']}
-            title="Știri de bursă, cu sentimentul lui Jeff"
+            title={t('assets:bot.newsHint')}
           />
         </div>
       </div>
@@ -68,29 +70,25 @@ function StatusStrip({ snapshot, receivedAt }: { snapshot: StocksSnapshot; recei
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
         <BotHealth receivedAt={receivedAt} services={snapshot.services} />
         <span className="text-muted-foreground">
-          {session.isOpen ? 'Bursa deschisă' : 'Bursa închisă'}
-          {session.isOpen && session.nextClose ? (
-            <>
-              , se închide la <span className="tnum">{formatSessionTime(session.nextClose)}</span>
-            </>
-          ) : null}
-          {!session.isOpen && session.nextOpen ? (
-            <>
-              , se deschide <span className="tnum">{formatSessionTime(session.nextOpen)}</span>
-            </>
-          ) : null}
+          {session.isOpen
+            ? session.nextClose
+              ? tNodes('assets:bot.closesAt', { state: t('assets:bot.marketOpen'), time: <span className="tnum">{formatSessionTime(session.nextClose)}</span> })
+              : t('assets:bot.marketOpen')
+            : session.nextOpen
+              ? tNodes('assets:bot.opensAt', { state: t('assets:bot.marketClosed'), time: <span className="tnum">{formatSessionTime(session.nextOpen)}</span> })
+              : t('assets:bot.marketClosed')}
         </span>
         <span className={cn(broker.ok ? 'text-muted-foreground' : 'font-medium text-foreground')}>
-          Alpaca {broker.mode === 'paper' ? 'paper' : 'live'}: {broker.ok ? 'conectat' : 'eroare'}
+          {t('assets:bot.broker', { mode: broker.mode === 'paper' ? 'paper' : 'live', state: broker.ok ? t('assets:bot.connected') : t('assets:bot.error') })}
         </span>
         <span className={cn(late ? 'font-medium text-warning' : 'text-muted-foreground')}>
-          Prețuri <span className="tnum">{formatSeconds(oldestPrice)}</span>
-          {late ? ' (întârzie)' : ''}
+          {t('crypto:bot.prices')} <span className="tnum">{formatSeconds(oldestPrice)}</span>
+          {late ? t('assets:bot.late') : ''}
         </span>
         <PaperBadge />
       </div>
       {!broker.ok && broker.error ? (
-        <p className="text-xs text-warning [overflow-wrap:anywhere]">Alpaca: {broker.error}</p>
+        <p className="text-xs text-warning [overflow-wrap:anywhere]">{t('assets:bot.brokerError', { error: broker.error })}</p>
       ) : null}
     </div>
   )

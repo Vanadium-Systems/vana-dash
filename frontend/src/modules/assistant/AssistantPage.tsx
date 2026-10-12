@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { postSse, type AssistantSseEvent } from './sse'
 import { ChatBubble, ToolLine, type BubbleMessage } from './ChatBubble'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 const CONVERSATION_STORAGE_KEY = 'assistant-conversation-id'
 const INPUT_MAX_CHARS = 32_000
@@ -63,10 +64,10 @@ interface AssistantModel {
 }
 
 const SUGGESTIONS = [
-  'Ce facturi am neplătite?',
-  'Raport pe luna asta',
-  'Ce alerte sunt active?',
-  'Am emailuri necitite?',
+  t('assistant:suggestions.unpaidInvoices'),
+  t('assistant:suggestions.monthReport'),
+  t('assistant:suggestions.activeAlerts'),
+  t('assistant:suggestions.unreadEmails'),
 ]
 
 /** Meter de context (boltnew): tokenii ultimului răspuns vs. fereastra modelului + $ estimat.
@@ -82,7 +83,7 @@ function TokenMeter({ rows, model }: { rows: Array<{ role: 'user' | 'assistant';
     ? assistantRows.reduce((sum, m) => sum + ((m.inputTokens ?? 0) * (model.inputPricePerMtok ?? 0) + (m.outputTokens ?? 0) * (model.outputPricePerMtok ?? 0)) / 1e6, 0)
     : null
   return (
-    <span className="tnum inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-xs text-muted-foreground" title="Tokeni în context (ultimul răspuns) · % din fereastra modelului · cost estimat conversație">
+    <span className="tnum inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-xs text-muted-foreground" title={t('assistant:meterHint')}>
       {used >= 10_000 ? `${(used / 1000).toFixed(1)}k` : used}
       {model?.contextWindow ? (
         <>
@@ -116,7 +117,7 @@ function relativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime()
   const minutes = Math.round(diffMs / 60000)
   if (minutes < 1) return 'acum'
-  if (minutes < 60) return `acum ${minutes} min`
+  if (minutes < 60) return t('assistant:minutesAgo', { minutes })
   const hours = Math.round(minutes / 60)
   if (hours < 24) return `acum ${hours}h`
   const days = Math.round(hours / 24)
@@ -196,7 +197,7 @@ export function AssistantPage() {
       } else {
         await startDraft(false)
       }
-    })().catch((err) => toast.error(err instanceof Error ? err.message : 'Nu am putut încărca conversația'))
+    })().catch((err) => toast.error(err instanceof Error ? err.message : t('assistant:loadFailed')))
   }, [])
 
   // Modelul afișat vine din lista de conversații (sursa de adevăr e DB) — se sincronizează
@@ -212,7 +213,7 @@ export function AssistantPage() {
 
   function handleEvent(event: AssistantSseEvent) {
     if (event.type === 'text_delta') {
-      setLiveText((t) => t + event.text)
+      setLiveText((text) => text + event.text)
     } else if (event.type === 'tool_call') {
       setLiveTools((tools) => [...tools, event.toolName])
     } else if (event.type === 'confirm_required') {
@@ -300,9 +301,9 @@ export function AssistantPage() {
       await api.delete(`/api/assistant/conversations/${id}`)
       void queryClient.invalidateQueries({ queryKey: ['assistant', 'conversations'] })
       if (id === conversationId) await startDraft()
-      else toast.success('Conversație ștearsă')
+      else toast.success(t('assistant:deleted'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Nu am putut șterge conversația')
+      toast.error(err instanceof Error ? err.message : t('assistant:deleteFailed'))
     }
   }
 
@@ -316,7 +317,7 @@ export function AssistantPage() {
       await api.patch(`/api/assistant/conversations/${conversationId}`, { model: modelId, ...(provider ? { provider } : {}) })
       void queryClient.invalidateQueries({ queryKey: ['assistant', 'conversations'] })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Nu am putut schimba modelul')
+      toast.error(err instanceof Error ? err.message : t('assistant:modelChangeFailed'))
     }
   }
 
@@ -325,7 +326,7 @@ export function AssistantPage() {
       await api.delete(`/api/assistant/scheduled/${id}`)
       void queryClient.invalidateQueries({ queryKey: ['assistant', 'scheduled'] })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Nu am putut anula task-ul')
+      toast.error(err instanceof Error ? err.message : t('assistant:cancelTaskFailed'))
     }
   }
 
@@ -336,12 +337,12 @@ export function AssistantPage() {
     el.style.height = `${Math.min(el.scrollHeight, 8 * 24)}px`
   }
 
-  const currentModelLabel = models.data?.find((m) => m.id === currentModel)?.label ?? 'Model implicit'
+  const currentModelLabel = models.data?.find((m) => m.id === currentModel)?.label ?? t('assistant:defaultModel')
 
   return (
     <div className="flex h-[calc(100dvh-7rem)] flex-col gap-4 md:h-[calc(100dvh-5rem)]">
       <PageHeader
-        title="Asistent"
+        title={t('common:nav.assistant')}
         actions={
           <>
             <DropdownMenu>
@@ -362,22 +363,22 @@ export function AssistantPage() {
 
             <DropdownMenu>
               <DropdownMenuTrigger className="inline-flex h-9 items-center gap-1.5 rounded-md border border-input px-3 text-sm hover:bg-accent">
-                <History className="h-4 w-4" /> Conversații
+                <History className="h-4 w-4" /> {t('assistant:conversations')}
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem onClick={() => void startNewConversation()}>
-                  <MessageSquarePlus className="h-4 w-4" /> Conversație nouă
+                  <MessageSquarePlus className="h-4 w-4" /> {t('assistant:newConversation')}
                 </DropdownMenuItem>
                 {conversations.data?.map((c) => (
                   <DropdownMenuItem key={c.id} onClick={() => void loadConversation(c.id)}>
                     {c.id === conversationId ? <Check className="h-4 w-4 shrink-0" /> : <span className="w-4 shrink-0" />}
                     <span className="flex min-w-0 flex-col items-start">
-                      <span className="max-w-56 truncate">{c.title || 'Conversație nouă'}</span>
+                      <span className="max-w-56 truncate">{c.title || t('assistant:newConversation')}</span>
                       <span className="text-xs text-muted-foreground">{relativeTime(c.lastMessageAt)}</span>
                     </span>
                     <button
                       type="button"
-                      aria-label={`Șterge conversația ${c.title || 'nouă'}`}
+                      aria-label={c.title ? t('assistant:deleteConversation', { title: c.title }) : t('assistant:deleteNewConversation')}
                       data-testid="assistant-delete-conversation"
                       className="ml-auto rounded p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
                       onClick={(e) => {
@@ -400,8 +401,7 @@ export function AssistantPage() {
         {messages.length === 0 && !liveText && !isStreaming ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 py-10" data-testid="assistant-empty-state">
             <p className="max-w-md text-center text-sm text-muted-foreground">
-              Întreabă-mă orice despre platforme, financiare, facturi, email, calendar — sau cere-mi să fac ceva.
-              Acțiunile importante primesc confirmarea ta înainte de execuție.
+              {t('assistant:intro')}
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((suggestion) => (
@@ -432,20 +432,20 @@ export function AssistantPage() {
         ) : null}
 
         {isStreaming && !liveText && liveTools.length === 0 ? (
-          <p className="pl-8 text-xs text-muted-foreground">Se gândește…</p>
+          <p className="pl-8 text-xs text-muted-foreground">{t('assistant:thinking')}</p>
         ) : null}
 
         {pendingConfirm ? (
           <Card className="border-warning-text/40">
             <CardContent className="space-y-3 pt-4">
-              <p className="text-sm font-medium">Confirmare necesară — {pendingConfirm.toolName}</p>
+              <p className="text-sm font-medium">{t('assistant:confirmNeeded', { toolName: pendingConfirm.toolName })}</p>
               <p className="text-sm text-muted-foreground">{pendingConfirm.summary}</p>
               <div className="flex gap-2">
                 <Button onClick={() => void resolveConfirm(true)}>
-                  <Check className="h-4 w-4" /> Aprobă
+                  <Check className="h-4 w-4" /> {t('assistant:approve')}
                 </Button>
                 <Button variant="outline" onClick={() => void resolveConfirm(false)}>
-                  <X className="h-4 w-4" /> Respinge
+                  <X className="h-4 w-4" /> {t('assistant:reject')}
                 </Button>
               </div>
             </CardContent>
@@ -466,7 +466,7 @@ export function AssistantPage() {
               </span>
               <button
                 type="button"
-                aria-label="Anulează task programat"
+                aria-label={t('assistant:cancelScheduled')}
                 className="rounded-full p-0.5 hover:bg-accent hover:text-foreground"
                 onClick={() => void cancelScheduledRun(run.id)}
               >
@@ -474,7 +474,7 @@ export function AssistantPage() {
               </button>
             </span>
           ))}
-          {(scheduled.data?.length ?? 0) > 6 ? <span className="text-xs text-muted-foreground">+{scheduled.data!.length - 6} altele</span> : null}
+          {(scheduled.data?.length ?? 0) > 6 ? <span className="text-xs text-muted-foreground">{t('assistant:moreScheduled', { count: scheduled.data!.length - 6 })}</span> : null}
         </div>
       ) : null}
 
@@ -483,7 +483,7 @@ export function AssistantPage() {
           ref={textareaRef}
           className="min-h-0 flex-1 resize-none overflow-hidden border-0 px-2 py-1 focus-visible:ring-0"
           rows={1}
-          placeholder="Scrie un mesaj… (Enter trimite, Shift+Enter rând nou)"
+          placeholder={t('assistant:placeholder')}
           value={input}
           maxLength={INPUT_MAX_CHARS}
           disabled={isStreaming || Boolean(pendingConfirm)}
@@ -500,7 +500,7 @@ export function AssistantPage() {
         />
         <Button
           size="icon-sm"
-          aria-label="Trimite"
+          aria-label={t('common:actions.send')}
           disabled={isStreaming || Boolean(pendingConfirm) || !input.trim()}
           onClick={() => void sendMessage()}
         >

@@ -15,16 +15,17 @@ import { CandleChart } from './CandleChart'
 import { OrderDialog } from './OrderDialog'
 import { formatUsd, type ChartPoint, type CoinDetails, type WatchEntry } from './types'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 // Pagina unei monede (cerință Stefan: „cum e pe Binance") — grafic cu intervale, statistici
 // complete din /coins/{id}, descriere, favorite + ordin direct de aici.
 
 const RANGES = [
   { days: 1, label: '24h' },
-  { days: 7, label: '7 zile' },
-  { days: 30, label: '30 zile' },
-  { days: 90, label: '90 zile' },
-  { days: 365, label: '1 an' },
+  { days: 7, label: t('common:labels.days7') },
+  { days: 30, label: t('common:labels.days30') },
+  { days: 90, label: t('common:labels.days90') },
+  { days: 365, label: t('crypto:range.oneYear') },
 ] as const
 
 export interface CandlesResponse {
@@ -123,11 +124,11 @@ export function CoinDetailPage() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" onClick={() => void navigate('/crypto')}>
-          <ArrowLeft className="h-4 w-4" /> Înapoi la Crypto
+          <ArrowLeft className="h-4 w-4" /> {t('crypto:coin.backToCrypto')}
         </Button>
         <Card>
           <CardContent className="pt-6 text-sm text-destructive">
-            Nu am putut încărca moneda: {(details.error as Error | undefined)?.message ?? 'inexistentă'}
+            {t('crypto:coin.loadFailed', { reason: (details.error as Error | undefined)?.message ?? t('crypto:coin.missing') })}
           </CardContent>
         </Card>
       </div>
@@ -154,17 +155,17 @@ export function CoinDetailPage() {
               disabled={toggleWatch.isPending}
             >
               <Star className={cn('h-4 w-4', watched && 'fill-warning text-warning')} />
-              {watched ? 'În favorite' : 'Adaugă la favorite'}
+              {watched ? t('crypto:favorites.inFavorites') : t('crypto:favorites.add')}
             </Button>
             <Button onClick={() => setOrderSymbol(binanceSymbol)}>
-              Ordin {binanceSymbol}
+              {t('crypto:order.orderFor', { binanceSymbol })}
             </Button>
           </>
         }
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => void navigate('/crypto')} aria-label="Înapoi">
+        <Button variant="ghost" size="icon" onClick={() => void navigate('/crypto')} aria-label={t('common:actions.back')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         {coin.image ? <img src={coin.image} alt="" className="h-8 w-8 rounded-full" /> : null}
@@ -188,10 +189,10 @@ export function CoinDetailPage() {
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className={cn('tnum font-mono text-xs', rangeUp ? 'text-success-text' : 'text-destructive-text')}>
-                {first != null && last != null ? `${(((last - first) / first) * 100).toFixed(2)}% în interval` : '—'}
+                {first != null && last != null ? t('crypto:chart.changeInRange', { value: (((last - first) / first) * 100).toFixed(2) }) : '—'}
               </span>
               <div className="flex gap-1">
-                {([['line', 'Linie'], ['candles', 'Candele']] as const).map(([mode, label]) => (
+                {([['line', t('crypto:chart.line')], ['candles', t('crypto:chart.candles')]] as const).map(([mode, label]) => (
                   <button
                     key={mode}
                     type="button"
@@ -234,7 +235,7 @@ export function CoinDetailPage() {
           ) : chart.isPending && !chartData.length ? (
             <Skeleton className="h-72 w-full" />
           ) : chartData.length < 2 ? (
-            <p className="py-16 text-center text-sm text-muted-foreground">Grafic indisponibil momentan.</p>
+            <p className="py-16 text-center text-sm text-muted-foreground">{t('crypto:chart.unavailable')}</p>
           ) : (
             <ResponsiveContainer width="100%" height={320}>
               <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
@@ -271,20 +272,20 @@ export function CoinDetailPage() {
       </Card>
 
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Stat label="Market cap" value={formatCompact(coin.marketCapUsd)} />
-        <Stat label="Volum 24h" value={formatCompact(coin.volume24hUsd)} />
-        <Stat label="Supply circulant" value={coin.circulatingSupply?.toLocaleString(intlTag(), { maximumFractionDigits: 0 }) ?? '—'} sub={coin.maxSupply ? `max ${coin.maxSupply.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}` : coin.totalSupply ? `total ${coin.totalSupply.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}` : null} />
+        <Stat label={t('crypto:stats.marketCap')} value={formatCompact(coin.marketCapUsd)} />
+        <Stat label={t('crypto:stats.volume24h')} value={formatCompact(coin.volume24hUsd)} />
+        <Stat label={t('crypto:stats.circulatingSupply')} value={coin.circulatingSupply?.toLocaleString(intlTag(), { maximumFractionDigits: 0 }) ?? '—'} sub={coin.maxSupply ? `max ${coin.maxSupply.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}` : coin.totalSupply ? `total ${coin.totalSupply.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}` : null} />
         <Stat label="ATH" value={formatUsd(coin.athUsd)} sub={coin.athDate ? new Date(coin.athDate).toLocaleDateString(intlTag()) : null} />
         <Stat label="ATL" value={formatUsd(coin.atlUsd)} sub={coin.atlDate ? new Date(coin.atlDate).toLocaleDateString(intlTag()) : null} />
-        <Stat label="Față de ATH" value={coin.athChangePct != null ? `${coin.athChangePct.toFixed(1)}%` : '—'} />
-        <Stat label="Față de ATL" value={coin.atlChangePct != null ? `+${coin.atlChangePct.toFixed(1)}%` : '—'} />
-        <Stat label="Pereche Binance" value={binanceSymbol} sub="butonul Ordin deschide formularul" />
+        <Stat label={t('crypto:stats.fromAth')} value={coin.athChangePct != null ? `${coin.athChangePct.toFixed(1)}%` : '—'} />
+        <Stat label={t('crypto:stats.fromAtl')} value={coin.atlChangePct != null ? `+${coin.atlChangePct.toFixed(1)}%` : '—'} />
+        <Stat label={t('crypto:stats.binancePair')} value={binanceSymbol} sub={t('crypto:stats.orderButtonHint')} />
       </div>
 
       {coin.description ? (
         <Card>
           <CardContent className="pt-6">
-            <h2 className="mb-2 text-sm font-semibold">Despre {coin.name}</h2>
+            <h2 className="mb-2 text-sm font-semibold">{t('crypto:coin.about', { name: coin.name })}</h2>
             <p className="text-sm leading-relaxed text-muted-foreground">{coin.description}</p>
           </CardContent>
         </Card>

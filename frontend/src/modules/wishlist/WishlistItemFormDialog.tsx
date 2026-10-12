@@ -10,6 +10,7 @@ import type { WishlistCategory, WishlistItem, WishlistPriority, WishlistScope } 
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 
 interface WishlistItemFormDialogProps {
@@ -60,7 +61,7 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['wishlist'] })
-      toast.success(item ? 'Item actualizat' : 'Item adăugat')
+      toast.success(item ? t('wishlist:item.updated') : t('wishlist:item.added'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -70,7 +71,7 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
     mutationFn: () => api.delete<void>(`/api/wishlist/${item?.id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['wishlist'] })
-      toast.success('Item șters')
+      toast.success(t('wishlist:item.deleted'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -80,7 +81,7 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{item ? 'Editează itemul' : 'Item nou'}</DialogTitle>
+          <DialogTitle>{item ? t('wishlist:item.editTitle') : t('wishlist:item.new')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -90,48 +91,48 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="wl-title">Titlu</Label>
+            <Label htmlFor="wl-title">{t('common:labels.title')}</Label>
             <Input id="wl-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="wl-scope">Personal / Firmă</Label>
+              <Label htmlFor="wl-scope">{t('wishlist:labels.personalOrCompany')}</Label>
               <Select
                 id="wl-scope"
                 value={scope}
                 onChange={(e) => setScope(e.target.value as WishlistScope)}
               >
-                <option value="personal">Personal</option>
-                <option value="firma">Firmă</option>
+                <option value="personal">{t('common:labels.personal')}</option>
+                <option value="firma">{t('common:labels.company')}</option>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="wl-category">Categorie</Label>
+              <Label htmlFor="wl-category">{t('common:labels.category')}</Label>
               <Select
                 id="wl-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value as WishlistCategory)}
               >
-                <option value="necesitate">Necesitate</option>
-                <option value="placere">Plăcere</option>
+                <option value="necesitate">{t('wishlist:category.need')}</option>
+                <option value="placere">{t('wishlist:category.want')}</option>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="wl-priority">Prioritate</Label>
+              <Label htmlFor="wl-priority">{t('common:labels.priority')}</Label>
               <Select
                 id="wl-priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as WishlistPriority)}
               >
-                <option value="low">Scăzută</option>
-                <option value="medium">Medie</option>
-                <option value="high">Ridicată</option>
+                <option value="low">{t('wishlist:priority.low')}</option>
+                <option value="medium">{t('wishlist:priority.medium')}</option>
+                <option value="high">{t('wishlist:priority.high')}</option>
               </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="wl-price">Preț estimat</Label>
+              <Label htmlFor="wl-price">{t('wishlist:labels.estimatedPrice')}</Label>
               <Input
                 id="wl-price"
                 inputMode="decimal"
@@ -140,7 +141,7 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="wl-currency">Monedă</Label>
+              <Label htmlFor="wl-currency">{t('common:labels.currency')}</Label>
               <Select id="wl-currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
                 <option value="RON">RON</option>
                 <option value="EUR">EUR</option>
@@ -149,12 +150,12 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="wl-link">Link (opțional)</Label>
+            <Label htmlFor="wl-link">{t('wishlist:item.linkOptional')}</Label>
             <Input id="wl-link" type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
           </div>
           <div className="flex gap-2">
             <Button type="submit" className="flex-1" disabled={save.isPending}>
-              {save.isPending ? 'Se salvează…' : 'Salvează'}
+              {save.isPending ? t('common:states.saving') : t('common:actions.save')}
             </Button>
             {item ? (
               <Button
@@ -162,10 +163,10 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
                 variant="outline"
                 disabled={remove.isPending}
                 onClick={() => {
-                  void confirm({ title: `Șterge „${item.title}” din wishlist`, confirmLabel: 'Șterge', destructive: true }).then((ok) => ok && remove.mutate())
+                  void confirm({ title: t('wishlist:item.deleteTitle', { title: item.title }), confirmLabel: t('common:actions.delete'), destructive: true }).then((ok) => ok && remove.mutate())
                 }}
               >
-                Șterge
+                {t('common:actions.delete')}
               </Button>
             ) : null}
           </div>

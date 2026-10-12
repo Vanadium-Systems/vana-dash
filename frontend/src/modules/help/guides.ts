@@ -1,3 +1,4 @@
+import { localized, type Localized } from '@/shared/lib/i18n'
 import type { FeatureKey } from '@/shared/lib/types'
 import { normalizeForSearch } from '@/shared/lib/utils'
 
@@ -5,6 +6,19 @@ import { normalizeForSearch } from '@/shared/lib/utils'
 // pe care îl descriu. Fiecare e legat de o funcționalitate din catalog, deci omul vede doar
 // ghidurile pentru ce are pornit. `route` e pagina din nav de care ține; „?” din antetul
 // paginii deschide lista filtrată pe ea.
+
+// Every text is written in each language, here, next to the screen it describes. `GUIDES`
+// below is the list in the language of the interface.
+
+interface GuideSource {
+  id: string
+  route: string
+  feature: FeatureKey
+  title: Localized
+  summary: Localized
+  steps: Localized[]
+  videoUrl?: string
+}
 
 export interface Guide {
   id: string
@@ -18,97 +32,224 @@ export interface Guide {
   videoUrl?: string
 }
 
-export const GUIDES: Guide[] = [
+const SOURCES: GuideSource[] = [
   {
     id: 'email-citire',
     route: '/email',
     feature: 'email.view',
-    title: 'Citești și cauți în email',
-    summary: 'Vezi doar cutiile care ți-au fost atribuite. Necititele se țin pe om: ce ai citit tu rămâne necitit pentru colegul cu aceeași cutie.',
+    title: {
+      ro: 'Citești și cauți în email',
+      en: 'Reading and searching email',
+    },
+    summary: {
+      ro: 'Vezi doar cutiile care ți-au fost atribuite. Necititele se țin pe om: ce ai citit tu rămâne necitit pentru colegul cu aceeași cutie.',
+      en: 'You see only the mailboxes assigned to you. Unread is kept per person: what you read stays unread for the colleague with the same mailbox.',
+    },
     steps: [
-      'Alege cutia și folderul din coloana din stânga.',
-      'Deschide un mesaj din listă; se marchează citit doar pentru tine.',
-      'Scrie în câmpul de căutare ca să cauți în subiect și în conținut.',
-      'Selectează unul sau mai multe mesaje ca să le arhivezi sau să le marchezi necitite.',
+      {
+        ro: 'Alege cutia și folderul din coloana din stânga.',
+        en: 'Pick the mailbox and the folder in the left column.',
+      },
+      {
+        ro: 'Deschide un mesaj din listă; se marchează citit doar pentru tine.',
+        en: 'Open a message from the list; it is marked as read only for you.',
+      },
+      {
+        ro: 'Scrie în câmpul de căutare ca să cauți în subiect și în conținut.',
+        en: 'Type in the search field to search the subject and the content.',
+      },
+      {
+        ro: 'Selectează unul sau mai multe mesaje ca să le arhivezi sau să le marchezi necitite.',
+        en: 'Select one or more messages to archive them or mark them as unread.',
+      },
     ],
   },
   {
     id: 'email-raspuns',
     route: '/email',
     feature: 'email.trimitere',
-    title: 'Scrii și răspunzi',
-    summary: 'Mesajul pleacă de pe cutia pe care o alegi la expeditor, dintre cele pe care le ai.',
+    title: {
+      ro: 'Scrii și răspunzi',
+      en: 'Writing and replying',
+    },
+    summary: {
+      ro: 'Mesajul pleacă de pe cutia pe care o alegi la expeditor, dintre cele pe care le ai.',
+      en: 'The message goes out from the mailbox you pick as sender, among the ones you have.',
+    },
     steps: [
-      'Apasă „Compune” pentru un mesaj nou, sau „Răspunde” într-un fir deschis.',
-      'Verifică expeditorul: la un răspuns e deja cutia pe care a venit mesajul.',
-      'Pentru un fișier, atașează-l de pe dispozitiv sau cu „Atașează din Arhivă”.',
-      'Dacă trimiterea nu reușește, mesajul rămâne în fereastră, netrimis, și poți încerca din nou.',
+      {
+        ro: 'Apasă „Compune” pentru un mesaj nou, sau „Răspunde” într-un fir deschis.',
+        en: 'Press “Compose” for a new message, or “Reply” in an open thread.',
+      },
+      {
+        ro: 'Verifică expeditorul: la un răspuns e deja cutia pe care a venit mesajul.',
+        en: 'Check the sender: for a reply it is already the mailbox the message came to.',
+      },
+      {
+        ro: 'Pentru un fișier, atașează-l de pe dispozitiv sau cu „Atașează din Arhivă”.',
+        en: 'For a file, attach it from the device or with “Attach from the Archive”.',
+      },
+      {
+        ro: 'Dacă trimiterea nu reușește, mesajul rămâne în fereastră, netrimis, și poți încerca din nou.',
+        en: 'If sending fails, the message stays in the window, not sent, and you can try again.',
+      },
     ],
   },
   {
     id: 'mesaje-conversatii',
     route: '/messages',
     feature: 'mesaje.view',
-    title: 'Vorbești cu un coleg sau cu un grup',
-    summary: 'Mesajele ajung pe loc la cine are aplicația deschisă; ceilalți primesc notificare.',
+    title: {
+      ro: 'Vorbești cu un coleg sau cu un grup',
+      en: 'Talking to a colleague or a group',
+    },
+    summary: {
+      ro: 'Mesajele ajung pe loc la cine are aplicația deschisă; ceilalți primesc notificare.',
+      en: 'Messages reach whoever has the app open right away; the others get a notification.',
+    },
     steps: [
-      'Apasă pe iconița de conversație nouă, apoi „Scrie cuiva” pentru un coleg sau „Grup nou” pentru mai mulți.',
-      'Scrie în câmpul de jos și trimite. Un fișier de până la 15 MB se pune din „Atașează”.',
-      'Meniul „⋯” de lângă un mesaj de-al tău (pe telefon, apăsare lungă) îl editează sau îl șterge.',
-      'Câte notificări primești se alege în Profilul meu, la Notificări.',
+      {
+        ro: 'Apasă pe iconița de conversație nouă, apoi „Scrie cuiva” pentru un coleg sau „Grup nou” pentru mai mulți.',
+        en: 'Press the new conversation icon, then “Write to someone” for a colleague or “New group” for several.',
+      },
+      {
+        ro: 'Scrie în câmpul de jos și trimite. Un fișier de până la 15 MB se pune din „Atașează”.',
+        en: 'Type in the field at the bottom and send. A file of up to 15 MB is added with “Attach”.',
+      },
+      {
+        ro: 'Meniul „⋯” de lângă un mesaj de-al tău (pe telefon, apăsare lungă) îl editează sau îl șterge.',
+        en: 'The “⋯” menu next to one of your messages (on the phone, a long press) edits or deletes it.',
+      },
+      {
+        ro: 'Câte notificări primești se alege în Profilul meu, la Notificări.',
+        en: 'How many notifications you get is set in My profile, under Notifications.',
+      },
     ],
   },
   {
     id: 'calendar-evenimente',
     route: '/calendar',
     feature: 'calendar.editare',
-    title: 'Adaugi un eveniment',
-    summary: 'Evenimentele sunt în calendarul tău. Altcineva le vede doar dacă i-ai partajat calendarul sau l-ai pus participant.',
+    title: {
+      ro: 'Adaugi un eveniment',
+      en: 'Adding an event',
+    },
+    summary: {
+      ro: 'Evenimentele sunt în calendarul tău. Altcineva le vede doar dacă i-ai partajat calendarul sau l-ai pus participant.',
+      en: 'Events are in your calendar. Someone else sees them only if you shared the calendar with them or added them as an attendee.',
+    },
     steps: [
-      'Apasă „Eveniment nou” și completează titlul, începutul și sfârșitul.',
-      'Alege un reminder dacă vrei notificare înainte, și o recurență dacă se repetă.',
-      'Ca să muți un eveniment, trage-l pe altă zi în vederea pe săptămână, sau deschide-l și schimbă ora.',
-      'Comută între „Lună” și „Săptămână”; „Astăzi” te aduce înapoi la ziua curentă.',
+      {
+        ro: 'Apasă „Eveniment nou” și completează titlul, începutul și sfârșitul.',
+        en: 'Press “New event” and fill in the title, the start and the end.',
+      },
+      {
+        ro: 'Alege un reminder dacă vrei notificare înainte, și o recurență dacă se repetă.',
+        en: 'Pick a reminder if you want a notification beforehand, and a recurrence if it repeats.',
+      },
+      {
+        ro: 'Ca să muți un eveniment, trage-l pe altă zi în vederea pe săptămână, sau deschide-l și schimbă ora.',
+        en: 'To move an event, drag it to another day in the week view, or open it and change the time.',
+      },
+      {
+        ro: 'Comută între „Lună” și „Săptămână”; „Astăzi” te aduce înapoi la ziua curentă.',
+        en: 'Switch between “Month” and “Week”; “Today” brings you back to the current day.',
+      },
     ],
   },
   {
     id: 'calendar-partajare',
     route: '/calendar',
     feature: 'calendar.view',
-    title: 'Vezi calendarul unui coleg',
-    summary: 'La început e afișat doar calendarul tău. Al unui coleg apare după ce ți-l partajează.',
+    title: {
+      ro: 'Vezi calendarul unui coleg',
+      en: 'Seeing a colleague\'s calendar',
+    },
+    summary: {
+      ro: 'La început e afișat doar calendarul tău. Al unui coleg apare după ce ți-l partajează.',
+      en: 'At first only your calendar is shown. A colleague\'s shows up after they share it with you.',
+    },
     steps: [
-      'Bifează calendarele pe care vrei să le vezi la „Calendare afișate”.',
-      'Evenimentul altcuiva are numele omului în titlu.',
-      'Ca să-ți vadă cineva calendarul, apasă „Partajează calendarul” și alege „Vede” sau „Editează”.',
+      {
+        ro: 'Bifează calendarele pe care vrei să le vezi la „Calendare afișate”.',
+        en: 'Tick the calendars you want to see under “Calendars shown”.',
+      },
+      {
+        ro: 'Evenimentul altcuiva are numele omului în titlu.',
+        en: 'Someone else\'s event has the person\'s name in the title.',
+      },
+      {
+        ro: 'Ca să-ți vadă cineva calendarul, apasă „Partajează calendarul” și alege „Vede” sau „Editează”.',
+        en: 'For someone to see your calendar, press “Share the calendar” and pick “Can view” or “Can edit”.',
+      },
     ],
   },
   {
     id: 'clienti-prospecti',
     route: '/pricing',
     feature: 'clienti.prospectare',
-    title: 'Lucrezi pe lista de prospecți',
-    summary: 'Tab-ul Prospectare ține firmele de contactat, cu scor, prioritate și status.',
+    title: {
+      ro: 'Lucrezi pe lista de prospecți',
+      en: 'Working the prospect list',
+    },
+    summary: {
+      ro: 'Tab-ul Prospectare ține firmele de contactat, cu scor, prioritate și status.',
+      en: 'The Prospects tab holds the companies to contact, with score, priority and status.',
+    },
     steps: [
-      'Caută după nume, CUI, telefon, email sau persoana de contact.',
-      'Schimbă statusul unui prospect după fiecare discuție, ca lista să arate unde a rămas.',
-      'Apasă „Calculează preț” pe rând ca să deschizi calculatorul cu datele lui.',
-      'Când a devenit client, apasă „Promovează”.',
+      {
+        ro: 'Caută după nume, CUI, telefon, email sau persoana de contact.',
+        en: 'Search by name, CUI, phone, email or contact person.',
+      },
+      {
+        ro: 'Schimbă statusul unui prospect după fiecare discuție, ca lista să arate unde a rămas.',
+        en: 'Change the status of a prospect after each conversation, so the list shows where it stands.',
+      },
+      {
+        ro: 'Apasă „Calculează preț” pe rând ca să deschizi calculatorul cu datele lui.',
+        en: 'Press “Calculate price” on the row to open the calculator with its details.',
+      },
+      {
+        ro: 'Când a devenit client, apasă „Promovează”.',
+        en: 'When it has become a client, press “Promote”.',
+      },
     ],
   },
   {
     id: 'clienti-calculator',
     route: '/pricing',
     feature: 'clienti.calculator',
-    title: 'Calculezi un preț',
-    summary: 'Calculatorul scoate prețul lunar din numărul de operatori, documente și modulele alese.',
+    title: {
+      ro: 'Calculezi un preț',
+      en: 'Calculating a price',
+    },
+    summary: {
+      ro: 'Calculatorul scoate prețul lunar din numărul de operatori, documente și modulele alese.',
+      en: 'The calculator works out the monthly price from the number of operators, the documents and the modules picked.',
+    },
     steps: [
-      'Deschide tab-ul Calculator, sau vino din „Calculează preț” de pe un prospect.',
-      'Completează operatorii, documentele pe lună și bifează modulele.',
-      'Prețul se recalculează la fiecare schimbare și apare atât lunar, cât și anual.',
+      {
+        ro: 'Deschide tab-ul Calculator, sau vino din „Calculează preț” de pe un prospect.',
+        en: 'Open the Calculator tab, or come from “Calculate price” on a prospect.',
+      },
+      {
+        ro: 'Completează operatorii, documentele pe lună și bifează modulele.',
+        en: 'Fill in the operators, the documents per month and tick the modules.',
+      },
+      {
+        ro: 'Prețul se recalculează la fiecare schimbare și apare atât lunar, cât și anual.',
+        en: 'The price is recomputed on every change and is shown both monthly and yearly.',
+      },
     ],
   },
 ]
+
+export const GUIDES: Guide[] = SOURCES.map((guide) => ({
+  ...guide,
+  title: localized(guide.title),
+  summary: localized(guide.summary),
+  steps: guide.steps.map(localized),
+}))
 
 export function visibleGuides(can: (feature: FeatureKey) => boolean): Guide[] {
   return GUIDES.filter((guide) => can(guide.feature))

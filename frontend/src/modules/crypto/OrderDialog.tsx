@@ -13,6 +13,8 @@ import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import { cn, parseRoDecimal } from '@/shared/lib/utils'
 import { formatUsd, type OrderPreviewResult } from './types'
+import { t } from '@/shared/lib/i18n'
+import { tNodes } from '@/shared/lib/i18n-nodes'
 
 interface OrderDialogProps {
   open: boolean
@@ -65,7 +67,7 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol }: OrderDialogPr
         ...(type === 'limit' ? { limitPrice: parseRoDecimal(limitPrice) } : {}),
       }),
     onSuccess: (result) => {
-      toast.success(result.paper ? `Ordin paper ${result.filled ? 'executat' : 'deschis'}` : 'Ordin live trimis pe Binance')
+      toast.success(result.paper ? t(result.filled ? 'crypto:order.paperFilled' : 'crypto:order.paperOpen') : t('crypto:order.liveSent'))
       reset()
       onOpenChange(false)
     },
@@ -85,20 +87,20 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol }: OrderDialogPr
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Ordin nou — Binance</DialogTitle>
+          <DialogTitle>{t('crypto:order.newTitle')}</DialogTitle>
         </DialogHeader>
         <p className="text-xs text-muted-foreground">
-          Preview → execută. Live-ul cere kill-switch activ din Setări; fără el, doar paper.
+          {t('crypto:order.hint')}
         </p>
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label htmlFor="order-symbol">Pereche</Label>
+              <Label htmlFor="order-symbol">{t('crypto:order.pair')}</Label>
               <Input id="order-symbol" value={symbol} onChange={(e) => { setSymbol(e.target.value.toUpperCase()); setPreview(null) }} placeholder="BTCUSDT" />
             </div>
             <div className="space-y-1">
-              <Label>Parte</Label>
+              <Label>{t('crypto:order.side')}</Label>
               <div className="flex gap-1">
                 {(['buy', 'sell'] as const).map((s) => (
                   <button
@@ -110,7 +112,7 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol }: OrderDialogPr
                       side === s ? (s === 'buy' ? 'border-success-text bg-success-text/10 text-success-text' : 'border-destructive-text bg-destructive-text/10 text-destructive-text') : 'hover:bg-accent',
                     )}
                   >
-                    {s === 'buy' ? 'Cumpără' : 'Vinde'}
+                    {s === 'buy' ? t('crypto:order.buy') : t('crypto:order.sell')}
                   </button>
                 ))}
               </div>
@@ -118,26 +120,26 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol }: OrderDialogPr
           </div>
 
           <div className="flex gap-1">
-            {(['market', 'limit'] as const).map((t) => (
+            {(['market', 'limit'] as const).map((orderType) => (
               <button
-                key={t}
+                key={orderType}
                 type="button"
-                onClick={() => { setType(t); setPreview(null) }}
-                className={cn('rounded-md border px-3 py-1 text-xs capitalize', type === t ? 'bg-accent' : 'text-muted-foreground hover:bg-accent')}
+                onClick={() => { setType(orderType); setPreview(null) }}
+                className={cn('rounded-md border px-3 py-1 text-xs capitalize', type === orderType ? 'bg-accent' : 'text-muted-foreground hover:bg-accent')}
               >
-                {t === 'market' ? 'Market' : 'Limit'}
+                {orderType === 'market' ? t('crypto:order.typeMarket') : t('crypto:order.typeLimit')}
               </button>
             ))}
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label htmlFor="order-qty">Cantitate</Label>
+              <Label htmlFor="order-qty">{t('common:labels.quantity')}</Label>
               <Input id="order-qty" inputMode="decimal" value={quantity} onChange={(e) => { setQuantity(e.target.value); setPreview(null) }} />
             </div>
             {type === 'limit' ? (
               <div className="space-y-1">
-                <Label htmlFor="order-limit">Preț limit</Label>
+                <Label htmlFor="order-limit">{t('crypto:order.limitPrice')}</Label>
                 <Input id="order-limit" inputMode="decimal" value={limitPrice} onChange={(e) => { setLimitPrice(e.target.value); setPreview(null) }} />
               </div>
             ) : null}
@@ -146,12 +148,16 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol }: OrderDialogPr
           {preview ? (
             <div className="rounded-md border bg-muted/40 p-3 text-sm" data-testid="crypto-order-preview">
               <p>
-                Referință: <span className="tnum font-mono">{formatUsd(preview.referencePrice)}</span> · Estimat:{' '}
-                <span className="tnum font-mono">{formatUsd(preview.estimatedQuoteValue)}</span>
+                {tNodes('crypto:order.previewLine', {
+                  reference: <span className="tnum font-mono">{formatUsd(preview.referencePrice)}</span>,
+                  estimate: <span className="tnum font-mono">{formatUsd(preview.estimatedQuoteValue)}</span>,
+                })}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Mod: <span className={preview.mode === 'live' ? 'font-semibold text-destructive-text' : ''}>{preview.mode}</span>
-                {!preview.tradingEnabled && preview.mode === 'live' ? ' — kill-switch OPRIT, ordinul live va fi respins' : ''}
+                {tNodes('crypto:order.mode', {
+                  mode: <span className={preview.mode === 'live' ? 'font-semibold text-destructive-text' : ''}>{preview.mode}</span>,
+                })}
+                {!preview.tradingEnabled && preview.mode === 'live' ? t('crypto:order.killSwitchOff') : ''}
               </p>
             </div>
           ) : null}
@@ -159,7 +165,7 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol }: OrderDialogPr
 
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="outline" onClick={() => previewMutation.mutate()} disabled={!canPreview || previewMutation.isPending}>
-            {previewMutation.isPending ? 'Se calculează…' : 'Pasul 1 · Preview'}
+            {previewMutation.isPending ? t('common:states.calculating') : t('crypto:order.stepPreview')}
           </Button>
           <Button
             onClick={() => placeMutation.mutate()}
@@ -167,7 +173,7 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol }: OrderDialogPr
             variant={preview?.mode === 'live' && preview.tradingEnabled ? 'destructive' : 'default'}
             data-testid="crypto-order-execute"
           >
-            {placeMutation.isPending ? 'Se trimite…' : 'Pasul 2 · Execută'}
+            {placeMutation.isPending ? t('common:states.sending') : t('crypto:order.stepExecute')}
           </Button>
         </div>
       </DialogContent>

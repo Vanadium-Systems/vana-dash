@@ -1,0 +1,29 @@
+{
+  "suggestions": {
+    "unpaidInvoices": "Ce facturi am neplătite?",
+    "monthReport": "Raport pe luna asta",
+    "activeAlerts": "Ce alerte sunt active?",
+    "unreadEmails": "Am emailuri necitite?"
+  },
+  "meterHint": "Tokeni în context (ultimul răspuns) · % din fereastra modelului · cost estimat conversație",
+  "minutesAgo": "acum {{minutes}} min",
+  "loadFailed": "Nu am putut încărca conversația",
+  "deleted": "Conversație ștearsă",
+  "deleteFailed": "Nu am putut șterge conversația",
+  "modelChangeFailed": "Nu am putut schimba modelul",
+  "cancelTaskFailed": "Nu am putut anula task-ul",
+  "defaultModel": "Model implicit",
+  "conversations": "Conversații",
+  "newConversation": "Conversație nouă",
+  "intro": "Întreabă-mă orice despre platforme, financiare, facturi, email, calendar — sau cere-mi să fac ceva. Acțiunile importante primesc confirmarea ta înainte de execuție.",
+  "thinking": "Se gândește…",
+  "confirmNeeded": "Confirmare necesară — {{toolName}}",
+  "approve": "Aprobă",
+  "reject": "Respinge",
+  "cancelScheduled": "Anulează task programat",
+  "moreScheduled": "+{{count}} altele",
+  "placeholder": "Scrie un mesaj… (Enter trimite, Shift+Enter rând nou)",
+  "copyMessage": "Copiază mesajul",
+  "deleteConversation": "Șterge conversația {{title}}",
+  "deleteNewConversation": "Șterge conversația nouă"
+}

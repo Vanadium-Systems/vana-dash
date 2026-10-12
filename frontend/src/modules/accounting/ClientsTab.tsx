@@ -3,7 +3,6 @@ import { Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { StatePill } from '@/shared/components/ui/state-pill'
-import { formatCount } from '@/shared/lib/utils'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
@@ -72,7 +71,7 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
             {showPendingDeletion && (
               <TableCell>
                 {c.pendingDeletionAt ? (
-                  <StatePill tone="critical">{formatCount(daysUntilPurge(c.pendingDeletionAt), 'zi', 'zile')}</StatePill>
+                  <StatePill tone="critical">{t('common:count.days', { count: daysUntilPurge(c.pendingDeletionAt) })}</StatePill>
                 ) : (
                   '—'
                 )}

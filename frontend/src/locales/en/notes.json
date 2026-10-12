@@ -1,0 +1,13 @@
+{
+  "updated": "Note updated",
+  "created": "Note created",
+  "deleted": "Note deleted",
+  "editTitle": "Edit the note",
+  "deleteTitle": "Delete the note “{{title}}”",
+  "deleteConfirm": "Delete the note",
+  "searchPlaceholder": "Search in title or content…",
+  "noneFound": "No note found.",
+  "empty": "No note yet. Create the first one.",
+  "unpin": "Unpin",
+  "pin": "Pin"
+}

@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
+import { t } from '@/shared/lib/i18n'
 
 // Conexiunea exchange + kill-switch (Setări → Crypto, Contract D). Cheile pleacă o singură
 // dată spre backend (criptate AES-GCM în DB) și nu se mai afișează niciodată — doar masked.
@@ -27,7 +28,7 @@ export function CryptoSettingsCard() {
     mutationFn: () =>
       api.put('/api/crypto/exchanges/binance', { apiKey, apiSecret, mode: 'paper', enabled: true }),
     onSuccess: () => {
-      toast.success('Exchange conectat — cheia e criptată în DB')
+      toast.success(t('crypto:settings.connected'))
       setApiKey('')
       setApiSecret('')
       void queryClient.invalidateQueries({ queryKey: ['crypto'] })
@@ -38,7 +39,7 @@ export function CryptoSettingsCard() {
   const disconnect = useMutation({
     mutationFn: () => api.delete('/api/crypto/exchanges/binance'),
     onSuccess: () => {
-      toast.success('Exchange deconectat')
+      toast.success(t('crypto:settings.disconnected'))
       void queryClient.invalidateQueries({ queryKey: ['crypto'] })
     },
     onError: (err) => toast.error(err.message),
@@ -48,7 +49,7 @@ export function CryptoSettingsCard() {
     mutationFn: (enabled: boolean) => api.put<{ tradingEnabled: boolean }>('/api/crypto/settings', { tradingEnabled: enabled }),
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ['crypto', 'settings'] })
-      toast.success(result.tradingEnabled ? 'Trading live ACTIVAT' : 'Trading live OPRIT')
+      toast.success(result.tradingEnabled ? t('crypto:settings.liveOn') : t('crypto:settings.liveOff'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -61,14 +62,14 @@ export function CryptoSettingsCard() {
         <div>
           <h3 className="text-sm font-semibold">Crypto · Binance</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Cheie cu permisiuni de citire + spot trading, FĂRĂ withdrawal. IP whitelist pe IP-ul serverului recomandat.
+            {t('crypto:settings.keyHint')}
           </p>
         </div>
 
         <div className="flex items-center justify-between rounded-md bg-muted/50 p-3">
           <div>
-            <p className="text-sm font-medium">Kill-switch trading live</p>
-            <p className="text-xs text-muted-foreground">Oprit = ordinele live sunt respinse; paper-ul rămâne disponibil.</p>
+            <p className="text-sm font-medium">{t('crypto:settings.killSwitch')}</p>
+            <p className="text-xs text-muted-foreground">{t('crypto:settings.killSwitchHint')}</p>
           </div>
           <Button
             variant={settings.data?.tradingEnabled ? 'destructive' : 'outline'}
@@ -76,7 +77,7 @@ export function CryptoSettingsCard() {
             disabled={settings.isPending || toggleKillSwitch.isPending}
             onClick={() => toggleKillSwitch.mutate(!settings.data?.tradingEnabled)}
           >
-            {settings.data?.tradingEnabled ? 'Oprește' : 'Activează'}
+            {settings.data?.tradingEnabled ? t('common:actions.stop') : t('common:actions.enable')}
           </Button>
         </div>
 
@@ -89,17 +90,17 @@ export function CryptoSettingsCard() {
               <p className="font-mono text-xs text-muted-foreground">{binance.apiKeyMasked}</p>
             </div>
             <Button variant="outline" disabled={disconnect.isPending} onClick={() => disconnect.mutate()}>
-              Deconectează
+              {t('common:actions.disconnect')}
             </Button>
           </div>
         ) : (
           <div className="space-y-2 rounded-md bg-muted/50 p-3">
-            <Label htmlFor="crypto-api-key">API key</Label>
+            <Label htmlFor="crypto-api-key">{t('crypto:settings.apiKey')}</Label>
             <Input id="crypto-api-key" value={apiKey} onChange={(e) => setApiKey(e.target.value)} autoComplete="off" />
-            <Label htmlFor="crypto-api-secret">API secret</Label>
+            <Label htmlFor="crypto-api-secret">{t('crypto:settings.apiSecret')}</Label>
             <Input id="crypto-api-secret" type="password" value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} autoComplete="off" />
             <Button disabled={!apiKey || !apiSecret || connect.isPending} onClick={() => connect.mutate()}>
-              {connect.isPending ? 'Se salvează…' : 'Conectează'}
+              {connect.isPending ? t('common:states.saving') : t('common:actions.connect')}
             </Button>
           </div>
         )}

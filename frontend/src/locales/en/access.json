@@ -1,0 +1,40 @@
+{
+  "description": "What each role can do, on each page.",
+  "roles": {
+    "new": "New role",
+    "all": "All roles",
+    "fullAccess": "· full access",
+    "actionsFor": "What can be done with the role {{name}}",
+    "delete": "Delete the role",
+    "deleteTitle": "Delete the role {{name}}",
+    "deleteBody": "The role disappears; the people stay on the team, but no longer have a role.",
+    "deleted": "The role {{name}} was deleted.",
+    "notDeleted": "The role was not deleted.",
+    "adminHasAll": "The Admin role has everything the company has",
+    "created": "The role {{name}} was created.",
+    "notCreated": "The role was not created.",
+    "startFrom": "Start from",
+    "empty": "Empty",
+    "create": "Create the role",
+    "renamed": "The role was renamed.",
+    "nameNotSaved": "The name was not saved.",
+    "rename": "Rename the role",
+    "inUse_one": "{{count}} person has this role. Move them to another role, then delete it.",
+    "inUse_other": "{{count}} people have this role. Move them to another role, then delete it."
+  },
+  "loadFailed": "The modules could not be loaded.",
+  "empty": {
+    "title": "No role besides Admin",
+    "hint": "Admin has everything the company has, so it is not edited. Create the first role so you can give features to someone.",
+    "createFirst": "Create the first role"
+  },
+  "tableCaption": "The features of each role, by page",
+  "labels": {
+    "page": "Page"
+  },
+  "features": {
+    "turnOnFirst": "Switch on «{{label}}» first",
+    "notYours": "You do not have {{label}}, so you cannot give it to someone else",
+    "countOf": "{{count}} of {{count2}}"
+  }
+}

@@ -14,6 +14,7 @@ import { cn } from '@/shared/lib/utils'
 import { StatusDot } from './status-colors'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 // Wave 0/1, sprint de-hardcodare (2026-08-20) — gestiunea catalogului de statusuri prospect,
 // înlocuiește STATUS_OPTIONS/STATUS_LABELS/STATUS_COLORS hardcodate. Pattern reorder identic
@@ -36,7 +37,7 @@ function StatusRow({ status }: { status: ProspectStatusEntry }) {
     mutationFn: () => api.delete<void>(`/api/prospects/statuses/${status.id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['prospects', 'statuses'] })
-      toast.success('Status șters')
+      toast.success(t('pricing:statuses.deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -72,14 +73,14 @@ function StatusRow({ status }: { status: ProspectStatusEntry }) {
           </option>
         ))}
       </Select>
-      {status.isDefault ? <span className="text-xs text-muted-foreground">implicit</span> : null}
+      {status.isDefault ? <span className="text-xs text-muted-foreground">{t('common:states.default')}</span> : null}
       <Button
         type="button"
         variant="ghost"
         className="ml-auto"
         disabled={remove.isPending}
         onClick={() => {
-          void confirm({ title: `Șterge statusul „${status.label}”`, consequence: 'Nu se poate șterge cât timp îl mai folosește vreun prospect.', confirmLabel: 'Șterge statusul', destructive: true }).then((ok) => ok && remove.mutate())
+          void confirm({ title: t('pricing:statuses.deleteTitle', { label: status.label }), consequence: t('pricing:statuses.deleteBody'), confirmLabel: t('pricing:statuses.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate())
         }}
       >
         <Trash2 className="h-4 w-4" />
@@ -100,7 +101,7 @@ function NewStatusForm() {
       void queryClient.invalidateQueries({ queryKey: ['prospects', 'statuses'] })
       setKey('')
       setLabel('')
-      toast.success('Status adăugat')
+      toast.success(t('pricing:statuses.added'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -108,15 +109,15 @@ function NewStatusForm() {
   return (
     <div className="flex flex-wrap items-end gap-2 border-t pt-3">
       <div className="w-36 space-y-1">
-        <label className="text-xs text-muted-foreground">Key (ex: negociere)</label>
+        <label className="text-xs text-muted-foreground">{t('pricing:statuses.keyLabel')}</label>
         <Input value={key} onChange={(e) => setKey(e.target.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'))} />
       </div>
       <div className="w-40 space-y-1">
-        <label className="text-xs text-muted-foreground">Etichetă</label>
+        <label className="text-xs text-muted-foreground">{t('common:labels.label')}</label>
         <Input value={label} onChange={(e) => setLabel(e.target.value)} />
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-muted-foreground">Culoare</label>
+        <label className="text-xs text-muted-foreground">{t('pricing:statuses.color')}</label>
         <Select
           className="w-auto"
           value={colorToken}
@@ -130,7 +131,7 @@ function NewStatusForm() {
         </Select>
       </div>
       <Button type="button" disabled={!key || !label || create.isPending} onClick={() => create.mutate()}>
-        <Plus className="h-4 w-4" /> Adaugă status
+        <Plus className="h-4 w-4" /> {t('pricing:statuses.add')}
       </Button>
     </div>
   )
@@ -172,15 +173,15 @@ export function ProspectStatusesCard() {
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">Gestionare statusuri</CardTitle>
+        <CardTitle className="text-base">{t('pricing:statuses.manage')}</CardTitle>
         <Button type="button" variant="ghost" onClick={() => setOpen((o) => !o)}>
-          {open ? 'Ascunde' : 'Arată'}
+          {open ? t('common:actions.hide') : t('common:actions.show')}
         </Button>
       </CardHeader>
       {open && (
         <CardContent className="space-y-3">
           {statuses.isPending ? (
-            <p className="text-sm text-muted-foreground">Se încarcă…</p>
+            <p className="text-sm text-muted-foreground">{t('common:states.loading')}</p>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>

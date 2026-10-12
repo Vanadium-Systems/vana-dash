@@ -9,20 +9,21 @@ import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import type { HealthHistoryPoint, HealthSignalsSummary, HostHealthSummary } from '@/shared/lib/types'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 type HealthRange = '1h' | '1d' | '7d'
 const RANGES: Array<{ value: HealthRange; label: string }> = [
-  { value: '1h', label: 'ultima oră' },
-  { value: '1d', label: 'ultima zi' },
-  { value: '7d', label: 'ultimele 7 zile' },
+  { value: '1h', label: t('monitoring:range.lastHour') },
+  { value: '1d', label: t('monitoring:range.lastDay') },
+  { value: '7d', label: t('monitoring:range.last7Days') },
 ]
 
 function formatLastSeen(iso: string | null): string {
-  if (!iso) return 'niciun snapshot încă'
+  if (!iso) return t('monitoring:noSnapshot')
   const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
-  if (minutes < 1) return 'actualizat acum'
-  if (minutes < 60) return `ultima actualizare acum ${minutes} min`
-  return `ultima actualizare ${new Date(iso).toLocaleString(intlTag(), { dateStyle: 'short', timeStyle: 'short' })}`
+  if (minutes < 1) return t('monitoring:updatedNow')
+  if (minutes < 60) return t('monitoring:updatedMinutesAgo', { minutes })
+  return t('monitoring:updatedAt', { when: new Date(iso).toLocaleString(intlTag(), { dateStyle: 'short', timeStyle: 'short' }) })
 }
 
 function HistoryCard({ history, emptyLabel }: { history: HealthHistoryPoint[]; emptyLabel: string }) {
@@ -48,7 +49,7 @@ function HostSection({ host }: { host: HostHealthSummary }) {
           <SignalTile key={s.key} signal={s} />
         ))}
       </div>
-      <HistoryCard history={host.history} emptyLabel="Fără istoric încă — colectorul de pe server-1 n-a trimis nimic" />
+      <HistoryCard history={host.history} emptyLabel={t('monitoring:emptyHost')} />
     </section>
   )
 }
@@ -65,7 +66,7 @@ export function SystemHealthPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Server"
+        title={t('common:nav.server')}
         actions={
           <div className="flex gap-1">
             {RANGES.map((r) => (
@@ -92,7 +93,7 @@ export function SystemHealthPage() {
           ))}
         </div>
       ) : summary.isError ? (
-        <ChartError message="Nu am putut încărca semnalele de sănătate" />
+        <ChartError message={t('monitoring:loadFailed')} />
       ) : (
         <>
           <section className="space-y-4">
@@ -100,7 +101,7 @@ export function SystemHealthPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {summary.data?.signals.map((s) => <SignalTile key={s.key} signal={s} />)}
             </div>
-            <HistoryCard history={summary.data?.history ?? []} emptyLabel="Fără istoric încă — nicio rulare a scriptului de colectare" />
+            <HistoryCard history={summary.data?.history ?? []} emptyLabel={t('monitoring:emptyBackup')} />
           </section>
 
           {summary.data?.hosts?.map((host) => <HostSection key={host.host} host={host} />)}

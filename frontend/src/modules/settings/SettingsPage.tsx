@@ -11,11 +11,12 @@ import { CryptoSettingsCard } from '@/modules/crypto/CryptoSettingsCard'
 import { AssetsSettingsCard } from '@/modules/assets/AssetsSettingsCard'
 import { CompanyProfileCard } from './CompanyProfileCard'
 import { OpsJobsSettingsCard } from './OpsJobsSettingsCard'
+import { t } from '@/shared/lib/i18n'
 
 function MobileAppCard() {
   const download = useMutation({
     mutationFn: downloadApk,
-    onSuccess: () => toast.success('APK descărcat — deschide-l din notificare pt. instalare'),
+    onSuccess: () => toast.success(t('common:shell.apkDownloaded')),
     onError: (err) => toast.error(err.message),
   })
 
@@ -24,15 +25,14 @@ function MobileAppCard() {
       <CardContent className="space-y-4 pt-6">
         <div className="flex items-center gap-2">
           <Smartphone className="h-4 w-4 text-primary" />
-          <CardTitle className="text-base">Aplicație Android</CardTitle>
+          <CardTitle className="text-base">{t('settings:android.title')}</CardTitle>
         </div>
         <p className="text-sm text-muted-foreground">
-          Shell nativ cu update automat la deploy — conținutul nou ajunge la redeschiderea aplicației, fără reinstalare.
-          Reinstalarea e necesară doar la schimbări de plugin-uri native.
+          {t('settings:android.hint')}
         </p>
         <Button disabled={download.isPending} onClick={() => download.mutate()}>
           {download.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Descarcă / actualizează APK
+          {t('settings:android.download')}
         </Button>
       </CardContent>
     </Card>
@@ -45,7 +45,7 @@ export function SettingsPage() {
   const { can } = useMe()
   return (
     <div className="space-y-6" data-density="comfortable">
-      <PageHeader title="Setări" />
+      <PageHeader title={t('common:nav.settings')} />
       {can('setari.firma') ? <CompanyProfileCard /> : null}
       {can('setari.joburi') ? <OpsJobsSettingsCard /> : null}
       {can('setari.asistent') ? <AssistantProvidersCard /> : null}

@@ -1,4 +1,5 @@
 import type { PricingBreakdownRow, PricingCalculateInput, PricingPuncteBand, PricingConfig, PricingResult } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Mirror 1:1 al backend/src/modules/pricing/calc.ts — folosit DOAR ca fallback offline
 // (PricingPage, la eșec de rețea pe /api/pricing/calculate). Ține sincron cu backend-ul —
@@ -66,7 +67,7 @@ export function calculatePrice(config: PricingConfig, input: PricingCalculateInp
     const band = addon.bands.find((b) => b.upTo === null || quantity <= b.upTo) ?? addon.bands[addon.bands.length - 1]!
     const lineTotal = quantity * band.unitPrice
     addonsTotal += lineTotal
-    addonBreakdownRows.push({ label: `Add-on: ${addon.label} (${quantity} × ${band.unitPrice})`, value: round2(lineTotal) })
+    addonBreakdownRows.push({ label: t('pricing:breakdown.addonWithQuantity', { label: addon.label, quantity, unitPrice: band.unitPrice }), value: round2(lineTotal) })
   }
 
   const siatdTotal =
@@ -102,21 +103,21 @@ export function calculatePrice(config: PricingConfig, input: PricingCalculateInp
       equipmentIntegrationTotal
 
   const breakdown: PricingBreakdownRow[] = [
-    { label: `Bază (banda puncte de lucru: ${band.label}, ×${band.mult})`, value: round2(base) },
-    { label: `Operatori desktop extra (${Math.max(0, opDesktop - 1)} × ${config.operatorDesktopRate})`, value: round2(extraOpDesktop) },
-    { label: `Operatori mobil (${input.opMobil} × ${config.operatorMobilRate})`, value: round2(extraOpMobil) },
-    { label: `Documente extra (${Math.max(0, input.documente - config.documenteIncluse)}, pe benzi)`, value: round2(extraDoc) },
-    { label: 'Flux DEEE/DBA', value: round2(fluxDelta) },
-    { label: bundle ? `Pachet: ${bundle.label}` : 'Niciun pachet ales', value: round2(bundleTotal) },
+    { label: t('pricing:breakdown.base', { label: band.label, mult: band.mult }), value: round2(base) },
+    { label: t('pricing:breakdown.extraDesktop', { count: Math.max(0, opDesktop - 1), rate: config.operatorDesktopRate }), value: round2(extraOpDesktop) },
+    { label: t('pricing:breakdown.mobile', { opMobil: input.opMobil, operatorMobilRate: config.operatorMobilRate }), value: round2(extraOpMobil) },
+    { label: t('pricing:breakdown.extraDocuments', { count: Math.max(0, input.documente - config.documenteIncluse) }), value: round2(extraDoc) },
+    { label: t('pricing:breakdown.deeeFlow'), value: round2(fluxDelta) },
+    { label: bundle ? `Pachet: ${bundle.label}` : t('pricing:breakdown.noBundle'), value: round2(bundleTotal) },
     ...addonBreakdownRows,
-    { label: `Robot SIATD (${input.siatd} intrări)`, value: round2(siatdTotal) },
-    { label: `Cântare smart conectate (${input.cantare} × ${config.cantarRate})`, value: round2(cantarTotal) },
-    { label: 'Configurare cântare smart (one-time)', value: round2(cantarSetupCost) },
-    { label: 'Echipamente — achiziție (one-time)', value: round2(equipmentPurchaseTotal) },
-    { label: 'Echipamente — integrare (one-time)', value: round2(equipmentIntegrationTotal) },
-    { label: 'Echipamente — abonament lunar', value: round2(equipmentMonthlyTotal) },
+    { label: t('pricing:breakdown.siatd', { siatd: input.siatd }), value: round2(siatdTotal) },
+    { label: t('pricing:breakdown.scales', { cantare: input.cantare, cantarRate: config.cantarRate }), value: round2(cantarTotal) },
+    { label: t('pricing:breakdown.scalesSetup'), value: round2(cantarSetupCost) },
+    { label: t('pricing:breakdown.equipmentPurchase'), value: round2(equipmentPurchaseTotal) },
+    { label: t('pricing:breakdown.equipmentIntegration'), value: round2(equipmentIntegrationTotal) },
+    { label: t('pricing:breakdown.equipmentSubscription'), value: round2(equipmentMonthlyTotal) },
     {
-      label: bundle ? `Taxă de inițiere — preț fix pachet „${bundle.label}" (one-time)` : 'Taxă de inițiere (onboarding, one-time)',
+      label: bundle ? t('pricing:breakdown.setupFeeBundle', { label: bundle.label }) : t('pricing:breakdown.setupFee'),
       value: round2(onboardingTotal),
     },
   ]

@@ -1,0 +1,41 @@
+{
+  "descriptionAll": "Everything people wrote in Support, with the unread ones on top.",
+  "descriptionMine": "Write to us when something does not work or is not clear. The answer comes here and by email.",
+  "newTicket": "New ticket",
+  "filterByStatus": "Filter by status",
+  "allStatuses": "All statuses",
+  "loadFailed": "The tickets could not be loaded.",
+  "emptyForStatus": "No ticket with the status “{{value}}”",
+  "emptyAllTitle": "No ticket yet",
+  "emptyAllHint": "The tickets people open from Support show up here.",
+  "emptyMineTitle": "You have not opened any ticket",
+  "emptyMineHint": "Tell us what does not work and which page you were on.",
+  "lastActivity": "Last activity",
+  "form": {
+    "sent": "The ticket was sent. We answer here and by email.",
+    "subjectRequired": "Write in a few words what it is about.",
+    "bodyRequired": "Describe what you tried and what happened.",
+    "pageIncluded": "We also send the page you came from: {{pageLabel}}.",
+    "submit": "Send the ticket"
+  },
+  "ticket": {
+    "closedToast": "Ticket closed.",
+    "replyRequired": "Write the reply before sending it.",
+    "notFound": "The ticket does not exist or is not yours.",
+    "loadFailed": "The ticket could not be loaded.",
+    "vanadiumAuthor": "{{name}}, Vanadium",
+    "yourReply": "Your reply",
+    "closedNote": "The ticket is closed. A reply reopens it.",
+    "sendReply": "Send the reply",
+    "close": "Close the ticket",
+    "openedAt": "Opened {{when}}",
+    "openedAtFromPage": "Opened {{when}}, from the page {{page}}",
+    "byAt": "{{name}}, {{when}}",
+    "byAtFromPage": "{{name}}, {{when}}, from the page {{page}}"
+  },
+  "status": {
+    "open": "Open",
+    "answered": "Answered",
+    "closed": "Closed"
+  }
+}

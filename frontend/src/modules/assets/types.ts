@@ -1,4 +1,5 @@
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 export type AssetCategory = 'stock' | 'etf' | 'metal'
 
 export interface WatchEntry {
@@ -112,7 +113,7 @@ export function formatUsd(value: number | null | undefined): string {
 }
 
 export const CATEGORY_LABEL: Record<AssetCategory, string> = {
-  stock: 'Acțiuni',
-  etf: 'ETF-uri',
-  metal: 'Metale',
+  stock: t('common:nav.stocks'),
+  etf: t('assets:categories.etfs'),
+  metal: t('assets:categories.metals'),
 }

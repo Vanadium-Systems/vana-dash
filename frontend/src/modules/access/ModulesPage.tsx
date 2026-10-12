@@ -16,6 +16,7 @@ import { Switch } from '@/shared/components/ui/switch'
 import { Tooltip } from '@/shared/components/ui/tooltip'
 import { api, ApiError } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
+import { t } from '@/shared/lib/i18n'
 
 // Ce poate face fiecare rol, pagină cu pagină (PLAN.md C2, fișa „Module"). O matrice, nu
 // o listă de roluri: rolurile sunt puține (Admin, Manager și câteva custom), deci le vezi
@@ -93,7 +94,7 @@ export function ModulesPage() {
     onError: (error, { roleId, key }, context) => {
       if (context?.previous) queryClient.setQueryData(MATRIX_QUERY_KEY, context.previous)
       void queryClient.invalidateQueries({ queryKey: MATRIX_QUERY_KEY })
-      setNotice({ cell: `${roleId}:${key}`, text: error instanceof ApiError ? error.message : 'Schimbarea nu s-a salvat.', tone: 'error' })
+      setNotice({ cell: `${roleId}:${key}`, text: error instanceof ApiError ? error.message : t('common:states.changeNotSaved'), tone: 'error' })
     },
     onSettled: () => void queryClient.invalidateQueries({ queryKey: MATRIX_QUERY_KEY }),
   })
@@ -104,7 +105,7 @@ export function ModulesPage() {
     onSuccess: (_data, { roleId, page }) => announce(`${roleId}:${page}`, 'Salvat'),
     onError: (error, { roleId, page }) => {
       void queryClient.invalidateQueries({ queryKey: MATRIX_QUERY_KEY })
-      setNotice({ cell: `${roleId}:${page}`, text: error instanceof ApiError ? error.message : 'Schimbarea nu s-a salvat.', tone: 'error' })
+      setNotice({ cell: `${roleId}:${page}`, text: error instanceof ApiError ? error.message : t('common:states.changeNotSaved'), tone: 'error' })
     },
     onSettled: () => void queryClient.invalidateQueries({ queryKey: MATRIX_QUERY_KEY }),
   })
@@ -127,12 +128,12 @@ export function ModulesPage() {
   return (
     <div className="space-y-6" data-density="comfortable">
       <PageHeader
-        title="Module"
-        description="Ce poate face fiecare rol, pe fiecare pagină."
+        title={t('common:nav.modules')}
+        description={t('access:description')}
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" />
-            Rol nou
+            {t('access:roles.new')}
           </Button>
         }
       />
@@ -145,7 +146,7 @@ export function ModulesPage() {
         </div>
       ) : catalog.isError || matrix.isError ? (
         <div className="space-y-2 py-8 text-sm">
-          <p>Nu am putut încărca modulele.</p>
+          <p>{t('access:loadFailed')}</p>
           <Button
             variant="outline"
             onClick={() => {
@@ -153,29 +154,29 @@ export function ModulesPage() {
               void matrix.refetch()
             }}
           >
-            Încearcă din nou
+            {t('common:actions.retry')}
           </Button>
         </div>
       ) : onlyAdmin ? (
         <div className="max-w-md py-6">
-          <p className="text-sm font-medium">Niciun rol în afară de Admin</p>
+          <p className="text-sm font-medium">{t('access:empty.title')}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Admin are tot ce are firma, deci nu se editează. Creează primul rol ca să poți da funcționalități cuiva.
+            {t('access:empty.hint')}
           </p>
           <Button className="mt-4" onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" />
-            Creează primul rol
+            {t('access:empty.createFirst')}
           </Button>
         </div>
       ) : (
         <>
           {visibleRoles.length > 1 ? (
             <div className="sm:hidden">
-              <Field label="Rol">
+              <Field label={t('common:labels.role')}>
                 <Select
                   value={roleFilter ?? ''}
                   onValueChange={(value) => setRoleFilter(value || null)}
-                  options={[{ value: '', label: 'Toate rolurile' }, ...roles.map((role) => ({ value: role.id, label: role.name }))]}
+                  options={[{ value: '', label: t('access:roles.all') }, ...roles.map((role) => ({ value: role.id, label: role.name }))]}
                 />
               </Field>
             </div>
@@ -183,34 +184,34 @@ export function ModulesPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
-              <caption className="sr-only">Funcționalitățile fiecărui rol, pe pagini</caption>
+              <caption className="sr-only">{t('access:tableCaption')}</caption>
               <thead>
                 <tr>
                   <th scope="col" className="w-2/5 pb-2 text-left text-xs font-normal text-muted-foreground">
-                    Pagină
+                    {t('access:labels.page')}
                   </th>
                   {visibleRoles.map((role) => (
                     <th key={role.id} scope="col" className="pb-2 text-left text-xs font-normal text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <span>{role.name}</span>
-                        {role.kind === 'admin' ? <span className="text-muted-foreground/70">· acces complet</span> : null}
+                        {role.kind === 'admin' ? <span className="text-muted-foreground/70">{t('access:roles.fullAccess')}</span> : null}
                         {role.editable ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger className="rounded-sm p-0.5 text-muted-foreground hover:bg-accent">
                               <Ellipsis className="h-4 w-4" aria-hidden="true" />
-                              <span className="sr-only">Ce se poate face cu rolul {role.name}</span>
+                              <span className="sr-only">{t('access:roles.actionsFor', { name: role.name })}</span>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => setRenaming(role)}>Redenumește</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setRenaming(role)}>{t('common:actions.rename')}</DropdownMenuItem>
                               <DropdownMenuItem destructive onClick={() => setDeleting(role)}>
-                                Șterge rolul
+                                {t('access:roles.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         ) : null}
                       </div>
                       {role.memberCount > 0 ? (
-                        <span className="block text-xs text-muted-foreground/70">{role.memberCount} oameni</span>
+                        <span className="block text-xs text-muted-foreground/70">{t('common:count.people', { count: role.memberCount })}</span>
                       ) : null}
                     </th>
                   ))}
@@ -240,23 +241,23 @@ export function ModulesPage() {
       <ConfirmDialog
         open={Boolean(deleting)}
         onOpenChange={(open) => !open && setDeleting(null)}
-        title={`Șterge rolul ${deleting?.name ?? ''}`}
+        title={t('access:roles.deleteTitle', { name: deleting?.name ?? '' })}
         consequence={
           deleting && deleting.memberCount > 0
-            ? `${deleting.memberCount} ${deleting.memberCount === 1 ? 'om are' : 'oameni au'} rolul ăsta. Mută-i pe alt rol, apoi șterge-l.`
-            : 'Rolul dispare; oamenii rămân în echipă, dar nu mai au rol.'
+            ? t('access:roles.inUse', { count: deleting.memberCount })
+            : t('access:roles.deleteBody')
         }
-        confirmLabel="Șterge rolul"
+        confirmLabel={t('access:roles.delete')}
         destructive
         onConfirm={async () => {
           if (!deleting) return
           try {
             await api.delete(`/api/access/roles/${deleting.id}`)
-            toast.success(`Rolul ${deleting.name} a fost șters.`)
+            toast.success(t('access:roles.deleted', { name: deleting.name }))
             setDeleting(null)
             refetchAll()
           } catch (error) {
-            toast.error(error instanceof ApiError ? error.message : 'Rolul nu a fost șters.')
+            toast.error(error instanceof ApiError ? error.message : t('access:roles.notDeleted'))
           }
         }}
       />
@@ -306,11 +307,11 @@ function PageRows({
               const disabled = !role.editable || (!isView && pageOff) || (locked && !on)
               const cell = `${role.id}:${feature.key}`
               const reason = !role.editable
-                ? 'Rolul Admin are tot ce are firma'
+                ? t('access:roles.adminHasAll')
                 : !isView && pageOff
-                  ? `Pornește întâi «${page.label}»`
+                  ? t('access:features.turnOnFirst', { label: page.label })
                   : locked && !on
-                    ? `Nu ai ${feature.label.toLowerCase()}, deci nu îl poți da altcuiva`
+                    ? t('access:features.notYours', { label: feature.label.toLowerCase() })
                     : undefined
               const control = isView ? (
                 <Checkbox
@@ -336,7 +337,7 @@ function PageRows({
                     {reason && role.editable ? <Tooltip content={reason}>{control}</Tooltip> : control}
                     {isView ? (
                       <span className="text-xs text-muted-foreground tnum">
-                        {page.features.filter((f) => role.features.includes(f.key)).length} din {page.features.length}
+                        {t('access:features.countOf', { count: page.features.filter((f) => role.features.includes(f.key)).length, count2: page.features.length })}
                       </span>
                     ) : null}
                     {notice?.cell === cell ? (
@@ -371,13 +372,13 @@ function CreateRoleDialog({
   const create = useMutation({
     mutationFn: () => api.post('/api/access/roles', copyFrom ? { name, copyFromRoleId: copyFrom } : { name }),
     onSuccess: () => {
-      toast.success(`Rolul ${name} a fost creat.`)
+      toast.success(t('access:roles.created', { name }))
       setName('')
       setCopyFrom('')
       onOpenChange(false)
       onCreated()
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Rolul nu a fost creat.'),
+    onError: (err) => setError(err instanceof ApiError ? err.message : t('access:roles.notCreated')),
   })
 
   return (
@@ -390,7 +391,7 @@ function CreateRoleDialog({
     >
       <DialogContent className="md:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle className="text-base">Rol nou</DialogTitle>
+          <DialogTitle className="text-base">{t('access:roles.new')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -400,26 +401,26 @@ function CreateRoleDialog({
             create.mutate()
           }}
         >
-          <Field label="Nume" error={error}>
+          <Field label={t('common:labels.name')} error={error}>
             <Input value={name} onChange={(event) => setName(event.target.value)} required autoFocus />
           </Field>
-          <Field label="Pornește de la" optional>
+          <Field label={t('access:roles.startFrom')} optional>
             <Select
               value={copyFrom}
               onValueChange={setCopyFrom}
               options={[
-                { value: '', label: 'Gol' },
+                { value: '', label: t('access:roles.empty') },
                 ...roles.filter((role) => role.kind !== 'admin').map((role) => ({ value: role.id, label: role.name })),
               ]}
             />
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Renunță
+              {t('common:actions.discard')}
             </Button>
             <Button type="submit" disabled={create.isPending || name.trim().length < 2}>
               <Check className="h-4 w-4" />
-              Creează rolul
+              {t('access:roles.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -434,11 +435,11 @@ function RenameRoleDialog({ role, onClose, onRenamed }: { role: MatrixRole | nul
   const rename = useMutation({
     mutationFn: () => api.patch(`/api/access/roles/${role?.id}`, { name }),
     onSuccess: () => {
-      toast.success('Rolul a fost redenumit.')
+      toast.success(t('access:roles.renamed'))
       onClose()
       onRenamed()
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Numele nu a fost salvat.'),
+    onError: (err) => setError(err instanceof ApiError ? err.message : t('access:roles.nameNotSaved')),
   })
 
   return (
@@ -454,7 +455,7 @@ function RenameRoleDialog({ role, onClose, onRenamed }: { role: MatrixRole | nul
     >
       <DialogContent className="md:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle className="text-base">Redenumește rolul</DialogTitle>
+          <DialogTitle className="text-base">{t('access:roles.rename')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -464,15 +465,15 @@ function RenameRoleDialog({ role, onClose, onRenamed }: { role: MatrixRole | nul
             rename.mutate()
           }}
         >
-          <Field label="Nume" error={error}>
+          <Field label={t('common:labels.name')} error={error}>
             <Input value={name} onChange={(event) => setName(event.target.value)} required autoFocus />
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Renunță
+              {t('common:actions.discard')}
             </Button>
             <Button type="submit" disabled={rename.isPending || name.trim().length < 2}>
-              Salvează
+              {t('common:actions.save')}
             </Button>
           </DialogFooter>
         </form>

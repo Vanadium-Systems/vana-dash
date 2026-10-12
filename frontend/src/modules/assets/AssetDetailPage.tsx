@@ -14,6 +14,7 @@ import { CandleChart } from '@/modules/crypto/CandleChart'
 import { OrderDialog } from './OrderDialog'
 import { CATEGORY_LABEL, formatUsd, type AssetCategory, type AssetDetail, type ChartBar, type WatchEntry } from './types'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 // Pagina unui simbol (cerință Stefan: „cum e pe Crypto") — schelet identic CoinDetailPage:
 // grafic cu intervale + candele, statistici, favorite + ordin direct de aici. Graficul vine din
@@ -24,10 +25,10 @@ import { intlTag } from '@/shared/lib/format'
 
 const RANGES = [
   { days: 1, label: '24h' },
-  { days: 7, label: '7 zile' },
-  { days: 30, label: '30 zile' },
-  { days: 90, label: '90 zile' },
-  { days: 365, label: '1 an' },
+  { days: 7, label: t('common:labels.days7') },
+  { days: 30, label: t('common:labels.days30') },
+  { days: 90, label: t('common:labels.days90') },
+  { days: 365, label: t('crypto:range.oneYear') },
 ] as const
 
 function ChangePct({ value, label }: { value: number | null; label: string }) {
@@ -114,11 +115,11 @@ export function AssetDetailPage() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" onClick={() => void navigate('/assets')}>
-          <ArrowLeft className="h-4 w-4" /> Înapoi la Assets
+          <ArrowLeft className="h-4 w-4" /> {t('assets:asset.backToAssets')}
         </Button>
         <Card>
           <CardContent className="pt-6 text-sm text-destructive">
-            Nu am putut încărca {symbol}: {(detail.error as Error | undefined)?.message ?? 'inexistent'}
+            {t('assets:asset.loadFailed', { symbol, reason: (detail.error as Error | undefined)?.message ?? t('assets:asset.missing') })}
           </CardContent>
         </Card>
       </div>
@@ -144,17 +145,17 @@ export function AssetDetailPage() {
           <>
             <Button variant="outline" onClick={() => toggleWatch.mutate(watched)} disabled={toggleWatch.isPending}>
               <Star className={cn('h-4 w-4', watched && 'fill-warning text-warning')} />
-              {watched ? 'În favorite' : 'Adaugă la favorite'}
+              {watched ? t('crypto:favorites.inFavorites') : t('crypto:favorites.add')}
             </Button>
             <Button onClick={() => setOrderOpen(true)}>
-              Ordin {symbol}
+              {t('assets:order.orderFor', { symbol })}
             </Button>
           </>
         }
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => void navigate('/assets')} aria-label="Înapoi">
+        <Button variant="ghost" size="icon" onClick={() => void navigate('/assets')} aria-label={t('common:actions.back')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         {a.logoUrl ? <img src={a.logoUrl} alt="" className="h-8 w-8 rounded-full" /> : null}
@@ -165,7 +166,7 @@ export function AssetDetailPage() {
           </h1>
           <p className="flex items-baseline gap-3">
             <span className="tnum font-mono text-lg">{formatUsd(a.priceUsd)}</span>
-            <ChangePct value={a.changePct} label="azi" />
+            <ChangePct value={a.changePct} label={t('assets:asset.today')} />
           </p>
         </div>
       </div>
@@ -175,10 +176,10 @@ export function AssetDetailPage() {
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className={cn('tnum font-mono text-xs', rangeUp ? 'text-success-text' : 'text-destructive-text')}>
-                {first != null && last != null ? `${(((last - first) / first) * 100).toFixed(2)}% în interval` : '—'}
+                {first != null && last != null ? t('crypto:chart.changeInRange', { value: (((last - first) / first) * 100).toFixed(2) }) : '—'}
               </span>
               <div className="flex gap-1">
-                {([['line', 'Linie'], ['candles', 'Candele']] as const).map(([mode, label]) => (
+                {([['line', t('crypto:chart.line')], ['candles', t('crypto:chart.candles')]] as const).map(([mode, label]) => (
                   <button
                     key={mode}
                     type="button"
@@ -216,7 +217,7 @@ export function AssetDetailPage() {
             <Skeleton className="h-72 w-full" />
           ) : chartData.length < 2 ? (
             <p className="py-16 text-center text-sm text-muted-foreground">
-              Grafic indisponibil — verifică cheia Twelve Data din Setări.
+              {t('assets:asset.chartUnavailable')}
             </p>
           ) : (
             <ResponsiveContainer width="100%" height={320}>
@@ -242,15 +243,15 @@ export function AssetDetailPage() {
       </Card>
 
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <Stat label="Deschidere" value={formatUsd(a.open)} />
-        <Stat label="Maxim" value={formatUsd(a.high)} />
-        <Stat label="Minim" value={formatUsd(a.low)} />
-        <Stat label="Închidere anterioară" value={formatUsd(a.previousClose)} />
+        <Stat label={t('assets:stats.open')} value={formatUsd(a.open)} />
+        <Stat label={t('assets:stats.high')} value={formatUsd(a.high)} />
+        <Stat label={t('assets:stats.low')} value={formatUsd(a.low)} />
+        <Stat label={t('assets:stats.previousClose')} value={formatUsd(a.previousClose)} />
         {a.category !== 'metal' ? (
           <>
-            <Stat label="Market cap" value={formatCompact(a.marketCapUsd)} />
-            <Stat label="Acțiuni în circulație" value={a.sharesOutstanding?.toLocaleString(intlTag(), { maximumFractionDigits: 0 }) ?? '—'} />
-            <Stat label="Bursă" value={a.exchange ?? '—'} />
+            <Stat label={t('crypto:stats.marketCap')} value={formatCompact(a.marketCapUsd)} />
+            <Stat label={t('assets:stats.sharesOutstanding')} value={a.sharesOutstanding?.toLocaleString(intlTag(), { maximumFractionDigits: 0 }) ?? '—'} />
+            <Stat label={t('assets:stats.exchange')} value={a.exchange ?? '—'} />
             <Stat label="IPO" value={a.ipoDate ?? '—'} />
           </>
         ) : null}
@@ -259,9 +260,9 @@ export function AssetDetailPage() {
       {a.category !== 'metal' && (a.industry || a.websiteUrl) ? (
         <Card>
           <CardContent className="pt-6">
-            <h2 className="mb-2 text-sm font-semibold">Profil {a.name}</h2>
+            <h2 className="mb-2 text-sm font-semibold">{t('assets:asset.profile', { name: a.name })}</h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {a.industry ? <>Industrie: {a.industry}. </> : null}
+              {a.industry ? <>{t('assets:asset.industry', { industry: a.industry })} </> : null}
               {CATEGORY_LABEL[a.category]}
               {a.websiteUrl ? (
                 <>

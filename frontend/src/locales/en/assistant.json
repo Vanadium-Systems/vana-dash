@@ -1,0 +1,29 @@
+{
+  "suggestions": {
+    "unpaidInvoices": "Which invoices are unpaid?",
+    "monthReport": "Report for this month",
+    "activeAlerts": "Which alerts are active?",
+    "unreadEmails": "Do I have unread emails?"
+  },
+  "meterHint": "Tokens in context (last answer) · % of the model window · estimated conversation cost",
+  "minutesAgo": "{{minutes}} min ago",
+  "loadFailed": "The conversation could not be loaded",
+  "deleted": "Conversation deleted",
+  "deleteFailed": "The conversation could not be deleted",
+  "modelChangeFailed": "The model could not be changed",
+  "cancelTaskFailed": "The task could not be cancelled",
+  "defaultModel": "Default model",
+  "conversations": "Conversations",
+  "newConversation": "New conversation",
+  "intro": "Ask me anything about platforms, finances, invoices, email, calendar, or ask me to do something. Important actions get your confirmation before they run.",
+  "thinking": "Thinking…",
+  "confirmNeeded": "Confirmation needed: {{toolName}}",
+  "approve": "Approve",
+  "reject": "Reject",
+  "cancelScheduled": "Cancel the scheduled task",
+  "moreScheduled": "+{{count}} more",
+  "placeholder": "Write a message… (Enter sends, Shift+Enter adds a line)",
+  "copyMessage": "Copy the message",
+  "deleteConversation": "Delete the conversation {{title}}",
+  "deleteNewConversation": "Delete the new conversation"
+}

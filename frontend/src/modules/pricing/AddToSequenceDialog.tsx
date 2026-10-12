@@ -7,6 +7,7 @@ import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { EmailSequence, EnrollResult, Prospect } from '@/shared/lib/types'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface AddToSequenceDialogProps {
   prospects: Prospect[]
@@ -50,8 +51,8 @@ export function AddToSequenceDialog({ prospects, onOpenChange }: AddToSequenceDi
       api.post<EnrollResult>(`/api/email/sequences/${sequenceId}/enroll`, { recipients }),
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences'] })
-      const alreadyNote = data.alreadyEnrolled.length ? ` · Deja înrolați: ${data.alreadyEnrolled.length}` : ''
-      toast.success(`Înrolați: ${data.enrolled}${alreadyNote}`)
+      const alreadyNote = data.alreadyEnrolled.length ? t('pricing:sequence.alreadyNote', { count: data.alreadyEnrolled.length }) : ''
+      toast.success(t('pricing:sequence.enrolledToast', { enrolled: data.enrolled, alreadyNote }))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -63,7 +64,7 @@ export function AddToSequenceDialog({ prospects, onOpenChange }: AddToSequenceDi
     <Dialog open={prospects.length > 0} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adaugă {prospects.length} prospect{prospects.length === 1 ? '' : 'i'} în secvență</DialogTitle>
+          <DialogTitle>{t('pricing:sequence.addProspects', { count: prospects.length })}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -74,27 +75,26 @@ export function AddToSequenceDialog({ prospects, onOpenChange }: AddToSequenceDi
         >
           {withoutEmail > 0 ? (
             <p className="text-sm text-warning">
-              {withoutEmail} prospect{withoutEmail === 1 ? '' : 'i'} fără adresă de email — {withoutEmail === 1 ? 'exclus' : 'excluși'} din enroll.
+              {t('pricing:sequence.withoutEmail', { count: withoutEmail })}
             </p>
           ) : null}
           {recipients.length > MAX_RECIPIENTS ? (
             <p className="text-sm text-destructive">
-              {recipients.length} destinatari (numărând fiecare adresă din firmele cu mai multe email-uri) — peste limita de {MAX_RECIPIENTS}
-              /înrolare. Selectează mai puține.
+              {t('pricing:sequence.tooMany', { count: recipients.length, MAX_RECIPIENTS })}
             </p>
           ) : null}
           {recipients.length === 0 ? (
-            <p className="text-sm text-destructive">Niciun prospect selectat nu are adresă de email.</p>
+            <p className="text-sm text-destructive">{t('pricing:sequence.noneHasEmail')}</p>
           ) : (
             <div className="space-y-2">
-              <Label htmlFor="add-seq-select">Secvență</Label>
+              <Label htmlFor="add-seq-select">{t('pricing:sequence.label')}</Label>
               <Select
                 id="add-seq-select"
                 value={sequenceId}
                 onChange={(e) => setSequenceId(e.target.value)}
                 required
               >
-                <option value="">— alege o secvență activă —</option>
+                <option value="">{t('pricing:sequence.pick')}</option>
                 {activeSequences.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -102,7 +102,7 @@ export function AddToSequenceDialog({ prospects, onOpenChange }: AddToSequenceDi
                 ))}
               </Select>
               {!sequences.isPending && activeSequences.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nicio secvență activă — creează una din Email → Secvențe.</p>
+                <p className="text-xs text-muted-foreground">{t('pricing:sequence.noneActive')}</p>
               ) : null}
             </div>
           )}
@@ -111,7 +111,7 @@ export function AddToSequenceDialog({ prospects, onOpenChange }: AddToSequenceDi
             className="w-full"
             disabled={!sequenceId || recipients.length === 0 || recipients.length > MAX_RECIPIENTS || enroll.isPending}
           >
-            {enroll.isPending ? 'Se înrolează…' : `Adaugă ${recipients.length} destinatar${recipients.length === 1 ? '' : 'i'} în secvență`}
+            {enroll.isPending ? t('pricing:sequence.enrolling') : t('pricing:sequence.addRecipients', { count: recipients.length })}
           </Button>
         </form>
       </DialogContent>

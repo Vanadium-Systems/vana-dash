@@ -18,10 +18,12 @@ import type { PlanGoal, PlanResponse, PlanScope } from '@/shared/lib/types'
 import { PlanGoalFormDialog } from './PlanGoalFormDialog'
 import { tierLabel } from './tiers'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
+import { tNodes } from '@/shared/lib/i18n-nodes'
 
 const SCOPES = [
-  { key: 'personal', label: 'Personal' },
-  { key: 'firma', label: 'Firmă' },
+  { key: 'personal', label: t('common:labels.personal') },
+  { key: 'firma', label: t('common:labels.company') },
 ] as const
 
 const STATUS_STYLES: Record<PlanGoal['status'], string> = {
@@ -85,8 +87,8 @@ function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onE
           <span className={cn('font-medium', goal.status === 'completed' ? 'line-through decoration-success' : '')}>
             {goal.title}
           </span>
-          {goal.thresholdType === 'mrr_ron' ? <Badge variant="outline">prag MRR</Badge> : null}
-          {monthlyCost !== null ? <Badge variant="outline">{formatRon(monthlyCost)} RON/lună</Badge> : null}
+          {goal.thresholdType === 'mrr_ron' ? <Badge variant="outline">{t('plan:mrrThresholdTag')}</Badge> : null}
+          {monthlyCost !== null ? <Badge variant="outline">{t('plan:perMonth', { amount: `${formatRon(monthlyCost)} RON` })}</Badge> : null}
           {targetPrice !== null ? (
             <Badge variant="outline">
               {formatRon(targetPrice)} {goal.targetPriceCurrency}
@@ -94,7 +96,7 @@ function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onE
           ) : null}
           {goal.targetDate ? (
             <Badge variant={goal.status !== 'completed' && goal.targetDate < new Date().toISOString().slice(0, 10) ? 'warning' : 'outline'}>
-              termen: {formatTargetDate(goal.targetDate)}
+              {t('plan:deadline', { targetDate: formatTargetDate(goal.targetDate) })}
             </Badge>
           ) : null}
         </div>
@@ -105,7 +107,7 @@ function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onE
               <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progressPct}%` }} />
             </div>
             <p className="text-xs text-muted-foreground">
-              {formatRon(mrrRon)} / {formatRon(thresholdValue!)} RON MRR
+              {t('plan:mrrProgress', { current: formatRon(mrrRon), target: `${formatRon(thresholdValue!)} RON` })}
             </p>
           </div>
         ) : null}
@@ -116,10 +118,10 @@ function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onE
           disabled={toggleComplete.isPending}
           onClick={() => toggleComplete.mutate(goal.status !== 'completed')}
         >
-          {goal.status === 'completed' ? 'Anulează' : 'Marchează realizat'}
+          {goal.status === 'completed' ? t('common:actions.cancel') : t('plan:markDone')}
         </Button>
         <Button variant="outline" onClick={() => onEdit(goal)}>
-          Editează
+          {t('common:actions.edit')}
         </Button>
       </div>
     </div>
@@ -170,7 +172,7 @@ function GoalList({
     reorder.mutate(nextOrder)
   }
 
-  if (!goals.length) return <p className="text-sm text-muted-foreground">Niciun pas în această pistă încă.</p>
+  if (!goals.length) return <p className="text-sm text-muted-foreground">{t('plan:emptyTrack')}</p>
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -219,12 +221,13 @@ function TieredGoals({ goals, mrrRon, onEdit }: { goals: PlanGoal[]; mrrRon: num
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4 text-sm">
             <span className="text-muted-foreground">
-              Cost lunar total al planului: <span className="font-medium text-foreground">{formatRon(totalMonthlyCost)} RON</span>
-              {' vs. MRR curent '}
-              <span className="font-medium text-foreground">{formatRon(mrrRon)} RON</span>
+              {tNodes('plan:totalVsMrr', {
+                cost: <span className="font-medium text-foreground">{formatRon(totalMonthlyCost)} RON</span>,
+                mrr: <span className="font-medium text-foreground">{formatRon(mrrRon)} RON</span>,
+              })}
             </span>
             <Badge variant={gap > 0 ? 'warning' : 'success'}>
-              {gap > 0 ? `gap de ${formatRon(gap)} RON` : 'acoperit de MRR curent'}
+              {gap > 0 ? t('plan:gap', { amount: `${formatRon(gap)} RON` }) : t('plan:coveredByMrr')}
             </Badge>
           </CardContent>
         </Card>
@@ -238,9 +241,9 @@ function TieredGoals({ goals, mrrRon, onEdit }: { goals: PlanGoal[]; mrrRon: num
               <CardTitle className="text-base">{tierLabel(tier)}</CardTitle>
               {tierCost > 0 ? (
                 <div className="flex flex-wrap gap-1">
-                  <Badge variant="outline">{formatRon(tierCost)} RON/lună</Badge>
+                  <Badge variant="outline">{t('plan:perMonth', { amount: `${formatRon(tierCost)} RON` })}</Badge>
                   <Badge variant={cumulativeGap > 0 ? 'warning' : 'success'}>
-                    {cumulativeGap > 0 ? `gap cumulat de ${formatRon(cumulativeGap)} RON` : 'acoperit de MRR curent'}
+                    {cumulativeGap > 0 ? t('plan:cumulativeGap', { amount: `${formatRon(cumulativeGap)} RON` }) : t('plan:coveredByMrr')}
                   </Badge>
                 </div>
               ) : null}
@@ -287,11 +290,11 @@ export function PlanPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Plan"
-        description="Poți bifa orice pas oricând — ordinea e doar orientativă, nu blochează completarea."
+        title={t('common:nav.plan')}
+        description={t('plan:description')}
         actions={
           <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> Pas nou
+            <Plus className="h-4 w-4" /> {t('plan:step.new')}
           </Button>
         }
       />

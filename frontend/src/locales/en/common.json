@@ -428,10 +428,18 @@
     "USD": "USD, US dollar"
   },
   "count": {
-    "files_one": "{{count}} file",
-    "files_other": "{{count}} files",
-    "folders_one": "{{count}} folder",
-    "folders_other": "{{count}} folders"
+    "files_one": "{{count, number}} file",
+    "files_other": "{{count, number}} files",
+    "folders_one": "{{count, number}} folder",
+    "folders_other": "{{count, number}} folders",
+    "months_one": "{{count, number}} month",
+    "months_other": "{{count, number}} months",
+    "records_one": "{{count, number}} record",
+    "records_other": "{{count, number}} records",
+    "days_one": "{{count, number}} day",
+    "days_other": "{{count, number}} days",
+    "people_one": "{{count, number}} person",
+    "people_other": "{{count, number}} people"
   },
   "weekdays": {
     "long": {

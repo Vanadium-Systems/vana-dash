@@ -22,6 +22,7 @@ import { api, ApiError } from '@/shared/lib/api'
 import type { EmailIdentity, EmailSettings } from '@/shared/lib/types'
 import { cn, normalizeForSearch } from '@/shared/lib/utils'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 // Cine e în echipă, ce rol are fiecare și cine n-a acceptat încă invitația (fișa „Echipă").
 // Lista e `self` — orice om activ o vede, ca să îi poată scrie cuiva din Mesaje; partea de
@@ -30,9 +31,9 @@ import { intlTag } from '@/shared/lib/format'
 // nu la fiecare apăsare.
 
 const STATUS: Record<TeamMember['status'], { label: string; tone: StateTone }> = {
-  active: { label: 'Activ', tone: 'success' },
-  invited: { label: 'Invitat', tone: 'warning' },
-  disabled: { label: 'Dezactivat', tone: 'critical' },
+  active: { label: t('common:states.active'), tone: 'success' },
+  invited: { label: t('team:status.invited'), tone: 'warning' },
+  disabled: { label: t('team:status.disabled'), tone: 'critical' },
 }
 
 const TZ = 'Europe/Bucharest'
@@ -40,13 +41,13 @@ const MAILBOX_QUERY_KEY = ['email', 'settings'] as const
 
 /** „acum 2 ore", cu data completă la hover și focus; „Activ acum" e text, nu doar un punct. */
 function LastSeen({ at }: { at: string | null }) {
-  if (!at) return <span className="text-sm text-muted-foreground">nu a intrat niciodată</span>
+  if (!at) return <span className="text-sm text-muted-foreground">{t('team:members.neverSignedIn')}</span>
   const minutes = Math.round((Date.now() - new Date(at).getTime()) / 60_000)
   const full = new Intl.DateTimeFormat(intlTag(), { dateStyle: 'medium', timeStyle: 'short', timeZone: TZ }).format(new Date(at))
   // Fără prezență (push B vine cu Mesajele), „activ acum" înseamnă că a venit un request
   // în ultimele două minute — `last_seen_at` se scrie cel mult o dată pe minut.
   const active = minutes < 2
-  const label = active ? 'Activ acum' : new Intl.RelativeTimeFormat(intlTag(), { numeric: 'auto' }).format(-minutes, 'minute')
+  const label = active ? t('team:members.activeNow') : new Intl.RelativeTimeFormat(intlTag(), { numeric: 'auto' }).format(-minutes, 'minute')
   return (
     <Tooltip content={full}>
       <span className="text-sm text-muted-foreground">
@@ -81,14 +82,14 @@ function MailboxPicker({
 }) {
   return (
     <fieldset className="space-y-1.5">
-      <legend className="mb-1 text-sm font-medium">Cutii de email</legend>
+      <legend className="mb-1 text-sm font-medium">{t('team:labels.mailboxes')}</legend>
       {identities.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nu există identități de trimitere. Adaugă-le din Setări → Email.</p>
+        <p className="text-sm text-muted-foreground">{t('team:members.noIdentities')}</p>
       ) : (
         identities.map((identity) => {
           const address = (/<(.+)>/.exec(identity.fromAddress)?.[1] ?? identity.fromAddress).trim().toLowerCase()
           const on = selected.includes(identity.key)
-          const reason = blocked.includes(identity.key) ? `Nu ai cutia ${address}, deci nu o poți da altcuiva` : undefined
+          const reason = blocked.includes(identity.key) ? t('team:members.mailboxNotYours', { address }) : undefined
           const control = (
             <Checkbox
               checked={on}
@@ -160,20 +161,20 @@ export function TeamPage() {
       // Confirmare pe rând, nu dialog: linkul a plecat, deci n-are ce anula.
       setSentReset({ id, email: target?.email ?? '' })
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : 'Linkul nu a plecat.'),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('team:toasts.linkNotSent')),
   })
 
   // „Scrie" de pe rând (fișa Echipă): deschide DM-ul cu omul acela, creat dacă nu exista.
   const openDm = useMutation({
     mutationFn: (userId: string) => api.post<{ id: string }>('/api/chat/conversations', { kind: 'dm', userId }),
     onSuccess: (data) => navigate(`/messages/${data.id}`),
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : 'Conversația nu s-a putut deschide.'),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('team:toasts.conversationFailed')),
   })
 
   const resendInvite = useMutation({
     mutationFn: (id: string) => api.post(`/api/team/members/${id}/resend-invite`),
-    onSuccess: () => toast.success('Invitația a plecat din nou.'),
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : 'Invitația nu a plecat.'),
+    onSuccess: () => toast.success(t('team:toasts.inviteResent')),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('team:toasts.inviteNotSent')),
   })
 
   const setStatus = useMutation({
@@ -183,14 +184,14 @@ export function TeamPage() {
       // Dezactivarea e reversibilă, deci nu merită dialog: se anulează din toast.
       if (status === 'disabled') {
         const target = list.find((m) => m.id === id)
-        toast.success(`${memberName(target as TeamMember)} nu mai poate intra.`, {
-          action: { label: 'Anulează', onClick: () => setStatus.mutate({ id, status: 'active' }) },
+        toast.success(t('team:toasts.disabled', { value: memberName(target as TeamMember) }), {
+          action: { label: t('common:actions.cancel'), onClick: () => setStatus.mutate({ id, status: 'active' }) },
         })
       } else {
-        toast.success('Omul e din nou activ.')
+        toast.success(t('team:toasts.reactivated'))
       }
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : 'Schimbarea nu s-a salvat.'),
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('common:states.changeNotSaved')),
   })
 
   if (members.isPending) {
@@ -209,9 +210,9 @@ export function TeamPage() {
   if (members.isError) {
     return (
       <div className="space-y-2 py-8 text-sm" data-density="comfortable">
-        <p>Nu am putut încărca echipa.</p>
+        <p>{t('team:loadFailed')}</p>
         <Button variant="outline" onClick={() => void members.refetch()}>
-          Încearcă din nou
+          {t('common:actions.retry')}
         </Button>
       </div>
     )
@@ -222,13 +223,13 @@ export function TeamPage() {
   return (
     <div className="space-y-6" data-density="comfortable">
       <PageHeader
-        title="Echipă"
-        description="Cine lucrează aici, cu ce rol și pe ce cutii de email."
+        title={t('common:nav.team')}
+        description={t('team:description')}
         actions={
           canManage ? (
             <Button onClick={() => setInviting(true)}>
               <UserPlus className="h-4 w-4" />
-              Invită
+              {t('team:invite.button')}
             </Button>
           ) : null
         }
@@ -237,13 +238,13 @@ export function TeamPage() {
       {list.length === 1 ? (
         <EmptyState
           kind="new"
-          title="Ești singur în echipă"
-          description={canManage ? 'Invită primul coleg și dă-i un rol.' : 'Adminul firmei te poate adăuga în echipă.'}
+          title={t('team:empty.aloneTitle')}
+          description={canManage ? t('team:empty.aloneAdminHint') : t('team:empty.aloneMemberHint')}
           action={
             canManage ? (
               <Button onClick={() => setInviting(true)}>
                 <UserPlus className="h-4 w-4" />
-                Invită primul coleg
+                {t('team:invite.first')}
               </Button>
             ) : null
           }
@@ -254,31 +255,31 @@ export function TeamPage() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Caută după nume sau email"
-              aria-label="Caută în echipă"
+              placeholder={t('team:search.placeholder')}
+              aria-label={t('team:search.aria')}
             />
           </div>
 
           {filtered.length === 0 ? (
             <EmptyState
               kind="filtered"
-              title="Niciun om nu se potrivește"
-              description={`Nu am găsit pe nimeni pentru „${debouncedSearch.trim()}”.`}
+              title={t('team:empty.noMatchTitle')}
+              description={t('team:empty.noMatchHint', { debouncedSearch: debouncedSearch.trim() })}
               onReset={() => setSearch('')}
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
-                <caption className="sr-only">Membrii echipei, cu rolul, starea și cutiile de email</caption>
+                <caption className="sr-only">{t('team:members.tableCaption')}</caption>
                 <thead>
                   <tr>
-                    {['Nume', 'Email', 'Rol', 'Cutii', 'Stare', 'Ultima activitate', ''].map((heading) => (
+                    {[t('common:labels.name'), t('common:labels.email'), t('common:labels.role'), t('team:members.mailboxesShort'), t('common:labels.state'), t('team:members.lastActivity'), ''].map((heading) => (
                       <th
                         key={heading || 'actions'}
                         scope="col"
                         className={cn('border-b pb-2 text-left text-xs font-normal text-muted-foreground', heading === 'Nume' && 'w-1/4')}
                       >
-                        {heading ? heading : <span className="sr-only">Acțiuni</span>}
+                        {heading ? heading : <span className="sr-only">{t('common:labels.actions')}</span>}
                       </th>
                     ))}
                   </tr>
@@ -291,7 +292,7 @@ export function TeamPage() {
                       <tr key={member.id} className="border-t">
                         <td className="py-2 pr-3">
                           {memberName(member)}
-                          {member.id === session?.user.id ? <span className="ml-2 text-xs text-muted-foreground">(tu)</span> : null}
+                          {member.id === session?.user.id ? <span className="ml-2 text-xs text-muted-foreground">{t('team:members.you')}</span> : null}
                         </td>
                         <td className="py-2 pr-3 text-muted-foreground">{member.email}</td>
                         <td className="py-2 pr-3">
@@ -303,13 +304,13 @@ export function TeamPage() {
                             (member.role?.name ?? '—')
                           )}
                         </td>
-                        <td className="py-2 pr-3 text-muted-foreground">{isAdmin ? 'Toate' : boxes.length > 0 ? boxes.join(', ') : 'niciuna'}</td>
+                        <td className="py-2 pr-3 text-muted-foreground">{isAdmin ? t('common:labels.all') : boxes.length > 0 ? boxes.join(', ') : t('team:members.none')}</td>
                         <td className="py-2 pr-3">
                           <StatePill tone={STATUS[member.status].tone}>{STATUS[member.status].label}</StatePill>
                         </td>
                         <td className="py-2 pr-3">
                           {sentReset?.id === member.id ? (
-                            <span className="text-sm text-muted-foreground">Link trimis pe {sentReset.email}</span>
+                            <span className="text-sm text-muted-foreground">{t('team:members.resetLinkSent', { email: sentReset.email })}</span>
                           ) : (
                             <LastSeen at={member.lastSeenAt} />
                           )}
@@ -323,7 +324,7 @@ export function TeamPage() {
                                 disabled={openDm.isPending}
                                 onClick={() => openDm.mutate(member.id)}
                               >
-                                Scrie
+                                {t('team:members.write')}
                               </Button>
                             ) : null}
                           </span>
@@ -331,29 +332,29 @@ export function TeamPage() {
                             <DropdownMenu>
                               <DropdownMenuTrigger className="rounded-sm p-1 hover:bg-accent">
                                 <Ellipsis className="h-4 w-4" aria-hidden="true" />
-                                <span className="sr-only">Ce se poate face cu {memberName(member)}</span>
+                                <span className="sr-only">{t('team:members.actionsFor', { member: memberName(member) })}</span>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent>
                                 {canAssignFolders && member.status === 'disabled' ? (
-                                  <DropdownMenuItem onClick={() => setAssigning(member)}>Atribuie folderele lui</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setAssigning(member)}>{t('team:members.assignFolders')}</DropdownMenuItem>
                                 ) : null}
                                 {canManage ? (
                                   <>
-                                    <DropdownMenuItem onClick={() => setEditing(member)}>Schimbă rolul și cutiile</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setEditing(member)}>{t('team:members.changeRoleAndMailboxes')}</DropdownMenuItem>
                                     {member.status === 'invited' ? (
-                                      <DropdownMenuItem onClick={() => resendInvite.mutate(member.id)}>Retrimite invitația</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => resendInvite.mutate(member.id)}>{t('team:members.resendInvite')}</DropdownMenuItem>
                                     ) : null}
                                     <DropdownMenuItem onClick={() => resetPassword.mutate(member.id)}>
                                       <Mail className="h-4 w-4" aria-hidden="true" />
-                                      Trimite link de resetare
+                                      {t('team:members.sendResetLink')}
                                     </DropdownMenuItem>
                                     {member.status === 'disabled' ? (
                                       <DropdownMenuItem onClick={() => setStatus.mutate({ id: member.id, status: 'active' })}>
-                                        Ridică dezactivarea
+                                        {t('team:members.reactivate')}
                                       </DropdownMenuItem>
                                     ) : (
                                       <DropdownMenuItem destructive onClick={() => setStatus.mutate({ id: member.id, status: 'disabled' })}>
-                                        Dezactivează
+                                        {t('common:actions.disable')}
                                       </DropdownMenuItem>
                                     )}
                                   </>
@@ -391,25 +392,25 @@ function AssignFoldersDialog({ from, members, onClose }: { from: TeamMember | nu
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['archive'] })
       const target = candidates.find((m) => m.id === toUserId)
-      toast.success(data.moved ? `Folderele lui ${memberName(from!)} sunt acum ale lui ${target ? memberName(target) : 'colegului'}.` : `${memberName(from!)} nu avea foldere.`)
+      toast.success(data.moved ? target ? t('team:folders.movedTo', { from: memberName(from!), to: memberName(target) }) : t('team:folders.movedToColleague', { from: memberName(from!) }) : t('team:folders.hadNone', { value: memberName(from!) }))
       setToUserId('')
       onClose()
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : 'Folderele nu s-au mutat.'),
+    onError: (err) => toast.error(err instanceof ApiError ? err.message : t('team:folders.notMoved')),
   })
 
   return (
     <Dialog open={from !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Atribuie folderele lui {from ? memberName(from) : ''}</DialogTitle>
+          <DialogTitle>{t('team:folders.assignTitle', { from: from ? memberName(from) : '' })}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault()
             if (!toUserId) {
-              setError('Alege cine preia folderele')
+              setError(t('team:folders.pickTarget'))
               return
             }
             setError(null)
@@ -417,11 +418,11 @@ function AssignFoldersDialog({ from, members, onClose }: { from: TeamMember | nu
           }}
         >
           <p className="text-sm text-muted-foreground">
-            Tot spațiul lui de arhivă, cu subfolderele, trece la omul ales. Share-urile date de el rămân.
+            {t('team:folders.hint')}
           </p>
-          <Field label="Le preia" error={error}>
+          <Field label={t('team:folders.takenBy')} error={error}>
             <Select value={toUserId} onValueChange={setToUserId}>
-              <option value="">Alege…</option>
+              <option value="">{t('common:access.share.choose')}</option>
               {candidates.map((m) => (
                 <option key={m.id} value={m.id}>
                   {memberName(m)}
@@ -431,10 +432,10 @@ function AssignFoldersDialog({ from, members, onClose }: { from: TeamMember | nu
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Anulează
+              {t('common:actions.cancel')}
             </Button>
             <Button type="submit" disabled={assign.isPending}>
-              {assign.isPending ? 'Se mută…' : 'Atribuie'}
+              {assign.isPending ? t('team:folders.moving') : t('team:folders.assign')}
             </Button>
           </DialogFooter>
         </form>
@@ -474,7 +475,7 @@ function InviteDialog({
       return created
     },
     onSuccess: () => {
-      toast.success(`Invitația a plecat pe ${email}.`)
+      toast.success(t('team:invite.sentTo', { email }))
       setEmail('')
       setDisplayName('')
       setRoleId('')
@@ -484,14 +485,14 @@ function InviteDialog({
       // Rândul nou apare în tabel cu „Invitat" — confirmarea stă acolo, nu într-un toast.
       onInvited()
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Invitația nu a plecat.'),
+    onError: (err) => setError(err instanceof ApiError ? err.message : t('team:toasts.inviteNotSent')),
   })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="md:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle className="text-base">Invită un coleg</DialogTitle>
+          <DialogTitle className="text-base">{t('team:invite.title')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -501,18 +502,18 @@ function InviteDialog({
             invite.mutate()
           }}
         >
-          <Field label="Email" error={error}>
+          <Field label={t('common:labels.email')} error={error}>
             <Input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required autoFocus />
           </Field>
-          <Field label="Nume afișat" optional>
+          <Field label={t('team:invite.displayName')} optional>
             <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
           </Field>
-          <Field label="Rol">
+          <Field label={t('common:labels.role')}>
             <Select
               value={roleId}
               onValueChange={setRoleId}
               required
-              options={[{ value: '', label: 'Alege rolul' }, ...roleOptions.filter((role) => role.label !== 'Admin')]}
+              options={[{ value: '', label: t('team:invite.pickRole') }, ...roleOptions.filter((role) => role.label !== 'Admin')]}
             />
           </Field>
           <MailboxPicker
@@ -523,11 +524,11 @@ function InviteDialog({
           />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Renunță
+              {t('common:actions.discard')}
             </Button>
             <Button type="submit" disabled={invite.isPending || !roleId}>
               <UserPlus className="h-4 w-4" />
-              Trimite invitația
+              {t('team:invite.send')}
             </Button>
           </DialogFooter>
         </form>
@@ -579,10 +580,10 @@ function EditMemberDialog({
       await api.put(`/api/team/members/${member?.id}/mailboxes`, { identityKeys: boxes })
     },
     onSuccess: () => {
-      toast.success('Schimbările sunt salvate.')
+      toast.success(t('team:edit.saved'))
       onSaved()
     },
-    onError: (err) => setError(err instanceof ApiError ? err.message : 'Schimbările nu s-au salvat.'),
+    onError: (err) => setError(err instanceof ApiError ? err.message : t('team:edit.notSaved')),
   })
 
   const isAdmin = member?.role?.kind === 'admin'
@@ -599,7 +600,7 @@ function EditMemberDialog({
           <DialogTitle className="text-base">{member ? memberName(member) : ''}</DialogTitle>
         </DialogHeader>
         {isAdmin ? (
-          <p className="text-sm text-muted-foreground">Adminul are tot ce are firma: nu i se schimbă nici rolul, nici cutiile.</p>
+          <p className="text-sm text-muted-foreground">{t('team:edit.adminNote')}</p>
         ) : (
           <form
             className="space-y-4"
@@ -609,7 +610,7 @@ function EditMemberDialog({
               save.mutate()
             }}
           >
-            <Field label="Rol" error={error}>
+            <Field label={t('common:labels.role')} error={error}>
               <Select value={roleId} onValueChange={setRoleId} options={roleOptions.filter((role) => role.label !== 'Admin')} />
             </Field>
             <MailboxPicker
@@ -620,10 +621,10 @@ function EditMemberDialog({
             />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
-                Renunță
+                {t('common:actions.discard')}
               </Button>
               <Button type="submit" disabled={save.isPending}>
-                Salvează
+                {t('common:actions.save')}
               </Button>
             </DialogFooter>
           </form>

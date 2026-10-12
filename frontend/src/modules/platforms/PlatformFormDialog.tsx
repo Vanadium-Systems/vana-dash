@@ -9,6 +9,7 @@ import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { Platform, PlatformType } from '@/shared/lib/types'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface PlatformFormDialogProps {
   open: boolean
@@ -74,7 +75,7 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['platforms'] })
       void queryClient.invalidateQueries({ queryKey: ['metrics'] })
-      toast.success(platform ? 'Platformă actualizată' : 'Platformă adăugată')
+      toast.success(platform ? t('platforms:form.updated') : t('platforms:form.added'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -84,7 +85,7 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{platform ? 'Editează platforma' : 'Adaugă platformă'}</DialogTitle>
+          <DialogTitle>{platform ? t('platforms:form.editTitle') : t('platforms:add')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -94,29 +95,29 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="p-name">Nume</Label>
+            <Label htmlFor="p-name">{t('common:labels.name')}</Label>
             <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="p-type">Tip</Label>
+            <Label htmlFor="p-type">{t('common:labels.type')}</Label>
             <Select
               id="p-type"
               value={type}
               onChange={(e) => setType(e.target.value)}
             >
-              {(types.data ?? [{ type: 'vanagreen', displayName: 'VanaGreen' }]).map((t) => (
-                <option key={t.type} value={t.type}>
-                  {t.displayName}
+              {(types.data ?? [{ type: 'vanagreen', displayName: 'VanaGreen' }]).map((platformType) => (
+                <option key={platformType.type} value={platformType.type}>
+                  {platformType.displayName}
                 </option>
               ))}
             </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="p-url">API URL</Label>
-            <Input id="p-url" type="url" placeholder="https://app.vanagreen.ro" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} required />
+            <Input id="p-url" type="url" placeholder="https://app.example.com" value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="p-key">API Key {platform ? '(gol = neschimbat)' : ''}</Label>
+            <Label htmlFor="p-key">{platform ? t('platforms:form.apiKeyUnchanged') : t('platforms:form.apiKey')}</Label>
             <Input
               id="p-key"
               type="password"
@@ -129,17 +130,17 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
           {type === 'generic' ? (
             <div className="space-y-2 rounded-md border p-3">
               <p className="text-xs text-muted-foreground">
-                Mapări metrici — GET pe API URL + path; extrage numărul de la calea JSON după „#"
+                {t('platforms:form.mappingsHint')}
               </p>
               {mappings.map((m, i) => (
                 <div key={i} className="flex items-end gap-1">
                   <div className="flex-1 space-y-1">
                     <Label htmlFor={`pm-key-${i}`} className="text-xs text-muted-foreground">
-                      Metric key
+                      {t('platforms:form.metricKey')}
                     </Label>
                     <Input
                       id={`pm-key-${i}`}
-                      placeholder="ex: stock_kg"
+                      placeholder={t('platforms:form.metricKeyPlaceholder')}
                       value={m.metricKey}
                       onChange={(e) => setMappings((prev) => prev.map((x, j) => (j === i ? { ...x, metricKey: e.target.value } : x)))}
                       className="font-mono"
@@ -147,7 +148,7 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
                   </div>
                   <div className="w-20 space-y-1">
                     <Label htmlFor={`pm-unit-${i}`} className="text-xs text-muted-foreground">
-                      Unitate
+                      {t('platforms:form.unit')}
                     </Label>
                     <Input
                       id={`pm-unit-${i}`}
@@ -158,7 +159,7 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
                   </div>
                   <div className="w-40 space-y-1">
                     <Label htmlFor={`pm-path-${i}`} className="text-xs text-muted-foreground">
-                      Path (rută[#.cale])
+                      {t('platforms:form.path')}
                     </Label>
                     <Input
                       id={`pm-path-${i}`}
@@ -172,7 +173,7 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
                     type="button"
                     variant="ghost"
                     size="icon"
-                    aria-label="Șterge maparea"
+                    aria-label={t('platforms:form.deleteMapping')}
                     onClick={() => setMappings((prev) => prev.filter((_, j) => j !== i))}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -180,10 +181,10 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
                 </div>
               ))}
               <Button type="button" variant="outline" onClick={() => setMappings((prev) => [...prev, emptyMapping()])}>
-                <Plus className="h-4 w-4" /> Mapare nouă
+                <Plus className="h-4 w-4" /> {t('platforms:form.newMapping')}
               </Button>
               <div className="space-y-1">
-                <Label htmlFor="pm-health">Health path (opțional)</Label>
+                <Label htmlFor="pm-health">{t('platforms:form.healthPath')}</Label>
                 <Input
                   id="pm-health"
                   placeholder="/health"
@@ -195,12 +196,12 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
             </div>
           ) : null}
           <div className="space-y-2">
-            <Label htmlFor="p-cron">Sync cron</Label>
+            <Label htmlFor="p-cron">{t('platforms:labels.syncCron')}</Label>
             <Input id="p-cron" value={syncCron} onChange={(e) => setSyncCron(e.target.value)} required />
-            <p className="text-xs text-muted-foreground">Format cron standard, ex: */30 * * * * (la fiecare 30 min)</p>
+            <p className="text-xs text-muted-foreground">{t('platforms:form.cronHint')}</p>
           </div>
           <Button type="submit" className="w-full" disabled={save.isPending}>
-            {save.isPending ? 'Se salvează…' : 'Salvează'}
+            {save.isPending ? t('common:states.saving') : t('common:actions.save')}
           </Button>
         </form>
       </DialogContent>

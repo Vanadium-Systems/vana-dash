@@ -15,21 +15,22 @@ import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import type { FeatureKey } from '@/shared/lib/types'
 import type { AlertInstance, AlertRule, AlertSeverity } from '@/shared/lib/types'
-import { cn, formatCount } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
 import { AlertRuleFormDialog } from './AlertRuleFormDialog'
 import { RuleSparkline } from './RuleSparkline'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 // Citit și scris la alerte sunt funcționalități diferite: cine vede declanșările nu poate
 // neapărat să editeze regulile care le produc (PLAN.md C2).
 const TABS: Array<{ key: string; label: string; feature?: FeatureKey }> = [
-  { key: 'active', label: 'Active' },
-  { key: 'istoric', label: 'Istoric' },
-  { key: 'reguli', label: 'Reguli', feature: 'alerte.reguli' },
+  { key: 'active', label: t('alerts:tabs.active') },
+  { key: 'istoric', label: t('common:nav.history') },
+  { key: 'reguli', label: t('alerts:tabs.rules'), feature: 'alerte.reguli' },
 ]
 
 const SEVERITY_TONE: Record<AlertSeverity, StateTone> = { critical: 'critical', warning: 'warning', info: 'neutral' }
-const SEVERITY_LABEL: Record<AlertSeverity, string> = { critical: 'Critic', warning: 'Atenție', info: 'Info' }
+const SEVERITY_LABEL: Record<AlertSeverity, string> = { critical: t('common:states.critical'), warning: t('common:states.warning'), info: t('common:states.info') }
 const SEVERITY_GROUPS: AlertSeverity[] = ['critical', 'warning', 'info']
 
 const SNOOZE_OPTIONS = [1, 3, 7] as const
@@ -43,15 +44,15 @@ function useAlertActions() {
   const ack = useMutation({
     mutationFn: (id: string) => api.patch<AlertInstance>(`/api/alerts/${id}/ack`, {}),
     onSuccess: invalidate,
-    onError: () => toast.error('Alerta nu s-a confirmat. Încearcă din nou.'),
+    onError: () => toast.error(t('alerts:ackFailed')),
   })
   const snooze = useMutation({
     mutationFn: ({ id, days }: { id: string; days: number }) => api.patch<AlertInstance>(`/api/alerts/${id}/snooze`, { days }),
     onSuccess: (_, { days }) => {
       invalidate()
-      toast.success(`Amânată ${formatCount(days, 'zi', 'zile')}`)
+      toast.success(t('alerts:snoozedFor', { days: t('common:count.days', { count: days }) }))
     },
-    onError: () => toast.error('Alerta nu s-a amânat. Încearcă din nou.'),
+    onError: () => toast.error(t('alerts:snoozeFailed')),
   })
   return { ack, snooze }
 }
@@ -65,7 +66,7 @@ function AlertActions({ alert, compact }: { alert: AlertInstance; compact?: bool
           key={days}
           variant="ghost"
           size={compact ? 'sm' : 'md'}
-          title={`Amână ${formatCount(days, 'zi', 'zile')}`}
+          title={t('alerts:snoozeFor', { days: t('common:count.days', { count: days }) })}
           disabled={snooze.isPending}
           onClick={(e) => {
             e.stopPropagation()
@@ -84,7 +85,7 @@ function AlertActions({ alert, compact }: { alert: AlertInstance; compact?: bool
           ack.mutate(alert.id)
         }}
       >
-        <Check /> Confirmă
+        <Check /> {t('common:actions.confirm')}
       </Button>
     </div>
   )
@@ -104,7 +105,7 @@ function AlertDetail({ alert }: { alert: AlertInstance }) {
       {alert.ruleId ? <RuleSparkline ruleId={alert.ruleId} /> : null}
       <AlertActions alert={alert} />
       <Link to={`/alerts?tab=istoric&rule=${alert.ruleId}`} className="block text-xs text-muted-foreground underline underline-offset-2">
-        Istoricul regulii
+        {t('alerts:ruleHistory')}
       </Link>
     </div>
   )
@@ -130,15 +131,15 @@ function ActiveAlertsSection() {
   if (alerts.isError) {
     return (
       <p className="text-sm">
-        Alertele nu s-au încărcat.{' '}
+        {t('alerts:loadFailed')}{' '}
         <button type="button" className="underline underline-offset-2" onClick={() => void alerts.refetch()}>
-          Încearcă din nou
+          {t('common:actions.retry')}
         </button>
       </p>
     )
   }
   if (alerts.data.length === 0) {
-    return <p className="rounded-md bg-muted/50 px-3 py-10 text-center text-sm text-muted-foreground">Nicio alertă activă.</p>
+    return <p className="rounded-md bg-muted/50 px-3 py-10 text-center text-sm text-muted-foreground">{t('alerts:noneActive')}</p>
   }
 
   const isDesktop = window.matchMedia('(min-width: 1024px)').matches
@@ -189,13 +190,13 @@ function ActiveAlertsSection() {
           )
         })}
       </div>
-      <aside className="hidden lg:block" aria-label="Detaliul alertei">
-        {selected ? <AlertDetail alert={selected} /> : <p className="text-sm text-muted-foreground">Alege o alertă din listă.</p>}
+      <aside className="hidden lg:block" aria-label={t('alerts:detailAria')}>
+        {selected ? <AlertDetail alert={selected} /> : <p className="text-sm text-muted-foreground">{t('alerts:pickOne')}</p>}
       </aside>
       <Dialog open={Boolean(selected) && !isDesktop} onOpenChange={(open) => !open && setSelectedId(null)}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle className="text-base">Alertă</DialogTitle>
+            <DialogTitle className="text-base">{t('alerts:alert')}</DialogTitle>
           </DialogHeader>
           {selected ? <AlertDetail alert={selected} /> : null}
         </DialogContent>
@@ -227,9 +228,9 @@ function HistorySection({ ruleFilter }: { ruleFilter: string | null }) {
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ['alerts'] })
       void queryClient.invalidateQueries({ queryKey: ['active-count'] })
-      toast.success(`${formatCount(result.acked, 'alertă confirmată', 'alerte confirmate')}`)
+      toast.success(t('alerts:ackedMany', { count: result.acked }))
     },
-    onError: () => toast.error('Alertele nu s-au confirmat. Încearcă din nou.'),
+    onError: () => toast.error(t('alerts:ackAllFailed')),
   })
 
   const activeInScope = (filtered ?? []).filter((a) => !a.acknowledgedAt)
@@ -239,15 +240,15 @@ function HistorySection({ ruleFilter }: { ruleFilter: string | null }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           {ruleFilter
-            ? `Filtrat pe regula „${rules.data?.find((r) => r.id === ruleFilter)?.name ?? ruleFilter}"`
-            : 'Toate declanșările, inclusiv cele confirmate'}
+            ? t('alerts:filteredByRule', { name: rules.data?.find((r) => r.id === ruleFilter)?.name ?? ruleFilter })
+            : t('alerts:historyHint')}
         </p>
         <Button
           variant="outline"
           disabled={ackBulk.isPending || activeInScope.length === 0}
           onClick={() => ackBulk.mutate()}
         >
-          <CheckCheck className="h-4 w-4" /> Confirmă tot {activeInScope.length > 0 ? `(${activeInScope.length})` : ''}
+          <CheckCheck className="h-4 w-4" /> {t('alerts:ackAll')} {activeInScope.length > 0 ? `(${activeInScope.length})` : ''}
         </Button>
       </div>
 
@@ -256,18 +257,18 @@ function HistorySection({ ruleFilter }: { ruleFilter: string | null }) {
           {history.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : !filtered?.length ? (
-            <p className="text-sm text-muted-foreground">Nicio declanșare în istoric.</p>
+            <p className="text-sm text-muted-foreground">{t('alerts:historyEmpty')}</p>
           ) : (
             // table-fixed + lățimi pe coloane: textul lung se taie cu „…" în loc să împingă tabelul
             // în scroll orizontal; coloanele secundare dispar pe ecrane înguste.
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24">Severitate</TableHead>
-                  <TableHead className="w-40 lg:w-56">Regulă</TableHead>
-                  <TableHead className="hidden md:table-cell">Mesaj</TableHead>
-                  <TableHead className="w-28">Declanșat</TableHead>
-                  <TableHead className="hidden w-28 sm:table-cell">Status</TableHead>
+                  <TableHead className="w-24">{t('common:labels.severity')}</TableHead>
+                  <TableHead className="w-40 lg:w-56">{t('alerts:labels.rule')}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t('common:labels.message')}</TableHead>
+                  <TableHead className="w-28">{t('alerts:labels.triggered')}</TableHead>
+                  <TableHead className="hidden w-28 sm:table-cell">{t('common:labels.status')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -285,11 +286,11 @@ function HistorySection({ ruleFilter }: { ruleFilter: string | null }) {
                     <TableCell className="truncate text-xs text-muted-foreground">{triggeredLabel(alert.triggeredAt)}</TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {alert.acknowledgedAt ? (
-                        <StatePill>Confirmată</StatePill>
+                        <StatePill>{t('alerts:labels.acknowledged')}</StatePill>
                       ) : alert.snoozedUntil && new Date(alert.snoozedUntil) > new Date() ? (
-                        <StatePill>Amânată</StatePill>
+                        <StatePill>{t('alerts:labels.snoozed')}</StatePill>
                       ) : (
-                        <StatePill tone="warning">Activă</StatePill>
+                        <StatePill tone="warning">{t('common:states.activeF')}</StatePill>
                       )}
                     </TableCell>
                   </TableRow>
@@ -325,7 +326,7 @@ function RulesSection() {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" /> Regulă nouă
+          <Plus className="h-4 w-4" /> {t('alerts:rule.new')}
         </Button>
       </div>
       <Card>
@@ -333,19 +334,19 @@ function RulesSection() {
           {rules.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : !rules.data?.length ? (
-            <p className="text-sm text-muted-foreground">Nicio regulă definită încă.</p>
+            <p className="text-sm text-muted-foreground">{t('alerts:rule.none')}</p>
           ) : (
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nume</TableHead>
-                  <TableHead className="hidden w-48 lg:table-cell">Metric</TableHead>
-                  <TableHead className="w-28">Condiție</TableHead>
-                  <TableHead className="hidden w-20 text-right md:table-cell">Fereastră</TableHead>
-                  <TableHead className="hidden w-24 sm:table-cell">Severitate</TableHead>
-                  <TableHead className="hidden w-28 md:table-cell">Status</TableHead>
+                  <TableHead>{t('common:labels.name')}</TableHead>
+                  <TableHead className="hidden w-48 lg:table-cell">{t('alerts:labels.metric')}</TableHead>
+                  <TableHead className="w-28">{t('alerts:rule.condition')}</TableHead>
+                  <TableHead className="hidden w-20 text-right md:table-cell">{t('alerts:labels.window')}</TableHead>
+                  <TableHead className="hidden w-24 sm:table-cell">{t('common:labels.severity')}</TableHead>
+                  <TableHead className="hidden w-28 md:table-cell">{t('common:labels.status')}</TableHead>
                   <TableHead className="w-24">
-                    <span className="sr-only">Acțiuni</span>
+                    <span className="sr-only">{t('common:labels.actions')}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -366,11 +367,11 @@ function RulesSection() {
                       <StatePill tone={SEVERITY_TONE[rule.severity]}>{SEVERITY_LABEL[rule.severity]}</StatePill>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      {rule.enabled ? <StatePill tone="success">Activă</StatePill> : <StatePill>Dezactivată</StatePill>}
+                      {rule.enabled ? <StatePill tone="success">{t('common:states.activeF')}</StatePill> : <StatePill>{t('alerts:rule.disabled')}</StatePill>}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(rule)}>
-                        Editează
+                        {t('common:actions.edit')}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -389,10 +390,10 @@ export function AlertsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   // Deep-link din chat: [[alert:<id>]] → /alerts?rule=<id> deschide istoricul filtrat (Contract F)
   const { can } = useMe()
-  const tabs = TABS.filter((t) => can(t.feature))
+  const tabs = TABS.filter((tab) => can(tab.feature))
   const ruleFilter = searchParams.get('rule')
   const tabParam = searchParams.get('tab')
-  const tab = tabs.some((t) => t.key === tabParam) ? (tabParam as string) : ruleFilter ? 'istoric' : tabs[0]?.key
+  const tab = tabs.some((entry) => entry.key === tabParam) ? (tabParam as string) : ruleFilter ? 'istoric' : tabs[0]?.key
 
   function setTab(next: string) {
     const params: Record<string, string> = {}
@@ -403,12 +404,12 @@ export function AlertsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Alerte" />
+      <PageHeader title={t('common:nav.alerts')} />
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          {tabs.map((t) => (
-            <TabsTrigger key={t.key} value={t.key}>
-              {t.label}
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>
+              {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>

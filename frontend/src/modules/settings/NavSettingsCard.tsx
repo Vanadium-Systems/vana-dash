@@ -11,6 +11,7 @@ import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { api } from '@/shared/lib/api'
 import { useMe } from '@/shared/hooks/use-me'
 import { NAV_ITEMS } from '@/shared/lib/nav-items'
+import { t } from '@/shared/lib/i18n'
 
 interface NavEntry {
   to: string
@@ -28,7 +29,7 @@ function SortableRow({ entry, label, onToggle }: { entry: NavEntry; label: strin
       <button
         type="button"
         className="touch-target -my-1 -ml-1 flex h-8 w-6 cursor-grab items-center justify-center rounded-sm text-muted-foreground hover:bg-accent active:cursor-grabbing"
-        aria-label="Trage pentru reordonare"
+        aria-label={t('settings:nav.dragToReorder')}
         {...attributes}
         {...listeners}
       >
@@ -36,8 +37,8 @@ function SortableRow({ entry, label, onToggle }: { entry: NavEntry; label: strin
       </button>
       <span className="flex-1 text-sm">{label}</span>
       <label className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Checkbox checked={entry.visible} aria-label={`Arată ${label} în meniu`} onChange={(e) => onToggle(e.target.checked)} />
-        vizibil
+        <Checkbox checked={entry.visible} aria-label={t('settings:nav.showInMenu', { label })} onChange={(e) => onToggle(e.target.checked)} />
+        {t('settings:nav.visible')}
       </label>
     </div>
   )
@@ -71,7 +72,7 @@ export function NavSettingsCard() {
     onSuccess: (data) => {
       queryClient.setQueryData(['nav-layout'], data)
       setDirty(false)
-      toast.success('Meniu actualizat')
+      toast.success(t('settings:nav.updated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -91,9 +92,9 @@ export function NavSettingsCard() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <CardTitle className="text-base">Meniu</CardTitle>
+        <CardTitle className="text-base">{t('settings:nav.title')}</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Trage pentru reordonare și ascunde ce nu folosești. Ordinea se aplică sidebar-ului de desktop și meniului complet de mobil.
+          {t('settings:nav.hint')}
         </p>
         <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={items.map((i) => i.to)} strategy={verticalListSortingStrategy}>
@@ -114,17 +115,17 @@ export function NavSettingsCard() {
         </DndContext>
         <div className="flex gap-2">
           <Button disabled={!dirty || save.isPending} onClick={() => save.mutate(items)}>
-            Salvează
+            {t('common:actions.save')}
           </Button>
           <Button
             variant="outline"
             disabled={save.isPending}
             onClick={() => {
               void load()
-              toast.success('Resetat la ordinea implicită (nesalvat)')
+              toast.success(t('settings:nav.resetUnsaved'))
             }}
           >
-            Anulează modificările
+            {t('settings:nav.cancelChanges')}
           </Button>
         </div>
       </CardContent>

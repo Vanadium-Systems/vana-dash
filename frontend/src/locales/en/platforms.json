@@ -1,0 +1,45 @@
+{
+  "form": {
+    "updated": "Platform updated",
+    "added": "Platform added",
+    "editTitle": "Edit the platform",
+    "mappingsHint": "Metric mappings: GET on API URL + path; takes the number at the JSON path after “#”",
+    "metricKey": "Metric key",
+    "metricKeyPlaceholder": "e.g. stock_kg",
+    "unit": "Unit",
+    "path": "Path (route[#.path])",
+    "deleteMapping": "Delete the mapping",
+    "newMapping": "New mapping",
+    "healthPath": "Health path (optional)",
+    "cronHint": "Standard cron format, e.g. */30 * * * * (every 30 min)",
+    "apiKeyUnchanged": "API Key (empty = unchanged)",
+    "apiKey": "API Key"
+  },
+  "add": "Add a platform",
+  "labels": {
+    "syncCron": "Sync cron",
+    "lastSync": "Last sync"
+  },
+  "ops": {
+    "title": "Operational health: {{name}}",
+    "loadFailed": "The health signals for this platform could not be loaded",
+    "none": "This platform does not expose operational metrics yet.",
+    "noHistory": "No history yet"
+  },
+  "syncDone": "Sync done. See the result in the sync log",
+  "deleted": "Platform deleted",
+  "empty": "No platform connected. Add the first one with the button above.",
+  "syncNow": "Sync now",
+  "health": "Health",
+  "deleteTitle": "Delete the platform “{{name}}”",
+  "deleteBody": "The sync stops. The metrics already collected stay.",
+  "deleteConfirm": "Delete the platform",
+  "log": {
+    "title": "Sync log",
+    "empty": "No sync yet for the selected platform.",
+    "records": "Records",
+    "started": "Started",
+    "finished": "Finished",
+    "error": "Error"
+  }
+}

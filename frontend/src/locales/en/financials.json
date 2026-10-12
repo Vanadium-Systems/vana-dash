@@ -1,0 +1,42 @@
+{
+  "bnr": {
+    "syncFailed": "BNR sync failed; the rate is carried over",
+    "title": "BNR rate",
+    "asOf": "as of {{date}}",
+    "loadFailed": "The BNR rate could not be loaded",
+    "noHistory": "No historical rate yet; the daily BNR job has only just started"
+  },
+  "labels": {
+    "revenueCollected": "Revenue (collected)",
+    "expenses": "Expenses",
+    "net": "Net"
+  },
+  "status": {
+    "paid": "Paid",
+    "partiallyPaid": "Partially paid",
+    "unpaid": "Unpaid"
+  },
+  "kpi": {
+    "invoicedPending": "Invoiced, pending",
+    "expensesPending": "Expenses, pending",
+    "expensesPendingHint": "already recorded, unpaid",
+    "recurringMonthly": "Recurring expenses (monthly)",
+    "recurringMonthlyHint": "the active subscriptions, monthly equivalent",
+    "netProfit": "Net profit",
+    "revenueToExpenses": "Revenue / expenses",
+    "revenueToExpensesHint": "collected against spent"
+  },
+  "charts": {
+    "revenueVsExpenses": "Revenue (collected) vs. expenses per month"
+  },
+  "pnl": {
+    "byCategory": "P&L by category"
+  },
+  "empty": "No record in this period.",
+  "cashFlow": {
+    "title": "Cash flow",
+    "issued": "Issued",
+    "received": "Received",
+    "week": "Week"
+  }
+}

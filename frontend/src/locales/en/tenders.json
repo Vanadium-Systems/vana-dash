@@ -1,0 +1,51 @@
+{
+  "rules": {
+    "deleted": "Rule deleted",
+    "active": "active",
+    "inactive": "inactive",
+    "highPriorityOn": "High priority. Click to remove it",
+    "highPriorityOff": "Mark as high priority (a separate, stronger alert)",
+    "negativeOn": "Not-interested rule: the matches leave the main list. Click to make it a normal watch rule",
+    "negativeOff": "Make it a not-interested rule (the matches leave the main list automatically)",
+    "notInterestedTag": "not interested",
+    "deleteTitle": "Delete the rule “{{label}}”",
+    "deleteBody": "New tenders are no longer watched by it.",
+    "deleteConfirm": "Delete the rule",
+    "added": "Rule added",
+    "labelPlaceholder": "e.g. IT services",
+    "cpvPrefix": "CPV prefix",
+    "cpvPlaceholder": "e.g. 72",
+    "keyword": "Keyword",
+    "keywordPlaceholder": "e.g. digitalization",
+    "highPriority": "High priority",
+    "negativeHint": "The matches leave the main list automatically, but stay visible with Show archived",
+    "negative": "Not-interested rule",
+    "add": "Add a rule",
+    "title": "Watch rules"
+  },
+  "types": {
+    "direct": "Direct purchase",
+    "public": "Public tender",
+    "directPlural": "Direct purchases",
+    "publicPlural": "Public tenders"
+  },
+  "exportEmpty": "No result to export",
+  "labels": {
+    "authorityFull": "Contracting authority",
+    "estimatedValueRon": "Estimated value RON",
+    "deadline": "Deadline",
+    "authority": "Authority",
+    "estimatedValue": "Estimated value"
+  },
+  "description": "Direct purchases and open public tenders on e-licitatie.ro, filtered by your watch rules.",
+  "searchLabel": "Search (title/authority)",
+  "searchPlaceholder": "e.g. digitalization, city hall...",
+  "onlyImportant": "Important only",
+  "showArchived": "Show archived",
+  "loadFailed": "The opportunities could not be loaded.",
+  "empty": "No opportunity for the current filters.",
+  "minTurnover": "Min. turnover: {{value}}",
+  "notInterested": "Not interested",
+  "exported_one": "{{count}} opportunity exported",
+  "exported_other": "{{count}} opportunities exported"
+}

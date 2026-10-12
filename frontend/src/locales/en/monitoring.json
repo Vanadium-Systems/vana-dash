@@ -1,0 +1,14 @@
+{
+  "range": {
+    "lastHour": "last hour",
+    "lastDay": "last day",
+    "last7Days": "last 7 days"
+  },
+  "noSnapshot": "no snapshot yet",
+  "updatedNow": "updated just now",
+  "updatedMinutesAgo": "last update {{minutes}} min ago",
+  "emptyHost": "No history yet. The collector on server-1 has sent nothing",
+  "loadFailed": "The health signals could not be loaded",
+  "emptyBackup": "No history yet. The collection script has not run",
+  "updatedAt": "last update {{when}}"
+}

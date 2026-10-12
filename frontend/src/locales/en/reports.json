@@ -1,0 +1,37 @@
+{
+  "pdfUnavailable": "The PDF could not be generated (is Chromium unavailable?)",
+  "kpi": {
+    "currentMrr": "Current MRR",
+    "currentMrrEur": "Current MRR (EUR)"
+  },
+  "clients": {
+    "evolution": "Active/demo clients over time",
+    "active": "Active",
+    "demo": "Demo"
+  },
+  "compare": {
+    "title": "Period comparison",
+    "periodA": "Period A",
+    "periodB": "Period B",
+    "loadFailed": "The comparison could not be loaded",
+    "revenue": "Revenue:",
+    "expense": "Expense:",
+    "net": "Net:"
+  },
+  "expenses": {
+    "byCategory": "Expenses by category",
+    "none": "No expense in the period"
+  },
+  "monthly": {
+    "title": "Monthly report",
+    "month": "Month",
+    "loadFailed": "The report could not be loaded",
+    "revenue": "Revenue",
+    "expenses": "Expenses",
+    "net": "Net",
+    "mrr": "MRR",
+    "alertsTriggered": "Alerts triggered",
+    "syncSuccessRate": "Sync success rate"
+  },
+  "pdfError": "Error generating the PDF"
+}

@@ -14,6 +14,7 @@ import type { SupportTicketDetail } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { formatDateTime } from '@/shared/lib/format'
 import { STATUS_LABEL, STATUS_TONE, SUPPORT_PATHS, SUPPORT_UNREAD_KEY, type SupportScope } from './support-api'
+import { t } from '@/shared/lib/i18n'
 
 export function TicketPage({ scope }: { scope: SupportScope }) {
   const paths = SUPPORT_PATHS[scope]
@@ -53,7 +54,7 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
     mutationFn: () => api.patch<SupportTicketDetail>(`${paths.api}/${id}`, { status: 'inchis' }),
     onSuccess: (fresh) => {
       onChanged(fresh)
-      toast.success('Tichet închis.')
+      toast.success(t('support:ticket.closedToast'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -61,7 +62,7 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (!body.trim()) {
-      setError('Scrie răspunsul înainte să-l trimiți.')
+      setError(t('support:ticket.replyRequired'))
       return
     }
     setError(null)
@@ -71,7 +72,7 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
   const back = (
     <Link to={paths.route} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-      {scope === 'platform' ? 'Tichete de suport' : 'Suport'}
+      {scope === 'platform' ? t('common:shell.supportTickets') : t('common:nav.support')}
     </Link>
   )
 
@@ -91,10 +92,10 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
     return (
       <div className="max-w-2xl space-y-4 text-sm" data-density="comfortable">
         {back}
-        <p>{missing ? 'Tichetul nu există sau nu e al tău.' : 'Nu am putut încărca tichetul.'}</p>
+        <p>{missing ? t('support:ticket.notFound') : t('support:ticket.loadFailed')}</p>
         {missing ? null : (
           <Button variant="outline" onClick={() => void ticket.refetch()}>
-            Încearcă din nou
+            {t('common:actions.retry')}
           </Button>
         )}
       </div>
@@ -117,9 +118,13 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
           <StatePill tone={STATUS_TONE[data.status]}>{STATUS_LABEL[data.status]}</StatePill>
         </div>
         <p className="text-sm text-muted-foreground">
-          {scope === 'platform' ? `${data.author.name}, ` : 'Deschis '}
-          {formatDateTime(data.createdAt)}
-          {pageLabel ? `, de pe pagina ${pageLabel}` : ''}
+          {scope === 'platform'
+            ? pageLabel
+              ? t('support:ticket.byAtFromPage', { name: data.author.name, when: formatDateTime(data.createdAt), page: pageLabel })
+              : t('support:ticket.byAt', { name: data.author.name, when: formatDateTime(data.createdAt) })
+            : pageLabel
+              ? t('support:ticket.openedAtFromPage', { when: formatDateTime(data.createdAt), page: pageLabel })
+              : t('support:ticket.openedAt', { when: formatDateTime(data.createdAt) })}
         </p>
       </div>
 
@@ -127,7 +132,7 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
         {entries.map((entry) => (
           <li key={entry.id} className={cn('rounded-lg px-4 py-3', entry.isPlatformReply ? 'bg-accent' : 'bg-muted/50')}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{entry.isPlatformReply ? `${entry.author.name}, Vanadium` : entry.author.name}</span>
+              <span className="font-medium text-foreground">{entry.isPlatformReply ? t('support:ticket.vanadiumAuthor', { name: entry.author.name }) : entry.author.name}</span>
               <time dateTime={entry.createdAt}>{formatDateTime(entry.createdAt)}</time>
             </div>
             <p className="mt-1 whitespace-pre-wrap break-words text-sm">{entry.body}</p>
@@ -137,19 +142,19 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
 
       <form onSubmit={submit} noValidate className="space-y-3">
         <Field
-          label="Răspunsul tău"
+          label={t('support:ticket.yourReply')}
           error={error}
-          hint={data.status === 'inchis' ? 'Tichetul e închis. Un răspuns îl redeschide.' : undefined}
+          hint={data.status === 'inchis' ? t('support:ticket.closedNote') : undefined}
         >
           <Textarea rows={4} maxLength={5000} value={body} onChange={(event) => setBody(event.target.value)} />
         </Field>
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={reply.isPending}>
-            Trimite răspunsul
+            {t('support:ticket.sendReply')}
           </Button>
           {data.status !== 'inchis' ? (
             <Button type="button" variant="outline" disabled={close.isPending} onClick={() => close.mutate()}>
-              Închide tichetul
+              {t('support:ticket.close')}
             </Button>
           ) : null}
         </div>

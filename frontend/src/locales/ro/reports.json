@@ -1,0 +1,37 @@
+{
+  "pdfUnavailable": "Nu am putut genera PDF-ul (Chromium indisponibil?)",
+  "kpi": {
+    "currentMrr": "MRR curent",
+    "currentMrrEur": "MRR curent (EUR)"
+  },
+  "clients": {
+    "evolution": "Evoluție clienți activi/demo",
+    "active": "Activi",
+    "demo": "Demo"
+  },
+  "compare": {
+    "title": "Comparație perioade",
+    "periodA": "Perioada A",
+    "periodB": "Perioada B",
+    "loadFailed": "Nu am putut încărca comparația",
+    "revenue": "Venit:",
+    "expense": "Cheltuială:",
+    "net": "Net:"
+  },
+  "expenses": {
+    "byCategory": "Cheltuieli pe categorie",
+    "none": "Nicio cheltuială în perioadă"
+  },
+  "monthly": {
+    "title": "Raport lunar",
+    "month": "Lună",
+    "loadFailed": "Nu am putut încărca raportul",
+    "revenue": "Venit",
+    "expenses": "Cheltuieli",
+    "net": "Net",
+    "mrr": "MRR",
+    "alertsTriggered": "Alerte declanșate",
+    "syncSuccessRate": "Rată succes sync-uri"
+  },
+  "pdfError": "Eroare la generarea PDF-ului"
+}

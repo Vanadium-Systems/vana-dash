@@ -1,0 +1,38 @@
+{
+  "item": {
+    "updated": "Item updated",
+    "added": "Item added",
+    "deleted": "Item deleted",
+    "editTitle": "Edit the item",
+    "new": "New item",
+    "linkOptional": "Link (optional)",
+    "deleteTitle": "Delete “{{title}}” from the wishlist"
+  },
+  "labels": {
+    "personalOrCompany": "Personal / Company",
+    "estimatedPrice": "Estimated price",
+    "personalOrCompanyShort": "Personal/Company"
+  },
+  "category": {
+    "need": "Need",
+    "want": "Want",
+    "needs": "Needs",
+    "wants": "Wants"
+  },
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  },
+  "markedBought": "Marked as bought",
+  "markBoughtTitle": "Mark “{{title}}” as bought",
+  "leftToBuyNeeds": "Left to buy: needs",
+  "leftToBuyWants": "Left to buy: wants",
+  "empty": "No item in the list.",
+  "status": {
+    "bought": "Bought",
+    "inList": "In the list"
+  },
+  "markBought": "Mark as bought",
+  "addAsExpense": "Also add as an expense in Invoices ({{amount}})"
+}

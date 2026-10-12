@@ -1,8 +1,9 @@
+import { t } from '@/shared/lib/i18n'
 export const TIER_LABELS: Record<number, string> = {
-  1: 'Tier 1 — Operațional',
-  2: 'Tier 2 — Achiziție',
-  3: 'Tier 3 — Retenție',
-  4: 'Tier 4 — Cash cow / Prestige',
+  1: t('plan:tiers.operational'),
+  2: t('plan:tiers.acquisition'),
+  3: t('plan:tiers.retention'),
+  4: t('plan:tiers.cashCow'),
 }
 
 export function tierLabel(tier: number): string {

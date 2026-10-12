@@ -1,0 +1,101 @@
+{
+  "history": {
+    "entities": {
+      "invoice": "factură",
+      "client": "client",
+      "contract": "contract",
+      "annex": "anexă",
+      "terms": "termeni",
+      "contractNumbers": "numere de contract",
+      "match": "potrivire",
+      "role": "rol",
+      "person": "om"
+    },
+    "description": "Cine a făcut ce, pe obiectele comune.",
+    "everyone": "Toți",
+    "loadFailed": "Nu am putut încărca istoricul.",
+    "emptyFilteredTitle": "Nicio acțiune cu aceste filtre",
+    "emptyFilteredHint": "În perioada asta nu s-a întâmplat nimic cu filtrele alese.",
+    "emptyTitle": "Nicio acțiune încă",
+    "emptyHint": "Când va fi ceva, apare aici.",
+    "tableCaption": "Acțiunile din istoric, cu omul, obiectul și momentul",
+    "who": "Cine",
+    "what": "Ce",
+    "more": "Mai multe"
+  },
+  "labels": {
+    "person": "Om",
+    "object": "Obiect",
+    "mailboxes": "Cutii de email"
+  },
+  "status": {
+    "invited": "Invitat",
+    "disabled": "Dezactivat"
+  },
+  "members": {
+    "neverSignedIn": "nu a intrat niciodată",
+    "activeNow": "Activ acum",
+    "noIdentities": "Nu există identități de trimitere. Adaugă-le din Setări → Email.",
+    "mailboxNotYours": "Nu ai cutia {{address}}, deci nu o poți da altcuiva",
+    "tableCaption": "Membrii echipei, cu rolul, starea și cutiile de email",
+    "mailboxesShort": "Cutii",
+    "lastActivity": "Ultima activitate",
+    "you": "(tu)",
+    "none": "niciuna",
+    "resetLinkSent": "Link trimis pe {{email}}",
+    "write": "Scrie",
+    "actionsFor": "Ce se poate face cu {{member}}",
+    "assignFolders": "Atribuie folderele lui",
+    "changeRoleAndMailboxes": "Schimbă rolul și cutiile",
+    "resendInvite": "Retrimite invitația",
+    "sendResetLink": "Trimite link de resetare",
+    "reactivate": "Ridică dezactivarea"
+  },
+  "toasts": {
+    "linkNotSent": "Linkul nu a plecat.",
+    "conversationFailed": "Conversația nu s-a putut deschide.",
+    "inviteResent": "Invitația a plecat din nou.",
+    "inviteNotSent": "Invitația nu a plecat.",
+    "disabled": "{{value}} nu mai poate intra.",
+    "reactivated": "Omul e din nou activ."
+  },
+  "loadFailed": "Nu am putut încărca echipa.",
+  "description": "Cine lucrează aici, cu ce rol și pe ce cutii de email.",
+  "invite": {
+    "button": "Invită",
+    "first": "Invită primul coleg",
+    "sentTo": "Invitația a plecat pe {{email}}.",
+    "title": "Invită un coleg",
+    "displayName": "Nume afișat",
+    "pickRole": "Alege rolul",
+    "send": "Trimite invitația"
+  },
+  "empty": {
+    "aloneTitle": "Ești singur în echipă",
+    "aloneAdminHint": "Invită primul coleg și dă-i un rol.",
+    "aloneMemberHint": "Adminul firmei te poate adăuga în echipă.",
+    "noMatchTitle": "Niciun om nu se potrivește",
+    "noMatchHint": "Nu am găsit pe nimeni pentru „{{debouncedSearch}}”."
+  },
+  "search": {
+    "placeholder": "Caută după nume sau email",
+    "aria": "Caută în echipă"
+  },
+  "folders": {
+    "hadNone": "{{value}} nu avea foldere.",
+    "notMoved": "Folderele nu s-au mutat.",
+    "assignTitle": "Atribuie folderele lui {{from}}",
+    "pickTarget": "Alege cine preia folderele",
+    "hint": "Tot spațiul lui de arhivă, cu subfolderele, trece la omul ales. Share-urile date de el rămân.",
+    "takenBy": "Le preia",
+    "moving": "Se mută…",
+    "assign": "Atribuie",
+    "movedTo": "Folderele lui {{from}} sunt acum ale lui {{to}}.",
+    "movedToColleague": "Folderele lui {{from}} sunt acum ale colegului."
+  },
+  "edit": {
+    "saved": "Schimbările sunt salvate.",
+    "notSaved": "Schimbările nu s-au salvat.",
+    "adminNote": "Adminul are tot ce are firma: nu i se schimbă nici rolul, nici cutiile."
+  }
+}

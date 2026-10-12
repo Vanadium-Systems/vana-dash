@@ -1,0 +1,57 @@
+{
+  "rule": {
+    "updated": "Rule updated",
+    "created": "Rule created",
+    "deleted": "Rule deleted",
+    "editTitle": "Edit the rule",
+    "new": "New rule",
+    "metricKey": "Metric key",
+    "metricKeyPlaceholder": "e.g. revenue",
+    "condition": "Condition",
+    "threshold": "Threshold",
+    "windowHours": "Window (hours)",
+    "testing": "Testing…",
+    "testNow": "Test now",
+    "currentValue": "Current value:",
+    "wouldTrigger": "would trigger",
+    "wouldNotTrigger": "does not trigger",
+    "deleteTitle": "Delete the rule “{{name}}”",
+    "deleteBody": "The alerts it triggered stay in the history.",
+    "deleteConfirm": "Delete the rule",
+    "none": "No rule defined yet.",
+    "disabled": "Disabled"
+  },
+  "tabs": {
+    "active": "Active",
+    "rules": "Rules"
+  },
+  "ackFailed": "The alert was not confirmed. Try again.",
+  "snoozeFailed": "The alert was not snoozed. Try again.",
+  "ruleHistory": "Rule history",
+  "loadFailed": "The alerts did not load.",
+  "noneActive": "No active alert.",
+  "detailAria": "Alert detail",
+  "pickOne": "Pick an alert from the list.",
+  "alert": "Alert",
+  "ackAllFailed": "The alerts were not confirmed. Try again.",
+  "filteredByRule": "Filtered by the rule “{{name}}”",
+  "historyHint": "All triggers, including the confirmed ones",
+  "ackAll": "Confirm all",
+  "historyEmpty": "No trigger in the history.",
+  "labels": {
+    "rule": "Rule",
+    "triggered": "Triggered",
+    "acknowledged": "Confirmed",
+    "snoozed": "Snoozed",
+    "metric": "Metric",
+    "window": "Window"
+  },
+  "snoozedFor": "Snoozed for {{days}}",
+  "snoozeFor": "Snooze for {{days}}",
+  "ackedMany_one": "{{count}} alert confirmed",
+  "ackedMany_other": "{{count}} alerts confirmed",
+  "severity": {
+    "warning": "Warning",
+    "critical": "Critical"
+  }
+}

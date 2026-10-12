@@ -1,0 +1,45 @@
+{
+  "form": {
+    "updated": "Platformă actualizată",
+    "added": "Platformă adăugată",
+    "editTitle": "Editează platforma",
+    "mappingsHint": "Mapări metrici — GET pe API URL + path; extrage numărul de la calea JSON după „#\"",
+    "metricKey": "Metric key",
+    "metricKeyPlaceholder": "ex: stock_kg",
+    "unit": "Unitate",
+    "path": "Path (rută[#.cale])",
+    "deleteMapping": "Șterge maparea",
+    "newMapping": "Mapare nouă",
+    "healthPath": "Health path (opțional)",
+    "cronHint": "Format cron standard, ex: */30 * * * * (la fiecare 30 min)",
+    "apiKeyUnchanged": "API Key (gol = neschimbat)",
+    "apiKey": "API Key"
+  },
+  "add": "Adaugă platformă",
+  "labels": {
+    "syncCron": "Sync cron",
+    "lastSync": "Ultimul sync"
+  },
+  "ops": {
+    "title": "Sănătate operațională — {{name}}",
+    "loadFailed": "Nu am putut încărca semnalele de sănătate pentru această platformă",
+    "none": "Această platformă nu expune încă metrici operaționale.",
+    "noHistory": "Fără istoric încă"
+  },
+  "syncDone": "Sync rulat — vezi rezultatul în sync log",
+  "deleted": "Platformă ștearsă",
+  "empty": "Nicio platformă conectată. Adaugă prima cu butonul de sus.",
+  "syncNow": "Sync now",
+  "health": "Sănătate",
+  "deleteTitle": "Șterge platforma „{{name}}”",
+  "deleteBody": "Sincronizarea se oprește. Metricile deja colectate rămân.",
+  "deleteConfirm": "Șterge platforma",
+  "log": {
+    "title": "Sync log",
+    "empty": "Niciun sync încă pentru platforma selectată.",
+    "records": "Records",
+    "started": "Început",
+    "finished": "Terminat",
+    "error": "Eroare"
+  }
+}

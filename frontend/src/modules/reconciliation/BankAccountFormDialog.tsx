@@ -8,6 +8,7 @@ import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { BankAccount, BankProvider } from '@/shared/lib/types'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface BankAccountFormDialogProps {
   open: boolean
@@ -53,7 +54,7 @@ export function BankAccountFormDialog({ open, onOpenChange, account }: BankAccou
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['bank-accounts'] })
       void queryClient.invalidateQueries({ queryKey: ['reconciliation'] })
-      toast.success(account ? 'Cont actualizat' : 'Cont bancar adăugat')
+      toast.success(account ? t('reconciliation:account.updated') : t('reconciliation:account.added'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -63,7 +64,7 @@ export function BankAccountFormDialog({ open, onOpenChange, account }: BankAccou
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{account ? 'Editează contul' : 'Adaugă cont bancar'}</DialogTitle>
+          <DialogTitle>{account ? t('reconciliation:account.editTitle') : t('reconciliation:account.add')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -73,7 +74,7 @@ export function BankAccountFormDialog({ open, onOpenChange, account }: BankAccou
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="b-provider">Provider</Label>
+            <Label htmlFor="b-provider">{t('reconciliation:labels.provider')}</Label>
             <Select
               id="b-provider"
               value={provider}
@@ -87,21 +88,21 @@ export function BankAccountFormDialog({ open, onOpenChange, account }: BankAccou
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="b-name">Nume (afișat)</Label>
+            <Label htmlFor="b-name">{t('reconciliation:account.displayName')}</Label>
             <Input id="b-name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="b-ref">Account ID la provider (opțional)</Label>
+              <Label htmlFor="b-ref">{t('reconciliation:account.providerAccountId')}</Label>
               <Input id="b-ref" value={accountRef} onChange={(e) => setAccountRef(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="b-currency">Monedă</Label>
+              <Label htmlFor="b-currency">{t('common:labels.currency')}</Label>
               <Input id="b-currency" value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} maxLength={3} required />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="b-key">API Key (opțional)</Label>
+            <Label htmlFor="b-key">{t('reconciliation:account.apiKey')}</Label>
             <Input
               id="b-key"
               type="password"
@@ -110,12 +111,11 @@ export function BankAccountFormDialog({ open, onOpenChange, account }: BankAccou
               onChange={(e) => setApiKey(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Las gol pentru Revolut — se configurează separat prin OAuth în tab-ul Setări.
-              Necesar doar pentru provideri viitori pe token static.
+              {t('reconciliation:account.apiKeyHint')}
             </p>
           </div>
           <Button type="submit" className="w-full" disabled={save.isPending}>
-            {save.isPending ? 'Se salvează…' : 'Salvează'}
+            {save.isPending ? t('common:states.saving') : t('common:actions.save')}
           </Button>
         </form>
       </DialogContent>

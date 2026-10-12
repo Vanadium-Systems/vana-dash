@@ -36,6 +36,13 @@ export function getLocale(): Locale {
   return activeLocale
 }
 
+/** A text kept in code in every language (guides, release notes), not in the locale files. */
+export type Localized = Record<Locale, string>
+
+export function localized(text: Localized): string {
+  return text[activeLocale]
+}
+
 export function t(key: TKey, params?: TParams): string {
   return (i18next.t as (key: string, options?: TParams) => string)(key, params)
 }

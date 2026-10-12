@@ -5,6 +5,7 @@ import { ChartEmpty, ChartError, ChartSkeleton } from '@/shared/components/chart
 import { SignalTile } from '@/shared/components/SignalTile'
 import { api } from '@/shared/lib/api'
 import type { Platform, PlatformOpsSignalsResponse } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 interface PlatformOpsSignalsDialogProps {
   platform: Platform | null
@@ -24,7 +25,7 @@ export function PlatformOpsSignalsDialog({ platform, onOpenChange }: PlatformOps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Sănătate operațională — {platform?.name}</DialogTitle>
+          <DialogTitle>{t('platforms:ops.title', { name: platform?.name })}</DialogTitle>
         </DialogHeader>
 
         {opsSignals.isPending ? (
@@ -34,9 +35,9 @@ export function PlatformOpsSignalsDialog({ platform, onOpenChange }: PlatformOps
             ))}
           </div>
         ) : opsSignals.isError ? (
-          <ChartError message="Nu am putut încărca semnalele de sănătate pentru această platformă" />
+          <ChartError message={t('platforms:ops.loadFailed')} />
         ) : !opsSignals.data?.supported ? (
-          <p className="text-sm text-muted-foreground">Această platformă nu expune încă metrici operaționale.</p>
+          <p className="text-sm text-muted-foreground">{t('platforms:ops.none')}</p>
         ) : (
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -45,7 +46,7 @@ export function PlatformOpsSignalsDialog({ platform, onOpenChange }: PlatformOps
               ))}
             </div>
             {!opsSignals.data.history.length ? (
-              <ChartEmpty label="Fără istoric încă" />
+              <ChartEmpty label={t('platforms:ops.noHistory')} />
             ) : (
               <Sparkline
                 data={opsSignals.data.history.map((h) => ({

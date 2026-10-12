@@ -428,12 +428,24 @@
     "USD": "USD, dolar american"
   },
   "count": {
-    "files_one": "{{count}} fișier",
-    "files_few": "{{count}} fișiere",
-    "files_other": "{{count}} de fișiere",
-    "folders_one": "{{count}} folder",
-    "folders_few": "{{count}} foldere",
-    "folders_other": "{{count}} de foldere"
+    "files_one": "{{count, number}} fișier",
+    "files_few": "{{count, number}} fișiere",
+    "files_other": "{{count, number}} de fișiere",
+    "folders_one": "{{count, number}} folder",
+    "folders_few": "{{count, number}} foldere",
+    "folders_other": "{{count, number}} de foldere",
+    "months_one": "{{count, number}} lună",
+    "months_few": "{{count, number}} luni",
+    "months_other": "{{count, number}} de luni",
+    "records_one": "{{count, number}} înregistrare",
+    "records_few": "{{count, number}} înregistrări",
+    "records_other": "{{count, number}} de înregistrări",
+    "days_one": "{{count, number}} zi",
+    "days_few": "{{count, number}} zile",
+    "days_other": "{{count, number}} de zile",
+    "people_one": "{{count, number}} om",
+    "people_few": "{{count, number}} oameni",
+    "people_other": "{{count, number}} de oameni"
   },
   "weekdays": {
     "long": {

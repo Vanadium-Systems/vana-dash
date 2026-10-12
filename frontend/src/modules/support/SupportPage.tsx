@@ -19,6 +19,7 @@ import { findNavItem } from '@/shared/lib/nav-items'
 import type { SupportTicket, SupportTicketDetail, SupportTicketStatus } from '@/shared/lib/types'
 import { formatRelativeTime } from '@/shared/lib/format'
 import { STATUS_LABEL, STATUS_TONE, SUPPORT_PATHS, type SupportScope } from './support-api'
+import { t } from '@/shared/lib/i18n'
 
 const STATUS_FILTERS: SupportTicketStatus[] = ['deschis', 'raspuns', 'inchis']
 
@@ -50,21 +51,21 @@ export function SupportPage({ scope }: { scope: SupportScope }) {
   return (
     <div className="space-y-6" data-density="comfortable">
       <PageHeader
-        title={scope === 'platform' ? 'Tichete de suport' : 'Suport'}
+        title={scope === 'platform' ? t('common:shell.supportTickets') : t('common:nav.support')}
         description={
-          scope === 'platform' ? 'Tot ce au scris oamenii în Suport, cu cele necitite sus.' : 'Scrie-ne când ceva nu merge sau nu e limpede. Răspunsul vine aici și pe email.'
+          scope === 'platform' ? t('support:descriptionAll') : t('support:descriptionMine')
         }
-        actions={scope === 'mine' ? newTicketButton('Tichet nou') : null}
+        actions={scope === 'mine' ? newTicketButton(t('support:newTicket')) : null}
       />
 
       {scope === 'platform' ? (
         <div className="max-w-52">
           <Select
-            aria-label="Filtrează după stare"
+            aria-label={t('support:filterByStatus')}
             value={status ?? ''}
             onChange={(event) => setSearchParams(event.target.value ? { stare: event.target.value } : {})}
           >
-            <option value="">Toate stările</option>
+            <option value="">{t('support:allStatuses')}</option>
             {STATUS_FILTERS.map((s) => (
               <option key={s} value={s}>
                 {STATUS_LABEL[s]}
@@ -82,21 +83,21 @@ export function SupportPage({ scope }: { scope: SupportScope }) {
         </div>
       ) : tickets.isError ? (
         <div className="space-y-2 py-8 text-sm">
-          <p>Nu am putut încărca tichetele.</p>
+          <p>{t('support:loadFailed')}</p>
           <Button variant="outline" onClick={() => void tickets.refetch()}>
-            Încearcă din nou
+            {t('common:actions.retry')}
           </Button>
         </div>
       ) : tickets.data.length === 0 ? (
         status ? (
-          <EmptyState kind="filtered" title={`Niciun tichet cu starea „${STATUS_LABEL[status]}”`} onReset={() => setSearchParams({})} />
+          <EmptyState kind="filtered" title={t('support:emptyForStatus', { value: STATUS_LABEL[status] })} onReset={() => setSearchParams({})} />
         ) : scope === 'platform' ? (
-          <EmptyState kind="new" title="Niciun tichet încă" description="Aici apar tichetele deschise de oameni din Suport." />
+          <EmptyState kind="new" title={t('support:emptyAllTitle')} description={t('support:emptyAllHint')} />
         ) : (
           <EmptyState
             kind="new"
-            title="Nu ai deschis niciun tichet"
-            description="Spune-ne ce nu merge și pe ce pagină erai."
+            title={t('support:emptyMineTitle')}
+            description={t('support:emptyMineHint')}
             action={newTicketButton('Deschide primul tichet')}
           />
         )
@@ -104,10 +105,10 @@ export function SupportPage({ scope }: { scope: SupportScope }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Subiect</TableHead>
-              {scope === 'platform' ? <TableHead className="hidden sm:table-cell">De la</TableHead> : null}
-              <TableHead>Stare</TableHead>
-              <TableHead className="hidden whitespace-nowrap text-right sm:table-cell">Ultima mișcare</TableHead>
+              <TableHead>{t('common:labels.subject')}</TableHead>
+              {scope === 'platform' ? <TableHead className="hidden sm:table-cell">{t('common:labels.from')}</TableHead> : null}
+              <TableHead>{t('common:labels.state')}</TableHead>
+              <TableHead className="hidden whitespace-nowrap text-right sm:table-cell">{t('support:lastActivity')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -116,7 +117,7 @@ export function SupportPage({ scope }: { scope: SupportScope }) {
                 <TableCell className="max-w-0 w-full">
                   <Link to={`${paths.route}/${ticket.id}`} className="flex min-w-0 items-center gap-2 hover:underline">
                     <span className={ticket.unread ? 'truncate font-semibold' : 'truncate'}>{ticket.subject}</span>
-                    {ticket.unread ? <StatePill tone="warning">Necitit</StatePill> : null}
+                    {ticket.unread ? <StatePill tone="warning">{t('common:states.unread')}</StatePill> : null}
                   </Link>
                   {scope === 'platform' ? <p className="truncate text-xs text-muted-foreground sm:hidden">{ticket.author.name}</p> : null}
                 </TableCell>
@@ -156,7 +157,7 @@ function NewTicketDialog({ open, onOpenChange, page }: { open: boolean; onOpenCh
       setSubject('')
       setDescription('')
       onOpenChange(false)
-      toast.success('Tichetul a plecat. Îți răspundem aici și pe email.')
+      toast.success(t('support:form.sent'))
       navigate(`/support/${ticket.id}`)
     },
     onError: (err) => toast.error(err.message),
@@ -165,8 +166,8 @@ function NewTicketDialog({ open, onOpenChange, page }: { open: boolean; onOpenCh
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const next: typeof errors = {}
-    if (!subject.trim()) next.subject = 'Scrie în câteva cuvinte despre ce e vorba.'
-    if (!description.trim()) next.description = 'Descrie ce ai încercat și ce s-a întâmplat.'
+    if (!subject.trim()) next.subject = t('support:form.subjectRequired')
+    if (!description.trim()) next.description = t('support:form.bodyRequired')
     setErrors(next)
     if (!next.subject && !next.description) create.mutate()
   }
@@ -175,25 +176,25 @@ function NewTicketDialog({ open, onOpenChange, page }: { open: boolean; onOpenCh
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Tichet nou</DialogTitle>
+          <DialogTitle>{t('support:newTicket')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} noValidate className="space-y-4">
-          <Field label="Subiect" error={errors.subject}>
+          <Field label={t('common:labels.subject')} error={errors.subject}>
             <Input value={subject} maxLength={160} onChange={(event) => setSubject(event.target.value)} />
           </Field>
           <Field
-            label="Descriere"
+            label={t('common:labels.description')}
             error={errors.description}
-            hint={pageLabel ? `Trimitem și pagina de pe care ai venit: ${pageLabel}.` : undefined}
+            hint={pageLabel ? t('support:form.pageIncluded', { pageLabel }) : undefined}
           >
             <Textarea rows={6} maxLength={5000} value={description} onChange={(event) => setDescription(event.target.value)} />
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Renunță
+              {t('common:actions.discard')}
             </Button>
             <Button type="submit" disabled={create.isPending}>
-              Trimite tichetul
+              {t('support:form.submit')}
             </Button>
           </DialogFooter>
         </form>

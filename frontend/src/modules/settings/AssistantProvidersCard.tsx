@@ -10,6 +10,7 @@ import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import { cn, parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface ProviderModel {
   id: string
@@ -32,8 +33,8 @@ interface ProviderSettings {
 }
 
 const PROVIDER_META: Record<string, { title: string; hint: string }> = {
-  anthropic: { title: 'Anthropic (Claude)', hint: 'Cheie din env folosită când nu setezi una aici.' },
-  openrouter: { title: 'OpenRouter', hint: 'Modele ox/OpenAI-compatible prin API-ul chat/completions.' },
+  anthropic: { title: 'Anthropic (Claude)', hint: t('settings:providers.anthropicHint') },
+  openrouter: { title: 'OpenRouter', hint: t('settings:providers.openRouterHint') },
 }
 
 function ProviderCard({ settings }: { settings: ProviderSettings }) {
@@ -77,42 +78,42 @@ function ProviderCard({ settings }: { settings: ProviderSettings }) {
       <div className="flex flex-wrap items-center gap-2">
         <CardTitle className="text-sm">{meta.title}</CardTitle>
         {settings.isDefault ? (
-          <Badge variant="default">implicit</Badge>
+          <Badge variant="default">{t('common:states.default')}</Badge>
         ) : (
           <Button size="sm" variant="ghost" disabled={update.isPending} onClick={() => update.mutate({ isDefault: true })}>
-            setează implicit
+            {t('settings:providers.setDefault')}
           </Button>
         )}
         <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-          activ
+          {t('settings:providers.active')}
         </label>
       </div>
       {meta.hint ? <p className="text-xs text-muted-foreground">{meta.hint}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label htmlFor={`key-${settings.provider}`}>Cheie API</Label>
+          <Label htmlFor={`key-${settings.provider}`}>{t('settings:providers.apiKey')}</Label>
           <Input
             id={`key-${settings.provider}`}
             type="password"
             autoComplete="off"
-            placeholder={settings.apiKeyPreview ?? (settings.hasEnvFallbackKey ? 'din env (fallback)' : 'neconfigurat')}
+            placeholder={settings.apiKeyPreview ?? (settings.hasEnvFallbackKey ? t('settings:providers.fromEnv') : 'neconfigurat')}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
           />
-          {settings.apiKeyPreview ? <p className="text-xs text-muted-foreground">Stocată: {settings.apiKeyPreview}</p> : null}
+          {settings.apiKeyPreview ? <p className="text-xs text-muted-foreground">{t('settings:providers.stored', { apiKeyPreview: settings.apiKeyPreview })}</p> : null}
         </div>
         <div className="space-y-1">
-          <Label htmlFor={`url-${settings.provider}`}>Base URL (opțional)</Label>
+          <Label htmlFor={`url-${settings.provider}`}>{t('settings:providers.baseUrl')}</Label>
           <Input id={`url-${settings.provider}`} value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder={settings.effectiveBaseUrl ?? ''} />
         </div>
       </div>
 
       <div className="space-y-1">
-        <Label>Modele</Label>
+        <Label>{t('settings:providers.models')}</Label>
         <p className="text-xs text-muted-foreground">
-          Context window (tokeni) și preț ($/Mtok tokeni intrare/ieșire) alimentează meter-ul din Asistent — goale = fără estimare.
+          {t('settings:providers.modelsHint')}
         </p>
         <div className="space-y-2">
           {models.map((m, i) => (
@@ -121,20 +122,20 @@ function ProviderCard({ settings }: { settings: ProviderSettings }) {
                 <Input
                   value={m.id}
                   onChange={(e) => setModels((prev) => prev.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}
-                  placeholder="id model (ex. stealth/ox-alpha)"
+                  placeholder={t('settings:providers.modelIdPlaceholder')}
                   className="flex-1 font-mono"
                 />
                 <Input
                   value={m.label}
                   onChange={(e) => setModels((prev) => prev.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
-                  placeholder="etichetă"
+                  placeholder={t('settings:providers.labelPlaceholder')}
                   className="w-36"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  aria-label="Șterge modelul"
+                  aria-label={t('settings:providers.deleteModel')}
                   onClick={() => setModels((prev) => prev.filter((_, j) => j !== i))}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -145,35 +146,35 @@ function ProviderCard({ settings }: { settings: ProviderSettings }) {
                   inputMode="numeric"
                   value={m.contextWindow ?? ''}
                   onChange={(e) => setModels((prev) => prev.map((x, j) => (j === i ? { ...x, contextWindow: e.target.value === '' ? undefined : parseRoDecimal(e.target.value) } : x)))}
-                  placeholder="context window (ex. 200000)"
+                  placeholder={t('settings:providers.contextPlaceholder')}
                   className="w-44 font-mono tnum"
-                  title="Context window (tokeni)"
+                  title={t('settings:providers.contextHint')}
                 />
                 <PriceInput
                   value={m.inputPricePerMtok}
                   onCommit={(value) => setModels((prev) => prev.map((x, j) => (j === i ? { ...x, inputPricePerMtok: value } : x)))}
-                  placeholder="$ / Mtok intrare"
+                  placeholder={t('settings:providers.inputPricePlaceholder')}
                   className="w-32"
-                  title="Preț $ per milion tokeni de intrare"
+                  title={t('settings:providers.inputPriceHint')}
                 />
                 <PriceInput
                   value={m.outputPricePerMtok}
                   onCommit={(value) => setModels((prev) => prev.map((x, j) => (j === i ? { ...x, outputPricePerMtok: value } : x)))}
-                  placeholder="$ / Mtok ieșire"
+                  placeholder={t('settings:providers.outputPricePlaceholder')}
                   className="w-28"
-                  title="Preț $ per milion tokeni de ieșire"
+                  title={t('settings:providers.outputPriceHint')}
                 />
               </div>
             </div>
           ))}
         </div>
         <Button type="button" variant="outline" onClick={() => setModels((prev) => [...prev, { id: '', label: '' }])}>
-          <Plus className="h-4 w-4" /> Model nou
+          <Plus className="h-4 w-4" /> {t('settings:providers.newModel')}
         </Button>
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor={`def-${settings.provider}`}>Model implicit</Label>
+        <Label htmlFor={`def-${settings.provider}`}>{t('settings:providers.defaultModel')}</Label>
         <Select
           id={`def-${settings.provider}`}
           value={defaultModel}
@@ -190,11 +191,11 @@ function ProviderCard({ settings }: { settings: ProviderSettings }) {
 
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
-          {settings.apiKeyPreview ? 'Cheie din DB' : settings.hasEnvFallbackKey ? 'Fallback pe env' : 'Fără cheie'}
+          {settings.apiKeyPreview ? t('settings:providers.keyFromDb') : settings.hasEnvFallbackKey ? t('settings:providers.keyFromEnv') : t('settings:providers.noKey')}
         </span>
         <Button disabled={update.isPending} onClick={() => update.mutate(undefined)}>
           {update.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Salvează
+          {t('common:actions.save')}
         </Button>      </div>
     </div>
   )
@@ -211,9 +212,9 @@ export function AssistantProvidersCard() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <CardTitle className="text-base">Asistent — provideri</CardTitle>
+        <CardTitle className="text-base">{t('settings:providers.title')}</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Cheile se salvează criptat și nu mai părăsesc serverul. Fără cheie configurată, Anthropic cade pe env.
+          {t('settings:providers.hint')}
         </p>
         {(providers.data ?? []).map((s) => (
           <ProviderCard key={s.provider} settings={s} />

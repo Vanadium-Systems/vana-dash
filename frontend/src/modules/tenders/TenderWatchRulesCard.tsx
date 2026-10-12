@@ -9,6 +9,7 @@ import { api } from '@/shared/lib/api'
 import type { TenderWatchRule } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { t } from '@/shared/lib/i18n'
 
 // Reguli de match CPV/keyword pt. monitorul de licitații — editabile din UI din prima zi
 // (pattern ProspectStatusesCard, fără reorder: ordinea regulilor nu contează, e OR simplu).
@@ -39,7 +40,7 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
     mutationFn: () => api.delete<void>(`/api/tenders/watch-rules/${rule.id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['tenders', 'watch-rules'] })
-      toast.success('Regulă ștearsă')
+      toast.success(t('tenders:rules.deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -52,11 +53,11 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
         disabled={toggleActive.isPending}
         onClick={() => toggleActive.mutate()}
       >
-        {rule.active ? 'activă' : 'inactivă'}
+        {rule.active ? t('tenders:rules.active') : t('tenders:rules.inactive')}
       </button>
       <button
         type="button"
-        title={rule.highPriority ? 'Prioritate înaltă — click pt. a scoate' : 'Marchează ca prioritate înaltă (alertă separată, mai puternică)'}
+        title={rule.highPriority ? t('tenders:rules.highPriorityOn') : t('tenders:rules.highPriorityOff')}
         disabled={togglePriority.isPending}
         onClick={() => togglePriority.mutate()}
         className={cn('shrink-0', rule.highPriority ? 'text-warning' : 'text-muted-foreground hover:text-warning')}
@@ -67,8 +68,8 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
         type="button"
         title={
           rule.exclude
-            ? 'Regulă de dezinteres — potrivirile ies din lista principală. Click pt. a o face regulă de urmărire normală'
-            : 'Fă regulă de dezinteres (potrivirile ies automat din lista principală)'
+            ? t('tenders:rules.negativeOn')
+            : t('tenders:rules.negativeOff')
         }
         disabled={toggleExclude.isPending}
         onClick={() => toggleExclude.mutate()}
@@ -77,7 +78,7 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
         <Ban className="h-4 w-4" />
       </button>
       <span className="text-sm font-medium">{rule.label}</span>
-      {rule.exclude ? <span className="rounded-full border border-destructive/40 px-2 py-0.5 text-xs text-destructive">dezinteres</span> : null}
+      {rule.exclude ? <span className="rounded-full border border-destructive/40 px-2 py-0.5 text-xs text-destructive">{t('tenders:rules.notInterestedTag')}</span> : null}
       {rule.cpvPrefix ? <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">CPV {rule.cpvPrefix}*</span> : null}
       {rule.keyword ? <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">„{rule.keyword}"</span> : null}
       <Button
@@ -86,7 +87,7 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
         className="ml-auto"
         disabled={remove.isPending}
         onClick={() => {
-          void confirm({ title: `Șterge regula „${rule.label}”`, consequence: 'Licitațiile noi nu mai sunt urmărite după ea.', confirmLabel: 'Șterge regula', destructive: true }).then((ok) => ok && remove.mutate())
+          void confirm({ title: t('tenders:rules.deleteTitle', { label: rule.label }), consequence: t('tenders:rules.deleteBody'), confirmLabel: t('tenders:rules.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate())
         }}
       >
         <Trash2 className="h-4 w-4" />
@@ -119,7 +120,7 @@ function NewRuleForm() {
       setKeyword('')
       setHighPriority(false)
       setExclude(false)
-      toast.success('Regulă adăugată')
+      toast.success(t('tenders:rules.added'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -129,24 +130,24 @@ function NewRuleForm() {
   return (
     <div className="flex flex-wrap items-end gap-2 border-t pt-3">
       <div className="w-40 space-y-1">
-        <label className="text-xs text-muted-foreground">Etichetă</label>
-        <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="ex: Servicii IT" />
+        <label className="text-xs text-muted-foreground">{t('common:labels.label')}</label>
+        <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t('tenders:rules.labelPlaceholder')} />
       </div>
       <div className="w-32 space-y-1">
-        <label className="text-xs text-muted-foreground">Prefix CPV</label>
-        <Input value={cpvPrefix} onChange={(e) => setCpvPrefix(e.target.value)} placeholder="ex: 72" />
+        <label className="text-xs text-muted-foreground">{t('tenders:rules.cpvPrefix')}</label>
+        <Input value={cpvPrefix} onChange={(e) => setCpvPrefix(e.target.value)} placeholder={t('tenders:rules.cpvPlaceholder')} />
       </div>
       <div className="w-48 space-y-1">
-        <label className="text-xs text-muted-foreground">Cuvânt cheie</label>
-        <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="ex: digitalizare" />
+        <label className="text-xs text-muted-foreground">{t('tenders:rules.keyword')}</label>
+        <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder={t('tenders:rules.keywordPlaceholder')} />
       </div>
       {exclude ? null : (
         <label className="flex items-center gap-1.5 pb-2 text-xs text-muted-foreground">
           <input type="checkbox" checked={highPriority} onChange={(e) => setHighPriority(e.target.checked)} />
-          Prioritate înaltă
+          {t('tenders:rules.highPriority')}
         </label>
       )}
-      <label className="flex items-center gap-1.5 pb-2 text-xs text-muted-foreground" title="Potrivirile ies automat din lista principală, dar rămân vizibile cu Arată arhivate">
+      <label className="flex items-center gap-1.5 pb-2 text-xs text-muted-foreground" title={t('tenders:rules.negativeHint')}>
         <input
           type="checkbox"
           checked={exclude}
@@ -155,10 +156,10 @@ function NewRuleForm() {
             if (e.target.checked) setHighPriority(false)
           }}
         />
-        Regulă de dezinteres
+        {t('tenders:rules.negative')}
       </label>
       <Button type="button" disabled={!canCreate || create.isPending} onClick={() => create.mutate()}>
-        <Plus className="h-4 w-4" /> Adaugă regulă
+        <Plus className="h-4 w-4" /> {t('tenders:rules.add')}
       </Button>
     </div>
   )
@@ -176,15 +177,15 @@ export function TenderWatchRulesCard() {
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">Reguli de urmărire</CardTitle>
+        <CardTitle className="text-base">{t('tenders:rules.title')}</CardTitle>
         <Button type="button" variant="ghost" onClick={() => setOpen((o) => !o)}>
-          {open ? 'Ascunde' : 'Arată'}
+          {open ? t('common:actions.hide') : t('common:actions.show')}
         </Button>
       </CardHeader>
       {open && (
         <CardContent className="space-y-3">
           {rules.isPending ? (
-            <p className="text-sm text-muted-foreground">Se încarcă…</p>
+            <p className="text-sm text-muted-foreground">{t('common:states.loading')}</p>
           ) : (
             <div className="space-y-2">
               {rows.map((rule) => (

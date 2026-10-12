@@ -1,0 +1,75 @@
+{
+  "asset": {
+    "backToAssets": "Back to Stocks",
+    "today": "today",
+    "chartUnavailable": "The chart is not available. Check the Twelve Data key in Settings.",
+    "profile": "Profile: {{name}}",
+    "industry": "Industry: {{industry}}.",
+    "loadFailed": "{{symbol}} could not be loaded: {{reason}}",
+    "missing": "it does not exist"
+  },
+  "order": {
+    "orderFor": "Order {{symbol}}",
+    "liveSent": "Live order sent to Trading212",
+    "newTitle": "New order: Trading212",
+    "liveSymbolHint": " Live mode: the symbol is the EXACT Trading212 ticker (e.g. AAPL_US_EQ), not the price symbol."
+  },
+  "stats": {
+    "open": "Open",
+    "high": "High",
+    "low": "Low",
+    "previousClose": "Previous close",
+    "sharesOutstanding": "Shares outstanding",
+    "exchange": "Exchange"
+  },
+  "metals": {
+    "gold": "Gold (XAU/USD)",
+    "silver": "Silver (XAG/USD)"
+  },
+  "search": {
+    "placeholder": "Search for a stock or an ETF…",
+    "noResult": "No result. Also check the Finnhub key in Settings."
+  },
+  "favorites": {
+    "empty": "No favorite yet. Search for a stock/ETF above or add a metal."
+  },
+  "portfolio": {
+    "empty": "No position. Connect Trading212 in Settings and place paper orders."
+  },
+  "index": {
+    "filterPlaceholder": "Filter the list…",
+    "noResult": "No result for this filter.",
+    "change": "Change"
+  },
+  "settings": {
+    "connected": "Trading212 connected. The key is encrypted in the database",
+    "paperOn": "Paper mode switched on (no key)",
+    "disconnected": "Trading212 disconnected",
+    "providerDisconnected": "Provider disconnected",
+    "title": "Stocks · Trading212 + prices",
+    "hint": "The price keys (Finnhub, Twelve Data) are read-only. The Trading212 key is used ONLY for live (paper is simulated locally; Trading212 has no testnet through the API).",
+    "t212Key": "Trading212 API key (optional for paper)",
+    "t212Hint": "Trading212 asks for a funded account before issuing an API key; you can switch on paper mode without it, from the button below.",
+    "enablePaper": "Switch on paper mode (no key)",
+    "finnhubKey": "Finnhub API key (stocks/ETFs)",
+    "twelveDataKey": "Twelve Data API key (gold/silver)"
+  },
+  "bot": {
+    "noDataTitle": "The bot has not sent market data yet",
+    "noDataHint": "The tab fills in after the jeffbot-stocks service sends the first snapshot.",
+    "newsHint": "Market news, with Jeff's sentiment",
+    "marketOpen": "Market open",
+    "marketClosed": "Market closed",
+    "connected": "connected",
+    "error": "error",
+    "late": " (late)",
+    "closesAt": "{{state}}, closes at {{time}}",
+    "opensAt": "{{state}}, opens {{time}}",
+    "broker": "Alpaca {{mode}}: {{state}}",
+    "brokerError": "Alpaca: {{error}}"
+  },
+  "categories": {
+    "etfs": "ETFs",
+    "metals": "Metals"
+  }
+}

@@ -14,6 +14,19 @@ import { ChartError } from '@/shared/components/charts/chart-states'
 import { api } from '@/shared/lib/api'
 import type { BankAccount, VanagreenExtensionLogEntry, VanagreenSettings } from '@/shared/lib/types'
 import { intlTag } from '@/shared/lib/format'
+import { tRich } from '@/shared/lib/i18n-nodes'
+import { t } from '@/shared/lib/i18n'
+
+const GUIDE_STEPS = [
+  'reconciliation:guide.step1',
+  'reconciliation:guide.step2',
+  'reconciliation:guide.step3',
+  'reconciliation:guide.step4',
+  'reconciliation:guide.step5',
+  'reconciliation:guide.step6',
+  'reconciliation:guide.step7',
+  'reconciliation:guide.step8',
+] as const
 
 function SetupGuide() {
   const [open, setOpen] = useState(false)
@@ -24,53 +37,16 @@ function SetupGuide() {
         onClick={() => setOpen((v) => !v)}
       >
         {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        Ghid: cum configurezi Revolut de la zero (sandbox sau producție)
+        {t('reconciliation:guide.title')}
       </button>
       {open ? (
         <CardContent className="space-y-3 pt-0 text-sm text-muted-foreground">
           <ol className="list-decimal space-y-2 pl-5">
-            <li>
-              Adaugă un cont din tab-ul <strong>Conturi</strong> (provider Revolut, API Key gol — nu mai e nevoie,
-              Revolut a trecut pe OAuth).
-            </li>
-            <li>
-              Aici, în <strong>Setări</strong>: apasă <strong>„Generează certificat"</strong>, apoi{' '}
-              <strong>„Descarcă certificatul"</strong> (fișier <code className="font-mono">.pem</code>).
-            </li>
-            <li>
-              În Revolut Business (
-              <span className="font-mono">business.revolut.com</span> pt. producție,{' '}
-              <span className="font-mono">sandbox-business.revolut.com</span> pt. testare) — cont separat, se face
-              signup normal acolo — mergi la <strong>Settings → APIs → Business API → Add certificate</strong>.
-            </li>
-            <li>
-              Lipește conținutul certificatului descărcat în câmpul „X509 public key". La{' '}
-              <strong>OAuth redirect URI</strong> pune adresa unde rulează vana-dash +{' '}
-              <code className="font-mono">/reconciliation/revolut-callback</code> (ex:{' '}
-              <code className="font-mono">https://dash.vanadium.systems/reconciliation/revolut-callback</code> pe
-              VPS). <strong>Revolut respinge `localhost`</strong> — dacă testezi local fără domeniu propriu, poți
-              folosi temporar un URL de la{' '}
-              <span className="font-mono">webhook.site</span> ca să vezi codul de autorizare manual.
-            </li>
-            <li>Salvează — Revolut îți arată <strong>Client ID</strong>. Copiază-l.</li>
-            <li>
-              Înapoi în vana-dash: lipește Client ID-ul mai jos, „Salvează", apoi{' '}
-              <strong>„Deschide consimțirea Revolut"</strong> — te duce în Revolut, aprobi accesul.
-            </li>
-            <li>
-              Ești redirecționat automat aici, pe Setări, cu câmpul „Cod autorizare" deja precompletat (codul e
-              valabil doar <strong>~2 minute</strong>, de-aia se face automat). Verifică și apasă „Conectează".
-            </li>
-            <li>Gata — status „Conectat", refresh automat de acolo încolo (la fiecare ~25 min).</li>
+            {GUIDE_STEPS.map((step) => (
+              <li key={step}>{tRich(step)}</li>
+            ))}
           </ol>
-          <p className="border-t pt-3">
-            <strong>De reținut pt. VPS:</strong> variabilele <code className="font-mono">REVOLUT_API_URL</code> (
-            <span className="font-mono">sandbox-b2b...</span> vs. <span className="font-mono">b2b...</span>) și{' '}
-            <code className="font-mono">REVOLUT_REDIRECT_URI</code> din <code className="font-mono">.env</code>{' '}
-            trebuie să corespundă exact mediului (sandbox/producție) și domeniului real — dacă schimbi domeniul sau
-            treci pe producție, actualizează-le și refă pașii 3-7 (certificat nou nu e nevoie, doar redirect URI-ul
-            înregistrat în Revolut trebuie să se potrivească).
-          </p>
+          <p className="border-t pt-3">{tRich('reconciliation:guide.vpsNote')}</p>
         </CardContent>
       ) : null}
     </Card>
@@ -117,7 +93,7 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
     mutationFn: () => api.patch<BankAccount>(`/api/reconciliation/accounts/${account.id}`, { clientId }),
     onSuccess: () => {
       invalidate()
-      toast.success('Client ID salvat')
+      toast.success(t('reconciliation:revolut.clientIdSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -126,7 +102,7 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
     mutationFn: () => api.post<{ certificatePem: string }>(`/api/reconciliation/accounts/${account.id}/generate-certificate`),
     onSuccess: () => {
       invalidate()
-      toast.success('Certificat generat — descarcă-l și urcă-l în Revolut')
+      toast.success(t('reconciliation:revolut.certGenerated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -142,7 +118,7 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
     onSuccess: () => {
       invalidate()
       setCode('')
-      toast.success('Revolut conectat')
+      toast.success(t('reconciliation:revolut.connectedToast'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -155,30 +131,28 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
         <CardTitle className="flex items-center gap-3">
           {account.name}
           {account.authStatus === 'active' ? (
-            <StatePill tone="success">Conectat</StatePill>
+            <StatePill tone="success">{t('reconciliation:revolut.connected')}</StatePill>
           ) : account.authStatus === 'needs_reauth' ? (
-            <StatePill tone="critical">Necesită re-auth</StatePill>
+            <StatePill tone="critical">{t('reconciliation:revolut.needsReauth')}</StatePill>
           ) : (
-            <StatePill>Neconfigurat</StatePill>
+            <StatePill>{t('reconciliation:revolut.notConfigured')}</StatePill>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {account.authStatus === 'active' ? (
           <div className="text-sm text-muted-foreground">
-            Token expiră: {formatDateTime(account.tokenExpiresAt)} · Ultimul refresh:{' '}
-            {formatDateTime(account.lastRefreshedAt)}
+            {t('reconciliation:revolut.tokenInfo', { tokenExpiresAt: formatDateTime(account.tokenExpiresAt), lastRefreshedAt: formatDateTime(account.lastRefreshedAt) })}
           </div>
         ) : null}
 
         <p className="text-sm text-muted-foreground">
-          1. Salvează Client ID-ul (din aplicația înregistrată în Revolut Business Settings → API) · 2. Generează și
-          urcă certificatul acolo · 3. Deschide consimțirea și lipește codul din redirect.
+          {t('reconciliation:revolut.steps')}
         </p>
 
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex-1 space-y-2">
-            <Label htmlFor={`client-${account.id}`}>Client ID</Label>
+            <Label htmlFor={`client-${account.id}`}>{t('reconciliation:revolut.clientId')}</Label>
             <Input id={`client-${account.id}`} value={clientId} onChange={(e) => setClientId(e.target.value)} />
           </div>
           <Button
@@ -186,17 +160,17 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
             disabled={saveClientId.isPending || !clientId || clientId === account.clientId}
             onClick={() => saveClientId.mutate()}
           >
-            Salvează
+            {t('common:actions.save')}
           </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" disabled={generateCert.isPending} onClick={() => generateCert.mutate()}>
-            {account.certificatePem ? 'Regenerează certificatul' : 'Generează certificat'}
+            {account.certificatePem ? t('reconciliation:revolut.regenerateCert') : t('reconciliation:revolut.generateCert')}
           </Button>
           {account.certificatePem ? (
             <Button variant="outline" onClick={() => downloadCertificate(account)}>
-              <Download className="h-4 w-4" /> Descarcă certificatul
+              <Download className="h-4 w-4" /> {t('reconciliation:revolut.downloadCert')}
             </Button>
           ) : null}
         </div>
@@ -204,7 +178,7 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
         {readyForConsent ? (
           <div className="space-y-3 border-t pt-4">
             <Button variant="outline" disabled={openAuthorize.isPending} onClick={() => openAuthorize.mutate()}>
-              <ExternalLink className="h-4 w-4" /> Deschide consimțirea Revolut
+              <ExternalLink className="h-4 w-4" /> {t('reconciliation:revolut.openConsent')}
             </Button>
             <form
               className="flex flex-wrap items-end gap-2"
@@ -214,17 +188,17 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
               }}
             >
               <div className="flex-1 space-y-2">
-                <Label htmlFor={`code-${account.id}`}>Cod autorizare (din redirect)</Label>
+                <Label htmlFor={`code-${account.id}`}>{t('reconciliation:revolut.authCode')}</Label>
                 <Input id={`code-${account.id}`} value={code} onChange={(e) => setCode(e.target.value)} required />
               </div>
               <Button type="submit" disabled={exchange.isPending}>
-                {exchange.isPending ? 'Se conectează…' : 'Conectează'}
+                {exchange.isPending ? t('common:states.connecting') : t('common:actions.connect')}
               </Button>
             </form>
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Setează Client ID și generează certificatul mai întâi ca să poți deschide consimțirea.
+            {t('reconciliation:revolut.setClientIdFirst')}
           </p>
         )}
       </CardContent>
@@ -233,7 +207,7 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
 }
 
 function formatMonths(months: number): string {
-  return months === 1 ? '1 lună' : `${months} luni`
+  return t('common:count.months', { count: months })
 }
 
 function VanagreenExtensionCard() {
@@ -254,7 +228,7 @@ function VanagreenExtensionCard() {
       api.put<VanagreenSettings>('/api/reconciliation/vanagreen-settings', { autoExtendEnabled }),
     onSuccess: (data) => {
       queryClient.setQueryData(['vanagreen-settings'], data)
-      toast.success(data.autoExtendEnabled ? 'Extindere automată pornită' : 'Extindere automată oprită (dry-run)')
+      toast.success(data.autoExtendEnabled ? t('reconciliation:extension.on') : t('reconciliation:extension.off'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -262,13 +236,11 @@ function VanagreenExtensionCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Extindere abonament vanagreen</CardTitle>
+        <CardTitle>{t('reconciliation:extension.title')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          La o plată confirmată (match bancar automat sau „Marchează plătit" manual din Contabilitate) pe un client
-          mapat la un tenant vanagreen, extinde abonamentul acolo. Cu comutatorul oprit, acțiunile se loghează ca
-          dry-run — util pt. testare, fără niciun apel real către vanagreen.
+          {t('reconciliation:extension.hint')}
         </p>
         <label className="flex items-center gap-2 text-sm font-medium">
           <input
@@ -277,25 +249,25 @@ function VanagreenExtensionCard() {
             disabled={settings.isPending || toggle.isPending}
             onChange={(e) => toggle.mutate(e.target.checked)}
           />
-          Extindere automată ON (altfel doar dry-run)
+          {t('reconciliation:extension.toggle')}
         </label>
 
         <div className="border-t pt-4">
-          <p className="mb-2 text-sm font-medium">Istoric acțiuni (ultimele 100)</p>
+          <p className="mb-2 text-sm font-medium">{t('reconciliation:extension.history')}</p>
           {log.isPending ? (
             <Skeleton className="h-24 w-full" />
           ) : !log.data?.length ? (
-            <p className="text-sm text-muted-foreground">Nicio acțiune încă.</p>
+            <p className="text-sm text-muted-foreground">{t('reconciliation:extension.none')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Când</TableHead>
-                  <TableHead>Sursă</TableHead>
-                  <TableHead>Mod</TableHead>
-                  <TableHead>Luni</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Detalii</TableHead>
+                  <TableHead>{t('common:labels.when')}</TableHead>
+                  <TableHead>{t('common:labels.source')}</TableHead>
+                  <TableHead>{t('reconciliation:extension.mode')}</TableHead>
+                  <TableHead>{t('reconciliation:extension.months')}</TableHead>
+                  <TableHead>{t('common:labels.status')}</TableHead>
+                  <TableHead>{t('common:labels.details')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -303,7 +275,7 @@ function VanagreenExtensionCard() {
                   <TableRow key={entry.id}>
                     <TableCell className="text-xs">{new Date(entry.createdAt).toLocaleString(intlTag())}</TableCell>
                     <TableCell className="text-xs">
-                      {entry.source === 'auto_match' ? 'Match bancar' : 'Marcat manual'}
+                      {entry.source === 'auto_match' ? t('reconciliation:extension.sourceBankMatch') : t('reconciliation:extension.sourceManual')}
                     </TableCell>
                     <TableCell>
                       {entry.mode === 'live' ? (
@@ -315,9 +287,9 @@ function VanagreenExtensionCard() {
                     <TableCell className="text-xs">{formatMonths(entry.months)}</TableCell>
                     <TableCell>
                       {entry.status === 'success' ? (
-                        <StatePill tone="success">succes</StatePill>
+                        <StatePill tone="success">{t('reconciliation:extension.success')}</StatePill>
                       ) : (
-                        <StatePill tone="critical">eșuat</StatePill>
+                        <StatePill tone="critical">{t('reconciliation:extension.failed')}</StatePill>
                       )}
                     </TableCell>
                     <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
@@ -341,7 +313,7 @@ export function SetariTab() {
   })
 
   if (accounts.isPending) return <Skeleton className="h-40 w-full" />
-  if (accounts.isError) return <ChartError message="Nu am putut încărca conturile" />
+  if (accounts.isError) return <ChartError message={t('reconciliation:accounts.loadFailed')} />
 
   // OAuth2 + JWT client assertion e specific Revolut — celelalte provideri (viitori) rămân pe api_key_enc,
   // configurat direct din dialogul de cont (tab Conturi), nu au nevoie de acest flow.
@@ -355,7 +327,7 @@ export function SetariTab() {
         revolutAccounts.map((account) => <RevolutAccountCard key={account.id} account={account} />)
       ) : (
         <p className="text-sm text-muted-foreground">
-          Niciun cont Revolut încă. Adaugă unul din tab-ul Conturi, apoi revino aici ca să configurezi OAuth-ul.
+          {t('reconciliation:revolut.noAccount')}
         </p>
       )}
     </div>

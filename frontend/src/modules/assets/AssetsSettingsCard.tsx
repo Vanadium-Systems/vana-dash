@@ -7,6 +7,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { BrokerStatus, PriceProviderStatus } from './types'
+import { t } from '@/shared/lib/i18n'
 
 // Broker + provideri de preț + kill-switch (Setări → Assets, Track D Wave 8). Cheile pleacă o
 // singură dată spre backend (criptate AES-GCM în DB) și nu se mai afișează niciodată — doar masked.
@@ -39,7 +40,7 @@ export function AssetsSettingsCard() {
         enabled: true,
       }),
     onSuccess: () => {
-      toast.success(brokerKey ? 'Trading212 conectat — cheia e criptată în DB' : 'Paper mode activat (fără cheie)')
+      toast.success(brokerKey ? t('assets:settings.connected') : t('assets:settings.paperOn'))
       setBrokerKey('')
       void queryClient.invalidateQueries({ queryKey: ['assets'] })
     },
@@ -49,7 +50,7 @@ export function AssetsSettingsCard() {
   const disconnectBroker = useMutation({
     mutationFn: () => api.delete('/api/assets/brokers/trading212'),
     onSuccess: () => {
-      toast.success('Trading212 deconectat')
+      toast.success(t('assets:settings.disconnected'))
       void queryClient.invalidateQueries({ queryKey: ['assets'] })
     },
     onError: (err) => toast.error(err.message),
@@ -70,7 +71,7 @@ export function AssetsSettingsCard() {
   const disconnectProvider = useMutation({
     mutationFn: (provider: 'finnhub' | 'twelvedata') => api.delete(`/api/assets/price-providers/${provider}`),
     onSuccess: () => {
-      toast.success('Provider deconectat')
+      toast.success(t('assets:settings.providerDisconnected'))
       void queryClient.invalidateQueries({ queryKey: ['assets', 'price-providers'] })
     },
     onError: (err) => toast.error(err.message),
@@ -80,7 +81,7 @@ export function AssetsSettingsCard() {
     mutationFn: (enabled: boolean) => api.put<{ tradingEnabled: boolean }>('/api/assets/settings', { tradingEnabled: enabled }),
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ['assets', 'settings'] })
-      toast.success(result.tradingEnabled ? 'Trading live ACTIVAT' : 'Trading live OPRIT')
+      toast.success(result.tradingEnabled ? t('crypto:settings.liveOn') : t('crypto:settings.liveOff'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -93,17 +94,16 @@ export function AssetsSettingsCard() {
     <Card>
       <CardContent className="space-y-4 pt-6">
         <div>
-          <h3 className="text-sm font-semibold">Assets · Trading212 + prețuri</h3>
+          <h3 className="text-sm font-semibold">{t('assets:settings.title')}</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Cheile de preț (Finnhub, Twelve Data) sunt doar-citire. Cheia Trading212 e folosită DOAR pe live
-            (paper e simulat local — Trading212 n-are testnet prin API).
+            {t('assets:settings.hint')}
           </p>
         </div>
 
         <div className="flex items-center justify-between rounded-md bg-muted/50 p-3">
           <div>
-            <p className="text-sm font-medium">Kill-switch trading live</p>
-            <p className="text-xs text-muted-foreground">Oprit = ordinele live sunt respinse; paper-ul rămâne disponibil.</p>
+            <p className="text-sm font-medium">{t('crypto:settings.killSwitch')}</p>
+            <p className="text-xs text-muted-foreground">{t('crypto:settings.killSwitchHint')}</p>
           </div>
           <Button
             variant={settings.data?.tradingEnabled ? 'destructive' : 'outline'}
@@ -111,7 +111,7 @@ export function AssetsSettingsCard() {
             disabled={settings.isPending || toggleKillSwitch.isPending}
             onClick={() => toggleKillSwitch.mutate(!settings.data?.tradingEnabled)}
           >
-            {settings.data?.tradingEnabled ? 'Oprește' : 'Activează'}
+            {settings.data?.tradingEnabled ? t('common:actions.stop') : t('common:actions.enable')}
           </Button>
         </div>
 
@@ -124,19 +124,18 @@ export function AssetsSettingsCard() {
               <p className="font-mono text-xs text-muted-foreground">{t212.apiKeyMasked}</p>
             </div>
             <Button variant="outline" disabled={disconnectBroker.isPending} onClick={() => disconnectBroker.mutate()}>
-              Deconectează
+              {t('common:actions.disconnect')}
             </Button>
           </div>
         ) : (
           <div className="space-y-2 rounded-md bg-muted/50 p-3">
-            <Label htmlFor="t212-api-key">Trading212 API key (opțional pt. paper)</Label>
+            <Label htmlFor="t212-api-key">{t('assets:settings.t212Key')}</Label>
             <Input id="t212-api-key" value={brokerKey} onChange={(e) => setBrokerKey(e.target.value)} autoComplete="off" />
             <p className="text-xs text-muted-foreground">
-              Trading212 cere cont alimentat înainte să emită o cheie API — poți activa paper mode
-              fără ea, direct din butonul de mai jos.
+              {t('assets:settings.t212Hint')}
             </p>
             <Button disabled={connectBroker.isPending} onClick={() => connectBroker.mutate()}>
-              {connectBroker.isPending ? 'Se salvează…' : brokerKey ? 'Conectează' : 'Activează paper mode (fără cheie)'}
+              {connectBroker.isPending ? t('common:states.saving') : brokerKey ? t('common:actions.connect') : t('assets:settings.enablePaper')}
             </Button>
           </div>
         )}
@@ -149,18 +148,18 @@ export function AssetsSettingsCard() {
                 <p className="font-mono text-xs text-muted-foreground">{finnhub.apiKeyMasked}</p>
               </div>
               <Button variant="outline" disabled={disconnectProvider.isPending} onClick={() => disconnectProvider.mutate('finnhub')}>
-                Deconectează
+                {t('common:actions.disconnect')}
               </Button>
             </div>
           ) : (
             <div className="space-y-2 rounded-md bg-muted/50 p-3">
-              <Label htmlFor="finnhub-key">Finnhub API key (acțiuni/ETF-uri)</Label>
+              <Label htmlFor="finnhub-key">{t('assets:settings.finnhubKey')}</Label>
               <Input id="finnhub-key" value={finnhubKey} onChange={(e) => setFinnhubKey(e.target.value)} autoComplete="off" />
               <Button
                 disabled={!finnhubKey || connectProvider.isPending}
                 onClick={() => connectProvider.mutate({ provider: 'finnhub', apiKey: finnhubKey })}
               >
-                Conectează
+                {t('common:actions.connect')}
               </Button>
             </div>
           )}
@@ -172,18 +171,18 @@ export function AssetsSettingsCard() {
                 <p className="font-mono text-xs text-muted-foreground">{twelvedata.apiKeyMasked}</p>
               </div>
               <Button variant="outline" disabled={disconnectProvider.isPending} onClick={() => disconnectProvider.mutate('twelvedata')}>
-                Deconectează
+                {t('common:actions.disconnect')}
               </Button>
             </div>
           ) : (
             <div className="space-y-2 rounded-md bg-muted/50 p-3">
-              <Label htmlFor="twelvedata-key">Twelve Data API key (aur/argint)</Label>
+              <Label htmlFor="twelvedata-key">{t('assets:settings.twelveDataKey')}</Label>
               <Input id="twelvedata-key" value={twelvedataKey} onChange={(e) => setTwelvedataKey(e.target.value)} autoComplete="off" />
               <Button
                 disabled={!twelvedataKey || connectProvider.isPending}
                 onClick={() => connectProvider.mutate({ provider: 'twelvedata', apiKey: twelvedataKey })}
               >
-                Conectează
+                {t('common:actions.connect')}
               </Button>
             </div>
           )}

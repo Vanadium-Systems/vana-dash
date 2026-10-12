@@ -15,16 +15,17 @@ import type { TenderOpportunity, TenderSource } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { formatNumber, intlTag } from '@/shared/lib/format'
 import { TenderWatchRulesCard } from './TenderWatchRulesCard'
+import { t } from '@/shared/lib/i18n'
 
 const SOURCE_LABEL: Record<TenderSource, string> = {
-  direct_acquisition: 'Achiziție directă',
-  contract_notice: 'Licitație publică',
+  direct_acquisition: t('tenders:types.direct'),
+  contract_notice: t('tenders:types.public'),
 }
 
 const SOURCE_FILTERS: { key: TenderSource | 'all'; label: string }[] = [
-  { key: 'all', label: 'Toate' },
-  { key: 'direct_acquisition', label: 'Achiziții directe' },
-  { key: 'contract_notice', label: 'Licitații publice' },
+  { key: 'all', label: t('common:labels.all') },
+  { key: 'direct_acquisition', label: t('tenders:types.directPlural') },
+  { key: 'contract_notice', label: t('tenders:types.publicPlural') },
 ]
 
 const DEADLINE_SOON_DAYS = 5
@@ -40,7 +41,7 @@ function DeadlineCell({ deadlineAt, isOpen }: { deadlineAt: string | null; isOpe
   return (
     <span className={cn(soon ? 'font-medium text-destructive' : undefined)}>
       {new Date(deadlineAt).toLocaleDateString(intlTag())}
-      {soon ? ` (${days} zile)` : ''}
+      {soon ? ` (${t('common:count.days', { count: days })})` : ''}
     </span>
   )
 }
@@ -68,7 +69,7 @@ export function TendersPage() {
     mutationFn: ({ id, dismissed }: { id: string; dismissed: boolean }) => api.patch<TenderOpportunity>(`/api/tenders/${id}`, { dismissed }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['tenders'] })
-      toast.success('Actualizat')
+      toast.success(t('common:states.updated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -77,33 +78,33 @@ export function TendersPage() {
 
   const handleExport = () => {
     if (rows.length === 0) {
-      toast.error('Niciun rezultat de exportat')
+      toast.error(t('tenders:exportEmpty'))
       return
     }
     downloadCsv(`licitatii-${new Date().toISOString().slice(0, 10)}.csv`, [
-      ['Sursă', 'Titlu', 'Autoritate contractantă', 'CPV', 'Valoare estimată RON', 'Deadline', 'Stare', 'Link'],
-      ...rows.map((t) => [
-        SOURCE_LABEL[t.source],
-        t.title,
-        t.contractingAuthority ?? '',
-        t.cpvCode ?? '',
-        t.estimatedValueRon ?? '',
-        t.deadlineAt ? new Date(t.deadlineAt).toLocaleDateString(intlTag()) : '',
-        t.stateText ?? '',
-        t.detailUrl,
+      [t('common:labels.source'), t('common:labels.title'), t('tenders:labels.authorityFull'), 'CPV', t('tenders:labels.estimatedValueRon'), t('tenders:labels.deadline'), t('common:labels.state'), 'Link'],
+      ...rows.map((tender) => [
+        SOURCE_LABEL[tender.source],
+        tender.title,
+        tender.contractingAuthority ?? '',
+        tender.cpvCode ?? '',
+        tender.estimatedValueRon ?? '',
+        tender.deadlineAt ? new Date(tender.deadlineAt).toLocaleDateString(intlTag()) : '',
+        tender.stateText ?? '',
+        tender.detailUrl,
       ]),
     ])
-    toast.success(`${rows.length} oportunități exportate`)
+    toast.success(t('tenders:exported', { count: rows.length }))
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Licitații"
-        description="Achiziții directe și licitații publice deschise pe e-licitatie.ro, filtrate pe regulile tale de urmărire."
+        title={t('common:nav.tenders')}
+        description={t('tenders:description')}
         actions={
           <Button type="button" variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4" /> Export CSV
+            <Download className="h-4 w-4" /> {t('common:actions.exportCsv')}
           </Button>
         }
       />
@@ -112,11 +113,11 @@ export function TendersPage() {
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[12rem] flex-1 space-y-1">
-          <label className="text-xs text-muted-foreground">Căutare (titlu/autoritate)</label>
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ex: digitalizare, primăria..." />
+          <label className="text-xs text-muted-foreground">{t('tenders:searchLabel')}</label>
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('tenders:searchPlaceholder')} />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Sursă</label>
+          <label className="text-xs text-muted-foreground">{t('common:labels.source')}</label>
           <div className="flex flex-wrap gap-1">
             {SOURCE_FILTERS.map((s) => (
               <button
@@ -135,11 +136,11 @@ export function TendersPage() {
         </div>
         <label className="flex items-center gap-2 pb-2 text-xs text-muted-foreground">
           <input type="checkbox" checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)} />
-          Doar importante
+          {t('tenders:onlyImportant')}
         </label>
         <label className="flex items-center gap-2 pb-2 text-xs text-muted-foreground">
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
-          Arată arhivate
+          {t('tenders:showArchived')}
         </label>
       </div>
 
@@ -148,59 +149,59 @@ export function TendersPage() {
           {tenders.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : tenders.isError ? (
-            <p className="text-sm text-destructive">Nu am putut încărca oportunitățile.</p>
+            <p className="text-sm text-destructive">{t('tenders:loadFailed')}</p>
           ) : rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nicio oportunitate pentru filtrele curente.</p>
+            <p className="text-sm text-muted-foreground">{t('tenders:empty')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Titlu</TableHead>
-                  <TableHead>Autoritate</TableHead>
+                  <TableHead>{t('common:labels.title')}</TableHead>
+                  <TableHead>{t('tenders:labels.authority')}</TableHead>
                   <TableHead>CPV</TableHead>
-                  <TableHead>Sursă</TableHead>
-                  <TableHead className="text-right">Valoare estimată</TableHead>
-                  <TableHead>Deadline</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('common:labels.source')}</TableHead>
+                  <TableHead className="text-right">{t('tenders:labels.estimatedValue')}</TableHead>
+                  <TableHead>{t('tenders:labels.deadline')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((t) => (
-                  <TableRow key={t.id} className={cn(t.dismissedAt ? 'opacity-60' : undefined, t.isPriority ? 'bg-warning/10' : undefined)}>
+                {rows.map((tender) => (
+                  <TableRow key={tender.id} className={cn(tender.dismissedAt ? 'opacity-60' : undefined, tender.isPriority ? 'bg-warning/10' : undefined)}>
                     <TableCell className="max-w-xs font-medium">
-                      <a href={t.detailUrl} target="_blank" rel="noreferrer" className="flex items-start gap-1 hover:underline">
-                        {t.isPriority ? <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-warning text-warning" /> : null}
-                        <span className="line-clamp-2">{t.title}</span>
+                      <a href={tender.detailUrl} target="_blank" rel="noreferrer" className="flex items-start gap-1 hover:underline">
+                        {tender.isPriority ? <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-warning text-warning" /> : null}
+                        <span className="line-clamp-2">{tender.title}</span>
                         <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       </a>
-                      {t.minTurnoverRon ? (
+                      {tender.minTurnoverRon ? (
                         <span
                           className="mt-1 block w-fit rounded-full border border-destructive/40 px-2 py-0.5 text-xs text-destructive"
-                          title={t.eligibilityNote ?? undefined}
+                          title={tender.eligibilityNote ?? undefined}
                         >
-                          CA min: {formatNumber(Number(t.minTurnoverRon), 'RON')}
+                          {t('tenders:minTurnover', { value: formatNumber(Number(tender.minTurnoverRon), 'RON') })}
                         </span>
                       ) : null}
                     </TableCell>
-                    <TableCell className="max-w-[14rem] truncate">{t.contractingAuthority ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{t.cpvCode ?? '—'}</TableCell>
+                    <TableCell className="max-w-[14rem] truncate">{tender.contractingAuthority ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{tender.cpvCode ?? '—'}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{SOURCE_LABEL[t.source]}</Badge>
+                      <Badge variant="outline">{SOURCE_LABEL[tender.source]}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
-                      {t.estimatedValueRon ? formatNumber(Number(t.estimatedValueRon), 'RON') : '—'}
+                      {tender.estimatedValueRon ? formatNumber(Number(tender.estimatedValueRon), 'RON') : '—'}
                     </TableCell>
                     <TableCell>
-                      <DeadlineCell deadlineAt={t.deadlineAt} isOpen={t.isOpen} />
+                      <DeadlineCell deadlineAt={tender.deadlineAt} isOpen={tender.isOpen} />
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
                         type="button"
                         variant="outline"
                         disabled={setDismissed.isPending}
-                        onClick={() => setDismissed.mutate({ id: t.id, dismissed: !t.dismissedAt })}
+                        onClick={() => setDismissed.mutate({ id: tender.id, dismissed: !tender.dismissedAt })}
                       >
-                        {t.dismissedAt ? 'Restaurează' : 'Nu mă interesează'}
+                        {tender.dismissedAt ? t('common:actions.restore') : t('tenders:notInterested')}
                       </Button>
                     </TableCell>
                   </TableRow>

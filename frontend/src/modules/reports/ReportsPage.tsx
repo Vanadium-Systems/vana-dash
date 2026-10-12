@@ -21,6 +21,7 @@ import type {
   MrrTrendResponse,
   PeriodComparisonResponse,
 } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Convertește ?period= (7d|30d|90d|mtd|ytd) în {from,to} ISO — mirror al
 // shared/lib/period.ts din backend (resolvePeriod), dar rutele /api/reports/* cer
@@ -51,7 +52,7 @@ function monthLabel(iso: string): string {
 
 async function downloadMonthlySnapshotPdf(month: string) {
   const res = await fetch(`/api/reports/monthly-snapshot/pdf?month=${month}`, { method: 'POST', credentials: 'include' })
-  if (!res.ok) throw new Error('Nu am putut genera PDF-ul (Chromium indisponibil?)')
+  if (!res.ok) throw new Error(t('reports:pdfUnavailable'))
   const blob = await res.blob()
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -84,26 +85,26 @@ function MrrAndClientsSection() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <KPICard label="MRR curent" value={mrrTrend.data?.currentMrr.mrrLei ?? null} unit="RON" isPending={mrrTrend.isPending} />
-        <KPICard label="MRR curent (EUR)" value={mrrTrend.data?.currentMrr.mrrEur ?? null} unit="EUR" isPending={mrrTrend.isPending} />
+        <KPICard label={t('reports:kpi.currentMrr')} value={mrrTrend.data?.currentMrr.mrrLei ?? null} unit="RON" isPending={mrrTrend.isPending} />
+        <KPICard label={t('reports:kpi.currentMrrEur')} value={mrrTrend.data?.currentMrr.mrrEur ?? null} unit="EUR" isPending={mrrTrend.isPending} />
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Evoluție clienți activi/demo</CardTitle>
+          <CardTitle>{t('reports:clients.evolution')}</CardTitle>
         </CardHeader>
         <CardContent>
           {mrrTrend.isPending ? (
             <ChartSkeleton />
           ) : mrrTrend.isError ? (
-            <ChartError message="Nu am putut încărca datele" />
+            <ChartError message={t('common:states.loadFailed')} />
           ) : !chartData.length ? (
-            <ChartEmpty label="Nicio dată pentru această perioadă" />
+            <ChartEmpty label={t('common:states.noData')} />
           ) : (
             <MetricBarChart
               data={chartData}
               series={[
-                { key: 'active', label: 'Activi', color: 'hsl(var(--primary))' },
-                { key: 'demo', label: 'Demo', color: CHART_NEUTRAL },
+                { key: 'active', label: t('reports:clients.active'), color: 'hsl(var(--primary))' },
+                { key: 'demo', label: t('reports:clients.demo'), color: CHART_NEUTRAL },
               ]}
               unit="count"
             />
@@ -135,7 +136,7 @@ function PeriodComparisonSection() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Comparație perioade</CardTitle>
+        <CardTitle>{t('reports:compare.title')}</CardTitle>
         <Button
           variant="outline"
           onClick={() =>
@@ -151,14 +152,14 @@ function PeriodComparisonSection() {
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 rounded-md bg-muted/50 p-3">
-            <p className="text-xs font-medium text-muted-foreground">Perioada A</p>
+            <p className="text-xs font-medium text-muted-foreground">{t('reports:compare.periodA')}</p>
             <div className="flex flex-wrap gap-2">
               <Input type="date" value={fromA} onChange={(e) => setFromA(e.target.value)} />
               <Input type="date" value={toA} onChange={(e) => setToA(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2 rounded-md bg-muted/50 p-3">
-            <p className="text-xs font-medium text-muted-foreground">Perioada B</p>
+            <p className="text-xs font-medium text-muted-foreground">{t('reports:compare.periodB')}</p>
             <div className="flex flex-wrap gap-2">
               <Input type="date" value={fromB} onChange={(e) => setFromB(e.target.value)} />
               <Input type="date" value={toB} onChange={(e) => setToB(e.target.value)} />
@@ -168,16 +169,16 @@ function PeriodComparisonSection() {
         {comparison.isPending ? (
           <ChartSkeleton height={100} />
         ) : comparison.isError ? (
-          <ChartError message="Nu am putut încărca comparația" />
+          <ChartError message={t('reports:compare.loadFailed')} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {(['periodA', 'periodB'] as const).map((key) => (
               <div key={key} className="space-y-1 rounded-md bg-muted/50 p-3">
                 <p className="text-xs font-medium text-muted-foreground">{key === 'periodA' ? 'A' : 'B'}</p>
-                <p className="text-sm">Venit: <strong className="tnum font-mono">{formatNumber(comparison.data![key].revenue, 'RON')}</strong></p>
-                <p className="text-sm">Cheltuială: <strong className="tnum font-mono">{formatNumber(comparison.data![key].expense, 'RON')}</strong></p>
+                <p className="text-sm">{t('reports:compare.revenue')} <strong className="tnum font-mono">{formatNumber(comparison.data![key].revenue, 'RON')}</strong></p>
+                <p className="text-sm">{t('reports:compare.expense')} <strong className="tnum font-mono">{formatNumber(comparison.data![key].expense, 'RON')}</strong></p>
                 <p className="text-sm">
-                  Net:{' '}
+                  {t('reports:compare.net')}{' '}
                   <strong className={cn('tnum font-mono', comparison.data![key].net < 0 && 'text-destructive')}>
                     {formatNumber(comparison.data![key].net, 'RON')}
                   </strong>
@@ -214,15 +215,15 @@ function ExpenseBreakdownSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Cheltuieli pe categorie</CardTitle>
+        <CardTitle>{t('reports:expenses.byCategory')}</CardTitle>
       </CardHeader>
       <CardContent>
         {breakdown.isPending ? (
           <ChartSkeleton />
         ) : breakdown.isError ? (
-          <ChartError message="Nu am putut încărca datele" />
+          <ChartError message={t('common:states.loadFailed')} />
         ) : !chartData.length ? (
-          <ChartEmpty label="Nicio cheltuială în perioadă" />
+          <ChartEmpty label={t('reports:expenses.none')} />
         ) : (
           <MetricBarChart
             data={chartData}
@@ -248,9 +249,9 @@ function MonthlySnapshotSection() {
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-        <CardTitle>Raport lunar</CardTitle>
+        <CardTitle>{t('reports:monthly.title')}</CardTitle>
         <div className="flex items-center gap-2">
-          <Label htmlFor="snapshot-month" className="sr-only">Lună</Label>
+          <Label htmlFor="snapshot-month" className="sr-only">{t('reports:monthly.month')}</Label>
           <Input id="snapshot-month" type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-40" />
           <Button
             variant="outline"
@@ -260,13 +261,13 @@ function MonthlySnapshotSection() {
               try {
                 await downloadMonthlySnapshotPdf(month)
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : 'Eroare la generarea PDF-ului')
+                toast.error(err instanceof Error ? err.message : t('reports:pdfError'))
               } finally {
                 setDownloading(false)
               }
             }}
           >
-            <Download className="h-4 w-4" /> {downloading ? 'Se generează…' : 'Descarcă PDF'}
+            <Download className="h-4 w-4" /> {downloading ? t('common:states.generating') : t('common:actions.downloadPdf')}
           </Button>
         </div>
       </CardHeader>
@@ -274,15 +275,15 @@ function MonthlySnapshotSection() {
         {snapshot.isPending ? (
           <ChartSkeleton height={120} />
         ) : snapshot.isError ? (
-          <ChartError message="Nu am putut încărca raportul" />
+          <ChartError message={t('reports:monthly.loadFailed')} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <KPICard label="Venit" value={snapshot.data?.revenue ?? null} unit="RON" />
-            <KPICard label="Cheltuieli" value={snapshot.data?.expense ?? null} unit="RON" />
-            <KPICard label="Net" value={snapshot.data?.net ?? null} unit="RON" />
-            <KPICard label="MRR" value={snapshot.data?.mrr.mrrLei ?? null} unit="RON" />
-            <KPICard label="Alerte declanșate" value={snapshot.data?.alertsTriggered ?? null} />
-            <KPICard label="Rată succes sync-uri" value={snapshot.data?.syncSuccessRate ?? null} unit="%" />
+            <KPICard label={t('reports:monthly.revenue')} value={snapshot.data?.revenue ?? null} unit="RON" />
+            <KPICard label={t('reports:monthly.expenses')} value={snapshot.data?.expense ?? null} unit="RON" />
+            <KPICard label={t('reports:monthly.net')} value={snapshot.data?.net ?? null} unit="RON" />
+            <KPICard label={t('reports:monthly.mrr')} value={snapshot.data?.mrr.mrrLei ?? null} unit="RON" />
+            <KPICard label={t('reports:monthly.alertsTriggered')} value={snapshot.data?.alertsTriggered ?? null} />
+            <KPICard label={t('reports:monthly.syncSuccessRate')} value={snapshot.data?.syncSuccessRate ?? null} unit="%" />
           </div>
         )}
       </CardContent>
@@ -293,7 +294,7 @@ function MonthlySnapshotSection() {
 export function ReportsPage() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Rapoarte" actions={<PeriodSelector />} />
+      <PageHeader title={t('common:nav.reports')} actions={<PeriodSelector />} />
       <MrrAndClientsSection />
       <PeriodComparisonSection />
       <ExpenseBreakdownSection />

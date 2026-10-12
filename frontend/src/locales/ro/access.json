@@ -1,0 +1,41 @@
+{
+  "description": "Ce poate face fiecare rol, pe fiecare pagină.",
+  "roles": {
+    "new": "Rol nou",
+    "all": "Toate rolurile",
+    "fullAccess": "· acces complet",
+    "actionsFor": "Ce se poate face cu rolul {{name}}",
+    "delete": "Șterge rolul",
+    "deleteTitle": "Șterge rolul {{name}}",
+    "deleteBody": "Rolul dispare; oamenii rămân în echipă, dar nu mai au rol.",
+    "deleted": "Rolul {{name}} a fost șters.",
+    "notDeleted": "Rolul nu a fost șters.",
+    "adminHasAll": "Rolul Admin are tot ce are firma",
+    "created": "Rolul {{name}} a fost creat.",
+    "notCreated": "Rolul nu a fost creat.",
+    "startFrom": "Pornește de la",
+    "empty": "Gol",
+    "create": "Creează rolul",
+    "renamed": "Rolul a fost redenumit.",
+    "nameNotSaved": "Numele nu a fost salvat.",
+    "rename": "Redenumește rolul",
+    "inUse_one": "{{count}} om are rolul ăsta. Mută-l pe alt rol, apoi șterge-l.",
+    "inUse_few": "{{count}} oameni au rolul ăsta. Mută-i pe alt rol, apoi șterge-l.",
+    "inUse_other": "{{count}} de oameni au rolul ăsta. Mută-i pe alt rol, apoi șterge-l."
+  },
+  "loadFailed": "Nu am putut încărca modulele.",
+  "empty": {
+    "title": "Niciun rol în afară de Admin",
+    "hint": "Admin are tot ce are firma, deci nu se editează. Creează primul rol ca să poți da funcționalități cuiva.",
+    "createFirst": "Creează primul rol"
+  },
+  "tableCaption": "Funcționalitățile fiecărui rol, pe pagini",
+  "labels": {
+    "page": "Pagină"
+  },
+  "features": {
+    "turnOnFirst": "Pornește întâi «{{label}}»",
+    "notYours": "Nu ai {{label}}, deci nu îl poți da altcuiva",
+    "countOf": "{{count}} din {{count2}}"
+  }
+}

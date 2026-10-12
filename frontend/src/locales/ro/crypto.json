@@ -1,0 +1,124 @@
+{
+  "chart": {
+    "candlesUnavailable": "Candele indisponibile momentan.",
+    "changeInRange": "{{value}}% în interval",
+    "line": "Linie",
+    "candles": "Candele",
+    "unavailable": "Grafic indisponibil momentan."
+  },
+  "range": {
+    "oneYear": "1 an"
+  },
+  "coin": {
+    "backToCrypto": "Înapoi la Crypto",
+    "about": "Despre {{name}}",
+    "loadFailed": "Nu am putut încărca moneda: {{reason}}",
+    "missing": "inexistentă"
+  },
+  "favorites": {
+    "inFavorites": "În favorite",
+    "add": "Adaugă la favorite",
+    "title": "Favorite",
+    "empty": "Niciun favorit încă — caută un coin mai sus și apasă-l ca să-l adaugi.",
+    "remove": "Scoate din favorite"
+  },
+  "order": {
+    "orderFor": "Ordin {{binanceSymbol}}",
+    "orderOn": "Ordin pe {{symbol}}USDT",
+    "liveSent": "Ordin live trimis pe Binance",
+    "newTitle": "Ordin nou — Binance",
+    "hint": "Preview → execută. Live-ul cere kill-switch activ din Setări; fără el, doar paper.",
+    "pair": "Pereche",
+    "side": "Parte",
+    "buy": "Cumpără",
+    "sell": "Vinde",
+    "limitPrice": "Preț limit",
+    "stepPreview": "Pasul 1 · Preview",
+    "stepExecute": "Pasul 2 · Execută",
+    "paperFilled": "Ordin paper executat",
+    "paperOpen": "Ordin paper deschis",
+    "previewLine": "Referință: {{reference}} · Estimat: {{estimate}}",
+    "mode": "Mod: {{mode}}",
+    "killSwitchOff": " — kill-switch OPRIT, ordinul live va fi respins",
+    "typeMarket": "Market",
+    "typeLimit": "Limit"
+  },
+  "stats": {
+    "marketCap": "Market cap",
+    "volume24h": "Volum 24h",
+    "circulatingSupply": "Supply circulant",
+    "fromAth": "Față de ATH",
+    "fromAtl": "Față de ATL",
+    "binancePair": "Pereche Binance",
+    "orderButtonHint": "butonul Ordin deschide formularul"
+  },
+  "search": {
+    "placeholder": "Caută orice coin sau pool DEX…",
+    "noResult": "Niciun rezultat.",
+    "dexOnlyHint": "DEX-only — se poate urmări și alerta, nu trada pe CEX"
+  },
+  "alert": {
+    "created": "Alertă de preț creată",
+    "create": "Creează alertă de preț",
+    "whenPrice": "Alertă când prețul e…",
+    "above": "Peste",
+    "below": "Sub",
+    "thresholdPlaceholder": "Prag USD"
+  },
+  "mode": {
+    "live": "Trading live activ",
+    "paper": "Paper mode"
+  },
+  "tabs": {
+    "market": "Piață",
+    "bot": "Bot"
+  },
+  "portfolio": {
+    "title": "Portofoliu",
+    "empty": "Nicio poziție — conectează Binance din Setări și plasează ordine paper.",
+    "asset": "Asset",
+    "realizedPnl": "P&L realizat (paper): {{value}}"
+  },
+  "orders": {
+    "recent": "Ordine recente",
+    "none": "Niciun ordin plasat încă."
+  },
+  "market": {
+    "topMarketCap": "Top market cap",
+    "perPage": "{{n}} monede pe pagină",
+    "emptyCategory": "Nicio monedă pentru categoria asta.",
+    "coin": "Coin",
+    "previous": "Anterior",
+    "next": "Următoarea",
+    "page": "pagina {{page}}",
+    "pageOf": "pagina {{page}} din {{total}}"
+  },
+  "settings": {
+    "connected": "Exchange conectat — cheia e criptată în DB",
+    "disconnected": "Exchange deconectat",
+    "liveOn": "Trading live ACTIVAT",
+    "liveOff": "Trading live OPRIT",
+    "keyHint": "Cheie cu permisiuni de citire + spot trading, FĂRĂ withdrawal. IP whitelist pe IP-ul serverului recomandat.",
+    "killSwitch": "Kill-switch trading live",
+    "killSwitchHint": "Oprit = ordinele live sunt respinse; paper-ul rămâne disponibil.",
+    "apiKey": "API key",
+    "apiSecret": "API secret"
+  },
+  "bot": {
+    "loadFailed": "Nu am putut încărca starea botului. Reîncerc automat într-un minut.",
+    "noDataTitle": "Botul n-a trimis încă date",
+    "noDataHint": "Primul snapshot apare după ce exportul botului rulează cu tokenul de ingest configurat.",
+    "prices": "Prețuri",
+    "newsLine": "Știri 24h {{count}} · etichetate {{labeled}}",
+    "sourceErrors": "Surse cu erori: {{list}}",
+    "errorSince": "{{source}} ({{error}}, de {{since}})"
+  },
+  "learning": {
+    "title": "Ce învață",
+    "newsHint": "Știri importante, cu sentimentul lui Jeff",
+    "model": "Model LightGBM: {{state}}",
+    "promoted": "promovat",
+    "promotedWithHoldout": "promovat, {{pct}} pe holdout",
+    "notPromoted": "nepromovat, traderul stă flat până trece poarta"
+  }
+}

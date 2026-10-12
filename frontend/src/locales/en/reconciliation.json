@@ -1,0 +1,102 @@
+{
+  "guide": {
+    "step1": "Add an account from the <b>Accounts</b> tab (provider Revolut, API Key empty; it is no longer needed, Revolut moved to OAuth).",
+    "step2": "Here, in <b>Settings</b>: press <b>“Generate certificate”</b>, then <b>“Download the certificate”</b> (a <code>.pem</code> file).",
+    "step3": "In Revolut Business (<mono>business.revolut.com</mono> for production, <mono>sandbox-business.revolut.com</mono> for testing; a separate account, with a normal signup there) go to <b>Settings → APIs → Business API → Add certificate</b>.",
+    "step4": "Paste the content of the downloaded certificate into the “X509 public key” field. For <b>OAuth redirect URI</b> enter the address where vana-dash runs + <code>/reconciliation/revolut-callback</code> (e.g. <code>https://dash.example.com/reconciliation/revolut-callback</code> on the VPS). <b>Revolut rejects `localhost`</b>: if you test locally without a domain of your own, you can temporarily use a URL from <mono>webhook.site</mono> to see the authorization code by hand.",
+    "step5": "Save. Revolut shows you the <b>Client ID</b>. Copy it.",
+    "step6": "Back in vana-dash: paste the Client ID below, “Save”, then <b>“Open the Revolut consent page”</b>. It takes you to Revolut, where you approve the access.",
+    "step7": "You are redirected here, to Settings, with the “Authorization code” field already filled in (the code is valid for only <b>~2 minutes</b>, which is why it is automatic). Check it and press “Connect”.",
+    "step8": "Done: the status is “Connected”, with automatic refresh from then on (every ~25 min).",
+    "title": "Guide: setting up Revolut from scratch (sandbox or production)",
+    "vpsNote": "<b>To remember for the VPS:</b> the variables <code>REVOLUT_API_URL</code> (<mono>sandbox-b2b...</mono> vs. <mono>b2b...</mono>) and <code>REVOLUT_REDIRECT_URI</code> in <code>.env</code> must match the environment (sandbox/production) and the real domain exactly. If you change the domain or move to production, update them and redo steps 3-7 (no new certificate is needed; only the redirect URI registered in Revolut has to match)."
+  },
+  "account": {
+    "updated": "Account updated",
+    "added": "Bank account added",
+    "editTitle": "Edit the account",
+    "add": "Add a bank account",
+    "displayName": "Name (shown)",
+    "providerAccountId": "Account ID at the provider (optional)",
+    "apiKey": "API Key (optional)",
+    "apiKeyHint": "Leave empty for Revolut; it is set up separately through OAuth in the Settings tab. Needed only for future providers with a static token."
+  },
+  "labels": {
+    "provider": "Provider"
+  },
+  "accounts": {
+    "syncDone": "Bank sync done",
+    "deleted": "Account deleted",
+    "title": "Bank accounts",
+    "empty": "No account connected. Add the Revolut Business account; the OAuth key is set up separately, in the Settings tab.",
+    "lastSync": "Last sync",
+    "syncNow": "Sync now",
+    "deleteTitle": "Delete the account “{{name}}”",
+    "deleteBody": "The sync stops. The imported transactions and the matches made stay.",
+    "deleteConfirm": "Delete the account",
+    "loadFailed": "The accounts could not be loaded"
+  },
+  "transactions": {
+    "matchCancelled": "Match cancelled. The invoice is back to unpaid",
+    "title": "Transactions",
+    "onlyUnmatched": "Unmatched only",
+    "allMatchedTitle": "All transactions are matched with invoices",
+    "allMatchedHint": "The filter shows only what is unmatched.",
+    "emptyTitle": "No transaction imported yet",
+    "emptyHint": "They show up after the first sync of the bank account.",
+    "counterparty": "Counterparty",
+    "reference": "Reference",
+    "match": "Match",
+    "auto": "auto",
+    "manual": "manual",
+    "cancelMatch": "Cancel the match"
+  },
+  "match": {
+    "manual": "Manual match",
+    "saved": "Match saved. The invoice is marked as paid",
+    "ref": "Ref: {{reference}}",
+    "unpaidInvoice": "Unpaid invoice",
+    "choose": "— choose —",
+    "draftMarker": "(draft)",
+    "save": "Save the match"
+  },
+  "tabs": {
+    "accounts": "Accounts"
+  },
+  "page": {
+    "adminOnly": "The bank accounts and their keys belong to the company; ask an administrator if you need them here."
+  },
+  "revolut": {
+    "clientIdSaved": "Client ID saved",
+    "certGenerated": "Certificate generated. Download it and upload it in Revolut",
+    "connectedToast": "Revolut connected",
+    "connected": "Connected",
+    "needsReauth": "Needs re-authorization",
+    "notConfigured": "Not configured",
+    "tokenInfo": "Token expires: {{tokenExpiresAt}} · Last refresh: {{lastRefreshedAt}}",
+    "steps": "1. Save the Client ID (from the app registered in Revolut Business Settings → API) · 2. Generate the certificate and upload it there · 3. Open the consent page and paste the code from the redirect.",
+    "clientId": "Client ID",
+    "regenerateCert": "Regenerate the certificate",
+    "generateCert": "Generate certificate",
+    "downloadCert": "Download the certificate",
+    "openConsent": "Open the Revolut consent page",
+    "authCode": "Authorization code (from the redirect)",
+    "setClientIdFirst": "Set the Client ID and generate the certificate first, so you can open the consent page.",
+    "noAccount": "No Revolut account yet. Add one in the Accounts tab, then come back here to set up OAuth."
+  },
+  "extension": {
+    "on": "Automatic extension switched on",
+    "off": "Automatic extension switched off (dry-run)",
+    "title": "Vanagreen subscription extension",
+    "hint": "On a confirmed payment (automatic bank match or a manual “Mark as paid” in Invoices) for a client mapped to a vanagreen tenant, the subscription is extended there. With the switch off, the actions are logged as a dry-run: useful for testing, with no real call to vanagreen.",
+    "toggle": "Automatic extension ON (otherwise dry-run only)",
+    "history": "Action history (last 100)",
+    "none": "No action yet.",
+    "mode": "Mode",
+    "months": "Months",
+    "sourceBankMatch": "Bank match",
+    "sourceManual": "Marked by hand",
+    "success": "success",
+    "failed": "failed"
+  }
+}

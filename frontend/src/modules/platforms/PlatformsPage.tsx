@@ -14,6 +14,7 @@ import { PlatformFormDialog } from './PlatformFormDialog'
 import { PlatformOpsSignalsDialog } from './PlatformOpsSignalsDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 export function PlatformsPage() {
   const confirm = useConfirm()
@@ -40,7 +41,7 @@ export function PlatformsPage() {
       void queryClient.invalidateQueries({ queryKey: ['platforms'] })
       void queryClient.invalidateQueries({ queryKey: ['metrics'] })
       setSelectedId(id)
-      toast.success('Sync rulat — vezi rezultatul în sync log')
+      toast.success(t('platforms:syncDone'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -49,7 +50,7 @@ export function PlatformsPage() {
     mutationFn: (id: string) => api.delete<void>(`/api/platforms/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['platforms'] })
-      toast.success('Platformă ștearsă')
+      toast.success(t('platforms:deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -57,7 +58,7 @@ export function PlatformsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Platforme"
+        title={t('common:nav.platforms')}
         actions={
           <Button
             onClick={() => {
@@ -65,7 +66,7 @@ export function PlatformsPage() {
               setDialogOpen(true)
             }}
           >
-            <Plus className="h-4 w-4" /> Adaugă platformă
+            <Plus className="h-4 w-4" /> {t('platforms:add')}
           </Button>
         }
       />
@@ -75,17 +76,17 @@ export function PlatformsPage() {
           {platforms.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : !platforms.data?.length ? (
-            <p className="text-sm text-muted-foreground">Nicio platformă conectată. Adaugă prima cu butonul de sus.</p>
+            <p className="text-sm text-muted-foreground">{t('platforms:empty')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nume</TableHead>
-                  <TableHead>Tip</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Sync cron</TableHead>
-                  <TableHead>Ultimul sync</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('common:labels.name')}</TableHead>
+                  <TableHead>{t('common:labels.type')}</TableHead>
+                  <TableHead>{t('common:labels.status')}</TableHead>
+                  <TableHead>{t('platforms:labels.syncCron')}</TableHead>
+                  <TableHead>{t('platforms:labels.lastSync')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -108,11 +109,11 @@ export function PlatformsPage() {
                           variant="outline"
                           disabled={syncNow.isPending}
                           onClick={() => syncNow.mutate(p.id)}
-                          title="Sync now"
+                          title={t('platforms:syncNow')}
                         >
                           <RefreshCw className={syncNow.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
                         </Button>
-                        <Button variant="outline" onClick={() => setOpsSignalsPlatform(p)} title="Sănătate">
+                        <Button variant="outline" onClick={() => setOpsSignalsPlatform(p)} title={t('platforms:health')}>
                           <Activity className="h-4 w-4" />
                         </Button>
                         <Button
@@ -121,16 +122,16 @@ export function PlatformsPage() {
                             setEditing(p)
                             setDialogOpen(true)
                           }}
-                          title="Editează"
+                          title={t('common:actions.edit')}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
                           onClick={() => {
-                            void confirm({ title: `Șterge platforma „${p.name}”`, consequence: 'Sincronizarea se oprește. Metricile deja colectate rămân.', confirmLabel: 'Șterge platforma', destructive: true }).then((ok) => ok && remove.mutate(p.id))
+                            void confirm({ title: t('platforms:deleteTitle', { name: p.name }), consequence: t('platforms:deleteBody'), confirmLabel: t('platforms:deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(p.id))
                           }}
-                          title="Șterge"
+                          title={t('common:actions.delete')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -147,22 +148,22 @@ export function PlatformsPage() {
       {selectedId ? (
         <Card>
           <CardHeader>
-            <CardTitle>Sync log</CardTitle>
+            <CardTitle>{t('platforms:log.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             {syncLog.isPending ? (
               <Skeleton className="h-24 w-full" />
             ) : !syncLog.data?.length ? (
-              <p className="text-sm text-muted-foreground">Niciun sync încă pentru platforma selectată.</p>
+              <p className="text-sm text-muted-foreground">{t('platforms:log.empty')}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Records</TableHead>
-                    <TableHead>Început</TableHead>
-                    <TableHead>Terminat</TableHead>
-                    <TableHead>Eroare</TableHead>
+                    <TableHead>{t('common:labels.status')}</TableHead>
+                    <TableHead>{t('platforms:log.records')}</TableHead>
+                    <TableHead>{t('platforms:log.started')}</TableHead>
+                    <TableHead>{t('platforms:log.finished')}</TableHead>
+                    <TableHead>{t('platforms:log.error')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

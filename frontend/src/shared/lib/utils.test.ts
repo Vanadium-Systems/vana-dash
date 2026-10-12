@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCount, normalizeForSearch, parseRoDecimal } from './utils'
+import { normalizeForSearch, parseRoDecimal } from './utils'
 
 describe('parseRoDecimal', () => {
   it.each([
@@ -16,20 +16,6 @@ describe('parseRoDecimal', () => {
 
   it.each(['', '   ', 'abc', '12a', '1,2,3'])('„%s" → NaN', (input) => {
     expect(parseRoDecimal(input)).toBeNaN()
-  })
-})
-
-describe('formatCount', () => {
-  it.each([
-    [1, '1 fișier'],
-    [3, '3 fișiere'],
-    [19, '19 fișiere'],
-    [20, '20 de fișiere'],
-    [101, '101 fișiere'],
-    [120, '120 de fișiere'],
-    [1000, '1.000 de fișiere'],
-  ])('%d', (n, expected) => {
-    expect(formatCount(n, 'fișier', 'fișiere')).toBe(expected)
   })
 })
 

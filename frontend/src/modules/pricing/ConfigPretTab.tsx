@@ -12,6 +12,8 @@ import type { Platform, PricingConfig, PricingConfigRow } from '@/shared/lib/typ
 import { PlatformTemplatesSection } from './PlatformTemplatesSection'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
+import { tNodes } from '@/shared/lib/i18n-nodes'
 
 // Sprint D, Track 4 — calculator de preț modular per platformă. Portat din
 // vanagreen-price-calculator.html (research Stefan): config editabil din UI (NU redeploy
@@ -209,46 +211,46 @@ function formToConfig(f: ConfigForm): PricingConfig {
 }
 
 const NUMERIC_FIELDS: Array<[keyof ConfigForm, string]> = [
-  ['basePrice', 'Preț de bază (EUR/lună)'],
-  ['operatorDesktopRate', 'Rată operator desktop extra'],
-  ['operatorMobilRate', 'Rată operator mobil'],
-  ['documenteIncluse', 'Documente incluse în bază'],
-  ['fluxDeeeDelta', 'Delta flux DEEE/DBA'],
-  ['cantarRate', 'Cântar smart — preț per cântar conectat (EUR/lună)'],
-  ['cantarSetupPrice', 'Cântar smart — configurare (EUR, one-time)'],
-  ['siatdFloorPrice', 'SIATD — preț prag minim'],
-  ['siatdFloorUnits', 'SIATD — unități incluse în prag'],
-  ['siatdUnitPrice', 'SIATD — preț per unitate peste prag'],
-  ['lunileAnuale', 'Luni plătite la facturare anuală'],
-  ['onboardingBase', 'Onboarding — bază'],
-  ['onboardingOpRate', 'Onboarding — operator extra'],
-  ['onboardingDeeeDelta', 'Onboarding — delta DEEE/DBA'],
-  ['onboardingSiatdSetup', 'Onboarding — setup SIATD'],
+  ['basePrice', t('pricing:config.fields.basePrice')],
+  ['operatorDesktopRate', t('pricing:config.fields.extraDesktopRate')],
+  ['operatorMobilRate', t('pricing:config.fields.mobileRate')],
+  ['documenteIncluse', t('pricing:config.fields.documentsIncluded')],
+  ['fluxDeeeDelta', t('pricing:config.fields.deeeDelta')],
+  ['cantarRate', t('pricing:config.fields.scaleRate')],
+  ['cantarSetupPrice', t('pricing:config.fields.scaleSetup')],
+  ['siatdFloorPrice', t('pricing:config.fields.siatdMin')],
+  ['siatdFloorUnits', t('pricing:config.fields.siatdIncluded')],
+  ['siatdUnitPrice', t('pricing:config.fields.siatdPerUnit')],
+  ['lunileAnuale', t('pricing:config.fields.yearlyPaidMonths')],
+  ['onboardingBase', t('pricing:config.fields.onboardingBase')],
+  ['onboardingOpRate', t('pricing:config.fields.onboardingExtraOperator')],
+  ['onboardingDeeeDelta', t('pricing:config.fields.onboardingDeeeDelta')],
+  ['onboardingSiatdSetup', t('pricing:config.fields.onboardingSiatd')],
 ]
 
 function exportConfigCsv(config: PricingConfig, platformName: string) {
   downloadCsv(`config-pret-${new Date().toISOString().slice(0, 10)}.csv`, [
-    ['Platformă', platformName],
+    [t('common:labels.platform'), platformName],
     [],
     ['Parametru', 'Valoare'],
     ...NUMERIC_FIELDS.map(([key, label]) => [label, String(config[key as keyof PricingConfig])]),
     [],
     ['Add-on-uri'],
-    ['Key', 'Etichetă', 'Preț (EUR/lună)'],
+    [t('pricing:config.key'), t('common:labels.label'), t('pricing:config.pricePerMonth')],
     ...config.addons.map((a) => [a.key, a.label, String(a.price)]),
     [],
     ['Pachete'],
     [
-      'Key',
-      'Etichetă',
-      'Preț (EUR/lună)',
-      'Configurare (EUR, one-time)',
-      'Puncte de lucru',
-      'Operatori desktop',
-      'Operatori mobil',
-      'Documente/lună',
-      'Cântare smart',
-      'Add-on-uri incluse',
+      t('pricing:config.key'),
+      t('common:labels.label'),
+      t('pricing:config.pricePerMonth'),
+      t('pricing:config.setupOneTime'),
+      t('pricing:fields.workSites'),
+      t('pricing:fields.desktopOperators'),
+      t('pricing:fields.mobileOperators'),
+      t('pricing:fields.documentsPerMonth'),
+      t('pricing:fields.smartScales'),
+      t('pricing:config.includedAddons'),
     ],
     ...config.bundles.map((b) => [
       b.key,
@@ -263,16 +265,16 @@ function exportConfigCsv(config: PricingConfig, platformName: string) {
       b.addonKeys.join('; '),
     ]),
     [],
-    ['Benzi documente'],
-    ['Până la', 'Rată'],
+    [t('pricing:config.csv.documentBands')],
+    [t('common:labels.until'), t('pricing:config.csv.rate')],
     ...config.documentBands.map((band) => [band.upTo === null ? '∞' : String(band.upTo), band.rate === null ? 'manual' : String(band.rate)]),
     [],
-    ['Benzi puncte de lucru'],
-    ['Până la', 'Multiplier', 'Etichetă', 'Plan'],
+    [t('pricing:config.csv.workSiteBands')],
+    [t('common:labels.until'), t('pricing:config.multiplier'), t('common:labels.label'), t('common:nav.plan')],
     ...config.puncteBands.map((band) => [band.max === null ? '∞' : String(band.max), String(band.mult), band.label, band.planName ?? '']),
     [],
     ['Echipamente'],
-    ['Nume', 'Achiziție (EUR)', 'Integrare (EUR)', 'Abonament lunar (EUR)'],
+    [t('common:labels.name'), t('pricing:config.csv.purchase'), t('pricing:config.csv.integration'), t('pricing:config.csv.monthlySubscription')],
     ...config.equipmentItems.map((e) => [e.name, String(e.purchasePrice), String(e.integrationPrice), String(e.monthlyFee)]),
   ])
 }
@@ -303,7 +305,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
       // NetworkFirst pe GET /api/pricing/config (vite.config.ts) — refetch-ul după invalidare
       // ajunge acum la rețea, nu la cache; setQueryData ad-hoc nu mai e necesar (Contractul D).
       void queryClient.invalidateQueries({ queryKey: ['pricing', 'config', platformId] })
-      toast.success('Config de preț salvat')
+      toast.success(t('pricing:config.saved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -318,7 +320,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="w-56 space-y-1">
           <Label htmlFor="p-platform" className="text-xs text-muted-foreground">
-            Platformă
+            {t('common:labels.platform')}
           </Label>
           <Select
             id="p-platform"
@@ -335,19 +337,19 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
       </div>
 
       {!platformId ? (
-        <p className="text-sm text-muted-foreground">Nicio platformă conectată încă — adaugă una din pagina Platforms.</p>
+        <p className="text-sm text-muted-foreground">{t('pricing:noPlatform')}</p>
       ) : (
         <>
           <Card>
             <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle>Config ({config.data?.config ? 'salvat' : 'nesalvat încă — completează și salvează'})</CardTitle>
+              <CardTitle>{config.data?.config ? t('pricing:config.titleSaved') : t('pricing:config.titleUnsaved')}</CardTitle>
               {config.data?.config && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => exportConfigCsv(config.data!.config, platforms.find((p) => p.id === platformId)?.name ?? platformId)}
                 >
-                  <Download className="h-4 w-4" /> Exportă CSV
+                  <Download className="h-4 w-4" /> {t('pricing:actions.exportCsv')}
                 </Button>
               )}
             </CardHeader>
@@ -369,7 +371,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
               </div>
 
               <BandEditor
-                title="Add-on-uri (preț fix/lună, bifabile la calculator)"
+                title={t('pricing:config.addonsTitle')}
                 rows={form.addons}
                 onChange={(rows) => setForm((f) => ({ ...f, addons: rows }))}
                 renderRow={(row, i, update, remove) => (
@@ -377,22 +379,22 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="w-40 space-y-1">
                         <Label htmlFor={`addon-key-${i}`} className="text-xs">
-                          Key (folosit de calculator/self-serve)
+                          {t('pricing:config.addonKey')}
                         </Label>
                         <Input
                           id={`addon-key-${i}`}
-                          placeholder="ex: hr"
+                          placeholder={t('pricing:config.addonKeyPlaceholder')}
                           value={row.key}
                           onChange={(e) => update({ ...row, key: e.target.value })}
                         />
                       </div>
                       <div className="w-48 space-y-1">
                         <Label htmlFor={`addon-label-${i}`} className="text-xs">
-                          Etichetă
+                          {t('common:labels.label')}
                         </Label>
                         <Input
                           id={`addon-label-${i}`}
-                          placeholder="ex: Modul HR"
+                          placeholder={t('pricing:config.addonLabelPlaceholder')}
                           value={row.label}
                           onChange={(e) => update({ ...row, label: e.target.value })}
                         />
@@ -400,7 +402,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                       {row.bands === undefined ? (
                         <div className="w-32 space-y-1">
                           <Label htmlFor={`addon-price-${i}`} className="text-xs">
-                            Preț (EUR/lună)
+                            {t('pricing:config.pricePerMonth')}
                           </Label>
                           <Input
                             id={`addon-price-${i}`}
@@ -417,13 +419,13 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                     {row.bands !== undefined ? (
                       <div className="space-y-1 rounded-md border bg-muted/40 p-2">
                         <p className="text-xs text-muted-foreground">
-                          Benzi pe cantitate — ultima treaptă cu „upTo" gol = infinit
+                          {t('pricing:config.quantityBandsHint')}
                         </p>
                         {row.bands.map((band, bi) => (
                           <div key={bi} className="flex items-end gap-2">
                             <div className="w-28 space-y-1">
                               <Label htmlFor={`addon-band-up-${i}-${bi}`} className="text-xs text-muted-foreground">
-                                Până la (incl.)
+                                {t('pricing:config.upToIncl')}
                               </Label>
                               <Input
                                 id={`addon-band-up-${i}-${bi}`}
@@ -439,7 +441,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                             </div>
                             <div className="w-32 space-y-1">
                               <Label htmlFor={`addon-band-price-${i}-${bi}`} className="text-xs text-muted-foreground">
-                                Preț / unitate
+                                {t('pricing:config.pricePerUnit')}
                               </Label>
                               <Input
                                 id={`addon-band-price-${i}-${bi}`}
@@ -457,7 +459,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                               type="button"
                               variant="ghost"
                               size="icon"
-                              aria-label="Șterge banda"
+                              aria-label={t('pricing:config.deleteBand')}
                               onClick={() => update({ ...row, bands: row.bands!.filter((_, j) => j !== bi) })}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -470,26 +472,26 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                             variant="outline"
                             onClick={() => update({ ...row, bands: [...row.bands!, { upTo: '', unitPrice: '' }] })}
                           >
-                            Adaugă treaptă
+                            {t('pricing:config.addTier')}
                           </Button>
                           <Button type="button" variant="ghost" onClick={() => update({ ...row, bands: undefined })}>
-                            Renunță la benzi
+                            {t('pricing:config.dropBands')}
                           </Button>
                         </div>
                       </div>
                     ) : (
                       <Button type="button" variant="ghost" onClick={() => update({ ...row, bands: [{ upTo: '', unitPrice: '' }] })}>
-                        Preț pe benzi de cantitate
+                        {t('pricing:config.priceByBands')}
                       </Button>
                     )}
                   </div>
                 )}
                 onAdd={() => setForm((f) => ({ ...f, addons: [...f.addons, { key: '', label: '', price: '' }] }))}
-                addLabel="Adaugă add-on"
+                addLabel={t('pricing:config.addAddon')}
               />
 
               <BandEditor
-                title="Pachete (bundle-uri de add-on-uri la preț fix)"
+                title={t('pricing:config.bundlesTitle')}
                 rows={form.bundles}
                 onChange={(rows) => setForm((f) => ({ ...f, bundles: rows }))}
                 renderRow={(row, i, update, remove) => (
@@ -498,22 +500,22 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                       <Label htmlFor={`bundle-key-${i}`} className="text-xs">
                         Key
                       </Label>
-                      <Input id={`bundle-key-${i}`} placeholder="ex: starter" value={row.key} onChange={(e) => update({ ...row, key: e.target.value })} />
+                      <Input id={`bundle-key-${i}`} placeholder={t('pricing:config.bundleKeyPlaceholder')} value={row.key} onChange={(e) => update({ ...row, key: e.target.value })} />
                     </div>
                     <div className="w-40 space-y-1">
                       <Label htmlFor={`bundle-label-${i}`} className="text-xs">
-                        Etichetă
+                        {t('common:labels.label')}
                       </Label>
                       <Input
                         id={`bundle-label-${i}`}
-                        placeholder="ex: Pachet Starter"
+                        placeholder={t('pricing:config.bundleLabelPlaceholder')}
                         value={row.label}
                         onChange={(e) => update({ ...row, label: e.target.value })}
                       />
                     </div>
                     <div className="w-28 space-y-1">
                       <Label htmlFor={`bundle-price-${i}`} className="text-xs">
-                        Preț fix (EUR/lună)
+                        {t('pricing:config.fixedPricePerMonth')}
                       </Label>
                       <Input
                         id={`bundle-price-${i}`}
@@ -524,7 +526,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                     </div>
                     <div className="w-28 space-y-1">
                       <Label htmlFor={`bundle-onboarding-${i}`} className="text-xs">
-                        Configurare (EUR, one-time)
+                        {t('pricing:config.setupOneTime')}
                       </Label>
                       <Input
                         id={`bundle-onboarding-${i}`}
@@ -535,12 +537,12 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                     </div>
                     <div className="w-full space-y-1 border-t pt-2">
                       <Label className="text-xs text-muted-foreground">
-                        Preset calculator (opțional — precompletează, rămâne editabil; gol = neschimbat)
+                        {t('pricing:config.presetHint')}
                       </Label>
                       <div className="flex flex-wrap gap-2">
                         <div className="w-32 space-y-1">
                           <Label htmlFor={`bundle-puncte-${i}`} className="text-xs">
-                            Puncte de lucru
+                            {t('pricing:fields.workSites')}
                           </Label>
                           <Input
                             id={`bundle-puncte-${i}`}
@@ -551,7 +553,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                         </div>
                         <div className="w-32 space-y-1">
                           <Label htmlFor={`bundle-op-desktop-${i}`} className="text-xs">
-                            Operatori desktop
+                            {t('pricing:fields.desktopOperators')}
                           </Label>
                           <Input
                             id={`bundle-op-desktop-${i}`}
@@ -562,7 +564,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                         </div>
                         <div className="w-32 space-y-1">
                           <Label htmlFor={`bundle-op-mobil-${i}`} className="text-xs">
-                            Operatori mobil
+                            {t('pricing:fields.mobileOperators')}
                           </Label>
                           <Input
                             id={`bundle-op-mobil-${i}`}
@@ -573,7 +575,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                         </div>
                         <div className="w-32 space-y-1">
                           <Label htmlFor={`bundle-documente-${i}`} className="text-xs">
-                            Documente/lună
+                            {t('pricing:fields.documentsPerMonth')}
                           </Label>
                           <Input
                             id={`bundle-documente-${i}`}
@@ -584,7 +586,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                         </div>
                         <div className="w-32 space-y-1">
                           <Label htmlFor={`bundle-cantare-${i}`} className="text-xs">
-                            Cântare smart
+                            {t('pricing:fields.smartScales')}
                           </Label>
                           <Input
                             id={`bundle-cantare-${i}`}
@@ -596,9 +598,9 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                       </div>
                     </div>
                     <div className="min-w-[16rem] flex-1 space-y-1">
-                      <Label className="text-xs">Add-on-uri incluse</Label>
+                      <Label className="text-xs">{t('pricing:config.includedAddons')}</Label>
                       {form.addons.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">Adaugă întâi add-on-uri mai sus.</p>
+                        <p className="text-xs text-muted-foreground">{t('pricing:config.addAddonsFirst')}</p>
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           {form.addons.map((addon, addonIndex) => (
@@ -644,24 +646,24 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                     ],
                   }))
                 }
-                addLabel="Adaugă pachet"
+                addLabel={t('pricing:config.addBundle')}
               />
 
               <BandEditor
-                title="Benzi documente (peste cota inclusă)"
+                title={t('pricing:config.documentBandsTitle')}
                 rows={form.documentBands}
                 onChange={(rows) => setForm((f) => ({ ...f, documentBands: rows }))}
                 renderRow={(row, i, update, remove) => (
                   <div key={i} className="flex flex-wrap items-end gap-2">
                     <div className="w-32 space-y-1">
                       <Label htmlFor={`doc-band-upto-${i}`} className="text-xs">
-                        Până la (gol = ∞)
+                        {t('pricing:config.upToEmptyInfinite')}
                       </Label>
                       <Input id={`doc-band-upto-${i}`} inputMode="numeric" value={row.upTo} onChange={(e) => update({ ...row, upTo: e.target.value })} />
                     </div>
                     <div className="w-32 space-y-1">
                       <Label htmlFor={`doc-band-rate-${i}`} className="text-xs">
-                        Rată/doc (gol = manual)
+                        {t('pricing:config.ratePerDoc')}
                       </Label>
                       <Input id={`doc-band-rate-${i}`} inputMode="decimal" value={row.rate} onChange={(e) => update({ ...row, rate: e.target.value })} />
                     </div>
@@ -674,18 +676,17 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
               />
 
               <p className="text-xs text-muted-foreground">
-                Multiplierul benzii de mai jos se aplică la <strong>ambele</strong>: prețul de bază lunar ȘI taxa de
-                inițiere (onboarding).
+                {tNodes('pricing:config.multiplierNote', { both: <strong>{t('pricing:config.both')}</strong> })}
               </p>
               <BandEditor
-                title="Benzi puncte de lucru → multiplier"
+                title={t('pricing:config.workSiteBandsTitle')}
                 rows={form.puncteBands}
                 onChange={(rows) => setForm((f) => ({ ...f, puncteBands: rows }))}
                 renderRow={(row, i, update, remove) => (
                   <div key={i} className="flex flex-wrap items-end gap-2">
                     <div className="w-32 space-y-1">
                       <Label htmlFor={`puncte-band-max-${i}`} className="text-xs">
-                        Puncte până la (gol = ∞)
+                        {t('pricing:config.sitesUpTo')}
                       </Label>
                       <Input id={`puncte-band-max-${i}`} inputMode="numeric" value={row.max} onChange={(e) => update({ ...row, max: e.target.value })} />
                     </div>
@@ -697,17 +698,17 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                     </div>
                     <div className="w-40 space-y-1">
                       <Label htmlFor={`puncte-band-label-${i}`} className="text-xs">
-                        Etichetă
+                        {t('common:labels.label')}
                       </Label>
                       <Input id={`puncte-band-label-${i}`} value={row.label} onChange={(e) => update({ ...row, label: e.target.value })} />
                     </div>
                     <div className="w-32 space-y-1">
                       <Label htmlFor={`puncte-band-plan-${i}`} className="text-xs">
-                        Nume plan (opțional)
+                        {t('pricing:config.planNameOptional')}
                       </Label>
                       <Input
                         id={`puncte-band-plan-${i}`}
-                        placeholder="ex: Business"
+                        placeholder={t('pricing:config.planNamePlaceholder')}
                         value={row.planName}
                         onChange={(e) => update({ ...row, planName: e.target.value })}
                       />
@@ -721,25 +722,25 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
               />
 
               <BandEditor
-                title="Echipamente (semnat digital, scanner acte etc.)"
+                title={t('pricing:config.equipmentTitle')}
                 rows={form.equipmentItems}
                 onChange={(rows) => setForm((f) => ({ ...f, equipmentItems: rows }))}
                 renderRow={(row, i, update, remove) => (
                   <div key={row.id} className="flex flex-wrap items-end gap-2">
                     <div className="w-56 space-y-1">
                       <Label htmlFor={`equip-name-${i}`} className="text-xs">
-                        Nume echipament
+                        {t('pricing:config.equipmentName')}
                       </Label>
                       <Input
                         id={`equip-name-${i}`}
-                        placeholder="ex: Signature pad STU-430"
+                        placeholder={t('pricing:config.equipmentPlaceholder')}
                         value={row.name}
                         onChange={(e) => update({ ...row, name: e.target.value })}
                       />
                     </div>
                     <div className="w-32 space-y-1">
                       <Label htmlFor={`equip-purchase-${i}`} className="text-xs">
-                        Achiziție (one-time)
+                        {t('pricing:config.purchaseOneTime')}
                       </Label>
                       <Input
                         id={`equip-purchase-${i}`}
@@ -750,7 +751,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                     </div>
                     <div className="w-32 space-y-1">
                       <Label htmlFor={`equip-integration-${i}`} className="text-xs">
-                        Integrare (one-time)
+                        {t('pricing:config.integrationOneTime')}
                       </Label>
                       <Input
                         id={`equip-integration-${i}`}
@@ -761,7 +762,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                     </div>
                     <div className="w-32 space-y-1">
                       <Label htmlFor={`equip-monthly-${i}`} className="text-xs">
-                        Abonament/lună
+                        {t('pricing:config.subscriptionPerMonth')}
                       </Label>
                       <Input
                         id={`equip-monthly-${i}`}
@@ -784,11 +785,11 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                     ],
                   }))
                 }
-                addLabel="Adaugă echipament"
+                addLabel={t('pricing:config.addEquipment')}
               />
 
               <Button onClick={() => saveConfig.mutate()} disabled={saveConfig.isPending}>
-                {saveConfig.isPending ? 'Se salvează…' : 'Salvează config-ul'}
+                {saveConfig.isPending ? t('common:states.saving') : t('pricing:config.save')}
               </Button>
             </CardContent>
           </Card>
@@ -820,7 +821,7 @@ function SelfServePricingToggleCard() {
     mutationFn: (enabled: boolean) => api.put<{ enabled: boolean }>('/api/pricing/self-serve-toggle', { enabled }),
     onSuccess: (data) => {
       queryClient.setQueryData(['pricing', 'self-serve-toggle'], data)
-      toast.success(data.enabled ? 'Preț self-serve pornit' : 'Preț self-serve oprit')
+      toast.success(data.enabled ? t('pricing:config.selfServeOn') : t('pricing:config.selfServeOff'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -828,13 +829,11 @@ function SelfServePricingToggleCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Preț self-serve (recyclers_app)</CardTitle>
+        <CardTitle>{t('pricing:config.selfServeTitle')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          Wizard-ul de signup self-serve din recyclers_app cere prețul live de aici. Cu comutatorul oprit, wizard-ul
-          arată „te contactăm noi" în loc de preț — util dacă te răzgândești pe strategia de preț și vrei să oprești
-          rapid afișarea, fără deploy.
+          {t('pricing:config.selfServeHint')}
         </p>
         <label className="flex items-center gap-2 text-sm font-medium">
           <input
@@ -843,7 +842,7 @@ function SelfServePricingToggleCard() {
             disabled={toggleState.isPending || toggle.isPending}
             onChange={(e) => toggle.mutate(e.target.checked)}
           />
-          Preț self-serve ON
+          {t('pricing:config.selfServeToggle')}
         </label>
       </CardContent>
     </Card>
@@ -856,7 +855,7 @@ function BandEditor<T>({
   onChange,
   renderRow,
   onAdd,
-  addLabel = 'Adaugă bandă',
+  addLabel = t('pricing:config.addBand'),
 }: {
   title: string
   rows: T[]

@@ -8,6 +8,7 @@ import { api } from '@/shared/lib/api'
 import type { BankTransactionRow, OpenInvoice } from '@/shared/lib/types'
 import { formatDate, formatMoney } from '../accounting/badges'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface MatchDialogProps {
   open: boolean
@@ -35,7 +36,7 @@ export function MatchDialog({ open, onOpenChange, transaction }: MatchDialogProp
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['reconciliation'] })
       void queryClient.invalidateQueries({ queryKey: ['accounting'] })
-      toast.success('Match salvat — factura marcată plătită')
+      toast.success(t('reconciliation:match.saved'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -47,7 +48,7 @@ export function MatchDialog({ open, onOpenChange, transaction }: MatchDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Match manual</DialogTitle>
+          <DialogTitle>{t('reconciliation:match.manual')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-md border p-3 text-sm">
@@ -56,7 +57,7 @@ export function MatchDialog({ open, onOpenChange, transaction }: MatchDialogProp
               {transaction.counterpartyName ?? '—'} · {formatDate(transaction.valueDate)}
             </div>
             {transaction.reference ? (
-              <div className="mt-1 text-xs text-muted-foreground">Ref: {transaction.reference}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{t('reconciliation:match.ref', { reference: transaction.reference })}</div>
             ) : null}
           </div>
           <form
@@ -67,24 +68,24 @@ export function MatchDialog({ open, onOpenChange, transaction }: MatchDialogProp
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="m-invoice">Factura neplătită</Label>
+              <Label htmlFor="m-invoice">{t('reconciliation:match.unpaidInvoice')}</Label>
               <Select
                 id="m-invoice"
                 value={financialRecordId}
                 onChange={(e) => setFinancialRecordId(e.target.value)}
                 required
               >
-                <option value="">— alege —</option>
+                <option value="">{t('reconciliation:match.choose')}</option>
                 {(invoices.data ?? []).map((invoice) => (
                   <option key={invoice.id} value={invoice.id}>
-                    {invoice.documentNumber ?? '(draft)'} · {invoice.counterpartyName ?? '?'} ·{' '}
+                    {invoice.documentNumber ?? t('reconciliation:match.draftMarker')} · {invoice.counterpartyName ?? '?'} ·{' '}
                     {formatMoney(invoice.amount, invoice.currency)}
                   </option>
                 ))}
               </Select>
             </div>
             <Button type="submit" className="w-full" disabled={match.isPending || !financialRecordId}>
-              {match.isPending ? 'Se salvează…' : 'Salvează match-ul'}
+              {match.isPending ? t('common:states.saving') : t('reconciliation:match.save')}
             </Button>
           </form>
         </div>

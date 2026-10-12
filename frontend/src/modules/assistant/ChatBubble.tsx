@@ -6,6 +6,7 @@ import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/shared/lib/utils'
 import { AssistantText } from './AssistantText'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 export interface BubbleMessage {
   id: string
@@ -79,7 +80,7 @@ function MessageMeta({ text, iso }: { text: string; iso?: string }) {
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label={copied ? 'Copiat' : 'Copiază mesajul'}
+        aria-label={copied ? t('common:states.copied') : t('assistant:copyMessage')}
         className="text-muted-foreground"
         onClick={() => void navigator.clipboard.writeText(text).then(() => setCopied(true))}
       >

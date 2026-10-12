@@ -5,12 +5,13 @@ import { useMe } from '@/shared/hooks/use-me'
 import type { FeatureKey } from '@/shared/lib/types'
 import { ConturiTab } from './ConturiTab'
 import { SetariTab } from './SetariTab'
+import { t } from '@/shared/lib/i18n'
 
 // Conturile bancare și cheile lor sunt „doar Vanadium" (`reconciliere.conturi`), iar potrivirea
 // manuală e cu tot alta funcționalitate (`reconciliere.potrivire`).
 const TABS: Array<{ key: string; label: string; feature?: FeatureKey }> = [
-  { key: 'conturi', label: 'Conturi', feature: 'reconciliere.conturi' },
-  { key: 'setari', label: 'Setări', feature: 'reconciliere.conturi' },
+  { key: 'conturi', label: t('reconciliation:tabs.accounts'), feature: 'reconciliere.conturi' },
+  { key: 'setari', label: t('common:nav.settings'), feature: 'reconciliere.conturi' },
 ]
 
 export function ReconciliationPage() {
@@ -20,23 +21,23 @@ export function ReconciliationPage() {
   // Revolut redirectează OAuth callback-ul aici (?code=...) — ateriz direct pe Setări,
   // nu pe tab-ul implicit Conturi, ca să vadă codul precompletat imediat.
   const isRevolutCallback = location.pathname.endsWith('/revolut-callback')
-  const tabs = TABS.filter((t) => can(t.feature))
+  const tabs = TABS.filter((tab) => can(tab.feature))
   const requested = searchParams.get('tab')
-  const tab = tabs.some((t) => t.key === requested) ? (requested ?? '') : isRevolutCallback ? 'setari' : (tabs[0]?.key ?? 'conturi')
+  const tab = tabs.some((entry) => entry.key === requested) ? (requested ?? '') : isRevolutCallback ? 'setari' : (tabs[0]?.key ?? 'conturi')
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Reconciliere" />
+      <PageHeader title={t('common:nav.reconciliation')} />
       {tabs.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Conturile bancare și cheile lor sunt ale firmei; cer-le unui administrator dacă ai nevoie de ele aici.
+          {t('reconciliation:page.adminOnly')}
         </p>
       ) : (
         <Tabs value={tab} onValueChange={(v) => setSearchParams({ tab: v })}>
           <TabsList>
-            {tabs.map((t) => (
-              <TabsTrigger key={t.key} value={t.key}>
-                {t.label}
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab.key} value={tab.key}>
+                {tab.label}
               </TabsTrigger>
             ))}
           </TabsList>

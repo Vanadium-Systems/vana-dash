@@ -9,6 +9,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import type { Note } from '@/shared/lib/types'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { t } from '@/shared/lib/i18n'
 
 interface NoteFormDialogProps {
   open: boolean
@@ -36,7 +37,7 @@ export function NoteFormDialog({ open, onOpenChange, note }: NoteFormDialogProps
         : api.post<Note>('/api/notes', { title, body }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['notes'] })
-      toast.success(note ? 'Notiță actualizată' : 'Notiță creată')
+      toast.success(note ? t('notes:updated') : t('notes:created'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -46,7 +47,7 @@ export function NoteFormDialog({ open, onOpenChange, note }: NoteFormDialogProps
     mutationFn: () => api.delete<void>(`/api/notes/${note?.id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['notes'] })
-      toast.success('Notiță ștearsă')
+      toast.success(t('notes:deleted'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -56,7 +57,7 @@ export function NoteFormDialog({ open, onOpenChange, note }: NoteFormDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{note ? 'Editează notița' : 'Notiță nouă'}</DialogTitle>
+          <DialogTitle>{note ? t('notes:editTitle') : t('common:palette.newNote')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -66,11 +67,11 @@ export function NoteFormDialog({ open, onOpenChange, note }: NoteFormDialogProps
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="note-title">Titlu</Label>
+            <Label htmlFor="note-title">{t('common:labels.title')}</Label>
             <Input id="note-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="note-body">Conținut</Label>
+            <Label htmlFor="note-body">{t('common:labels.content')}</Label>
             <Textarea
               id="note-body"
               value={body}
@@ -81,7 +82,7 @@ export function NoteFormDialog({ open, onOpenChange, note }: NoteFormDialogProps
           </div>
           <div className="flex gap-2">
             <Button type="submit" className="flex-1" disabled={save.isPending}>
-              {save.isPending ? 'Se salvează…' : 'Salvează'}
+              {save.isPending ? t('common:states.saving') : t('common:actions.save')}
             </Button>
             {note ? (
               <Button
@@ -89,10 +90,10 @@ export function NoteFormDialog({ open, onOpenChange, note }: NoteFormDialogProps
                 variant="outline"
                 disabled={remove.isPending}
                 onClick={() => {
-                  void confirm({ title: `Șterge notița „${note.title}”`, confirmLabel: 'Șterge notița', destructive: true }).then((ok) => ok && remove.mutate())
+                  void confirm({ title: t('notes:deleteTitle', { title: note.title }), confirmLabel: t('notes:deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate())
                 }}
               >
-                Șterge
+                {t('common:actions.delete')}
               </Button>
             ) : null}
           </div>

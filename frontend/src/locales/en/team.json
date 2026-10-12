@@ -1,0 +1,101 @@
+{
+  "history": {
+    "entities": {
+      "invoice": "invoice",
+      "client": "client",
+      "contract": "contract",
+      "annex": "annex",
+      "terms": "terms",
+      "contractNumbers": "contract numbers",
+      "match": "match",
+      "role": "role",
+      "person": "person"
+    },
+    "description": "Who did what, on the shared items.",
+    "everyone": "Everyone",
+    "loadFailed": "The history could not be loaded.",
+    "emptyFilteredTitle": "No action with these filters",
+    "emptyFilteredHint": "Nothing happened in this period with the chosen filters.",
+    "emptyTitle": "No action yet",
+    "emptyHint": "When there is something, it shows up here.",
+    "tableCaption": "The actions in the history, with the person, the item and the time",
+    "who": "Who",
+    "what": "What",
+    "more": "More"
+  },
+  "labels": {
+    "person": "Person",
+    "object": "Item",
+    "mailboxes": "Mailboxes"
+  },
+  "status": {
+    "invited": "Invited",
+    "disabled": "Disabled"
+  },
+  "members": {
+    "neverSignedIn": "never signed in",
+    "activeNow": "Active now",
+    "noIdentities": "There are no sending identities. Add them in Settings → Email.",
+    "mailboxNotYours": "You do not have the mailbox {{address}}, so you cannot give it to someone else",
+    "tableCaption": "The team members, with role, status and mailboxes",
+    "mailboxesShort": "Mailboxes",
+    "lastActivity": "Last activity",
+    "you": "(you)",
+    "none": "none",
+    "resetLinkSent": "Link sent to {{email}}",
+    "write": "Write",
+    "actionsFor": "What can be done with {{member}}",
+    "assignFolders": "Assign their folders",
+    "changeRoleAndMailboxes": "Change the role and mailboxes",
+    "resendInvite": "Resend the invitation",
+    "sendResetLink": "Send a reset link",
+    "reactivate": "Lift the deactivation"
+  },
+  "toasts": {
+    "linkNotSent": "The link was not sent.",
+    "conversationFailed": "The conversation could not be opened.",
+    "inviteResent": "The invitation was sent again.",
+    "inviteNotSent": "The invitation was not sent.",
+    "disabled": "{{value}} can no longer sign in.",
+    "reactivated": "The person is active again."
+  },
+  "loadFailed": "The team could not be loaded.",
+  "description": "Who works here, with what role and on which mailboxes.",
+  "invite": {
+    "button": "Invite",
+    "first": "Invite the first colleague",
+    "sentTo": "The invitation was sent to {{email}}.",
+    "title": "Invite a colleague",
+    "displayName": "Display name",
+    "pickRole": "Choose the role",
+    "send": "Send the invitation"
+  },
+  "empty": {
+    "aloneTitle": "You are the only one on the team",
+    "aloneAdminHint": "Invite the first colleague and give them a role.",
+    "aloneMemberHint": "The company admin can add you to the team.",
+    "noMatchTitle": "No person matches",
+    "noMatchHint": "Found nobody for “{{debouncedSearch}}”."
+  },
+  "search": {
+    "placeholder": "Search by name or email",
+    "aria": "Search the team"
+  },
+  "folders": {
+    "hadNone": "{{value}} had no folders.",
+    "notMoved": "The folders were not moved.",
+    "assignTitle": "Assign the folders of {{from}}",
+    "pickTarget": "Choose who takes over the folders",
+    "hint": "Their whole archive space, with the subfolders, goes to the person chosen. The shares they gave stay.",
+    "takenBy": "Taken over by",
+    "moving": "Moving…",
+    "assign": "Assign",
+    "movedTo": "The folders of {{from}} now belong to {{to}}.",
+    "movedToColleague": "The folders of {{from}} now belong to the colleague."
+  },
+  "edit": {
+    "saved": "The changes are saved.",
+    "notSaved": "The changes were not saved.",
+    "adminNote": "The admin has everything the company has: neither the role nor the mailboxes change."
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "bnr": {
+    "syncFailed": "sync BNR eșuat — curs reportat",
+    "title": "Curs BNR",
+    "asOf": "la {{date}}",
+    "loadFailed": "Nu am putut încărca cursul BNR",
+    "noHistory": "Niciun curs istoric încă — jobs/bnr-daily-fetch.ts abia a pornit"
+  },
+  "labels": {
+    "revenueCollected": "Venituri (încasate)",
+    "expenses": "Cheltuieli",
+    "net": "Net"
+  },
+  "status": {
+    "paid": "Plătit",
+    "partiallyPaid": "Parțial plătit",
+    "unpaid": "Neplătit"
+  },
+  "kpi": {
+    "invoicedPending": "Facturat, în așteptare",
+    "expensesPending": "Cheltuieli, în așteptare",
+    "expensesPendingHint": "deja materializate, neplătite",
+    "recurringMonthly": "Cheltuieli recurente (lunar)",
+    "recurringMonthlyHint": "abonamentele active, echivalent lunar",
+    "netProfit": "Profit net",
+    "revenueToExpenses": "Venituri / cheltuieli",
+    "revenueToExpensesHint": "încasat raportat la cheltuit"
+  },
+  "charts": {
+    "revenueVsExpenses": "Venituri (încasate) vs. cheltuieli pe lună"
+  },
+  "pnl": {
+    "byCategory": "P&L pe categorie"
+  },
+  "empty": "Nicio înregistrare în această perioadă.",
+  "cashFlow": {
+    "title": "Cash flow",
+    "issued": "Emise",
+    "received": "Primite",
+    "week": "Săptămâna"
+  }
+}

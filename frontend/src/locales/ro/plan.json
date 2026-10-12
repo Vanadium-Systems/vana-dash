@@ -1,0 +1,40 @@
+{
+  "step": {
+    "updated": "Pas actualizat",
+    "added": "Pas adăugat",
+    "deleted": "Pas șters",
+    "editTitle": "Editează pasul",
+    "new": "Pas nou",
+    "note": "Notă / cum ajungi acolo (opțional)",
+    "deadline": "Termen (opțional)",
+    "targetPrice": "Preț țintă (opțional)",
+    "targetPricePlaceholder": "ex: 150000",
+    "tier": "Tier",
+    "monthlyCost": "Cost lunar (RON, opțional)",
+    "monthlyCostPlaceholder": "ex: comision sales, VA",
+    "thresholdType": "Tip prag",
+    "manual": "Manual",
+    "currentMrr": "MRR curent (RON)",
+    "mrrThreshold": "Prag MRR (RON)",
+    "thresholdHint": "Bifarea „realizat\" rămâne mereu manuală — pragul e doar informativ, arată progresul, nu declanșează nimic automat.",
+    "deleteTitle": "Șterge pasul „{{title}}”",
+    "deleteConfirm": "Șterge pasul"
+  },
+  "mrrThresholdTag": "prag MRR",
+  "deadline": "termen: {{targetDate}}",
+  "markDone": "Marchează realizat",
+  "emptyTrack": "Niciun pas în această pistă încă.",
+  "coveredByMrr": "acoperit de MRR curent",
+  "description": "Poți bifa orice pas oricând — ordinea e doar orientativă, nu blochează completarea.",
+  "tiers": {
+    "operational": "Tier 1 — Operațional",
+    "acquisition": "Tier 2 — Achiziție",
+    "retention": "Tier 3 — Retenție",
+    "cashCow": "Tier 4 — Cash cow / Prestige"
+  },
+  "perMonth": "{{amount}}/lună",
+  "mrrProgress": "{{current}} / {{target}} MRR",
+  "totalVsMrr": "Cost lunar total al planului: {{cost}} vs. MRR curent {{mrr}}",
+  "gap": "gap de {{amount}}",
+  "cumulativeGap": "gap cumulat de {{amount}}"
+}

@@ -16,26 +16,27 @@ import { api } from '@/shared/lib/api'
 import { formatNumber, intlTag } from '@/shared/lib/format'
 import type { WishlistCategory, WishlistItem, WishlistResponse, WishlistScope } from '@/shared/lib/types'
 import { WishlistItemFormDialog } from './WishlistItemFormDialog'
+import { t } from '@/shared/lib/i18n'
 
 const TABS = [
-  { key: 'all', label: 'Toate' },
-  { key: 'necesitate', label: 'Necesități' },
-  { key: 'placere', label: 'Plăceri' },
+  { key: 'all', label: t('common:labels.all') },
+  { key: 'necesitate', label: t('wishlist:category.needs') },
+  { key: 'placere', label: t('wishlist:category.wants') },
 ] as const
 
 const SCOPES = [
-  { key: 'all', label: 'Toate' },
-  { key: 'personal', label: 'Personal' },
-  { key: 'firma', label: 'Firmă' },
+  { key: 'all', label: t('common:labels.all') },
+  { key: 'personal', label: t('common:labels.personal') },
+  { key: 'firma', label: t('common:labels.company') },
 ] as const
 
 function scopeLabel(scope: WishlistScope): string {
-  return scope === 'personal' ? 'Personal' : 'Firmă'
+  return scope === 'personal' ? t('common:labels.personal') : t('common:labels.company')
 }
 
 /** Totalul unei singure combinații categorie×scope — niciodată combinat, ca să rămână separat personal/firmă (cerință explicită Stefan, 2026-07-24). */
 function scopeTotal(totals: WishlistResponse['totals'], category: WishlistCategory, scope: WishlistScope): number {
-  return totals.find((t) => t.category === category && t.scope === scope)?.total ?? 0
+  return totals.find((entry) => entry.category === category && entry.scope === scope)?.total ?? 0
 }
 
 const PRIORITY_STYLES: Record<WishlistItem['priority'], string> = {
@@ -58,7 +59,7 @@ function PurchaseDialog({
     mutationFn: () => api.post<WishlistItem>(`/api/wishlist/${item?.id}/purchase`, { addExpense }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['wishlist'] })
-      toast.success('Marcat ca cumpărat')
+      toast.success(t('wishlist:markedBought'))
       onOpenChange(false)
       setAddExpense(false)
     },
@@ -69,7 +70,7 @@ function PurchaseDialog({
     <Dialog open={Boolean(item)} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Marchează „{item?.title}" ca cumpărat</DialogTitle>
+          <DialogTitle>{t('wishlist:markBoughtTitle', { title: item?.title })}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <label className="flex items-center gap-2 text-sm">
@@ -79,10 +80,10 @@ function PurchaseDialog({
               checked={addExpense}
               onChange={(e) => setAddExpense(e.target.checked)}
             />
-            Adaugă și ca cheltuială în Facturi ({item?.estimatedPrice ?? '—'} {item?.currency})
+            {t('wishlist:addAsExpense', { amount: `${item?.estimatedPrice ?? '—'} ${item?.currency ?? ''}`.trim() })}
           </label>
           <Button className="w-full" disabled={purchase.isPending} onClick={() => purchase.mutate()}>
-            {purchase.isPending ? 'Se salvează…' : 'Confirmă'}
+            {purchase.isPending ? t('common:states.saving') : t('common:actions.confirm')}
           </Button>
         </div>
       </DialogContent>
@@ -135,10 +136,10 @@ export function WishlistPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Wishlist"
+        title={t('common:nav.wishlist')}
         actions={
           <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> Item nou
+            <Plus className="h-4 w-4" /> {t('wishlist:item.new')}
           </Button>
         }
       />
@@ -146,30 +147,30 @@ export function WishlistPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Cât mai ai de cumpărat — necesități</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('wishlist:leftToBuyNeeds')}</CardTitle>
           </CardHeader>
           <CardContent className="flex gap-6">
             <div>
-              <div className="text-xs text-muted-foreground">Personal</div>
+              <div className="text-xs text-muted-foreground">{t('common:labels.personal')}</div>
               <div className="text-xl font-bold">{formatNumber(scopeTotal(totals, 'necesitate', 'personal'), 'RON')}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Firmă</div>
+              <div className="text-xs text-muted-foreground">{t('common:labels.company')}</div>
               <div className="text-xl font-bold">{formatNumber(scopeTotal(totals, 'necesitate', 'firma'), 'RON')}</div>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Cât mai ai de cumpărat — plăceri</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('wishlist:leftToBuyWants')}</CardTitle>
           </CardHeader>
           <CardContent className="flex gap-6">
             <div>
-              <div className="text-xs text-muted-foreground">Personal</div>
+              <div className="text-xs text-muted-foreground">{t('common:labels.personal')}</div>
               <div className="text-xl font-bold">{formatNumber(scopeTotal(totals, 'placere', 'personal'), 'RON')}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Firmă</div>
+              <div className="text-xs text-muted-foreground">{t('common:labels.company')}</div>
               <div className="text-xl font-bold">{formatNumber(scopeTotal(totals, 'placere', 'firma'), 'RON')}</div>
             </div>
           </CardContent>
@@ -191,9 +192,9 @@ export function WishlistPage() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as (typeof TABS)[number]['key'])}>
         <TabsList>
-          {TABS.map((t) => (
-            <TabsTrigger key={t.key} value={t.key}>
-              {t.label}
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>
+              {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -204,18 +205,18 @@ export function WishlistPage() {
           {wishlist.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : !wishlist.data?.items.length ? (
-            <p className="text-sm text-muted-foreground">Niciun item în listă.</p>
+            <p className="text-sm text-muted-foreground">{t('wishlist:empty')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Titlu</TableHead>
-                  {scopeTab === 'all' ? <TableHead>Personal/Firmă</TableHead> : null}
-                  <TableHead>Categorie</TableHead>
-                  <TableHead>Prioritate</TableHead>
-                  <TableHead className="text-right">Preț estimat</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('common:labels.title')}</TableHead>
+                  {scopeTab === 'all' ? <TableHead>{t('wishlist:labels.personalOrCompanyShort')}</TableHead> : null}
+                  <TableHead>{t('common:labels.category')}</TableHead>
+                  <TableHead>{t('common:labels.priority')}</TableHead>
+                  <TableHead className="text-right">{t('wishlist:labels.estimatedPrice')}</TableHead>
+                  <TableHead>{t('common:labels.status')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -248,17 +249,17 @@ export function WishlistPage() {
                       {item.estimatedPrice ? `${Number(item.estimatedPrice).toLocaleString(intlTag())} ${item.currency}` : '—'}
                     </TableCell>
                     <TableCell>
-                      {item.purchased ? <Badge variant="success">Cumpărat</Badge> : <Badge variant="outline">În listă</Badge>}
+                      {item.purchased ? <Badge variant="success">{t('wishlist:status.bought')}</Badge> : <Badge variant="outline">{t('wishlist:status.inList')}</Badge>}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         {!item.purchased ? (
                           <Button variant="outline" onClick={() => setPurchasingItem(item)}>
-                            Marchează cumpărat
+                            {t('wishlist:markBought')}
                           </Button>
                         ) : null}
                         <Button variant="outline" onClick={() => openEdit(item)}>
-                          Editează
+                          {t('common:actions.edit')}
                         </Button>
                       </div>
                     </TableCell>
@@ -282,9 +283,9 @@ export function WishlistPage() {
 }
 
 function categoryLabel(category: WishlistCategory): string {
-  return category === 'necesitate' ? 'Necesitate' : 'Plăcere'
+  return category === 'necesitate' ? t('wishlist:category.need') : t('wishlist:category.want')
 }
 
 function priorityLabel(priority: WishlistItem['priority']): string {
-  return { low: 'Scăzută', medium: 'Medie', high: 'Ridicată' }[priority]
+  return { low: t('wishlist:priority.low'), medium: t('wishlist:priority.medium'), high: t('wishlist:priority.high') }[priority]
 }

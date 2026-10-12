@@ -7,6 +7,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { Prospect } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 interface PromoteProspectDialogProps {
   prospect: Prospect | null
@@ -41,7 +42,7 @@ export function PromoteProspectDialog({ prospect, onOpenChange }: PromoteProspec
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
-      toast.success('Prospect promovat la client')
+      toast.success(t('pricing:promote.done'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -53,7 +54,7 @@ export function PromoteProspectDialog({ prospect, onOpenChange }: PromoteProspec
     <Dialog open={Boolean(prospect)} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Promovează „{prospect.name}" la client</DialogTitle>
+          <DialogTitle>{t('pricing:promote.title', { name: prospect.name })}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -64,26 +65,26 @@ export function PromoteProspectDialog({ prospect, onOpenChange }: PromoteProspec
         >
           {!prospect.cif && (
             <div className="space-y-2">
-              <Label htmlFor="promote-cif">CIF (prospectul nu are unul completat)</Label>
+              <Label htmlFor="promote-cif">{t('pricing:promote.cifMissing')}</Label>
               <Input id="promote-cif" value={cif} onChange={(e) => setCif(e.target.value)} required minLength={2} maxLength={13} />
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="promote-address">Adresă</Label>
+            <Label htmlFor="promote-address">{t('common:labels.address')}</Label>
             <Input id="promote-address" value={address} onChange={(e) => setAddress(e.target.value)} required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="promote-city">Oraș</Label>
+              <Label htmlFor="promote-city">{t('common:labels.city')}</Label>
               <Input id="promote-city" value={city} onChange={(e) => setCity(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="promote-county">Județ</Label>
+              <Label htmlFor="promote-county">{t('common:labels.county')}</Label>
               <Input id="promote-county" value={county} onChange={(e) => setCounty(e.target.value)} />
             </div>
           </div>
           <Button type="submit" className="w-full" disabled={promote.isPending}>
-            {promote.isPending ? 'Se promovează…' : 'Promovează la client'}
+            {promote.isPending ? t('pricing:promote.promoting') : t('pricing:promote.submit')}
           </Button>
         </form>
       </DialogContent>

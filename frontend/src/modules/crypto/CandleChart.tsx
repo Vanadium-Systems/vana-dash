@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 export interface Candle {
   t: number
@@ -75,7 +76,7 @@ export function CandleChart({ candles, height = 320 }: CandleChartProps) {
   }, [candles, H])
 
   if (candles.length < 2) {
-    return <p className="py-16 text-center text-sm text-muted-foreground">Candele indisponibile momentan.</p>
+    return <p className="py-16 text-center text-sm text-muted-foreground">{t('crypto:chart.candlesUnavailable')}</p>
   }
 
   const fmt = (v: number) => formatPrice(v)

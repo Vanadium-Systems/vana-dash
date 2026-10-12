@@ -10,6 +10,7 @@ import type { AlertCondition, AlertRule, AlertRuleTestResult, AlertSeverity } fr
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 
 const CONDITION_LABELS: Record<AlertCondition, string> = { lt: '<', lte: '≤', gt: '>', gte: '≥' }
@@ -60,7 +61,7 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['alert-rules'] })
-      toast.success(rule ? 'Regulă actualizată' : 'Regulă creată')
+      toast.success(rule ? t('alerts:rule.updated') : t('alerts:rule.created'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -70,7 +71,7 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
     mutationFn: () => api.delete<void>(`/api/alert-rules/${rule?.id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['alert-rules'] })
-      toast.success('Regulă ștearsă')
+      toast.success(t('alerts:rule.deleted'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -86,7 +87,7 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{rule ? 'Editează regula' : 'Regulă nouă'}</DialogTitle>
+          <DialogTitle>{rule ? t('alerts:rule.editTitle') : t('alerts:rule.new')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -96,22 +97,22 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="ar-name">Nume</Label>
+            <Label htmlFor="ar-name">{t('common:labels.name')}</Label>
             <Input id="ar-name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="ar-metric">Metric key</Label>
+            <Label htmlFor="ar-metric">{t('alerts:rule.metricKey')}</Label>
             <Input
               id="ar-metric"
               value={metricKey}
               onChange={(e) => setMetricKey(e.target.value)}
-              placeholder="ex: revenue"
+              placeholder={t('alerts:rule.metricKeyPlaceholder')}
               required
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="ar-condition">Condiție</Label>
+              <Label htmlFor="ar-condition">{t('alerts:rule.condition')}</Label>
               <Select id="ar-condition" value={condition} onChange={(e) => setCondition(e.target.value as AlertCondition)}>
                 {(Object.keys(CONDITION_LABELS) as AlertCondition[]).map((c) => (
                   <option key={c} value={c}>
@@ -121,27 +122,27 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ar-threshold">Prag</Label>
+              <Label htmlFor="ar-threshold">{t('alerts:rule.threshold')}</Label>
               <Input id="ar-threshold" inputMode="decimal" value={threshold} onChange={(e) => setThreshold(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ar-window">Fereastră (ore)</Label>
+              <Label htmlFor="ar-window">{t('alerts:rule.windowHours')}</Label>
               <Input id="ar-window" inputMode="numeric" value={windowHours} onChange={(e) => setWindowHours(e.target.value)} required />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="ar-severity">Severitate</Label>
+              <Label htmlFor="ar-severity">{t('common:labels.severity')}</Label>
               <Select id="ar-severity" value={severity} onChange={(e) => setSeverity(e.target.value as AlertSeverity)}>
-                <option value="info">Info</option>
-                <option value="warning">Warning</option>
-                <option value="critical">Critical</option>
+                <option value="info">{t('common:states.info')}</option>
+                <option value="warning">{t('alerts:severity.warning')}</option>
+                <option value="critical">{t('alerts:severity.critical')}</option>
               </Select>
             </div>
             <div className="flex items-end pb-1.5">
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" className="h-4 w-4 rounded border-input" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-                Activă
+                {t('common:states.activeF')}
               </label>
             </div>
           </div>
@@ -149,12 +150,12 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
           {rule ? (
             <div className="rounded-md border p-3">
               <Button type="button" variant="outline" disabled={test.isPending} onClick={() => test.mutate()}>
-                {test.isPending ? 'Se testează…' : 'Testează acum'}
+                {test.isPending ? t('alerts:rule.testing') : t('alerts:rule.testNow')}
               </Button>
               {testResult ? (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Valoare curentă: <strong>{testResult.value}</strong> —{' '}
-                  {testResult.triggered ? <span className="text-destructive">s-ar declanșa</span> : <span>nu se declanșează</span>}
+                  {t('alerts:rule.currentValue')} <strong>{testResult.value}</strong> —{' '}
+                  {testResult.triggered ? <span className="text-destructive">{t('alerts:rule.wouldTrigger')}</span> : <span>{t('alerts:rule.wouldNotTrigger')}</span>}
                 </p>
               ) : null}
             </div>
@@ -162,7 +163,7 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
 
           <div className="flex gap-2">
             <Button type="submit" className="flex-1" disabled={save.isPending}>
-              {save.isPending ? 'Se salvează…' : 'Salvează'}
+              {save.isPending ? t('common:states.saving') : t('common:actions.save')}
             </Button>
             {rule ? (
               <Button
@@ -170,10 +171,10 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
                 variant="outline"
                 disabled={remove.isPending}
                 onClick={() => {
-                  void confirm({ title: `Șterge regula „${rule.name}”`, consequence: 'Alertele declanșate de ea rămân în istoric.', confirmLabel: 'Șterge regula', destructive: true }).then((ok) => ok && remove.mutate())
+                  void confirm({ title: t('alerts:rule.deleteTitle', { name: rule.name }), consequence: t('alerts:rule.deleteBody'), confirmLabel: t('alerts:rule.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate())
                 }}
               >
-                Șterge
+                {t('common:actions.delete')}
               </Button>
             ) : null}
           </div>

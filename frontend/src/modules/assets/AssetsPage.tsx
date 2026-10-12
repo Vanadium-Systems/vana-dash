@@ -18,6 +18,8 @@ import { MiniSparkline } from '@/modules/crypto/MiniSparkline'
 import { StocksBotTab } from './bot/StocksBotTab'
 import { OrderDialog } from './OrderDialog'
 import { CATEGORY_LABEL, formatUsd, type AssetCategory, type IndexQuote, type PaperOrderRow, type PortfolioPosition, type SearchResult, type WatchEntry, type WatchPrice } from './types'
+import { t } from '@/shared/lib/i18n'
+import { tNodes } from '@/shared/lib/i18n-nodes'
 
 // Pagina Assets (PLAN.md Track D, Wave 8 + listă „top" 2026-08-27): căutare + favorite pinned cu
 // sparkline + portofoliu + ordine recente + banner paper/live, plus listă S&P 500/Nasdaq 100
@@ -25,8 +27,8 @@ import { CATEGORY_LABEL, formatUsd, type AssetCategory, type IndexQuote, type Pa
 // listă statică mare, cunoscută, cu preț live cerut DOAR pt. pagina vizibilă).
 
 const METALS: WatchEntry[] = [
-  { category: 'metal', symbol: 'XAU/USD', name: 'Aur (XAU/USD)' },
-  { category: 'metal', symbol: 'XAG/USD', name: 'Argint (XAG/USD)' },
+  { category: 'metal', symbol: 'XAU/USD', name: t('assets:metals.gold') },
+  { category: 'metal', symbol: 'XAG/USD', name: t('assets:metals.silver') },
 ]
 
 function ChangeCell({ change }: { change: number | null }) {
@@ -72,7 +74,7 @@ function SearchSection({ onAdd }: { onAdd: (entry: WatchEntry) => void }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setFocused(true)}
-          placeholder="Caută o acțiune sau un ETF…"
+          placeholder={t('assets:search.placeholder')}
           className="pl-9"
           data-testid="assets-search"
         />
@@ -81,9 +83,9 @@ function SearchSection({ onAdd }: { onAdd: (entry: WatchEntry) => void }) {
       {focused && debounced.length >= 1 ? (
         <div className="absolute z-20 mt-1 max-h-96 w-full overflow-y-auto rounded-md border bg-popover shadow-lg" data-testid="assets-search-results">
           {search.isPending ? (
-            <p className="p-3 text-xs text-muted-foreground">Se caută…</p>
+            <p className="p-3 text-xs text-muted-foreground">{t('common:states.searching')}</p>
           ) : !search.data?.length ? (
-            <p className="p-3 text-xs text-muted-foreground">Niciun rezultat — verifică și cheia Finnhub din Setări.</p>
+            <p className="p-3 text-xs text-muted-foreground">{t('assets:search.noResult')}</p>
           ) : (
             search.data.map((r) => (
               <button
@@ -196,22 +198,22 @@ export function AssetsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Acțiuni"
+        title={t('common:nav.stocks')}
         actions={
           settings.data?.tradingEnabled ? (
             <Badge variant="destructive" className="gap-1">
-              <ShieldAlert className="h-3 w-3" /> Trading live activ
+              <ShieldAlert className="h-3 w-3" /> {t('crypto:mode.live')}
             </Badge>
           ) : (
-            <Badge variant="secondary">Paper mode</Badge>
+            <Badge variant="secondary">{t('crypto:mode.paper')}</Badge>
           )
         }
       />
 
       <Tabs value={tab} onValueChange={(next) => setSearchParams(next === 'bot' ? { tab: 'bot' } : {})}>
         <TabsList>
-          <TabsTrigger value="piata">Piață</TabsTrigger>
-          {seesBot && <TabsTrigger value="bot">Bot</TabsTrigger>}
+          <TabsTrigger value="piata">{t('crypto:tabs.market')}</TabsTrigger>
+          {seesBot && <TabsTrigger value="bot">{t('crypto:tabs.bot')}</TabsTrigger>}
         </TabsList>
         {seesBot && (
           <TabsContent value="bot">
@@ -232,7 +234,7 @@ export function AssetsPage() {
                 category === c ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent',
               )}
             >
-              {c === 'all' ? 'Toate' : CATEGORY_LABEL[c]}
+              {c === 'all' ? t('common:labels.all') : CATEGORY_LABEL[c]}
             </button>
           ))}
           <span className="mx-1 text-muted-foreground">·</span>
@@ -255,13 +257,13 @@ export function AssetsPage() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div className="min-w-0 space-y-6">
             <section className="space-y-2" data-testid="assets-watchlist">
-              <h2 className="text-sm font-semibold">Favorite</h2>
+              <h2 className="text-sm font-semibold">{t('crypto:favorites.title')}</h2>
               {watchPrices.isPending ? (
                 <Skeleton className="h-24 w-full" />
               ) : !filteredWatch.length ? (
                 <Card>
                   <CardContent className="pt-6 text-sm text-muted-foreground">
-                    Niciun favorit încă — caută o acțiune/ETF mai sus sau adaugă un metal.
+                    {t('assets:favorites.empty')}
                   </CardContent>
                 </Card>
               ) : (
@@ -282,7 +284,7 @@ export function AssetsPage() {
                           </p>
                           <button
                             type="button"
-                            aria-label="Scoate din favorite"
+                            aria-label={t('crypto:favorites.remove')}
                             className="rounded p-1 hover:bg-accent"
                             onClick={(e) => {
                               e.stopPropagation()
@@ -306,7 +308,7 @@ export function AssetsPage() {
                                 setOrderSymbol(entry.symbol)
                               }}
                             >
-                              Ordin
+                              {t('common:labels.order')}
                             </Button>
                           </div>
                         </div>
@@ -320,22 +322,22 @@ export function AssetsPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="mb-2 flex items-baseline justify-between">
-                  <h2 className="text-sm font-semibold">Portofoliu</h2>
+                  <h2 className="text-sm font-semibold">{t('crypto:portfolio.title')}</h2>
                   <span className="tnum font-mono text-sm">{formatUsd(totalValueUsd)}</span>
                 </div>
                 {portfolio.isPending ? (
                   <Skeleton className="h-32 w-full" />
                 ) : !portfolio.data?.positions.length ? (
                   <p className="text-sm text-muted-foreground">
-                    Nicio poziție — conectează Trading212 din Setări și plasează ordine paper.
+                    {t('assets:portfolio.empty')}
                   </p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Simbol</TableHead>
-                        <TableHead>Cantitate</TableHead>
-                        <TableHead className="text-right">Valoare</TableHead>
+                        <TableHead>{t('common:labels.symbol')}</TableHead>
+                        <TableHead>{t('common:labels.quantity')}</TableHead>
+                        <TableHead className="text-right">{t('common:labels.value')}</TableHead>
                         <TableHead className="text-right">P&L</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -364,10 +366,13 @@ export function AssetsPage() {
                 )}
                 {(portfolio.data?.realizedPnlUsd ?? 0) !== 0 ? (
                   <p className="mt-2 text-xs text-muted-foreground">
-                    P&L realizat (paper):{' '}
-                    <span className={cn('tnum font-mono', (portfolio.data?.realizedPnlUsd ?? 0) >= 0 ? 'text-success-text' : 'text-destructive-text')}>
-                      {formatUsd(portfolio.data?.realizedPnlUsd)}
-                    </span>
+                    {tNodes('crypto:portfolio.realizedPnl', {
+                      value: (
+                        <span className={cn('tnum font-mono', (portfolio.data?.realizedPnlUsd ?? 0) >= 0 ? 'text-success-text' : 'text-destructive-text')}>
+                          {formatUsd(portfolio.data?.realizedPnlUsd)}
+                        </span>
+                      ),
+                    })}
                   </p>
                 ) : null}
               </CardContent>
@@ -375,9 +380,9 @@ export function AssetsPage() {
 
             <Card>
               <CardContent className="pt-6">
-                <h2 className="mb-2 text-sm font-semibold">Ordine recente</h2>
+                <h2 className="mb-2 text-sm font-semibold">{t('crypto:orders.recent')}</h2>
                 {!orders.data?.length ? (
-                  <p className="text-sm text-muted-foreground">Niciun ordin plasat încă.</p>
+                  <p className="text-sm text-muted-foreground">{t('crypto:orders.none')}</p>
                 ) : (
                   <ul className="space-y-1.5 font-mono text-xs" data-testid="assets-orders-list">
                     {orders.data.slice(0, 10).map((order) => (
@@ -406,7 +411,7 @@ export function AssetsPage() {
                 <Input
                   value={indexQueryInput}
                   onChange={(e) => setIndexQueryInput(e.target.value)}
-                  placeholder="Filtrează lista…"
+                  placeholder={t('assets:index.filterPlaceholder')}
                   className="w-40"
                 />
                 <div className="flex gap-1">
@@ -434,17 +439,17 @@ export function AssetsPage() {
                 ) : indexList.isError ? (
                   <p className="pt-6 text-sm text-destructive">{(indexList.error as Error).message}</p>
                 ) : !indexList.data?.items.length ? (
-                  <p className="pt-6 text-sm text-muted-foreground">Niciun rezultat pentru filtrul ăsta.</p>
+                  <p className="pt-6 text-sm text-muted-foreground">{t('assets:index.noResult')}</p>
                 ) : (
                   <>
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-8" />
-                          <TableHead>Simbol</TableHead>
-                          <TableHead className="text-right">Preț</TableHead>
-                          <TableHead className="text-right">Variație</TableHead>
-                          <TableHead className="text-right">Ordin</TableHead>
+                          <TableHead>{t('common:labels.symbol')}</TableHead>
+                          <TableHead className="text-right">{t('common:labels.price')}</TableHead>
+                          <TableHead className="text-right">{t('assets:index.change')}</TableHead>
+                          <TableHead className="text-right">{t('common:labels.order')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -460,7 +465,7 @@ export function AssetsPage() {
                               <TableCell>
                                 <button
                                   type="button"
-                                  aria-label={watched ? 'Scoate din favorite' : 'Adaugă la favorite'}
+                                  aria-label={watched ? t('crypto:favorites.remove') : t('crypto:favorites.add')}
                                   className="rounded p-0.5 hover:bg-accent"
                                   onClick={(e) => {
                                     e.stopPropagation()
@@ -486,7 +491,7 @@ export function AssetsPage() {
                                     setOrderSymbol(row.symbol)
                                   }}
                                 >
-                                  Ordin
+                                  {t('common:labels.order')}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -496,17 +501,17 @@ export function AssetsPage() {
                     </Table>
                     <div className="flex items-center justify-between border-t p-2">
                       <Button variant="ghost" disabled={indexPage <= 1} onClick={() => setIndexPage({ page: Math.max(1, indexPage - 1) })}>
-                        <ChevronLeft className="h-4 w-4" /> Anterior
+                        <ChevronLeft className="h-4 w-4" /> {t('crypto:market.previous')}
                       </Button>
                       <span className="tnum text-xs text-muted-foreground">
-                        pagina {indexPage} din {indexList.data.totalPages}
+                        {t('crypto:market.pageOf', { page: indexPage, total: indexList.data.totalPages })}
                       </span>
                       <Button
                         variant="ghost"
                         disabled={indexPage >= indexList.data.totalPages}
                         onClick={() => setIndexPage({ page: indexPage + 1 })}
                       >
-                        Următoarea <ChevronRight className="h-4 w-4" />
+                        {t('crypto:market.next')} <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
                   </>

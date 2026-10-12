@@ -1,0 +1,38 @@
+{
+  "item": {
+    "updated": "Item actualizat",
+    "added": "Item adăugat",
+    "deleted": "Item șters",
+    "editTitle": "Editează itemul",
+    "new": "Item nou",
+    "linkOptional": "Link (opțional)",
+    "deleteTitle": "Șterge „{{title}}” din wishlist"
+  },
+  "labels": {
+    "personalOrCompany": "Personal / Firmă",
+    "estimatedPrice": "Preț estimat",
+    "personalOrCompanyShort": "Personal/Firmă"
+  },
+  "category": {
+    "need": "Necesitate",
+    "want": "Plăcere",
+    "needs": "Necesități",
+    "wants": "Plăceri"
+  },
+  "priority": {
+    "low": "Scăzută",
+    "medium": "Medie",
+    "high": "Ridicată"
+  },
+  "markedBought": "Marcat ca cumpărat",
+  "markBoughtTitle": "Marchează „{{title}}\" ca cumpărat",
+  "leftToBuyNeeds": "Cât mai ai de cumpărat — necesități",
+  "leftToBuyWants": "Cât mai ai de cumpărat — plăceri",
+  "empty": "Niciun item în listă.",
+  "status": {
+    "bought": "Cumpărat",
+    "inList": "În listă"
+  },
+  "markBought": "Marchează cumpărat",
+  "addAsExpense": "Adaugă și ca cheltuială în Facturi ({{amount}})"
+}

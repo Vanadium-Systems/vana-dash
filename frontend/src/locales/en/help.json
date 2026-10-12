@@ -1,0 +1,10 @@
+{
+  "description": "Short steps for the pages you use.",
+  "emptyTitle": "There are no guides for your pages yet",
+  "emptyHint": "If something is not clear, open a ticket from Support.",
+  "searchPlaceholder": "Search the guides",
+  "pageFilter": "Page",
+  "allPages": "All pages",
+  "noMatch": "No guide matches",
+  "seeRecording": "See the recording"
+}

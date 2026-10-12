@@ -1,0 +1,13 @@
+{
+  "updated": "Notiță actualizată",
+  "created": "Notiță creată",
+  "deleted": "Notiță ștearsă",
+  "editTitle": "Editează notița",
+  "deleteTitle": "Șterge notița „{{title}}”",
+  "deleteConfirm": "Șterge notița",
+  "searchPlaceholder": "Caută în titlu sau conținut…",
+  "noneFound": "Nicio notiță găsită.",
+  "empty": "Nicio notiță încă — creează prima.",
+  "unpin": "Deblochează",
+  "pin": "Fixează"
+}

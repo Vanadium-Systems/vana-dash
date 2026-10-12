@@ -8,11 +8,12 @@ import type { Platform } from '@/shared/lib/types'
 import { CalculatorTab } from './CalculatorTab'
 import { ConfigPretTab } from './ConfigPretTab'
 import { ProspectareTab } from './ProspectareTab'
+import { t } from '@/shared/lib/i18n'
 
 const TABS = [
-  { key: 'prospectare', label: 'Prospectare' },
-  { key: 'calculator', label: 'Calculator' },
-  { key: 'config', label: 'Config preț' },
+  { key: 'prospectare', label: t('pricing:tabs.prospects') },
+  { key: 'calculator', label: t('pricing:tabs.calculator') },
+  { key: 'config', label: t('pricing:tabs.priceConfig') },
 ] as const
 
 export function PricingPage() {
@@ -29,7 +30,7 @@ export function PricingPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Clienți" />
+      <PageHeader title={t('common:nav.clients')} />
       <Tabs
         value={tab}
         onValueChange={(v) =>
@@ -42,9 +43,9 @@ export function PricingPage() {
         }
       >
         <TabsList>
-          {TABS.map((t) => (
-            <TabsTrigger key={t.key} value={t.key}>
-              {t.label}
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>
+              {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>

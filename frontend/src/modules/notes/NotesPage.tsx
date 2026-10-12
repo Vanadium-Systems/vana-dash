@@ -12,6 +12,7 @@ import type { Note } from '@/shared/lib/types'
 import { NoteFormDialog } from './NoteFormDialog'
 import { useConsumeParam } from '@/shared/hooks/use-consume-param'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 export function NotesPage() {
   const queryClient = useQueryClient()
@@ -44,10 +45,10 @@ export function NotesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Notițe"
+        title={t('common:nav.notes')}
         actions={
           <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> Notiță nouă
+            <Plus className="h-4 w-4" /> {t('common:palette.newNote')}
           </Button>
         }
       />
@@ -55,7 +56,7 @@ export function NotesPage() {
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Caută în titlu sau conținut…"
+          placeholder={t('notes:searchPlaceholder')}
           className="pl-8"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -70,7 +71,7 @@ export function NotesPage() {
         </div>
       ) : !notes.data?.length ? (
         <p className="text-sm text-muted-foreground">
-          {search ? 'Nicio notiță găsită.' : 'Nicio notiță încă — creează prima.'}
+          {search ? t('notes:noneFound') : t('notes:empty')}
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -88,7 +89,7 @@ export function NotesPage() {
                   <Button
                     variant="ghost"
                     className="shrink-0"
-                    title={note.pinned ? 'Deblochează' : 'Fixează'}
+                    title={note.pinned ? t('notes:unpin') : t('notes:pin')}
                     onClick={(e) => {
                       e.stopPropagation()
                       togglePin.mutate(note)

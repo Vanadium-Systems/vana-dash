@@ -7,6 +7,8 @@ import { formatSeconds } from '@/shared/components/bot/types'
 import { api } from '@/shared/lib/api'
 import { LearningPanel } from './LearningPanel'
 import type { BotOverview, BotSnapshot } from './types'
+import { t } from '@/shared/lib/i18n'
+import { tNodes } from '@/shared/lib/i18n-nodes'
 
 // The "Bot" tab in Crypto: jeffbot, an external paper trading bot. Its data arrives by push
 // every 5 minutes (modules/jeffbot in the backend); this tab only reads. No trading action:
@@ -21,15 +23,15 @@ export function BotTab() {
   if (overview.isPending) return <BotSkeleton />
   if (overview.isError) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">Nu am putut încărca starea botului. Reîncerc automat într-un minut.</p>
+      <p className="py-12 text-center text-sm text-muted-foreground">{t('crypto:bot.loadFailed')}</p>
     )
   }
   if (!overview.data) {
     return (
       <div className="py-12 text-center">
-        <p className="text-sm font-medium">Botul n-a trimis încă date</p>
+        <p className="text-sm font-medium">{t('crypto:bot.noDataTitle')}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Primul snapshot apare după ce exportul botului rulează cu tokenul de ingest configurat.
+          {t('crypto:bot.noDataHint')}
         </p>
       </div>
     )
@@ -58,13 +60,17 @@ function StatusStrip({ snapshot, receivedAt }: { snapshot: BotSnapshot; received
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
         <BotHealth receivedAt={receivedAt} services={snapshot.services} />
         <span className="text-muted-foreground">
-          Prețuri <span className="tnum">{formatSeconds(oldestCandle)}</span>
+          {t('crypto:bot.prices')} <span className="tnum">{formatSeconds(oldestCandle)}</span>
         </span>
         <span className="text-muted-foreground">
-          Știri 24h <span className="tnum">{news.last24h}</span> · etichetate{' '}
-          <span className="tnum">
-            {news.labeled}/{news.total}
-          </span>
+          {tNodes('crypto:bot.newsLine', {
+            count: <span className="tnum">{news.last24h}</span>,
+            labeled: (
+              <span className="tnum">
+                {news.labeled}/{news.total}
+              </span>
+            ),
+          })}
         </span>
         {fearGreed ? (
           <span className="text-muted-foreground">
@@ -75,8 +81,11 @@ function StatusStrip({ snapshot, receivedAt }: { snapshot: BotSnapshot; received
       </div>
       {sourceErrors.length ? (
         <p className="text-xs text-warning [overflow-wrap:anywhere]">
-          Surse cu erori:{' '}
-          {sourceErrors.map((e) => `${e.source} (${e.error}${e.sinceSec ? `, de ${formatSeconds(e.sinceSec)}` : ''})`).join(' · ')}
+          {t('crypto:bot.sourceErrors', {
+            list: sourceErrors
+              .map((e) => (e.sinceSec ? t('crypto:bot.errorSince', { source: e.source, error: e.error, since: formatSeconds(e.sinceSec) }) : `${e.source} (${e.error})`))
+              .join(' · '),
+          })}
         </p>
       ) : null}
     </div>

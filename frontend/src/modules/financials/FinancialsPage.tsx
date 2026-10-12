@@ -13,16 +13,17 @@ import { sumByDirection } from '@/shared/lib/financial-utils'
 import type { CashflowEntry, ExchangeRatePoint, PnlByCategory, PnlByMonth, PnlResponse } from '@/shared/lib/types'
 import { formatNumber, intlTag } from '@/shared/lib/format'
 import { BnrRateChart, type BnrRatePoint } from './BnrRateChart'
+import { t } from '@/shared/lib/i18n'
 
 const BAR_SERIES = [
-  { key: 'out', label: 'Venituri (încasate)', color: 'hsl(var(--primary))' },
-  { key: 'in', label: 'Cheltuieli', color: 'hsl(var(--destructive))' },
+  { key: 'out', label: t('financials:labels.revenueCollected'), color: 'hsl(var(--primary))' },
+  { key: 'in', label: t('financials:labels.expenses'), color: 'hsl(var(--destructive))' },
 ]
 
 const CASHFLOW_LABELS: Record<CashflowEntry['paymentStatus'], string> = {
-  paid: 'Plătit',
-  partial: 'Parțial plătit',
-  unpaid: 'Neplătit',
+  paid: t('financials:status.paid'),
+  partial: t('financials:status.partiallyPaid'),
+  unpaid: t('financials:status.unpaid'),
 }
 
 export function FinancialsPage() {
@@ -67,47 +68,47 @@ export function FinancialsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Financiar" actions={<PeriodSelector />} />
+      <PageHeader title={t('common:nav.financials')} actions={<PeriodSelector />} />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        <KPICard label="Venituri (încasate)" value={revenue} unit="RON" isPending={pnl.isPending} />
-        <KPICard label="Facturat, în așteptare" value={pendingRevenue} unit="RON" isPending={pnl.isPending} />
-        <KPICard label="Cheltuieli" value={expense} unit="RON" isPending={pnl.isPending} />
+        <KPICard label={t('financials:labels.revenueCollected')} value={revenue} unit="RON" isPending={pnl.isPending} />
+        <KPICard label={t('financials:kpi.invoicedPending')} value={pendingRevenue} unit="RON" isPending={pnl.isPending} />
+        <KPICard label={t('financials:labels.expenses')} value={expense} unit="RON" isPending={pnl.isPending} />
         <KPICard
-          label="Cheltuieli, în așteptare"
+          label={t('financials:kpi.expensesPending')}
           value={pendingExpense}
           unit="RON"
           isPending={pnl.isPending}
-          hint="deja materializate, neplătite"
+          hint={t('financials:kpi.expensesPendingHint')}
         />
         <KPICard
-          label="Cheltuieli recurente (lunar)"
+          label={t('financials:kpi.recurringMonthly')}
           value={recurringExpensesMonthly.data?.monthlyRon ?? null}
           unit="RON"
           isPending={recurringExpensesMonthly.isPending}
-          hint="abonamentele active, echivalent lunar"
+          hint={t('financials:kpi.recurringMonthlyHint')}
         />
-        <KPICard label="Profit net" value={profit} unit="RON" isPending={pnl.isPending} />
+        <KPICard label={t('financials:kpi.netProfit')} value={profit} unit="RON" isPending={pnl.isPending} />
         <KPICard
-          label="Venituri / cheltuieli"
+          label={t('financials:kpi.revenueToExpenses')}
           value={incomeOutcomeRatio}
           isPending={pnl.isPending}
           tone={incomeOutcomeRatio == null ? undefined : incomeOutcomeRatio >= 1 ? 'positive' : 'negative'}
-          hint="încasat raportat la cheltuit"
+          hint={t('financials:kpi.revenueToExpensesHint')}
         />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Venituri (încasate) vs. cheltuieli pe lună</CardTitle>
+          <CardTitle>{t('financials:charts.revenueVsExpenses')}</CardTitle>
         </CardHeader>
         <CardContent>
           {pnl.isPending ? (
             <ChartSkeleton height={300} />
           ) : pnl.isError ? (
-            <ChartError message="Nu am putut încărca datele" />
+            <ChartError message={t('common:states.loadFailed')} />
           ) : !monthlyChartData.length ? (
-            <ChartEmpty label="Nicio dată pentru această perioadă" />
+            <ChartEmpty label={t('common:states.noData')} />
           ) : (
             <MetricBarChart data={monthlyChartData} series={BAR_SERIES} unit="RON" />
           )}
@@ -116,23 +117,23 @@ export function FinancialsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>P&L pe categorie</CardTitle>
+          <CardTitle>{t('financials:pnl.byCategory')}</CardTitle>
         </CardHeader>
         <CardContent>
           {pnl.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : pnl.isError ? (
-            <ChartError message="Nu am putut încărca datele" />
+            <ChartError message={t('common:states.loadFailed')} />
           ) : !categoryRows.length ? (
-            <p className="text-sm text-muted-foreground">Nicio înregistrare în această perioadă.</p>
+            <p className="text-sm text-muted-foreground">{t('financials:empty')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Categorie</TableHead>
-                  <TableHead className="text-right">Venituri (încasate)</TableHead>
-                  <TableHead className="text-right">Cheltuieli</TableHead>
-                  <TableHead className="text-right">Net</TableHead>
+                  <TableHead>{t('common:labels.category')}</TableHead>
+                  <TableHead className="text-right">{t('financials:labels.revenueCollected')}</TableHead>
+                  <TableHead className="text-right">{t('financials:labels.expenses')}</TableHead>
+                  <TableHead className="text-right">{t('financials:labels.net')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -156,24 +157,24 @@ export function FinancialsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Cash flow</CardTitle>
+          <CardTitle>{t('financials:cashFlow.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {cashflow.isPending ? (
             <Skeleton className="h-16 w-full" />
           ) : cashflow.isError ? (
-            <ChartError message="Nu am putut încărca datele" />
+            <ChartError message={t('common:states.loadFailed')} />
           ) : !cashflow.data?.length ? (
-            <p className="text-sm text-muted-foreground">Nicio înregistrare în această perioadă.</p>
+            <p className="text-sm text-muted-foreground">{t('financials:empty')}</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-3">
               {cashflow.data.map((entry) => (
                 <div key={`${entry.direction}-${entry.paymentStatus}`} className="rounded-md border p-3">
                   <div className="text-xs text-muted-foreground">
-                    {entry.direction === 'out' ? 'Emise' : 'Primite'} · {CASHFLOW_LABELS[entry.paymentStatus]}
+                    {entry.direction === 'out' ? t('financials:cashFlow.issued') : t('financials:cashFlow.received')} · {CASHFLOW_LABELS[entry.paymentStatus]}
                   </div>
                   <div className="tnum font-mono text-lg font-semibold">{formatNumber(entry.total, 'RON')}</div>
-                  <div className="text-xs text-muted-foreground">{entry.count} înregistrări</div>
+                  <div className="text-xs text-muted-foreground">{t('common:count.records', { count: entry.count })}</div>
                 </div>
               ))}
             </div>
@@ -189,7 +190,7 @@ export function FinancialsPage() {
 type BnrRangeKey = 'week' | 'month' | 'year'
 
 const BNR_RANGE_OPTIONS: [BnrRangeKey, string][] = [
-  ['week', 'Săptămâna'],
+  ['week', t('financials:cashFlow.week')],
   ['month', 'Luna'],
   ['year', 'Anul'],
 ]
@@ -265,7 +266,7 @@ function ExchangeRateCard() {
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4 space-y-0">
-        <CardTitle>Curs BNR</CardTitle>
+        <CardTitle>{t('financials:bnr.title')}</CardTitle>
         <div className="flex flex-wrap gap-2">
           <div className="inline-flex overflow-hidden rounded-md border">
             {(['EUR', 'USD'] as const).map((c) => (
@@ -296,14 +297,14 @@ function ExchangeRateCard() {
       <CardContent className="space-y-4">
         <div className="tnum font-mono text-2xl font-semibold">
           {latest ? `1 ${currency} = ${Number(latest.rate).toFixed(4)} RON` : '—'}
-          {latest && <span className="ml-2 font-sans text-sm font-normal text-muted-foreground">la {latest.date}</span>}
+          {latest && <span className="ml-2 font-sans text-sm font-normal text-muted-foreground">{t('financials:bnr.asOf', { date: latest.date })}</span>}
         </div>
         {history.isPending ? (
           <ChartSkeleton height={220} />
         ) : history.isError ? (
-          <ChartError message="Nu am putut încărca cursul BNR" />
+          <ChartError message={t('financials:bnr.loadFailed')} />
         ) : !chartData.length ? (
-          <ChartEmpty label="Niciun curs istoric încă — jobs/bnr-daily-fetch.ts abia a pornit" />
+          <ChartEmpty label={t('financials:bnr.noHistory')} />
         ) : (
           <BnrRateChart data={chartData} decimals={4} height={220} />
         )}

@@ -1,0 +1,41 @@
+{
+  "descriptionAll": "Tot ce au scris oamenii în Suport, cu cele necitite sus.",
+  "descriptionMine": "Scrie-ne când ceva nu merge sau nu e limpede. Răspunsul vine aici și pe email.",
+  "newTicket": "Tichet nou",
+  "filterByStatus": "Filtrează după stare",
+  "allStatuses": "Toate stările",
+  "loadFailed": "Nu am putut încărca tichetele.",
+  "emptyForStatus": "Niciun tichet cu starea „{{value}}”",
+  "emptyAllTitle": "Niciun tichet încă",
+  "emptyAllHint": "Aici apar tichetele deschise de oameni din Suport.",
+  "emptyMineTitle": "Nu ai deschis niciun tichet",
+  "emptyMineHint": "Spune-ne ce nu merge și pe ce pagină erai.",
+  "lastActivity": "Ultima mișcare",
+  "form": {
+    "sent": "Tichetul a plecat. Îți răspundem aici și pe email.",
+    "subjectRequired": "Scrie în câteva cuvinte despre ce e vorba.",
+    "bodyRequired": "Descrie ce ai încercat și ce s-a întâmplat.",
+    "pageIncluded": "Trimitem și pagina de pe care ai venit: {{pageLabel}}.",
+    "submit": "Trimite tichetul"
+  },
+  "ticket": {
+    "closedToast": "Tichet închis.",
+    "replyRequired": "Scrie răspunsul înainte să-l trimiți.",
+    "notFound": "Tichetul nu există sau nu e al tău.",
+    "loadFailed": "Nu am putut încărca tichetul.",
+    "vanadiumAuthor": "{{name}}, Vanadium",
+    "yourReply": "Răspunsul tău",
+    "closedNote": "Tichetul e închis. Un răspuns îl redeschide.",
+    "sendReply": "Trimite răspunsul",
+    "close": "Închide tichetul",
+    "openedAt": "Deschis {{when}}",
+    "openedAtFromPage": "Deschis {{when}}, de pe pagina {{page}}",
+    "byAt": "{{name}}, {{when}}",
+    "byAtFromPage": "{{name}}, {{when}}, de pe pagina {{page}}"
+  },
+  "status": {
+    "open": "Deschis",
+    "answered": "Răspuns",
+    "closed": "Închis"
+  }
+}

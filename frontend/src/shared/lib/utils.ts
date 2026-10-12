@@ -1,6 +1,5 @@
 import { clsx, type ClassValue } from 'clsx'
 import { extendTailwindMerge } from 'tailwind-merge'
-import { intlTag } from '@/shared/lib/format'
 
 // Token-ii de înălțime (DESIGN.md) trebuie să se bată corect cu `h-8` & co. într-un className.
 const twMerge = extendTailwindMerge({
@@ -32,14 +31,6 @@ export function formatBytes(bytes: number): string {
 /** Pentru căutare: fără diacritice (inclusiv ş/ţ cu sedilă din date vechi), fără majuscule. */
 export function normalizeForSearch(text: string): string {
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-}
-
-/** „1 fișier", „3 fișiere", „20 de fișiere", „101 fișiere" — regula lui „de" din română. */
-export function formatCount(n: number, singular: string, plural: string): string {
-  if (n === 1) return `1 ${singular}`
-  const rest = n % 100
-  const needsDe = n !== 0 && (rest === 0 || rest >= 20)
-  return `${new Intl.NumberFormat(intlTag()).format(n)} ${needsDe ? 'de ' : ''}${plural}`
 }
 
 /**

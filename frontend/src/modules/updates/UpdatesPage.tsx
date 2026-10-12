@@ -8,6 +8,7 @@ import { api } from '@/shared/lib/api'
 import type { SessionPayload } from '@/shared/lib/types'
 import { isUnseen, visibleReleases } from './releases'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 const DATE = new Intl.DateTimeFormat(intlTag(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Bucharest' })
 
@@ -33,16 +34,16 @@ export function UpdatesPage() {
 
   return (
     <div className="max-w-2xl space-y-6" data-density="comfortable">
-      <PageHeader title="Noutăți" description="Ce s-a schimbat în paginile pe care le folosești." />
+      <PageHeader title={t('common:nav.updates')} description={t('updates:description')} />
       {releases.length === 0 ? (
-        <EmptyState kind="new" title="Nicio noutate încă" />
+        <EmptyState kind="new" title={t('updates:empty')} />
       ) : (
         <ol className="space-y-6">
           {releases.map((release) => (
             <li key={release.publishedAt} className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-base font-semibold">{release.title}</h2>
-                {seenBefore.current !== undefined && isUnseen(release, seenBefore.current) ? <Badge variant="secondary">Nou</Badge> : null}
+                {seenBefore.current !== undefined && isUnseen(release, seenBefore.current) ? <Badge variant="secondary">{t('updates:new')}</Badge> : null}
               </div>
               <time dateTime={release.publishedAt} className="block text-xs text-muted-foreground">
                 {DATE.format(new Date(release.publishedAt))}

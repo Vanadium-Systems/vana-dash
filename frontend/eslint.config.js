@@ -1,18 +1,30 @@
 import i18next from 'eslint-plugin-i18next'
 import tseslint from 'typescript-eslint'
 
-// Folders whose texts live in src/locales. A literal written in JSX there fails the lint;
-// the list grows until it is the whole of src.
-const TRANSLATED = [
-  'src/App.tsx',
-  'src/shared/**/*.{ts,tsx}',
-  ...['auth', 'overview', 'accounting', 'messages', 'email', 'calendar', 'archive'].map((name) => `src/modules/${name}/**/*.{ts,tsx}`),
-]
+// Every text shown to a person lives in src/locales, in each language. A literal written in JSX
+// fails the lint.
+const TRANSLATED = ['src/**/*.{ts,tsx}']
 
 // Things that read the same in every language.
 const NOT_TEXT = [
   '[0-9!-/:-@[-`{-~\\s]+',
-  '[A-Z0-9_./%+: ·•→←↑↓×≈⚠▸▾—–-]+',
+  '[A-Z0-9_./%+:$&() ·•→←↑↓×≈⚠▸▾★▍„”"−—–-]+',
+  'https?://.*',
+  '/[\\w#./-]*',
+  '(stroke|fill|text|bg)-[a-z -]+',
+  '[A-Z][a-z]+/[A-Z][A-Za-z_]+',
+  // product, provider and market names
+  '(Crypto · )?Binance',
+  'Trading212',
+  'Finnhub',
+  'Twelve Data',
+  'Revolut Business',
+  'S&P 500 / Nasdaq 100',
+  'P&L',
+  'dex/',
+  'CPU / RAM / Disk',
+  'dash \\(VPS\\)',
+  'Fear & Greed',
   '\\.env',
   '(ANAF )?SPV / e-Factura',
   'ANAF SPV / e-Factura',

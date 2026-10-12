@@ -4,6 +4,7 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { api } from '@/shared/lib/api'
+import { t } from '@/shared/lib/i18n'
 
 interface OpsJobToggles {
   bankSync: boolean
@@ -14,18 +15,18 @@ interface OpsJobToggles {
 const JOBS: { key: keyof OpsJobToggles; label: string; description: string }[] = [
   {
     key: 'bankSync',
-    label: 'Sync bancar automat',
-    description: 'La 30 min. Sync-ul manual din Reconciliere rămâne disponibil oricând, indiferent de starea asta.',
+    label: t('settings:jobs.bankSync'),
+    description: t('settings:jobs.bankSyncHint'),
   },
   {
     key: 'tenderWatch',
-    label: 'Monitor licitații (SICAP)',
-    description: 'La 09:00 și 17:00. Util de oprit cât timp SICAP blochează IP-ul — nu are rost să mai încerce degeaba.',
+    label: t('settings:jobs.tenders'),
+    description: t('settings:jobs.tendersHint'),
   },
   {
     key: 'bnrFeed',
-    label: 'Feed curs valutar BNR',
-    description: 'Zilnic la 14:00. Facturarea în valută cade oricum pe fallback-ul de la citire dacă lipsește o zi.',
+    label: t('settings:jobs.bnr'),
+    description: t('settings:jobs.bnrHint'),
   },
 ]
 
@@ -43,7 +44,7 @@ export function OpsJobsSettingsCard() {
     mutationFn: (patch: Partial<OpsJobToggles>) => api.put<OpsJobToggles>('/api/settings/ops-jobs', patch),
     onSuccess: (data) => {
       queryClient.setQueryData(['settings', 'ops-jobs'], data)
-      toast.success('Salvat')
+      toast.success(t('common:states.saved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -53,7 +54,7 @@ export function OpsJobsSettingsCard() {
   return (
     <Card>
       <CardContent className="space-y-4 pt-6">
-        <CardTitle className="text-base">Cron-uri operaționale</CardTitle>
+        <CardTitle className="text-base">{t('settings:jobs.title')}</CardTitle>
         <div className="space-y-2">
           {JOBS.map((job) => {
             const enabled = toggles.data[job.key]
@@ -62,7 +63,7 @@ export function OpsJobsSettingsCard() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{job.label}</p>
-                    {enabled ? <Badge variant="success">Activ</Badge> : <Badge variant="outline">Oprit</Badge>}
+                    {enabled ? <Badge variant="success">{t('common:states.active')}</Badge> : <Badge variant="outline">{t('settings:jobs.off')}</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground">{job.description}</p>
                 </div>
@@ -71,7 +72,7 @@ export function OpsJobsSettingsCard() {
                   disabled={update.isPending}
                   onClick={() => update.mutate({ [job.key]: !enabled })}
                 >
-                  {enabled ? 'Oprește' : 'Activează'}
+                  {enabled ? t('common:actions.stop') : t('common:actions.enable')}
                 </Button>
               </div>
             )

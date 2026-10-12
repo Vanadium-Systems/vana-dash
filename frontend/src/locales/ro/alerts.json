@@ -1,0 +1,58 @@
+{
+  "rule": {
+    "updated": "Regulă actualizată",
+    "created": "Regulă creată",
+    "deleted": "Regulă ștearsă",
+    "editTitle": "Editează regula",
+    "new": "Regulă nouă",
+    "metricKey": "Metric key",
+    "metricKeyPlaceholder": "ex: revenue",
+    "condition": "Condiție",
+    "threshold": "Prag",
+    "windowHours": "Fereastră (ore)",
+    "testing": "Se testează…",
+    "testNow": "Testează acum",
+    "currentValue": "Valoare curentă:",
+    "wouldTrigger": "s-ar declanșa",
+    "wouldNotTrigger": "nu se declanșează",
+    "deleteTitle": "Șterge regula „{{name}}”",
+    "deleteBody": "Alertele declanșate de ea rămân în istoric.",
+    "deleteConfirm": "Șterge regula",
+    "none": "Nicio regulă definită încă.",
+    "disabled": "Dezactivată"
+  },
+  "tabs": {
+    "active": "Active",
+    "rules": "Reguli"
+  },
+  "ackFailed": "Alerta nu s-a confirmat. Încearcă din nou.",
+  "snoozeFailed": "Alerta nu s-a amânat. Încearcă din nou.",
+  "ruleHistory": "Istoricul regulii",
+  "loadFailed": "Alertele nu s-au încărcat.",
+  "noneActive": "Nicio alertă activă.",
+  "detailAria": "Detaliul alertei",
+  "pickOne": "Alege o alertă din listă.",
+  "alert": "Alertă",
+  "ackAllFailed": "Alertele nu s-au confirmat. Încearcă din nou.",
+  "filteredByRule": "Filtrat pe regula „{{name}}\"",
+  "historyHint": "Toate declanșările, inclusiv cele confirmate",
+  "ackAll": "Confirmă tot",
+  "historyEmpty": "Nicio declanșare în istoric.",
+  "labels": {
+    "rule": "Regulă",
+    "triggered": "Declanșat",
+    "acknowledged": "Confirmată",
+    "snoozed": "Amânată",
+    "metric": "Metric",
+    "window": "Fereastră"
+  },
+  "snoozedFor": "Amânată {{days}}",
+  "snoozeFor": "Amână {{days}}",
+  "ackedMany_one": "{{count}} alertă confirmată",
+  "ackedMany_few": "{{count}} alerte confirmate",
+  "ackedMany_other": "{{count}} de alerte confirmate",
+  "severity": {
+    "warning": "Warning",
+    "critical": "Critical"
+  }
+}

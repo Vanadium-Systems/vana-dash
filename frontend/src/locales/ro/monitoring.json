@@ -1,0 +1,14 @@
+{
+  "range": {
+    "lastHour": "ultima oră",
+    "lastDay": "ultima zi",
+    "last7Days": "ultimele 7 zile"
+  },
+  "noSnapshot": "niciun snapshot încă",
+  "updatedNow": "actualizat acum",
+  "updatedMinutesAgo": "ultima actualizare acum {{minutes}} min",
+  "emptyHost": "Fără istoric încă — colectorul de pe server-1 n-a trimis nimic",
+  "loadFailed": "Nu am putut încărca semnalele de sănătate",
+  "emptyBackup": "Fără istoric încă — nicio rulare a scriptului de colectare",
+  "updatedAt": "ultima actualizare {{when}}"
+}

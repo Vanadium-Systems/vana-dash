@@ -1,0 +1,75 @@
+{
+  "asset": {
+    "backToAssets": "Înapoi la Assets",
+    "today": "azi",
+    "chartUnavailable": "Grafic indisponibil — verifică cheia Twelve Data din Setări.",
+    "profile": "Profil {{name}}",
+    "industry": "Industrie: {{industry}}.",
+    "loadFailed": "Nu am putut încărca {{symbol}}: {{reason}}",
+    "missing": "inexistent"
+  },
+  "order": {
+    "orderFor": "Ordin {{symbol}}",
+    "liveSent": "Ordin live trimis pe Trading212",
+    "newTitle": "Ordin nou — Trading212",
+    "liveSymbolHint": " Mod live: simbolul e ticker-ul EXACT Trading212 (ex: AAPL_US_EQ), nu simbolul de preț."
+  },
+  "stats": {
+    "open": "Deschidere",
+    "high": "Maxim",
+    "low": "Minim",
+    "previousClose": "Închidere anterioară",
+    "sharesOutstanding": "Acțiuni în circulație",
+    "exchange": "Bursă"
+  },
+  "metals": {
+    "gold": "Aur (XAU/USD)",
+    "silver": "Argint (XAG/USD)"
+  },
+  "search": {
+    "placeholder": "Caută o acțiune sau un ETF…",
+    "noResult": "Niciun rezultat — verifică și cheia Finnhub din Setări."
+  },
+  "favorites": {
+    "empty": "Niciun favorit încă — caută o acțiune/ETF mai sus sau adaugă un metal."
+  },
+  "portfolio": {
+    "empty": "Nicio poziție — conectează Trading212 din Setări și plasează ordine paper."
+  },
+  "index": {
+    "filterPlaceholder": "Filtrează lista…",
+    "noResult": "Niciun rezultat pentru filtrul ăsta.",
+    "change": "Variație"
+  },
+  "settings": {
+    "connected": "Trading212 conectat — cheia e criptată în DB",
+    "paperOn": "Paper mode activat (fără cheie)",
+    "disconnected": "Trading212 deconectat",
+    "providerDisconnected": "Provider deconectat",
+    "title": "Assets · Trading212 + prețuri",
+    "hint": "Cheile de preț (Finnhub, Twelve Data) sunt doar-citire. Cheia Trading212 e folosită DOAR pe live (paper e simulat local — Trading212 n-are testnet prin API).",
+    "t212Key": "Trading212 API key (opțional pt. paper)",
+    "t212Hint": "Trading212 cere cont alimentat înainte să emită o cheie API — poți activa paper mode fără ea, direct din butonul de mai jos.",
+    "enablePaper": "Activează paper mode (fără cheie)",
+    "finnhubKey": "Finnhub API key (acțiuni/ETF-uri)",
+    "twelveDataKey": "Twelve Data API key (aur/argint)"
+  },
+  "bot": {
+    "noDataTitle": "Botul n-a trimis încă date de bursă",
+    "noDataHint": "Tab-ul se umple după ce serviciul jeffbot-stocks trimite primul snapshot.",
+    "newsHint": "Știri de bursă, cu sentimentul lui Jeff",
+    "marketOpen": "Bursa deschisă",
+    "marketClosed": "Bursa închisă",
+    "connected": "conectat",
+    "error": "eroare",
+    "late": " (întârzie)",
+    "closesAt": "{{state}}, se închide la {{time}}",
+    "opensAt": "{{state}}, se deschide {{time}}",
+    "broker": "Alpaca {{mode}}: {{state}}",
+    "brokerError": "Alpaca: {{error}}"
+  },
+  "categories": {
+    "etfs": "ETF-uri",
+    "metals": "Metale"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "guide": {
+    "step1": "Adaugă un cont din tab-ul <b>Conturi</b> (provider Revolut, API Key gol — nu mai e nevoie, Revolut a trecut pe OAuth).",
+    "step2": "Aici, în <b>Setări</b>: apasă <b>„Generează certificat\"</b>, apoi <b>„Descarcă certificatul\"</b> (fișier <code>.pem</code>).",
+    "step3": "În Revolut Business (<mono>business.revolut.com</mono> pt. producție, <mono>sandbox-business.revolut.com</mono> pt. testare) — cont separat, se face signup normal acolo — mergi la <b>Settings → APIs → Business API → Add certificate</b>.",
+    "step4": "Lipește conținutul certificatului descărcat în câmpul „X509 public key\". La <b>OAuth redirect URI</b> pune adresa unde rulează vana-dash + <code>/reconciliation/revolut-callback</code> (ex: <code>https://dash.example.com/reconciliation/revolut-callback</code> pe VPS). <b>Revolut respinge `localhost`</b> — dacă testezi local fără domeniu propriu, poți folosi temporar un URL de la <mono>webhook.site</mono> ca să vezi codul de autorizare manual.",
+    "step5": "Salvează — Revolut îți arată <b>Client ID</b>. Copiază-l.",
+    "step6": "Înapoi în vana-dash: lipește Client ID-ul mai jos, „Salvează\", apoi <b>„Deschide consimțirea Revolut\"</b> — te duce în Revolut, aprobi accesul.",
+    "step7": "Ești redirecționat automat aici, pe Setări, cu câmpul „Cod autorizare\" deja precompletat (codul e valabil doar <b>~2 minute</b>, de-aia se face automat). Verifică și apasă „Conectează\".",
+    "step8": "Gata — status „Conectat\", refresh automat de acolo încolo (la fiecare ~25 min).",
+    "title": "Ghid: cum configurezi Revolut de la zero (sandbox sau producție)",
+    "vpsNote": "<b>De reținut pt. VPS:</b> variabilele <code>REVOLUT_API_URL</code> (<mono>sandbox-b2b...</mono> vs. <mono>b2b...</mono>) și <code>REVOLUT_REDIRECT_URI</code> din <code>.env</code> trebuie să corespundă exact mediului (sandbox/producție) și domeniului real — dacă schimbi domeniul sau treci pe producție, actualizează-le și refă pașii 3-7 (certificat nou nu e nevoie, doar redirect URI-ul înregistrat în Revolut trebuie să se potrivească)."
+  },
+  "account": {
+    "updated": "Cont actualizat",
+    "added": "Cont bancar adăugat",
+    "editTitle": "Editează contul",
+    "add": "Adaugă cont bancar",
+    "displayName": "Nume (afișat)",
+    "providerAccountId": "Account ID la provider (opțional)",
+    "apiKey": "API Key (opțional)",
+    "apiKeyHint": "Las gol pentru Revolut — se configurează separat prin OAuth în tab-ul Setări. Necesar doar pentru provideri viitori pe token static."
+  },
+  "labels": {
+    "provider": "Provider"
+  },
+  "accounts": {
+    "syncDone": "Sync bancar rulat",
+    "deleted": "Cont șters",
+    "title": "Conturi bancare",
+    "empty": "Niciun cont conectat. Adaugă contul Revolut Business — cheia OAuth se configurează separat, în tab-ul Setări.",
+    "lastSync": "Ultimul sync",
+    "syncNow": "Sync now",
+    "deleteTitle": "Șterge contul „{{name}}”",
+    "deleteBody": "Sincronizarea se oprește. Tranzacțiile importate și potrivirile făcute rămân.",
+    "deleteConfirm": "Șterge contul",
+    "loadFailed": "Nu am putut încărca conturile"
+  },
+  "transactions": {
+    "matchCancelled": "Match anulat — factura readusă la neplătită",
+    "title": "Tranzacții",
+    "onlyUnmatched": "Doar nematchuite",
+    "allMatchedTitle": "Toate tranzacțiile sunt potrivite cu facturi",
+    "allMatchedHint": "Filtrul arată doar ce e nepotrivit.",
+    "emptyTitle": "Nicio tranzacție importată încă",
+    "emptyHint": "Apar după primul sync al contului bancar.",
+    "counterparty": "Contrapartidă",
+    "reference": "Referință",
+    "match": "Match",
+    "auto": "auto",
+    "manual": "manual",
+    "cancelMatch": "Anulează match-ul"
+  },
+  "match": {
+    "manual": "Match manual",
+    "saved": "Match salvat — factura marcată plătită",
+    "ref": "Ref: {{reference}}",
+    "unpaidInvoice": "Factura neplătită",
+    "choose": "— alege —",
+    "draftMarker": "(draft)",
+    "save": "Salvează match-ul"
+  },
+  "tabs": {
+    "accounts": "Conturi"
+  },
+  "page": {
+    "adminOnly": "Conturile bancare și cheile lor sunt ale firmei; cer-le unui administrator dacă ai nevoie de ele aici."
+  },
+  "revolut": {
+    "clientIdSaved": "Client ID salvat",
+    "certGenerated": "Certificat generat — descarcă-l și urcă-l în Revolut",
+    "connectedToast": "Revolut conectat",
+    "connected": "Conectat",
+    "needsReauth": "Necesită re-auth",
+    "notConfigured": "Neconfigurat",
+    "tokenInfo": "Token expiră: {{tokenExpiresAt}} · Ultimul refresh: {{lastRefreshedAt}}",
+    "steps": "1. Salvează Client ID-ul (din aplicația înregistrată în Revolut Business Settings → API) · 2. Generează și urcă certificatul acolo · 3. Deschide consimțirea și lipește codul din redirect.",
+    "clientId": "Client ID",
+    "regenerateCert": "Regenerează certificatul",
+    "generateCert": "Generează certificat",
+    "downloadCert": "Descarcă certificatul",
+    "openConsent": "Deschide consimțirea Revolut",
+    "authCode": "Cod autorizare (din redirect)",
+    "setClientIdFirst": "Setează Client ID și generează certificatul mai întâi ca să poți deschide consimțirea.",
+    "noAccount": "Niciun cont Revolut încă. Adaugă unul din tab-ul Conturi, apoi revino aici ca să configurezi OAuth-ul."
+  },
+  "extension": {
+    "on": "Extindere automată pornită",
+    "off": "Extindere automată oprită (dry-run)",
+    "title": "Extindere abonament vanagreen",
+    "hint": "La o plată confirmată (match bancar automat sau „Marchează plătit\" manual din Contabilitate) pe un client mapat la un tenant vanagreen, extinde abonamentul acolo. Cu comutatorul oprit, acțiunile se loghează ca dry-run — util pt. testare, fără niciun apel real către vanagreen.",
+    "toggle": "Extindere automată ON (altfel doar dry-run)",
+    "history": "Istoric acțiuni (ultimele 100)",
+    "none": "Nicio acțiune încă.",
+    "mode": "Mod",
+    "months": "Luni",
+    "sourceBankMatch": "Match bancar",
+    "sourceManual": "Marcat manual",
+    "success": "succes",
+    "failed": "eșuat"
+  }
+}

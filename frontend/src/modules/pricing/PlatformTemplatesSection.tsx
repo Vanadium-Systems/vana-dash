@@ -9,6 +9,7 @@ import { api } from '@/shared/lib/api'
 import type { InvoiceTemplate } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 // Sprint D, Track 3; re-scope 2026-07-18 — template-uri de facturi PER PLATFORMĂ (aplicație
 // integrată), nu per client: 2-3 template-uri reutilizate de toți clienții unei platforme
@@ -37,12 +38,12 @@ function emptyForm(): TemplateFormState {
   return { name: '', currency: 'RON', isDefaultForAutoInvoice: false, lines: [{ ...EMPTY_LINE }] }
 }
 
-function toForm(t: InvoiceTemplate): TemplateFormState {
+function toForm(template: InvoiceTemplate): TemplateFormState {
   return {
-    name: t.name,
-    currency: t.currency,
-    isDefaultForAutoInvoice: t.isDefaultForAutoInvoice,
-    lines: t.lineItems.map((li) => ({
+    name: template.name,
+    currency: template.currency,
+    isDefaultForAutoInvoice: template.isDefaultForAutoInvoice,
+    lines: template.lineItems.map((li) => ({
       description: li.description,
       quantity: String(li.quantity),
       priceSource: li.priceSource,
@@ -67,9 +68,9 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
     setEditingId('new')
   }
 
-  function startEdit(t: InvoiceTemplate) {
-    setForm(toForm(t))
-    setEditingId(t.id)
+  function startEdit(template: InvoiceTemplate) {
+    setForm(toForm(template))
+    setEditingId(template.id)
   }
 
   function cancelEdit() {
@@ -102,7 +103,7 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
     },
     onSuccess: () => {
       void invalidate()
-      toast.success('Template salvat')
+      toast.success(t('pricing:templates.saved'))
       setEditingId(null)
     },
     onError: (err) => toast.error(err.message),
@@ -112,7 +113,7 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
     mutationFn: (id: string) => api.delete(`/api/invoicing/platforms/${platformId}/templates/${id}`),
     onSuccess: () => {
       void invalidate()
-      toast.success('Template șters')
+      toast.success(t('pricing:templates.deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -120,44 +121,41 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-semibold">Template-uri de factură (opțional)</Label>
+        <Label className="text-sm font-semibold">{t('pricing:templates.title')}</Label>
         {editingId === null && (
           <Button type="button" variant="outline" onClick={startNew}>
-            <Plus className="h-4 w-4" /> Template nou
+            <Plus className="h-4 w-4" /> {t('pricing:templates.new')}
           </Button>
         )}
       </div>
       <p className="text-xs text-muted-foreground">
-        2-3 template-uri per aplicație (ex. „Abonament", „Configurare"), reutilizate de toți clienții ei — nu unul per
-        client. Cel marcat „implicit" e folosit de facturarea automată (cron), pentru ORICE client al acestei
-        platforme. O linie „din abonamentul clientului" ia mereu prețul curent al clientului ales la facturare (nu
-        unul înghețat aici).
+        {t('pricing:templates.hint')}
       </p>
 
       {templates.isPending ? (
-        <p className="text-xs text-muted-foreground">Se încarcă…</p>
+        <p className="text-xs text-muted-foreground">{t('common:states.loading')}</p>
       ) : templates.data && templates.data.length > 0 ? (
         <div className="space-y-2">
-          {templates.data.map((t) => (
-            <div key={t.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+          {templates.data.map((template) => (
+            <div key={template.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
               <div>
-                <span className="font-medium">{t.name}</span>{' '}
+                <span className="font-medium">{template.name}</span>{' '}
                 <span className="text-xs text-muted-foreground">
-                  ({t.currency}, {t.lineItems.length} {t.lineItems.length === 1 ? 'linie' : 'linii'})
+                  {t('pricing:templates.summary', { currency: template.currency, count: template.lineItems.length })}
                 </span>
-                {t.isDefaultForAutoInvoice && (
-                  <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">implicit</span>
+                {template.isDefaultForAutoInvoice && (
+                  <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">{t('common:states.default')}</span>
                 )}
               </div>
               <div className="flex gap-1">
-                <Button type="button" variant="ghost" onClick={() => startEdit(t)}>
-                  Editează
+                <Button type="button" variant="ghost" onClick={() => startEdit(template)}>
+                  {t('common:actions.edit')}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
                   disabled={remove.isPending}
-                  onClick={() => remove.mutate(t.id)}
+                  onClick={() => remove.mutate(template.id)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -166,24 +164,24 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
           ))}
         </div>
       ) : (
-        editingId === null && <p className="text-xs text-muted-foreground">Niciun template încă.</p>
+        editingId === null && <p className="text-xs text-muted-foreground">{t('pricing:templates.empty')}</p>
       )}
 
       {editingId !== null && (
         <div className="space-y-3 rounded-md border p-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="t-name">Nume template</Label>
+              <Label htmlFor="t-name">{t('pricing:templates.name')}</Label>
               <Input
                 id="t-name"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="ex: Abonament"
+                placeholder={t('pricing:templates.namePlaceholder')}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="t-currency">Monedă</Label>
+              <Label htmlFor="t-currency">{t('common:labels.currency')}</Label>
               <Select
                 id="t-currency"
                 value={form.currency}
@@ -197,35 +195,35 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
           </div>
 
           <div className="space-y-2">
-            <Label>Linii</Label>
+            <Label>{t('pricing:templates.lines')}</Label>
             <div className="hidden flex-wrap gap-2 text-xs text-muted-foreground sm:flex">
-              <div className="sm:min-w-[8rem] sm:flex-1">Descriere</div>
-              <div className="w-16">Cant.</div>
-              <div className="w-48">Sursă preț</div>
-              <div className="w-24">Preț unitar</div>
-              <div className="w-16">TVA %</div>
+              <div className="sm:min-w-[8rem] sm:flex-1">{t('common:labels.description')}</div>
+              <div className="w-16">{t('common:labels.quantityShort')}</div>
+              <div className="w-48">{t('pricing:templates.priceSource')}</div>
+              <div className="w-24">{t('pricing:templates.unitPrice')}</div>
+              <div className="w-16">{t('common:labels.vatPercent')}</div>
               <div className="w-9" />
             </div>
             {form.lines.map((line, i) => (
               <div key={i} className="flex flex-wrap items-end gap-2">
                 <div className="w-full sm:min-w-[8rem] sm:flex-1">
                   <Input
-                    placeholder="Descriere"
+                    placeholder={t('common:labels.description')}
                     value={line.description}
                     onChange={(e) => setLine(i, 'description', e.target.value)}
                     required
                   />
                 </div>
                 <div className="w-16">
-                  <Input placeholder="Cant." inputMode="decimal" value={line.quantity} onChange={(e) => setLine(i, 'quantity', e.target.value)} required />
+                  <Input placeholder={t('common:labels.quantityShort')} inputMode="decimal" value={line.quantity} onChange={(e) => setLine(i, 'quantity', e.target.value)} required />
                 </div>
                 <div className="w-48">
                   <Select
                     value={line.priceSource}
                     onChange={(e) => setLine(i, 'priceSource', e.target.value as LineDraft['priceSource'])}
                   >
-                    <option value="fixed">Preț fix</option>
-                    <option value="client_subscription">Din abonamentul clientului</option>
+                    <option value="fixed">{t('pricing:templates.fixedPrice')}</option>
+                    <option value="client_subscription">{t('pricing:templates.fromSubscription')}</option>
                   </Select>
                 </div>
                 <div className="w-24">
@@ -233,14 +231,14 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
                     <Input
                       value="auto (abonament)"
                       disabled
-                      title="Se ia automat prețul curent al clientului ales la facturare, convertit dacă e nevoie prin cursul BNR al zilei"
+                      title={t('pricing:templates.fromSubscriptionHint')}
                     />
                   ) : (
-                    <Input placeholder="Preț unitar" inputMode="decimal" value={line.unitPrice} onChange={(e) => setLine(i, 'unitPrice', e.target.value)} required />
+                    <Input placeholder={t('pricing:templates.unitPrice')} inputMode="decimal" value={line.unitPrice} onChange={(e) => setLine(i, 'unitPrice', e.target.value)} required />
                   )}
                 </div>
                 <div className="w-16">
-                  <Input placeholder="TVA %" inputMode="decimal" value={line.vatRatePct} onChange={(e) => setLine(i, 'vatRatePct', e.target.value)} />
+                  <Input placeholder={t('common:labels.vatPercent')} inputMode="decimal" value={line.vatRatePct} onChange={(e) => setLine(i, 'vatRatePct', e.target.value)} />
                 </div>
                 <Button
                   type="button"
@@ -253,7 +251,7 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
               </div>
             ))}
             <Button type="button" variant="outline" onClick={() => setForm((f) => ({ ...f, lines: [...f.lines, { ...EMPTY_LINE }] }))}>
-              <Plus className="h-4 w-4" /> Adaugă linie
+              <Plus className="h-4 w-4" /> {t('pricing:templates.addLine')}
             </Button>
           </div>
 
@@ -263,15 +261,15 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
               checked={form.isDefaultForAutoInvoice}
               onChange={(e) => setForm((f) => ({ ...f, isDefaultForAutoInvoice: e.target.checked }))}
             />
-            Folosește-l implicit la facturarea automată (înlocuiește orice alt template implicit al platformei)
+            {t('pricing:templates.useAsDefault')}
           </label>
 
           <div className="flex gap-2">
             <Button type="button" disabled={save.isPending || !form.name} onClick={() => save.mutate()}>
-              {save.isPending ? 'Se salvează…' : 'Salvează template-ul'}
+              {save.isPending ? t('common:states.saving') : t('pricing:templates.save')}
             </Button>
             <Button type="button" variant="ghost" onClick={cancelEdit}>
-              Anulează
+              {t('common:actions.cancel')}
             </Button>
           </div>
         </div>
