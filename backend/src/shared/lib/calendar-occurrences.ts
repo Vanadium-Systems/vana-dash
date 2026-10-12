@@ -5,6 +5,7 @@ import { db } from '../db/client.js'
 import { calendarEvents, recurringExpenses } from '../db/schema/index.js'
 import { computeNextOccurrence, dayAfter, type BillingCycle } from './billing-cycle.js'
 import type { SessionUser } from './session.js'
+import { tr } from './i18n.js'
 
 // Ocurențele calendarului (evenimente + RRULE expandat + cheltuieli recurente), folosite de
 // modules/calendar, de jobs/calendar-reminders.ts și de modules/booking (sloturile libere) —
@@ -166,7 +167,7 @@ async function listRecurringExpenseOccurrences(from: Date, to: Date) {
           eventId: `expense-${expense.id}`,
           kind: 'expense',
           source: 'manual',
-          title: `Plată: ${expense.description}`,
+          title: tr('errors.calendar.paymentTitle', { description: expense.description }),
           description: null,
           location: null,
           allDay: true,

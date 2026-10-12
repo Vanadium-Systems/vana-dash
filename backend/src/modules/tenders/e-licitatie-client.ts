@@ -1,5 +1,6 @@
 import type { tenderWatchRules } from '../../shared/db/schema/index.js'
 import type { NormalizedTenderRow } from './types.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Client pt. cele două endpoint-uri interne SICAP (e-licitatie.ro), nedocumentate oficial —
 // research complet în PLAN.md. Fără autentificare, dar Referer/Origin/User-Agent obligatorii
@@ -59,8 +60,8 @@ function sleep(ms: number): Promise<void> {
 
 function sicapFetch(path: string, init: { method: 'GET' | 'POST'; referer: string; body?: string }): Promise<Response> {
   const run = requestQueue.then(async () => {
-    if (blockedStatus !== null) throw new SicapBlockedError(`SICAP a răspuns deja cu HTTP ${blockedStatus} în rularea asta — nu mai trimit request-uri`)
-    if (!hasRequestBudget()) throw new Error(`Plafonul de ${MAX_REQUESTS_PER_RUN} request-uri SICAP pe rulare a fost atins`)
+    if (blockedStatus !== null) throw new SicapBlockedError(tr('errors.tenders.alreadyBlocked', { blockedStatus }))
+    if (!hasRequestBudget()) throw new Error(tr('errors.tenders.requestCap', { MAX_REQUESTS_PER_RUN }))
     const wait = lastRequestAt + MIN_REQUEST_INTERVAL_MS - Date.now()
     if (wait > 0) await sleep(wait)
     requestsThisRun++
@@ -79,9 +80,9 @@ function sicapFetch(path: string, init: { method: 'GET' | 'POST'; referer: strin
       }
       if (res.status === 403 || res.status === 429) {
         blockedStatus = res.status
-        throw new SicapBlockedError(`SICAP a răspuns cu HTTP ${res.status} pe ${path} — posibil IP blocat`)
+        throw new SicapBlockedError(tr('errors.tenders.httpBlocked', { status: res.status, path }))
       }
-      if (!res.ok) throw new Error(`SICAP a răspuns cu HTTP ${res.status} pe ${path}`)
+      if (!res.ok) throw new Error(tr('errors.tenders.http', { status: res.status, path }))
       return res
     } finally {
       lastRequestAt = Date.now()

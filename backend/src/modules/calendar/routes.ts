@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { CreateCalendarShareSchema, CreateEventSchema, ListOccurrencesQuerySchema, UpdateEventSchema } from './schema.js'
 import * as service from './service.js'
 import { CalendarAccessError } from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function calendarRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -43,14 +44,14 @@ export async function calendarRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: UpdateEventSchema } },
     async (req, reply) => {
       const row = await service.updateEvent(req.me, (req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: 'Eveniment inexistent' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
       return { success: true, data: row }
     },
   )
 
   server.delete('/api/calendar/events/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.deleteEvent(req.me, (req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: 'Eveniment inexistent' })
+    if (!row) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
     return { success: true }
   })
 

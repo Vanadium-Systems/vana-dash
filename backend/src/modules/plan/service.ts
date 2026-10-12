@@ -5,6 +5,7 @@ import { planGoals } from '../../shared/db/schema/index.js'
 import { getCurrentMrr } from '../../shared/lib/financial-aggregation.js'
 import type { CompleteGoalSchema, CreatePlanGoalSchema, UpdatePlanGoalSchema } from './schema.js'
 import type { z } from 'zod'
+import { tr } from '../../shared/lib/i18n.js'
 
 type CreateInput = z.infer<typeof CreatePlanGoalSchema>
 type UpdateInput = z.infer<typeof UpdatePlanGoalSchema>
@@ -163,7 +164,7 @@ export async function reorderGoals(me: SessionUser, scope: PlanScope, tier: numb
       .where(and(eq(planGoals.scope, scope), eq(planGoals.tier, tier), isNull(planGoals.deletedAt)))
     const existingIds = new Set(existing.map((r) => r.id))
     if (existingIds.size !== orderedIds.length || !orderedIds.every((id) => existingIds.has(id))) {
-      throw new InvalidReorderError('orderedIds nu corespunde exact cu goal-urile existente din acest etaj')
+      throw new InvalidReorderError(tr('errors.plan.orderMismatch'))
     }
     for (let i = 0; i < orderedIds.length; i++) {
       await tx

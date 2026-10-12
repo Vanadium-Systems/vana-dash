@@ -6,6 +6,7 @@ import { db } from '../db/client.js'
 import { anafCredentials } from '../db/schema/index.js'
 import { decryptApiKey, encryptApiKey } from './crypto.js'
 import { sendAlertEmail } from './email.js'
+import { tr } from './i18n.js'
 
 // Gestionarea credențialelor ANAF: un singur rând activ (CIF-ul Vanadium).
 // Token-urile stau criptate în DB și sunt decriptate doar în memorie, per call.
@@ -41,9 +42,9 @@ export async function markNeedsReauth(id: string, reason: string): Promise<void>
     .set({ status: 'needs_reauth', updatedAt: new Date() })
     .where(eq(anafCredentials.id, id))
   await sendAlertEmail(
-    'ANAF: reautentificare necesară',
-    `Refresh token-ul ANAF a expirat sau a fost revocat (${reason}).\n` +
-      'Intră în vana-dash → Accounting → Settings și refă consimțirea cu certificatul digital.',
+    tr('emails.anaf.reauthSubject'),
+    tr('emails.anaf.reauthBody1', { reason }) +
+      tr('emails.anaf.reauthBody2'),
   )
 }
 
@@ -54,10 +55,10 @@ export async function markNeedsReauth(id: string, reason: string): Promise<void>
 export async function getAnafSession(): Promise<AnafSession> {
   const row = await getAnafCredentialsRow()
   if (!row || row.status === 'unconfigured' || !row.accessTokenEnc || !row.refreshTokenEnc) {
-    throw new Error('ANAF neconfigurat: fă consimțirea OAuth din Accounting → Settings')
+    throw new Error(tr('errors.anaf.consentMissing'))
   }
   if (row.status === 'needs_reauth') {
-    throw new Error('ANAF necesită reautentificare manuală (refresh token expirat/revocat)')
+    throw new Error(tr('errors.anaf.needsReauth'))
   }
 
   const needsRefresh = !row.expiresAt || row.expiresAt.getTime() - Date.now() < REFRESH_MARGIN_MS
@@ -71,6 +72,6 @@ export async function getAnafSession(): Promise<AnafSession> {
     return { cif: row.cif, accessToken: tokens.accessToken }
   } catch (err) {
     await markNeedsReauth(row.id, String(err))
-    throw new Error(`ANAF token refresh eșuat: ${String(err)}`)
+    throw new Error(tr('errors.anaf.refreshFailed', { err: String(err) }))
   }
 }

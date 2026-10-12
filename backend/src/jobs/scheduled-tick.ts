@@ -5,6 +5,8 @@ import { assistantConversations, dashboardConfig, scheduledRuns, users } from '.
 import { sendEmail } from '../shared/lib/email.js'
 import { isStaleRun, nextRecurrenceRun } from '../shared/lib/schedule-recurrence.js'
 import { notifyPush } from '../shared/lib/push.js'
+import { tr, trFor } from '../shared/lib/i18n.js'
+import { INTL_TAG } from '../shared/lib/locale.js'
 
 // Executor pentru `scheduled_runs` (PLAN.md Contract B): reminder-e și rapoarte programate
 // din chat. Un singur cron de „tick" la minut care scanează ce e due — fără cron dinamic
@@ -38,24 +40,24 @@ export async function executeReminder(run: ScheduledRunRow): Promise<void> {
   // coleg nu trebuie să sune pe telefonul lui Stefan.
   void notifyPush(
     'calendarReminder',
-    {
-      title: run.text ?? 'Reminder',
-      body: run.runAt.toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'short', timeStyle: 'short' }),
+    (locale) => ({
+      title: run.text ?? trFor(locale, 'push.reminder.fallbackTitle'),
+      body: run.runAt.toLocaleString(INTL_TAG[locale], { timeZone: 'Europe/Bucharest', dateStyle: 'short', timeStyle: 'short' }),
       url: '/calendar',
-    },
+    }),
     run.ownerUserId ? [run.ownerUserId] : undefined,
   )
   if (await isReminderEmailFallbackEnabled()) {
     // Plasă de rezervă opțională (Setări → Asistent) — push-ul rămâne canalul primar. Mergi
     // la autorul task-ului, nu la `ALERT_EMAIL_TO`: reminder-ul unui coleg nu e alertă de sistem.
     const [owner] = run.ownerUserId
-      ? await db.select({ email: users.email }).from(users).where(eq(users.id, run.ownerUserId))
+      ? await db.select({ email: users.email, locale: users.locale }).from(users).where(eq(users.id, run.ownerUserId))
       : []
     if (owner) {
       await sendEmail({
         to: owner.email,
-        subject: `[vana-dash] Reminder: ${run.text ?? ''}`,
-        text: `Reminder programat în vana-dash: ${run.text ?? ''}`,
+        subject: trFor(owner.locale, 'emails.reminder.subject', { text: run.text ?? '' }),
+        text: trFor(owner.locale, 'emails.reminder.body', { text: run.text ?? '' }),
       })
     }
   }
@@ -69,7 +71,7 @@ export async function executeReport(run: ScheduledRunRow): Promise<string> {
     // îi apare în Asistentul lui, nu într-o conversație fără om.
     const [conversation] = await db
       .insert(assistantConversations)
-      .values({ title: (run.prompt ?? 'Raport programat').slice(0, 60), ownerUserId: run.ownerUserId })
+      .values({ title: (run.prompt ?? tr('errors.scheduled.reportTitle')).slice(0, 60), ownerUserId: run.ownerUserId })
       .returning()
     conversationId = conversation!.id
   }
@@ -110,7 +112,7 @@ export async function runScheduledTick(now = new Date()): Promise<void> {
       if (isStaleRun(row.runAt, now)) {
         await db
           .update(scheduledRuns)
-          .set({ status: 'failed', lastError: 'Depășit (>7 zile) — nelivrât', updatedAt: new Date() })
+          .set({ status: 'failed', lastError: tr('errors.scheduled.overdue'), updatedAt: new Date() })
           .where(eq(scheduledRuns.id, row.id))
         continue
       }

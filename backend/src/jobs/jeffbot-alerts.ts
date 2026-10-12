@@ -4,6 +4,7 @@ import { getLatestReview, getState, STALE_AFTER_MS } from '../modules/jeffbot/se
 import { db } from '../shared/db/client.js'
 import { alerts } from '../shared/db/schema/index.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
+import { tl, tr } from '../shared/lib/i18n.js'
 
 // Alerts for the external paper trading bot. raiseAlert deduplicates only while the alert is
 // unacknowledged; here a state lasts for hours (bot stopped overnight, a critical review that
@@ -41,17 +42,17 @@ export async function checkJeffbotAlerts(now = new Date()): Promise<void> {
 
   const ageMs = now.getTime() - state.receivedAt.getTime()
   if (ageMs > OFFLINE_AFTER_MS) {
-    const ruleId = await ensureAlertRule('jeffbot.offline', 'jeffbot — nu mai trimite date', 'critical')
+    const ruleId = await ensureAlertRule('jeffbot.offline', tr('alerts.rules.botSilent'), 'critical')
     if (!(await alertedSince(ruleId, state.receivedAt))) {
       const minutes = Math.round(ageMs / 60_000)
-      await raiseAlert(ruleId, `Botul nu mai trimite date de ${minutes} min`, { severity: 'critical', url: URL })
+      await raiseAlert(ruleId, tl('alerts.jobs.botSilent', { minutes }), { severity: 'critical', url: URL })
     }
   } else if (ageMs <= STALE_AFTER_MS) {
     for (const service of state.payload.services) {
       if (service.state === 'active') continue
       const ruleId = await ensureAlertRule(`jeffbot.service.${service.name}`, `jeffbot — ${service.name} oprit`, 'warning')
       if (await alertedSince(ruleId, new Date(now.getTime() - SERVICE_REALERT_MS))) continue
-      await raiseAlert(ruleId, `jeffbot: serviciul ${service.name} e ${service.state}`, {
+      await raiseAlert(ruleId, tl('alerts.jobs.botServiceState', { name: service.name, state: service.state }), {
         severity: 'warning',
         url: serviceUrl(service.name),
         email: false,
@@ -61,10 +62,10 @@ export async function checkJeffbotAlerts(now = new Date()): Promise<void> {
 
   const review = await getLatestReview()
   if (review?.severity === 'critical') {
-    const ruleId = await ensureAlertRule('jeffbot.review.critical', 'jeffbot — revizuire critică', 'critical')
+    const ruleId = await ensureAlertRule('jeffbot.review.critical', tr('alerts.rules.botCriticalReview'), 'critical')
     if (!(await alertedSince(ruleId, review.receivedAt))) {
-      const kind = review.kind === 'weekly' ? 'săptămânală' : 'zilnică'
-      await raiseAlert(ruleId, `jeffbot, revizuirea ${kind} din ${review.date}: ${review.summary}`, { severity: 'critical', url: URL })
+      const key = review.kind === 'weekly' ? 'alerts.jobs.botWeeklyReview' : 'alerts.jobs.botDailyReview'
+      await raiseAlert(ruleId, tl(key, { date: review.date, summary: review.summary }), { severity: 'critical', url: URL })
     }
   }
 }

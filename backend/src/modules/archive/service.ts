@@ -22,6 +22,7 @@ import {
   managesAllSpaces,
   systemArchiveRoot,
 } from './access.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Joburile de arhivare (shared/lib/financial-archive.ts, archive-export.ts) importă doar
 // service-ul arhivei, nu fișierul cu CTE-ul de acces — de aici re-exportul.
@@ -37,7 +38,7 @@ export class ArchiveConflictError extends Error {}
  */
 export class ArchiveNotFoundError extends Error {
   constructor() {
-    super('Folder inexistent')
+    super(tr('errors.archive.folderNotFound'))
   }
 }
 
@@ -204,9 +205,9 @@ export async function updateFolder(
 ) {
   const folder = await requireFolder(me, id, EDIT_ACCESS)
   if (input.parentId !== undefined && input.parentId !== null) {
-    if (input.parentId === id) throw new ArchiveConflictError('Un folder nu poate fi propriul părinte')
+    if (input.parentId === id) throw new ArchiveConflictError(tr('errors.archive.folderOwnParent'))
     if (await wouldCreateCycle(id, input.parentId)) {
-      throw new ArchiveConflictError('Mutare invalidă — ar crea un ciclu în arbore')
+      throw new ArchiveConflictError(tr('errors.archive.moveCycle'))
     }
     // Mutarea e permisă doar într-un folder unde omul are drept de editare: altfel ar muta
     // conținut într-un spațiu în care nu-l poate atinge nici apoi.
@@ -219,7 +220,7 @@ export async function updateFolder(
   if (input.parentId) {
     const target = await requireFolder(me, input.parentId, EDIT_ACCESS)
     if (target.ownerUserId !== folder.ownerUserId) {
-      throw new ArchiveConflictError('Nu poți muta un folder în spațiul altcuia')
+      throw new ArchiveConflictError(tr('errors.archive.moveToOtherSpace'))
     }
   }
   const [row] = await db
@@ -243,7 +244,7 @@ export async function deleteFolder(me: SessionUser, id: string) {
       .where(and(eq(archiveFiles.folderId, id), sql`${archiveFiles.deletedAt} IS NULL`)),
   ])
   if ((subfolders?.count ?? 0) > 0 || (files?.count ?? 0) > 0) {
-    throw new ArchiveConflictError('Folderul nu e gol — mută sau șterge conținutul întâi')
+    throw new ArchiveConflictError(tr('errors.archive.folderNotEmpty'))
   }
   const [row] = await db.update(archiveFolders).set({ deletedAt: new Date() }).where(eq(archiveFolders.id, id)).returning()
   return row
@@ -452,7 +453,7 @@ export async function ensureFolder(name: string, parentId: string): Promise<stri
     .select({ ownerUserId: archiveFolders.ownerUserId })
     .from(archiveFolders)
     .where(and(eq(archiveFolders.id, parentId), sql`${archiveFolders.deletedAt} IS NULL`))
-  if (!parent) throw new Error(`Folderul părinte ${parentId} nu mai există`)
+  if (!parent) throw new Error(tr('errors.archive.parentGone', { parentId }))
   const [existing] = await db
     .select({ id: archiveFolders.id })
     .from(archiveFolders)
@@ -468,7 +469,7 @@ export async function ensureFolder(name: string, parentId: string): Promise<stri
     .insert(archiveFolders)
     .values({ name, parentId, ownerUserId: parent.ownerUserId })
     .returning({ id: archiveFolders.id })
-  if (!created) throw new Error(`Nu am putut crea folderul "${name}"`)
+  if (!created) throw new Error(tr('errors.archive.folderNotCreated', { name }))
   return created.id
 }
 
@@ -667,7 +668,7 @@ async function storeUpload(input: {
       tags: input.tags ?? [],
     })
     .returning()
-  if (!row) throw new Error('Fișier necreat')
+  if (!row) throw new Error(tr('errors.archive.fileNotCreated'))
   return row
 }
 
@@ -882,7 +883,7 @@ export async function listShares(me: SessionUser, folderId: string) {
 
 export async function setShare(me: SessionUser, folderId: string, userId: string, level: 'view' | 'edit') {
   await assertCanShare(me, folderId)
-  if (userId === me.id) throw new ArchiveConflictError('Nu poți împărți spațiul cu tine însuți')
+  if (userId === me.id) throw new ArchiveConflictError(tr('errors.archive.shareWithSelf'))
   const [target] = await db
     .select({ id: users.id })
     .from(users)

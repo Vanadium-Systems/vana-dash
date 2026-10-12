@@ -1,4 +1,5 @@
 import { config } from '../config.js'
+import { tr } from './i18n.js'
 
 // Notificări email (alerte + trimiteri cu atașamente) prin Resend (fetch brut — un
 // singur POST nu justifică SDK-ul oficial `resend` ca dependență nouă, la fel ca
@@ -64,7 +65,7 @@ function wrapHtmlFont(html: string | undefined): string | undefined {
 async function sendEmailInternal(opts: SendEmailOpts): Promise<SendEmailResult> {
   if (!config.resendApiKey) {
     console.warn(`[email] RESEND_API_KEY neconfigurat — email nesent: ${opts.subject}`)
-    return { ok: false, error: 'RESEND_API_KEY neconfigurat' }
+    return { ok: false, error: tr('errors.email.resendKeyMissing') }
   }
   try {
     const res = await fetch(RESEND_URL, {
@@ -90,7 +91,7 @@ async function sendEmailInternal(opts: SendEmailOpts): Promise<SendEmailResult> 
     })
     if (!res.ok) {
       const detail = await res.text().catch(() => '')
-      throw new Error(`Resend a răspuns cu HTTP ${res.status}: ${detail.slice(0, 300)}`)
+      throw new Error(tr('errors.email.resendHttp', { status: res.status, detail: detail.slice(0, 300) }))
     }
     const data = (await res.json().catch(() => null)) as { id?: string } | null
     return { ok: true, id: data?.id }
@@ -203,7 +204,7 @@ export async function fetchReceivedEmail(emailId: string): Promise<ReceivedEmail
     })
     if (!res.ok) {
       const detail = await res.text().catch(() => '')
-      throw new Error(`Resend Received Emails API a răspuns cu HTTP ${res.status}: ${detail.slice(0, 300)}`)
+      throw new Error(tr('errors.email.resendReceivedHttp', { status: res.status, detail: detail.slice(0, 300) }))
     }
     const data = (await res.json()) as RawReceivedEmailResponse
     return {

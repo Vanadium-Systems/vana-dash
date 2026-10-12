@@ -12,6 +12,7 @@ import { getCompanyProfile, getOpsJobToggles, setOpsJobToggles } from '../module
 import { listActiveWatchRules, listEligibilityCheckedNoticeIds, upsertTenderOpportunities } from '../modules/tenders/service.js'
 import type { NormalizedTenderRow } from '../modules/tenders/types.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
+import { type LocalizedText, tl, tr, trFor } from '../shared/lib/i18n.js'
 
 /**
  * Pragul de eligibilitate vine din „Date firmă" → Cifră de afaceri (Setări), nu hardcodat —
@@ -64,9 +65,9 @@ async function fetchSourceIsolated(slug: string, label: string, fetcher: () => P
     // Izolat per sursă (regula #7 CLAUDE.md) — dacă achizițiile directe pică, licitațiile
     // publice tot se procesează, și invers.
     console.error(`[tender-watch-sync] fetch ${label} eșuat:`, err)
-    const ruleId = await ensureAlertRule(`tender_watch.${slug}_fetch_failed`, `Monitor licitații — ${label} indisponibil`, 'warning')
+    const ruleId = await ensureAlertRule(`tender_watch.${slug}_fetch_failed`, tr('alerts.rules.tendersUnavailable', { label }), 'warning')
     // email: false — cerere Stefan (2026-09-14): doar alertă în-app + push pt. licitații, fără email.
-    await raiseAlert(ruleId, `Preluarea „${label}" de pe e-licitatie.ro a eșuat: ${String(err)}`, { severity: 'warning', url: '/tenders', email: false })
+    await raiseAlert(ruleId, tl('alerts.jobs.tendersFetchFailed', { label, err: String(err) }), { severity: 'warning', url: '/tenders', email: false })
     return []
   }
 }
@@ -78,10 +79,10 @@ async function fetchSourceIsolated(slug: string, label: string, fetcher: () => P
  */
 async function pauseAfterSicapBlock(status: number): Promise<void> {
   await setOpsJobToggles({ tenderWatch: false })
-  const ruleId = await ensureAlertRule('tender_watch.sicap_blocked', 'Monitor licitații oprit — SICAP a refuzat accesul', 'critical')
+  const ruleId = await ensureAlertRule('tender_watch.sicap_blocked', tr('alerts.rules.tendersBlocked'), 'critical')
   await raiseAlert(
     ruleId,
-    `SICAP a răspuns cu HTTP ${status}, deci probabil ne-a blocat IP-ul. Am oprit monitorul de licitații din Setări; îl repornești manual după ce confirmi că accesul funcționează din nou.`,
+    tl('alerts.jobs.tendersBlocked', { status }),
     { severity: 'critical', url: '/settings', email: false },
   )
 }
@@ -106,8 +107,8 @@ export async function runTenderWatchSyncJob(): Promise<void> {
   // aceeași coadă, unul câte unul.
   beginSicapRun()
   const [directAcquisitions, contractNotices, minTurnoverThreshold] = await Promise.all([
-    fetchSourceIsolated('direct_acquisition', 'achiziții directe', fetchOpenDirectAcquisitions),
-    fetchSourceIsolated('contract_notice', 'licitații publice', fetchOpenContractNotices),
+    fetchSourceIsolated('direct_acquisition', tr('alerts.jobs.directPurchases'), fetchOpenDirectAcquisitions),
+    fetchSourceIsolated('contract_notice', tr('alerts.jobs.publicTenders'), fetchOpenContractNotices),
     getMinTurnoverThreshold(),
   ])
 
@@ -159,8 +160,8 @@ export async function runTenderWatchSyncJob(): Promise<void> {
   // is of no interest, so there is nothing to tell them.
   const newRows = rows.filter((r) => r.inserted && !r.dismissedAt)
   if (newRows.length > 0) {
-    const ruleId = await ensureAlertRule('tender_watch.new_opportunities', 'Oportunități noi de licitație', 'info')
-    await raiseAlert(ruleId, `${newRows.length} oportunități noi de licitație potrivesc regulile tale de urmărire`, {
+    const ruleId = await ensureAlertRule('tender_watch.new_opportunities', tr('alerts.rules.newTenders'), 'info')
+    await raiseAlert(ruleId, tl('alerts.jobs.newTenders', { count: newRows.length }), {
       severity: 'info',
       url: '/tenders',
       email: false,
@@ -172,13 +173,18 @@ export async function runTenderWatchSyncJob(): Promise<void> {
   // de mai sus nu mai iese în evidență; asta e semnalul pt. ce chiar contează.
   const newPriorityRows = newRows.filter((r) => r.isPriority)
   if (newPriorityRows.length > 0) {
-    const ruleId = await ensureAlertRule('tender_watch.new_priority_opportunities', 'Oportunitate IMPORTANTĂ de licitație', 'critical')
+    const ruleId = await ensureAlertRule('tender_watch.new_priority_opportunities', tr('alerts.rules.importantTender'), 'critical')
     const titles = newPriorityRows
       .slice(0, 5)
       .map((r) => r.title)
       .join('; ')
-    const suffix = newPriorityRows.length > 5 ? ` și încă ${newPriorityRows.length - 5}` : ''
-    await raiseAlert(ruleId, `${newPriorityRows.length} oportunitate(ăți) IMPORTANTĂ(E) de licitație: ${titles}${suffix}`, {
+    const extra = newPriorityRows.length - 5
+    const message: LocalizedText = (locale) =>
+      trFor(locale, 'alerts.jobs.importantTenders', {
+        count: newPriorityRows.length,
+        titles: extra > 0 ? trFor(locale, 'alerts.jobs.andMore', { titles, count: extra }) : titles,
+      })
+    await raiseAlert(ruleId, message, {
       severity: 'critical',
       url: '/tenders',
       email: false,

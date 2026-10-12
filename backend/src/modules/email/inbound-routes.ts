@@ -19,6 +19,7 @@ import {
 import * as inboundService from './inbound-service.js'
 import { MailboxForbidden } from './mailboxes.js'
 import { recordEngagementEvent, updateSendStatusFromWebhook, type DeliveryStatus } from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Mapare tip eveniment Resend → statusul nostru intern (email_sends.status).
 const DELIVERY_STATUS_BY_EVENT: Record<string, DeliveryStatus> = {
@@ -91,17 +92,17 @@ export async function emailInboundRoutes(app: FastifyInstance) {
     instance.post('/api/webhooks/resend-inbound', { bodyLimit: 1024 * 1024 }, async (req, reply) => {
       if (!config.resendWebhookSecret) {
         req.log.error('[email] RESEND_WEBHOOK_SECRET neconfigurat — webhook respins (fail-closed)')
-        return reply.code(503).send({ success: false, error: 'Webhook neconfigurat' })
+        return reply.code(503).send({ success: false, error: tr('errors.webhooks.notConfigured') })
       }
 
       const svixHeaders = extractSvixHeaders(req.headers as Record<string, unknown>)
       if (!svixHeaders) {
-        return reply.code(400).send({ success: false, error: 'Headere Svix lipsă' })
+        return reply.code(400).send({ success: false, error: tr('errors.webhooks.svixHeadersMissing') })
       }
 
       const rawBody = req.body
       if (!Buffer.isBuffer(rawBody)) {
-        return reply.code(400).send({ success: false, error: 'Body invalid' })
+        return reply.code(400).send({ success: false, error: tr('errors.webhooks.invalidBody') })
       }
 
       let verifiedPayload: unknown
@@ -113,7 +114,7 @@ export async function emailInboundRoutes(app: FastifyInstance) {
         } else {
           req.log.warn(`[email] verificare webhook eșuată: ${String(err)}`)
         }
-        return reply.code(401).send({ success: false, error: 'Semnătură invalidă' })
+        return reply.code(401).send({ success: false, error: tr('errors.webhooks.invalidSignature') })
       }
 
       // De aici încolo payload-ul e AUTENTIC (semnat de Resend) — procesarea propriu-zisă

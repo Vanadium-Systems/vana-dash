@@ -11,6 +11,7 @@ import type {
   UpdateConversationSchema,
 } from './schema.js'
 import type { z } from 'zod'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Mesaje între oameni (PLAN.md C3). Un singur backend, deci bus-ul de evenimente e în
 // memorie (presence.ts) — dacă ajunge vreodată pe două instanțe, trece pe LISTEN/NOTIFY.
@@ -90,7 +91,7 @@ export async function assertMember(conversationId: string, userId: string): Prom
     .select({ id: conversationMembers.id })
     .from(conversationMembers)
     .where(and(eq(conversationMembers.conversationId, conversationId), eq(conversationMembers.userId, userId)))
-  if (!row) throw new ConversationForbiddenError('Conversație inexistentă')
+  if (!row) throw new ConversationForbiddenError(tr('errors.chat.conversationNotFound'))
 }
 
 export async function isMember(conversationId: string, userId: string): Promise<boolean> {
@@ -277,13 +278,13 @@ export async function conversationPartnerIds(userId: string): Promise<string[]> 
 
 /** Conversația de DM dintre doi oameni, creată dacă nu există. */
 export async function openDm(me: SessionUser, otherUserId: string): Promise<string> {
-  if (otherUserId === me.id) throw new MessageBodyError('Nu poți scrie cu tine')
+  if (otherUserId === me.id) throw new MessageBodyError(tr('errors.chat.cannotWriteToSelf'))
 
   const [other] = await db
     .select({ id: users.id })
     .from(users)
     .where(and(eq(users.id, otherUserId), isNull(users.deletedAt)))
-  if (!other) throw new ConversationForbiddenError('Coleg inexistent')
+  if (!other) throw new ConversationForbiddenError(tr('errors.chat.colleagueNotFound'))
 
   const dmKey = [me.id, otherUserId].sort().join(':')
   const [existing] = await db
@@ -305,13 +306,13 @@ export async function openDm(me: SessionUser, otherUserId: string): Promise<stri
 
 export async function createGroup(me: SessionUser, input: { name: string; memberIds: string[] }): Promise<string> {
   const others = [...new Set(input.memberIds)].filter((id) => id !== me.id)
-  if (others.length === 0) throw new MessageBodyError('Grupul are nevoie de cel puțin un coleg')
+  if (others.length === 0) throw new MessageBodyError(tr('errors.chat.groupNeedsMember'))
 
   const valid = await db
     .select({ id: users.id })
     .from(users)
     .where(and(inArray(users.id, others), isNull(users.deletedAt)))
-  if (valid.length !== others.length) throw new MessageBodyError('Coleg inexistent')
+  if (valid.length !== others.length) throw new MessageBodyError(tr('errors.chat.colleagueNotFound'))
 
   const [row] = await db
     .insert(conversations)
@@ -345,13 +346,13 @@ export async function updateConversation(me: SessionUser, conversationId: string
     .select({ kind: conversations.kind, createdByUserId: conversations.createdByUserId })
     .from(conversations)
     .where(eq(conversations.id, conversationId))
-  if (!conversation) throw new ConversationForbiddenError('Conversație inexistent')
+  if (!conversation) throw new ConversationForbiddenError(tr('errors.chat.conversationNotFound'))
   if (conversation.kind === 'dm') {
     // Un DM nu are nume și nici membri noi: relația dintre doi oameni se creează doar în openDm.
-    throw new ConversationForbiddenError('Un DM nu are nume sau membri noi')
+    throw new ConversationForbiddenError(tr('errors.chat.dmHasNoNameOrMembers'))
   }
   if (!canManageConversation(me, conversation.createdByUserId)) {
-    throw new GroupPermissionError('Doar owner-ul grupului sau un administrator poate face asta')
+    throw new GroupPermissionError(tr('errors.chat.ownerOrAdminOnly'))
   }
 
   if (patch.name !== undefined) {
@@ -412,7 +413,7 @@ export async function listMessages(
 export async function sendMessage(me: SessionUser, conversationId: string, input: SendMessageInput): Promise<ChatMessage> {
   await assertMember(conversationId, me.id)
   const trimmed = input.body.trim()
-  if (!trimmed && input.attachmentIds.length === 0) throw new MessageBodyError('Mesaj gol')
+  if (!trimmed && input.attachmentIds.length === 0) throw new MessageBodyError(tr('errors.chat.emptyMessage'))
 
   // Dedupe pe clientId (mesajul optimist din FE, retrimitere pe conexiune lentă): a doua
   // încercare întoarce același mesaj, nu o copie. Atașamentele încă neatinse se leagă de
@@ -479,7 +480,7 @@ export async function editMessage(me: SessionUser, messageId: string, body: stri
     .set({ body: body.trim(), editedAt: new Date() })
     .where(and(eq(messages.id, messageId), eq(messages.authorUserId, me.id), isNull(messages.deletedAt)))
     .returning()
-  if (!row) throw new ConversationForbiddenError('Mesaj inexistent')
+  if (!row) throw new ConversationForbiddenError(tr('errors.chat.messageNotFound'))
   await assertMember(row.conversationId, me.id)
   return (await attachToMessages([row]))[0]!
 }
@@ -490,7 +491,7 @@ export async function deleteMessage(me: SessionUser, messageId: string): Promise
     .set({ deletedAt: new Date() })
     .where(and(eq(messages.id, messageId), eq(messages.authorUserId, me.id), isNull(messages.deletedAt)))
     .returning({ id: messages.id, conversationId: messages.conversationId })
-  if (!row) throw new ConversationForbiddenError('Mesaj inexistent')
+  if (!row) throw new ConversationForbiddenError(tr('errors.chat.messageNotFound'))
   return row
 }
 
@@ -500,7 +501,7 @@ export async function markRead(me: SessionUser, conversationId: string, messageI
     .select({ id: messages.id })
     .from(messages)
     .where(and(eq(messages.id, messageId), eq(messages.conversationId, conversationId)))
-  if (!message) throw new ConversationForbiddenError('Mesaj inexistent')
+  if (!message) throw new ConversationForbiddenError(tr('errors.chat.messageNotFound'))
   await db
     .update(conversationMembers)
     .set({ lastReadMessageId: messageId })
@@ -534,7 +535,7 @@ export async function pushTarget(
       .from(users)
       .where(eq(users.id, authorId)),
   ])
-  const authorName = author[0] ? userName(author[0]) : 'Un coleg'
+  const authorName = author[0] ? userName(author[0]) : tr('push.chat.aColleague')
 
   return {
     kind,

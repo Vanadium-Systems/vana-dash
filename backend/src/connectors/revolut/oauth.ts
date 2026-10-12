@@ -1,6 +1,7 @@
 import { config } from '../../shared/config.js'
 import { signClientAssertion } from './jwt.js'
 import type { RevolutTokenResponse, RevolutTokens } from './types.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // OAuth2 + JWT client assertion Revolut Business API (RFC 7523). Simetric cu
 // connectors/anaf/oauth.ts, dar Basic auth (client_id:client_secret) e
@@ -91,7 +92,7 @@ async function requestTokens(
   }
   const payload = (await res.json()) as RevolutTokenResponse
   if (!payload.access_token || !payload.refresh_token) {
-    throw new Error('Revolut /auth/token: răspuns fără access_token/refresh_token')
+    throw new Error(tr('errors.revolut.tokenResponseIncomplete'))
   }
   return {
     accessToken: payload.access_token,

@@ -21,6 +21,7 @@ import {
   TemplateResolveQuerySchema,
 } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Sprint C, Track D — generează un slug kebab-case din numele clientului când Stefan nu
 // dă unul explicit la creare. Diacritice simple normalizate (ă/â/î/ș/ț → a/a/i/s/t).
@@ -90,7 +91,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
           const status = result.code === 'SLUG_TAKEN' ? 409 : 502
           return reply.code(status).send({
             success: false,
-            error: { code: result.code ?? 'VANAGREEN_CREATE_FAILED', message: result.message ?? 'Creare tenant în VanaGreen eșuată' },
+            error: { code: result.code ?? 'VANAGREEN_CREATE_FAILED', message: result.message ?? tr('errors.invoicing.tenantCreateFailed') },
           })
         }
         vanagreenTenantId = result.id ?? null

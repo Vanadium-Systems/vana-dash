@@ -1,1 +1,37 @@
-{}
+{
+  "alert": {
+    "title": "Alertă vana-dash"
+  },
+  "test": {
+    "title": "Test vana-dash",
+    "body": "Notificările push funcționează."
+  },
+  "efactura": {
+    "rejectedTitle": "e-Factura respinsă",
+    "rejectedBody": "Factura {{documentNumber}} a fost respinsă de ANAF.",
+    "validatedTitle": "e-Factura validată",
+    "validatedBody": "Factura {{documentNumber}} a fost validată de ANAF."
+  },
+  "reminder": {
+    "fallbackTitle": "Reminder",
+    "eventTitle": "Reminder: {{title}}"
+  },
+  "booking": {
+    "newTitle": "Programare nouă",
+    "cancelledTitle": "Programare anulată"
+  },
+  "chat": {
+    "attachment": "Atașament",
+    "aColleague": "Un coleg"
+  },
+  "payment": {
+    "matchedTitle": "Plată matchuită",
+    "matchedBody": "Factura {{number}} a fost matchuită cu o tranzacție bancară.",
+    "markedPaidTitle": "Factură marcată plătită",
+    "markedPaidBody": "Factura {{number}} a fost marcată plătită manual."
+  },
+  "email": {
+    "newFrom": "Email nou de la {{from}}",
+    "noSubject": "(fără subiect)"
+  }
+}

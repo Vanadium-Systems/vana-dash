@@ -7,6 +7,7 @@ import {
   PeriodComparisonQuerySchema,
 } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function reportsRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -64,7 +65,7 @@ export async function reportsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: MonthlySnapshotQuerySchema } },
     async (req, reply) => {
       const pdf = await service.generateMonthlySnapshotPdf(req.query)
-      if (!pdf) return reply.code(503).send({ success: false, error: 'PDF indisponibil (Chromium neconfigurat)' })
+      if (!pdf) return reply.code(503).send({ success: false, error: tr('errors.pdf.unavailableShort') })
       return reply
         .type('application/pdf')
         .header('Content-Disposition', `attachment; filename="raport-${req.query.month}.pdf"`)

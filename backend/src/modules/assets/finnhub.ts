@@ -1,3 +1,4 @@
+import { tr } from '../../shared/lib/i18n.js'
 // Client Finnhub public (PLAN.md Track D — Wave 7) — cotații + căutare pt. acțiuni/ETF-uri.
 // Cheia vine din DB (asset_price_providers, criptată), niciodată logată. Hostname whitelist
 // (nu input de la user), cache 60s — pattern identic modules/crypto/coingecko.ts.
@@ -10,7 +11,7 @@ const cache = new Map<string, { expiresAt: number; data: unknown }>()
 
 async function fetchJson<T>(path: string, apiKey: string, cacheable = true): Promise<T> {
   const url = new URL(BASE + path)
-  if (url.hostname !== ALLOWED_HOST) throw new Error(`Domeniu nepermis: ${url.hostname}`)
+  if (url.hostname !== ALLOWED_HOST) throw new Error(tr('errors.net.domainNotAllowed', { hostname: url.hostname }))
   url.searchParams.set('token', apiKey)
 
   const cacheKey = url.pathname + url.search
@@ -20,10 +21,10 @@ async function fetchJson<T>(path: string, apiKey: string, cacheable = true): Pro
   }
 
   const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
-  if (res.status === 429) throw new Error('Finnhub rate-limit (429) — încearcă mai târziu')
+  if (res.status === 429) throw new Error(tr('errors.net.finnhubRateLimit'))
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
-    throw new Error(`Finnhub HTTP ${res.status}: ${detail.slice(0, 200)}`)
+    throw new Error(tr('errors.net.finnhubHttp', { status: res.status, detail: detail.slice(0, 200) }))
   }
   const data = (await res.json()) as T
   if (cacheable) cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, data })

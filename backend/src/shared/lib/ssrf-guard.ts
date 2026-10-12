@@ -1,3 +1,4 @@
+import { tr } from './i18n.js'
 // SSRF guard for the URL of a connected platform. It runs when the platform is created or
 // edited, so the sync jobs never get to request an internal address. It matches the hostname
 // as written, not what DNS resolves it to, and it does not follow what a redirect answers:
@@ -12,24 +13,24 @@ export function validatePlatformUrl(url: string): void {
   const hostname = parsed.hostname.toLowerCase()
 
   if (!['http:', 'https:'].includes(parsed.protocol)) {
-    throw new SsrfBlockedError(`Protocol nepermis pt. URL platformă: ${parsed.protocol}`)
+    throw new SsrfBlockedError(tr('errors.platforms.protocolNotAllowed', { protocol: parsed.protocol }))
   }
 
   if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
-    throw new SsrfBlockedError(`URL platformă blocat (localhost): ${url}`)
+    throw new SsrfBlockedError(tr('errors.platforms.blockedLocalhost', { url }))
   }
   if (IPV4_PRIVATE_OR_LOOPBACK.test(hostname)) {
-    throw new SsrfBlockedError(`URL platformă blocat (rețea privată/loopback): ${url}`)
+    throw new SsrfBlockedError(tr('errors.platforms.blockedPrivate', { url }))
   }
   // A name without a dot is not on the public internet: on the server it is another container
   // on the Docker network (`postgres`, `backend`).
   if (!hostname.includes('.') && !hostname.includes(':')) {
-    throw new SsrfBlockedError(`URL platformă blocat (nume intern, fără domeniu): ${url}`)
+    throw new SsrfBlockedError(tr('errors.platforms.blockedInternalName', { url }))
   }
   // IPv6 loopback (::1), unspecified (::), unique local (fc00::/7), link-local (fe80::/10) and
   // IPv4-mapped addresses (::ffff:7f00:1 is 127.0.0.1). `new URL()` keeps the brackets.
   const ipv6 = hostname.replace(/^\[|\]$/g, '')
   if (ipv6 === '::1' || ipv6 === '::' || /^f[cd][0-9a-f]{0,2}:/i.test(ipv6) || /^fe[89ab][0-9a-f]:/i.test(ipv6) || /^::ffff:/i.test(ipv6)) {
-    throw new SsrfBlockedError(`URL platformă blocat (rețea privată/loopback IPv6): ${url}`)
+    throw new SsrfBlockedError(tr('errors.platforms.blockedPrivateV6', { url }))
   }
 }

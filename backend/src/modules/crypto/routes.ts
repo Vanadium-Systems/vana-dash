@@ -14,6 +14,7 @@ import {
   WatchlistEntrySchema,
 } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function cryptoRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -28,7 +29,7 @@ export async function cryptoRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: CoinIdParamsSchema } },
     async (req, reply) => {
       const coin = await service.getCoinDetails(req.params.id)
-      if (!coin) return reply.code(404).send({ success: false, error: 'Monedă inexistentă' })
+      if (!coin) return reply.code(404).send({ success: false, error: tr('errors.trading.coinNotFound') })
       return { success: true, data: coin }
     },
   )

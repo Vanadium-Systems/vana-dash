@@ -4,6 +4,7 @@ import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
 import { syncLog, systemAlertState, systemMetricsSnapshots } from '../../shared/db/schema/index.js'
 import { sendAlertEmail } from '../../shared/lib/email.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Track A: monitorizare server vana-dash — ingest, calcul semnale, motor de alertare
 // edge-triggered. Mirror după sistemul deja funcțional din recyclers_app
@@ -16,12 +17,12 @@ export type SignalKey = 'cpu' | 'ram' | 'disk' | 'containers' | 'jobs_failed' | 
 export const SIGNAL_KEYS: readonly SignalKey[] = ['cpu', 'ram', 'disk', 'containers', 'jobs_failed', 'backup']
 
 export const SIGNAL_LABELS: Record<SignalKey, string> = {
-  cpu: 'CPU host',
-  ram: 'RAM host',
+  cpu: tr('monitoring.signals.cpu'),
+  ram: tr('monitoring.signals.ram'),
   disk: 'Disk /',
-  containers: 'Sănătate containere',
-  jobs_failed: 'Job-uri eșuate',
-  backup: 'Backup zilnic',
+  containers: tr('monitoring.signals.containers'),
+  jobs_failed: tr('monitoring.signals.failedJobs'),
+  backup: tr('monitoring.signals.backup'),
 }
 
 // Cooldown cât un semnal rămâne roșu — nu trimite email la fiecare ingest/poll.
@@ -171,7 +172,7 @@ function computeContainersSignal(containers: Record<string, string>): ComputedSi
     level,
     value: unhealthyCount,
     unit: 'count',
-    detail: level === 'green' ? 'Toate containerele healthy' : `${unhealthyCount} unhealthy/oprite, ${startingCount} starting`,
+    detail: level === 'green' ? tr('monitoring.details.allHealthy') : `${unhealthyCount} unhealthy/oprite, ${startingCount} starting`,
     meta: { containers },
   }
 }
@@ -187,7 +188,7 @@ async function computeJobsFailedSignal(): Promise<ComputedSignal> {
     .where(and(eq(syncLog.status, 'FAILED'), gte(syncLog.startedAt, cutoff)))
   const count = rows.length
   const level: SignalLevel = count >= 3 ? 'red' : count >= 1 ? 'yellow' : 'green'
-  return { key: 'jobs_failed', level, value: count, unit: 'count', detail: `${count} job(uri) eșuate în ultima oră` }
+  return { key: 'jobs_failed', level, value: count, unit: 'count', detail: tr('monitoring.details.failedJobs', { count }) }
 }
 
 function computeBackupSignal(): ComputedSignal {
@@ -205,7 +206,7 @@ function computeBackupSignal(): ComputedSignal {
   }
 
   if (newestMtimeMs === null) {
-    return { key: 'backup', level: 'red', value: null, unit: 'hours', detail: 'Niciun fișier de backup găsit' }
+    return { key: 'backup', level: 'red', value: null, unit: 'hours', detail: tr('monitoring.details.noBackupFile') }
   }
 
   const hoursSince = (Date.now() - newestMtimeMs) / (60 * 60 * 1000)
@@ -215,7 +216,7 @@ function computeBackupSignal(): ComputedSignal {
     level,
     value: Number(hoursSince.toFixed(1)),
     unit: 'hours',
-    detail: `Ultimul backup acum ${hoursSince.toFixed(1)}h`,
+    detail: tr('monitoring.details.lastBackup', { hoursSince: hoursSince.toFixed(1) }),
   }
 }
 
@@ -232,7 +233,7 @@ export async function computeAllSignals(): Promise<ComputedSignal[]> {
   let containersSignal: ComputedSignal
 
   if (!snapshot) {
-    const noDataDetail = 'Fără date încă — niciun ingest primit'
+    const noDataDetail = tr('monitoring.details.noDataYet')
     cpuSignal = { key: 'cpu', level: 'yellow', value: null, unit: 'pct', detail: noDataDetail }
     ramSignal = { key: 'ram', level: 'yellow', value: null, unit: 'pct', detail: noDataDetail }
     diskSignal = { key: 'disk', level: 'yellow', value: null, unit: 'pct', detail: noDataDetail }
@@ -297,7 +298,7 @@ export async function transitionSignal(key: SignalKey, newLevel: SignalLevel, de
         )
         .returning()
       if (rows.length > 0) {
-        await sendAlertEmail(`Sănătate sistem — ${SIGNAL_LABELS[key]} tot roșu`, detail)
+        await sendAlertEmail(tr('emails.monitoring.stillRed', { value: SIGNAL_LABELS[key] }), detail)
       }
     }
     return
@@ -317,9 +318,9 @@ export async function transitionSignal(key: SignalKey, newLevel: SignalLevel, de
   if (rows.length === 0) return // pierdut cursa — apelantul câștigător a trimis deja emailul
 
   if (newLevel === 'red') {
-    await sendAlertEmail(`Sănătate sistem — ${SIGNAL_LABELS[key]} ROȘU`, detail)
+    await sendAlertEmail(tr('emails.monitoring.red', { value: SIGNAL_LABELS[key] }), detail)
   } else if (oldLevel === 'red' && newLevel === 'green') {
-    await sendAlertEmail(`Sănătate sistem — ${SIGNAL_LABELS[key]} recuperat`, `${SIGNAL_LABELS[key]} a revenit la verde.`)
+    await sendAlertEmail(tr('emails.monitoring.recovered', { value: SIGNAL_LABELS[key] }), tr('emails.monitoring.backToGreen', { value: SIGNAL_LABELS[key] }))
   }
   // Tranzițiile spre/prin galben (din orice parte) nu trimit niciodată email.
 }
@@ -412,7 +413,7 @@ export async function getSecondaryHostSignals(host: MonitoredHost): Promise<Omit
     .limit(1)
 
   if (!latest || Date.now() - latest.capturedAt.getTime() > SECONDARY_HOST_STALE_MS) {
-    const detail = latest ? 'Fără snapshot de peste 5 min — server oprit sau colector căzut' : 'Fără date încă — niciun ingest primit'
+    const detail = latest ? tr('monitoring.details.noSnapshot') : tr('monitoring.details.noDataYet')
     return {
       host,
       lastCapturedAt: latest?.capturedAt ?? null,

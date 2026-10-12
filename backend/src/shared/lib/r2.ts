@@ -3,6 +3,7 @@ import { DeleteObjectCommand, GetObjectCommand, S3Client } from '@aws-sdk/client
 import { Upload } from '@aws-sdk/lib-storage'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { config } from '../config.js'
+import { tr } from './i18n.js'
 
 // Cloudflare R2 (S3-compatible) — modul Arhivă. Credențiale globale, un singur bucket
 // (pattern identic anafClientId/anafClientSecret în config.ts). Client lazy — nu aruncă
@@ -15,7 +16,7 @@ function r2Client(): S3Client {
   const { accountId, accessKeyId, secretAccessKey, bucketName } = config.r2
   if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
     throw new Error(
-      'R2 neconfigurat — completează R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/R2_BUCKET_NAME în .env',
+      tr('errors.files.r2NotConfigured'),
     )
   }
   if (!client) {

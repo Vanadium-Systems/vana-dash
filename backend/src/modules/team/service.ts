@@ -8,6 +8,8 @@ import { sendEmail } from '../../shared/lib/email.js'
 import { effectiveFeatures, type SessionUser } from '../../shared/lib/session.js'
 import { createUserToken } from '../../shared/lib/user-tokens.js'
 import { AccessError, listMembers } from '../access/service.js'
+import { tr, trFor } from '../../shared/lib/i18n.js'
+import { type Locale } from '../../shared/lib/locale.js'
 
 // Membrii echipei (PLAN.md C2): invitare, rol, stare, cutii de email. Lista e `self` — orice
 // user activ o vede, ca să îi poată scrie cuiva din Mesaje (push B). Tot restul cere
@@ -28,7 +30,7 @@ async function assertNotLastAdmin(userId: string) {
     .innerJoin(roles, eq(roles.id, users.roleId))
     .where(and(eq(roles.kind, 'admin'), eq(users.status, 'active'), isNull(users.deletedAt)))
   if (count <= 1) {
-    throw new AccessError('LAST_ADMIN', 409, 'Ești ultimul admin activ. Mai întâi dă altcineva rolul de Admin.')
+    throw new AccessError('LAST_ADMIN', 409, tr('errors.team.lastAdmin'))
   }
 }
 
@@ -41,24 +43,24 @@ async function assertCanManage(actor: SessionUser, targetId: string) {
     .leftJoin(roles, eq(roles.id, users.roleId))
     .where(and(eq(users.id, targetId), isNull(users.deletedAt)))
   if (target?.roleKind === 'admin' || target?.roleKind === 'manager') {
-    throw new AccessError('PERMISSION_ESCALATION', 403, 'Poți administra doar oameni cu roluri create de tine')
+    throw new AccessError('PERMISSION_ESCALATION', 403, tr('errors.team.manageOwnRolesOnly'))
   }
 }
 
 export async function inviteMember(actor: SessionUser, input: { email: string; displayName?: string; roleId: string }) {
   const email = input.email.toLowerCase()
   const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email))
-  if (existing) throw new AccessError('EMAIL_TAKEN', 409, 'Există deja un cont cu adresa asta')
+  if (existing) throw new AccessError('EMAIL_TAKEN', 409, tr('errors.team.emailTaken'))
 
   const [role] = await db.select().from(roles).where(and(eq(roles.id, input.roleId), isNull(roles.deletedAt)))
-  if (!role) throw new AccessError('ROLE_NOT_FOUND', 404, 'Rolul nu există')
+  if (!role) throw new AccessError('ROLE_NOT_FOUND', 404, tr('errors.access.roleNotFound'))
   if (!isAdmin(actor)) {
-    if (role.kind === 'admin') throw new AccessError('PERMISSION_ESCALATION', 403, 'Nu poți da rolul de Admin')
-    if (role.kind === 'manager') throw new AccessError('PERMISSION_ESCALATION', 403, 'Nu poți da rolul de Manager')
+    if (role.kind === 'admin') throw new AccessError('PERMISSION_ESCALATION', 403, tr('errors.team.cannotGiveAdmin'))
+    if (role.kind === 'manager') throw new AccessError('PERMISSION_ESCALATION', 403, tr('errors.team.cannotGiveManager'))
     // Rolul custom primit de la altcineva poate conține chei pe care actorul nu le are.
     const beyond = effectiveFeatures(role.features, 'custom').filter((key) => !actor.features.includes(key))
     if (beyond.length > 0) {
-      throw new AccessError('PERMISSION_ESCALATION', 403, `Nu ai ${beyond[0]}, deci nu îl poți da altcuiva`)
+      throw new AccessError('PERMISSION_ESCALATION', 403, tr('errors.access.featureNotYours', { feature: beyond[0] }))
     }
   }
 
@@ -77,10 +79,10 @@ export async function inviteMember(actor: SessionUser, input: { email: string; d
       displayCurrency: config.defaultDisplayCurrency,
     })
     .returning()
-  if (!created) throw new Error('User necreat')
+  if (!created) throw new Error(tr('errors.team.userNotCreated'))
 
   const token = await createUserToken(created.id, 'invite')
-  await sendInviteEmail(email, input.displayName ?? null, token)
+  await sendInviteEmail(email, input.displayName ?? null, token, created.locale)
   await recordAudit({
     action: 'echipa.invitare',
     entityType: 'user',
@@ -90,21 +92,21 @@ export async function inviteMember(actor: SessionUser, input: { email: string; d
   return { id: created.id, status: created.status }
 }
 
-async function sendInviteEmail(to: string, displayName: string | null, token: string) {
+/** Written in the language of the person invited, not of whoever sends the invitation. */
+async function sendInviteEmail(to: string, displayName: string | null, token: string, locale: Locale) {
   const link = `${config.frontendOrigin}/accept-invite?token=${token}`
-  const greeting = displayName ? `Salut, ${displayName},` : 'Salut,'
   await sendEmail({
     to,
     from: config.emailFromNoreply,
-    subject: 'Ai primit acces în VanaDash',
+    subject: trFor(locale, 'emails.invite.subject'),
     text: [
-      `${greeting}`,
+      displayName ? trFor(locale, 'emails.invite.greetingNamed', { name: displayName }) : trFor(locale, 'emails.invite.greeting'),
       '',
-      'Stefan te-a adăugat în echipa VanaDash, aplicația internă Vanadium Systems.',
-      'Alege-ți parola aici, apoi intri:',
+      trFor(locale, 'emails.invite.added'),
+      trFor(locale, 'emails.invite.choosePassword'),
       link,
       '',
-      'Linkul e valabil 72 de ore. Dacă nu te aștepta nimeni, ignoră-l — cer altul de la admin.',
+      trFor(locale, 'emails.invite.validity'),
     ].join('\n'),
   })
 }
@@ -118,12 +120,12 @@ export async function updateMember(actor: SessionUser, userId: string, input: { 
     .from(users)
     .leftJoin(roles, eq(roles.id, users.roleId))
     .where(and(eq(users.id, userId), isNull(users.deletedAt)))
-  if (!before) throw new AccessError('USER_NOT_FOUND', 404, 'Utilizatorul nu există')
+  if (!before) throw new AccessError('USER_NOT_FOUND', 404, tr('errors.team.userNotFound'))
 
   if (input.roleId && !isAdmin(actor)) {
     const [newRole] = await db.select().from(roles).where(eq(roles.id, input.roleId))
     if (newRole?.kind !== 'custom') {
-      throw new AccessError('PERMISSION_ESCALATION', 403, 'Poți da doar roluri create de tine')
+      throw new AccessError('PERMISSION_ESCALATION', 403, tr('errors.team.giveOwnRolesOnly'))
     }
   }
 
@@ -168,12 +170,12 @@ async function roleName(roleId: string) {
 export async function resendInvite(actor: SessionUser, userId: string) {
   await assertCanManage(actor, userId)
   const [user] = await db.select().from(users).where(and(eq(users.id, userId), isNull(users.deletedAt)))
-  if (!user) throw new AccessError('USER_NOT_FOUND', 404, 'Utilizatorul nu există')
+  if (!user) throw new AccessError('USER_NOT_FOUND', 404, tr('errors.team.userNotFound'))
   if (user.status !== 'invited') {
-    throw new AccessError('ALREADY_ACTIVE', 409, 'Omul și-a pus deja parola — nu mai e nevoie de link')
+    throw new AccessError('ALREADY_ACTIVE', 409, tr('errors.team.alreadyActive'))
   }
   const token = await createUserToken(user.id, 'invite')
-  await sendInviteEmail(user.email, user.displayName, token)
+  await sendInviteEmail(user.email, user.displayName, token, user.locale)
   await recordAudit({ action: 'echipa.invitare.retrimisa', entityType: 'user', entityId: userId })
   return { ok: true }
 }
@@ -182,24 +184,23 @@ export async function resendInvite(actor: SessionUser, userId: string) {
 export async function sendPasswordReset(actor: SessionUser, userId: string) {
   await assertCanManage(actor, userId)
   const [user] = await db.select().from(users).where(and(eq(users.id, userId), isNull(users.deletedAt)))
-  if (!user) throw new AccessError('USER_NOT_FOUND', 404, 'Utilizatorul nu există')
+  if (!user) throw new AccessError('USER_NOT_FOUND', 404, tr('errors.team.userNotFound'))
   if (user.status === 'invited') {
-    throw new AccessError('STILL_INVITED', 409, 'Omul n-a acceptat invitația încă — retrimite-i invitația')
+    throw new AccessError('STILL_INVITED', 409, tr('errors.team.stillInvited'))
   }
   const token = await createUserToken(user.id, 'reset')
   const link = `${config.frontendOrigin}/reset-password?token=${token}`
   await sendEmail({
     to: user.email,
     from: config.emailFromNoreply,
-    subject: 'Resetare parolă VanaDash',
+    subject: trFor(user.locale, 'emails.reset.subject'),
     text: [
-      'Salut,',
+      trFor(user.locale, 'emails.invite.greeting'),
       '',
-      'Pentru contul tău din VanaDash s-a cerut resetarea parolei. Alege una nouă aici:',
+      trFor(user.locale, 'emails.reset.requested'),
       link,
       '',
-      'Linkul e valabil o oră și poate fi folosit o singură dată. Dacă nu l-ai cerut tu,',
-      'spune-i administratorului — schimbă parola și nu folosi linkul.',
+      trFor(user.locale, 'emails.reset.validityByAdmin'),
     ].join('\n'),
   })
   await recordAudit({ action: 'echipa.parola.resetare', entityType: 'user', entityId: userId })
@@ -229,7 +230,7 @@ export async function setMemberMailboxes(actor: SessionUser, userId: string, ide
     const own = actor.mailboxes ?? []
     const beyond = identityKeys.filter((key) => !own.includes(key))
     if (beyond.length > 0) {
-      throw new AccessError('PERMISSION_ESCALATION', 403, `Nu ai cutia ${beyond[0]}, deci nu o poți da altcuiva`)
+      throw new AccessError('PERMISSION_ESCALATION', 403, tr('errors.team.mailboxNotYours', { value: beyond[0] }))
     }
   }
   await db.delete(userMailboxes).where(eq(userMailboxes.userId, userId))

@@ -4,6 +4,7 @@
 // invoice whose buyer data is wrong or incomplete.
 import { normalizeCui } from './cui-validator.js'
 import { countyNameToIsoCode, extractBucharestSectorCode } from './ro-counties.js'
+import { tr } from './i18n.js'
 
 const ANAF_TVA_URL = 'https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva'
 const FETCH_TIMEOUT_MS = 5_000
@@ -47,7 +48,7 @@ export function mapStare(stareInactiv: AnafFoundEntry['stare_inactiv']): AnafCom
 /** Exportat pt. test unitar. */
 export function mapEntry(entry: AnafFoundEntry): AnafCompanyInfo {
   const name = nonEmpty(entry.date_generale?.denumire)
-  if (!name) throw new Error('Răspunsul ANAF nu conține denumirea firmei')
+  if (!name) throw new Error(tr('errors.anaf.lookupNoName'))
   const adresa = entry.adresa_sediu_social
   const street = nonEmpty([adresa?.sdenumire_Strada, adresa?.snumar_Strada].filter(Boolean).join(' '))
   const county = nonEmpty(adresa?.sdenumire_Judet)
@@ -70,7 +71,7 @@ export function mapEntry(entry: AnafFoundEntry): AnafCompanyInfo {
 /** Caută o singură firmă după CIF. Validează cifra de control local înainte de request. */
 export async function lookupCompanyByCui(rawCif: string): Promise<AnafCompanyInfo> {
   const cui = normalizeCui(rawCif)
-  if (!cui) throw new Error('CIF invalid (cifra de control nu se potrivește)')
+  if (!cui) throw new Error(tr('errors.anaf.cifInvalid'))
 
   const today = new Date().toISOString().slice(0, 10)
   let res: Response
@@ -82,12 +83,12 @@ export async function lookupCompanyByCui(rawCif: string): Promise<AnafCompanyInf
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
   } catch (err) {
-    throw new Error(`Nu am putut contacta ANAF: ${String(err)}`)
+    throw new Error(tr('errors.anaf.unreachable', { err: String(err) }))
   }
-  if (!res.ok) throw new Error(`ANAF a răspuns cu HTTP ${res.status}`)
+  if (!res.ok) throw new Error(tr('errors.anaf.http', { status: res.status }))
 
   const body = (await res.json()) as AnafTvaResponse
   const entry = body.found?.[0]
-  if (!entry) throw new Error(`ANAF nu are nicio înregistrare pentru CIF ${cui}`)
+  if (!entry) throw new Error(tr('errors.anaf.noRecord', { cui }))
   return mapEntry(entry)
 }

@@ -6,6 +6,7 @@ import { getRevolutSession } from '../../shared/lib/revolut.js'
 import type { BankAccountConfig, BankConnector, BankTransaction, PlatformHealth } from '../types.js'
 import { transformTransactions } from './transform.js'
 import type { RevolutTransaction } from './types.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Connector Revolut Business API. account.accessToken = access token OAuth2
 // (Bearer), decriptat și reîmprospătat (dacă e nevoie) de prepareSession()
@@ -21,7 +22,7 @@ async function revolutGet<T>(accessToken: string, path: string): Promise<T> {
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
   if (res.status === 401 || res.status === 403) {
-    throw new Error(`Revolut: token invalid/expirat (HTTP ${res.status})`)
+    throw new Error(tr('errors.revolut.tokenInvalid', { status: res.status }))
   }
   if (!res.ok) throw new Error(`Revolut: ${path.split('?')[0]} returned HTTP ${res.status}`)
   return (await res.json()) as T

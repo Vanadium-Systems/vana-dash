@@ -18,6 +18,7 @@ import * as service from './service.js'
 import { MailboxForbidden } from './mailboxes.js'
 import { getSuppressionsOverview, removeSuppression, suppressEmail } from './unsubscribe-service.js'
 import { verifyUnsubscribeToken } from './unsubscribe-token.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 const UNSUBSCRIBE_PAGE_STYLE = 'font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1.5rem;color:#1a1a1a;line-height:1.5'
 
@@ -162,7 +163,7 @@ export async function emailRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: SuppressionEmailParamsSchema } },
     async (req, reply) => {
       const removed = await removeSuppression(req.params.email)
-      if (!removed) return reply.code(404).send({ success: false, error: 'Adresă inexistentă în listă' })
+      if (!removed) return reply.code(404).send({ success: false, error: tr('errors.email.suppressionNotFound') })
       return { success: true }
     },
   )

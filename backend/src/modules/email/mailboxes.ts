@@ -3,6 +3,7 @@ import { db } from '../../shared/db/client.js'
 import { emailMessages, emailThreadReads, emailThreads, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { getIdentities, type EmailIdentity } from './settings-service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Cutii de email per om (PLAN.md C2, BE-4). Fiecare vede și trimite doar de pe cutiile
 // atribuite; aceeași cutie poate fi la doi oameni (deci citit/necitit e per om, nu per cutie).
@@ -70,7 +71,7 @@ export function messageVisibleTo(addresses: string[] | null): SQL | undefined {
 export class MailboxForbidden extends Error {
   readonly code = 'MAILBOX_FORBIDDEN'
   constructor(readonly fromKey: string) {
-    super(`Nu poți trimite de pe cutia ${fromKey}: nu e atribuită ție`)
+    super(tr('errors.email.mailboxNotYours', { fromKey }))
   }
 }
 

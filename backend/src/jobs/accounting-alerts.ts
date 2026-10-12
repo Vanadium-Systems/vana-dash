@@ -12,7 +12,9 @@ import {
   paymentMatches,
   syncLog,
 } from '../shared/db/schema/index.js'
+import { config } from '../shared/config.js'
 import { sendAlertEmail } from '../shared/lib/email.js'
+import { textFor, tl, tr, trFor, type LocalizedText } from '../shared/lib/i18n.js'
 import { notifyPush } from '../shared/lib/push.js'
 
 // Alertele de accounting (event-based, nu threshold pe metrici): reguli seed-uite
@@ -38,24 +40,24 @@ const REVOLUT_REFRESH_TOKEN_WARNING_DAYS = 7 // fereastră 4x mai mică decât A
 const D301_REMINDER_DAY = 20 // termen depunere D301/D390: 25 luna curentă, pt. luna precedentă
 
 const ACCOUNTING_RULES = [
-  { key: 'accounting.invoice_overdue', name: 'Factură emisă restantă', severity: 'warning' as const },
-  { key: 'accounting.anaf_token_expiring', name: 'Token ANAF aproape de expirare', severity: 'warning' as const },
-  { key: 'accounting.anaf_upload_rejected', name: 'e-Factura respinsă de ANAF', severity: 'critical' as const },
+  { key: 'accounting.invoice_overdue', name: tr('alerts.rules.invoiceOverdue'), severity: 'warning' as const },
+  { key: 'accounting.anaf_token_expiring', name: tr('alerts.rules.anafTokenExpiring'), severity: 'warning' as const },
+  { key: 'accounting.anaf_upload_rejected', name: tr('alerts.rules.efacturaRejected'), severity: 'critical' as const },
   // email: false — cerere Stefan (2026-09-14): sync bancar rămâne doar alertă în-app + push.
-  { key: 'accounting.bank_sync_failed', name: 'Sync bancar eșuat', severity: 'warning' as const, email: false },
-  { key: 'accounting.unmatched_transaction', name: 'Tranzacție nematchuită', severity: 'info' as const },
+  { key: 'accounting.bank_sync_failed', name: tr('alerts.rules.bankSyncFailed'), severity: 'warning' as const, email: false },
+  { key: 'accounting.unmatched_transaction', name: tr('alerts.rules.unmatchedTransaction'), severity: 'info' as const },
   {
     key: 'accounting.anaf_refresh_token_expiring',
-    name: 'Refresh token ANAF aproape de expirare (estimat)',
+    name: tr('alerts.rules.anafRefreshExpiring'),
     severity: 'warning' as const,
   },
   {
     key: 'accounting.revolut_refresh_token_expiring',
-    name: 'Refresh token Revolut aproape de expirare (estimat)',
+    name: tr('alerts.rules.revolutRefreshExpiring'),
     severity: 'warning' as const,
   },
-  { key: 'accounting.d301_deadline_approaching', name: 'Termen D301 se apropie', severity: 'warning' as const },
-  { key: 'accounting.d390_deadline_approaching', name: 'Termen D390 se apropie', severity: 'warning' as const },
+  { key: 'accounting.d301_deadline_approaching', name: tr('alerts.rules.d301Due'), severity: 'warning' as const },
+  { key: 'accounting.d390_deadline_approaching', name: tr('alerts.rules.d390Due'), severity: 'warning' as const },
 ]
 
 export function startAccountingAlertsJob(): void {
@@ -97,10 +99,11 @@ async function ensureRules(): Promise<Map<string, { id: string; severity: string
 async function raiseAlert(
   rules: Map<string, { id: string; severity: string; email: boolean; enabled: boolean }>,
   ruleKey: string,
-  message: string,
+  text: LocalizedText,
 ): Promise<void> {
   const rule = rules.get(ruleKey)
   if (!rule || !rule.enabled) return
+  const message = textFor(text, config.defaultLocale)
   const [existing] = await db
     .select({ id: alerts.id })
     .from(alerts)
@@ -112,10 +115,10 @@ async function raiseAlert(
     severity: rule.severity as 'info' | 'warning' | 'critical',
     message,
   })
-  if (rule.email) await sendAlertEmail(message, `${message}\n\nDetalii în vana-dash → Accounting.`)
+  if (rule.email) await sendAlertEmail(message, `${message}\n\n${tr('emails.alert.accountingDetails')}`)
   // Unificat cu metric-alerts.ts — același eventType 'alerts' pt. GET /api/alerts, indiferent
   // de sursă (threshold pe metrici sau event-based accounting).
-  void notifyPush('alerts', { title: 'Alertă vana-dash', body: message, url: '/alerts' })
+  void notifyPush('alerts', (locale) => ({ title: trFor(locale, 'push.alert.title'), body: textFor(text, locale), url: '/alerts' }))
 }
 
 export async function checkAccountingAlerts(): Promise<void> {
@@ -144,14 +147,20 @@ export async function checkAccountingAlerts(): Promise<void> {
     await raiseAlert(
       rules,
       'accounting.invoice_overdue',
-      `Factura ${invoice.documentNumber ?? '(draft)'} către ${invoice.counterpartyName ?? '?'} e restantă (${invoice.amount} ${invoice.currency})`,
+      (locale) =>
+        trFor(locale, 'alerts.accounting.invoiceOverdue', {
+          number: invoice.documentNumber ?? trFor(locale, 'alerts.accounting.draft'),
+          client: invoice.counterpartyName ?? '?',
+          amount: invoice.amount,
+          currency: invoice.currency,
+        }),
     )
   }
 
   // 2. anaf_token_expiring — expiră în <7 zile sau necesită deja re-auth.
   const [creds] = await db.select().from(anafCredentials).where(isNull(anafCredentials.deletedAt)).limit(1)
   if (creds?.status === 'needs_reauth') {
-    await raiseAlert(rules, 'accounting.anaf_token_expiring', 'ANAF necesită reautentificare manuală')
+    await raiseAlert(rules, 'accounting.anaf_token_expiring', tl('alerts.accounting.anafNeedsReauth'))
   } else if (
     creds?.status === 'active' &&
     creds.expiresAt &&
@@ -160,7 +169,7 @@ export async function checkAccountingAlerts(): Promise<void> {
     await raiseAlert(
       rules,
       'accounting.anaf_token_expiring',
-      `Token-ul ANAF expiră la ${creds.expiresAt.toISOString().slice(0, 10)}`,
+      tl('alerts.accounting.anafTokenExpires', { value: creds.expiresAt.toISOString().slice(0, 10) }),
     )
   }
 
@@ -174,7 +183,7 @@ export async function checkAccountingAlerts(): Promise<void> {
     await raiseAlert(
       rules,
       'accounting.anaf_upload_rejected',
-      `e-Factura ${invoice.documentNumber ?? '?'} a fost respinsă de ANAF`,
+      tl('alerts.accounting.efacturaRejected', { documentNumber: invoice.documentNumber ?? '?' }),
     )
   }
 
@@ -190,7 +199,7 @@ export async function checkAccountingAlerts(): Promise<void> {
     if (!entry.jobKey || seen.has(entry.jobKey)) continue
     seen.add(entry.jobKey)
     if (entry.status === 'FAILED') {
-      await raiseAlert(rules, 'accounting.bank_sync_failed', `Sync bancar eșuat (${entry.jobKey})`)
+      await raiseAlert(rules, 'accounting.bank_sync_failed', tl('alerts.accounting.bankSyncFailed', { jobKey: entry.jobKey }))
     }
   }
 
@@ -220,7 +229,7 @@ export async function checkAccountingAlerts(): Promise<void> {
     await raiseAlert(
       rules,
       'accounting.unmatched_transaction',
-      `Încasare nematchuită de ${UNMATCHED_TXN_DAYS}+ zile: ${txn.amount} ${txn.currency} de la ${txn.counterpartyName ?? '?'} (#${txn.id.slice(0, 8)})`,
+      tl('alerts.accounting.unmatchedIncome', { UNMATCHED_TXN_DAYS, amount: txn.amount, currency: txn.currency, counterpartyName: txn.counterpartyName ?? '?', id: txn.id.slice(0, 8) }),
     )
   }
 
@@ -235,7 +244,7 @@ export async function checkAccountingAlerts(): Promise<void> {
       await raiseAlert(
         rules,
         'accounting.anaf_refresh_token_expiring',
-        `Refresh token-ul ANAF expiră probabil în jur de ${estimatedExpiry.toISOString().slice(0, 10)} (estimare, fără reautentificare manuală riscăm needs_reauth)`,
+        tl('alerts.accounting.anafRefreshExpires', { value: estimatedExpiry.toISOString().slice(0, 10) }),
       )
     }
   }
@@ -256,7 +265,7 @@ export async function checkAccountingAlerts(): Promise<void> {
       await raiseAlert(
         rules,
         'accounting.revolut_refresh_token_expiring',
-        `Refresh token-ul Revolut pentru contul „${account.name}" expiră probabil în jur de ${estimatedExpiry.toISOString().slice(0, 10)} (estimare)`,
+        tl('alerts.accounting.revolutRefreshExpires', { name: account.name, value: estimatedExpiry.toISOString().slice(0, 10) }),
       )
     }
   }
@@ -277,14 +286,14 @@ export async function checkAccountingAlerts(): Promise<void> {
       await raiseAlert(
         rules,
         'accounting.d301_deadline_approaching',
-        `D301 pentru ${prevPeriod} are ${d301Preview.lines.length} linii de depus — termen 25 luna curentă`,
+        tl('alerts.accounting.d301Due', { prevPeriod, count: d301Preview.lines.length }),
       )
     }
     if (d390Preview.lines.length > 0) {
       await raiseAlert(
         rules,
         'accounting.d390_deadline_approaching',
-        `D390 pentru ${prevPeriod} are ${d390Preview.lines.length} linii de depus — termen 25 luna curentă`,
+        tl('alerts.accounting.d390Due', { prevPeriod, count: d390Preview.lines.length }),
       )
     }
   }

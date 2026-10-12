@@ -17,6 +17,7 @@ import {
   transformSpvMessage,
 } from './transform.js'
 import type { AnafEfacturaMessage, AnafListaMesajeResponse } from './types.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Connector ANAF SPV / e-Factura. Toată logica specifică ANAF trăiește AICI.
 // sandbox → api.anaf.ro/test (facturile nu au valoare fiscală), prod → api.anaf.ro/prod.
@@ -58,11 +59,11 @@ async function anafGet(session: AnafSession, url: string, timeoutMs = FETCH_TIME
       signal: AbortSignal.timeout(timeoutMs),
     })
     if (res.status === 401 || res.status === 403) {
-      throw new Error(`ANAF: token invalid/expirat (HTTP ${res.status}) — necesită refresh sau re-auth`)
+      throw new Error(tr('errors.anaf.tokenInvalid', { status: res.status }))
     }
     if (res.status === 429) {
       if (attempt === MAX_RETRIES_429) {
-        throw new Error(`ANAF: ${url.split('?')[0]} rate limited (HTTP 429) după ${MAX_RETRIES_429} reîncercări`)
+        throw new Error(tr('errors.anaf.rateLimited', { value: url.split('?')[0], MAX_RETRIES_429 }))
       }
       const delay = retryAfterMs(res) ?? BACKOFF_MS[attempt] ?? BACKOFF_MS.at(-1) ?? 2000
       console.warn(`[anaf] 429 rate limited, reîncerc în ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES_429})`)
@@ -119,7 +120,7 @@ async function downloadInvoiceArchive(
   const zip = new Uint8Array(await res.arrayBuffer())
   const files = unzipSync(zip)
   const xmlName = Object.keys(files).find((name) => name.endsWith('.xml') && !name.startsWith('semnatura'))
-  if (!xmlName) throw new Error(`ANAF descarcare ${messageId}: ZIP fără XML de factură`)
+  if (!xmlName) throw new Error(tr('errors.anaf.zipNoXml', { messageId }))
   const pdfName = Object.keys(files).find((name) => name.endsWith('.pdf'))
   return {
     xml: new TextDecoder('utf-8').decode(files[xmlName]),

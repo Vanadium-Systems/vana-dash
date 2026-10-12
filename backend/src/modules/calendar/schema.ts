@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 const eventFields = {
   title: z.string().trim().min(1).max(255),
@@ -26,7 +27,7 @@ export const CreateEventSchema = z
     calendarOwnerUserId: z.string().uuid().optional(),
   })
   .refine((v) => v.endAt >= v.startAt, {
-    message: 'endAt trebuie să fie după startAt',
+    message: lazyTr('errors.calendar.endAfterStart'),
     path: ['endAt'],
   })
 

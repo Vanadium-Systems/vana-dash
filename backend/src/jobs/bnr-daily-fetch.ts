@@ -2,6 +2,7 @@ import cron from 'node-cron'
 import { fetchAndStoreLatestBnrRates } from '../shared/lib/bnr.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
 import { getOpsJobToggles } from '../modules/settings/service.js'
+import { tl, tr } from '../shared/lib/i18n.js'
 
 // Sprint D, Track 2: cron zilnic necondiționat pt. EUR+USD — până acum
 // `fetchAndStoreLatestBnrRate` rula DOAR lazy, per-factură (jobs/vanagreen-billing.ts,
@@ -37,10 +38,10 @@ export async function runBnrDailyFetchJob(): Promise<void> {
     // (URL mutat de BNR, vezi shared/lib/bnr.ts) nedescoperit 13 zile — până a fost
     // observat indirect, ca lentoare de 3-5s pe /api/plan și /api/reports/*.
     console.error('[bnr-daily-fetch] eroare:', err)
-    const ruleId = await ensureAlertRule('bnr_feed.fetch_failed', 'Feed curs valutar BNR indisponibil', 'warning')
+    const ruleId = await ensureAlertRule('bnr_feed.fetch_failed', tr('alerts.rules.bnrFeed'), 'warning')
     // email: false — consecvent cu tender-watch-sync.ts și accounting-alerts.ts
     // (bank_sync_failed): blipuri de sursă externă rămân doar alertă în-app + push.
-    await raiseAlert(ruleId, `Actualizarea zilnică a cursului BNR a eșuat: ${String(err)}`, {
+    await raiseAlert(ruleId, tl('alerts.jobs.bnrFailed', { err: String(err) }), {
       severity: 'warning',
       url: '/financials',
       email: false,

@@ -88,8 +88,8 @@ describe('checkJeffbotAlerts', () => {
       ],
     })
     await checkJeffbotAlerts()
-    const urlFor = (service: string) =>
-      vi.mocked(notifyPush).mock.calls.find(([, msg]) => msg.body.includes(service))?.[1].url
+    const payloads = vi.mocked(notifyPush).mock.calls.map(([, content]) => (typeof content === 'function' ? content('ro') : content))
+    const urlFor = (service: string) => payloads.find((payload) => payload.body.includes(service))?.url
     expect(urlFor('jeffbot-stocks')).toBe('/assets?tab=bot')
     expect(urlFor('jeffbot-trader')).toBe('/crypto?tab=bot')
   })

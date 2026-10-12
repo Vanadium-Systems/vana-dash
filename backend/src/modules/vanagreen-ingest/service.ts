@@ -6,6 +6,7 @@ import type { PricingCalculateInput, PricingConfig } from '../pricing/schema.js'
 import * as pricingService from '../pricing/service.js'
 import { getVanagreenPlatformConfig } from '../reconciliation/vanagreen-extension.js'
 import type { SelfServeBillingClientIngestBody, SelfServePricingCalculateInput } from './schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 const TOGGLE_KEY = 'vanagreen_selfserve_pricing_enabled'
 
@@ -136,6 +137,6 @@ export async function createSelfServeBillingClient(body: SelfServeBillingClientI
       address: '',
     })
     .returning()
-  if (!row) throw new Error('Creare billing_client self-serve eșuată')
+  if (!row) throw new Error(tr('errors.vanagreen.billingClientFailed'))
   return row
 }

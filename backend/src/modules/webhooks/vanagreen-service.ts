@@ -1,9 +1,10 @@
 import { ensureAlertRule, raiseAlert } from '../../shared/lib/alerting.js'
 import type { VanagreenAlertIngestBody } from './vanagreen-schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 const SOURCE_LABEL: Record<VanagreenAlertIngestBody['source'], string> = {
-  anaf_rejected: 'ANAF a respins factura',
-  send_error: 'Eroare tehnică la trimitere',
+  anaf_rejected: tr('alerts.vanagreen.anafRejected'),
+  send_error: tr('alerts.vanagreen.technicalError'),
 }
 
 /**
@@ -15,18 +16,22 @@ export async function handleVanagreenAlert(body: VanagreenAlertIngestBody): Prom
   const ruleKey = `vanagreen.efactura.${body.tenant_id}.${body.invoice_id}.${body.source}`
   const ruleId = await ensureAlertRule(ruleKey, `vanagreen e-Factura — ${body.tenant_name}`.slice(0, 255))
 
-  const invoiceRef = body.invoice_number ?? 'ciornă'
+  const invoiceRef = body.invoice_number ?? tr('alerts.vanagreen.draft')
   const message = `[vanagreen] ${SOURCE_LABEL[body.source]} — ${body.tenant_name}, factura ${invoiceRef}: ${body.error_message}`
 
   const emailBody = [
     message,
     '',
     `Tenant: ${body.tenant_name} (${body.tenant_id})`,
-    `Factură: ${invoiceRef} (${body.invoice_id})`,
-    body.company_name ? `Cumpărător: ${body.company_name}${body.company_cui ? ` — CUI ${body.company_cui}` : ''}` : null,
-    body.error_code ? `Cod eroare: ${body.error_code}` : null,
-    `Eroare completă: ${body.error_message}`,
-    `Deschide în vanagreen: ${body.url}`,
+    tr('alerts.vanagreen.invoice', { invoiceRef, invoice_id: body.invoice_id }),
+    body.company_name
+      ? body.company_cui
+        ? tr('alerts.vanagreen.buyerWithCui', { name: body.company_name, cui: body.company_cui })
+        : tr('alerts.vanagreen.buyer', { name: body.company_name })
+      : null,
+    body.error_code ? tr('alerts.vanagreen.errorCode', { error_code: body.error_code }) : null,
+    tr('alerts.vanagreen.fullError', { error_message: body.error_message }),
+    tr('alerts.vanagreen.open', { url: body.url }),
   ]
     .filter((line): line is string => line !== null)
     .join('\n')

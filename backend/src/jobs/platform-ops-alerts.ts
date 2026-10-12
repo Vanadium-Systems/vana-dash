@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 import { getPlatformOpsSignals, listPlatforms, OpsSignalsFetchError } from '../modules/platforms/service.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
+import { tl, tr } from '../shared/lib/i18n.js'
 
 // Alertare pe semnalele de sănătate operațională per platformă (CPU/RAM/disk/erori/backup) —
 // Stefan, 2026-07-25: doar nivelul roșu (critic) declanșează alertă, la fiecare 5 minute, ca
@@ -35,8 +36,8 @@ export async function checkPlatformOpsAlerts(): Promise<void> {
     } catch (err) {
       if (err instanceof OpsSignalsFetchError) {
         const key = `platform_ops.${platform.id}.unreachable`
-        const ruleId = await ensureAlertRule(key, `${platform.name} — nu răspunde`)
-        await raiseAlert(ruleId, `Platforma ${platform.name} nu răspunde la verificarea de sănătate (${err.message})`, {
+        const ruleId = await ensureAlertRule(key, tr('alerts.rules.platformNotResponding', { name: platform.name }))
+        await raiseAlert(ruleId, tl('alerts.jobs.platformHealthFailed', { name: platform.name, message: err.message }), {
           url: '/platforms',
         })
         continue

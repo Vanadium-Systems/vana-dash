@@ -7,6 +7,7 @@ import * as quota from './quota.js'
 import * as scheduledService from './tools/scheduled.js'
 import * as providers from './providers/index.js'
 import { ProviderIdParamsSchema, ProviderUpdateSchema } from './providers-schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Modelele nu mai sunt un enum hardcodat — vin din assistant_providers (editabile din UI),
 // cu fallback pe ASSISTANT_MODELS. Validarea rămâne la service (contra listei disponibile).
@@ -85,7 +86,7 @@ export async function assistantRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, body: UpdateConversationSchema } },
     async (req, reply) => {
       const row = await service.updateConversationModel(req.me, req.params.id, req.body.model as service.AssistantModelId, req.body.provider)
-      if (!row) return reply.code(404).send({ success: false, error: 'Conversație inexistentă' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.chat.conversationNotFound') })
       return { success: true, data: row }
     },
   )
@@ -95,7 +96,7 @@ export async function assistantRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema } },
     async (req, reply) => {
       const row = await service.deleteConversation(req.me, req.params.id)
-      if (!row) return reply.code(404).send({ success: false, error: 'Conversație inexistentă' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.chat.conversationNotFound') })
       return { success: true, data: row }
     },
   )

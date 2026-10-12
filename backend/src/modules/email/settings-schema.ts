@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 // Setări modul Email — mutate din .env în dashboard_config (editabile din UI, PLAN.md decizie
 // fixată). Valorile din .env (config.email*) rămân fallback dacă nu există încă rând în DB.
@@ -7,7 +8,7 @@ import { z } from 'zod'
 // redenumește ușor), label afișat în dropdown-uri. `fromAddress` gol = identitate încă
 // neconfigurată (fail-soft la trimitere pe contact, ca outreach-ul azi).
 export const EmailIdentitySchema = z.object({
-  key: z.string().trim().regex(/^[a-z0-9_-]+$/, 'Cheia identității: doar litere mici, cifre, - și _'),
+  key: z.string().trim().regex(/^[a-z0-9_-]+$/, lazyTr('errors.email.identityKeyFormat')),
   label: z.string().trim().min(1).max(100),
   // Formatul Resend: `Vanadium Systems <sales@vanadium.systems>` sau adresa simplă. Validarea
   // doar pe adresă respingea tot formatul cu nume, deci și identitățile implicite.
@@ -17,7 +18,7 @@ export const EmailIdentitySchema = z.object({
     z.string().trim().refine((value) => {
       const match = /^[^<>]+<([^<>]+)>$/.exec(value)
       return z.string().email().safeParse(match?.[1]?.trim()).success
-    }, 'Adresa: sales@vanadium.systems sau Nume <sales@vanadium.systems>'),
+    }, lazyTr('errors.email.addressFormat')),
   ]),
 })
 
@@ -26,7 +27,7 @@ export const EmailSettingsUpdateSchema = z.object({
   // (sau șir gol = fără semnătură). Cheia e validată ca `identityKey`, ca un rând nou să nu
   // poată ajunge o cheie care nu e identitate.
   signatures: z
-    .record(z.string().regex(/^[a-z0-9_-]+$/, 'Cheia semnăturii: doar litere mici, cifre, - și _'), z.string().max(2000))
+    .record(z.string().regex(/^[a-z0-9_-]+$/, lazyTr('errors.email.signatureKeyFormat')), z.string().max(2000))
     .optional(),
   autoSpamEnabled: z.boolean().optional(),
   spamThreshold: z.number().int().min(1).max(20).optional(),

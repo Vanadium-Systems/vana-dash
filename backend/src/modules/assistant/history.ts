@@ -1,11 +1,13 @@
 import type { BetaContentBlockParam, BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Istoricul din DB nu garantează forma cerută de API-uri (fiecare tool_use urmat imediat de
 // tool_result-ul lui, roluri alternante): rundele fără conținut, rezultatele confirmărilor
 // adăugate după textul modelului și conversațiile salvate înainte ca rezultatele tool-urilor
 // să fie persistate. Reparăm la încărcare, DB-ul rămâne cum e.
 
-const MISSING_RESULT = 'Rezultatul acestui apel nu a fost păstrat.'
+// Read by the model, so written in the language the person talks to it in.
+const missingResult = () => tr('errors.assistant.history.notKept')
 // Rezultatele din turele anterioare (liste de emailuri, facturi) ajung ușor la zeci de mii de
 // tokeni și s-ar retrimite la fiecare mesaj. În tura curentă modelul le vede întregi.
 const OLD_RESULT_MAX_CHARS = 2000
@@ -19,7 +21,7 @@ function toolUseIds(blocks: BetaContentBlockParam[]): string[] {
 }
 
 function missingResults(ids: string[]): BetaMessageParam {
-  return { role: 'user', content: ids.map((id) => ({ type: 'tool_result' as const, tool_use_id: id, content: MISSING_RESULT })) }
+  return { role: 'user', content: ids.map((id) => ({ type: 'tool_result' as const, tool_use_id: id, content: missingResult() })) }
 }
 
 function toolResultText(block: Extract<BetaContentBlockParam, { type: 'tool_result' }>): string {
@@ -61,17 +63,17 @@ export function repairHistory(messages: BetaMessageParam[]): BetaMessageParam[] 
         results.set(
           block.tool_use_id,
           text.length > OLD_RESULT_MAX_CHARS
-            ? { type: 'tool_result', tool_use_id: block.tool_use_id, content: `${text.slice(0, OLD_RESULT_MAX_CHARS)}\n[…scurtat, rezultat dintr-o tură anterioară; cheamă din nou tool-ul dacă ai nevoie de tot]` }
+            ? { type: 'tool_result', tool_use_id: block.tool_use_id, content: tr('errors.assistant.history.shortened', { text: text.slice(0, OLD_RESULT_MAX_CHARS) }) }
             : block,
         )
       } else {
         // rezultat fără tool_use imediat înainte (ex. confirmarea unei acțiuni) — modelul îl
         // primește ca text, altfel API-ul respinge tot istoricul
-        rest.push({ type: 'text', text: `[Rezultat acțiune ${block.tool_use_id}]: ${toolResultText(block)}` })
+        rest.push({ type: 'text', text: tr('errors.assistant.history.actionResult', { id: block.tool_use_id, result: toolResultText(block) }) })
       }
     }
     const ordered = expectedIds.map(
-      (id) => results.get(id) ?? { type: 'tool_result' as const, tool_use_id: id, content: MISSING_RESULT },
+      (id) => results.get(id) ?? { type: 'tool_result' as const, tool_use_id: id, content: missingResult() },
     )
     out.push({ role: 'user', content: [...ordered, ...rest] })
   }

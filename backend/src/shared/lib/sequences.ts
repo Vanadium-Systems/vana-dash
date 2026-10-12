@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { invoiceSequences } from '../db/schema/index.js'
+import { tr } from './i18n.js'
 
 // Alocator de numere de factură — pattern identic cu vanagreen (SELECT ... FOR UPDATE
 // într-o tranzacție), simplificat: fără tenant, fără linked sequences.
@@ -18,7 +19,7 @@ async function allocateWithinTx(tx: DrizzleTx, key: string): Promise<string> {
   await tx.insert(invoiceSequences).values({ key }).onConflictDoNothing({ target: invoiceSequences.key })
   const rows = await tx.select().from(invoiceSequences).where(eq(invoiceSequences.key, key)).for('update')
   const row = rows[0]
-  if (!row) throw new Error(`Secvența de facturare "${key}" nu a putut fi creată`)
+  if (!row) throw new Error(tr('errors.invoicing.sequenceKeyNotCreated', { key }))
 
   const year = new Date().getUTCFullYear()
   let nextValue: number

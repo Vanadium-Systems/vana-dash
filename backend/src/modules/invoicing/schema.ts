@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr, tr } from '../../shared/lib/i18n.js'
 
 // Sprint C, Track D — slug: identificator uman-lizibil comun cu vanagreen (tenants.slug
 // acolo). kebab-case, generat din name dacă lipsește la creare (vezi routes.ts).
@@ -6,7 +7,7 @@ const slugSchema = z
   .string()
   .min(1)
   .max(100)
-  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'slug trebuie kebab-case (litere mici, cifre, cratime)')
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, lazyTr('errors.invoicing.slugKebab'))
 
 export const ClientCreateSchema = z.object({
   name: z.string().min(1),
@@ -125,7 +126,7 @@ export const InvoiceTemplateLineSchema = z
     if (line.priceSource === 'fixed' && line.unitPrice === null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'unitPrice e obligatoriu pentru linii cu preț fix',
+        message: tr('errors.invoicing.unitPriceRequired'),
         path: ['unitPrice'],
       })
     }

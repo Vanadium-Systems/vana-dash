@@ -1,4 +1,5 @@
 import { createHmac } from 'node:crypto'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Client Binance REST (PLAN.md Contract D) — semnătură HMAC-SHA256 pe query string, header
 // X-MBX-APIKEY. Produs = api.binance.com, testnet = testnet.binance.vision (dezvoltare fără
@@ -29,7 +30,7 @@ async function request<T>(
 ): Promise<T> {
   // Concatenare directă — new URL(path, BASE) cu path absolut ar pierde /api/v3.
   const url = new URL(BASE_URLS[exchange] + path)
-  if (!ALLOWED_HOSTS.has(url.hostname)) throw new Error(`Domeniu nepermis: ${url.hostname}`)
+  if (!ALLOWED_HOSTS.has(url.hostname)) throw new Error(tr('errors.net.domainNotAllowed', { hostname: url.hostname }))
 
   if (keys) {
     params.timestamp = Date.now()
@@ -46,7 +47,7 @@ async function request<T>(
   const res = await fetch(url, { method, headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { msg?: string } | null
-    throw new Error(`Binance HTTP ${res.status}: ${body?.msg ?? res.statusText}`)
+    throw new Error(tr('errors.net.binanceHttp', { status: res.status, msg: body?.msg ?? res.statusText }))
   }
   return (await res.json()) as T
 }

@@ -26,6 +26,7 @@ import type {
   TemplateCreateSchema,
   TemplateUpdateSchema,
 } from './schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 type EmailSendRow = typeof emailSends.$inferSelect
 
@@ -39,7 +40,7 @@ const DELAY_BETWEEN_SENDS_MS = 200
 async function resolveFromAddress(from: z.infer<typeof EmailFromSchema>): Promise<string> {
   const identities = await getIdentities()
   const identity = identities.find((i) => i.key === from)
-  if (!identity) throw new Error(`Identitate email necunoscută: ${from}`)
+  if (!identity) throw new Error(tr('errors.email.unknownIdentity', { from }))
   if (!identity.fromAddress) {
     return identities.find((i) => i.key === 'contact' && i.fromAddress)?.fromAddress ?? config.emailFromContact
   }
@@ -106,7 +107,7 @@ export async function sendSingle(me: SessionUser, input: z.infer<typeof SendCrea
   // valid ca formă, dar fără rând) trece de Zod și pică abia la FK constraint pe
   // insert, cu eroare SQL brută urcată necaptată (BUG-EMAIL-001, găsit de QA).
   if (templateId && !(await getTemplate(templateId))) {
-    throw new Error('Template inexistent')
+    throw new Error(tr('errors.email.templateNotFound'))
   }
   const fromAddress = await resolveFromAddress(from)
   const { text, html } = await composeWithSignature(body, from)
@@ -140,7 +141,7 @@ export async function sendSingle(me: SessionUser, input: z.infer<typeof SendCrea
       sentByUserId: me.id,
     })
     .returning()
-  if (!row) throw new Error('email_sends insert nu a returnat nimic')
+  if (!row) throw new Error(tr('errors.email.sendInsertFailed'))
 
   if (result.ok) {
     // Oglindire în thread/conversație — DOAR Compose 1:1, NU bulk (decizie fixată în PLAN.md).
@@ -255,7 +256,7 @@ export interface SendCampaignEmailParams {
 export async function sendCampaignEmail(params: SendCampaignEmailParams): Promise<{ result: SendEmailResult; row: EmailSendRow }> {
   const { to, nume, templateId, from, batchId = null, sequenceEnrollmentId = null, attachments } = params
   const template = await getTemplate(templateId)
-  if (!template) throw new Error('Template inexistent')
+  if (!template) throw new Error(tr('errors.email.templateNotFound'))
 
   const fromAddress = await resolveFromAddress(from)
   const sig = await buildSignature(from)
@@ -294,7 +295,7 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
       sequenceEnrollmentId,
     })
     .returning()
-  if (!row) throw new Error('email_sends insert nu a returnat nimic')
+  if (!row) throw new Error(tr('errors.email.sendInsertFailed'))
 
   return { result, row }
 }
@@ -324,7 +325,7 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
   const { templateId, recipients, from, attachments } = input
   assertCanSendFrom(me, from)
   const template = await getTemplate(templateId)
-  if (!template) throw new Error('Template inexistent')
+  if (!template) throw new Error(tr('errors.email.templateNotFound'))
 
   const batchId = randomUUID()
   // Un singur query pt. tot batch-ul (nu per destinatar, spre deosebire de dedup-ul de mai jos —

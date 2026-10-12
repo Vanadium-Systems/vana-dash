@@ -1,7 +1,9 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { alertRules, alerts } from '../db/schema/index.js'
+import { config } from '../config.js'
 import { sendAlertEmail } from './email.js'
+import { textFor, trFor, type LocalizedText } from './i18n.js'
 import { notifyPush } from './push.js'
 
 type Severity = 'info' | 'warning' | 'critical'
@@ -36,9 +38,12 @@ export async function ensureAlertRule(metricKey: string, name: string, severity:
  */
 export async function raiseAlert(
   ruleId: string,
-  message: string,
+  text: LocalizedText,
   opts?: { severity?: Severity; emailBody?: string; url?: string; email?: boolean },
 ): Promise<void> {
+  // The stored row and the operator's email are in the installation's language; the push
+  // below is written again for each person.
+  const message = textFor(text, config.defaultLocale)
   const [rule] = await db.select({ enabled: alertRules.enabled }).from(alertRules).where(eq(alertRules.id, ruleId))
   if (!rule?.enabled) return
 
@@ -53,5 +58,5 @@ export async function raiseAlert(
   // `email: false` — cerere Stefan (2026-09-14): licitații + sync bancar rămân doar
   // alertă în-app + push, fără zgomot suplimentar în inbox.
   if (opts?.email !== false) await sendAlertEmail(message, opts?.emailBody ?? message)
-  void notifyPush('alerts', { title: 'Alertă vana-dash', body: message, url: opts?.url ?? '/alerts' })
+  void notifyPush('alerts', (locale) => ({ title: trFor(locale, 'push.alert.title'), body: textFor(text, locale), url: opts?.url ?? '/alerts' }))
 }

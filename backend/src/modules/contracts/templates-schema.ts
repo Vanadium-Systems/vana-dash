@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CONTRACT_TEMPLATE_KEYS } from '../../shared/lib/contract-template-bodies.js'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 export const TemplateKeyParamsSchema = z.object({ key: z.enum(CONTRACT_TEMPLATE_KEYS) })
 
@@ -26,4 +27,4 @@ export const ContractTermsUpdateSchema = z
     slaP1: termValue.optional(),
     slaP2: termValue.optional(),
   })
-  .refine((input) => Object.keys(input).length > 0, { message: 'Trimite cel puțin un termen' })
+  .refine((input) => Object.keys(input).length > 0, { message: lazyTr('errors.contracts.atLeastOneTerm') })

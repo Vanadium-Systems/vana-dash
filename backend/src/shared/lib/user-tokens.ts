@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { userTokens } from '../db/schema/index.js'
+import { tr } from './i18n.js'
 
 // Token-uri de unică folosire: invitație, resetare de parolă, înscriere (PLAN.md C2).
 //
@@ -26,7 +27,7 @@ export async function createUserToken(userId: string, kind: TokenKind): Promise<
       expiresAt: new Date(Date.now() + TOKEN_TTL_HOURS[kind] * 3_600_000),
     })
     .returning()
-  if (!row) throw new Error('Token necreat')
+  if (!row) throw new Error(tr('errors.auth.tokenNotCreated'))
   return token
 }
 

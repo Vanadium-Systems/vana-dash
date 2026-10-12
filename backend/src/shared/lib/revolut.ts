@@ -5,6 +5,7 @@ import { db } from '../db/client.js'
 import { bankAccounts } from '../db/schema/index.js'
 import { decryptApiKey, encryptApiKey } from './crypto.js'
 import { sendAlertEmail } from './email.js'
+import { tr } from './i18n.js'
 
 // Gestionarea credențialelor Revolut per cont bancar — mirror pe shared/lib/anaf.ts,
 // dar `bank_accounts` e un TABEL (mai multe rânduri), nu un singleton ca `anaf_credentials`.
@@ -44,9 +45,9 @@ export async function markNeedsReauth(accountId: string, reason: string): Promis
     .set({ authStatus: 'needs_reauth', updatedAt: new Date() })
     .where(eq(bankAccounts.id, accountId))
   await sendAlertEmail(
-    'Revolut: reautentificare necesară',
-    `Refresh token-ul Revolut pentru contul "${row?.name ?? accountId}" a expirat sau a fost revocat (${reason}).\n` +
-      'Intră în vana-dash → Reconciliere → Setări cont bancar și refă consimțirea OAuth din browser.',
+    tr('emails.revolut.reauthSubject'),
+    tr('emails.revolut.reauthBody1', { name: row?.name ?? accountId, reason }) +
+      tr('emails.revolut.reauthBody2'),
   )
 }
 
@@ -57,20 +58,20 @@ export async function markNeedsReauth(accountId: string, reason: string): Promis
  */
 export async function getRevolutSession(accountId: string): Promise<{ accessToken: string }> {
   const row = await getBankAccountRow(accountId)
-  if (!row) throw new Error('Cont bancar inexistent')
+  if (!row) throw new Error(tr('errors.reconciliation.accountNotFound'))
 
   if (row.authStatus === 'unconfigured' || !row.accessTokenEnc || !row.refreshTokenEnc) {
     throw new Error(
-      `Revolut neconfigurat pentru contul "${row.name}": setează client_id, generează certificatul și fă consimțirea OAuth din Reconciliere → Setări`,
+      tr('errors.revolut.notConfigured', { name: row.name }),
     )
   }
   if (row.authStatus === 'needs_reauth') {
     throw new Error(
-      `Revolut necesită reautentificare manuală pentru contul "${row.name}" (refresh token expirat/revocat)`,
+      tr('errors.revolut.needsReauth', { name: row.name }),
     )
   }
   if (!row.clientId || !row.privateKeyEnc) {
-    throw new Error(`Revolut: contul "${row.name}" nu are client_id sau certificat configurat`)
+    throw new Error(tr('errors.revolut.noClientIdOrCert', { name: row.name }))
   }
 
   const needsRefresh = !row.tokenExpiresAt || row.tokenExpiresAt.getTime() - Date.now() < REFRESH_MARGIN_MS
@@ -86,6 +87,6 @@ export async function getRevolutSession(accountId: string): Promise<{ accessToke
     return { accessToken: tokens.accessToken }
   } catch (err) {
     await markNeedsReauth(accountId, String(err))
-    throw new Error(`Revolut token refresh eșuat pentru contul "${row.name}": ${String(err)}`)
+    throw new Error(tr('errors.revolut.refreshFailed', { name: row.name, err: String(err) }))
   }
 }

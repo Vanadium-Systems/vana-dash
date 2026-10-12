@@ -9,6 +9,7 @@ import { createAnthropicProvider } from './anthropic.js'
 import { createOpenRouterProvider, OPENROUTER_DEFAULT_BASE_URL } from './openrouter.js'
 import { ASSISTANT_PROVIDER_IDS, type AssistantProvider, type AssistantProviderId } from './types.js'
 import { ProviderUpdateSchema } from '../providers-schema.js'
+import { tr } from '../../../shared/lib/i18n.js'
 
 export { toNeutralTools } from './anthropic.js'
 export { ASSISTANT_PROVIDER_IDS } from './types.js'
@@ -154,13 +155,13 @@ export async function buildActiveProvider(override: string | null | undefined): 
 
   if (id === 'anthropic') {
     const apiKey = row?.apiKeyEnc ? decryptApiKey(row.apiKeyEnc) : config.anthropic.apiKey
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY nu e configurat — vezi Setări → Asistent')
+    if (!apiKey) throw new Error(tr('errors.assistant.anthropicKeyMissing'))
     return { provider: createAnthropicProvider(apiKey), id }
   }
 
-  if (row && !row.enabled) throw new Error('OpenRouter e dezactivat — activează-l din Setări → Asistent')
+  if (row && !row.enabled) throw new Error(tr('errors.assistant.openRouterOff'))
   const apiKey = row?.apiKeyEnc ? decryptApiKey(row.apiKeyEnc) : config.openrouter.apiKey
-  if (!apiKey) throw new Error('Cheie OpenRouter lipsă — configureaz-o din Setări → Asistent')
+  if (!apiKey) throw new Error(tr('errors.assistant.openRouterKeyMissing'))
   return { provider: createOpenRouterProvider({ apiKey, baseUrl: row?.baseUrl }), id }
 }
 
@@ -170,5 +171,5 @@ export async function resolveModel(conversationModel: string | null | undefined,
   const row = await getRow(providerId)
   if (row?.defaultModel) return row.defaultModel
   if (providerId === 'anthropic') return config.anthropic.model
-  throw new Error('Niciun model implicit configurat pentru OpenRouter — alege unul din Setări')
+  throw new Error(tr('errors.assistant.openRouterNoDefaultModel'))
 }

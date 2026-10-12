@@ -1,0 +1,18 @@
+{
+  "breakdown": {
+    "base": "Bază (banda puncte de lucru: {{label}}, ×{{mult}})",
+    "extraDesktop": "Operatori desktop extra ({{count}} × {{rate}})",
+    "mobile": "Operatori mobil ({{opMobil}} × {{operatorMobilRate}})",
+    "extraDocuments": "Documente extra ({{count}}, pe benzi)",
+    "deeeFlow": "Flux DEEE/DBA",
+    "noBundle": "Niciun pachet ales",
+    "siatd": "Robot SIATD ({{siatd}} intrări)",
+    "scales": "Cântare smart conectate ({{cantare}} × {{cantarRate}})",
+    "scalesSetup": "Configurare cântare smart (one-time)",
+    "equipmentPurchase": "Echipamente — achiziție (one-time)",
+    "equipmentSubscription": "Echipamente — abonament lunar",
+    "setupFeeBundle": "Taxă de inițiere — preț fix pachet „{{label}}\" (one-time)",
+    "setupFee": "Taxă de inițiere (onboarding, one-time)",
+    "needsSetup": "Necesită configurare"
+  }
+}

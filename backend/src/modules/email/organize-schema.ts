@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 // ── Etichete/reguli/blocklist — organizare mailbox (PLAN.md, Email Gmail-parity) ─────────────
 // Fișier propriu (nu routes.ts/schema.ts) — concern distinct de send/bulk/templates, la fel cum
@@ -32,7 +33,7 @@ export const RuleCreateSchema = z
     action: RuleActionSchema,
     labelId: z.string().uuid().optional(),
   })
-  .refine(ruleActionRequiresLabel, { message: 'labelId obligatoriu când action=label', path: ['labelId'] })
+  .refine(ruleActionRequiresLabel, { message: lazyTr('errors.email.labelIdRequired'), path: ['labelId'] })
 
 export const RuleUpdateSchema = z.object({
   matchType: RuleMatchTypeSchema.optional(),

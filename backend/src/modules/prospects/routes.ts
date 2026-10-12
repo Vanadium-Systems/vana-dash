@@ -15,6 +15,7 @@ import {
   UpdateScoringConfigSchema,
 } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 const MAX_CSV_SIZE = 10 * 1024 * 1024 // 10MB — export de firme, nu fișiere media
 
@@ -84,7 +85,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: UpdateProspectStatusSchema } },
     async (req, reply) => {
       const row = await service.updateProspectStatus((req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: 'Status inexistent' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.statusNotFound') })
       return { success: true, data: row }
     },
   )
@@ -92,7 +93,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
   server.delete('/api/prospects/statuses/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     try {
       const row = await service.deleteProspectStatus((req.params as { id: string }).id)
-      if (!row) return reply.code(404).send({ success: false, error: 'Status inexistent' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.statusNotFound') })
       return { success: true }
     } catch (err) {
       if (err instanceof service.ProspectStatusInUseError) {
@@ -111,15 +112,15 @@ export async function prospectsRoutes(app: FastifyInstance) {
 
     if (contentType.includes('multipart/form-data')) {
       const data = await req.file()
-      if (!data) return reply.code(400).send({ success: false, error: 'Fișier CSV lipsă' })
+      if (!data) return reply.code(400).send({ success: false, error: tr('errors.prospects.csvMissing') })
       const buffer = await data.toBuffer()
-      if (data.file.truncated) return reply.code(413).send({ success: false, error: 'Fișier prea mare (peste 10MB)' })
+      if (data.file.truncated) return reply.code(413).send({ success: false, error: tr('errors.prospects.fileTooLarge') })
       csvText = buffer.toString('utf-8')
       const sourceField = data.fields?.source
       source = sourceField && 'value' in sourceField ? String(sourceField.value) : data.filename
     } else {
       const parsed = ImportProspectsSchema.safeParse(req.body)
-      if (!parsed.success) return reply.code(400).send({ success: false, error: 'Body invalid — trimite { csv, source? }' })
+      if (!parsed.success) return reply.code(400).send({ success: false, error: tr('errors.prospects.invalidBody') })
       csvText = parsed.data.csv
       source = parsed.data.source
     }
@@ -128,7 +129,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
       const result = await importProspects(csvText, source)
       return { success: true, data: result }
     } catch (err) {
-      return reply.code(400).send({ success: false, error: `Import eșuat: ${String(err)}` })
+      return reply.code(400).send({ success: false, error: tr('errors.prospects.importFailed', { err: String(err) }) })
     }
   })
 
@@ -147,7 +148,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const row = await service.updateProspect((req.params as { id: string }).id, req.body)
-        if (!row) return reply.code(404).send({ success: false, error: 'Prospect inexistent' })
+        if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
         return { success: true, data: row }
       } catch (err) {
         if (err instanceof service.InvalidProspectStatusError) return reply.code(400).send({ success: false, error: err.message })
@@ -158,19 +159,19 @@ export async function prospectsRoutes(app: FastifyInstance) {
 
   server.delete('/api/prospects/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.deleteProspect((req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: 'Prospect inexistent' })
+    if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
     return { success: true }
   })
 
   server.post('/api/prospects/:id/archive', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.archiveProspect((req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: 'Prospect inexistent' })
+    if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
     return { success: true, data: row }
   })
 
   server.post('/api/prospects/:id/unarchive', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.unarchiveProspect((req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: 'Prospect inexistent' })
+    if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
     return { success: true, data: row }
   })
 
@@ -198,7 +199,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const row = await service.promoteProspect((req.params as { id: string }).id, req.body)
-        if (!row) return reply.code(404).send({ success: false, error: 'Prospect inexistent' })
+        if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
         return { success: true, data: row }
       } catch (err) {
         return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })

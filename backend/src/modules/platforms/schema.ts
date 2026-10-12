@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { validatePlatformUrl } from '../../shared/lib/ssrf-guard.js'
+import { lazyTr, tr } from '../../shared/lib/i18n.js'
 
 // SSRF protection (security.agent.md) — respinge hostname loopback/private/link-local la
 // creare/editare, înainte ca sync jobs să apuce vreodată să facă fetch pe URL-ul salvat.
@@ -15,7 +16,7 @@ const platformApiUrl = z
         return false
       }
     },
-    { message: 'URL platformă invalid — hostname localhost/rețea privată nu e permis' },
+    { message: lazyTr('errors.platforms.urlNotAllowed') },
   )
 
 // Mapările conectorului generic (sprint de-hardcodare 2026-08-25) — rută relativă pe API-ul
@@ -23,13 +24,13 @@ const platformApiUrl = z
 const MetricMappingSchema = z.object({
   metricKey: z.string().trim().min(1),
   unit: z.string().trim().min(1).optional(),
-  path: z.string().regex(/^\/\S*$/, 'Path trebuie să fie o rută relativă care începe cu /'),
+  path: z.string().regex(/^\/\S*$/, lazyTr('errors.platforms.pathRelative')),
   kind: z.enum(['number']).default('number'),
 })
 
 const genericHealthPath = z
   .string()
-  .regex(/^\/\S*$/, 'Health path trebuie să fie o rută relativă care începe cu /')
+  .regex(/^\/\S*$/, lazyTr('errors.platforms.healthPathRelative'))
   .nullable()
   .optional()
 
@@ -63,7 +64,7 @@ export const PlatformCreateSchema = PlatformBaseSchema.superRefine((input, ctx) 
   if (input.type !== 'generic' && (input.metricMappings || input.healthPath)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'metricMappings/healthPath sunt disponibile doar pt. tipul generic',
+      message: tr('errors.platforms.genericOnly'),
       path: ['metricMappings'],
     })
   }
@@ -74,7 +75,7 @@ export const PlatformUpdateSchema = PlatformBaseSchema.partial().superRefine((in
   if (input.type !== undefined && input.type !== 'generic' && (input.metricMappings || input.healthPath)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'metricMappings/healthPath sunt disponibile doar pt. tipul generic',
+      message: tr('errors.platforms.genericOnly'),
       path: ['metricMappings'],
     })
   }

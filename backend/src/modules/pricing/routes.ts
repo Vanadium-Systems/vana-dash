@@ -13,6 +13,7 @@ import {
   type PricingConfig,
 } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function pricingRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -47,7 +48,7 @@ export async function pricingRoutes(app: FastifyInstance) {
       if (!configRow) {
         return reply
           .code(404)
-          .send({ success: false, error: 'Platforma nu are încă un config de preț salvat (PUT /api/pricing/config întâi)' })
+          .send({ success: false, error: tr('errors.pricing.noConfig') })
       }
       const result = calculatePrice(configRow.config as PricingConfig, req.body)
       return { success: true, data: result }
@@ -65,10 +66,10 @@ export async function pricingRoutes(app: FastifyInstance) {
       if (!configRow) {
         return reply
           .code(404)
-          .send({ success: false, error: 'Platforma nu are încă un config de preț salvat (PUT /api/pricing/config întâi)' })
+          .send({ success: false, error: tr('errors.pricing.noConfig') })
       }
       if (!isPdfAvailable()) {
-        return reply.code(503).send({ success: false, error: 'Generarea PDF indisponibilă (Chromium neconfigurat) — încearcă din nou mai târziu' })
+        return reply.code(503).send({ success: false, error: tr('errors.pdf.unavailableRetry') })
       }
       const html = renderPriceSheetHtml(configRow.config as PricingConfig, platform?.name ?? 'Platformă')
       const pdf = await htmlToPdf(html)

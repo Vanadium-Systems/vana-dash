@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import { emailBlocklist, emailLabels, emailMessages, emailRules } from '../../shared/db/schema/index.js'
 import type { BlocklistCreateSchema, LabelCreateSchema, LabelUpdateSchema, RuleCreateSchema, RuleUpdateSchema } from './organize-schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // ── Labels ───────────────────────────────────────────────────────────────────
 
@@ -88,7 +89,7 @@ function ruleUpdatePatch(rule: Rule): Record<string, unknown> {
 /** Aplică o regulă retroactiv pe mesajele deja existente — un singur UPDATE, nu buclă. */
 export async function applyRuleToExisting(id: string): Promise<number> {
   const [rule] = await db.select().from(emailRules).where(and(eq(emailRules.id, id), isNull(emailRules.deletedAt)))
-  if (!rule) throw new Error('Regulă inexistentă')
+  if (!rule) throw new Error(tr('errors.alerts.ruleNotFound'))
 
   const rows = await db
     .update(emailMessages)
@@ -167,7 +168,7 @@ export async function removeFromBlocklist(id: string): Promise<boolean> {
 /** Trece retroactiv în trash mesajele deja existente de la o adresă blocată — un singur UPDATE. */
 export async function applyBlocklistToExisting(id: string): Promise<number> {
   const [entry] = await db.select().from(emailBlocklist).where(and(eq(emailBlocklist.id, id), isNull(emailBlocklist.deletedAt)))
-  if (!entry) throw new Error('Adresă inexistentă în blocklist')
+  if (!entry) throw new Error(tr('errors.email.blocklistEntryNotFound'))
 
   const rows = await db
     .update(emailMessages)

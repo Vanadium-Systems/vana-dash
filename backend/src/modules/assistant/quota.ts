@@ -3,6 +3,8 @@ import { db } from '../../shared/db/client.js'
 import { assistantUsage, dashboardConfig } from '../../shared/db/schema/index.js'
 import { ensureAlertRule, raiseAlert } from '../../shared/lib/alerting.js'
 import type { SessionUser } from '../../shared/lib/session.js'
+import { tr, trFor } from '../../shared/lib/i18n.js'
+import { INTL_TAG } from '../../shared/lib/locale.js'
 
 // Plafonul lunar de tokeni al asistentului, per om (PLAN.md C2, BE-5). `assistant_usage` ține
 // consumul pe lună calendaristică; plafonul e o singură setare în Setări → Asistent, valabilă
@@ -97,10 +99,17 @@ export async function recordUsage(user: SessionUser, inputTokens: number, output
   const next = used + inputTokens + outputTokens
   if (used / cap >= ALERT_RATIO || next / cap < ALERT_RATIO) return
 
-  const ruleId = await ensureAlertRule(`assistant.quota.${user.id}`, `Plafon de asistent — ${user.displayName ?? user.email}`, 'warning')
+  const ruleId = await ensureAlertRule(`assistant.quota.${user.id}`, tr('alerts.rules.assistantQuota', { name: user.displayName ?? user.email }), 'warning')
   await raiseAlert(
     ruleId,
-    `${user.displayName ?? user.email} a consumat ${Math.round(ALERT_RATIO * 100)}% din plafonul lunar de asistent (${next.toLocaleString('ro-RO')} din ${cap.toLocaleString('ro-RO')} tokeni, luna ${month}).`,
+    (locale) =>
+      trFor(locale, 'alerts.jobs.assistantQuota', {
+        name: user.displayName ?? user.email,
+        percent: Math.round(ALERT_RATIO * 100),
+        used: next.toLocaleString(INTL_TAG[locale]),
+        cap: cap.toLocaleString(INTL_TAG[locale]),
+        month,
+      }),
     { url: '/settings' },
   )
 }

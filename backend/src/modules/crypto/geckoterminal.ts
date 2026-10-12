@@ -1,3 +1,4 @@
+import { tr } from '../../shared/lib/i18n.js'
 // Client GeckoTerminal (DEX read-only, PLAN.md Contract D) — căutare + prețuri pt. pool-uri
 // pe rețele on-chain (sol/eth/base/bsc...). Doar VIZUALIZARE și alerte — zero trading on-chain
 // (DEX trading e amânat, TODO.md). Whitelist hostname identic cu coingecko.ts.
@@ -35,7 +36,7 @@ const cache = new Map<string, { expiresAt: number; data: unknown; negativeUntil?
 async function fetchJson<T>(path: string): Promise<T> {
   // Concatenare directă — new URL(path, BASE) cu path absolut ar pierde /api/v1.
   const url = new URL(BASE + path)
-  if (url.hostname !== ALLOWED_HOST) throw new Error(`Domeniu nepermis: ${url.hostname}`)
+  if (url.hostname !== ALLOWED_HOST) throw new Error(tr('errors.net.domainNotAllowed', { hostname: url.hostname }))
 
   const key = url.pathname + url.search
   const hit = cache.get(key)
@@ -47,7 +48,7 @@ async function fetchJson<T>(path: string): Promise<T> {
   })
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
-    throw new Error(`GeckoTerminal HTTP ${res.status}: ${detail.slice(0, 200)}`)
+    throw new Error(tr('errors.net.geckoTerminalHttp', { status: res.status, detail: detail.slice(0, 200) }))
   }
   const data = (await res.json()) as T
   cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, data })

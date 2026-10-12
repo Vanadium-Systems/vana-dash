@@ -23,7 +23,7 @@ type Leaves<T, Prefix extends string = ''> = {
 }[keyof T & string]
 
 export type TrKey = Leaves<typeof ro>
-export type TrParams = Record<string, string | number>
+export type TrParams = Record<string, string | number | null | undefined>
 
 const RESOURCES: Record<Locale, Tree> = { ro, en }
 const PLURAL_RULES: Record<Locale, Intl.PluralRules> = {
@@ -57,4 +57,33 @@ export function trFor(locale: Locale, key: TrKey, params?: TrParams): string {
 /** A text in the language of the current request. */
 export function tr(key: TrKey, params?: TrParams): string {
   return trFor(currentLocale(), key, params)
+}
+
+const LAZY_PREFIX = 'tr:'
+
+/**
+ * A text for a place evaluated once, at module load, such as a Zod schema message: the key is
+ * kept and `resolveLazy` turns it into text when the request, and so the language, is known.
+ */
+export function lazyTr(key: TrKey): string {
+  return `${LAZY_PREFIX}${key}`
+}
+
+export function resolveLazy(message: string): string {
+  return message.startsWith(LAZY_PREFIX) ? tr(message.slice(LAZY_PREFIX.length) as TrKey) : message
+}
+
+/**
+ * A text that is not for one reader: an alert is stored once, emailed to the operator and pushed
+ * to each person in their own language. `tl()` keeps the key and the values until the reader is
+ * known; a plain string is text someone else wrote (a platform's own message) and goes as it is.
+ */
+export type LocalizedText = string | ((locale: Locale) => string)
+
+export function tl(key: TrKey, params?: TrParams): (locale: Locale) => string {
+  return (locale) => trFor(locale, key, params)
+}
+
+export function textFor(text: LocalizedText, locale: Locale): string {
+  return typeof text === 'function' ? text(locale) : text
 }

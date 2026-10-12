@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { ensureAlertRule, raiseAlert } from '../../shared/lib/alerting.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 /**
  * Extracție defensivă — Sentry are DOUĂ forme posibile de webhook pt. issue-uri, în funcție
@@ -46,7 +47,7 @@ export function extractIssue(payload: unknown): ExtractedIssue {
   const event = asRecord(data.event)
 
   const id = asString(issue.id) ?? asString(event.event_id)
-  const title = asString(issue.title) ?? asString(event.message) ?? asString(event.title) ?? 'Eroare Sentry fără titlu'
+  const title = asString(issue.title) ?? asString(event.message) ?? asString(event.title) ?? tr('alerts.sentry.untitled')
   const culprit = asString(issue.culprit) ?? asString(event.culprit) ?? asString(event.transaction)
   const level = asString(issue.level) ?? asString(event.level)
   const permalink = asString(issue.permalink) ?? asString(event.web_url)
@@ -73,8 +74,8 @@ export async function handleSentryIssueWebhook(payload: unknown): Promise<void> 
   const emailBody = [
     message,
     issue.level ? `Nivel: ${issue.level}` : null,
-    issue.permalink ? `Detalii complete (stack trace, tags, request): ${issue.permalink}` : null,
-    '\nDetectat de Sentry în vanagreen — vezi link-ul de mai sus pentru tot contextul (stack trace, browser/os, request).',
+    issue.permalink ? tr('alerts.sentry.fullDetails', { permalink: issue.permalink }) : null,
+    tr('alerts.sentry.detectedBy'),
   ]
     .filter(Boolean)
     .join('\n')

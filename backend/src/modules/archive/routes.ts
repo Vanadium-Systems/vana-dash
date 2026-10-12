@@ -18,6 +18,7 @@ import {
 import * as service from './service.js'
 import { ArchiveConflictError, ArchiveNotFoundError } from './service.js'
 import { ensureSpaceRoot } from './access.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024 // 200MB — arhivă personală, nu streaming video la scară
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -135,7 +136,7 @@ export async function archiveRoutes(app: FastifyInstance) {
   // conține doar ce a fost parsat până la file part).
   server.post('/api/archive/files', { preHandler: [app.authenticate] }, async (req, reply) => {
     const data = await req.file()
-    if (!data) return reply.code(400).send({ success: false, error: 'Fișier lipsă' })
+    if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
 
     // Multipart nu trece prin `schema:` Zod (mecanismul standard nu se aplică pe form-data) —
     // validăm manual. Fără asta, un folderId invalid pică urât cu 500 la INSERT (coloană uuid),
@@ -146,7 +147,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     const folderIdRaw = folderIdField && 'value' in folderIdField ? String(folderIdField.value) : ''
     const folderId = folderIdRaw || undefined
     if (folderId && !UUID_RE.test(folderId)) {
-      return reply.code(400).send({ success: false, error: 'folderId invalid' })
+      return reply.code(400).send({ success: false, error: tr('errors.archive.invalidFolderId') })
     }
     const tagsField = data.fields.tags
     const tagsRaw = tagsField && 'value' in tagsField ? String(tagsField.value) : ''
@@ -161,7 +162,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     if (data.mimetype === 'application/pdf') {
       const buffer = await data.toBuffer()
       if (data.file.truncated) {
-        return reply.code(413).send({ success: false, error: 'Fișier prea mare (peste 200MB)' })
+        return reply.code(413).send({ success: false, error: tr('errors.archive.fileTooLarge') })
       }
       try {
         const row = await service.uploadFile(req.me, {
@@ -173,7 +174,7 @@ export async function archiveRoutes(app: FastifyInstance) {
         })
         return { success: true, data: row }
       } catch (err) {
-        return reply.code(502).send({ success: false, error: `Upload R2 eșuat: ${String(err)}` })
+        return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
       }
     }
 
@@ -182,14 +183,14 @@ export async function archiveRoutes(app: FastifyInstance) {
     try {
       await uploadToR2(r2Key, data.file, data.mimetype)
     } catch (err) {
-      return reply.code(502).send({ success: false, error: `Upload R2 eșuat: ${String(err)}` })
+      return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
     }
     if (data.file.truncated) {
       // busboy nu aruncă la depășirea fileSize — trunchiază stream-ul silențios (`file.truncated
       // = true`, fără eroare), deci uploadToR2 de mai sus a reușit deja cu conținutul trunchiat.
       // Fără ștergerea explicită de aici, obiectul orfan (fără rând DB) ar rămâne definitiv în R2.
       await deleteFromR2(r2Key).catch(() => {})
-      return reply.code(413).send({ success: false, error: 'Fișier prea mare (peste 200MB)' })
+      return reply.code(413).send({ success: false, error: tr('errors.archive.fileTooLarge') })
     }
 
     const row = await service.createFileRecord(req.me, {
@@ -237,7 +238,7 @@ export async function archiveRoutes(app: FastifyInstance) {
   // navigare directă, nesupusă CORS).
   server.get('/api/archive/files/:id/download', { preHandler: [app.authenticate] }, async (req, reply) => {
     const result = await service.getFileBufferForDownload(req.me, (req.params as { id: string }).id)
-    if (!result) return reply.code(404).send({ success: false, error: 'Fișier inexistent' })
+    if (!result) return reply.code(404).send({ success: false, error: tr('errors.archive.fileNotFound') })
     reply.header('Content-Disposition', `attachment; filename="${result.name.replace(/"/g, "'")}"`)
     return reply.type(result.mimeType).send(result.buffer)
   })
@@ -257,7 +258,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: DeleteFileQuerySchema } },
     async (req, reply) => {
       const row = await service.deleteFile(req.me, (req.params as { id: string }).id, req.query.permanent)
-      if (!row) return reply.code(404).send({ success: false, error: 'Fișier inexistent' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.archive.fileNotFound') })
       return { success: true }
     },
   )
@@ -267,7 +268,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate] },
     async (req, reply) => {
       const result = await service.buildFolderZipBuffer(req.me, (req.params as { id: string }).id)
-      if (!result) return reply.code(404).send({ success: false, error: 'Folder inexistent' })
+      if (!result) return reply.code(404).send({ success: false, error: tr('errors.archive.folderNotFound') })
       reply.header('Content-Disposition', `attachment; filename="${result.fileName.replace(/"/g, "'")}"`)
       return reply.type('application/zip').send(result.buffer)
     },
@@ -284,7 +285,7 @@ export async function archiveRoutes(app: FastifyInstance) {
         throw err
       },
     )
-    if (!path) return reply.code(404).send({ success: false, error: 'Folder inexistent' })
+    if (!path) return reply.code(404).send({ success: false, error: tr('errors.archive.folderNotFound') })
     return { success: true, data: path }
   })
 }

@@ -11,6 +11,7 @@ import { sendAlertEmail, sendEmail } from '../shared/lib/email.js'
 import { archiveInvoiceDocuments } from '../shared/lib/financial-archive.js'
 import { notifyPush } from '../shared/lib/push.js'
 import { readDocument } from '../shared/lib/storage.js'
+import { tr, trFor } from '../shared/lib/i18n.js'
 
 // Verifică starea de validare a facturilor trimise la ANAF (anaf_status='pending').
 // La 'validated': generează PDF-ul dacă lipsește (poate Chromium era indisponibil la
@@ -85,21 +86,21 @@ export async function pollAnafUploadStatuses(): Promise<void> {
 
       if (status === 'rejected') {
         await sendAlertEmail(
-          `e-Factura respinsă: ${record.documentNumber ?? record.id}`,
-          `Factura ${record.documentNumber ?? record.id} a fost respinsă de ANAF.\n` +
-            'Verifică XML-ul în vana-dash → Accounting → Emise și retrimite după corectare.',
+          tr('emails.efactura.rejectedSubject', { documentNumber: record.documentNumber ?? record.id }),
+          tr('emails.efactura.rejectedBody1', { documentNumber: record.documentNumber ?? record.id }) +
+            tr('emails.efactura.rejectedBody2'),
         )
-        void notifyPush('invoiceStatus', {
-          title: 'e-Factura respinsă',
-          body: `Factura ${record.documentNumber ?? record.id} a fost respinsă de ANAF.`,
+        void notifyPush('invoiceStatus', (locale) => ({
+          title: trFor(locale, 'push.efactura.rejectedTitle'),
+          body: trFor(locale, 'push.efactura.rejectedBody', { documentNumber: record.documentNumber ?? record.id }),
           url: '/accounting',
-        })
+        }))
       } else if (status === 'validated') {
-        void notifyPush('invoiceStatus', {
-          title: 'e-Factura validată',
-          body: `Factura ${record.documentNumber ?? record.id} a fost validată de ANAF.`,
+        void notifyPush('invoiceStatus', (locale) => ({
+          title: trFor(locale, 'push.efactura.validatedTitle'),
+          body: trFor(locale, 'push.efactura.validatedBody', { documentNumber: record.documentNumber ?? record.id }),
           url: '/accounting',
-        })
+        }))
         // Statusul e deja scris mai sus — ce urmează (generare PDF + email) e best-effort,
         // nu mai poate "rata" tranziția: rândul nu mai apare la rulările următoare
         // (query-ul de mai sus filtrează pe anaf_status='pending'), deci trigger-ul e
@@ -156,9 +157,9 @@ async function sendValidatedInvoiceEmail(record: PendingRecord): Promise<void> {
     } catch (err) {
       console.error(`[poll-anaf-upload] Generare PDF eșuată pentru factura ${documentNumber}: ${String(err)}`)
       await sendAlertEmail(
-        `Factura ${documentNumber} — generare PDF eșuată`,
-        `Factura ${documentNumber} a fost validată de ANAF dar generarea PDF a eșuat.\n` +
-          `Trimite-o manual clientului după ce rezolvi problema. Eroare: ${String(err)}`,
+        tr('emails.efactura.pdfFailedSubject', { documentNumber }),
+        tr('emails.efactura.pdfFailedBody1', { documentNumber }) +
+          tr('emails.efactura.pdfFailedBody2', { err: String(err) }),
       )
       return
     }
@@ -171,9 +172,9 @@ async function sendValidatedInvoiceEmail(record: PendingRecord): Promise<void> {
       `[poll-anaf-upload] Factura ${documentNumber} — PDF indisponibil (Chromium neconfigurat), nu trimit email.`,
     )
     await sendAlertEmail(
-      `Factura ${documentNumber} — trimite manual`,
-      `Factura ${documentNumber} a fost validată de ANAF dar PDF-ul nu a putut fi generat ` +
-        '(Chromium indisponibil). Trimite-o manual clientului.',
+      tr('emails.efactura.sendManuallySubject', { documentNumber }),
+      tr('emails.efactura.noPdfBody1', { documentNumber }) +
+        tr('emails.efactura.noPdfBody2'),
     )
     return
   }
@@ -224,9 +225,9 @@ async function buildInvoiceInputForEmail(
   record: PendingRecord,
   client: typeof billingClients.$inferSelect | null,
 ): Promise<UblInvoiceInput> {
-  if (!client) throw new Error('Clientul facturii nu mai există')
+  if (!client) throw new Error(tr('errors.invoicing.clientGone'))
   if (!config.company.cif) {
-    throw new Error('Profilul firmei incomplet: setează COMPANY_CIF (+ adresă/IBAN) în .env')
+    throw new Error(tr('errors.invoicing.companyProfileIncomplete'))
   }
 
   const lines = await db

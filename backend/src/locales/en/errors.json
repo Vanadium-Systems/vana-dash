@@ -5,6 +5,394 @@
     "passwordTooShort": "The password must be at least {{min}} characters long",
     "newPasswordInvalid": "The new password is not valid",
     "currentPasswordWrong": "The current password is not correct",
-    "localeNotEnabled": "The selected language is not available"
+    "localeNotEnabled": "The selected language is not available",
+    "tokenNotCreated": "The token was not created"
+  },
+  "team": {
+    "lastAdmin": "You are the last active admin. Give someone else the Admin role first.",
+    "manageOwnRolesOnly": "You can manage only people with roles you created",
+    "emailTaken": "There is already an account with this address",
+    "cannotGiveAdmin": "You cannot give the Admin role",
+    "cannotGiveManager": "You cannot give the Manager role",
+    "userNotCreated": "The user was not created",
+    "userNotFound": "The user does not exist",
+    "giveOwnRolesOnly": "You can give only roles you created",
+    "alreadyActive": "The person already set a password; no link is needed anymore",
+    "stillInvited": "The person has not accepted the invitation yet; resend the invitation",
+    "mailboxNotYours": "You do not have the mailbox {{value}}, so you cannot give it to someone else"
+  },
+  "access": {
+    "roleNotFound": "The role does not exist",
+    "featureNotYours": "You do not have {{feature}}, so you cannot give it to someone else",
+    "adminLocked": "The Admin role has everything the company has and is not changed",
+    "editOwnRolesOnly": "You can edit only roles you created",
+    "featureUnknown": "Unknown feature: {{key}}",
+    "pageUnknown": "Unknown page: {{pageKey}}",
+    "sourceRoleNotFound": "The source role does not exist",
+    "roleNotCreated": "The role was not created",
+    "roleInUse": {
+      "one": "{{count}} person has this role",
+      "other": "{{count}} people have this role"
+    }
+  },
+  "files": {
+    "missing": "File missing",
+    "uploadFailed": "The upload to R2 failed: {{err}}",
+    "r2NotConfigured": "R2 is not configured: fill in R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/R2_BUCKET_NAME in .env",
+    "pathOutsideStorage": "Storage path outside STORAGE_DIR: {{relativePath}}"
+  },
+  "chat": {
+    "fileTooLarge": "The file is too large (over 50 MB)",
+    "attachmentNotFound": "The attachment does not exist",
+    "conversationNotFound": "The conversation does not exist",
+    "cannotWriteToSelf": "You cannot write to yourself",
+    "colleagueNotFound": "The colleague does not exist",
+    "groupNeedsMember": "The group needs at least one colleague",
+    "dmHasNoNameOrMembers": "A direct message has no name or new members",
+    "ownerOrAdminOnly": "Only the group owner or an administrator can do this",
+    "emptyMessage": "Empty message",
+    "messageNotFound": "The message does not exist"
+  },
+  "archive": {
+    "spaceNotCreated": "The archive space could not be created",
+    "noPlatformAdmin": "The platform administrator account does not exist",
+    "invalidFolderId": "Invalid folderId",
+    "fileTooLarge": "The file is too large (over 200 MB)",
+    "fileNotFound": "The file does not exist",
+    "folderNotFound": "The folder does not exist",
+    "folderOwnParent": "A folder cannot be its own parent",
+    "moveCycle": "Invalid move: it would create a cycle in the tree",
+    "moveToOtherSpace": "You cannot move a folder into someone else's space",
+    "folderNotEmpty": "The folder is not empty; move or delete its content first",
+    "parentGone": "The parent folder {{parentId}} no longer exists",
+    "folderNotCreated": "The folder \"{{name}}\" could not be created",
+    "fileNotCreated": "The file was not created",
+    "shareWithSelf": "You cannot share the space with yourself",
+    "spaceName": "Space of {{name}}"
+  },
+  "calendar": {
+    "eventNotFound": "The event does not exist",
+    "endAfterStart": "endAt must be after startAt",
+    "viewOnly": "You can see the event, but you cannot change it",
+    "cannotAddToCalendar": "You cannot add events to this calendar",
+    "cannotAddAttendees": "You cannot create events with attendees",
+    "ownerAlreadyAttendee": "The calendar owner is already an attendee",
+    "attendeeGone": "One of the attendees no longer exists",
+    "eventNotCreated": "The event was not created",
+    "cannotChangeAttendees": "You cannot change the attendees of the event",
+    "creatorAlreadyAttendee": "The creator of the event is already an attendee",
+    "shareOwnOnly": "You can share only your own calendar",
+    "shareWithSelf": "You cannot share the calendar with yourself",
+    "userGone": "The user no longer exists",
+    "paymentTitle": "Payment: {{description}}"
+  },
+  "booking": {
+    "blockNotFound": "Time slot not found",
+    "notFoundOrCancelled": "Booking not found or already cancelled",
+    "timeFormat": "The time in HH:mm format",
+    "eachIntervalEndsAfterStart": "Each interval must end after it starts",
+    "intervalEndsAfterStart": "The interval must end after it starts",
+    "noOwnerAccount": "The account that public bookings belong to does not exist"
+  },
+  "support": {
+    "ticketNotFound": "The ticket does not exist"
+  },
+  "notes": {
+    "notFound": "The note does not exist"
+  },
+  "plan": {
+    "goalNotFound": "The goal does not exist",
+    "thresholdRequired": "thresholdValue is required for thresholdType=mrr_ron",
+    "targetPriceTogether": "targetPriceAmount and targetPriceCurrency must be filled in together",
+    "targetPriceTogetherOrEmpty": "targetPriceAmount and targetPriceCurrency must be filled in or cleared together",
+    "orderMismatch": "orderedIds does not match exactly the existing goals of this tier"
+  },
+  "wishlist": {
+    "itemNotFound": "The item does not exist"
+  },
+  "alerts": {
+    "ruleNotFound": "The rule does not exist",
+    "alertNotFound": "The alert does not exist",
+    "reservedNamespace": "The accounting.* namespace is reserved for the existing alert engine"
+  },
+  "push": {
+    "vapidMissing": "VAPID is not configured: set VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY in .env"
+  },
+  "backup": {
+    "pgDumpExit": "pg_dump exited with code {{code}}"
+  },
+  "invoicing": {
+    "clientGone": "The client of the invoice no longer exists",
+    "companyProfileIncomplete": "The company profile is incomplete: set COMPANY_CIF (+ address/IBAN) in .env",
+    "tenantCreateFailed": "Creating the tenant in VanaGreen failed",
+    "slugKebab": "slug must be kebab-case (lowercase letters, digits, hyphens)",
+    "unitPriceRequired": "unitPrice is required for lines with a fixed price",
+    "noSubscriptionPrice": "The client {{name}} has no subscription price set; fill it in before using this template",
+    "billingClientNotFound": "The billing client does not exist",
+    "clientNotMapped": "The client is not mapped to any platform; it has no templates available",
+    "templateNotFound": "The invoice template does not exist for this client's platform",
+    "needsLine": "The invoice needs at least one line (directly or from a template)",
+    "insertFailed": "Inserting the invoice failed",
+    "issuedNoEdit": "The invoice is issued; it can no longer be edited",
+    "issuedNoDelete": "The invoice is issued; it cannot be deleted",
+    "countyUnknown1": "The county of the client \"{{name}}\" (\"{{county}}\") cannot be recognized; ",
+    "countyUnknown2": "fill it in correctly (e.g. \"Brasov\", \"Cluj\", \"Bucuresti\") in the clients tab before issuing.",
+    "sectorUnknown1": "The sector of the client \"{{name}}\" cannot be worked out from the city/address (\"{{city}}\"); ",
+    "sectorUnknown2": "write \"Sector 1\"...\"Sector 6\" explicitly in the city, in the clients tab, before issuing.",
+    "alreadyIssued": "The invoice is already issued",
+    "issueFirst": "Issue the invoice first (issue)",
+    "alreadySent": "The invoice is already sent; wait for validation",
+    "alreadyValidated": "The invoice is already validated by ANAF",
+    "sequenceNotCreated": "The invoice sequence could not be created",
+    "templateInsertFailed": "Inserting the template failed",
+    "sequenceKeyNotCreated": "The invoice sequence \"{{key}}\" could not be created"
+  },
+  "revolut": {
+    "accountIncomplete": "incomplete Revolut account: the client_id, the certificate or the refresh token is missing",
+    "tokenInvalid": "Revolut: invalid/expired token (HTTP {{status}})",
+    "tokenResponseIncomplete": "Revolut /auth/token: the response has no access_token/refresh_token",
+    "notConfigured": "Revolut is not configured for the account \"{{name}}\": set the client_id, generate the certificate and do the OAuth consent in Reconciliation → Settings",
+    "needsReauth": "Revolut needs manual re-authorization for the account \"{{name}}\" (the refresh token has expired or was revoked)",
+    "noClientIdOrCert": "Revolut: the account \"{{name}}\" has no client_id or certificate configured",
+    "refreshFailed": "The Revolut token refresh failed for the account \"{{name}}\": {{err}}"
+  },
+  "anaf": {
+    "notConfigured": "ANAF is not configured or needs re-authorization",
+    "tokenInvalid": "ANAF: invalid/expired token (HTTP {{status}}); a refresh or re-authorization is needed",
+    "rateLimited": "ANAF: {{value}} rate limited (HTTP 429) after {{MAX_RETRIES_429}} retries",
+    "zipNoXml": "ANAF download {{messageId}}: the ZIP has no invoice XML",
+    "oauthNotConfigured": "ANAF OAuth is not configured: set ANAF_CLIENT_ID and ANAF_CLIENT_SECRET",
+    "tokenResponseIncomplete": "ANAF token endpoint: the response has no access_token/refresh_token",
+    "uploadRejected": "ANAF upload rejected (ExecutionStatus={{executionStatus}}): {{errors}}",
+    "lookupNoName": "The ANAF response does not contain the company name",
+    "cifInvalid": "Invalid CIF (the check digit does not match)",
+    "unreachable": "ANAF could not be reached: {{err}}",
+    "http": "ANAF answered with HTTP {{status}}",
+    "noRecord": "ANAF has no record for CIF {{cui}}",
+    "consentMissing": "ANAF is not configured: do the OAuth consent in Invoices → Settings",
+    "needsReauth": "ANAF needs manual re-authorization (the refresh token has expired or was revoked)",
+    "refreshFailed": "The ANAF token refresh failed: {{err}}"
+  },
+  "webhooks": {
+    "notConfigured": "Webhook not configured",
+    "sentrySignatureMissing": "The Sentry-Hook-Signature header is missing",
+    "invalidBody": "Invalid body",
+    "invalidSignature": "Invalid signature",
+    "invalidJson": "Invalid JSON",
+    "svixHeadersMissing": "The Svix headers are missing"
+  },
+  "scheduled": {
+    "reportTitle": "Scheduled report",
+    "overdue": "Overdue (>7 days), not delivered"
+  },
+  "accounting": {
+    "xmlUnavailable": "XML not available",
+    "pdfUnavailable": "PDF not available",
+    "efacturaPdfNotSynced": "eFactura PDF not available (not synced from ANAF yet)",
+    "efacturaPdfUnavailable": "eFactura PDF not available",
+    "setAnafEnvFirst": "Set ANAF_CLIENT_ID and ANAF_CLIENT_SECRET in .env first",
+    "recurringNotFound": "Recurring expense not found",
+    "expectedMonthFormat": "Expected format: YYYY-MM",
+    "expectedQuarterFormat": "Expected format: YYYY-Qn",
+    "cycleMonthRequired": "cycleMonth is required for cycle=\"annual\"",
+    "invoiceNotFound": "The invoice was not found",
+    "invoiceNotPaid": "The invoice is not paid yet; there is nothing to confirm"
+  },
+  "pdf": {
+    "unavailable": "PDF generation is not available (Chromium not configured)",
+    "unavailableRetry": "PDF generation is not available (Chromium not configured); try again later",
+    "unavailableShort": "PDF not available (Chromium not configured)",
+    "puppeteerMissing": "PUPPETEER_EXECUTABLE_PATH is not set; PDF is not available"
+  },
+  "contracts": {
+    "documentNotFound": "The document does not exist",
+    "pdfOnly": "PDF files only",
+    "fileTooLarge": "The file is too large (over 50MB)",
+    "clientNotFound": "The client does not exist",
+    "addendumNotFound": "The addendum does not exist",
+    "missingData": "Details missing for generating the document: contract number, contract date",
+    "pickSignatureBox": "First pick the signature rectangle on the page",
+    "atLeastOneTerm": "Send at least one term",
+    "templates": {
+      "saas": "SaaS services contract (+ DPA)",
+      "priceAnnex": "Price annex",
+      "addendum": "Addendum"
+    },
+    "unknownTokens": "Unknown tokens: {{unknown}}",
+    "templateNotFound": "The template does not exist",
+    "signReadmeName": "README.txt",
+    "signReadme": "Digital signature: {{file}}\n=======================================\n\n1. Install Java (if you do not have it yet) and download JSignPdf: http://jsignpdf.sourceforge.net/\n2. Run from this folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = reads the certificate from the Windows certificate store (certSIGN,\n   virtual token); when it runs, JSignPdf/Windows asks for the token PIN.\n   -llx/-lly/-urx/-ury/-page = the position of the rectangle picked in the app (PDF coordinates, points).\n\n3. The result is \"semnat_{{file}}\". Upload it back with the button\n   \"I signed it, upload the PDF\" in the Sign tab.\n\nIf JSignPdf does not find the certSIGN certificate in -kst WINDOWS-MY, your virtual token does not\nexpose its private key outside the provider's own app. Sign by hand in Adobe Acrobat as before\nand upload the result here anyway, so it stays in the document's history.\n"
+  },
+  "reconciliation": {
+    "configureFirst": "set the client_id and generate the certificate first",
+    "transactionNotFound": "The transaction does not exist",
+    "recordNotFound": "The invoice/record does not exist",
+    "alreadyMatched": "The transaction is already matched; unmatch it first",
+    "invoiceNotFound": "The invoice does not exist",
+    "notIssuedInvoice": "It is not an issued invoice",
+    "accountNotFound": "The bank account does not exist",
+    "setClientIdFirst": "Set the client_id and generate the certificate before exchanging the code",
+    "dryRun": "dry-run: the automatic extension switch is OFF",
+    "vanagreenNotConfigured": "The vanagreen platform is not configured in Platforms"
+  },
+  "pricing": {
+    "noConfig": "The platform has no saved price config yet (PUT /api/pricing/config first)",
+    "bandNotIncreasing": "{{path}}[{{i}}].{{key}} must be strictly greater than the previous band",
+    "infiniteBandLast": "{{path}}: the band with {{key}}=null (unlimited) must be the LAST in the list",
+    "configUpsertFailed": "Saving the price config failed"
+  },
+  "prospects": {
+    "statusNotFound": "The status does not exist",
+    "csvMissing": "The CSV file is missing",
+    "fileTooLarge": "The file is too large (over 10MB)",
+    "invalidBody": "Invalid body: send { csv, source? }",
+    "importFailed": "The import failed: {{err}}",
+    "notFound": "The prospect does not exist",
+    "keyFormat": "lowercase letters, digits and underscore only",
+    "statusExists": "The status \"{{key}}\" already exists",
+    "statusOrderMismatch": "orderedIds does not match exactly the existing active statuses",
+    "scoringConfigFailed": "The default scoring config could not be created",
+    "statusNotInCatalog": "The status \"{{status}}\" does not exist in the active catalog",
+    "cifMissing": "The CIF is missing; fill it in when promoting",
+    "clientNotCreated": "The client could not be created from the prospect",
+    "statusInUse": {
+      "one": "{{count}} prospect still uses this status",
+      "other": "{{count}} prospects still use this status"
+    }
+  },
+  "tenders": {
+    "alreadyBlocked": "SICAP already answered with HTTP {{blockedStatus}} in this run; no more requests are sent",
+    "requestCap": "The cap of {{MAX_REQUESTS_PER_RUN}} SICAP requests per run was reached",
+    "httpBlocked": "SICAP answered with HTTP {{status}} on {{path}}; the IP is possibly blocked",
+    "http": "SICAP answered with HTTP {{status}} on {{path}}",
+    "opportunityNotFound": "The opportunity does not exist",
+    "cpvOrKeyword": "Fill in at least the CPV or the keyword"
+  },
+  "platforms": {
+    "urlNotAllowed": "Invalid platform URL: a localhost/private network hostname is not allowed",
+    "pathRelative": "The path must be a relative route that starts with /",
+    "healthPathRelative": "The health path must be a relative route that starts with /",
+    "genericOnly": "metricMappings/healthPath are available only for the generic type",
+    "jsonPathMissing": "The JSON path '{{jsonPath}}' does not exist in the response",
+    "genericName": "Generic (own API)",
+    "protocolNotAllowed": "Protocol not allowed for a platform URL: {{protocol}}",
+    "blockedLocalhost": "Platform URL blocked (localhost): {{url}}",
+    "blockedPrivate": "Platform URL blocked (private network/loopback): {{url}}",
+    "blockedInternalName": "Platform URL blocked (internal name, no domain): {{url}}",
+    "blockedPrivateV6": "Platform URL blocked (IPv6 private network/loopback): {{url}}",
+    "notANumber": "The response at '{{path}}' does not contain a number",
+    "jsonRoot": "(root)"
+  },
+  "jeffbot": {
+    "reportNotFound": "The report does not exist"
+  },
+  "vanagreen": {
+    "priceUnavailable": "The price is not available right now",
+    "billingClientFailed": "Creating the self-serve billing_client failed"
+  },
+  "email": {
+    "draftInsertFailed": "Inserting the draft returned nothing",
+    "draftNotFound": "The draft does not exist",
+    "draftNoRecipient": "The draft has no recipient",
+    "draftNoSubject": "The draft has no subject",
+    "imageTypeNotAccepted": "File type not accepted: {{mimetype}} (PNG/JPEG/GIF/WEBP only)",
+    "imageTooLarge": "The image is too large (over 5MB)",
+    "imageNotFound": "The image does not exist",
+    "threadInsertFailed": "Inserting the thread returned nothing",
+    "messageNotFound": "The message does not exist",
+    "forwardedHeader": "\n\n---------- Forwarded message ----------\nFrom: {{fromAddress}}\nSubject: {{subject}}\n\n",
+    "sendFailed": "Sending failed",
+    "messageInsertFailedForward": "Inserting the message returned nothing (forward)",
+    "threadNotFound": "The thread does not exist",
+    "threadNoInbound": "The thread has no received message; there is nobody to reply to",
+    "messageInsertFailed": "Inserting the message returned nothing",
+    "messageInsertFailedCompose": "Inserting the message returned nothing (Compose mirror)",
+    "mailboxNotYours": "You cannot send from the mailbox {{fromKey}}: it is not assigned to you",
+    "labelIdRequired": "labelId is required when action=label",
+    "blocklistEntryNotFound": "The address is not in the blocklist",
+    "suppressionNotFound": "The address is not in the list",
+    "sequenceNotFound": "The sequence does not exist",
+    "enrollmentNotFound": "The enrollment does not exist",
+    "sequenceInsertFailed": "Inserting the sequence returned nothing",
+    "sequenceNoSteps": "The sequence has no step; it cannot take enrollments",
+    "notStarted": "Not started",
+    "unknownIdentity": "Unknown email identity: {{from}}",
+    "templateNotFound": "The template does not exist",
+    "sendInsertFailed": "Inserting the send returned nothing",
+    "logoNotConfigured": "The logo is not configured",
+    "identityKeyFormat": "The identity key: lowercase letters, digits, - and _ only",
+    "addressFormat": "The address: name@example.com or Name <name@example.com>",
+    "signatureKeyFormat": "The signature key: lowercase letters, digits, - and _ only",
+    "logoType": "Logo: PNG, JPEG, GIF, WEBP or SVG only",
+    "resendKeyMissing": "RESEND_API_KEY is not configured",
+    "resendHttp": "Resend answered with HTTP {{status}}: {{detail}}",
+    "resendReceivedHttp": "The Resend Received Emails API answered with HTTP {{status}}: {{detail}}",
+    "forwardedTitle": "---------- Forwarded message ----------",
+    "forwardedFrom": "From: {{from}}",
+    "forwardedSubject": "Subject: {{subject}}"
+  },
+  "net": {
+    "domainNotAllowed": "Domain not allowed: {{hostname}}",
+    "binanceHttp": "Binance HTTP {{status}}: {{msg}}",
+    "coingeckoRateLimit": "CoinGecko rate limit (429); try again in a minute",
+    "coingeckoHttp": "CoinGecko HTTP {{status}}: {{detail}}",
+    "geckoTerminalHttp": "GeckoTerminal HTTP {{status}}: {{detail}}",
+    "finnhubRateLimit": "Finnhub rate limit (429); try again later",
+    "finnhubHttp": "Finnhub HTTP {{status}}: {{detail}}",
+    "t212RateLimit": "Trading212 rate limit (429); try again later",
+    "twelveDataHttp": "Twelve Data HTTP {{status}}: {{detail}}",
+    "twelveDataError": "Twelve Data: {{message}}",
+    "unknownError": "unknown error"
+  },
+  "trading": {
+    "coinNotFound": "The coin does not exist",
+    "invalidBinanceSymbol": "Invalid Binance symbol (e.g. BTCUSDT)",
+    "limitNeedsPrice": "Limit orders need limitPrice",
+    "exchangeNotConnected": "The exchange {{exchange}} is not connected/active",
+    "noLivePriceOn": "No live price for {{symbol}} on {{exchange}}",
+    "liveOff": "Live trading is off (kill switch in Settings)",
+    "liveHistoryNeedsSymbol": "On live, the trade history needs a symbol (e.g. BTCUSDT)",
+    "liveNeedsT212Key": "Live mode needs a Trading212 API key",
+    "brokerNotConnected": "The broker {{broker}} is not connected/active",
+    "noLivePrice": "No live price for {{symbol}}; check the provider keys in Settings"
+  },
+  "assistant": {
+    "models": {
+      "haiku": "Haiku 4.5: fast, cheap",
+      "opus": "Opus 4.8: the most capable",
+      "sonnet": "Sonnet 5: balanced"
+    },
+    "anthropicKeyMissing": "ANTHROPIC_API_KEY is not configured; see Settings → Assistant",
+    "openRouterOff": "OpenRouter is switched off; switch it on in Settings → Assistant",
+    "openRouterKeyMissing": "The OpenRouter key is missing; set it in Settings → Assistant",
+    "openRouterNoDefaultModel": "No default model is configured for OpenRouter; pick one in Settings",
+    "openRouterNoBody": "The OpenRouter response has no body",
+    "streamError": "error in the stream",
+    "unknownTool": "Unknown tool: {{name}}",
+    "toolFailed": "Error running the tool: {{message}}",
+    "atLeastOneField": "Send at least one field",
+    "conversationNoAuthor": "The conversation has no author",
+    "authorGone": "The author of the conversation no longer exists",
+    "noAnswer": "The model sent no answer. Try again or change the model.",
+    "actionGone": "The action does not exist or was already handled",
+    "actionExpired": "The action has expired",
+    "actionNoLongerAllowed": "The action is no longer allowed: the feature “{{feature}}” is no longer on",
+    "actionDone": "Action carried out: {{result}}",
+    "actionFailed": "Action failed: {{message}}",
+    "actionRejected": "{{author}} rejected this action. Do not carry it out and do not repeat it without asking again.",
+    "history": {
+      "notKept": "The result of this call was not kept.",
+      "shortened": "{{text}}\n[…shortened, a result from an earlier turn; call the tool again if you need all of it]",
+      "actionResult": "[Action result {{id}}]: {{result}}"
+    }
+  },
+  "bnr": {
+    "http": "The BNR feed answered with HTTP {{status}}",
+    "fetchFailed": "The BNR rate feed could not be fetched after {{MAX_ATTEMPTS}} attempts: {{lastErr}}",
+    "noCube": "The BNR feed has no recognizable <Cube date=\"...\"> element",
+    "noRate": "The BNR feed has no {{currency}} rate",
+    "rateNotNumber": "The {{currency}} rate in the BNR feed could not be parsed as a positive number: \"{{value}}\"",
+    "noValidRate": "No valid rate in the BNR feed: {{errors}}",
+    "noRateAtDate": "No {{currency}} rate available on or before {{dateIso}}, not even after a live BNR fetch"
   }
 }

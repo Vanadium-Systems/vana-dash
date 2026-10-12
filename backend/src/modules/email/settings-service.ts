@@ -5,6 +5,7 @@ import { db } from '../../shared/db/client.js'
 import { dashboardConfig } from '../../shared/db/schema/index.js'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import type { EmailSettingsUpdateSchema, LogoUploadSchema } from './settings-schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Setări editabile din UI (Setări Email), stocate în dashboard_config (jsonb key/value, tabelă
 // existentă, nefolosită până la acest sprint) — .env rămâne doar fallback pt. instalări proaspete.
@@ -202,7 +203,7 @@ export async function uploadLogo(input: z.infer<typeof LogoUploadSchema>): Promi
   // The extension ends up in the storage path, so it comes from a fixed list, not from the name.
   const ext = input.filename.split('.').pop()?.toLowerCase() ?? ''
   const contentType = LOGO_CONTENT_TYPES[ext]
-  if (!contentType) throw new LogoTypeError('Logo: doar PNG, JPEG, GIF, WEBP sau SVG')
+  if (!contentType) throw new LogoTypeError(tr('errors.email.logoType'))
   const path = await saveDocument(`email/logo.${ext}`, buffer)
   await setValue(KEYS.logo, { path, contentType } satisfies LogoValue)
 }

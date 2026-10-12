@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 const PlanScope = z.enum(['personal', 'firma'])
 const ThresholdType = z.enum(['manual', 'mrr_ron'])
@@ -18,11 +19,11 @@ export const CreatePlanGoalSchema = z
     targetDate: z.string().trim().min(1).optional(),
   })
   .refine((d) => d.thresholdType !== 'mrr_ron' || d.thresholdValue !== undefined, {
-    message: 'thresholdValue obligatoriu pt. thresholdType=mrr_ron',
+    message: lazyTr('errors.plan.thresholdRequired'),
     path: ['thresholdValue'],
   })
   .refine((d) => (d.targetPriceAmount !== undefined) === (d.targetPriceCurrency !== undefined), {
-    message: 'targetPriceAmount și targetPriceCurrency trebuie completate împreună',
+    message: lazyTr('errors.plan.targetPriceTogether'),
     path: ['targetPriceCurrency'],
   })
 
@@ -43,7 +44,7 @@ export const UpdatePlanGoalSchema = z
       d.targetPriceAmount === undefined ||
       d.targetPriceCurrency === undefined ||
       (d.targetPriceAmount === null) === (d.targetPriceCurrency === null),
-    { message: 'targetPriceAmount și targetPriceCurrency trebuie completate/golite împreună', path: ['targetPriceCurrency'] },
+    { message: lazyTr('errors.plan.targetPriceTogetherOrEmpty'), path: ['targetPriceCurrency'] },
   )
 
 export const CompleteGoalSchema = z.object({ completed: z.boolean() })

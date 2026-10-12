@@ -2,7 +2,9 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import webpush from 'web-push'
 import { config } from '../config.js'
 import { db } from '../db/client.js'
-import { dashboardConfig, deviceTokens, pushSubscriptions } from '../db/schema/index.js'
+import { dashboardConfig, deviceTokens, pushSubscriptions, users } from '../db/schema/index.js'
+import { tr } from './i18n.js'
+import type { Locale } from './locale.js'
 
 // Wrapper unic pt. Web Push (PLAN.md Sprint 2) — fire-and-forget, niciun `await` blocant pe
 // fluxul principal la punctele de integrare. Cheia privată VAPID nu ajunge NICIODATĂ în vreun
@@ -89,15 +91,26 @@ export interface PushPayload {
  * (alertele de sistem merg la fel, ca până acum). Email nou, mesaje și ceilalte evenimente
  * personale trec prin aici cu lista explicită (C2).
  */
+/**
+ * A notification is written for the person who reads it: pass a function and it is called once
+ * per language among the recipients. A plain payload goes out as it is (text typed by a
+ * person, such as a chat message).
+ */
+export type PushContent = PushPayload | ((locale: Locale) => PushPayload)
+
+function payloadFor(content: PushContent, locale: Locale | null): PushPayload {
+  return typeof content === 'function' ? content(locale ?? config.defaultLocale) : content
+}
+
 export async function notifyPush(
   eventType: PushEventType,
-  payload: PushPayload,
+  payload: PushContent,
   userIds?: string[],
 ): Promise<void> {
   await Promise.all([notifyWebPush(eventType, payload, userIds), notifyFcm(eventType, payload, userIds)])
 }
 
-async function notifyWebPush(eventType: PushEventType, payload: PushPayload, userIds?: string[]): Promise<void> {
+async function notifyWebPush(eventType: PushEventType, payload: PushContent, userIds?: string[]): Promise<void> {
   try {
     if (!ensureVapid()) return // VAPID neconfigurat — no-op silențios (pattern RESEND_API_KEY)
 
@@ -105,8 +118,15 @@ async function notifyWebPush(eventType: PushEventType, payload: PushPayload, use
     if (!prefs[eventType]) return
 
     const subs = await db
-      .select()
+      .select({
+        id: pushSubscriptions.id,
+        endpoint: pushSubscriptions.endpoint,
+        p256dhKey: pushSubscriptions.p256dhKey,
+        authKey: pushSubscriptions.authKey,
+        locale: users.locale,
+      })
       .from(pushSubscriptions)
+      .leftJoin(users, eq(users.id, pushSubscriptions.ownerUserId))
       .where(
         userIds && userIds.length > 0
           ? and(inArray(pushSubscriptions.ownerUserId, userIds), isNull(pushSubscriptions.deletedAt))
@@ -114,7 +134,6 @@ async function notifyWebPush(eventType: PushEventType, payload: PushPayload, use
       )
     if (subs.length === 0) return
 
-    const body = JSON.stringify(payload)
     await Promise.all(
       subs.map(async (sub) => {
         try {
@@ -123,7 +142,7 @@ async function notifyWebPush(eventType: PushEventType, payload: PushPayload, use
               endpoint: sub.endpoint,
               keys: { p256dh: sub.p256dhKey, auth: sub.authKey },
             },
-            body,
+            JSON.stringify(payloadFor(payload, sub.locale)),
           )
         } catch (err) {
           const statusCode = (err as { statusCode?: number }).statusCode
@@ -150,10 +169,10 @@ async function notifyWebPush(eventType: PushEventType, payload: PushPayload, use
  * (buton explicit "Trimite test" în Settings, nu un eveniment real).
  */
 export async function sendTestPush(): Promise<{ sent: number; failed: number }> {
-  if (!ensureVapid()) throw new Error('VAPID neconfigurat — setează VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY în .env')
+  if (!ensureVapid()) throw new Error(tr('errors.push.vapidMissing'))
 
   const subs = await db.select().from(pushSubscriptions).where(isNull(pushSubscriptions.deletedAt))
-  const body = JSON.stringify({ title: 'Test vana-dash', body: 'Notificările push funcționează.' } satisfies PushPayload)
+  const body = JSON.stringify({ title: tr('push.test.title'), body: tr('push.test.body') } satisfies PushPayload)
 
   let sent = 0
   let failed = 0
@@ -228,25 +247,31 @@ async function getFcmSender(): Promise<FcmSender | null> {
   }
 }
 
-async function notifyFcm(eventType: PushEventType, payload: PushPayload, userIds?: string[]): Promise<void> {
+async function notifyFcm(eventType: PushEventType, payload: PushContent, userIds?: string[]): Promise<void> {
   try {
     const prefs = await getPushPreferences()
     if (!prefs[eventType]) return
     const sender = await getFcmSender()
     if (!sender) return
-    const tokens = (
-      await db
-        .select({ token: deviceTokens.token })
-        .from(deviceTokens)
-        .where(
-          userIds && userIds.length > 0
-            ? and(inArray(deviceTokens.ownerUserId, userIds), isNull(deviceTokens.deletedAt))
-            : isNull(deviceTokens.deletedAt),
-        )
-    ).map((r) => r.token)
-    const invalid = await sender(tokens, payload)
-    for (const token of invalid) {
-      await db.delete(deviceTokens).where(eq(deviceTokens.token, token))
+    const rows = await db
+      .select({ token: deviceTokens.token, locale: users.locale })
+      .from(deviceTokens)
+      .leftJoin(users, eq(users.id, deviceTokens.ownerUserId))
+      .where(
+        userIds && userIds.length > 0
+          ? and(inArray(deviceTokens.ownerUserId, userIds), isNull(deviceTokens.deletedAt))
+          : isNull(deviceTokens.deletedAt),
+      )
+    // One multicast per language among the devices.
+    const byLocale = new Map<Locale | null, string[]>()
+    for (const row of rows) byLocale.set(row.locale, [...(byLocale.get(row.locale) ?? []), row.token])
+    // No device registered: the sender is still called once, with nothing to send to, as before.
+    if (rows.length === 0) byLocale.set(null, [])
+    for (const [locale, tokens] of byLocale) {
+      const invalid = await sender(tokens, payloadFor(payload, locale))
+      for (const token of invalid) {
+        await db.delete(deviceTokens).where(eq(deviceTokens.token, token))
+      }
     }
   } catch (err) {
     console.error(`[push] FCM '${eventType}' eșuat: ${String(err)}`)

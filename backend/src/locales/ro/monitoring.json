@@ -1,0 +1,21 @@
+{
+  "signals": {
+    "cpu": "CPU host",
+    "ram": "RAM host",
+    "containers": "Sănătate containere",
+    "failedJobs": "Job-uri eșuate",
+    "backup": "Backup zilnic"
+  },
+  "details": {
+    "allHealthy": "Toate containerele healthy",
+    "noBackupFile": "Niciun fișier de backup găsit",
+    "lastBackup": "Ultimul backup acum {{hoursSince}}h",
+    "noDataYet": "Fără date încă — niciun ingest primit",
+    "noSnapshot": "Fără snapshot de peste 5 min — server oprit sau colector căzut",
+    "failedJobs": {
+      "one": "{{count}} job eșuat în ultima oră",
+      "few": "{{count}} joburi eșuate în ultima oră",
+      "other": "{{count}} de joburi eșuate în ultima oră"
+    }
+  }
+}

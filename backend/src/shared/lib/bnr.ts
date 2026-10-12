@@ -1,6 +1,7 @@
 import { and, desc, eq, lte } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { exchangeRates } from '../db/schema/index.js'
+import { tr } from './i18n.js'
 
 // BNR (Banca Națională a României) — curs zilnic RON per valută, pt. facturarea
 // clienților `billing_clients` cu preț în valută (Sprint C, Track B — EUR) și pt.
@@ -26,7 +27,7 @@ const RETRY_DELAY_MS = 1_000
 
 async function fetchOnce(): Promise<string> {
   const res = await fetch(BNR_FEED_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
-  if (!res.ok) throw new Error(`Feed-ul BNR a răspuns cu HTTP ${res.status}`)
+  if (!res.ok) throw new Error(tr('errors.bnr.http', { status: res.status }))
   return await res.text()
 }
 
@@ -46,19 +47,19 @@ async function fetchBnrFeed(): Promise<string> {
       if (attempt < MAX_ATTEMPTS) await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
     }
   }
-  throw new Error(`Nu am putut prelua feed-ul de curs BNR după ${MAX_ATTEMPTS} încercări: ${String(lastErr)}`)
+  throw new Error(tr('errors.bnr.fetchFailed', { MAX_ATTEMPTS, lastErr: String(lastErr) }))
 }
 
 /** Extrage data publicării + cursul unei valute din feed-ul XML zilnic al BNR. */
 export function parseBnrRate(xml: string, currency: string): { date: string; rate: number } {
   const cubeMatch = /<Cube date="(\d{4}-\d{2}-\d{2})">([\s\S]*?)<\/Cube>/.exec(xml)
-  if (!cubeMatch) throw new Error('Feed-ul BNR nu conține un element <Cube date="..."> recognoscibil')
+  if (!cubeMatch) throw new Error(tr('errors.bnr.noCube'))
   const [, date, cubeBody] = cubeMatch
   const rateMatch = new RegExp(`<Rate currency="${currency}"[^>]*>([\\d.]+)</Rate>`).exec(cubeBody!)
-  if (!rateMatch) throw new Error(`Feed-ul BNR nu conține un curs ${currency}`)
+  if (!rateMatch) throw new Error(tr('errors.bnr.noRate', { currency }))
   const rate = Number.parseFloat(rateMatch[1]!)
   if (!Number.isFinite(rate) || rate <= 0) {
-    throw new Error(`Cursul ${currency} din feed-ul BNR nu s-a putut parsa la un număr pozitiv: "${rateMatch[1]}"`)
+    throw new Error(tr('errors.bnr.rateNotNumber', { currency, value: rateMatch[1] }))
   }
   return { date: date!, rate }
 }
@@ -105,7 +106,7 @@ export async function fetchAndStoreLatestBnrRates(currencies: string[] = ['EUR',
       errors.push(`${currency}: ${String(err)}`)
     }
   }
-  if (rows.length === 0) throw new Error(`Niciun curs valabil în feed-ul BNR: ${errors.join('; ')}`)
+  if (rows.length === 0) throw new Error(tr('errors.bnr.noValidRate', { errors: errors.join('; ') }))
   return rows
 }
 
@@ -149,5 +150,5 @@ export async function getRateForDate(dateIso: string, currency = 'EUR'): Promise
   }
 
   if (existing) return existing
-  throw new Error(`Niciun curs ${currency} disponibil la sau înainte de ${dateIso}, nici după un fetch BNR live`)
+  throw new Error(tr('errors.bnr.noRateAtDate', { currency, dateIso }))
 }

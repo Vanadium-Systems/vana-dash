@@ -1,5 +1,6 @@
 import { config } from '../../shared/config.js'
 import type { AnafTokenResponse, AnafTokens } from './types.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // OAuth2 ANAF (logincert.anaf.ro). Consimțirea inițială NU poate fi automatizată:
 // necesită certificatul digital al lui Stefan într-un flow de browser. Noi construim
@@ -43,7 +44,7 @@ export async function refreshTokens(refreshToken: string): Promise<AnafTokens> {
 
 async function requestTokens(params: Record<string, string>): Promise<AnafTokens> {
   if (!isOauthConfigured()) {
-    throw new Error('ANAF OAuth neconfigurat: setează ANAF_CLIENT_ID și ANAF_CLIENT_SECRET')
+    throw new Error(tr('errors.anaf.oauthNotConfigured'))
   }
   const basic = Buffer.from(`${config.anafClientId}:${config.anafClientSecret}`).toString('base64')
   const res = await fetch(TOKEN_URL, {
@@ -62,7 +63,7 @@ async function requestTokens(params: Record<string, string>): Promise<AnafTokens
   }
   const payload = (await res.json()) as AnafTokenResponse
   if (!payload.access_token || !payload.refresh_token) {
-    throw new Error('ANAF token endpoint: răspuns fără access_token/refresh_token')
+    throw new Error(tr('errors.anaf.tokenResponseIncomplete'))
   }
   return {
     accessToken: payload.access_token,

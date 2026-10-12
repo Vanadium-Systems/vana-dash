@@ -1,1 +1,28 @@
-{}
+{
+  "required": "required",
+  "invalidType": "wrong type of value",
+  "invalidValue": "invalid value",
+  "invalidEmail": "invalid email address",
+  "invalidUrl": "invalid web address",
+  "invalidUuid": "invalid identifier",
+  "invalidDate": "invalid date",
+  "stringTooShort": {
+    "one": "at least {{count}} character",
+    "other": "at least {{count}} characters"
+  },
+  "stringTooLong": {
+    "one": "at most {{count}} character",
+    "other": "at most {{count}} characters"
+  },
+  "numberTooSmall": "at least {{min}}",
+  "numberTooBig": "at most {{max}}",
+  "arrayTooShort": {
+    "one": "at least {{count}} item",
+    "other": "at least {{count}} items"
+  },
+  "arrayTooLong": {
+    "one": "at most {{count}} item",
+    "other": "at most {{count}} items"
+  },
+  "invalidOption": "value outside the list: {{options}}"
+}

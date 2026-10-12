@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 export const MarketsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(20).default(1),
@@ -46,13 +47,13 @@ export const OrderPreviewSchema = z.object({
   symbol: z
     .string()
     .trim()
-    .regex(/^[A-Z0-9]{5,20}$/, 'Simbol Binance invalid (ex: BTCUSDT)'),
+    .regex(/^[A-Z0-9]{5,20}$/, lazyTr('errors.trading.invalidBinanceSymbol')),
   side: z.enum(['buy', 'sell']),
   type: z.enum(['market', 'limit']),
   quantity: z.number().positive().max(1e12),
   limitPrice: z.number().positive().optional(),
 }).refine((v) => v.type !== 'limit' || v.limitPrice !== undefined, {
-  message: 'Ordinele limit au nevoie de limitPrice',
+  message: lazyTr('errors.trading.limitNeedsPrice'),
   path: ['limitPrice'],
 })
 

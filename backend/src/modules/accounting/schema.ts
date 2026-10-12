@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 export const RecordsQuerySchema = z.object({
   direction: z.enum(['in', 'out']).optional(),
@@ -33,7 +34,7 @@ export const ManualRecordCreateSchema = z.object({
 
 // D301/D390 — lună de raportare (achiziții reverse-charge din perioada respectivă).
 export const DeclarationMonthQuerySchema = z.object({
-  month: z.string().regex(/^\d{4}-\d{2}$/, 'Format așteptat: YYYY-MM'),
+  month: z.string().regex(/^\d{4}-\d{2}$/, lazyTr('errors.accounting.expectedMonthFormat')),
 })
 
 export const DeclarationExportQuerySchema = DeclarationMonthQuerySchema.extend({
@@ -42,7 +43,7 @@ export const DeclarationExportQuerySchema = DeclarationMonthQuerySchema.extend({
 
 // Pachet trimestrial (Sprint D, Track B) — 'YYYY-Qn'.
 export const QuarterQuerySchema = z.object({
-  quarter: z.string().regex(/^\d{4}-Q[1-4]$/, 'Format așteptat: YYYY-Qn'),
+  quarter: z.string().regex(/^\d{4}-Q[1-4]$/, lazyTr('errors.accounting.expectedQuarterFormat')),
 })
 
 // Cheltuieli recurente (lunar/anual) — materializate automat în financial_records prin
@@ -76,14 +77,14 @@ export const RecurringExpenseCreateSchema = RecurringExpenseBaseSchema.extend({
   // Opțional — dacă lipsește, server-ul calculează primul `nextDueDate` de la azi.
   startDate: z.coerce.date().optional(),
 }).refine((v) => v.cycle !== 'annual' || v.cycleMonth !== undefined, {
-  message: 'cycleMonth e obligatoriu pt. cycle="annual"',
+  message: lazyTr('errors.accounting.cycleMonthRequired'),
   path: ['cycleMonth'],
 })
 
 export const RecurringExpenseUpdateSchema = RecurringExpenseBaseSchema.partial()
   .extend({ active: z.boolean().optional() })
   .refine((v) => v.cycle !== 'annual' || v.cycleMonth !== undefined, {
-    message: 'cycleMonth e obligatoriu pt. cycle="annual"',
+    message: lazyTr('errors.accounting.cycleMonthRequired'),
     path: ['cycleMonth'],
   })
 

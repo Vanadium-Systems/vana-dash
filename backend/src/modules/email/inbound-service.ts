@@ -31,6 +31,7 @@ import {
 } from './mailboxes.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { buildSignature, escapeHtml, textToHtmlParagraph } from './signature.js'
+import { trFor, tr } from '../../shared/lib/i18n.js'
 
 // Ingest of mail received through Cloudflare Email Routing, plus the replies sent on an
 // existing thread. Threads are matched on the normalized subject and shared participants.
@@ -78,7 +79,7 @@ export async function findOrCreateThread(rawSubject: string, participants: strin
     .insert(emailThreads)
     .values({ subject: normalized, participants, lastMessageAt: new Date() })
     .returning()
-  if (!created) throw new Error('email_threads insert nu a returnat nimic')
+  if (!created) throw new Error(tr('errors.email.threadInsertFailed'))
   return created
 }
 
@@ -279,15 +280,15 @@ export async function ingestCloudflareInboundEmail(data: CloudflareInboundPayloa
     if (userIds.length > 0) {
       void notifyPush(
         'email',
-        {
-          title: `Email nou de la ${data.from}`,
-          body: data.subject || '(fără subiect)',
+        (locale) => ({
+          title: trFor(locale, 'push.email.newFrom', { from: data.from }),
+          body: data.subject || trFor(locale, 'push.email.noSubject'),
           url: `/email?thread=${thread.id}`,
           // tag = thread.id — permite APK-ului să șteargă notificarea din bară când thread-ul se
           // deschide în aplicație (native-push.ts::dismissDeliveredNotificationsByTag), și dedup pe
           // Android dacă vin mai multe notificări pt. același thread (a doua o înlocuiește pe prima).
           tag: `thread-${thread.id}`,
-        },
+        }),
         userIds,
       )
     }
@@ -785,7 +786,7 @@ export async function forwardMessage(
     .select()
     .from(emailMessages)
     .where(and(eq(emailMessages.id, messageId), isNull(emailMessages.deletedAt), messageVisibleTo(await mailboxAddresses(me))))
-  if (!original) throw new Error('Mesaj inexistent')
+  if (!original) throw new Error(tr('errors.email.messageNotFound'))
 
   // Forward-ul pleacă de pe cutia originalului: verificarea e totuși a omului, nu a adresei
   // mesajului (altfel ar fi o ocolire prin id direct) — și anume a cutiei de pe care ar pleca
@@ -798,9 +799,9 @@ export async function forwardMessage(
   // text simplu și trece prin textToHtmlParagraph (ar escapa tag-urile reale ale utilizatorului
   // în text literal). Text simplu și HTML se construiesc separat de-acum.
   const extraBodyHtml = input.extraBody ?? ''
-  const separatorText = `\n\n---------- Mesaj redirecționat ----------\nDe la: ${original.fromAddress}\nSubiect: ${original.subject}\n\n`
+  const separatorText = tr('errors.email.forwardedHeader', { fromAddress: original.fromAddress, subject: original.subject })
   const quotedText = `${htmlToPlainText(extraBodyHtml)}${separatorText}${original.bodyText ?? ''}`
-  const separatorHtml = `<p style="margin:16px 0 8px;color:#777;font-size:13px">---------- Mesaj redirecționat ----------<br>De la: ${escapeHtml(original.fromAddress)}<br>Subiect: ${escapeHtml(original.subject)}</p>`
+  const separatorHtml = `<p style="margin:16px 0 8px;color:#777;font-size:13px">${tr('errors.email.forwardedTitle')}<br>${tr('errors.email.forwardedFrom', { from: escapeHtml(original.fromAddress) })}<br>${tr('errors.email.forwardedSubject', { subject: escapeHtml(original.subject) })}</p>`
   const quotedHtml = `${extraBodyHtml}${separatorHtml}${original.bodyHtml ?? textToHtmlParagraph(original.bodyText ?? '')}`
 
   const attachmentsToSend: Array<{ filename: string; content: string }> = [...(input.attachments ?? [])]
@@ -837,7 +838,7 @@ export async function forwardMessage(
       ...attachmentsToSend.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64') })),
     ],
   })
-  if (!result.ok) throw new Error(result.error ?? 'Trimitere eșuată')
+  if (!result.ok) throw new Error(result.error ?? tr('errors.email.sendFailed'))
 
   const participants = Array.from(new Set([original.toAddress, input.to]))
   const thread = await findOrCreateThread(subject, participants)
@@ -860,7 +861,7 @@ export async function forwardMessage(
       forwardOfMessageId: original.id,
     })
     .returning()
-  if (!message) throw new Error('email_messages insert nu a returnat nimic (forward)')
+  if (!message) throw new Error(tr('errors.email.messageInsertFailedForward'))
 
   if (attachmentsToSend.length) await persistOutboundAttachments(message.id, attachmentsToSend)
 
@@ -894,7 +895,7 @@ export async function replyToThread(
     .select()
     .from(emailThreads)
     .where(and(eq(emailThreads.id, threadId), isNull(emailThreads.deletedAt), visible))
-  if (!thread) throw new Error('Thread inexistent')
+  if (!thread) throw new Error(tr('errors.email.threadNotFound'))
 
   const [lastInbound] = await db
     .select()
@@ -902,7 +903,7 @@ export async function replyToThread(
     .where(and(eq(emailMessages.threadId, threadId), eq(emailMessages.direction, 'in'), isNull(emailMessages.deletedAt)))
     .orderBy(desc(emailMessages.receivedAt))
     .limit(1)
-  if (!lastInbound) throw new Error('Thread fără niciun mesaj primit — nu există destinatar de răspuns')
+  if (!lastInbound) throw new Error(tr('errors.email.threadNoInbound'))
 
   // Răspunsul pleacă de pe adresa ultimului mesaj primit, nu de pe o identitate aleasă în
   // dialog — deci garanția e a acelei cutii, nu a unei chei fixe scrise în cod.
@@ -982,7 +983,7 @@ export async function replyToThread(
       ...(attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64') })) ?? []),
     ],
   })
-  if (!result.ok) throw new Error(result.error ?? 'Trimitere eșuată')
+  if (!result.ok) throw new Error(result.error ?? tr('errors.email.sendFailed'))
 
   const [message] = await db
     .insert(emailMessages)
@@ -1000,7 +1001,7 @@ export async function replyToThread(
       sentByUserId: me.id,
     })
     .returning()
-  if (!message) throw new Error('email_messages insert nu a returnat nimic')
+  if (!message) throw new Error(tr('errors.email.messageInsertFailed'))
 
   if (attachments?.length) await persistOutboundAttachments(message.id, attachments)
 
@@ -1070,7 +1071,7 @@ export async function mirrorOutboundMessage(input: {
       sentByUserId: input.sentByUserId ?? null,
     })
     .returning()
-  if (!message) throw new Error('email_messages insert nu a returnat nimic (mirror Compose)')
+  if (!message) throw new Error(tr('errors.email.messageInsertFailedCompose'))
 
   if (input.attachments?.length) await persistOutboundAttachments(message.id, input.attachments)
 }

@@ -1,3 +1,4 @@
+import { tr } from '../../shared/lib/i18n.js'
 // Client CoinGecko public (fără cheie, PLAN.md Contract D). Singurele URL-uri apelate sunt
 // constantele de mai jos — hostname-ul e validat defensiv la fiecare request (whitelist,
 // nu input de la user), pattern-ul cerut de PLAN.md pt. SSRF.
@@ -33,7 +34,7 @@ async function fetchJson<T>(path: string): Promise<T> {
   // Concatenare directă, nu new URL(path, BASE) — path-urile pornesc cu '/' și ar rescrie
   // întregul path al base-ului, pierzând /api/v3.
   const url = new URL(BASE + path)
-  if (url.hostname !== ALLOWED_HOST) throw new Error(`Domeniu nepermis: ${url.hostname}`)
+  if (url.hostname !== ALLOWED_HOST) throw new Error(tr('errors.net.domainNotAllowed', { hostname: url.hostname }))
 
   const hit = cache.get(url.pathname + url.search)
   if (hit && hit.expiresAt > Date.now()) return hit.data as T
@@ -42,10 +43,10 @@ async function fetchJson<T>(path: string): Promise<T> {
     headers: { Accept: 'application/json' },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
-  if (res.status === 429) throw new Error('CoinGecko rate-limit (429) — încearcă într-un minut')
+  if (res.status === 429) throw new Error(tr('errors.net.coingeckoRateLimit'))
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
-    throw new Error(`CoinGecko HTTP ${res.status}: ${detail.slice(0, 200)}`)
+    throw new Error(tr('errors.net.coingeckoHttp', { status: res.status, detail: detail.slice(0, 200) }))
   }
   const data = (await res.json()) as T
   cache.set(url.pathname + url.search, { expiresAt: Date.now() + CACHE_TTL_MS, data })

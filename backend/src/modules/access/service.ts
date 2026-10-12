@@ -4,6 +4,7 @@ import { roles, users } from '../../shared/db/schema/index.js'
 import { availableFeatures, FEATURE_KEYS, featureLabel, pageGroupLabel, pageLabel, PAGES } from '../../shared/lib/features.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { recordAudit } from '../../shared/lib/audit.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Ce poate face fiecare rol (PLAN.md C2). Regulile, pe scurt:
 // - `admin` primește tot ce are firma, deci nu are listă și nu se poate edita;
@@ -24,7 +25,7 @@ export class AccessError extends Error {
 }
 
 const escalation = (key: string) =>
-  new AccessError('PERMISSION_ESCALATION', 403, `Nu ai ${key}, deci nu îl poți da altcuiva`)
+  new AccessError('PERMISSION_ESCALATION', 403, tr('errors.access.featureNotYours', { feature: key }))
 
 /** Funcționalitățile pe care actorul nu le poate da altora (la manager: tot ce nu are el). */
 function lockedFeaturesFor(actor: SessionUser): string[] {
@@ -97,20 +98,20 @@ export async function getMatrix(actor: SessionUser) {
 
 async function loadEditableRole(actor: SessionUser, roleId: string) {
   const [role] = await db.select().from(roles).where(and(eq(roles.id, roleId), isNull(roles.deletedAt)))
-  if (!role) throw new AccessError('ROLE_NOT_FOUND', 404, 'Rolul nu există')
+  if (!role) throw new AccessError('ROLE_NOT_FOUND', 404, tr('errors.access.roleNotFound'))
   if (role.kind === 'admin') {
-    throw new AccessError('ROLE_LOCKED', 409, 'Rolul Admin are tot ce are firma și nu se modifică')
+    throw new AccessError('ROLE_LOCKED', 409, tr('errors.access.adminLocked'))
   }
   // „Nu atinge useri admin sau manager și nici rolurile lor" (C2) — aceeași regulă pe care o
   // aplică `assertCanManage` din modulul team, aici asupra rolului, nu asupra omului.
   if (actor.role?.kind !== 'admin' && role.kind === 'manager') {
-    throw new AccessError('PERMISSION_ESCALATION', 403, 'Poți edita doar roluri create de tine')
+    throw new AccessError('PERMISSION_ESCALATION', 403, tr('errors.access.editOwnRolesOnly'))
   }
   return role
 }
 
 export async function setRoleFeature(actor: SessionUser, roleId: string, key: string, enabled: boolean) {
-  if (!FEATURE_KEYS.includes(key)) throw new AccessError('FEATURE_UNKNOWN', 400, `Funcționalitate necunoscută: ${key}`)
+  if (!FEATURE_KEYS.includes(key)) throw new AccessError('FEATURE_UNKNOWN', 400, tr('errors.access.featureUnknown', { key }))
   const role = await loadEditableRole(actor, roleId)
   if (enabled) assertCanGrant(actor, [key])
   // Regula „.view oprit": cheile rămân salvate, dar fără poarta paginii nu au efect. Deci
@@ -131,7 +132,7 @@ export async function setRoleFeature(actor: SessionUser, roleId: string, key: st
 
 export async function setRolePage(actor: SessionUser, roleId: string, pageKey: string, enabled: boolean) {
   const page = PAGES.find((p) => p.key === pageKey)
-  if (!page) throw new AccessError('PAGE_UNKNOWN', 400, `Pagină necunoscută: ${pageKey}`)
+  if (!page) throw new AccessError('PAGE_UNKNOWN', 400, tr('errors.access.pageUnknown', { pageKey }))
   const role = await loadEditableRole(actor, roleId)
   const keys = availableFeatures().filter((f) => f.page === pageKey).map((f) => f.key)
   if (enabled) assertCanGrant(actor, keys)
@@ -155,7 +156,7 @@ export async function createRole(actor: SessionUser, input: { name: string; copy
       .select()
       .from(roles)
       .where(and(eq(roles.id, input.copyFromRoleId), isNull(roles.deletedAt)))
-    if (!source) throw new AccessError('ROLE_NOT_FOUND', 404, 'Rolul sursă nu există')
+    if (!source) throw new AccessError('ROLE_NOT_FOUND', 404, tr('errors.access.sourceRoleNotFound'))
     features = source.kind === 'admin' ? availableFeatures().map((f) => f.key) : [...source.features]
     assertCanGrant(actor, features)
   }
@@ -163,7 +164,7 @@ export async function createRole(actor: SessionUser, input: { name: string; copy
     .insert(roles)
     .values({ name: input.name, kind: 'custom', features, createdByUserId: actor.id })
     .returning()
-  if (!role) throw new Error('Rol necreat')
+  if (!role) throw new Error(tr('errors.access.roleNotCreated'))
   await recordAudit({ action: 'acces.rol.creat', entityType: 'role', entityId: role.id, changes: { name: [null, role.name] } })
   return { id: role.id, name: role.name, kind: role.kind, features: role.features }
 }
@@ -182,7 +183,7 @@ export async function deleteRole(actor: SessionUser, roleId: string) {
     .from(users)
     .where(and(eq(users.roleId, roleId), isNull(users.deletedAt)))
   if ((member?.count ?? 0) > 0) {
-    throw new AccessError('ROLE_IN_USE', 409, `${member?.count} oameni au rolul ăsta`)
+    throw new AccessError('ROLE_IN_USE', 409, tr('errors.access.roleInUse', { count: member?.count ?? 0 }))
   }
   await db.update(roles).set({ deletedAt: new Date(), updatedAt: new Date() }).where(eq(roles.id, roleId))
   await recordAudit({ action: 'acces.rol.sters', entityType: 'role', entityId: roleId, changes: { name: [role.name, null] } })

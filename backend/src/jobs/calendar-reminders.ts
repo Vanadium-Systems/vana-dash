@@ -4,6 +4,8 @@ import { db } from '../shared/db/client.js'
 import { calendarEventAttendees, calendarEvents } from '../shared/db/schema/index.js'
 import { notifyPush } from '../shared/lib/push.js'
 import { expandOccurrence } from '../shared/lib/calendar-occurrences.js'
+import { trFor } from '../shared/lib/i18n.js'
+import { INTL_TAG } from '../shared/lib/locale.js'
 
 // Reminder-uri push pt. evenimente de calendar (PLAN.md Sprint 2). Rulează la 5 minute —
 // suficient de des ca un reminder de 5 min să nu rateze fereastra. Dedup pe ocurență
@@ -54,11 +56,11 @@ export async function runCalendarReminders(): Promise<void> {
         // (failure izolat intern), acțiunea primară a acestei iterații e marcarea dedup-ului.
         void notifyPush(
           'calendarReminder',
-          {
-            title: `Reminder: ${row.title}`,
-            body: startAt.toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'short', timeStyle: 'short' }),
+          (locale) => ({
+            title: trFor(locale, 'push.reminder.eventTitle', { title: row.title }),
+            body: startAt.toLocaleString(INTL_TAG[locale], { timeZone: 'Europe/Bucharest', dateStyle: 'short', timeStyle: 'short' }),
             url: '/calendar',
-          },
+          }),
           recipients,
         )
         await db.update(calendarEvents).set({ reminderSentAt: startAt }).where(eq(calendarEvents.id, row.id))

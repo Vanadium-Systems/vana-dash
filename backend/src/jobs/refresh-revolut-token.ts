@@ -5,6 +5,7 @@ import { db } from '../shared/db/client.js'
 import { bankAccounts } from '../shared/db/schema/index.js'
 import { decryptApiKey } from '../shared/lib/crypto.js'
 import { markNeedsReauth, saveRevolutTokens } from '../shared/lib/revolut.js'
+import { tr } from '../shared/lib/i18n.js'
 
 // Reînnoiește access token-ul Revolut al fiecărui cont bancar OAuth înainte de
 // expirare. Spre deosebire de ANAF (un singur rând, singleton pe CIF), aici
@@ -45,7 +46,7 @@ export async function refreshRevolutTokensIfNeeded(): Promise<void> {
 
 async function refreshOne(row: typeof bankAccounts.$inferSelect): Promise<void> {
   if (!row.clientId || !row.privateKeyEnc || !row.refreshTokenEnc) {
-    throw new Error('cont Revolut incomplet: lipsește client_id, certificat sau refresh token')
+    throw new Error(tr('errors.revolut.accountIncomplete'))
   }
 
   const expiresSoon =

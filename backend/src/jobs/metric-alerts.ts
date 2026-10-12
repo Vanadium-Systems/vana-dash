@@ -4,6 +4,7 @@ import { db } from '../shared/db/client.js'
 import { alertRules, alerts } from '../shared/db/schema/index.js'
 import { evaluateMetricRule } from '../shared/lib/metric-alert-evaluation.js'
 import { notifyPush } from '../shared/lib/push.js'
+import { trFor } from '../shared/lib/i18n.js'
 
 // Motor de threshold real pe platform_metrics (glosarul CLAUDE.md: `revenue < 1000 RON în
 // ultima zi`) — namespace `metric_key` disjunct de `accounting.*` (rezervat
@@ -57,7 +58,7 @@ export async function checkMetricAlerts(): Promise<void> {
         severity: rule.severity,
         message,
       })
-      void notifyPush('alerts', { title: 'Alertă vana-dash', body: message, url: '/alerts' })
+      void notifyPush('alerts', (locale) => ({ title: trFor(locale, 'push.alert.title'), body: message, url: '/alerts' }))
     } catch (err) {
       // Failure izolat per regulă (regula #7 CLAUDE.md) — o regulă cu metricKey inexistent
       // sau eroare de agregare nu oprește evaluarea celorlalte.

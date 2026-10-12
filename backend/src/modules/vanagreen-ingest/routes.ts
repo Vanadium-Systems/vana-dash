@@ -4,6 +4,7 @@ import { config } from '../../shared/config.js'
 import { requireIngestToken } from '../../shared/middleware/auth.js'
 import { SelfServeBillingClientIngestSchema, SelfServePricingCalculateSchema } from './schema.js'
 import { calculateSelfServeQuote, createSelfServeBillingClient, listSelfServeBundles } from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 /**
  * POST /api/v1/integrations/vanagreen/pricing/calculate + /billing-clients — machine-to-machine,
@@ -32,7 +33,7 @@ export async function vanagreenIngestRoutes(app: FastifyInstance) {
         // recyclers_app tratează orice non-2xx ca "preț indisponibil, te contactăm noi"
         // (non-blocant) — acoperă kill-switch OFF, platforma neconfigurată SAU fără pricing
         // config salvat încă, fără să distingem cazurile față de apelant (nu are nevoie).
-        return reply.code(503).send({ success: false, error: 'Preț indisponibil momentan' })
+        return reply.code(503).send({ success: false, error: tr('errors.vanagreen.priceUnavailable') })
       }
       // FĂRĂ wrapper {success,data} — recyclers_app parsează răspunsul direct ca PricingQuoteResult.
       return quote

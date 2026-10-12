@@ -19,6 +19,7 @@ import {
 import type { ContractRenderData } from '../../shared/lib/contract-templates.js'
 import type { ContractAddendum } from '../../shared/db/schema/contract-addenda.js'
 import { ContractTermsUpdateSchema } from './templates-schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Șabloanele de contract + termenii comerciali, editabile din UI (sprint de-hardcodare
 // 2026-08-25). Seed-ul e lazy și idempotent (prima citire inserează corpurile canonice din
@@ -52,9 +53,9 @@ async function ensureSeeded(): Promise<void> {
 }
 
 const TEMPLATE_NAMES: Record<ContractTemplateKey, string> = {
-  'contract-saas': 'Contract de servicii SaaS (+ DPA)',
-  'anexa-preturi': 'Anexa de prețuri',
-  'act-aditional': 'Act adițional',
+  'contract-saas': tr('errors.contracts.templates.saas'),
+  'anexa-preturi': tr('errors.contracts.templates.priceAnnex'),
+  'act-aditional': tr('errors.contracts.templates.addendum'),
 }
 
 export async function listTemplates(): Promise<TemplateRow[]> {
@@ -75,11 +76,11 @@ function validateTokens(key: ContractTemplateKey, bodyHtml: string): void {
   const known = new Set([...CONTRACT_TEMPLATE_PLACEHOLDERS[key].map((p) => p.token)])
   const used = [...bodyHtml.matchAll(/\{\{([a-zA-Z0-9._]+)\}\}/g)].map((m) => m[1]!)
   const unknown = [...new Set(used.filter((t) => !known.has(t)))]
-  if (unknown.length > 0) throw new Error(`Tokeni necunoscuți: ${unknown.join(', ')}`)
+  if (unknown.length > 0) throw new Error(tr('errors.contracts.unknownTokens', { unknown: unknown.join(', ') }))
 }
 
 export async function updateTemplate(key: ContractTemplateKey, bodyHtml: string): Promise<TemplateRow> {
-  if (!CONTRACT_TEMPLATE_BODIES[key]) throw new Error('Șablon inexistent')
+  if (!CONTRACT_TEMPLATE_BODIES[key]) throw new Error(tr('errors.contracts.templateNotFound'))
   validateTokens(key, bodyHtml)
   await ensureSeeded()
   const [row] = await db

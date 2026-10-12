@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { AckBulkSchema, CreateAlertRuleSchema, ListAlertsQuerySchema, SnoozeAlertSchema, UpdateAlertRuleSchema } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function alertsRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -27,20 +28,20 @@ export async function alertsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: UpdateAlertRuleSchema } },
     async (req, reply) => {
       const row = await service.updateAlertRule((req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: 'Regulă inexistentă' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.alerts.ruleNotFound') })
       return { success: true, data: row }
     },
   )
 
   server.delete('/api/alert-rules/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.deleteAlertRule((req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: 'Regulă inexistentă' })
+    if (!row) return reply.code(404).send({ success: false, error: tr('errors.alerts.ruleNotFound') })
     return { success: true }
   })
 
   server.post('/api/alert-rules/:id/test', { preHandler: [app.authenticate] }, async (req, reply) => {
     const result = await service.testAlertRule((req.params as { id: string }).id)
-    if (!result) return reply.code(404).send({ success: false, error: 'Regulă inexistentă' })
+    if (!result) return reply.code(404).send({ success: false, error: tr('errors.alerts.ruleNotFound') })
     return { success: true, data: result }
   })
 
@@ -62,7 +63,7 @@ export async function alertsRoutes(app: FastifyInstance) {
 
   server.patch('/api/alerts/:id/ack', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.ackAlert((req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: 'Alertă inexistentă' })
+    if (!row) return reply.code(404).send({ success: false, error: tr('errors.alerts.alertNotFound') })
     return { success: true, data: row }
   })
 
@@ -71,7 +72,7 @@ export async function alertsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: SnoozeAlertSchema } },
     async (req, reply) => {
       const row = await service.snoozeAlert((req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: 'Alertă inexistentă' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.alerts.alertNotFound') })
       return { success: true, data: row }
     },
   )
@@ -84,7 +85,7 @@ export async function alertsRoutes(app: FastifyInstance) {
 
   server.get('/api/alert-rules/:id/sparkline', { preHandler: [app.authenticate] }, async (req, reply) => {
     const result = await service.getRuleSparkline((req.params as { id: string }).id)
-    if (!result) return reply.code(404).send({ success: false, error: 'Regulă inexistentă' })
+    if (!result) return reply.code(404).send({ success: false, error: tr('errors.alerts.ruleNotFound') })
     return { success: true, data: result }
   })
 }

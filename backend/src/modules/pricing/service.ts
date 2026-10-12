@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import { pricingConfigs } from '../../shared/db/schema/index.js'
 import { PricingConfigSchema } from './schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 /**
  * Parsăm config-ul din jsonb prin schema Zod — obligatoriu pt. config-uri salvate ÎNAINTE
@@ -27,6 +28,6 @@ export async function upsertConfig(platformId: string, config: z.infer<typeof Pr
       set: { config: sql`EXCLUDED.config`, updatedAt: new Date() },
     })
     .returning()
-  if (!row) throw new Error('Upsert pricing config eșuat')
+  if (!row) throw new Error(tr('errors.pricing.configUpsertFailed'))
   return row
 }

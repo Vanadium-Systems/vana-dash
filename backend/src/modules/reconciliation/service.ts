@@ -23,6 +23,7 @@ import {
   setAutoExtendEnabled,
   verifyVanagreenTenant,
 } from './vanagreen-extension.js'
+import { trFor, tr } from '../../shared/lib/i18n.js'
 
 // Selecție explicită — apiKeyEnc/privateKeyEnc/accessTokenEnc/refreshTokenEnc nu
 // părăsesc niciodată service-ul. certificatePem e PUBLIC (cheia publică a
@@ -128,19 +129,19 @@ export async function createManualMatch(bankTransactionId: string, financialReco
     .select()
     .from(bankTransactions)
     .where(and(eq(bankTransactions.id, bankTransactionId), isNull(bankTransactions.deletedAt)))
-  if (!txn) throw new Error('Tranzacție inexistentă')
+  if (!txn) throw new Error(tr('errors.reconciliation.transactionNotFound'))
 
   const [record] = await db
     .select()
     .from(financialRecords)
     .where(and(eq(financialRecords.id, financialRecordId), isNull(financialRecords.deletedAt)))
-  if (!record) throw new Error('Factura/înregistrarea nu există')
+  if (!record) throw new Error(tr('errors.reconciliation.recordNotFound'))
 
   const [existing] = await db
     .select({ id: paymentMatches.id })
     .from(paymentMatches)
     .where(eq(paymentMatches.bankTransactionId, bankTransactionId))
-  if (existing) throw new Error('Tranzacția e deja matchuită — fă unmatch întâi')
+  if (existing) throw new Error(tr('errors.reconciliation.alreadyMatched'))
 
   // Suma poate diferi (plată parțială) — partial dacă tranzacția acoperă mai puțin.
   const paymentStatus = Number(txn.amount) + 0.005 >= Number(record.amount) ? 'paid' : 'partial'
@@ -175,11 +176,11 @@ export async function createManualMatch(bankTransactionId: string, financialReco
   })
   // Substituie trigger-ul "auto-match" (nu există în cod azi, vezi PLAN.md Sprint 2 Open
   // Questions) — singurele evenimente reale de payment match sunt manual match + mark-paid.
-  void notifyPush('paymentMatch', {
-    title: 'Plată matchuită',
-    body: `Factura ${record.documentNumber ?? financialRecordId} a fost matchuită cu o tranzacție bancară.`,
+  void notifyPush('paymentMatch', (locale) => ({
+    title: trFor(locale, 'push.payment.matchedTitle'),
+    body: trFor(locale, 'push.payment.matchedBody', { number: record.documentNumber ?? financialRecordId }),
     url: '/reconciliation',
-  })
+  }))
 
   // Confirmare de încasare pe email — DOAR dacă plata acoperă integral factura, nu la
   // 'partial' (ar fi înșelător să trimiți "am primit plata" pt. o sumă parțială).
@@ -245,8 +246,8 @@ export async function markInvoicePaidManually(financialRecordId: string) {
     .select()
     .from(financialRecords)
     .where(and(eq(financialRecords.id, financialRecordId), isNull(financialRecords.deletedAt)))
-  if (!record) throw new Error('Factura nu există')
-  if (record.direction !== 'out' || record.type !== 'invoice') throw new Error('Nu e o factură emisă')
+  if (!record) throw new Error(tr('errors.reconciliation.invoiceNotFound'))
+  if (record.direction !== 'out' || record.type !== 'invoice') throw new Error(tr('errors.reconciliation.notIssuedInvoice'))
 
   const [updated] = await db
     .update(financialRecords)
@@ -268,11 +269,11 @@ export async function markInvoicePaidManually(financialRecordId: string) {
     console.error(`[reconciliation] extindere vanagreen eșuată pt. factura ${financialRecordId}:`, err)
   }
 
-  void notifyPush('paymentMatch', {
-    title: 'Factură marcată plătită',
-    body: `Factura ${record.documentNumber ?? financialRecordId} a fost marcată plătită manual.`,
+  void notifyPush('paymentMatch', (locale) => ({
+    title: trFor(locale, 'push.payment.markedPaidTitle'),
+    body: trFor(locale, 'push.payment.markedPaidBody', { number: record.documentNumber ?? financialRecordId }),
     url: '/reconciliation',
-  })
+  }))
 
   void sendPaymentConfirmationEmail(financialRecordId).catch((err) =>
     console.error(`[reconciliation] Confirmare încasare eșuată pentru ${financialRecordId}: ${String(err)}`),
@@ -342,9 +343,9 @@ export async function exchangeRevolutCode(id: string, code: string) {
     .select({ clientId: bankAccounts.clientId, privateKeyEnc: bankAccounts.privateKeyEnc })
     .from(bankAccounts)
     .where(and(eq(bankAccounts.id, id), isNull(bankAccounts.deletedAt)))
-  if (!row) throw new Error('Cont bancar inexistent')
+  if (!row) throw new Error(tr('errors.reconciliation.accountNotFound'))
   if (!row.clientId || !row.privateKeyEnc) {
-    throw new Error('Setează client_id și generează certificatul înainte de a face schimbul de cod')
+    throw new Error(tr('errors.reconciliation.setClientIdFirst'))
   }
 
   const privateKeyPem = decryptApiKey(row.privateKeyEnc)

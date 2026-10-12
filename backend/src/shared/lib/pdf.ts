@@ -1,4 +1,5 @@
 import puppeteer, { type Browser } from 'puppeteer-core'
+import { tr } from './i18n.js'
 
 // Browser singleton pentru generarea PDF — pattern identic cu vanagreen.
 // puppeteer-core (fără Chromium bundled): executabilul vine din PUPPETEER_EXECUTABLE_PATH
@@ -14,7 +15,7 @@ export function isPdfAvailable(): boolean {
 
 async function launchBrowser(): Promise<Browser> {
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
-  if (!executablePath) throw new Error('PUPPETEER_EXECUTABLE_PATH nu e setat — PDF indisponibil')
+  if (!executablePath) throw new Error(tr('errors.pdf.puppeteerMissing'))
   return puppeteer.launch({
     executablePath,
     headless: true,

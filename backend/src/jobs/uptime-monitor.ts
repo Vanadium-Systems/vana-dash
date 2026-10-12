@@ -5,6 +5,7 @@ import { db } from '../shared/db/client.js'
 import { platforms } from '../shared/db/schema/index.js'
 import { decryptApiKey } from '../shared/lib/crypto.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
+import { tl, tr } from '../shared/lib/i18n.js'
 
 // Monitor de uptime propriu — Stefan, 2026-07-25: UptimeRobot verifică deja doar URL-ul
 // (plan gratuit), aici vrem în plus backend+DB, mai des decât syncCron-ul fiecărei
@@ -50,8 +51,8 @@ export async function checkUptime(): Promise<void> {
     try {
       const site = await checkSite(platform.apiUrl)
       if (!site.ok) {
-        const ruleId = await ensureAlertRule(`platform_uptime.${platform.id}.site`, `${platform.name} — site nu răspunde`)
-        await raiseAlert(ruleId, `${platform.name}: site-ul nu răspunde (${site.detail})`, { url: '/platforms' })
+        const ruleId = await ensureAlertRule(`platform_uptime.${platform.id}.site`, tr('alerts.rules.siteDown', { name: platform.name }))
+        await raiseAlert(ruleId, tl('alerts.jobs.siteDown', { name: platform.name, detail: site.detail }), { url: '/platforms' })
       }
 
       const connector = getConnector(platform.type)
@@ -63,7 +64,7 @@ export async function checkUptime(): Promise<void> {
         apiKey: decryptApiKey(platform.apiKeyEnc),
       })
       if (health.status !== 'healthy') {
-        const ruleId = await ensureAlertRule(`platform_uptime.${platform.id}.backend`, `${platform.name} — backend/DB degradat`)
+        const ruleId = await ensureAlertRule(`platform_uptime.${platform.id}.backend`, tr('alerts.rules.backendDegraded', { name: platform.name }))
         await raiseAlert(ruleId, `${platform.name}: backend ${health.status}${health.message ? ` (${health.message})` : ''}`, {
           url: '/platforms',
         })

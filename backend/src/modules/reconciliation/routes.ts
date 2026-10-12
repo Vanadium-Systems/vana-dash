@@ -14,6 +14,7 @@ import {
   VerifyVanagreenTenantSchema,
 } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function reconciliationRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -94,7 +95,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
       if (!account.clientId || !account.certificatePem) {
         return reply
           .code(400)
-          .send({ success: false, error: 'configurează client_id și generează certificatul mai întâi' })
+          .send({ success: false, error: tr('errors.reconciliation.configureFirst') })
       }
       return { success: true, data: { url: buildAuthorizeUrl(account.clientId, account.id) } }
     },

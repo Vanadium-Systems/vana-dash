@@ -1,0 +1,81 @@
+{
+  "rules": {
+    "invoiceOverdue": "Factură emisă restantă",
+    "anafTokenExpiring": "Token ANAF aproape de expirare",
+    "efacturaRejected": "e-Factura respinsă de ANAF",
+    "bankSyncFailed": "Sync bancar eșuat",
+    "unmatchedTransaction": "Tranzacție nematchuită",
+    "anafRefreshExpiring": "Refresh token ANAF aproape de expirare (estimat)",
+    "revolutRefreshExpiring": "Refresh token Revolut aproape de expirare (estimat)",
+    "d301Due": "Termen D301 se apropie",
+    "d390Due": "Termen D390 se apropie",
+    "bnrFeed": "Feed curs valutar BNR indisponibil",
+    "botSilent": "jeffbot — nu mai trimite date",
+    "botCriticalReview": "jeffbot — revizuire critică",
+    "platformNotResponding": "{{name}} — nu răspunde",
+    "server1Silent": "server-1 — nu mai trimite date",
+    "tendersUnavailable": "Monitor licitații — {{label}} indisponibil",
+    "tendersBlocked": "Monitor licitații oprit — SICAP a refuzat accesul",
+    "newTenders": "Oportunități noi de licitație",
+    "importantTender": "Oportunitate IMPORTANTĂ de licitație",
+    "siteDown": "{{name}} — site nu răspunde",
+    "backendDegraded": "{{name}} — backend/DB degradat",
+    "server1Signal": "server-1 — {{signal}} critic",
+    "assistantQuota": "Plafon de asistent — {{name}}"
+  },
+  "accounting": {
+    "anafNeedsReauth": "ANAF necesită reautentificare manuală",
+    "anafTokenExpires": "Token-ul ANAF expiră la {{value}}",
+    "efacturaRejected": "e-Factura {{documentNumber}} a fost respinsă de ANAF",
+    "bankSyncFailed": "Sync bancar eșuat ({{jobKey}})",
+    "unmatchedIncome": "Încasare nematchuită de {{UNMATCHED_TXN_DAYS}}+ zile: {{amount}} {{currency}} de la {{counterpartyName}} (#{{id}})",
+    "anafRefreshExpires": "Refresh token-ul ANAF expiră probabil în jur de {{value}} (estimare, fără reautentificare manuală riscăm needs_reauth)",
+    "revolutRefreshExpires": "Refresh token-ul Revolut pentru contul „{{name}}\" expiră probabil în jur de {{value}} (estimare)",
+    "d301Due": "D301 pentru {{prevPeriod}} are {{count}} linii de depus — termen 25 luna curentă",
+    "d390Due": "D390 pentru {{prevPeriod}} are {{count}} linii de depus — termen 25 luna curentă",
+    "invoiceOverdue": "Factura {{number}} către {{client}} e restantă ({{amount}} {{currency}})",
+    "draft": "(draft)"
+  },
+  "jobs": {
+    "bnrFailed": "Actualizarea zilnică a cursului BNR a eșuat: {{err}}",
+    "botSilent": "Botul nu mai trimite date de {{minutes}} min",
+    "platformHealthFailed": "Platforma {{name}} nu răspunde la verificarea de sănătate ({{message}})",
+    "server1Silent": "server-1 nu mai trimite date de {{minutes}} min (oprit, fără internet sau cron căzut)",
+    "tendersFetchFailed": "Preluarea „{{label}}\" de pe e-licitatie.ro a eșuat: {{err}}",
+    "tendersBlocked": "SICAP a răspuns cu HTTP {{status}}, deci probabil ne-a blocat IP-ul. Am oprit monitorul de licitații din Setări; îl repornești manual după ce confirmi că accesul funcționează din nou.",
+    "directPurchases": "achiziții directe",
+    "publicTenders": "licitații publice",
+    "siteDown": "{{name}}: site-ul nu răspunde ({{detail}})",
+    "botWeeklyReview": "jeffbot, revizuirea săptămânală din {{date}}: {{summary}}",
+    "botDailyReview": "jeffbot, revizuirea zilnică din {{date}}: {{summary}}",
+    "botServiceState": "jeffbot: serviciul {{name}} e {{state}}",
+    "newTenders": {
+      "one": "{{count}} oportunitate nouă de licitație potrivește regulile tale de urmărire",
+      "few": "{{count}} oportunități noi de licitație potrivesc regulile tale de urmărire",
+      "other": "{{count}} de oportunități noi de licitație potrivesc regulile tale de urmărire"
+    },
+    "importantTenders": {
+      "one": "{{count}} oportunitate IMPORTANTĂ de licitație: {{titles}}",
+      "few": "{{count}} oportunități IMPORTANTE de licitație: {{titles}}",
+      "other": "{{count}} de oportunități IMPORTANTE de licitație: {{titles}}"
+    },
+    "andMore": "{{titles}} și încă {{count}}",
+    "assistantQuota": "{{name}} a consumat {{percent}}% din plafonul lunar de asistent ({{used}} din {{cap}} tokeni, luna {{month}})."
+  },
+  "sentry": {
+    "untitled": "Eroare Sentry fără titlu",
+    "fullDetails": "Detalii complete (stack trace, tags, request): {{permalink}}",
+    "detectedBy": "\nDetectat de Sentry în vanagreen — vezi link-ul de mai sus pentru tot contextul (stack trace, browser/os, request)."
+  },
+  "vanagreen": {
+    "anafRejected": "ANAF a respins factura",
+    "technicalError": "Eroare tehnică la trimitere",
+    "draft": "ciornă",
+    "invoice": "Factură: {{invoiceRef}} ({{invoice_id}})",
+    "errorCode": "Cod eroare: {{error_code}}",
+    "fullError": "Eroare completă: {{error_message}}",
+    "open": "Deschide în vanagreen: {{url}}",
+    "buyer": "Cumpărător: {{name}}",
+    "buyerWithCui": "Cumpărător: {{name}} — CUI {{cui}}"
+  }
+}

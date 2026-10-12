@@ -11,6 +11,8 @@ import { buildBookingIcs } from './ics.js'
 import { BookingSettingsSchema, DEFAULT_BOOKING_SETTINGS, type BookingSettings, type PublicBookingBodySchema } from './schema.js'
 import { allDayToInterval, computeSlots, type Interval, type Slot } from './slots.js'
 import type { z } from 'zod'
+import { tr, trFor } from '../../shared/lib/i18n.js'
+import { INTL_TAG, type Locale } from '../../shared/lib/locale.js'
 
 const SETTINGS_KEY = 'booking.settings'
 // Plafonul de rezervări noi pe zi (Contract D): o limită peste Turnstile și rate limit, ca un
@@ -42,7 +44,7 @@ async function bookingOwnerId(): Promise<string> {
     .select({ id: users.id })
     .from(users)
     .where(and(eq(users.isPlatformAdmin, true), isNull(users.deletedAt)))
-  if (!owner) throw new Error('Nu există contul căruia îi aparțin programările publice')
+  if (!owner) throw new Error(tr('errors.booking.noOwnerAccount'))
   bookingOwnerIdCache = owner.id
   return owner.id
 }
@@ -151,11 +153,12 @@ function isUniqueViolation(err: unknown): boolean {
   return candidate?.code === '23505' || candidate?.cause?.code === '23505'
 }
 
-/** „Mar 29.09, 10:30" pe ora din București, pentru subiecte de email și push. */
-export function formatSlotLabel(date: Date): string {
-  const weekday = new Intl.DateTimeFormat('ro-RO', { weekday: 'short', timeZone: 'Europe/Bucharest' }).format(date).replace('.', '')
-  const day = new Intl.DateTimeFormat('ro-RO', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Bucharest' }).format(date)
-  const time = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' }).format(date)
+/** "Mar 29.09, 10:30" (or "Tue 29/09, 10:30") in Bucharest time, for email subjects and push. */
+export function formatSlotLabel(date: Date, locale: Locale = config.defaultLocale): string {
+  const tag = INTL_TAG[locale]
+  const weekday = new Intl.DateTimeFormat(tag, { weekday: 'short', timeZone: 'Europe/Bucharest' }).format(date).replace('.', '')
+  const day = new Intl.DateTimeFormat(tag, { day: '2-digit', month: '2-digit', timeZone: 'Europe/Bucharest' }).format(date)
+  const time = new Intl.DateTimeFormat(tag, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' }).format(date)
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${day}, ${time}`
 }
 
@@ -226,28 +229,35 @@ export async function createPublicBooking(input: PublicBookingInput, now = new D
 
 // După commit: eșecul emailului sau al push-ului se loghează, rezervarea rămâne.
 async function notifyAfterBooking(booking: typeof bookings.$inferSelect, cancelToken: string) {
-  const label = formatSlotLabel(booking.startAt)
+  // The visitor has no profile to read a language from: they get the installation's.
+  const visitor = config.defaultLocale
+  const label = formatSlotLabel(booking.startAt, visitor)
   const cancelUrl = `${config.bookingCancelUrl}?t=${encodeURIComponent(cancelToken)}`
   await Promise.allSettled([
     sendEmail({
       from: config.emailFromContact,
       to: booking.email!,
-      subject: `Programare confirmată · ${label}`,
+      subject: trFor(visitor, 'emails.booking.confirmedSubject', { label }),
       text: [
-        `Bună, ${booking.name},`,
+        trFor(visitor, 'emails.booking.greeting', { name: booking.name }),
         '',
-        `Apelul cu Vanadium Systems e programat ${label} (ora României), 30 de minute.`,
-        'Linkul de apel îl primești pe email înainte de întâlnire.',
+        trFor(visitor, 'emails.booking.scheduled', { label }),
+        trFor(visitor, 'emails.booking.linkLater'),
         '',
-        `Dacă nu mai poți, anulează aici: ${cancelUrl}`,
+        trFor(visitor, 'emails.booking.cancelHere', { cancelUrl }),
         '',
         'Stefan',
         'Vanadium Systems',
       ].join('\n'),
-      attachments: [{ filename: 'programare.ics', content: Buffer.from(buildBookingIcs(booking)) }],
+      attachments: [{ filename: trFor(visitor, 'emails.booking.icsFilename'), content: Buffer.from(buildBookingIcs(booking)) }],
     }),
     // Fără numele vizitatorului: notificarea nativă trece prin Firebase (docs/BOOKING.md, Legal).
-    notifyPush('calendarReminder', { title: 'Programare nouă', body: label, url: '/calendar', tag: `booking-${booking.id}` }),
+    notifyPush('calendarReminder', (locale) => ({
+      title: trFor(locale, 'push.booking.newTitle'),
+      body: formatSlotLabel(booking.startAt, locale),
+      url: '/calendar',
+      tag: `booking-${booking.id}`,
+    })),
   ]).then((results) => {
     for (const r of results) if (r.status === 'rejected') console.error('[booking] notificare eșuată:', r.reason)
   })
@@ -260,26 +270,31 @@ async function cancelBooking(booking: typeof bookings.$inferSelect, by: 'visitor
       await tx.update(calendarEvents).set({ deletedAt: new Date() }).where(eq(calendarEvents.id, booking.calendarEventId))
     }
   })
-  const label = formatSlotLabel(booking.startAt)
+  const visitor = config.defaultLocale
+  const label = formatSlotLabel(booking.startAt, visitor)
   await Promise.allSettled([
     booking.email && notifyVisitor
       ? sendEmail({
           from: config.emailFromContact,
           to: booking.email,
-          subject: `Programare anulată · ${label}`,
+          subject: trFor(visitor, 'emails.booking.cancelledSubject', { label }),
           text: [
-            `Bună, ${booking.name},`,
+            trFor(visitor, 'emails.booking.greeting', { name: booking.name }),
             '',
-            by === 'visitor'
-              ? `Am anulat apelul din ${label}. Dacă vrei altă oră, o poți alege din nou pe vanadium.systems.`
-              : `Din păcate trebuie să anulez apelul din ${label}. Îți scriu separat ca să găsim altă oră.`,
+            trFor(visitor, by === 'visitor' ? 'emails.booking.cancelledByVisitor' : 'emails.booking.cancelledByOwner', { label }),
             '',
             'Stefan',
             'Vanadium Systems',
           ].join('\n'),
         })
       : Promise.resolve(),
-    by === 'visitor' ? notifyPush('calendarReminder', { title: 'Programare anulată', body: label, url: '/calendar' }) : Promise.resolve(),
+    by === 'visitor'
+      ? notifyPush('calendarReminder', (locale) => ({
+          title: trFor(locale, 'push.booking.cancelledTitle'),
+          body: formatSlotLabel(booking.startAt, locale),
+          url: '/calendar',
+        }))
+      : Promise.resolve(),
   ])
 }
 

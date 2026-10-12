@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Sprint D, Track 4 — config calculator de preț, generic per platformă (NU vanagreen-
 // specific în cod, doar prin platformId — CLAUDE.md regula #3). Shape 1:1 cu CONFIG din
@@ -110,14 +111,14 @@ function assertStrictlyIncreasingBands<T extends Record<string, unknown>>(
     if (value <= prev) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `${path}[${i}].${key} trebuie să fie strict crescător față de banda anterioară`,
+        message: tr('errors.pricing.bandNotIncreasing', { path, i, key }),
         path: [path, i, key],
       })
     }
     if (value === Infinity && i !== bands.length - 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `${path}: banda cu ${key}=null (infinit) trebuie să fie ULTIMA din listă`,
+        message: tr('errors.pricing.infiniteBandLast', { path, key }),
         path: [path, i, key],
       })
     }
@@ -164,7 +165,7 @@ export const PricingConfigSchema = z
     // (whitescreen Calculator + Config preț, exact bug-ul din 2026-07-24 pe equipmentItems,
     // repetat aici). Default = o singură bandă neutră (mult 1) — NU o ghicire a pragurilor
     // reale, doar deblochează citirea; Stefan completează benzile reale din Config preț.
-    puncteBands: z.array(PuncteBandSchema).min(1).default([{ max: null, mult: 1, label: 'Necesită configurare' }]),
+    puncteBands: z.array(PuncteBandSchema).min(1).default([{ max: null, mult: 1, label: tr('pricing.breakdown.needsSetup') }]),
     onboardingBase: z.number().nonnegative(),
     onboardingOpRate: z.number().nonnegative(),
     // onboardingPunctRate eliminat 2026-08-05 (Stefan) — dubla multiplierul benzii de puncte

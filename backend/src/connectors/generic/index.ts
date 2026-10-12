@@ -1,5 +1,6 @@
 import type { PlatformConfig, PlatformConnector, PlatformHealth, PlatformMetric } from '../types.js'
 import type { GenericMetricMapping } from './types.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 const FETCH_TIMEOUT_MS = 15_000
 
@@ -14,7 +15,7 @@ function extractNumber(payload: unknown, jsonPath: string | null): number {
   let current: unknown = payload
   if (jsonPath) {
     for (const segment of jsonPath.split('.')) {
-      if (current === null || typeof current !== 'object') throw new Error(`Cale JSON '${jsonPath}' nu există în răspuns`)
+      if (current === null || typeof current !== 'object') throw new Error(tr('errors.platforms.jsonPathMissing', { jsonPath }))
       current = (current as Record<string, unknown>)[segment]
     }
   }
@@ -25,7 +26,7 @@ function extractNumber(payload: unknown, jsonPath: string | null): number {
     numeric = (current as Record<string, unknown>).value as number
   }
   if (!Number.isFinite(numeric)) {
-    throw new Error(`Răspunsul de la '${jsonPath ?? '(rădăcină)'}' nu conține un număr`)
+    throw new Error(tr('errors.platforms.notANumber', { path: jsonPath ?? tr('errors.platforms.jsonRoot') }))
   }
   return numeric
 }
@@ -39,7 +40,9 @@ function validMappings(config: PlatformConfig): GenericMetricMapping[] {
 
 export const genericConnector: PlatformConnector = {
   type: 'generic',
-  displayName: 'Generic (API propriu)',
+  get displayName() {
+    return tr('errors.platforms.genericName')
+  },
 
   // Snapshot-based ca vanagreen — fiecare mapare face propriul GET, recordedAt e momentul fetch.
   async fetchMetrics(config: PlatformConfig): Promise<PlatformMetric[]> {

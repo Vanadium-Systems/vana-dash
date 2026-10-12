@@ -21,6 +21,7 @@ import {
 } from './schema.js'
 import * as service from './service.js'
 import { ConversationForbiddenError, GroupPermissionError, MessageBodyError } from './service.js'
+import { tr, trFor } from '../../shared/lib/i18n.js'
 
 const HEARTBEAT_INTERVAL_MS = 25_000
 // Mesajul apare și în notificarea push; trunchiem ca unul lung să nu umple bara de
@@ -198,7 +199,7 @@ export async function chatRoutes(app: FastifyInstance) {
 
   server.post('/api/chat/attachments', { preHandler: [app.authenticate] }, async (req, reply) => {
     const data = await req.file()
-    if (!data) return reply.code(400).send({ success: false, error: 'Fișier lipsă' })
+    if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
     // Bufferizat (nu streamed în R2) ca limita pe dimensiune să fie impusă înainte de a scrie
     // ceva în bucket — altfel un fișier de 2 GB ar umple VPS-ul cu buffer înainte de refuz.
     let buffer: Buffer
@@ -206,7 +207,7 @@ export async function chatRoutes(app: FastifyInstance) {
       buffer = await data.toBuffer()
     } catch (err) {
       if ((err as { code?: string }).code === 'FST_REQ_FILE_TOO_LARGE') {
-        return reply.code(413).send({ success: false, error: 'Fișier prea mare (peste 50 MB)' })
+        return reply.code(413).send({ success: false, error: tr('errors.chat.fileTooLarge') })
       }
       throw err
     }
@@ -214,7 +215,7 @@ export async function chatRoutes(app: FastifyInstance) {
       const stored = await uploadAttachment(req.me, { filename: data.filename, contentType: data.mimetype, buffer })
       return { success: true, data: stored }
     } catch (err) {
-      return reply.code(502).send({ success: false, error: `Upload R2 eșuat: ${String(err)}` })
+      return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
     }
   })
 
@@ -223,7 +224,7 @@ export async function chatRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: AttachmentIdParamsSchema, querystring: AttachmentQuerySchema } },
     async (req, reply) => {
       const file = await readAttachment(req.me.id, req.params.id, req.query.download === '1')
-      if (!file) return reply.code(404).send({ success: false, error: 'Atașament inexistent' })
+      if (!file) return reply.code(404).send({ success: false, error: tr('errors.chat.attachmentNotFound') })
       if (file.kind === 'redirect') return reply.redirect(file.url, 302)
       reply.header('X-Content-Type-Options', 'nosniff')
       // Un atașament nu se schimbă după upload; fără cache, fiecare deschidere a firului
@@ -248,13 +249,20 @@ async function notifyMembers(conversationId: string, message: { authorUserId: st
 
     const text = message.body.trim()
     const summary = text.length > PUSH_BODY_MAX ? `${text.slice(0, PUSH_BODY_MAX)}…` : text
-    const body =
-      target.kind === 'group'
-        ? summary
-          ? `${target.byline}: ${summary}`
-          : target.byline
-        : summary || 'Atașament'
-    await notifyPush('mesaje', { title: target.title, body, url: `/messages/${conversationId}` }, offline)
+    await notifyPush(
+      'mesaje',
+      (locale) => ({
+        title: target.title,
+        body:
+          target.kind === 'group'
+            ? summary
+              ? `${target.byline}: ${summary}`
+              : target.byline
+            : summary || trFor(locale, 'push.chat.attachment'),
+        url: `/messages/${conversationId}`,
+      }),
+      offline,
+    )
   } catch (err) {
     // Pushul e canal suplimentar, nu condiție pentru trimiterea mesajului (regula #7).
     console.error(`[chat] push pentru ${conversationId} eșuat: ${String(err)}`)

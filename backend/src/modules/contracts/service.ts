@@ -9,6 +9,7 @@ import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import { ContractDetailsSchema, type ContractDetails, type CreateAddendumSchema, type SignatureRectSchema } from './schema.js'
 import { renderAddendum, renderDocument } from './templates-service.js'
 import type { z } from 'zod'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Format A4 (puncte PDF, 72dpi) — identic paginii generate de htmlToPdf (shared/lib/pdf.ts,
 // format: 'A4') — bază pt. conversia dreptunghiului normalizat (0..1) în coordonate JSignPdf.
@@ -24,7 +25,7 @@ async function getClientOrThrow(clientId: string) {
     .select()
     .from(billingClients)
     .where(and(eq(billingClients.id, clientId), isNull(billingClients.deletedAt)))
-  if (!client) throw new Error('Client inexistent')
+  if (!client) throw new Error(tr('errors.contracts.clientNotFound'))
   return client
 }
 
@@ -52,7 +53,7 @@ export async function generateDocument(clientId: string, docType: 'contract' | '
   const monthlyPriceFormatted = formatMonthlyPrice(client)
   const html = await renderDocument(docType, { client, details, monthlyPriceFormatted })
 
-  if (!isPdfAvailable()) throw new Error('Generarea PDF indisponibilă (Chromium neconfigurat) — încearcă din nou mai târziu')
+  if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
   const pdf = await htmlToPdf(html)
 
   const safeName = client.name.replace(/[^A-Za-z0-9_-]/g, '_')
@@ -76,7 +77,7 @@ export async function previewDocument(clientId: string, docType: 'contract' | 'a
   const monthlyPriceFormatted = formatMonthlyPrice(client)
   const html = await renderDocument(docType, { client, details, monthlyPriceFormatted })
 
-  if (!isPdfAvailable()) throw new Error('Generarea PDF indisponibilă (Chromium neconfigurat) — încearcă din nou mai târziu')
+  if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
   return htmlToPdf(html)
 }
 
@@ -155,17 +156,17 @@ export async function generateAddendumDocument(addendumId: string) {
     .select()
     .from(contractAddenda)
     .where(and(eq(contractAddenda.id, addendumId), isNull(contractAddenda.deletedAt)))
-  if (!addendum) throw new Error('Act adițional inexistent')
+  if (!addendum) throw new Error(tr('errors.contracts.addendumNotFound'))
 
   const client = await getClientOrThrow(addendum.billingClientId)
   const details = parseContractDetails(client.contractDetails)
   if (!details.nrContract || !details.dataContract) {
-    throw new Error('Date lipsă pentru generarea documentului: Număr contract, Data contract')
+    throw new Error(tr('errors.contracts.missingData'))
   }
 
   const html = await renderAddendum(addendum, client, { nrContract: details.nrContract, dataContract: details.dataContract })
 
-  if (!isPdfAvailable()) throw new Error('Generarea PDF indisponibilă (Chromium neconfigurat) — încearcă din nou mai târziu')
+  if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
   const pdf = await htmlToPdf(html)
 
   const safeName = client.name.replace(/[^A-Za-z0-9_-]/g, '_')
@@ -187,7 +188,7 @@ export async function generateAddendumDocument(addendumId: string) {
 
 async function getDocumentOrThrow(documentId: string) {
   const doc = await getDocument(documentId)
-  if (!doc) throw new Error('Document inexistent')
+  if (!doc) throw new Error(tr('errors.contracts.documentNotFound'))
   return doc
 }
 
@@ -208,7 +209,7 @@ export async function saveSignatureRect(documentId: string, rect: z.infer<typeof
  */
 export async function buildSignPackage(documentId: string): Promise<{ buffer: Buffer; fileName: string }> {
   const doc = await getDocumentOrThrow(documentId)
-  if (!doc.signatureRect) throw new Error('Alege mai întâi dreptunghiul de semnătură pe pagină')
+  if (!doc.signatureRect) throw new Error(tr('errors.contracts.pickSignatureBox'))
 
   const pdfBuffer = await readDocument(doc.pdfStoragePath)
   const rect = doc.signatureRect as z.infer<typeof SignatureRectSchema>
@@ -222,29 +223,12 @@ export async function buildSignPackage(documentId: string): Promise<{ buffer: Bu
   const lly = ury - height
 
   const pdfFileName = `${doc.docType}_${doc.id.slice(0, 8)}.pdf`
-  const readme = `Semnătură digitală — ${pdfFileName}
-=======================================
-
-1. Instalează Java (dacă nu-l ai deja) și descarcă JSignPdf: http://jsignpdf.sourceforge.net/
-2. Rulează din acest folder (Windows, cmd/PowerShell):
-
-   jsignpdf.bat -klavecert -kst WINDOWS-MY -llx ${llx} -lly ${lly} -urx ${urx} -ury ${ury} -page ${rect.page} -d . -op semnat_ "${pdfFileName}"
-
-   -kst WINDOWS-MY = citește certificatul din magazinul de certificate Windows (certSIGN,
-   token virtual) — la rulare, JSignPdf/Windows îți va cere PIN-ul tokenului.
-   -llx/-lly/-urx/-ury/-page = poziția dreptunghiului ales în dash (coordonate PDF, puncte).
-
-3. Rezultatul e "semnat_${pdfFileName}" — încarcă-l înapoi în dash cu butonul
-   "Am semnat, încarcă PDF-ul" din tab-ul Semnează.
-
-Dacă JSignPdf nu găsește certificatul certSIGN în -kst WINDOWS-MY, tokenul tău virtual nu-și
-expune cheia privată în afara aplicației proprii a providerului — semnează manual în Adobe
-Acrobat ca până acum și încarcă rezultatul aici oricum, ca să rămână în istoricul documentului.
-`
+  const command = `jsignpdf.bat -klavecert -kst WINDOWS-MY -llx ${llx} -lly ${lly} -urx ${urx} -ury ${ury} -page ${rect.page} -d . -op semnat_ "${pdfFileName}"`
+  const readme = tr('errors.contracts.signReadme', { file: pdfFileName, command })
 
   const zipEntries: Record<string, Uint8Array> = {
     [pdfFileName]: new Uint8Array(pdfBuffer),
-    'CITEȘTE-MĂ.txt': new TextEncoder().encode(readme),
+    [tr('errors.contracts.signReadmeName')]: new TextEncoder().encode(readme),
   }
   return { buffer: Buffer.from(zipSync(zipEntries)), fileName: `semnare_${doc.id.slice(0, 8)}.zip` }
 }

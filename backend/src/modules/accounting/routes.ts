@@ -24,6 +24,7 @@ import {
   SpvMessagesQuerySchema,
 } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function accountingRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -71,7 +72,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: RecordIdParamsSchema } },
     async (req, reply) => {
       const paths = await service.getRecordStoragePaths(req.params.id)
-      if (!paths?.xmlStoragePath) return reply.code(404).send({ success: false, error: 'XML indisponibil' })
+      if (!paths?.xmlStoragePath) return reply.code(404).send({ success: false, error: tr('errors.accounting.xmlUnavailable') })
       const content = await readDocument(paths.xmlStoragePath)
       const fileName = (paths.documentNumber ?? req.params.id).replace(/[/\\"]/g, '_')
       // Content-Disposition: attachment — fără el, browserul randează XML-ul inline într-un
@@ -87,7 +88,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: RecordIdParamsSchema } },
     async (req, reply) => {
       const paths = await service.getRecordStoragePaths(req.params.id)
-      if (!paths?.pdfStoragePath) return reply.code(404).send({ success: false, error: 'PDF indisponibil' })
+      if (!paths?.pdfStoragePath) return reply.code(404).send({ success: false, error: tr('errors.accounting.pdfUnavailable') })
       const content = await readDocument(paths.pdfStoragePath)
       const fileName = (paths.documentNumber ?? req.params.id).replace(/[/\\"]/g, '_')
       reply.header('Content-Disposition', `attachment; filename="${fileName}.pdf"`)
@@ -103,13 +104,13 @@ export async function accountingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const anafPdf = await service.getAnafPdfPath(req.params.id)
       if (!anafPdf) {
-        return reply.code(404).send({ success: false, error: 'PDF eFactura indisponibil (nesincronizat încă de la ANAF)' })
+        return reply.code(404).send({ success: false, error: tr('errors.accounting.efacturaPdfNotSynced') })
       }
       let content
       try {
         content = await readDocument(anafPdf.path)
       } catch {
-        return reply.code(404).send({ success: false, error: 'PDF eFactura indisponibil' })
+        return reply.code(404).send({ success: false, error: tr('errors.accounting.efacturaPdfUnavailable') })
       }
       const fileName = (anafPdf.documentNumber ?? req.params.id).replace(/[/\\"]/g, '_')
       reply.header('Content-Disposition', `attachment; filename="${fileName}_ANAF.pdf"`)
@@ -146,7 +147,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     if (!isOauthConfigured()) {
       return reply
         .code(400)
-        .send({ success: false, error: 'Setează ANAF_CLIENT_ID și ANAF_CLIENT_SECRET în .env întâi' })
+        .send({ success: false, error: tr('errors.accounting.setAnafEnvFirst') })
     }
     return { success: true, data: { url: buildAuthorizeUrl() } }
   })
@@ -195,7 +196,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: RecurringExpenseIdParamsSchema, body: RecurringExpenseUpdateSchema } },
     async (req, reply) => {
       const row = await service.updateRecurringExpense(req.params.id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: 'Cheltuială recurentă negăsită' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.accounting.recurringNotFound') })
       return { success: true, data: row }
     },
   )
@@ -205,7 +206,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: RecurringExpenseIdParamsSchema } },
     async (req, reply) => {
       const row = await service.deleteRecurringExpense(req.params.id)
-      if (!row) return reply.code(404).send({ success: false, error: 'Cheltuială recurentă negăsită' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.accounting.recurringNotFound') })
       return { success: true }
     },
   )

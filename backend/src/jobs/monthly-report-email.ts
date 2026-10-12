@@ -2,6 +2,7 @@ import cron from 'node-cron'
 import * as reportsService from '../modules/reports/service.js'
 import { config } from '../shared/config.js'
 import { sendEmail } from '../shared/lib/email.js'
+import { tr } from '../shared/lib/i18n.js'
 
 // Digest lunar automat — ziua 1 a lunii, ora 8, PDF-ul lunii ANTERIOARE (luna care tocmai
 // s-a încheiat). Simetric cu alertele existente pe email (notificări reactive) — asta e un
@@ -31,8 +32,8 @@ export async function runMonthlyReportEmailJob(): Promise<void> {
 
   await sendEmail({
     to: config.alertEmailTo,
-    subject: `[vana-dash] Raport lunar ${month}`,
-    text: `Raportul lunar pentru ${month} e atașat (PDF).`,
+    subject: tr('emails.monthlyReport.subject', { month }),
+    text: tr('emails.monthlyReport.body', { month }),
     attachments: [{ filename: `raport-${month}.pdf`, content: pdf }],
   })
 }

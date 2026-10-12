@@ -6,6 +6,7 @@ import * as finnhub from './finnhub.js'
 import * as twelvedata from './twelvedata.js'
 import * as trading212 from './trading212.js'
 import { INDEX_CONSTITUENTS } from './index-constituents.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Modulul Assets (PLAN.md Track D, Wave 7) — schelet identic modules/crypto/service.ts.
 // Prețurile vin din Finnhub (acțiuni/ETF-uri) și Twelve Data (metale), alertele reutilizează
@@ -453,7 +454,7 @@ export async function previewOrder(input: {
   limitPrice?: number
 }): Promise<OrderPreview> {
   const row = await getEnabledBroker(input.broker)
-  if (!row) throw new Error(`Broker ${input.broker} nu e conectat/activ`)
+  if (!row) throw new Error(tr('errors.trading.brokerNotConnected', { broker: input.broker }))
   const referencePrice = row.mode === 'live' ? null : await referencePriceFor(input.symbol)
   const effective = input.type === 'limit' ? input.limitPrice! : referencePrice
   return {
@@ -471,7 +472,7 @@ export async function previewOrder(input: {
 
 async function fillMarketPaperOrder(orderId: string, symbol: string): Promise<number> {
   const price = await referencePriceFor(symbol)
-  if (price === null) throw new Error(`Fără preț live pentru ${symbol} — verifică cheile provider din Setări`)
+  if (price === null) throw new Error(tr('errors.trading.noLivePrice', { symbol }))
   await db
     .update(assetPaperOrders)
     .set({ executedPrice: String(price), status: 'filled', executedAt: new Date(), updatedAt: new Date() })
@@ -488,7 +489,7 @@ export async function placeOrder(input: {
   limitPrice?: number
 }): Promise<{ filled: boolean; paper: boolean; price: number | null }> {
   const row = await getEnabledBroker(input.broker)
-  if (!row) throw new Error(`Broker ${input.broker} nu e conectat/activ`)
+  if (!row) throw new Error(tr('errors.trading.brokerNotConnected', { broker: input.broker }))
 
   if (row.mode === 'paper') {
     const [order] = await db
@@ -510,7 +511,7 @@ export async function placeOrder(input: {
   }
 
   // Live — kill-switch obligatoriu (fail-closed: lipsă config = blocat).
-  if (!(await isTradingEnabled())) throw new Error('Trading-ul live e oprit (kill-switch din Setări)')
+  if (!(await isTradingEnabled())) throw new Error(tr('errors.trading.liveOff'))
   const apiKey = decryptApiKey(row.apiKeyEnc)
   const result =
     input.type === 'market'

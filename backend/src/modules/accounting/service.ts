@@ -23,6 +23,7 @@ import type {
   RecurringExpenseUpdateSchema,
   SpvMessageSaveBodySchema,
 } from './schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Selecție explicită — fără meta cu XML-uri mari și fără nimic sensibil.
 const recordColumns = {
@@ -155,13 +156,13 @@ export async function generateConfirmationPdf(id: string) {
     .from(financialRecords)
     .where(and(eq(financialRecords.id, id), isNull(financialRecords.deletedAt)))
   if (!record || record.direction !== 'out' || record.type !== 'invoice') {
-    throw new Error('Factura nu a fost găsită')
+    throw new Error(tr('errors.accounting.invoiceNotFound'))
   }
   if (record.paymentStatus !== 'paid' || !record.paidAt) {
-    throw new Error('Factura nu e plătită încă — nu există nimic de confirmat')
+    throw new Error(tr('errors.accounting.invoiceNotPaid'))
   }
   if (!isPdfAvailable()) {
-    throw new Error('Generare PDF indisponibilă (Chromium neconfigurat)')
+    throw new Error(tr('errors.pdf.unavailable'))
   }
 
   let clientName = record.counterpartyName ?? 'Client'

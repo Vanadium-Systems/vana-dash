@@ -7,6 +7,7 @@ import type { SessionUser } from '../../shared/lib/session.js'
 import { assertCanSendFrom } from './mailboxes.js'
 import type { DraftUpdateSchema, DraftUpsertSchema } from './drafts-schema.js'
 import { sendSingle } from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 type DraftRow = typeof emailDrafts.$inferSelect
 type DraftAttachment = { filename: string; storagePath: string }
@@ -61,7 +62,7 @@ export async function createDraft(me: SessionUser, input: z.infer<typeof DraftUp
       attachments: [],
     })
     .returning()
-  if (!row) throw new Error('email_drafts insert nu a returnat nimic')
+  if (!row) throw new Error(tr('errors.email.draftInsertFailed'))
 
   if (input.attachments?.length) {
     const attachments = await persistAttachments(row.id, input.attachments)
@@ -100,9 +101,9 @@ export async function deleteDraft(me: SessionUser, id: string): Promise<boolean>
  *  apoi șterge draftul. Atașamentele deja salvate se re-încarcă din storage ca base64. */
 export async function sendDraft(me: SessionUser, id: string) {
   const draft = await getDraft(me, id)
-  if (!draft) throw new Error('Draft inexistent')
-  if (!draft.to) throw new Error('Draftul nu are destinatar')
-  if (!draft.subject) throw new Error('Draftul nu are subiect')
+  if (!draft) throw new Error(tr('errors.email.draftNotFound'))
+  if (!draft.to) throw new Error(tr('errors.email.draftNoRecipient'))
+  if (!draft.subject) throw new Error(tr('errors.email.draftNoSubject'))
 
   const attachments = draft.attachments as DraftAttachment[]
   const encoded = await Promise.all(

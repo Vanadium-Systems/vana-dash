@@ -1,0 +1,79 @@
+{
+  "rules": {
+    "invoiceOverdue": "Issued invoice overdue",
+    "anafTokenExpiring": "ANAF token close to expiry",
+    "efacturaRejected": "e-Factura rejected by ANAF",
+    "bankSyncFailed": "Bank sync failed",
+    "unmatchedTransaction": "Unmatched transaction",
+    "anafRefreshExpiring": "ANAF refresh token close to expiry (estimated)",
+    "revolutRefreshExpiring": "Revolut refresh token close to expiry (estimated)",
+    "d301Due": "D301 deadline approaching",
+    "d390Due": "D390 deadline approaching",
+    "bnrFeed": "BNR exchange rate feed unavailable",
+    "botSilent": "jeffbot: no longer sending data",
+    "botCriticalReview": "jeffbot: critical review",
+    "platformNotResponding": "{{name}}: not responding",
+    "server1Silent": "server-1: no longer sending data",
+    "tendersUnavailable": "Tender monitor: {{label}} unavailable",
+    "tendersBlocked": "Tender monitor stopped: SICAP refused access",
+    "newTenders": "New tender opportunities",
+    "importantTender": "IMPORTANT tender opportunity",
+    "siteDown": "{{name}}: the site does not respond",
+    "backendDegraded": "{{name}}: backend/DB degraded",
+    "server1Signal": "server-1: {{signal}} critical",
+    "assistantQuota": "Assistant cap: {{name}}"
+  },
+  "accounting": {
+    "anafNeedsReauth": "ANAF needs manual re-authorization",
+    "anafTokenExpires": "The ANAF token expires on {{value}}",
+    "efacturaRejected": "e-Factura {{documentNumber}} was rejected by ANAF",
+    "bankSyncFailed": "Bank sync failed ({{jobKey}})",
+    "unmatchedIncome": "Income unmatched for {{UNMATCHED_TXN_DAYS}}+ days: {{amount}} {{currency}} from {{counterpartyName}} (#{{id}})",
+    "anafRefreshExpires": "The ANAF refresh token probably expires around {{value}} (an estimate; without manual re-authorization we risk needs_reauth)",
+    "revolutRefreshExpires": "The Revolut refresh token for the account “{{name}}” probably expires around {{value}} (an estimate)",
+    "d301Due": "D301 for {{prevPeriod}} has {{count}} lines to file; the deadline is the 25th of this month",
+    "d390Due": "D390 for {{prevPeriod}} has {{count}} lines to file; the deadline is the 25th of this month",
+    "invoiceOverdue": "Invoice {{number}} to {{client}} is overdue ({{amount}} {{currency}})",
+    "draft": "(draft)"
+  },
+  "jobs": {
+    "bnrFailed": "The daily update of the BNR rate failed: {{err}}",
+    "botSilent": "The bot has not sent data for {{minutes}} min",
+    "platformHealthFailed": "The platform {{name}} does not answer the health check ({{message}})",
+    "server1Silent": "server-1 has not sent data for {{minutes}} min (off, no internet or the cron is down)",
+    "tendersFetchFailed": "Fetching “{{label}}” from e-licitatie.ro failed: {{err}}",
+    "tendersBlocked": "SICAP answered with HTTP {{status}}, so it has probably blocked our IP. The tender monitor was switched off in Settings; switch it back on by hand after you confirm that access works again.",
+    "directPurchases": "direct purchases",
+    "publicTenders": "public tenders",
+    "siteDown": "{{name}}: the site does not respond ({{detail}})",
+    "botWeeklyReview": "jeffbot, weekly review of {{date}}: {{summary}}",
+    "botDailyReview": "jeffbot, daily review of {{date}}: {{summary}}",
+    "botServiceState": "jeffbot: the service {{name}} is {{state}}",
+    "newTenders": {
+      "one": "{{count}} new tender opportunity matches your watch rules",
+      "other": "{{count}} new tender opportunities match your watch rules"
+    },
+    "importantTenders": {
+      "one": "{{count}} IMPORTANT tender opportunity: {{titles}}",
+      "other": "{{count}} IMPORTANT tender opportunities: {{titles}}"
+    },
+    "andMore": "{{titles}} and {{count}} more",
+    "assistantQuota": "{{name}} has used {{percent}}% of the monthly assistant cap ({{used}} of {{cap}} tokens, month {{month}})."
+  },
+  "sentry": {
+    "untitled": "Sentry error without a title",
+    "fullDetails": "Full details (stack trace, tags, request): {{permalink}}",
+    "detectedBy": "\nDetected by Sentry in vanagreen. See the link above for the whole context (stack trace, browser/os, request)."
+  },
+  "vanagreen": {
+    "anafRejected": "ANAF rejected the invoice",
+    "technicalError": "Technical error on sending",
+    "draft": "draft",
+    "invoice": "Invoice: {{invoiceRef}} ({{invoice_id}})",
+    "errorCode": "Error code: {{error_code}}",
+    "fullError": "Full error: {{error_message}}",
+    "open": "Open in vanagreen: {{url}}",
+    "buyer": "Buyer: {{name}}",
+    "buyerWithCui": "Buyer: {{name}}, CUI {{cui}}"
+  }
+}

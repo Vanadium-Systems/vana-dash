@@ -1,1 +1,88 @@
-{}
+{
+  "alert": {
+    "accountingDetails": "Detalii în vana-dash → Accounting."
+  },
+  "backup": {
+    "failedSubject": "Backup zilnic eșuat",
+    "failedBody": "Backup-ul din {{dateStamp}} a eșuat: {{message}}"
+  },
+  "monthlyReport": {
+    "subject": "[vana-dash] Raport lunar {{month}}",
+    "body": "Raportul lunar pentru {{month}} e atașat (PDF).",
+    "pdf": {
+      "title": "Raport lunar — {{month}}",
+      "revenue": "Venit",
+      "expenses": "Cheltuieli",
+      "net": "Net",
+      "mrr": "MRR",
+      "alerts": "Alerte declanșate",
+      "syncRate": "Rată succes sync-uri",
+      "topCategories": "Top categorii cheltuieli",
+      "total": "Total",
+      "noExpenses": "Fără cheltuieli în lună"
+    }
+  },
+  "efactura": {
+    "rejectedSubject": "e-Factura respinsă: {{documentNumber}}",
+    "rejectedBody1": "Factura {{documentNumber}} a fost respinsă de ANAF.\n",
+    "rejectedBody2": "Verifică XML-ul în vana-dash → Accounting → Emise și retrimite după corectare.",
+    "pdfFailedSubject": "Factura {{documentNumber}} — generare PDF eșuată",
+    "pdfFailedBody1": "Factura {{documentNumber}} a fost validată de ANAF dar generarea PDF a eșuat.\n",
+    "pdfFailedBody2": "Trimite-o manual clientului după ce rezolvi problema. Eroare: {{err}}",
+    "sendManuallySubject": "Factura {{documentNumber}} — trimite manual",
+    "noPdfBody1": "Factura {{documentNumber}} a fost validată de ANAF dar PDF-ul nu a putut fi generat ",
+    "noPdfBody2": "(Chromium indisponibil). Trimite-o manual clientului."
+  },
+  "monitoring": {
+    "stillRed": "Sănătate sistem — {{value}} tot roșu",
+    "red": "Sănătate sistem — {{value}} ROȘU",
+    "recovered": "Sănătate sistem — {{value}} recuperat",
+    "backToGreen": "{{value}} a revenit la verde."
+  },
+  "reminder": {
+    "subject": "[vana-dash] Reminder: {{text}}",
+    "body": "Reminder programat în vana-dash: {{text}}"
+  },
+  "invite": {
+    "subject": "Ai primit acces în VanaDash",
+    "greeting": "Salut,",
+    "greetingNamed": "Salut, {{name}},",
+    "added": "Stefan te-a adăugat în echipa VanaDash, aplicația internă Vanadium Systems.",
+    "choosePassword": "Alege-ți parola aici, apoi intri:",
+    "validity": "Linkul e valabil 72 de ore. Dacă nu te aștepta nimeni, ignoră-l — cer altul de la admin."
+  },
+  "reset": {
+    "subject": "Resetare parolă VanaDash",
+    "requested": "Pentru contul tău din VanaDash s-a cerut resetarea parolei. Alege una nouă aici:",
+    "validitySelf": "Linkul e valabil o oră și poate fi folosit o singură dată. Dacă nu l-ai cerut tu,\nignoră-l și spune-i administratorului.",
+    "validityByAdmin": "Linkul e valabil o oră și poate fi folosit o singură dată. Dacă nu l-ai cerut tu,\nspune-i administratorului — schimbă parola și nu folosi linkul."
+  },
+  "booking": {
+    "confirmedSubject": "Programare confirmată · {{label}}",
+    "greeting": "Bună, {{name}},",
+    "scheduled": "Apelul cu Vanadium Systems e programat {{label}} (ora României), 30 de minute.",
+    "linkLater": "Linkul de apel îl primești pe email înainte de întâlnire.",
+    "cancelHere": "Dacă nu mai poți, anulează aici: {{cancelUrl}}",
+    "cancelledSubject": "Programare anulată · {{label}}",
+    "cancelledByVisitor": "Am anulat apelul din {{label}}. Dacă vrei altă oră, o poți alege din nou pe vanadium.systems.",
+    "cancelledByOwner": "Din păcate trebuie să anulez apelul din {{label}}. Îți scriu separat ca să găsim altă oră.",
+    "icsFilename": "programare.ics"
+  },
+  "support": {
+    "newTicket": "Tichet nou: {{subject}}",
+    "reply": "Răspuns la tichet: {{subject}}",
+    "openTicket": "Deschide tichetul: {{url}}",
+    "wroteInSupport": "{{name}} a scris în Suport:",
+    "answerFromVanadium": "Ai un răspuns de la Vanadium:"
+  },
+  "anaf": {
+    "reauthSubject": "ANAF: reautentificare necesară",
+    "reauthBody1": "Refresh token-ul ANAF a expirat sau a fost revocat ({{reason}}).\n",
+    "reauthBody2": "Intră în vana-dash → Accounting → Settings și refă consimțirea cu certificatul digital."
+  },
+  "revolut": {
+    "reauthSubject": "Revolut: reautentificare necesară",
+    "reauthBody1": "Refresh token-ul Revolut pentru contul \"{{name}}\" a expirat sau a fost revocat ({{reason}}).\n",
+    "reauthBody2": "Intră în vana-dash → Reconciliere → Setări cont bancar și refă consimțirea OAuth din browser."
+  }
+}

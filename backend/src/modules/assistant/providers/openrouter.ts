@@ -1,5 +1,6 @@
 import type { BetaContentBlockParam, BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages.js'
 import type { AssistantProvider, ProviderTurnEvent, ProviderTurnParams } from './types.js'
+import { tr } from '../../../shared/lib/i18n.js'
 
 // OpenRouterProvider (sprint multi-provider 2026-08-25) — API OpenAI-compatible
 // (POST /chat/completions, tools function-calling, stream SSE), cu buclă de tool-uri manuală.
@@ -100,7 +101,7 @@ interface SseChunk {
 
 async function* parseSse(response: Response): AsyncGenerator<SseChunk> {
   const reader = response.body?.getReader()
-  if (!reader) throw new Error('Răspuns OpenRouter fără body')
+  if (!reader) throw new Error(tr('errors.assistant.openRouterNoBody'))
   const decoder = new TextDecoder()
   let buffer = ''
   while (true) {
@@ -168,7 +169,7 @@ export function createOpenRouterProvider(options: OpenRouterProviderOptions): As
         let usage: { inputTokens: number; outputTokens: number } | undefined
         const toolAccumulators = new Map<number, AccumulatedToolCall>()
         for await (const chunk of parseSse(res)) {
-          if (chunk.error) throw new Error(`OpenRouter: ${chunk.error.message ?? 'eroare în stream'}${chunk.error.code != null ? ` (${chunk.error.code})` : ''}`)
+          if (chunk.error) throw new Error(`OpenRouter: ${chunk.error.message ?? tr('errors.assistant.streamError')}${chunk.error.code != null ? ` (${chunk.error.code})` : ''}`)
           if (chunk.usage?.prompt_tokens != null) {
             usage = { inputTokens: chunk.usage.prompt_tokens, outputTokens: chunk.usage.completion_tokens ?? 0 }
           }
@@ -202,9 +203,9 @@ export function createOpenRouterProvider(options: OpenRouterProviderOptions): As
           const tool = params.tools.find((t) => t.name === call.function.name)
           let resultText: string
           try {
-            resultText = tool ? await tool.execute(call.id, JSON.parse(call.function.arguments || '{}')) : `Tool necunoscut: ${call.function.name}`
+            resultText = tool ? await tool.execute(call.id, JSON.parse(call.function.arguments || '{}')) : tr('errors.assistant.unknownTool', { name: call.function.name })
           } catch (err) {
-            resultText = `Eroare la executarea tool-ului: ${err instanceof Error ? err.message : String(err)}`
+            resultText = tr('errors.assistant.toolFailed', { message: err instanceof Error ? err.message : String(err) })
           }
           messages.push({ role: 'tool', content: resultText, tool_call_id: call.id })
           results.push({ type: 'tool_result', tool_use_id: call.id, content: resultText })

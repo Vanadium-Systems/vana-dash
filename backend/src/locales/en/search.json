@@ -5,5 +5,9 @@
     "email": "Email",
     "archive": "Archive",
     "calendar": "Calendar"
+  },
+  "invoice": {
+    "issued": "issued",
+    "received": "received"
   }
 }

@@ -1,1 +1,32 @@
-{}
+{
+  "required": "câmp obligatoriu",
+  "invalidType": "tip de valoare greșit",
+  "invalidValue": "valoare nevalidă",
+  "invalidEmail": "adresă de email nevalidă",
+  "invalidUrl": "adresă web nevalidă",
+  "invalidUuid": "identificator nevalid",
+  "invalidDate": "dată nevalidă",
+  "stringTooShort": {
+    "one": "cel puțin {{count}} caracter",
+    "few": "cel puțin {{count}} caractere",
+    "other": "cel puțin {{count}} de caractere"
+  },
+  "stringTooLong": {
+    "one": "cel mult {{count}} caracter",
+    "few": "cel mult {{count}} caractere",
+    "other": "cel mult {{count}} de caractere"
+  },
+  "numberTooSmall": "cel puțin {{min}}",
+  "numberTooBig": "cel mult {{max}}",
+  "arrayTooShort": {
+    "one": "cel puțin {{count}} element",
+    "few": "cel puțin {{count}} elemente",
+    "other": "cel puțin {{count}} de elemente"
+  },
+  "arrayTooLong": {
+    "one": "cel mult {{count}} element",
+    "few": "cel mult {{count}} elemente",
+    "other": "cel mult {{count}} de elemente"
+  },
+  "invalidOption": "valoare în afara listei: {{options}}"
+}

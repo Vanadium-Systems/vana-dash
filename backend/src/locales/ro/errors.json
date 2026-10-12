@@ -5,6 +5,396 @@
     "passwordTooShort": "Parola trebuie să aibă cel puțin {{min}} caractere",
     "newPasswordInvalid": "Parola nouă nu e validă",
     "currentPasswordWrong": "Parola curentă nu e corectă",
-    "localeNotEnabled": "Limba aleasă nu e disponibilă"
+    "localeNotEnabled": "Limba aleasă nu e disponibilă",
+    "tokenNotCreated": "Token necreat"
+  },
+  "team": {
+    "lastAdmin": "Ești ultimul admin activ. Mai întâi dă altcineva rolul de Admin.",
+    "manageOwnRolesOnly": "Poți administra doar oameni cu roluri create de tine",
+    "emailTaken": "Există deja un cont cu adresa asta",
+    "cannotGiveAdmin": "Nu poți da rolul de Admin",
+    "cannotGiveManager": "Nu poți da rolul de Manager",
+    "userNotCreated": "User necreat",
+    "userNotFound": "Utilizatorul nu există",
+    "giveOwnRolesOnly": "Poți da doar roluri create de tine",
+    "alreadyActive": "Omul și-a pus deja parola — nu mai e nevoie de link",
+    "stillInvited": "Omul n-a acceptat invitația încă — retrimite-i invitația",
+    "mailboxNotYours": "Nu ai cutia {{value}}, deci nu o poți da altcuiva"
+  },
+  "access": {
+    "roleNotFound": "Rolul nu există",
+    "featureNotYours": "Nu ai {{feature}}, deci nu îl poți da altcuiva",
+    "adminLocked": "Rolul Admin are tot ce are firma și nu se modifică",
+    "editOwnRolesOnly": "Poți edita doar roluri create de tine",
+    "featureUnknown": "Funcționalitate necunoscută: {{key}}",
+    "pageUnknown": "Pagină necunoscută: {{pageKey}}",
+    "sourceRoleNotFound": "Rolul sursă nu există",
+    "roleNotCreated": "Rol necreat",
+    "roleInUse": {
+      "one": "{{count}} om are rolul ăsta",
+      "few": "{{count}} oameni au rolul ăsta",
+      "other": "{{count}} de oameni au rolul ăsta"
+    }
+  },
+  "files": {
+    "missing": "Fișier lipsă",
+    "uploadFailed": "Upload R2 eșuat: {{err}}",
+    "r2NotConfigured": "R2 neconfigurat — completează R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/R2_BUCKET_NAME în .env",
+    "pathOutsideStorage": "Storage path în afara STORAGE_DIR: {{relativePath}}"
+  },
+  "chat": {
+    "fileTooLarge": "Fișier prea mare (peste 50 MB)",
+    "attachmentNotFound": "Atașament inexistent",
+    "conversationNotFound": "Conversație inexistentă",
+    "cannotWriteToSelf": "Nu poți scrie cu tine",
+    "colleagueNotFound": "Coleg inexistent",
+    "groupNeedsMember": "Grupul are nevoie de cel puțin un coleg",
+    "dmHasNoNameOrMembers": "Un DM nu are nume sau membri noi",
+    "ownerOrAdminOnly": "Doar owner-ul grupului sau un administrator poate face asta",
+    "emptyMessage": "Mesaj gol",
+    "messageNotFound": "Mesaj inexistent"
+  },
+  "archive": {
+    "spaceNotCreated": "Nu am putut crea spațiul de arhivă",
+    "noPlatformAdmin": "Nu există contul de administrator de platformă",
+    "invalidFolderId": "folderId invalid",
+    "fileTooLarge": "Fișier prea mare (peste 200MB)",
+    "fileNotFound": "Fișier inexistent",
+    "folderNotFound": "Folder inexistent",
+    "folderOwnParent": "Un folder nu poate fi propriul părinte",
+    "moveCycle": "Mutare invalidă — ar crea un ciclu în arbore",
+    "moveToOtherSpace": "Nu poți muta un folder în spațiul altcuia",
+    "folderNotEmpty": "Folderul nu e gol — mută sau șterge conținutul întâi",
+    "parentGone": "Folderul părinte {{parentId}} nu mai există",
+    "folderNotCreated": "Nu am putut crea folderul \"{{name}}\"",
+    "fileNotCreated": "Fișier necreat",
+    "shareWithSelf": "Nu poți împărți spațiul cu tine însuți",
+    "spaceName": "Spațiul lui {{name}}"
+  },
+  "calendar": {
+    "eventNotFound": "Eveniment inexistent",
+    "endAfterStart": "endAt trebuie să fie după startAt",
+    "viewOnly": "Poți vedea evenimentul, dar nu îl poți modifica",
+    "cannotAddToCalendar": "Nu poți adăuga evenimente în acest calendar",
+    "cannotAddAttendees": "Nu poți crea evenimente cu participanți",
+    "ownerAlreadyAttendee": "Proprietarul calendarului e deja participant",
+    "attendeeGone": "Unul dintre participanți nu mai există",
+    "eventNotCreated": "Eveniment necreat",
+    "cannotChangeAttendees": "Nu poți modifica participanții evenimentului",
+    "creatorAlreadyAttendee": "Creatorul evenimentului e deja participant",
+    "shareOwnOnly": "Poți partaja doar calendarul tău",
+    "shareWithSelf": "Nu poți partaja calendarul cu tine însuți",
+    "userGone": "Utilizatorul nu mai există",
+    "paymentTitle": "Plată: {{description}}"
+  },
+  "booking": {
+    "blockNotFound": "Interval negăsit",
+    "notFoundOrCancelled": "Programare negăsită sau deja anulată",
+    "timeFormat": "Ora în format HH:mm",
+    "eachIntervalEndsAfterStart": "Fiecare interval trebuie să se termine după ce începe",
+    "intervalEndsAfterStart": "Intervalul trebuie să se termine după ce începe",
+    "noOwnerAccount": "Nu există contul căruia îi aparțin programările publice"
+  },
+  "support": {
+    "ticketNotFound": "Tichet inexistent"
+  },
+  "notes": {
+    "notFound": "Notiță inexistentă"
+  },
+  "plan": {
+    "goalNotFound": "Goal inexistent",
+    "thresholdRequired": "thresholdValue obligatoriu pt. thresholdType=mrr_ron",
+    "targetPriceTogether": "targetPriceAmount și targetPriceCurrency trebuie completate împreună",
+    "targetPriceTogetherOrEmpty": "targetPriceAmount și targetPriceCurrency trebuie completate/golite împreună",
+    "orderMismatch": "orderedIds nu corespunde exact cu goal-urile existente din acest etaj"
+  },
+  "wishlist": {
+    "itemNotFound": "Item inexistent"
+  },
+  "alerts": {
+    "ruleNotFound": "Regulă inexistentă",
+    "alertNotFound": "Alertă inexistentă",
+    "reservedNamespace": "Namespace-ul accounting.* e rezervat motorului de alerte existent"
+  },
+  "push": {
+    "vapidMissing": "VAPID neconfigurat — setează VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY în .env"
+  },
+  "backup": {
+    "pgDumpExit": "pg_dump a ieșit cu codul {{code}}"
+  },
+  "invoicing": {
+    "clientGone": "Clientul facturii nu mai există",
+    "companyProfileIncomplete": "Profilul firmei incomplet: setează COMPANY_CIF (+ adresă/IBAN) în .env",
+    "tenantCreateFailed": "Creare tenant în VanaGreen eșuată",
+    "slugKebab": "slug trebuie kebab-case (litere mici, cifre, cratime)",
+    "unitPriceRequired": "unitPrice e obligatoriu pentru linii cu preț fix",
+    "noSubscriptionPrice": "Clientul {{name}} nu are preț de abonament setat — completează-l înainte de a folosi acest template",
+    "billingClientNotFound": "Client de facturare inexistent",
+    "clientNotMapped": "Clientul nu e mapat la nicio platformă — nu are template-uri disponibile",
+    "templateNotFound": "Template de factură inexistent pentru platforma acestui client",
+    "needsLine": "Factura are nevoie de cel puțin o linie (direct sau dintr-un template)",
+    "insertFailed": "Insert factură eșuat",
+    "issuedNoEdit": "Factura e emisă — nu mai poate fi editată",
+    "issuedNoDelete": "Factura e emisă — nu poate fi ștearsă",
+    "countyUnknown1": "Județul clientului \"{{name}}\" (\"{{county}}\") nu poate fi recunoscut — ",
+    "countyUnknown2": "completează-l corect (ex: \"Brasov\", \"Cluj\", \"Bucuresti\") în tab-ul de clienți înainte de a emite.",
+    "sectorUnknown1": "Sectorul clientului \"{{name}}\" nu poate fi dedus din oraș/adresă (\"{{city}}\") — ",
+    "sectorUnknown2": "completează explicit \"Sector 1\"...\"Sector 6\" la oraș, în tab-ul de clienți, înainte de a emite.",
+    "alreadyIssued": "Factura e deja emisă",
+    "issueFirst": "Emite factura întâi (issue)",
+    "alreadySent": "Factura e deja trimisă — așteaptă validarea",
+    "alreadyValidated": "Factura e deja validată de ANAF",
+    "sequenceNotCreated": "Nu am putut crea secvența de facturare",
+    "templateInsertFailed": "Insert template eșuat",
+    "sequenceKeyNotCreated": "Secvența de facturare \"{{key}}\" nu a putut fi creată"
+  },
+  "revolut": {
+    "accountIncomplete": "cont Revolut incomplet: lipsește client_id, certificat sau refresh token",
+    "tokenInvalid": "Revolut: token invalid/expirat (HTTP {{status}})",
+    "tokenResponseIncomplete": "Revolut /auth/token: răspuns fără access_token/refresh_token",
+    "notConfigured": "Revolut neconfigurat pentru contul \"{{name}}\": setează client_id, generează certificatul și fă consimțirea OAuth din Reconciliere → Setări",
+    "needsReauth": "Revolut necesită reautentificare manuală pentru contul \"{{name}}\" (refresh token expirat/revocat)",
+    "noClientIdOrCert": "Revolut: contul \"{{name}}\" nu are client_id sau certificat configurat",
+    "refreshFailed": "Revolut token refresh eșuat pentru contul \"{{name}}\": {{err}}"
+  },
+  "anaf": {
+    "notConfigured": "ANAF neconfigurat sau necesită reautentificare",
+    "tokenInvalid": "ANAF: token invalid/expirat (HTTP {{status}}) — necesită refresh sau re-auth",
+    "rateLimited": "ANAF: {{value}} rate limited (HTTP 429) după {{MAX_RETRIES_429}} reîncercări",
+    "zipNoXml": "ANAF descarcare {{messageId}}: ZIP fără XML de factură",
+    "oauthNotConfigured": "ANAF OAuth neconfigurat: setează ANAF_CLIENT_ID și ANAF_CLIENT_SECRET",
+    "tokenResponseIncomplete": "ANAF token endpoint: răspuns fără access_token/refresh_token",
+    "uploadRejected": "ANAF upload respins (ExecutionStatus={{executionStatus}}): {{errors}}",
+    "lookupNoName": "Răspunsul ANAF nu conține denumirea firmei",
+    "cifInvalid": "CIF invalid (cifra de control nu se potrivește)",
+    "unreachable": "Nu am putut contacta ANAF: {{err}}",
+    "http": "ANAF a răspuns cu HTTP {{status}}",
+    "noRecord": "ANAF nu are nicio înregistrare pentru CIF {{cui}}",
+    "consentMissing": "ANAF neconfigurat: fă consimțirea OAuth din Accounting → Settings",
+    "needsReauth": "ANAF necesită reautentificare manuală (refresh token expirat/revocat)",
+    "refreshFailed": "ANAF token refresh eșuat: {{err}}"
+  },
+  "webhooks": {
+    "notConfigured": "Webhook neconfigurat",
+    "sentrySignatureMissing": "Header Sentry-Hook-Signature lipsă",
+    "invalidBody": "Body invalid",
+    "invalidSignature": "Semnătură invalidă",
+    "invalidJson": "JSON invalid",
+    "svixHeadersMissing": "Headere Svix lipsă"
+  },
+  "scheduled": {
+    "reportTitle": "Raport programat",
+    "overdue": "Depășit (>7 zile) — nelivrât"
+  },
+  "accounting": {
+    "xmlUnavailable": "XML indisponibil",
+    "pdfUnavailable": "PDF indisponibil",
+    "efacturaPdfNotSynced": "PDF eFactura indisponibil (nesincronizat încă de la ANAF)",
+    "efacturaPdfUnavailable": "PDF eFactura indisponibil",
+    "setAnafEnvFirst": "Setează ANAF_CLIENT_ID și ANAF_CLIENT_SECRET în .env întâi",
+    "recurringNotFound": "Cheltuială recurentă negăsită",
+    "expectedMonthFormat": "Format așteptat: YYYY-MM",
+    "expectedQuarterFormat": "Format așteptat: YYYY-Qn",
+    "cycleMonthRequired": "cycleMonth e obligatoriu pt. cycle=\"annual\"",
+    "invoiceNotFound": "Factura nu a fost găsită",
+    "invoiceNotPaid": "Factura nu e plătită încă — nu există nimic de confirmat"
+  },
+  "pdf": {
+    "unavailable": "Generare PDF indisponibilă (Chromium neconfigurat)",
+    "unavailableRetry": "Generarea PDF indisponibilă (Chromium neconfigurat) — încearcă din nou mai târziu",
+    "unavailableShort": "PDF indisponibil (Chromium neconfigurat)",
+    "puppeteerMissing": "PUPPETEER_EXECUTABLE_PATH nu e setat — PDF indisponibil"
+  },
+  "contracts": {
+    "documentNotFound": "Document inexistent",
+    "pdfOnly": "Doar fișiere PDF",
+    "fileTooLarge": "Fișier prea mare (peste 50MB)",
+    "clientNotFound": "Client inexistent",
+    "addendumNotFound": "Act adițional inexistent",
+    "missingData": "Date lipsă pentru generarea documentului: Număr contract, Data contract",
+    "pickSignatureBox": "Alege mai întâi dreptunghiul de semnătură pe pagină",
+    "atLeastOneTerm": "Trimite cel puțin un termen",
+    "templates": {
+      "saas": "Contract de servicii SaaS (+ DPA)",
+      "priceAnnex": "Anexa de prețuri",
+      "addendum": "Act adițional"
+    },
+    "unknownTokens": "Tokeni necunoscuți: {{unknown}}",
+    "templateNotFound": "Șablon inexistent",
+    "signReadmeName": "CITEȘTE-MĂ.txt",
+    "signReadme": "Semnătură digitală — {{file}}\n=======================================\n\n1. Instalează Java (dacă nu-l ai deja) și descarcă JSignPdf: http://jsignpdf.sourceforge.net/\n2. Rulează din acest folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = citește certificatul din magazinul de certificate Windows (certSIGN,\n   token virtual) — la rulare, JSignPdf/Windows îți va cere PIN-ul tokenului.\n   -llx/-lly/-urx/-ury/-page = poziția dreptunghiului ales în dash (coordonate PDF, puncte).\n\n3. Rezultatul e \"semnat_{{file}}\" — încarcă-l înapoi în dash cu butonul\n   \"Am semnat, încarcă PDF-ul\" din tab-ul Semnează.\n\nDacă JSignPdf nu găsește certificatul certSIGN în -kst WINDOWS-MY, tokenul tău virtual nu-și\nexpune cheia privată în afara aplicației proprii a providerului — semnează manual în Adobe\nAcrobat ca până acum și încarcă rezultatul aici oricum, ca să rămână în istoricul documentului.\n"
+  },
+  "reconciliation": {
+    "configureFirst": "configurează client_id și generează certificatul mai întâi",
+    "transactionNotFound": "Tranzacție inexistentă",
+    "recordNotFound": "Factura/înregistrarea nu există",
+    "alreadyMatched": "Tranzacția e deja matchuită — fă unmatch întâi",
+    "invoiceNotFound": "Factura nu există",
+    "notIssuedInvoice": "Nu e o factură emisă",
+    "accountNotFound": "Cont bancar inexistent",
+    "setClientIdFirst": "Setează client_id și generează certificatul înainte de a face schimbul de cod",
+    "dryRun": "dry-run — toggle-ul de extindere automată e OFF",
+    "vanagreenNotConfigured": "Platforma vanagreen nu e configurată în Platforme"
+  },
+  "pricing": {
+    "noConfig": "Platforma nu are încă un config de preț salvat (PUT /api/pricing/config întâi)",
+    "bandNotIncreasing": "{{path}}[{{i}}].{{key}} trebuie să fie strict crescător față de banda anterioară",
+    "infiniteBandLast": "{{path}}: banda cu {{key}}=null (infinit) trebuie să fie ULTIMA din listă",
+    "configUpsertFailed": "Upsert pricing config eșuat"
+  },
+  "prospects": {
+    "statusNotFound": "Status inexistent",
+    "csvMissing": "Fișier CSV lipsă",
+    "fileTooLarge": "Fișier prea mare (peste 10MB)",
+    "invalidBody": "Body invalid — trimite { csv, source? }",
+    "importFailed": "Import eșuat: {{err}}",
+    "notFound": "Prospect inexistent",
+    "keyFormat": "doar litere mici, cifre și underscore",
+    "statusExists": "Statusul \"{{key}}\" există deja",
+    "statusOrderMismatch": "orderedIds nu corespunde exact cu statusurile active existente",
+    "scoringConfigFailed": "Nu am putut crea config-ul de scoring implicit",
+    "statusNotInCatalog": "Statusul \"{{status}}\" nu există în catalogul activ",
+    "cifMissing": "CIF lipsă — completează CIF-ul la promovare",
+    "clientNotCreated": "Nu am putut crea clientul din prospect",
+    "statusInUse": {
+      "one": "{{count}} prospect folosește încă acest status",
+      "few": "{{count}} prospecți folosesc încă acest status",
+      "other": "{{count}} de prospecți folosesc încă acest status"
+    }
+  },
+  "tenders": {
+    "alreadyBlocked": "SICAP a răspuns deja cu HTTP {{blockedStatus}} în rularea asta — nu mai trimit request-uri",
+    "requestCap": "Plafonul de {{MAX_REQUESTS_PER_RUN}} request-uri SICAP pe rulare a fost atins",
+    "httpBlocked": "SICAP a răspuns cu HTTP {{status}} pe {{path}} — posibil IP blocat",
+    "http": "SICAP a răspuns cu HTTP {{status}} pe {{path}}",
+    "opportunityNotFound": "Oportunitate inexistentă",
+    "cpvOrKeyword": "Completează cel puțin CPV sau cuvânt cheie"
+  },
+  "platforms": {
+    "urlNotAllowed": "URL platformă invalid — hostname localhost/rețea privată nu e permis",
+    "pathRelative": "Path trebuie să fie o rută relativă care începe cu /",
+    "healthPathRelative": "Health path trebuie să fie o rută relativă care începe cu /",
+    "genericOnly": "metricMappings/healthPath sunt disponibile doar pt. tipul generic",
+    "jsonPathMissing": "Cale JSON '{{jsonPath}}' nu există în răspuns",
+    "genericName": "Generic (API propriu)",
+    "protocolNotAllowed": "Protocol nepermis pt. URL platformă: {{protocol}}",
+    "blockedLocalhost": "URL platformă blocat (localhost): {{url}}",
+    "blockedPrivate": "URL platformă blocat (rețea privată/loopback): {{url}}",
+    "blockedInternalName": "URL platformă blocat (nume intern, fără domeniu): {{url}}",
+    "blockedPrivateV6": "URL platformă blocat (rețea privată/loopback IPv6): {{url}}",
+    "notANumber": "Răspunsul de la '{{path}}' nu conține un număr",
+    "jsonRoot": "(rădăcină)"
+  },
+  "jeffbot": {
+    "reportNotFound": "Raport inexistent"
+  },
+  "vanagreen": {
+    "priceUnavailable": "Preț indisponibil momentan",
+    "billingClientFailed": "Creare billing_client self-serve eșuată"
+  },
+  "email": {
+    "draftInsertFailed": "email_drafts insert nu a returnat nimic",
+    "draftNotFound": "Draft inexistent",
+    "draftNoRecipient": "Draftul nu are destinatar",
+    "draftNoSubject": "Draftul nu are subiect",
+    "imageTypeNotAccepted": "Tip de fișier neacceptat: {{mimetype}} (doar PNG/JPEG/GIF/WEBP)",
+    "imageTooLarge": "Poză prea mare (peste 5MB)",
+    "imageNotFound": "Poză inexistentă",
+    "threadInsertFailed": "email_threads insert nu a returnat nimic",
+    "messageNotFound": "Mesaj inexistent",
+    "forwardedHeader": "\n\n---------- Mesaj redirecționat ----------\nDe la: {{fromAddress}}\nSubiect: {{subject}}\n\n",
+    "sendFailed": "Trimitere eșuată",
+    "messageInsertFailedForward": "email_messages insert nu a returnat nimic (forward)",
+    "threadNotFound": "Thread inexistent",
+    "threadNoInbound": "Thread fără niciun mesaj primit — nu există destinatar de răspuns",
+    "messageInsertFailed": "email_messages insert nu a returnat nimic",
+    "messageInsertFailedCompose": "email_messages insert nu a returnat nimic (mirror Compose)",
+    "mailboxNotYours": "Nu poți trimite de pe cutia {{fromKey}}: nu e atribuită ție",
+    "labelIdRequired": "labelId obligatoriu când action=label",
+    "blocklistEntryNotFound": "Adresă inexistentă în blocklist",
+    "suppressionNotFound": "Adresă inexistentă în listă",
+    "sequenceNotFound": "Secvență inexistentă",
+    "enrollmentNotFound": "Înrolare inexistentă",
+    "sequenceInsertFailed": "email_sequences insert nu a returnat nimic",
+    "sequenceNoSteps": "Secvență fără niciun pas — nu poate primi înrolări",
+    "notStarted": "Neîncepuți",
+    "unknownIdentity": "Identitate email necunoscută: {{from}}",
+    "templateNotFound": "Template inexistent",
+    "sendInsertFailed": "email_sends insert nu a returnat nimic",
+    "logoNotConfigured": "Logo neconfigurat",
+    "identityKeyFormat": "Cheia identității: doar litere mici, cifre, - și _",
+    "addressFormat": "Adresa: sales@vanadium.systems sau Nume <sales@vanadium.systems>",
+    "signatureKeyFormat": "Cheia semnăturii: doar litere mici, cifre, - și _",
+    "logoType": "Logo: doar PNG, JPEG, GIF, WEBP sau SVG",
+    "resendKeyMissing": "RESEND_API_KEY neconfigurat",
+    "resendHttp": "Resend a răspuns cu HTTP {{status}}: {{detail}}",
+    "resendReceivedHttp": "Resend Received Emails API a răspuns cu HTTP {{status}}: {{detail}}",
+    "forwardedTitle": "---------- Mesaj redirecționat ----------",
+    "forwardedFrom": "De la: {{from}}",
+    "forwardedSubject": "Subiect: {{subject}}"
+  },
+  "net": {
+    "domainNotAllowed": "Domeniu nepermis: {{hostname}}",
+    "binanceHttp": "Binance HTTP {{status}}: {{msg}}",
+    "coingeckoRateLimit": "CoinGecko rate-limit (429) — încearcă într-un minut",
+    "coingeckoHttp": "CoinGecko HTTP {{status}}: {{detail}}",
+    "geckoTerminalHttp": "GeckoTerminal HTTP {{status}}: {{detail}}",
+    "finnhubRateLimit": "Finnhub rate-limit (429) — încearcă mai târziu",
+    "finnhubHttp": "Finnhub HTTP {{status}}: {{detail}}",
+    "t212RateLimit": "Trading212 rate-limit (429) — încearcă mai târziu",
+    "twelveDataHttp": "Twelve Data HTTP {{status}}: {{detail}}",
+    "twelveDataError": "Twelve Data: {{message}}",
+    "unknownError": "eroare necunoscută"
+  },
+  "trading": {
+    "coinNotFound": "Monedă inexistentă",
+    "invalidBinanceSymbol": "Simbol Binance invalid (ex: BTCUSDT)",
+    "limitNeedsPrice": "Ordinele limit au nevoie de limitPrice",
+    "exchangeNotConnected": "Exchange {{exchange}} nu e conectat/activ",
+    "noLivePriceOn": "Fără preț live pentru {{symbol}} pe {{exchange}}",
+    "liveOff": "Trading-ul live e oprit (kill-switch din Setări)",
+    "liveHistoryNeedsSymbol": "Pe live, istoricul de trades cere un simbol (ex: BTCUSDT)",
+    "liveNeedsT212Key": "Modul live cere o cheie API Trading212",
+    "brokerNotConnected": "Broker {{broker}} nu e conectat/activ",
+    "noLivePrice": "Fără preț live pentru {{symbol}} — verifică cheile provider din Setări"
+  },
+  "assistant": {
+    "models": {
+      "haiku": "Haiku 4.5 — rapid, ieftin",
+      "opus": "Opus 4.8 — cel mai capabil",
+      "sonnet": "Sonnet 5 — echilibrat"
+    },
+    "anthropicKeyMissing": "ANTHROPIC_API_KEY nu e configurat — vezi Setări → Asistent",
+    "openRouterOff": "OpenRouter e dezactivat — activează-l din Setări → Asistent",
+    "openRouterKeyMissing": "Cheie OpenRouter lipsă — configureaz-o din Setări → Asistent",
+    "openRouterNoDefaultModel": "Niciun model implicit configurat pentru OpenRouter — alege unul din Setări",
+    "openRouterNoBody": "Răspuns OpenRouter fără body",
+    "streamError": "eroare în stream",
+    "unknownTool": "Tool necunoscut: {{name}}",
+    "toolFailed": "Eroare la executarea tool-ului: {{message}}",
+    "atLeastOneField": "Trimite cel puțin un câmp",
+    "conversationNoAuthor": "Conversație fără autor",
+    "authorGone": "Autorul conversației nu mai există",
+    "noAnswer": "Modelul nu a trimis niciun răspuns. Încearcă din nou sau schimbă modelul.",
+    "actionGone": "Acțiune inexistentă sau deja procesată",
+    "actionExpired": "Acțiune expirată",
+    "actionNoLongerAllowed": "Acțiunea nu mai e permisă: funcționalitatea „{{feature}}\" nu mai e activă",
+    "actionDone": "Acțiune executată cu succes: {{result}}",
+    "actionFailed": "Acțiune eșuată: {{message}}",
+    "actionRejected": "{{author}} a respins această acțiune. Nu o executa și nu o repeta fără să întrebe din nou.",
+    "history": {
+      "notKept": "Rezultatul acestui apel nu a fost păstrat.",
+      "shortened": "{{text}}\n[…scurtat, rezultat dintr-o tură anterioară; cheamă din nou tool-ul dacă ai nevoie de tot]",
+      "actionResult": "[Rezultat acțiune {{id}}]: {{result}}"
+    }
+  },
+  "bnr": {
+    "http": "Feed-ul BNR a răspuns cu HTTP {{status}}",
+    "fetchFailed": "Nu am putut prelua feed-ul de curs BNR după {{MAX_ATTEMPTS}} încercări: {{lastErr}}",
+    "noCube": "Feed-ul BNR nu conține un element <Cube date=\"...\"> recognoscibil",
+    "noRate": "Feed-ul BNR nu conține un curs {{currency}}",
+    "rateNotNumber": "Cursul {{currency}} din feed-ul BNR nu s-a putut parsa la un număr pozitiv: \"{{value}}\"",
+    "noValidRate": "Niciun curs valabil în feed-ul BNR: {{errors}}",
+    "noRateAtDate": "Niciun curs {{currency}} disponibil la sau înainte de {{dateIso}}, nici după un fetch BNR live"
   }
 }

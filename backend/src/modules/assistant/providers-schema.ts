@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ASSISTANT_PROVIDER_IDS } from './providers/types.js'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 export const ProviderIdParamsSchema = z.object({ provider: z.enum(ASSISTANT_PROVIDER_IDS) })
 
@@ -25,4 +26,4 @@ export const ProviderUpdateSchema = z
     enabled: z.boolean().optional(),
     isDefault: z.boolean().optional(),
   })
-  .refine((input) => Object.keys(input).length > 0, { message: 'Trimite cel puțin un câmp' })
+  .refine((input) => Object.keys(input).length > 0, { message: lazyTr('errors.assistant.atLeastOneField') })

@@ -14,6 +14,7 @@ import type {
   UpdateProspectStatusSchema,
   UpdateScoringConfigSchema,
 } from './schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 type CreateInput = z.infer<typeof CreateProspectSchema>
 type UpdateInput = z.infer<typeof UpdateProspectSchema>
@@ -28,7 +29,7 @@ type UpdateStatusInput = z.infer<typeof UpdateProspectStatusSchema>
 export class ProspectStatusKeyTakenError extends Error {}
 export class ProspectStatusInUseError extends Error {
   constructor(public readonly count: number) {
-    super(`${count} prospect(ți) folosesc încă acest status`)
+    super(tr('errors.prospects.statusInUse', { count }))
   }
 }
 export class InvalidProspectStatusError extends Error {}
@@ -55,7 +56,7 @@ export async function createProspectStatus(input: CreateStatusInput) {
     // conflict ("no unique or exclusion constraint matching") și insert-ul aruncă, nu face 409.
     .onConflictDoNothing({ target: prospectStatuses.key, where: isNull(prospectStatuses.deletedAt) })
     .returning()
-  if (!row) throw new ProspectStatusKeyTakenError(`Statusul "${input.key}" există deja`)
+  if (!row) throw new ProspectStatusKeyTakenError(tr('errors.prospects.statusExists', { key: input.key }))
   return row
 }
 
@@ -88,7 +89,7 @@ export async function reorderProspectStatuses(orderedIds: string[]) {
     const existing = await tx.select({ id: prospectStatuses.id }).from(prospectStatuses).where(isNull(prospectStatuses.deletedAt))
     const existingIds = new Set(existing.map((r) => r.id))
     if (existingIds.size !== orderedIds.length || !orderedIds.every((id) => existingIds.has(id))) {
-      throw new InvalidProspectStatusError('orderedIds nu corespunde exact cu statusurile active existente')
+      throw new InvalidProspectStatusError(tr('errors.prospects.statusOrderMismatch'))
     }
     for (let i = 0; i < orderedIds.length; i++) {
       await tx.update(prospectStatuses).set({ sortOrder: i, updatedAt: new Date() }).where(eq(prospectStatuses.id, orderedIds[i]!))
@@ -103,7 +104,7 @@ export async function getScoringConfig() {
   const [existing] = await db.select().from(prospectScoringConfig).orderBy(asc(prospectScoringConfig.createdAt)).limit(1)
   if (existing) return existing
   const [created] = await db.insert(prospectScoringConfig).values({}).returning()
-  if (!created) throw new Error('Nu am putut crea config-ul de scoring implicit')
+  if (!created) throw new Error(tr('errors.prospects.scoringConfigFailed'))
   return created
 }
 
@@ -257,7 +258,7 @@ export async function updateProspect(id: string, input: UpdateInput) {
       .select({ id: prospectStatuses.id })
       .from(prospectStatuses)
       .where(and(eq(prospectStatuses.key, input.status), isNull(prospectStatuses.deletedAt)))
-    if (!activeStatus) throw new InvalidProspectStatusError(`Statusul "${input.status}" nu există în catalogul activ`)
+    if (!activeStatus) throw new InvalidProspectStatusError(tr('errors.prospects.statusNotInCatalog', { status: input.status }))
   }
 
   const { revenue, profit, debt, equity, cash, receivables, inventory, ...rest } = input
@@ -360,7 +361,7 @@ export async function promoteProspect(id: string, input: PromoteInput) {
   if (!prospect) return null
 
   const cif = input.cif ?? prospect.cif
-  if (!cif) throw new Error('CIF lipsă — completează CIF-ul la promovare')
+  if (!cif) throw new Error(tr('errors.prospects.cifMissing'))
 
   const client = await invoicingService.createClient({
     name: prospect.name,
@@ -372,7 +373,7 @@ export async function promoteProspect(id: string, input: PromoteInput) {
     platformId: input.platformId ?? prospect.platformId ?? undefined,
     country: 'RO',
   })
-  if (!client) throw new Error('Nu am putut crea clientul din prospect')
+  if (!client) throw new Error(tr('errors.prospects.clientNotCreated'))
 
   const [row] = await db
     .update(prospects)

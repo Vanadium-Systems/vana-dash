@@ -30,6 +30,7 @@ import type {
   InvoiceUpdateSchema,
   SequenceUpdateSchema,
 } from './schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // ── Billing clients ──────────────────────────────────────────────────────────
 
@@ -202,7 +203,7 @@ async function resolveClientSubscriptionPrice(
   const raw = client.subscriptionPriceCurrency === 'eur' ? client.subscriptionPriceEur : client.subscriptionPriceLei
   if (raw === null) {
     throw new Error(
-      `Clientul ${client.name} nu are preț de abonament setat — completează-l înainte de a folosi acest template`,
+      tr('errors.invoicing.noSubscriptionPrice', { name: client.name }),
     )
   }
   const resolvedPrice = round2(await convertAmount(Number(raw), clientCurrency, targetCurrency, dateIso))
@@ -314,7 +315,7 @@ async function getGeneratedInvoice(id: string) {
 
 export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSchema>) {
   const client = await getClient(input.billingClientId)
-  if (!client) throw new Error('Client de facturare inexistent')
+  if (!client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
 
   // Sprint D, Track 3 — templateId opțional: serverul copiază lineItems/currency din
   // template ca valori INIȚIALE (draft-ul rămâne editabil, nu e un link viu la template).
@@ -325,9 +326,9 @@ export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSche
   let discountConsumed = false
 
   if (input.templateId) {
-    if (!client.platformId) throw new Error('Clientul nu e mapat la nicio platformă — nu are template-uri disponibile')
+    if (!client.platformId) throw new Error(tr('errors.invoicing.clientNotMapped'))
     const template = await getPlatformTemplate(client.platformId, input.templateId)
-    if (!template) throw new Error('Template de factură inexistent pentru platforma acestui client')
+    if (!template) throw new Error(tr('errors.invoicing.templateNotFound'))
     currency = currency ?? template.currency
     if (!lines) {
       const dateIso = (input.issuedAt ?? new Date()).toISOString().slice(0, 10)
@@ -338,7 +339,7 @@ export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSche
   }
 
   if (!lines || lines.length === 0) {
-    throw new Error('Factura are nevoie de cel puțin o linie (direct sau dintr-un template)')
+    throw new Error(tr('errors.invoicing.needsLine'))
   }
   const finalLines = lines
   const finalCurrency = currency ?? 'RON'
@@ -374,7 +375,7 @@ export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSche
         anafStatus: 'draft',
       })
       .returning(invoiceColumns)
-    if (!record) throw new Error('Insert factură eșuat')
+    if (!record) throw new Error(tr('errors.invoicing.insertFailed'))
 
     await tx.insert(invoiceLineItems).values(
       finalLines.map((line, position) => ({
@@ -408,10 +409,10 @@ export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSche
 export async function updateDraftInvoice(id: string, input: z.infer<typeof InvoiceUpdateSchema>) {
   const existing = await getGeneratedInvoice(id)
   if (!existing) return null
-  if (existing.documentNumber) throw new Error('Factura e emisă — nu mai poate fi editată')
+  if (existing.documentNumber) throw new Error(tr('errors.invoicing.issuedNoEdit'))
 
   const client = input.billingClientId ? await getClient(input.billingClientId) : null
-  if (input.billingClientId && !client) throw new Error('Client de facturare inexistent')
+  if (input.billingClientId && !client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
 
   return db.transaction(async (tx) => {
     const changes: Record<string, unknown> = { updatedAt: new Date() }
@@ -450,7 +451,7 @@ export async function updateDraftInvoice(id: string, input: z.infer<typeof Invoi
 export async function deleteDraftInvoice(id: string): Promise<boolean> {
   const existing = await getGeneratedInvoice(id)
   if (!existing) return false
-  if (existing.documentNumber) throw new Error('Factura e emisă — nu poate fi ștearsă')
+  if (existing.documentNumber) throw new Error(tr('errors.invoicing.issuedNoDelete'))
   const [row] = await db
     .update(financialRecords)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
@@ -461,7 +462,7 @@ export async function deleteDraftInvoice(id: string): Promise<boolean> {
 
 async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): Promise<UblInvoiceInput> {
   const client = record.billingClientId ? await getClient(record.billingClientId) : null
-  if (!client) throw new Error('Clientul facturii nu mai există')
+  if (!client) throw new Error(tr('errors.invoicing.clientGone'))
   const lines = await db
     .select()
     .from(invoiceLineItems)
@@ -469,7 +470,7 @@ async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): P
     .orderBy(asc(invoiceLineItems.position))
 
   if (!config.company.cif) {
-    throw new Error('Profilul firmei incomplet: setează COMPANY_CIF (+ adresă/IBAN) în .env')
+    throw new Error(tr('errors.invoicing.companyProfileIncomplete'))
   }
 
   // BR-RO-110: for a buyer in Romania, CountrySubentity (the county) is mandatory in the UBL
@@ -477,8 +478,8 @@ async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): P
   const customerCountyCode = client.country === 'RO' ? countyNameToIsoCode(client.county) : undefined
   if (client.country === 'RO' && !customerCountyCode) {
     throw new Error(
-      `Județul clientului "${client.name}" ("${client.county ?? '—'}") nu poate fi recunoscut — ` +
-        'completează-l corect (ex: "Brasov", "Cluj", "Bucuresti") în tab-ul de clienți înainte de a emite.',
+      tr('errors.invoicing.countyUnknown1', { name: client.name, county: client.county ?? '—' }) +
+        tr('errors.invoicing.countyUnknown2'),
     )
   }
 
@@ -490,8 +491,8 @@ async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): P
     const sector = extractBucharestSectorCode(client.city) ?? extractBucharestSectorCode(client.address)
     if (!sector) {
       throw new Error(
-        `Sectorul clientului "${client.name}" nu poate fi dedus din oraș/adresă ("${client.city ?? '—'}") — ` +
-          'completează explicit "Sector 1"..."Sector 6" la oraș, în tab-ul de clienți, înainte de a emite.',
+        tr('errors.invoicing.sectorUnknown1', { name: client.name, city: client.city ?? '—' }) +
+          tr('errors.invoicing.sectorUnknown2'),
       )
     }
     customerCity = sector
@@ -561,7 +562,7 @@ async function regenerateInvoiceDocuments(record: typeof financialRecords.$infer
 export async function issueInvoice(id: string) {
   const record = await getGeneratedInvoice(id)
   if (!record) return null
-  if (record.documentNumber) throw new Error('Factura e deja emisă')
+  if (record.documentNumber) throw new Error(tr('errors.invoicing.alreadyIssued'))
 
   // Validăm intrarea completă (profil firmă, client, linii) ÎNAINTE de alocarea
   // numărului — altfel am consuma un număr pentru o emitere care pică.
@@ -591,9 +592,9 @@ export async function issueInvoice(id: string) {
 export async function sendInvoiceToAnaf(id: string) {
   const record = await getGeneratedInvoice(id)
   if (!record) return null
-  if (!record.documentNumber || !record.xmlStoragePath) throw new Error('Emite factura întâi (issue)')
-  if (record.anafStatus === 'pending') throw new Error('Factura e deja trimisă — așteaptă validarea')
-  if (record.anafStatus === 'validated') throw new Error('Factura e deja validată de ANAF')
+  if (!record.documentNumber || !record.xmlStoragePath) throw new Error(tr('errors.invoicing.issueFirst'))
+  if (record.anafStatus === 'pending') throw new Error(tr('errors.invoicing.alreadySent'))
+  if (record.anafStatus === 'validated') throw new Error(tr('errors.invoicing.alreadyValidated'))
 
   // Rejected before: the stored XML is the rejected one. Regenerate it from the client's
   // current data, or the same wrong XML goes out again.
@@ -619,7 +620,7 @@ export async function getSequence() {
   const [row] = await db.select().from(invoiceSequences).where(eq(invoiceSequences.key, 'invoice'))
   if (row) return row
   const [created] = await db.insert(invoiceSequences).values({ key: 'invoice' }).returning()
-  if (!created) throw new Error('Nu am putut crea secvența de facturare')
+  if (!created) throw new Error(tr('errors.invoicing.sequenceNotCreated'))
   return created
 }
 
@@ -683,7 +684,7 @@ export async function createPlatformTemplate(platformId: string, input: z.infer<
         isDefaultForAutoInvoice: input.isDefaultForAutoInvoice ?? false,
       })
       .returning()
-    if (!row) throw new Error('Insert template eșuat')
+    if (!row) throw new Error(tr('errors.invoicing.templateInsertFailed'))
     return row
   })
 }
@@ -723,10 +724,10 @@ export async function deletePlatformTemplate(platformId: string, id: string): Pr
  *  draft-ul, cu prețul CLIENTULUI ales (rămâne editabil după, nu e un link viu). */
 export async function resolveClientTemplateLines(billingClientId: string, templateId: string, currency?: string) {
   const client = await getClient(billingClientId)
-  if (!client) throw new Error('Client de facturare inexistent')
-  if (!client.platformId) throw new Error('Clientul nu e mapat la nicio platformă — nu are template-uri disponibile')
+  if (!client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
+  if (!client.platformId) throw new Error(tr('errors.invoicing.clientNotMapped'))
   const template = await getPlatformTemplate(client.platformId, templateId)
-  if (!template) throw new Error('Template de factură inexistent pentru platforma acestui client')
+  if (!template) throw new Error(tr('errors.invoicing.templateNotFound'))
 
   const targetCurrency = currency ?? template.currency
   const dateIso = new Date().toISOString().slice(0, 10)

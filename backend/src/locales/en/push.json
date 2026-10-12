@@ -1,1 +1,37 @@
-{}
+{
+  "alert": {
+    "title": "VanaDash alert"
+  },
+  "test": {
+    "title": "VanaDash test",
+    "body": "Push notifications work."
+  },
+  "efactura": {
+    "rejectedTitle": "e-Factura rejected",
+    "rejectedBody": "Invoice {{documentNumber}} was rejected by ANAF.",
+    "validatedTitle": "e-Factura validated",
+    "validatedBody": "Invoice {{documentNumber}} was validated by ANAF."
+  },
+  "reminder": {
+    "fallbackTitle": "Reminder",
+    "eventTitle": "Reminder: {{title}}"
+  },
+  "booking": {
+    "newTitle": "New booking",
+    "cancelledTitle": "Booking cancelled"
+  },
+  "chat": {
+    "attachment": "Attachment",
+    "aColleague": "A colleague"
+  },
+  "payment": {
+    "matchedTitle": "Payment matched",
+    "matchedBody": "Invoice {{number}} was matched with a bank transaction.",
+    "markedPaidTitle": "Invoice marked as paid",
+    "markedPaidBody": "Invoice {{number}} was marked as paid by hand."
+  },
+  "email": {
+    "newFrom": "New email from {{from}}",
+    "noSubject": "(no subject)"
+  }
+}

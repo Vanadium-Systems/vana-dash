@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 // Paletă fixă de token-uri de culoare pt. statusuri prospect (Wave 0, sprint de-hardcodare) —
 // NU hex liber: clasele Tailwind complete trebuie să existe static în sursa frontend pt. JIT
@@ -13,7 +14,7 @@ export const CreateProspectStatusSchema = z.object({
     .trim()
     .min(1)
     .max(50)
-    .regex(/^[a-z0-9_]+$/, 'doar litere mici, cifre și underscore'),
+    .regex(/^[a-z0-9_]+$/, lazyTr('errors.prospects.keyFormat')),
   label: z.string().trim().min(1).max(100),
   colorToken: z.enum(STATUS_COLOR_TOKENS),
 })

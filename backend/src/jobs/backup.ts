@@ -3,6 +3,7 @@ import { createWriteStream, mkdirSync, readdirSync, rmSync, statSync } from 'nod
 import { createGzip } from 'node:zlib'
 import { config } from '../shared/config.js'
 import { sendAlertEmail } from '../shared/lib/email.js'
+import { tr } from '../shared/lib/i18n.js'
 
 // Track A: pg_dump zilnic, gzip, retenție + alertă pe eșec — a doua plasă de siguranță,
 // independentă de snapshot-ul automat Hetzner (decizie Stefan, 2026-07-16: cron local,
@@ -40,7 +41,7 @@ export async function runBackup(): Promise<void> {
       out.on('error', reject)
       dumpProc.on('error', reject)
       dumpProc.on('close', (code) => {
-        if (code !== 0) reject(new Error(`pg_dump a ieșit cu codul ${code}`))
+        if (code !== 0) reject(new Error(tr('errors.backup.pgDumpExit', { code })))
       })
     })
 
@@ -58,7 +59,7 @@ export async function runBackup(): Promise<void> {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[backup] backup eșuat:', err)
-    await sendAlertEmail('Backup zilnic eșuat', `Backup-ul din ${dateStamp} a eșuat: ${message}`)
+    await sendAlertEmail(tr('emails.backup.failedSubject'), tr('emails.backup.failedBody', { dateStamp, message }))
   }
 }
 

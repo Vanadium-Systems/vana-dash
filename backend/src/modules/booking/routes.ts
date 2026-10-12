@@ -13,6 +13,7 @@ import {
   SlotsQuerySchema,
 } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Rutele publice le cheamă doar Function-ul din vana-site, server-to-server (Turnstile e verificat
 // acolo), cu X-Booking-Token. Browserul nu ajunge la ele: CORS-ul rămâne cel al aplicației.
@@ -104,7 +105,7 @@ export async function bookingRoutes(app: FastifyInstance) {
   )
 
   server.delete('/api/booking/blocks/:id', { preHandler: [app.authenticate], schema: { params: IdParamsSchema } }, async (req, reply) => {
-    if (!(await service.deleteBlock(req.params.id))) return reply.code(404).send({ success: false, error: 'Interval negăsit' })
+    if (!(await service.deleteBlock(req.params.id))) return reply.code(404).send({ success: false, error: tr('errors.booking.blockNotFound') })
     return { success: true }
   })
 
@@ -118,7 +119,7 @@ export async function bookingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: z.object({ notifyVisitor: z.boolean().default(true) }).default({}) } },
     async (req, reply) => {
       if (!(await service.cancelById(req.params.id, req.body.notifyVisitor))) {
-        return reply.code(404).send({ success: false, error: 'Programare negăsită sau deja anulată' })
+        return reply.code(404).send({ success: false, error: tr('errors.booking.notFoundOrCancelled') })
       }
       return { success: true }
     },

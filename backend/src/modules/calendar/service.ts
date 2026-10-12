@@ -13,6 +13,7 @@ import type { z } from 'zod'
 
 import { listOccurrences as listOccurrencesRaw } from '../../shared/lib/calendar-occurrences.js'
 import type { Occurrence } from '../../shared/lib/calendar-occurrences.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Ocurențele (RRULE, cheltuieli recurente) trăiesc în shared/lib, folosite și de programări.
 export { expandOccurrence, listOccurrencesForOwner } from '../../shared/lib/calendar-occurrences.js'
@@ -140,7 +141,7 @@ async function requireEvent(me: SessionUser, id: string, min: EventAccess) {
   if (!event) return null
   const order: EventAccess[] = ['view', 'edit', 'owner']
   if (order.indexOf(event.access) < order.indexOf(min)) {
-    throw new CalendarAccessError('EVENT_READ_ONLY', 403, 'Poți vedea evenimentul, dar nu îl poți modifica')
+    throw new CalendarAccessError('EVENT_READ_ONLY', 403, tr('errors.calendar.viewOnly'))
   }
   return event
 }
@@ -165,7 +166,7 @@ async function assertCanWriteCalendar(me: SessionUser, ownerUserId: string) {
       ),
     )
   if (share?.level !== 'edit') {
-    throw new CalendarAccessError('CALENDAR_READ_ONLY', 403, 'Nu poți adăuga evenimente în acest calendar')
+    throw new CalendarAccessError('CALENDAR_READ_ONLY', 403, tr('errors.calendar.cannotAddToCalendar'))
   }
 }
 
@@ -176,10 +177,10 @@ export async function createEvent(me: SessionUser, input: CreateEventInput) {
   // Un eveniment cu participanți e un eveniment comun: apare în calendarul fiecăruia, deci
   // doar cine are `calendar.comune` îl creează (decizie Stefan, 2026-09-30).
   if (attendeeUserIds.length > 0 && !canCreateCommon(me)) {
-    throw new CalendarAccessError('COMMON_NOT_ALLOWED', 403, 'Nu poți crea evenimente cu participanți')
+    throw new CalendarAccessError('COMMON_NOT_ALLOWED', 403, tr('errors.calendar.cannotAddAttendees'))
   }
   if (attendeeUserIds.includes(ownerUserId)) {
-    throw new CalendarAccessError('ATTENDEE_IS_OWNER', 400, 'Proprietarul calendarului e deja participant')
+    throw new CalendarAccessError('ATTENDEE_IS_OWNER', 400, tr('errors.calendar.ownerAlreadyAttendee'))
   }
   if (attendeeUserIds.length > 0) {
     const found = await db
@@ -187,14 +188,14 @@ export async function createEvent(me: SessionUser, input: CreateEventInput) {
       .from(users)
       .where(sql`${users.id} IN ${attendeeUserIds} AND ${users.deletedAt} IS NULL`)
     if (found.length !== new Set(attendeeUserIds).size) {
-      throw new CalendarAccessError('ATTENDEE_NOT_FOUND', 400, 'Unul dintre participanți nu mai există')
+      throw new CalendarAccessError('ATTENDEE_NOT_FOUND', 400, tr('errors.calendar.attendeeGone'))
     }
   }
   const [row] = await db
     .insert(calendarEvents)
     .values({ ...fields, ownerUserId })
     .returning()
-  if (!row) throw new Error('Eveniment necreat')
+  if (!row) throw new Error(tr('errors.calendar.eventNotCreated'))
   await syncAttendees(row.id, attendeeUserIds, ownerUserId)
   return row
 }
@@ -207,10 +208,10 @@ export async function updateEvent(
   const event = await requireEvent(me, id, 'edit')
   if (!event) return null
   if (input.attendeeUserIds && !canCreateCommon(me)) {
-    throw new CalendarAccessError('COMMON_NOT_ALLOWED', 403, 'Nu poți modifica participanții evenimentului')
+    throw new CalendarAccessError('COMMON_NOT_ALLOWED', 403, tr('errors.calendar.cannotChangeAttendees'))
   }
   if (input.attendeeUserIds?.includes(event.ownerUserId)) {
-    throw new CalendarAccessError('ATTENDEE_IS_OWNER', 400, 'Creatorul evenimentului e deja participant')
+    throw new CalendarAccessError('ATTENDEE_IS_OWNER', 400, tr('errors.calendar.creatorAlreadyAttendee'))
   }
   const patch: Partial<typeof calendarEvents.$inferInsert> = { ...input, updatedAt: new Date() }
   delete (patch as { attendeeUserIds?: string[] }).attendeeUserIds
@@ -311,17 +312,17 @@ export async function listCalendars(me: SessionUser): Promise<CalendarsResponse>
 /** Share-ul îl dă doar proprietarul calendarului sau adminul — nu cine are doar „editează". */
 function assertCanShare(me: SessionUser, ownerUserId: string) {
   if (ownerUserId === me.id || me.role?.kind === 'admin') return
-  throw new CalendarAccessError('SHARE_NOT_ALLOWED', 403, 'Poți partaja doar calendarul tău')
+  throw new CalendarAccessError('SHARE_NOT_ALLOWED', 403, tr('errors.calendar.shareOwnOnly'))
 }
 
 export async function setCalendarShare(me: SessionUser, ownerUserId: string, userId: string, level: 'view' | 'edit') {
   assertCanShare(me, ownerUserId)
-  if (userId === ownerUserId) throw new CalendarAccessError('SHARE_SELF', 400, 'Nu poți partaja calendarul cu tine însuți')
+  if (userId === ownerUserId) throw new CalendarAccessError('SHARE_SELF', 400, tr('errors.calendar.shareWithSelf'))
   const [target] = await db
     .select({ id: users.id })
     .from(users)
     .where(and(eq(users.id, userId), isNull(users.deletedAt)))
-  if (!target) throw new CalendarAccessError('USER_NOT_FOUND', 404, 'Utilizatorul nu mai există')
+  if (!target) throw new CalendarAccessError('USER_NOT_FOUND', 404, tr('errors.calendar.userGone'))
   const [before] = await db
     .select({ level: calendarShares.level })
     .from(calendarShares)

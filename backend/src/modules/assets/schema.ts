@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 export const SearchQuerySchema = z.object({
   q: z.string().trim().min(1).max(80),
@@ -39,7 +40,7 @@ export const ConnectBrokerBodySchema = z
     enabled: z.boolean().default(true),
   })
   .refine((v) => v.mode !== 'live' || v.apiKey !== undefined, {
-    message: 'Modul live cere o cheie API Trading212',
+    message: lazyTr('errors.trading.liveNeedsT212Key'),
     path: ['apiKey'],
   })
 
@@ -61,7 +62,7 @@ export const OrderPreviewSchema = z.object({
   quantity: z.number().positive().max(1e9),
   limitPrice: z.number().positive().optional(),
 }).refine((v) => v.type !== 'limit' || v.limitPrice !== undefined, {
-  message: 'Ordinele limit au nevoie de limitPrice',
+  message: lazyTr('errors.trading.limitNeedsPrice'),
   path: ['limitPrice'],
 })
 

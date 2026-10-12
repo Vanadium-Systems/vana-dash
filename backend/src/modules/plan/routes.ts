@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { CompleteGoalSchema, CreatePlanGoalSchema, ReorderGoalsSchema, UpdatePlanGoalSchema } from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function planRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -25,11 +26,11 @@ export async function planRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const row = await service.updateGoal(req.me, (req.params as { id: string }).id, req.body)
-        if (!row) return reply.code(404).send({ success: false, error: 'Goal inexistent' })
+        if (!row) return reply.code(404).send({ success: false, error: tr('errors.plan.goalNotFound') })
         return { success: true, data: row }
       } catch (err) {
         if (err instanceof service.ThresholdValueRequiredError) {
-          return reply.code(400).send({ success: false, error: 'thresholdValue obligatoriu pt. thresholdType=mrr_ron' })
+          return reply.code(400).send({ success: false, error: tr('errors.plan.thresholdRequired') })
         }
         throw err
       }
@@ -38,7 +39,7 @@ export async function planRoutes(app: FastifyInstance) {
 
   server.delete('/api/plan/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.deleteGoal(req.me, (req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: 'Goal inexistent' })
+    if (!row) return reply.code(404).send({ success: false, error: tr('errors.plan.goalNotFound') })
     return { success: true }
   })
 
@@ -47,7 +48,7 @@ export async function planRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: CompleteGoalSchema } },
     async (req, reply) => {
       const row = await service.setCompleted(req.me, (req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: 'Goal inexistent' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.plan.goalNotFound') })
       return { success: true, data: row }
     },
   )

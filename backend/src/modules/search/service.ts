@@ -59,7 +59,7 @@ async function searchInvoices(term: string, limit: number): Promise<SearchGroup 
     items: rows.map((r) => ({
       id: r.id,
       label: r.documentNumber ?? `#${r.id.slice(0, 8)}`,
-      sublabel: [r.direction === 'out' ? 'emisă' : 'primită', r.counterpartyName].filter(Boolean).join(' · ') || null,
+      sublabel: [r.direction === 'out' ? tr('search.invoice.issued') : tr('search.invoice.received'), r.counterpartyName].filter(Boolean).join(' · ') || null,
       to: `/accounting?tab=${r.direction === 'out' ? 'emise' : 'primite'}&record=${r.id}`,
     })),
   }

@@ -1,0 +1,20 @@
+{
+  "signals": {
+    "cpu": "Host CPU",
+    "ram": "Host RAM",
+    "containers": "Container health",
+    "failedJobs": "Failed jobs",
+    "backup": "Daily backup"
+  },
+  "details": {
+    "allHealthy": "All containers healthy",
+    "noBackupFile": "No backup file found",
+    "lastBackup": "Last backup {{hoursSince}}h ago",
+    "noDataYet": "No data yet: no ingest received",
+    "noSnapshot": "No snapshot for over 5 min: the server is off or the collector is down",
+    "failedJobs": {
+      "one": "{{count}} failed job in the last hour",
+      "other": "{{count}} failed jobs in the last hour"
+    }
+  }
+}

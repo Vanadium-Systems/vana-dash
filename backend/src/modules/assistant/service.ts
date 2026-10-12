@@ -9,6 +9,7 @@ import type { AssistantModelId } from './models.js'
 import { systemPrompt } from './system-prompt.js'
 import { repairHistory } from './history.js'
 import { toNeutralTools, buildActiveProvider, resolveModel, type AssistantProviderId } from './providers/index.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export type { AssistantModelId } from './models.js'
 
@@ -132,9 +133,9 @@ async function conversationOwner(conversationId: string) {
     .select({ ownerUserId: assistantConversations.ownerUserId })
     .from(assistantConversations)
     .where(eq(assistantConversations.id, conversationId))
-  if (!conversation?.ownerUserId) throw new Error('Conversație fără autor')
+  if (!conversation?.ownerUserId) throw new Error(tr('errors.assistant.conversationNoAuthor'))
   const user = await loadSessionUser(conversation.ownerUserId)
-  if (!user) throw new Error('Autorul conversației nu mai există')
+  if (!user) throw new Error(tr('errors.assistant.authorGone'))
   return user
 }
 
@@ -205,7 +206,7 @@ async function* driveTurn(
   // consume din plafon. Ridică și alerta de 80% la Stefan, dacă e cazul.
   await recordUsage(user, spentInputTokens, spentOutputTokens)
   if (!producedContent) {
-    yield { type: 'error', message: 'Modelul nu a trimis niciun răspuns. Încearcă din nou sau schimbă modelul.' }
+    yield { type: 'error', message: tr('errors.assistant.noAnswer') }
     return
   }
 
@@ -226,14 +227,14 @@ export async function confirmPendingAction(
     .select()
     .from(assistantPendingActions)
     .where(and(eq(assistantPendingActions.id, actionId), eq(assistantPendingActions.status, 'pending')))
-  if (!action) return { ok: false, error: 'Acțiune inexistentă sau deja procesată' }
+  if (!action) return { ok: false, error: tr('errors.assistant.actionGone') }
   if (action.expiresAt < new Date()) {
     await db.update(assistantPendingActions).set({ status: 'expired', updatedAt: new Date() }).where(eq(assistantPendingActions.id, action.id))
-    return { ok: false, error: 'Acțiune expirată' }
+    return { ok: false, error: tr('errors.assistant.actionExpired') }
   }
 
   const executor = confirmExecutors[action.toolName]
-  if (!executor) return { ok: false, error: `Tool necunoscut: ${action.toolName}` }
+  if (!executor) return { ok: false, error: tr('errors.assistant.unknownTool', { name: action.toolName }) }
 
   const user = await conversationOwner(action.conversationId)
   // Drepturile se verifică din nou aici, nu doar la înregistrare: acțiunea poate avea 15 minute,
@@ -245,7 +246,7 @@ export async function confirmPendingAction(
       .update(assistantPendingActions)
       .set({ status: 'expired', updatedAt: new Date() })
       .where(eq(assistantPendingActions.id, action.id))
-    return { ok: false, error: `Acțiunea nu mai e permisă: funcționalitatea „${feature}" nu mai e activă` }
+    return { ok: false, error: tr('errors.assistant.actionNoLongerAllowed', { feature }) }
   }
 
   let resultText: string
@@ -256,9 +257,9 @@ export async function confirmPendingAction(
       conversationId: action.conversationId,
       user,
     })
-    resultText = `Acțiune executată cu succes: ${JSON.stringify(result)}`
+    resultText = tr('errors.assistant.actionDone', { result: JSON.stringify(result) })
   } catch (err) {
-    resultText = `Acțiune eșuată: ${err instanceof Error ? err.message : String(err)}`
+    resultText = tr('errors.assistant.actionFailed', { message: err instanceof Error ? err.message : String(err) })
   }
 
   await db
@@ -288,7 +289,7 @@ export async function rejectPendingAction(
     .select()
     .from(assistantPendingActions)
     .where(and(eq(assistantPendingActions.id, actionId), eq(assistantPendingActions.status, 'pending')))
-  if (!action) return { ok: false, error: 'Acțiune inexistentă sau deja procesată' }
+  if (!action) return { ok: false, error: tr('errors.assistant.actionGone') }
 
   const author = await conversationOwner(action.conversationId)
 
@@ -304,7 +305,7 @@ export async function rejectPendingAction(
       {
         type: 'tool_result',
         tool_use_id: action.toolUseId,
-        content: `${userName(author)} a respins această acțiune. Nu o executa și nu o repeta fără să întrebe din nou.`,
+        content: tr('errors.assistant.actionRejected', { author: userName(author) }),
       },
     ],
   })

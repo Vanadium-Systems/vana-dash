@@ -6,7 +6,7 @@ import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
 import { users } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
-import { tr } from '../../shared/lib/i18n.js'
+import { tr, trFor } from '../../shared/lib/i18n.js'
 import { DISPLAY_CURRENCIES, ENABLED_LOCALES } from '../../shared/lib/locale.js'
 import { sendEmail } from '../../shared/lib/email.js'
 import { consumeUserToken, createUserToken } from '../../shared/lib/user-tokens.js'
@@ -128,7 +128,7 @@ export async function passwordRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const { email } = req.body
       const [user] = await db
-        .select({ id: users.id, email: users.email, displayName: users.displayName, status: users.status })
+        .select({ id: users.id, email: users.email, displayName: users.displayName, status: users.status, locale: users.locale })
         .from(users)
         .where(and(eq(users.email, email.toLowerCase()), isNull(users.deletedAt)))
       // Same answer whether the address has an account or not. The email goes out after the
@@ -141,15 +141,14 @@ export async function passwordRoutes(app: FastifyInstance) {
           await sendEmail({
             to: user.email,
             from: config.emailFromNoreply,
-            subject: 'Resetare parolă VanaDash',
+            subject: trFor(user.locale, 'emails.reset.subject'),
             text: [
-              'Salut,',
+              trFor(user.locale, 'emails.invite.greeting'),
               '',
-              'Pentru contul tău din VanaDash s-a cerut resetarea parolei. Alege una nouă aici:',
+              trFor(user.locale, 'emails.reset.requested'),
               link,
               '',
-              'Linkul e valabil o oră și poate fi folosit o singură dată. Dacă nu l-ai cerut tu,',
-              'ignoră-l și spune-i administratorului.',
+              trFor(user.locale, 'emails.reset.validitySelf'),
             ].join('\n'),
           })
         }

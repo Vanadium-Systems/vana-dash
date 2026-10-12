@@ -1,3 +1,4 @@
+import { tr } from '../../shared/lib/i18n.js'
 // Client Trading212 Public API (PLAN.md Track D — Wave 7) — DOAR live (broker.mode='live').
 // Trading212 nu are testnet prin API, deci paper mode nu-l atinge deloc (ordine simulate local,
 // vezi service.ts). Auth: header Authorization = cheia brută (fără prefix Bearer, per docs
@@ -13,7 +14,7 @@ async function request<T>(
   body?: Record<string, unknown>,
 ): Promise<T> {
   const url = new URL(BASE + path)
-  if (url.hostname !== ALLOWED_HOST) throw new Error(`Domeniu nepermis: ${url.hostname}`)
+  if (url.hostname !== ALLOWED_HOST) throw new Error(tr('errors.net.domainNotAllowed', { hostname: url.hostname }))
 
   const res = await fetch(url, {
     method,
@@ -21,7 +22,7 @@ async function request<T>(
     body: body ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
-  if (res.status === 429) throw new Error('Trading212 rate-limit (429) — încearcă mai târziu')
+  if (res.status === 429) throw new Error(tr('errors.net.t212RateLimit'))
   if (!res.ok) {
     const detail = await res.text().catch(() => '')
     throw new Error(`Trading212 HTTP ${res.status}: ${detail.slice(0, 200)}`)

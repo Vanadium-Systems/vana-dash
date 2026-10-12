@@ -1,6 +1,7 @@
 import { XMLParser } from 'fast-xml-parser'
 import type { AnafInvoiceDocument, SpvMessage } from '../types.js'
 import type { AnafEfacturaMessage } from './types.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Mapare răspunsuri ANAF → tipurile comune din connectors/types.ts.
 // XML-ul e-Factura e UBL 2.1 cu namespace-uri (cbc:, cac:) — le eliminăm la parsare.
@@ -128,7 +129,7 @@ export function parseUploadResponse(xml: string): { uploadId: string } {
   const uploadId = String(header['@_index_incarcare'] ?? '')
   if (executionStatus !== '0' || !uploadId) {
     const errors = JSON.stringify(header.Errors ?? header).slice(0, 500)
-    throw new Error(`ANAF upload respins (ExecutionStatus=${executionStatus}): ${errors}`)
+    throw new Error(tr('errors.anaf.uploadRejected', { executionStatus, errors }))
   }
   return { uploadId }
 }

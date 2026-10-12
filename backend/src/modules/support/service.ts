@@ -4,6 +4,8 @@ import { supportTicketReplies, supportTickets, users } from '../../shared/db/sch
 import { config } from '../../shared/config.js'
 import { sendEmail } from '../../shared/lib/email.js'
 import { notifyPush } from '../../shared/lib/push.js'
+import { textFor, tl, trFor, type LocalizedText } from '../../shared/lib/i18n.js'
+import { type Locale } from '../../shared/lib/locale.js'
 
 // Tichete de suport (PLAN.md C5). Două priviri pe aceleași rânduri: autorul își vede tichetele
 // lui (filtrul pe om e aici, lângă interogare), administratorul de platformă le vede pe toate.
@@ -115,7 +117,7 @@ export async function createTicket(userId: string, input: { subject: string; des
     .values({ createdByUserId: userId, subject: input.subject, description: input.description, page: input.page ?? null })
     .returning({ id: supportTickets.id })
   const created = await getTicket({ kind: 'author', userId }, ticket!.id)
-  await notifyPlatform(created!.author.name, created!.id, `Tichet nou: ${input.subject}`, input.description)
+  await notifyPlatform(created!.author.name, created!.id, tl('emails.support.newTicket', { subject: input.subject }), input.description)
   return created!
 }
 
@@ -146,9 +148,9 @@ export async function addReply(scope: TicketScope, authorUserId: string, id: str
 
   const fresh = await getTicket(scope, id)
   if (fromPlatform) {
-    await notifyAuthor(ticket.createdByUserId, id, `Răspuns la tichet: ${ticket.subject}`, body)
+    await notifyAuthor(ticket.createdByUserId, id, tl('emails.support.reply', { subject: ticket.subject }), body)
   } else {
-    await notifyPlatform(fresh!.author.name, id, `Răspuns la tichet: ${ticket.subject}`, body)
+    await notifyPlatform(fresh!.author.name, id, tl('emails.support.reply', { subject: ticket.subject }), body)
   }
   return fresh
 }
@@ -179,16 +181,28 @@ export async function unreadCounts(userId: string, isPlatformAdmin: boolean) {
 
 const excerpt = (text: string) => (text.length > 140 ? `${text.slice(0, 139)}…` : text)
 
-async function notify(recipients: Array<{ id: string; email: string }>, url: string, title: string, body: string, intro: string) {
+type Reader = { id: string; email: string; locale: Locale }
+
+async function notify(recipients: Reader[], url: string, title: LocalizedText, body: string, intro: LocalizedText) {
   if (recipients.length === 0) return
-  await notifyPush('suport', { title, body: excerpt(body), url, tag: `suport-${url}` }, recipients.map((r) => r.id))
+  await notifyPush(
+    'suport',
+    (locale) => ({ title: textFor(title, locale), body: excerpt(body), url, tag: `suport-${url}` }),
+    recipients.map((r) => r.id),
+  )
   for (const recipient of recipients) {
     try {
       await sendEmail({
         to: recipient.email,
         from: config.emailFromNoreply,
-        subject: title,
-        text: [intro, '', body, '', `Deschide tichetul: ${config.frontendOrigin}${url}`].join('\n'),
+        subject: textFor(title, recipient.locale),
+        text: [
+          textFor(intro, recipient.locale),
+          '',
+          body,
+          '',
+          trFor(recipient.locale, 'emails.support.openTicket', { url: `${config.frontendOrigin}${url}` }),
+        ].join('\n'),
       })
     } catch (err) {
       console.error(`[suport] emailul către ${recipient.id} nu a plecat: ${String(err)}`)
@@ -196,18 +210,18 @@ async function notify(recipients: Array<{ id: string; email: string }>, url: str
   }
 }
 
-async function notifyPlatform(authorName: string, ticketId: string, title: string, body: string) {
+async function notifyPlatform(authorName: string, ticketId: string, title: LocalizedText, body: string) {
   const admins = await db
-    .select({ id: users.id, email: users.email })
+    .select({ id: users.id, email: users.email, locale: users.locale })
     .from(users)
     .where(and(eq(users.isPlatformAdmin, true), eq(users.status, 'active'), isNull(users.deletedAt)))
-  await notify(admins, `/platform/support/${ticketId}`, title, body, `${authorName} a scris în Suport:`)
+  await notify(admins, `/platform/support/${ticketId}`, title, body, tl('emails.support.wroteInSupport', { name: authorName }))
 }
 
-async function notifyAuthor(authorUserId: string, ticketId: string, title: string, body: string) {
+async function notifyAuthor(authorUserId: string, ticketId: string, title: LocalizedText, body: string) {
   const author = await db
-    .select({ id: users.id, email: users.email })
+    .select({ id: users.id, email: users.email, locale: users.locale })
     .from(users)
     .where(and(eq(users.id, authorUserId), eq(users.status, 'active'), isNull(users.deletedAt)))
-  await notify(author, `/support/${ticketId}`, title, body, 'Ai un răspuns de la Vanadium:')
+  await notify(author, `/support/${ticketId}`, title, body, tl('emails.support.answerFromVanadium'))
 }

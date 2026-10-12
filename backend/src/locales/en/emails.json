@@ -1,1 +1,88 @@
-{}
+{
+  "alert": {
+    "accountingDetails": "Details in VanaDash → Invoices."
+  },
+  "backup": {
+    "failedSubject": "Daily backup failed",
+    "failedBody": "The backup of {{dateStamp}} failed: {{message}}"
+  },
+  "monthlyReport": {
+    "subject": "[vana-dash] Monthly report {{month}}",
+    "body": "The monthly report for {{month}} is attached (PDF).",
+    "pdf": {
+      "title": "Monthly report: {{month}}",
+      "revenue": "Revenue",
+      "expenses": "Expenses",
+      "net": "Net",
+      "mrr": "MRR",
+      "alerts": "Alerts triggered",
+      "syncRate": "Sync success rate",
+      "topCategories": "Top expense categories",
+      "total": "Total",
+      "noExpenses": "No expenses in the month"
+    }
+  },
+  "efactura": {
+    "rejectedSubject": "e-Factura rejected: {{documentNumber}}",
+    "rejectedBody1": "Invoice {{documentNumber}} was rejected by ANAF.\n",
+    "rejectedBody2": "Check the XML in VanaDash → Invoices → Issued and resend it after correcting.",
+    "pdfFailedSubject": "Invoice {{documentNumber}}: PDF generation failed",
+    "pdfFailedBody1": "Invoice {{documentNumber}} was validated by ANAF but generating the PDF failed.\n",
+    "pdfFailedBody2": "Send it to the client by hand after you solve the problem. Error: {{err}}",
+    "sendManuallySubject": "Invoice {{documentNumber}}: send it by hand",
+    "noPdfBody1": "Invoice {{documentNumber}} was validated by ANAF but the PDF could not be generated ",
+    "noPdfBody2": "(Chromium unavailable). Send it to the client by hand."
+  },
+  "monitoring": {
+    "stillRed": "System health: {{value}} still red",
+    "red": "System health: {{value}} RED",
+    "recovered": "System health: {{value}} recovered",
+    "backToGreen": "{{value}} is back to green."
+  },
+  "reminder": {
+    "subject": "[vana-dash] Reminder: {{text}}",
+    "body": "Reminder scheduled in VanaDash: {{text}}"
+  },
+  "invite": {
+    "subject": "You have been given access to VanaDash",
+    "greeting": "Hello,",
+    "greetingNamed": "Hello {{name}},",
+    "added": "You were added to the VanaDash team, the internal app of Vanadium Systems.",
+    "choosePassword": "Choose your password here, then you are in:",
+    "validity": "The link is valid for 72 hours. If you were not expecting it, ignore it; another one can be requested from the admin."
+  },
+  "reset": {
+    "subject": "VanaDash password reset",
+    "requested": "A password reset was requested for your VanaDash account. Choose a new one here:",
+    "validitySelf": "The link is valid for one hour and can be used only once. If you did not request it,\nignore it and tell the administrator.",
+    "validityByAdmin": "The link is valid for one hour and can be used only once. If you did not request it,\ntell the administrator: change the password and do not use the link."
+  },
+  "booking": {
+    "confirmedSubject": "Booking confirmed · {{label}}",
+    "greeting": "Hello {{name}},",
+    "scheduled": "The call with Vanadium Systems is scheduled for {{label}} (Romanian time), 30 minutes.",
+    "linkLater": "You will get the call link by email before the meeting.",
+    "cancelHere": "If you can no longer make it, cancel here: {{cancelUrl}}",
+    "cancelledSubject": "Booking cancelled · {{label}}",
+    "cancelledByVisitor": "The call of {{label}} is cancelled. If you want another time, you can pick one again on vanadium.systems.",
+    "cancelledByOwner": "Unfortunately I have to cancel the call of {{label}}. I will write to you separately to find another time.",
+    "icsFilename": "booking.ics"
+  },
+  "support": {
+    "newTicket": "New ticket: {{subject}}",
+    "reply": "Reply to the ticket: {{subject}}",
+    "openTicket": "Open the ticket: {{url}}",
+    "wroteInSupport": "{{name}} wrote in Support:",
+    "answerFromVanadium": "You have an answer from Vanadium:"
+  },
+  "anaf": {
+    "reauthSubject": "ANAF: re-authorization needed",
+    "reauthBody1": "The ANAF refresh token has expired or was revoked ({{reason}}).\n",
+    "reauthBody2": "Go to VanaDash → Invoices → Settings and redo the consent with the digital certificate."
+  },
+  "revolut": {
+    "reauthSubject": "Revolut: re-authorization needed",
+    "reauthBody1": "The Revolut refresh token for the account \"{{name}}\" has expired or was revoked ({{reason}}).\n",
+    "reauthBody2": "Go to VanaDash → Reconciliation → Bank account settings and redo the OAuth consent in the browser."
+  }
+}

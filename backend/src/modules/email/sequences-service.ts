@@ -7,6 +7,7 @@ import type { DrizzleTx } from '../../shared/lib/sequences.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { assertCanSendFrom } from './mailboxes.js'
 import type { EnrollSchema, SequenceCreateSchema, SequenceUpdateSchema } from './sequences-schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 type SequenceRow = typeof emailSequences.$inferSelect
 type SequenceStepRow = typeof emailSequenceSteps.$inferSelect
@@ -72,7 +73,7 @@ export async function createSequence(me: SessionUser, input: z.infer<typeof Sequ
   assertCanSendFrom(me, input.fromIdentity)
   return db.transaction(async (tx) => {
     const [sequence] = await tx.insert(emailSequences).values({ name: input.name, fromIdentity: input.fromIdentity }).returning()
-    if (!sequence) throw new Error('email_sequences insert nu a returnat nimic')
+    if (!sequence) throw new Error(tr('errors.email.sequenceInsertFailed'))
     await replaceSteps(tx, sequence.id, input.steps)
     const steps = await tx.select().from(emailSequenceSteps).where(eq(emailSequenceSteps.sequenceId, sequence.id)).orderBy(asc(emailSequenceSteps.stepOrder))
     return { ...sequence, steps }
@@ -131,7 +132,7 @@ export async function enrollRecipients(sequenceId: string, recipients: z.infer<t
     .from(emailSequenceSteps)
     .where(and(eq(emailSequenceSteps.sequenceId, sequenceId), eq(emailSequenceSteps.stepOrder, 1)))
     .limit(1)
-  if (!firstStep) throw new Error('Secvență fără niciun pas — nu poate primi înrolări')
+  if (!firstStep) throw new Error(tr('errors.email.sequenceNoSteps'))
 
   const now = new Date()
   const nextSendAt = addDays(now, firstStep.delayDays)
@@ -200,7 +201,7 @@ export async function getSequenceStats(sequenceId: string): Promise<SequenceStat
 
   const countByStep = new Map(stepRows.map((r) => [r.step, r.count]))
   const byStep = [
-    { step: 0, label: 'Neîncepuți', count: countByStep.get(0) ?? 0 },
+    { step: 0, label: tr('errors.email.notStarted'), count: countByStep.get(0) ?? 0 },
     ...steps.map((s) => ({ step: s.stepOrder, label: `Pas ${s.stepOrder}`, count: countByStep.get(s.stepOrder) ?? 0 })),
   ]
 

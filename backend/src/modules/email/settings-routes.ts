@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { EmailSettingsUpdateSchema, LogoUploadSchema } from './settings-schema.js'
 import * as settings from './settings-service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function emailSettingsRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -37,7 +38,7 @@ export async function emailSettingsRoutes(app: FastifyInstance) {
   // SVG case: opened directly in a tab, an SVG is a document on this origin and could run script.
   server.get('/api/email/settings/logo', async (_req, reply) => {
     const logo = await settings.getLogoFile()
-    if (!logo) return reply.code(404).send({ success: false, error: 'Logo neconfigurat' })
+    if (!logo) return reply.code(404).send({ success: false, error: tr('errors.email.logoNotConfigured') })
     return reply.header('Content-Security-Policy', "sandbox; default-src 'none'").type(logo.contentType).send(logo.buffer)
   })
 }

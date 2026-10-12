@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 const condition = z.enum(['lt', 'lte', 'gt', 'gte'])
 const severity = z.enum(['info', 'warning', 'critical'])
@@ -10,7 +11,7 @@ export const CreateAlertRuleSchema = z.object({
     .trim()
     .min(1)
     .refine((v) => !v.startsWith('accounting.'), {
-      message: 'Namespace-ul accounting.* e rezervat motorului de alerte existent',
+      message: lazyTr('errors.alerts.reservedNamespace'),
     }),
   condition,
   threshold: z.number(),

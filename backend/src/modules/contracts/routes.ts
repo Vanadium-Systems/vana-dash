@@ -16,6 +16,7 @@ import {
   SignatureRectSchema,
 } from './schema.js'
 import { ContractTermsUpdateSchema, TemplateKeyParamsSchema, TemplateUpdateSchema } from './templates-schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 const MAX_SIGNED_PDF_SIZE = 50 * 1024 * 1024 // 50MB — document contractual, nu streaming
 
@@ -70,7 +71,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema, body: MarkDocumentSignedSchema } },
     async (req, reply) => {
       const row = await service.markDocumentSigned(req.params.id, req.body.isSigned)
-      if (!row) return reply.code(404).send({ success: false, error: 'Document inexistent' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.contracts.documentNotFound') })
       return { success: true, data: row }
     },
   )
@@ -80,7 +81,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema } },
     async (req, reply) => {
       const doc = await service.getDocument(req.params.id)
-      if (!doc) return reply.code(404).send({ success: false, error: 'Document inexistent' })
+      if (!doc) return reply.code(404).send({ success: false, error: tr('errors.contracts.documentNotFound') })
       const content = await readDocument(doc.pdfStoragePath)
       reply.header('Content-Disposition', `attachment; filename="${doc.docType}_${doc.id.slice(0, 8)}.pdf"`)
       return reply.type('application/pdf').send(content)
@@ -207,7 +208,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema, body: SignatureRectSchema } },
     async (req, reply) => {
       const row = await service.saveSignatureRect(req.params.id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: 'Document inexistent' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.contracts.documentNotFound') })
       return { success: true, data: row }
     },
   )
@@ -231,13 +232,13 @@ export async function contractsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema } },
     async (req, reply) => {
       const data = await req.file()
-      if (!data) return reply.code(400).send({ success: false, error: 'Fișier lipsă' })
+      if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
       if (data.mimetype !== 'application/pdf') {
-        return reply.code(400).send({ success: false, error: 'Doar fișiere PDF' })
+        return reply.code(400).send({ success: false, error: tr('errors.contracts.pdfOnly') })
       }
       const buffer = await data.toBuffer()
       if (data.file.truncated) {
-        return reply.code(413).send({ success: false, error: 'Fișier prea mare (peste 50MB)' })
+        return reply.code(413).send({ success: false, error: tr('errors.contracts.fileTooLarge') })
       }
       try {
         const row = await service.uploadSignedDocument(req.params.id, buffer)

@@ -10,6 +10,7 @@ import {
 } from './sequences-schema.js'
 import { MailboxForbidden } from './mailboxes.js'
 import * as service from './sequences-service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Rute Secvențe outreach (drip automat) — contractul fixat în PLAN.md, montat separat de
 // routes.ts (templates/send/bulk-send/sends), pattern identic inbound-routes.ts/drafts-routes.ts.
@@ -50,7 +51,7 @@ export async function emailSequencesRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const row = await service.updateSequence(req.me, req.params.id, req.body)
-        if (!row) return reply.code(404).send({ success: false, error: 'Secvență inexistentă' })
+        if (!row) return reply.code(404).send({ success: false, error: tr('errors.email.sequenceNotFound') })
         return { success: true, data: row }
       } catch (err) {
         const refuz = onMailboxError(err, reply)
@@ -65,7 +66,7 @@ export async function emailSequencesRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: SequenceIdParamsSchema } },
     async (req, reply) => {
       const deleted = await service.softDeleteSequence(req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Secvență inexistentă' })
+      if (!deleted) return reply.code(404).send({ success: false, error: tr('errors.email.sequenceNotFound') })
       return { success: true }
     },
   )
@@ -104,7 +105,7 @@ export async function emailSequencesRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: SequenceEnrollmentIdParamsSchema, body: EnrollmentUpdateSchema } },
     async (req, reply) => {
       const row = await service.updateEnrollmentStatus(req.params.id, req.params.enrollmentId, req.body.status)
-      if (!row) return reply.code(404).send({ success: false, error: 'Înrolare inexistentă' })
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.email.enrollmentNotFound') })
       return { success: true, data: row }
     },
   )

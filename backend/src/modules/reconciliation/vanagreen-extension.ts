@@ -17,6 +17,7 @@ import type { PlatformConfig } from '../../connectors/types.js'
 import { db } from '../../shared/db/client.js'
 import { billingClients, dashboardConfig, platforms, vanagreenExtensionLog } from '../../shared/db/schema/index.js'
 import { decryptApiKey } from '../../shared/lib/crypto.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Sprint C, Track B: la o plată confirmată (auto-match bancar SAU mark-as-paid manual),
 // dacă billing_client-ul e mapat la un tenant vanagreen, extinde abonamentul acolo.
@@ -140,7 +141,7 @@ export async function maybeExtendSubscription(input: MaybeExtendInput): Promise<
         sourceId: input.sourceId,
         months: client.vanagreenExtendMonths,
         status: 'success',
-        responseMessage: 'dry-run — toggle-ul de extindere automată e OFF',
+        responseMessage: tr('errors.reconciliation.dryRun'),
       })
       .onConflictDoNothing({ target: [vanagreenExtensionLog.source, vanagreenExtensionLog.sourceId] })
     return
@@ -355,7 +356,7 @@ export async function pushBillingCycleIfMapped(client: typeof billingClients.$in
 export async function createVanagreenTenantForClient(slug: string, name: string): Promise<CreateVanagreenTenantResult> {
   const config = await getVanagreenPlatformConfig()
   if (!config) {
-    return { ok: false, status: 0, code: 'PLATFORM_NOT_CONFIGURED', message: 'Platforma vanagreen nu e configurată în Platforme' }
+    return { ok: false, status: 0, code: 'PLATFORM_NOT_CONFIGURED', message: tr('errors.reconciliation.vanagreenNotConfigured') }
   }
   return createVanagreenTenant(config, slug, name)
 }

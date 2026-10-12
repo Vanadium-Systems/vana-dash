@@ -11,6 +11,8 @@ import type {
   PeriodComparisonQuerySchema,
 } from './schema.js'
 import type { z } from 'zod'
+import { tr } from '../../shared/lib/i18n.js'
+import { currentLocale } from '../../shared/lib/request-context.js'
 
 const CLIENT_TREND_METRIC_KEYS = ['active_clients', 'vanagreen.demo_clients'] as const
 
@@ -180,7 +182,7 @@ function renderMonthlySnapshotHtml(snapshot: Awaited<ReturnType<typeof getMonthl
     .join('')
 
   return `<!doctype html>
-<html lang="ro">
+<html lang="${currentLocale()}">
 <head>
 <meta charset="utf-8">
 <style>
@@ -197,20 +199,20 @@ function renderMonthlySnapshotHtml(snapshot: Awaited<ReturnType<typeof getMonthl
 </style>
 </head>
 <body>
-  <h1>Raport lunar — ${snapshot.month}</h1>
+  <h1>${tr('emails.monthlyReport.pdf.title', { month: snapshot.month })}</h1>
   <div class="kpis">
-    <div class="kpi"><div class="label">Venit</div><div class="value">${money(snapshot.revenue)}</div></div>
-    <div class="kpi"><div class="label">Cheltuieli</div><div class="value">${money(snapshot.expense)}</div></div>
-    <div class="kpi"><div class="label">Net</div><div class="value">${money(snapshot.net)}</div></div>
-    <div class="kpi"><div class="label">MRR</div><div class="value">${money(snapshot.mrr.mrrLei)}</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.revenue')}</div><div class="value">${money(snapshot.revenue)}</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.expenses')}</div><div class="value">${money(snapshot.expense)}</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.net')}</div><div class="value">${money(snapshot.net)}</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.mrr')}</div><div class="value">${money(snapshot.mrr.mrrLei)}</div></div>
   </div>
   <div class="kpis">
-    <div class="kpi"><div class="label">Alerte declanșate</div><div class="value">${snapshot.alertsTriggered}</div></div>
-    <div class="kpi"><div class="label">Rată succes sync-uri</div><div class="value">${snapshot.syncSuccessRate}%</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.alerts')}</div><div class="value">${snapshot.alertsTriggered}</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.syncRate')}</div><div class="value">${snapshot.syncSuccessRate}%</div></div>
   </div>
   <table>
-    <thead><tr><th>Top categorii cheltuieli</th><th class="num">Total</th></tr></thead>
-    <tbody>${categoryRows || '<tr><td colspan="2">Fără cheltuieli în lună</td></tr>'}</tbody>
+    <thead><tr><th>${tr('emails.monthlyReport.pdf.topCategories')}</th><th class="num">${tr('emails.monthlyReport.pdf.total')}</th></tr></thead>
+    <tbody>${categoryRows || `<tr><td colspan="2">${tr('emails.monthlyReport.pdf.noExpenses')}</td></tr>`}</tbody>
   </table>
 </body>
 </html>`

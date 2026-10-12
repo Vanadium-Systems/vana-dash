@@ -1,6 +1,7 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
-const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Ora în format HH:mm')
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, lazyTr('errors.booking.timeFormat'))
 
 export const BookingSettingsSchema = z
   .object({
@@ -13,7 +14,7 @@ export const BookingSettingsSchema = z
     weekly: z
       .array(z.object({ weekday: z.number().int().min(1).max(7), start: hhmm, end: hhmm }))
       .max(28)
-      .refine((windows) => windows.every((w) => w.start < w.end), 'Fiecare interval trebuie să se termine după ce începe'),
+      .refine((windows) => windows.every((w) => w.start < w.end), lazyTr('errors.booking.eachIntervalEndsAfterStart')),
   })
   .strict()
 export type BookingSettings = z.infer<typeof BookingSettingsSchema>
@@ -61,6 +62,6 @@ export const BlockBodySchema = z
     endAt: z.coerce.date(),
     reason: z.string().trim().max(200).optional(),
   })
-  .refine((v) => v.endAt > v.startAt, { message: 'Intervalul trebuie să se termine după ce începe', path: ['endAt'] })
+  .refine((v) => v.endAt > v.startAt, { message: lazyTr('errors.booking.intervalEndsAfterStart'), path: ['endAt'] })
 
 export const IdParamsSchema = z.object({ id: z.string().uuid() })

@@ -2,6 +2,8 @@ import { and, eq, isNull, sql, type SQL } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { archiveFolderShares, archiveFolders, users } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
+import { config } from '../../shared/config.js'
+import { tr, trFor } from '../../shared/lib/i18n.js'
 
 // Accesul pe un folder (PLAN.md C2, „Arhivă și calendar per om"): dreptul se ține pe folder și
 // se moștenește în subarbore. Trei surse, toate luate în calcul într-o singură interogare:
@@ -104,7 +106,7 @@ export async function folderAccessLevel(me: SessionUser, folderId: string): Prom
  * `arhiva.view` n-ar avea cine să-i creeze spațiul).
  */
 function spaceRootName(user: { displayName: string | null; email: string }) {
-  return `Spațiul lui ${user.displayName ?? user.email.split('@')[0]}`
+  return trFor(config.defaultLocale, 'errors.archive.spaceName', { name: user.displayName ?? user.email.split('@')[0] })
 }
 
 async function findOrCreateRoot(owner: { id: string; displayName: string | null; email: string }) {
@@ -120,7 +122,7 @@ async function findOrCreateRoot(owner: { id: string; displayName: string | null;
     .insert(archiveFolders)
     .values({ name: spaceRootName(owner), ownerUserId: owner.id })
     .returning({ id: archiveFolders.id, ownerUserId: archiveFolders.ownerUserId })
-  if (!created) throw new Error('Nu am putut crea spațiul de arhivă')
+  if (!created) throw new Error(tr('errors.archive.spaceNotCreated'))
   return created
 }
 
@@ -145,7 +147,7 @@ export async function systemArchiveRoot(): Promise<string> {
     .select({ id: users.id, displayName: users.displayName, email: users.email })
     .from(users)
     .where(and(eq(users.isPlatformAdmin, true), isNull(users.deletedAt)))
-  if (!owner) throw new Error('Nu există contul de administrator de platformă')
+  if (!owner) throw new Error(tr('errors.archive.noPlatformAdmin'))
   return (await findOrCreateRoot(owner)).id
 }
 

@@ -5,5 +5,9 @@
     "email": "Email",
     "archive": "Arhivă",
     "calendar": "Calendar"
+  },
+  "invoice": {
+    "issued": "emisă",
+    "received": "primită"
   }
 }

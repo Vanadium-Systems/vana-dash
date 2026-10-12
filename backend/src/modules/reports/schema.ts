@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lazyTr } from '../../shared/lib/i18n.js'
 
 export const MrrTrendQuerySchema = z.object({
   from: z.coerce.date(),
@@ -18,5 +19,5 @@ export const ExpenseBreakdownTrendQuerySchema = z.object({
 })
 
 export const MonthlySnapshotQuerySchema = z.object({
-  month: z.string().regex(/^\d{4}-\d{2}$/, 'Format așteptat: YYYY-MM'),
+  month: z.string().regex(/^\d{4}-\d{2}$/, lazyTr('errors.accounting.expectedMonthFormat')),
 })
