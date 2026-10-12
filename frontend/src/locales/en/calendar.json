@@ -1,0 +1,133 @@
+{
+  "booking": {
+    "blocks": {
+      "unblocked": "Time slot unblocked",
+      "unblockFailed": "The time slot was not unblocked. Try again.",
+      "title": "Blocked time slots",
+      "none": "No blocked time slot.",
+      "unblock": "Unblock the time slot",
+      "blocked": "Time slot blocked",
+      "saveFailed": "The time slot was not saved. Try again."
+    },
+    "undo": "Undo",
+    "fromSite": "Bookings from the site",
+    "off": "Off: vanadium.systems shows no times.",
+    "noFreeSlot": "No free slot in the next 14 days.",
+    "upcoming": "Upcoming bookings",
+    "loadFailed": "The bookings did not load.",
+    "none": "No booking.",
+    "endAfterStart": "The end time must be after the start time.",
+    "day": "Day",
+    "reasonOptional": "Reason (optional)",
+    "schedule": {
+      "saved": "The booking schedule is saved",
+      "saveFailed": "The schedule was not saved. Your values are still in the form.",
+      "durationRange": "The duration is between 15 and 120 minutes",
+      "bufferRange": "The break is between 0 and 60 minutes",
+      "noticeRange": "The notice is between 0 and 168 hours",
+      "horizonRange": "The horizon is between 1 and 60 days",
+      "dayEndAfterStart": "{{value}}: the end time must be after the start time",
+      "title": "Schedule",
+      "showOnSite": "Show the free times on vanadium.systems",
+      "dayFrom": "{{value}} from",
+      "dayUntil": "{{value}} until",
+      "duration": "Duration (min)",
+      "buffer": "Break (min)",
+      "notice": "Notice (hours)",
+      "horizon": "Horizon (days)",
+      "save": "Save the schedule"
+    },
+    "cancelled": "The booking is cancelled",
+    "cancelFailed": "The booking was not cancelled. Try again.",
+    "anonymizedVisitor": "Anonymized visitor",
+    "call": "Call · {{who}}",
+    "statusConfirmed": "Confirmed",
+    "statusCancelled": "Cancelled",
+    "cancelSilentTitle": "Cancel the call with {{who}} without an email",
+    "cancelSilentBody": "For fake bookings: the time is freed, the visitor is not told.",
+    "cancelSilent": "Cancel without an email",
+    "cancelTitle": "Cancel the call with {{who}}",
+    "cancelBody": "The event disappears from the calendar and the visitor gets a cancellation email.",
+    "cancel": "Cancel the booking",
+    "short": "Bookings",
+    "siteBooking": "Booking from the site",
+    "nextSlot": "Next free slot: {{slot}} · {{free}} in 14 days",
+    "freeSlots_one": "{{count}} free slot",
+    "freeSlots_other": "{{count}} free slots"
+  },
+  "toasts": {
+    "accessSaved": "Access saved",
+    "accessRemoved": "Access removed",
+    "eventMoved": "Event moved",
+    "recurringExpenseHint": "Recurring expense: edit it from Invoices → Received",
+    "eventUpdated": "Event updated",
+    "eventCreated": "Event created",
+    "blockedForBookings": "Time slot blocked for bookings",
+    "blockFailed": "The time slot was not blocked. Try again.",
+    "eventDeleted": "Event deleted"
+  },
+  "view": {
+    "week": "Week",
+    "month": "Month"
+  },
+  "event": {
+    "newTitle": "New event",
+    "editTitle": "Edit the event",
+    "sharedCreatedBy": "Shared event, created by {{ownerName}}",
+    "inCalendarOf": "In the calendar of {{ownerName}}",
+    "readOnly": " · read only",
+    "start": "Start",
+    "end": "End",
+    "location": "Location",
+    "recurrence": "Recurrence",
+    "noRecurrence": "No recurrence",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "days": "Days",
+    "recurrenceUntil": "Recurrence until (optional)",
+    "reminder": "Reminder",
+    "reminderNone": "None",
+    "reminder5": "5 minutes before",
+    "reminder15": "15 minutes before",
+    "reminder30": "30 minutes before",
+    "reminder60": "60 minutes before",
+    "attendeesOptional": "Attendees (optional)",
+    "wholeTeam": "The whole team",
+    "nobodyElse": "Nobody else is on the team.",
+    "attendeesHint": "The event also shows up in their calendar.",
+    "attendees": "Attendees",
+    "color": "Color",
+    "deleteTitle": "Delete the event “{{title}}”",
+    "deleteRecurringBody": "All its repetitions are deleted.",
+    "deleteConfirm": "Delete the event",
+    "blockOnlyHint": "Take the time slot out of the times on the site, without creating an event",
+    "blockOnly": "Only block for bookings"
+  },
+  "nav": {
+    "previousWeek": "Previous week",
+    "previousMonth": "Previous month",
+    "today": "Today",
+    "nextWeek": "Next week",
+    "nextMonth": "Next month"
+  },
+  "layers": {
+    "shown": "Calendars shown",
+    "mine": "My calendar",
+    "viewOnly": "(can view)",
+    "calendarOf": "Calendar of {{name}}"
+  },
+  "loadFailed": "The calendar did not load.",
+  "share": {
+    "title": "Share the calendar",
+    "description": "Whoever gets “Can view” sees your whole calendar. With “Can edit” they can also add or move events, but cannot pass it on."
+  },
+  "month": {
+    "more": "+{{count}} more"
+  },
+  "week": {
+    "blockedForBookings": "Blocked for bookings",
+    "allDay": "all day",
+    "blocked": "Blocked",
+    "blockedWithReason": "Blocked · {{reason}}"
+  }
+}

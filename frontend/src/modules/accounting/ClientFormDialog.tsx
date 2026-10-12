@@ -10,6 +10,7 @@ import { api } from '@/shared/lib/api'
 import type { AnafCompanyInfo, BillingClient, ContractDetails, Platform, PricingConfigRow, ReservedContractNumber, VanagreenTenant } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface ClientFormDialogProps {
   open: boolean
@@ -75,7 +76,7 @@ export function contractNumberConflict(
   const owner = (clients ?? []).find(
     (c) => c.id !== currentClientId && /^\d+$/.test(c.contractDetails?.nrContract?.trim() ?? '') && parseInt(c.contractDetails!.nrContract!, 10) === n,
   )
-  return owner ? `${label} e deja folosit la ${owner.name}` : null
+  return owner ? t('accounting:clientForm.alreadyUsed', { label, name: owner.name }) : null
 }
 
 export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialogProps) {
@@ -265,15 +266,15 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
   })
 
   // Odată ales, arătăm numele (nu id-ul brut) ca și confirmare vizuală a selecției.
-  const selectedTenant = vanagreenTenants.data?.find((t) => t.id === vanagreenTenantId)
+  const selectedTenant = vanagreenTenants.data?.find((tenant) => tenant.id === vanagreenTenantId)
 
   // Căutare client-side, capată la 8 rezultate — cu 100+ clienți vanagreen, o listă plată
   // nefiltrată devine imposibil de răsfoit manual (semnalat de Stefan). Tastarea îngustează.
   const filteredTenants = sortedTenants
-    .filter((t) => {
+    .filter((tenant) => {
       const q = tenantSearch.trim().toLowerCase()
       if (!q) return true
-      return t.name.toLowerCase().includes(q) || (t.cif ?? '').toLowerCase().includes(q)
+      return tenant.name.toLowerCase().includes(q) || (tenant.cif ?? '').toLowerCase().includes(q)
     })
     .slice(0, 8)
 
@@ -281,8 +282,8 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
     mutationFn: () =>
       api.post<{ exists: boolean }>('/api/reconciliation/vanagreen-tenants/verify', { tenantId: vanagreenTenantId }),
     onSuccess: ({ exists }) => {
-      if (exists) toast.success('Tenant găsit în vanagreen')
-      else toast.error('Niciun tenant vanagreen cu acest id')
+      if (exists) toast.success(t('accounting:clientForm.tenantFound'))
+      else toast.error(t('accounting:clientForm.tenantNotFound'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -299,8 +300,8 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
         city: info.address.locality ?? f.city,
         county: info.address.county ?? f.county,
       }))
-      if (info.stare !== 'activ') toast.warning(`Firmă găsită, dar stare ANAF: ${info.stare}`)
-      else toast.success('Date completate din ANAF')
+      if (info.stare !== 'activ') toast.warning(t('accounting:clientForm.anafFoundWithState', { stare: info.stare }))
+      else toast.success(t('accounting:clientForm.anafFilled'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -349,7 +350,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
-      toast.success(client ? 'Client actualizat' : 'Client adăugat')
+      toast.success(client ? t('accounting:clientForm.updated') : t('accounting:clientForm.added'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -361,7 +362,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{client ? 'Editează clientul' : 'Adaugă client'}</DialogTitle>
+          <DialogTitle>{client ? t('accounting:clientForm.editTitle') : t('accounting:clients.add')}</DialogTitle>
           <EntityHistory entityType="billing_client" entityId={client?.id} />
         </DialogHeader>
         <form
@@ -373,26 +374,26 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
         >
           {client?.needsBillingInfo && (
             <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning dark:bg-transparent">
-              <p className="font-medium">Client creat automat din VanaGreen — completează datele de facturare.</p>
+              <p className="font-medium">{t('accounting:clientForm.autoCreatedHint')}</p>
               <label className="mt-2 flex items-center gap-2">
                 <input type="checkbox" checked={needsBillingInfo} onChange={(e) => setNeedsBillingInfo(e.target.checked)} />
-                Marchează încă „date incomplete" (debifează la salvare dacă ai completat tot)
+                {t('accounting:clientForm.keepIncomplete')}
               </label>
             </div>
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="c-name">Denumire</Label>
+              <Label htmlFor="c-name">{t('accounting:clientForm.name')}</Label>
               <Input id="c-name" value={form.name} onChange={set('name')} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="c-slug">Slug</Label>
-              <Input id="c-slug" value={form.slug} onChange={set('slug')} placeholder="auto din denumire dacă lași gol" />
+              <Label htmlFor="c-slug">{t('accounting:clientForm.slug')}</Label>
+              <Input id="c-slug" value={form.slug} onChange={set('slug')} placeholder={t('accounting:clientForm.slugPlaceholder')} />
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="c-cif">CIF</Label>
+              <Label htmlFor="c-cif">{t('common:labels.cif')}</Label>
               <div className="flex gap-2">
                 <Input id="c-cif" value={form.cif} onChange={set('cif')} required />
                 <Button
@@ -401,51 +402,51 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                   disabled={!form.cif || anafLookup.isPending}
                   onClick={() => anafLookup.mutate()}
                 >
-                  {anafLookup.isPending ? 'Caut…' : 'Caută la ANAF'}
+                  {anafLookup.isPending ? t('accounting:clientForm.anafSearching') : t('accounting:clientForm.anafSearch')}
                 </Button>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="c-regcom">Reg. Com. (opțional)</Label>
+              <Label htmlFor="c-regcom">{t('accounting:clientForm.regCom')}</Label>
               <Input id="c-regcom" value={form.regCom} onChange={set('regCom')} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="c-address">Adresă</Label>
+            <Label htmlFor="c-address">{t('common:labels.address')}</Label>
             <Input id="c-address" value={form.address} onChange={set('address')} required />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="c-city">Oraș</Label>
+              <Label htmlFor="c-city">{t('common:labels.city')}</Label>
               <Input id="c-city" value={form.city} onChange={set('city')} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="c-county">Județ</Label>
+              <Label htmlFor="c-county">{t('common:labels.county')}</Label>
               <Input id="c-county" value={form.county} onChange={set('county')} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="c-email">Email</Label>
+              <Label htmlFor="c-email">{t('common:labels.email')}</Label>
               <Input id="c-email" type="email" value={form.email} onChange={set('email')} />
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="c-iban">IBAN (pt. matching)</Label>
+              <Label htmlFor="c-iban">{t('accounting:clientForm.iban')}</Label>
               <Input id="c-iban" value={form.iban} onChange={set('iban')} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="c-bank">Bancă</Label>
+              <Label htmlFor="c-bank">{t('accounting:clientForm.bank')}</Label>
               <Input id="c-bank" value={form.bank} onChange={set('bank')} />
             </div>
           </div>
-          <div className="space-y-2 border-t pt-4">
-            <Label htmlFor="c-platform">Aplicație integrată (opțional)</Label>
+          <div className="space-y-2 border-tenant pt-4">
+            <Label htmlFor="c-platform">{t('accounting:clientForm.integratedApp')}</Label>
             <Select
               id="c-platform"
               value={platformId}
               onChange={(e) => setPlatformId(e.target.value)}
             >
-              <option value="">— nicio platformă (facturare strict manuală) —</option>
+              <option value="">{t('accounting:clientForm.noPlatform')}</option>
               {(platforms.data ?? []).map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -453,12 +454,12 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
               ))}
             </Select>
             <p className="text-xs text-muted-foreground">
-              Determină ce template-uri de factură (Pricing → Template-uri) sunt disponibile pentru acest client.
+              {t('accounting:clientForm.platformHint')}
             </p>
           </div>
 
-          <div className="space-y-3 border-t pt-4">
-            <Label className="text-sm font-semibold">Vanagreen (opțional)</Label>
+          <div className="space-y-3 border-tenant pt-4">
+            <Label className="text-sm font-semibold">{t('accounting:clientForm.vanagreen')}</Label>
             {!client && (
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -469,11 +470,11 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                     if (e.target.checked) setVanagreenTenantId('')
                   }}
                 />
-                Creează și în VanaGreen (tenant nou, folosește slug-ul de mai sus)
+                {t('accounting:clientForm.createInVanagreen')}
               </label>
             )}
             <div className="space-y-2">
-              <Label htmlFor="c-vanagreen-search">Sugestie tenant existent</Label>
+              <Label htmlFor="c-vanagreen-search">{t('accounting:clientForm.tenantSuggestion')}</Label>
               {selectedTenant ? (
                 <div className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm">
                   <span>
@@ -488,7 +489,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                       setTenantSearch('')
                     }}
                   >
-                    Schimbă
+                    {t('accounting:clientForm.change')}
                   </Button>
                 </div>
               ) : (
@@ -502,29 +503,29 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                     }}
                     onFocus={() => setTenantDropdownOpen(true)}
                     onBlur={() => setTimeout(() => setTenantDropdownOpen(false), 150)}
-                    placeholder="Caută după nume sau CIF…"
+                    placeholder={t('accounting:clientForm.searchByNameOrCif')}
                     disabled={createInVanagreen}
                   />
                   {tenantDropdownOpen && !createInVanagreen && (
                     <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-input bg-popover shadow-md">
                       {filteredTenants.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">Niciun rezultat</div>
+                        <div className="px-3 py-2 text-sm text-muted-foreground">{t('accounting:clientForm.noResult')}</div>
                       ) : (
-                        filteredTenants.map((t) => (
+                        filteredTenants.map((tenant) => (
                           <button
-                            key={t.id}
+                            key={tenant.id}
                             type="button"
                             className="block w-full px-3 py-2 text-left text-sm hover:bg-accent"
                             // onMouseDown (nu onClick) — se declanșează ÎNAINTE de onBlur-ul
                             // input-ului, altfel dropdown-ul se închide înainte să înregistrăm click-ul.
                             onMouseDown={(e) => {
                               e.preventDefault()
-                              setVanagreenTenantId(t.id)
+                              setVanagreenTenantId(tenant.id)
                               setTenantSearch('')
                               setTenantDropdownOpen(false)
                             }}
                           >
-                            {t.name} {t.cif ? `(${t.cif})` : ''}
+                            {tenant.name} {tenant.cif ? `(${tenant.cif})` : ''}
                           </button>
                         ))
                       )}
@@ -535,12 +536,12 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
             </div>
             <div className="flex flex-wrap items-end gap-2">
               <div className="flex-1 space-y-2">
-                <Label htmlFor="c-vanagreen-id">Tenant ID vanagreen (existent)</Label>
+                <Label htmlFor="c-vanagreen-id">{t('accounting:clientForm.tenantId')}</Label>
                 <Input
                   id="c-vanagreen-id"
                   value={vanagreenTenantId}
                   onChange={(e) => setVanagreenTenantId(e.target.value)}
-                  placeholder="uuid tenant din vanagreen"
+                  placeholder={t('accounting:clientForm.tenantIdPlaceholder')}
                   disabled={createInVanagreen}
                 />
               </div>
@@ -550,38 +551,38 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                 disabled={!vanagreenTenantId || createInVanagreen || verifyTenant.isPending}
                 onClick={() => verifyTenant.mutate()}
               >
-                Verifică
+                {t('accounting:clientForm.verify')}
               </Button>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="c-extend-months">Luni de extins la o plată confirmată</Label>
+              <Label htmlFor="c-extend-months">{t('accounting:clientForm.monthsToExtend')}</Label>
               <Input
                 id="c-extend-months"
                 inputMode="numeric"
                 value={vanagreenExtendMonths}
                 onChange={(e) => setVanagreenExtendMonths(e.target.value)}
-                placeholder="ex: 1"
+                placeholder={t('accounting:clientForm.monthsPlaceholder')}
               />
             </div>
           </div>
 
-          <div className="space-y-3 border-t pt-4">
-            <Label className="text-sm font-semibold">Cadență facturare (opțional)</Label>
+          <div className="space-y-3 border-tenant pt-4">
+            <Label className="text-sm font-semibold">{t('accounting:clientForm.billingCadence')}</Label>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="c-cycle-type">Tip</Label>
+                <Label htmlFor="c-cycle-type">{t('common:labels.type')}</Label>
                 <Select
                   id="c-cycle-type"
                   value={billingCycle}
                   onChange={(e) => setBillingCycle(e.target.value as '' | 'monthly' | 'annual')}
                 >
-                  <option value="">Fără (dată fixă, fără rostogolire)</option>
-                  <option value="monthly">Lunar</option>
-                  <option value="annual">Anual</option>
+                  <option value="">{t('accounting:clientForm.cadenceNone')}</option>
+                  <option value="monthly">{t('common:labels.monthly')}</option>
+                  <option value="annual">{t('common:labels.yearly')}</option>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="c-cycle-day">Ziua din lună</Label>
+                <Label htmlFor="c-cycle-day">{t('accounting:clientForm.dayOfMonth')}</Label>
                 <Input
                   id="c-cycle-day"
                   inputMode="numeric"
@@ -592,7 +593,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
               </div>
               {billingCycle === 'annual' && (
                 <div className="space-y-2">
-                  <Label htmlFor="c-cycle-month">Luna</Label>
+                  <Label htmlFor="c-cycle-month">{t('common:labels.month')}</Label>
                   <Input
                     id="c-cycle-month"
                     inputMode="numeric"
@@ -603,41 +604,40 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="c-due-date">Scadență curentă</Label>
+              <Label htmlFor="c-due-date">{t('accounting:clientForm.currentDueDate')}</Label>
               <Input id="c-due-date" type="date" value={billingDueDate} onChange={(e) => setBillingDueDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="c-payment-terms">Termen de plată (zile, excepție)</Label>
+              <Label htmlFor="c-payment-terms">{t('accounting:clientForm.paymentTerm')}</Label>
               <Input
                 id="c-payment-terms"
                 inputMode="numeric"
                 value={paymentTermsDays}
                 onChange={(e) => setPaymentTermsDays(e.target.value)}
-                placeholder="implicit din setări"
+                placeholder={t('accounting:clientForm.paymentTermPlaceholder')}
               />
               <p className="text-xs text-muted-foreground">
-                Scadența facturii (issuedAt + acest termen). Gol = folosește default-ul global (Setări → Secvență).
-                Setează doar dacă acest client are un contract cu termen diferit.
+                {t('accounting:clientForm.paymentTermHint')}
               </p>
             </div>
           </div>
 
-          <div className="space-y-3 border-t pt-4">
-            <Label className="text-sm font-semibold">Facturare automată (opțional)</Label>
+          <div className="space-y-3 border-tenant pt-4">
+            <Label className="text-sm font-semibold">{t('accounting:clientForm.autoBilling')}</Label>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="c-price-currency">Monedă preț abonament</Label>
+                <Label htmlFor="c-price-currency">{t('accounting:clientForm.subscriptionCurrency')}</Label>
                 <Select
                   id="c-price-currency"
                   value={subscriptionPriceCurrency}
                   onChange={(e) => setSubscriptionPriceCurrency(e.target.value as 'lei' | 'eur')}
                 >
-                  <option value="lei">Lei (RON)</option>
+                  <option value="lei">{t('accounting:clientForm.currencyRon')}</option>
                   <option value="eur">EUR</option>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="c-price-amount">Preț abonament</Label>
+                <Label htmlFor="c-price-amount">{t('accounting:clientForm.subscriptionPrice')}</Label>
                 <Input
                   id="c-price-amount"
                   inputMode="decimal"
@@ -653,27 +653,27 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                 onChange={(e) => setAutoInvoiceEnabled(e.target.checked)}
                 disabled={!vanagreenTenantId}
               />
-              Emite factura automat la scadența de mai sus (cere tenant mapat mai sus)
+              {t('accounting:clientForm.autoIssue')}
             </label>
           </div>
 
-          <div className="space-y-3 border-t pt-4">
-            <Label className="text-sm font-semibold">Date contract (opțional, pt. tab Contracte)</Label>
+          <div className="space-y-3 border-tenant pt-4">
+            <Label className="text-sm font-semibold">{t('accounting:clientForm.contractData')}</Label>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="ct-contact-name">Reprezentant client</Label>
-                <Input id="ct-contact-name" value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="ex: Ion Popescu" />
+                <Label htmlFor="ct-contact-name">{t('accounting:contract.fields.representative')}</Label>
+                <Input id="ct-contact-name" value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder={t('accounting:clientForm.representativePlaceholder')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-contact-title">Funcție reprezentant</Label>
-                <Input id="ct-contact-title" value={contactTitle} onChange={(e) => setContactTitle(e.target.value)} placeholder="ex: Administrator" />
+                <Label htmlFor="ct-contact-title">{t('accounting:contract.fields.representativeRole')}</Label>
+                <Input id="ct-contact-title" value={contactTitle} onChange={(e) => setContactTitle(e.target.value)} placeholder={t('accounting:clientForm.representativeRolePlaceholder')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-phone">Telefon client</Label>
+                <Label htmlFor="ct-phone">{t('accounting:contract.fields.clientPhone')}</Label>
                 <Input id="ct-phone" value={contractPhone} onChange={(e) => setContractPhone(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-plan">Plan</Label>
+                <Label htmlFor="ct-plan">{t('common:nav.plan')}</Label>
                 <Select
                   id="ct-plan"
                   value={contractPlan}
@@ -685,99 +685,99 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                       {b.label}
                     </option>
                   ))}
-                  <option value="Privat">Privat</option>
+                  <option value="Privat">{t('accounting:clientForm.planPrivate')}</option>
                   {contractPlan && contractPlan !== 'Privat' && !bundles.some((b) => b.label === contractPlan) && (
-                    <option value={contractPlan}>{contractPlan} (vechi)</option>
+                    <option value={contractPlan}>{t('accounting:clientForm.planOld', { contractPlan })}</option>
                   )}
                 </Select>
                 {bundles.some((b) => b.label === contractPlan) && (
-                  <p className="text-xs text-muted-foreground">Module și preț completate automat din pachet — editabile mai jos.</p>
+                  <p className="text-xs text-muted-foreground">{t('accounting:clientForm.planHint')}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-nr-contract">Număr contract</Label>
+                <Label htmlFor="ct-nr-contract">{t('accounting:contract.fields.contractNumber')}</Label>
                 <Input
                   id="ct-nr-contract"
                   value={contractDetails.nrContract ?? ''}
                   onChange={cd('nrContract')}
-                  placeholder="ex: 003"
+                  placeholder={t('accounting:clientForm.contractNumberPlaceholder')}
                   aria-describedby="ct-nr-contract-hint"
                 />
                 {nrContractConflict ? (
                   <p id="ct-nr-contract-hint" className="text-xs text-warning">{nrContractConflict}</p>
                 ) : (
-                  <p id="ct-nr-contract-hint" className="text-xs text-muted-foreground">Sugerat automat (ultimul + 1, fără cele rezervate) — suprascrie dacă e nevoie.</p>
+                  <p id="ct-nr-contract-hint" className="text-xs text-muted-foreground">{t('accounting:clientForm.contractNumberHint')}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-data-contract">Data contract</Label>
+                <Label htmlFor="ct-data-contract">{t('accounting:contract.fields.contractDate')}</Label>
                 <Input id="ct-data-contract" type="date" value={contractDateIso} onChange={(e) => setContractDateIso(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-taxa-initiere">Taxă de inițiere</Label>
-                <Input id="ct-taxa-initiere" value={contractDetails.taxaInitiere ?? ''} onChange={cd('taxaInitiere')} placeholder="ex: 200 EUR" />
+                <Label htmlFor="ct-taxa-initiere">{t('accounting:contract.fields.setupFee')}</Label>
+                <Input id="ct-taxa-initiere" value={contractDetails.taxaInitiere ?? ''} onChange={cd('taxaInitiere')} placeholder={t('accounting:clientForm.setupFeePlaceholder')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-facturare-tip">Ciclu de facturare</Label>
+                <Label htmlFor="ct-facturare-tip">{t('accounting:contract.fields.billingCycle')}</Label>
                 <Select
                   id="ct-facturare-tip"
                   value={contractDetails.facturareTip ?? ''}
                   onChange={cd('facturareTip')}
                 >
                   <option value="">—</option>
-                  <option value="LUNAR">Lunar</option>
-                  <option value="ANUAL">Anual</option>
-                  <option value="SPECIAL">Special</option>
+                  <option value="LUNAR">{t('common:labels.monthly')}</option>
+                  <option value="ANUAL">{t('common:labels.yearly')}</option>
+                  <option value="SPECIAL">{t('accounting:clientForm.cycleSpecial')}</option>
                 </Select>
               </div>
               {contractDetails.facturareTip === 'SPECIAL' && (
                 <div className="space-y-2">
-                  <Label htmlFor="ct-facturare-tip-other">Descrie ciclul special</Label>
+                  <Label htmlFor="ct-facturare-tip-other">{t('accounting:clientForm.describeSpecialCycle')}</Label>
                   <Input
                     id="ct-facturare-tip-other"
                     value={facturareTipOther}
                     onChange={(e) => setFacturareTipOther(e.target.value)}
-                    placeholder="ex: trimestrial"
+                    placeholder={t('accounting:clientForm.specialCyclePlaceholder')}
                   />
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="ct-onboarding-zile">Zile onboarding</Label>
-                <Input id="ct-onboarding-zile" value={contractDetails.nrZileOnboarding ?? ''} onChange={cd('nrZileOnboarding')} placeholder="ex: 3" />
+                <Label htmlFor="ct-onboarding-zile">{t('accounting:clientForm.onboardingDays')}</Label>
+                <Input id="ct-onboarding-zile" value={contractDetails.nrZileOnboarding ?? ''} onChange={cd('nrZileOnboarding')} placeholder={t('accounting:clientForm.onboardingDaysPlaceholder')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-operatori-gestiune">Operatori gestiune (desktop)</Label>
+                <Label htmlFor="ct-operatori-gestiune">{t('accounting:clientForm.desktopOperators')}</Label>
                 <Input id="ct-operatori-gestiune" inputMode="numeric" value={contractDetails.operatoriGestiune ?? ''} onChange={cd('operatoriGestiune')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-operatori-teren">Operatori teren (mobil)</Label>
+                <Label htmlFor="ct-operatori-teren">{t('accounting:clientForm.mobileOperators')}</Label>
                 <Input id="ct-operatori-teren" inputMode="numeric" value={contractDetails.operatoriTeren ?? ''} onChange={cd('operatoriTeren')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-puncte-lucru">Puncte de lucru</Label>
+                <Label htmlFor="ct-puncte-lucru">{t('accounting:clientForm.workSites')}</Label>
                 <Input id="ct-puncte-lucru" inputMode="numeric" value={contractDetails.puncteLucru ?? ''} onChange={cd('puncteLucru')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-documente">Documente incluse / lună</Label>
+                <Label htmlFor="ct-documente">{t('accounting:clientForm.documentsPerMonth')}</Label>
                 <Input id="ct-documente" inputMode="numeric" value={contractDetails.documenteIncluse ?? ''} onChange={cd('documenteIncluse')} placeholder="150" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ct-flux">Flux</Label>
+                <Label htmlFor="ct-flux">{t('accounting:clientForm.flow')}</Label>
                 <Select
                   id="ct-flux"
                   value={contractDetails.flux ?? ''}
                   onChange={cd('flux')}
                 >
                   <option value="">—</option>
-                  <option value="Standard">Standard</option>
+                  <option value="Standard">{t('accounting:clientForm.flowStandard')}</option>
                   <option value="DEEE / DBA">DEEE / DBA</option>
                 </Select>
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm">Module add-on active</Label>
+              <Label className="text-sm">{t('accounting:clientForm.activeAddons')}</Label>
               {!platformId ? (
-                <p className="text-xs text-muted-foreground">Mapează clientul la o platformă mai sus ca să vezi catalogul de add-on-uri.</p>
+                <p className="text-xs text-muted-foreground">{t('accounting:clientForm.mapPlatformForAddons')}</p>
               ) : null}
               <div className="flex flex-wrap gap-3">
                 {moduleAddonOptions.map((opt) => (
@@ -796,7 +796,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
               <Input
                 value={moduleAddonOther}
                 onChange={(e) => setModuleAddonOther(e.target.value)}
-                placeholder="Altele (text liber, ex: E-Factura ANAF SPV) — gol + nimic bifat = Niciunul"
+                placeholder={t('accounting:clientForm.otherAddonsPlaceholder')}
               />
             </div>
             <label className="flex items-center gap-2 text-sm">
@@ -805,16 +805,16 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                 checked={contractDetails.areLunaGratuita ?? true}
                 onChange={(e) => setContractDetails((d) => ({ ...d, areLunaGratuita: e.target.checked }))}
               />
-              Are Lună Gratuită (durata vine din Setări → Șabloane contracte → Termeni comerciali)
+              {t('accounting:clientForm.hasFreeMonth')}
             </label>
             <div className="space-y-2">
-              <Label htmlFor="ct-conditii">Condiții speciale negociate</Label>
-              <Input id="ct-conditii" value={contractDetails.conditiiSpeciale ?? ''} onChange={cd('conditiiSpeciale')} placeholder="(fără condiții speciale)" />
+              <Label htmlFor="ct-conditii">{t('accounting:clientForm.specialTerms')}</Label>
+              <Input id="ct-conditii" value={contractDetails.conditiiSpeciale ?? ''} onChange={cd('conditiiSpeciale')} placeholder={t('accounting:clientForm.noSpecialTerms')} />
             </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={save.isPending}>
-            {save.isPending ? 'Se salvează…' : 'Salvează'}
+            {save.isPending ? t('common:states.saving') : t('common:actions.save')}
           </Button>
         </form>
       </DialogContent>

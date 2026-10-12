@@ -11,6 +11,7 @@ import type { FinancialRecord } from '@/shared/lib/types'
 import { PaymentStatusBadge, formatDate, formatMoney } from './badges'
 import { PastRecordFormDialog } from './PastRecordFormDialog'
 import { RecurringExpensesSection } from './RecurringExpensesSection'
+import { t } from '@/shared/lib/i18n'
 
 const PAGE_SIZE = 10
 
@@ -33,7 +34,7 @@ export function PrimiteTab() {
     mutationFn: () => api.post<{ imported: number }>('/api/accounting/anaf/sync'),
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['accounting'] })
-      toast.success(`Sync ANAF rulat — ${data.imported} facturi importate`)
+      toast.success(t('accounting:received.syncDone', { imported: data.imported }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -43,7 +44,7 @@ export function PrimiteTab() {
       api.patch<FinancialRecord>(`/api/accounting/records/${id}/payment`, { paymentStatus: 'paid' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['accounting'] })
-      toast.success('Marcată ca plătită')
+      toast.success(t('accounting:received.markedPaid'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -52,10 +53,10 @@ export function PrimiteTab() {
     <div className="space-y-4">
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={() => setPastDialogOpen(true)}>
-          <Plus className="h-4 w-4" /> Adaugă cheltuială
+          <Plus className="h-4 w-4" /> {t('accounting:received.addExpense')}
         </Button>
         <Button variant="outline" disabled={syncAnaf.isPending} onClick={() => syncAnaf.mutate()}>
-          <RefreshCw className={syncAnaf.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /> Sync ANAF acum
+          <RefreshCw className={syncAnaf.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /> {t('accounting:received.syncNow')}
         </Button>
       </div>
       <Card>
@@ -64,21 +65,21 @@ export function PrimiteTab() {
             <Skeleton className="h-32 w-full" />
           ) : !records.data?.length ? (
             <p className="text-sm text-muted-foreground">
-              Nicio factură primită. Configurează ANAF în tabul Setări, apoi rulează sync-ul.
+              {t('accounting:received.empty')}
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Furnizor</TableHead>
-                  <TableHead>CIF</TableHead>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Emisă</TableHead>
-                  <TableHead>Scadență</TableHead>
-                  <TableHead className="text-right">Sumă</TableHead>
-                  <TableHead>Sursă</TableHead>
-                  <TableHead>Plată</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('accounting:labels.supplier')}</TableHead>
+                  <TableHead>{t('common:labels.cif')}</TableHead>
+                  <TableHead>{t('common:labels.document')}</TableHead>
+                  <TableHead>{t('accounting:labels.issued')}</TableHead>
+                  <TableHead>{t('accounting:labels.due')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
+                  <TableHead>{t('common:labels.source')}</TableHead>
+                  <TableHead>{t('accounting:labels.payment')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -105,7 +106,7 @@ export function PrimiteTab() {
                         {r.paymentStatus !== 'paid' ? (
                           <Button
                             variant="outline"
-                            title="Marchează plătită"
+                            title={t('accounting:received.markPaid')}
                             disabled={markPaid.isPending}
                             onClick={() => markPaid.mutate(r.id)}
                           >
@@ -115,7 +116,7 @@ export function PrimiteTab() {
                         {r.hasXml ? (
                           <Button
                             variant="outline"
-                            title="Descarcă XML"
+                            title={t('accounting:actions.downloadXml')}
                             onClick={() => void api.download(`/api/accounting/records/${r.id}/xml`, `${r.id}.xml`)}
                           >
                             <Download className="h-4 w-4" />
@@ -124,7 +125,7 @@ export function PrimiteTab() {
                         {r.hasPdf ? (
                           <Button
                             variant="outline"
-                            title="Descarcă PDF"
+                            title={t('common:actions.downloadPdf')}
                             onClick={() => void api.download(`/api/accounting/records/${r.id}/pdf`, `${r.id}.pdf`)}
                           >
                             <FileText className="h-4 w-4" />
@@ -141,14 +142,14 @@ export function PrimiteTab() {
         {total > PAGE_SIZE ? (
           <div className="flex items-center justify-between gap-2 border-t px-6 py-3 text-xs text-muted-foreground">
             <span className="whitespace-nowrap">
-              {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, total)} din {total}
+              {t('accounting:pagination.range', { from: safePage * PAGE_SIZE + 1, to: Math.min((safePage + 1) * PAGE_SIZE, total), total })}
             </span>
             <div className="flex items-center gap-1.5">
               <Button
                 variant="outline"
                 size="icon"
                 className="w-8"
-                title="Pagina precedentă"
+                title={t('common:actions.previousPage')}
                 disabled={safePage === 0}
                 onClick={() => setPage((p) => p - 1)}
               >
@@ -158,7 +159,7 @@ export function PrimiteTab() {
                 variant="outline"
                 size="icon"
                 className="w-8"
-                title="Pagina următoare"
+                title={t('common:actions.nextPage')}
                 disabled={safePage >= maxPage}
                 onClick={() => setPage((p) => p + 1)}
               >

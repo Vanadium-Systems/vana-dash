@@ -14,11 +14,12 @@ import { useMe } from '@/shared/hooks/use-me'
 import { eventLabel } from '@/shared/lib/event-label'
 import { api } from '@/shared/lib/api'
 import { sumByDirection } from '@/shared/lib/financial-utils'
-import { cn, formatCount } from '@/shared/lib/utils'
-import { formatNumber, intlTag } from '@/shared/lib/format'
+import { cn } from '@/shared/lib/utils'
+import { formatDate, formatNumber, intlTag } from '@/shared/lib/format'
 import type { AlertInstance, AlertSeverity, BookingSummary, CalendarOccurrence, EmailThread, MetricSummary, Note, OverviewConfig, Platform, PnlResponse } from '@/shared/lib/types'
 import { extractEmailAddress } from '@/modules/email/identity'
 import { conversationTitle } from '@/modules/messages/ConversationList'
+import { t } from '@/shared/lib/i18n'
 
 // „Azi" (sprint Remake v2, DESIGN.md): un singur număr primar, apoi ce trebuie rezolvat și ce
 // e în calendar. Propoziția de 2 secunde: cât am încasat luna asta, ce arde azi, ce am în calendar.
@@ -28,12 +29,12 @@ const TZ = 'Europe/Bucharest'
 // Etichete pt. cheile standard din METRIC_KEYS.md + `mrr` (built-in, nu vine din platform_metrics).
 // O cheie custom (`<platformă>.<metrică>`) fără etichetă arată partea de după punct.
 const KPI_LABELS: Record<string, string> = {
-  active_clients: 'Clienți activi',
-  user_count: 'Utilizatori',
-  mrr: 'MRR',
-  revenue: 'Venituri (platformă)',
-  collection_count: 'Tranzacții principale',
-  stock_kg: 'Stoc curent',
+  active_clients: t('overview:metrics.activeClients'),
+  user_count: t('overview:metrics.users'),
+  mrr: t('overview:metrics.mrr'),
+  revenue: t('overview:metrics.platformRevenue'),
+  collection_count: t('overview:metrics.mainTransactions'),
+  stock_kg: t('overview:metrics.currentStock'),
 }
 
 function kpiLabel(key: string): string {
@@ -57,7 +58,7 @@ function todayRange(): { from: string; to: string } {
 }
 
 const SEVERITY_TONE: Record<AlertSeverity, StateTone> = { critical: 'critical', warning: 'warning', info: 'neutral' }
-const SEVERITY_LABEL: Record<AlertSeverity, string> = { critical: 'Critic', warning: 'Atenție', info: 'Info' }
+const SEVERITY_LABEL: Record<AlertSeverity, string> = { critical: t('common:states.critical'), warning: t('common:states.warning'), info: t('common:states.info') }
 const SEVERITY_ORDER: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 }
 
 export function OverviewPage() {
@@ -75,10 +76,10 @@ export function OverviewPage() {
       <section key="calendar" aria-labelledby="calendar-heading">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 id="calendar-heading" className="text-sm font-medium text-muted-foreground">
-            Calendar azi
+            {t('overview:calendar.title')}
           </h2>
           <Link to="/calendar" className="text-xs text-muted-foreground hover:text-foreground">
-            Deschide calendarul
+            {t('overview:calendar.open')}
           </Link>
         </div>
         <TodayCalendar />
@@ -89,7 +90,7 @@ export function OverviewPage() {
     side.push(
       <section key="platforms" aria-labelledby="platforms-heading">
         <h2 id="platforms-heading" className="mb-2 text-sm font-medium text-muted-foreground">
-          Platforme
+          {t('common:nav.platforms')}
         </h2>
         <PlatformList />
       </section>,
@@ -103,7 +104,7 @@ export function OverviewPage() {
   return (
     <div className="space-y-8" data-density={hasMoney ? undefined : 'comfortable'}>
       <div>
-        <h1 className="text-2xl font-bold">Azi</h1>
+        <h1 className="text-2xl font-bold">{t('common:labels.today')}</h1>
         <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">{todayTitle}</p>
       </div>
 
@@ -113,10 +114,10 @@ export function OverviewPage() {
         <section className="min-w-0" aria-labelledby="threads-heading">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 id="threads-heading" className="text-sm font-medium text-muted-foreground">
-              Fire noi pe cutiile mele
+              {t('overview:email.newThreads')}
             </h2>
             <Link to="/email" className="text-xs text-muted-foreground hover:text-foreground">
-              Deschide emailul
+              {t('overview:email.open')}
             </Link>
           </div>
           <RecentThreads />
@@ -127,10 +128,10 @@ export function OverviewPage() {
         <section className="min-w-0" aria-labelledby="messages-heading">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 id="messages-heading" className="text-sm font-medium text-muted-foreground">
-              Mesaje necitite
+              {t('overview:messages.unread')}
             </h2>
             <Link to="/messages" className="text-xs text-muted-foreground hover:text-foreground">
-              Deschide mesajele
+              {t('overview:messages.open')}
             </Link>
           </div>
           <UnreadMessages />
@@ -141,7 +142,7 @@ export function OverviewPage() {
         {hasAlerts || hasMoney ? (
           <section className="min-w-0 lg:col-span-2" aria-labelledby="todo-heading">
             <h2 id="todo-heading" className="mb-2 text-sm font-medium text-muted-foreground">
-              De rezolvat
+              {t('overview:todo.title')}
             </h2>
             <TodoList />
           </section>
@@ -159,7 +160,7 @@ function UnreadPrimary() {
     return (
       <section aria-labelledby="unread-label">
         <p id="unread-label" className="text-sm text-muted-foreground">
-          Emailuri necitite
+          {t('overview:email.unread')}
         </p>
         <Skeleton className="mt-1 h-9 w-40" />
       </section>
@@ -168,13 +169,13 @@ function UnreadPrimary() {
   return (
     <section aria-labelledby="unread-label">
       <p id="unread-label" className="text-sm text-muted-foreground">
-        Emailuri necitite
+        {t('overview:email.unread')}
       </p>
       {unread.isError ? (
         <p className="mt-1 text-sm">
-          Nu am putut număra emailurile.{' '}
+          {t('overview:email.countFailed')}{' '}
           <button type="button" className="underline underline-offset-2" onClick={() => void unread.refetch()}>
-            Încearcă din nou
+            {t('common:actions.retry')}
           </button>
         </p>
       ) : (
@@ -202,16 +203,16 @@ function RecentThreads() {
   if (threads.isError) {
     return (
       <p className="text-sm">
-        Nu am putut încărca firele.{' '}
+        {t('overview:email.threadsFailed')}{' '}
         <button type="button" className="underline underline-offset-2" onClick={() => void threads.refetch()}>
-          Încearcă din nou
+          {t('common:actions.retry')}
         </button>
       </p>
     )
   }
   const items = threads.data.items
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">Niciun fir nou pe cutiile tale.</p>
+    return <p className="text-sm text-muted-foreground">{t('overview:email.noNewThreads')}</p>
   }
   return (
     <ul className="divide-y">
@@ -252,15 +253,15 @@ function UnreadMessages() {
   if (conversations.isError) {
     return (
       <p className="text-sm">
-        Nu am putut încărca mesajele.{' '}
+        {t('overview:messages.loadFailed')}{' '}
         <button type="button" className="underline underline-offset-2" onClick={() => void conversations.refetch()}>
-          Încearcă din nou
+          {t('common:actions.retry')}
         </button>
       </p>
     )
   }
   if (unread.length === 0) {
-    return <p className="text-sm text-muted-foreground">Niciun mesaj necitit.</p>
+    return <p className="text-sm text-muted-foreground">{t('overview:messages.noneUnread')}</p>
   }
   return (
     <ul className="divide-y">
@@ -271,10 +272,10 @@ function UnreadMessages() {
             className="flex items-center gap-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span className="min-w-0 flex-1 truncate text-sm font-medium">
-              {conversation.kind === 'group' ? (conversation.name ?? 'Grup') : conversationTitle(conversation, session?.user.id ?? '')}
+              {conversation.kind === 'group' ? (conversation.name ?? t('overview:messages.group')) : conversationTitle(conversation, session?.user.id ?? '')}
             </span>
             <span className="shrink-0 truncate text-xs text-muted-foreground">
-              {conversation.lastMessage?.body ?? 'Fără mesaje'}
+              {conversation.lastMessage?.body ?? t('overview:messages.empty')}
             </span>
             <span className="shrink-0 font-mono text-xs tnum">{conversation.unreadCount}</span>
           </Link>
@@ -312,24 +313,24 @@ function PrimaryNumber({ monthName }: { monthName: string }) {
   return (
     <section aria-labelledby="primary-label">
       <p id="primary-label" className="text-sm text-muted-foreground">
-        Încasat în {monthName}
+        {t('overview:money.collectedIn', { monthName })}
       </p>
       {pnl.isPending ? (
         <Skeleton className="mt-1 h-9 w-56" />
       ) : pnl.isError ? (
         <p className="mt-1 text-sm">
-          Nu am putut calcula încasările.{' '}
+          {t('overview:money.collectedFailed')}{' '}
           <button type="button" className="underline underline-offset-2" onClick={() => void pnl.refetch()}>
-            Încearcă din nou
+            {t('common:actions.retry')}
           </button>
         </p>
       ) : (
         <p className="mt-1 font-mono text-3xl font-semibold tnum">{lei(collected ?? 0)}</p>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-        {invoiced !== null ? <span>Facturat {lei(invoiced)}</span> : null}
-        {invoiced !== null && collected !== null ? <span>De încasat {lei(invoiced - collected)}</span> : null}
-        {recurring.data ? <span>MRR {lei(recurring.data.mrrLei)}</span> : null}
+        {invoiced !== null ? <span>{t('overview:money.invoiced', { invoiced: lei(invoiced) })}</span> : null}
+        {invoiced !== null && collected !== null ? <span>{t('overview:money.toCollect', { value: lei(invoiced - collected) })}</span> : null}
+        {recurring.data ? <span>{t('overview:money.mrr', { mrrLei: lei(recurring.data.mrrLei) })}</span> : null}
         {extra.map((key) => {
           const metric = byKey.get(key)
           return metric ? (
@@ -338,9 +339,9 @@ function PrimaryNumber({ monthName }: { monthName: string }) {
             </span>
           ) : null
         })}
-        <Button variant="ghost" size="icon-sm" title="Alege metricile de pe rândul ăsta" onClick={() => setEditing(true)}>
+        <Button variant="ghost" size="icon-sm" title={t('overview:metrics.chooseHint')} onClick={() => setEditing(true)}>
           <SlidersHorizontal />
-          <span className="sr-only">Alege metricile</span>
+          <span className="sr-only">{t('overview:metrics.choose')}</span>
         </Button>
       </div>
       <KpiVisibilityDialog
@@ -388,19 +389,19 @@ function TodoList() {
   const ack = useMutation({
     mutationFn: (id: string) => api.patch(`/api/alerts/${id}/ack`, {}),
     onSuccess: invalidateAlerts,
-    onError: () => toast.error('Alerta nu s-a confirmat. Încearcă din nou.'),
+    onError: () => toast.error(t('overview:todo.ackFailed')),
   })
   const snooze = useMutation({
     mutationFn: (id: string) => api.patch(`/api/alerts/${id}/snooze`, { days: 1 }),
     onSuccess: invalidateAlerts,
-    onError: () => toast.error('Alerta nu s-a amânat. Încearcă din nou.'),
+    onError: () => toast.error(t('overview:todo.snoozeFailed')),
   })
 
   // Golul nu e un „No data": omul vede unde poate merge, pe paginile pe care le are.
   const emptyLinks = [
-    can('email.view') && { to: '/email', label: 'Email' },
-    can('calendar.view') && { to: '/calendar', label: 'Calendar' },
-    can('clienti.view') && { to: '/pricing', label: 'Clienți' },
+    can('email.view') && { to: '/email', label: t('common:labels.email') },
+    can('calendar.view') && { to: '/calendar', label: t('common:nav.calendar') },
+    can('clienti.view') && { to: '/pricing', label: t('common:nav.clients') },
   ].filter((link): link is { to: string; label: string } => link !== false)
 
   const items: TodoItem[] = []
@@ -414,13 +415,13 @@ function TodoList() {
       to: '/alerts',
       actions: (
         <>
-          <Button variant="ghost" size="icon-sm" title="Amână o zi" disabled={snooze.isPending} onClick={() => snooze.mutate(alert.id)}>
+          <Button variant="ghost" size="icon-sm" title={t('overview:todo.snoozeOneDay')} disabled={snooze.isPending} onClick={() => snooze.mutate(alert.id)}>
             <AlarmClockOff />
-            <span className="sr-only">Amână o zi</span>
+            <span className="sr-only">{t('overview:todo.snoozeOneDay')}</span>
           </Button>
-          <Button variant="ghost" size="icon-sm" title="Confirmă" disabled={ack.isPending} onClick={() => ack.mutate(alert.id)}>
+          <Button variant="ghost" size="icon-sm" title={t('common:actions.confirm')} disabled={ack.isPending} onClick={() => ack.mutate(alert.id)}>
             <Check />
-            <span className="sr-only">Confirmă</span>
+            <span className="sr-only">{t('common:actions.confirm')}</span>
           </Button>
         </>
       ),
@@ -431,7 +432,7 @@ function TodoList() {
     items.push({
       id: `booking-${booking.id}`,
       tone: 'neutral',
-      label: 'Programare',
+      label: t('overview:todo.booking'),
       title: `${dayLabel(booking.start)}, ${time(booking.start)} · ${[booking.name, booking.company].filter(Boolean).join(', ')}`,
       meta: booking.topic ?? undefined,
       to: '/calendar',
@@ -442,13 +443,13 @@ function TodoList() {
     items.push({
       id: 'email-unread',
       tone: 'neutral',
-      label: 'Email',
-      title: `${formatCount(unreadTotal, 'email necitit', 'emailuri necitite')} în inbox`,
+      label: t('common:labels.email'),
+      title: t('overview:todo.unreadInInbox', { count: unreadTotal }),
       to: '/email',
     })
   }
 
-  const failedSources = [alerts.isError && 'alertele', unread.isError && 'emailul', bookings.isError && 'programările'].filter(Boolean) as string[]
+  const failedSources = [alerts.isError && t('overview:todo.sources.alerts'), unread.isError && t('overview:todo.sources.email'), bookings.isError && t('overview:todo.sources.bookings')].filter(Boolean) as string[]
   // `isPending` rămâne adevărat la un query oprit, deci se cer doar sursele care chiar
   // rulează — altfel un coleg fără alerte ar vedea scheletul la nesfârșit.
   const loading =
@@ -468,7 +469,7 @@ function TodoList() {
     <div>
       {items.length === 0 && failedSources.length === 0 ? (
         <div className="rounded-md bg-muted/50 px-3 py-6 text-center text-sm text-muted-foreground">
-          <p>Nimic nou azi.</p>
+          <p>{t('overview:todo.nothingNew')}</p>
           {emptyLinks.length > 0 ? (
             <p className="mt-1">
               {emptyLinks.map((link, i) => (
@@ -504,7 +505,7 @@ function TodoList() {
       )}
       {failedSources.length > 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">
-          Nu am putut încărca {failedSources.join(', ')}; restul listei e la zi.{' '}
+          {t('overview:todo.partialFailure', { sources: failedSources.join(', ') })}{' '}
           <button
             type="button"
             className="underline underline-offset-2"
@@ -514,7 +515,7 @@ function TodoList() {
               if (bookings.isError) void bookings.refetch()
             }}
           >
-            Încearcă din nou
+            {t('common:actions.retry')}
           </button>
         </p>
       ) : null}
@@ -530,21 +531,21 @@ function TodayCalendar() {
     queryFn: () => api.get<CalendarOccurrence[]>(`/api/calendar/events?from=${range.from}&to=${range.to}`),
   })
   if (events.isPending) return <Skeleton className="h-20 w-full" />
-  if (events.isError) return <p className="text-sm text-muted-foreground">Calendarul nu s-a încărcat.</p>
+  if (events.isError) return <p className="text-sm text-muted-foreground">{t('overview:calendar.loadFailed')}</p>
   // Ziua omului: calendarul lui și evenimentele comune la care participă, nu și calendarele
   // partajate cu el (acelea se bifează în Calendar) și nici toate, la `calendar.administrare`.
   const mine = events.data.filter(
     (e) => e.access === 'owner' || e.ownerUserId === null || e.attendees.some((a) => a.id === myId),
   )
   const upcoming = mine.filter((e) => e.allDay || new Date(e.occurrenceEnd).getTime() > Date.now())
-  if (upcoming.length === 0) return <p className="text-sm text-muted-foreground">Nimic în calendar până diseară.</p>
+  if (upcoming.length === 0) return <p className="text-sm text-muted-foreground">{t('overview:calendar.nothingUntilEvening')}</p>
   return (
     <ul className="space-y-1">
       {upcoming.map((e) => (
         <li key={`${e.eventId}-${e.occurrenceStart}`} className="flex items-center gap-3 text-sm">
-          <span className="w-12 shrink-0 font-mono text-xs text-muted-foreground tnum">{e.allDay ? 'toată ziua' : time(e.occurrenceStart)}</span>
+          <span className="w-12 shrink-0 font-mono text-xs text-muted-foreground tnum">{e.allDay ? t('overview:calendar.allDay') : time(e.occurrenceStart)}</span>
           <span className="min-w-0 flex-1 truncate">{eventLabel(e)}</span>
-          {e.source === 'booking' ? <PhoneCall className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Programare de pe site" /> : null}
+          {e.source === 'booking' ? <PhoneCall className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label={t('overview:calendar.bookingFromSite')} /> : null}
         </li>
       ))}
     </ul>
@@ -554,11 +555,11 @@ function TodayCalendar() {
 function PlatformList() {
   const platforms = useQuery({ queryKey: ['platforms'], queryFn: () => api.get<Platform[]>('/api/platforms') })
   if (platforms.isPending) return <Skeleton className="h-10 w-full" />
-  if (platforms.isError) return <p className="text-sm text-muted-foreground">Platformele nu s-au încărcat.</p>
+  if (platforms.isError) return <p className="text-sm text-muted-foreground">{t('overview:platforms.loadFailed')}</p>
   if (platforms.data.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Nicio platformă conectată. <Link to="/platforms" className="underline underline-offset-2">Adaugă una</Link>
+        {t('overview:platforms.none')} <Link to="/platforms" className="underline underline-offset-2">{t('overview:platforms.addOne')}</Link>
       </p>
     )
   }
@@ -569,7 +570,7 @@ function PlatformList() {
           <div className="min-w-0">
             <div className="truncate">{p.name}</div>
             <div className="text-xs text-muted-foreground">
-              {p.lastSyncAt ? `sincronizat ${new Intl.DateTimeFormat(intlTag(), { dateStyle: 'short', timeStyle: 'short', timeZone: TZ }).format(new Date(p.lastSyncAt))}` : 'nesincronizat încă'}
+              {p.lastSyncAt ? t('overview:platforms.syncedAt', { when: formatDate(p.lastSyncAt, { dateStyle: 'short', timeStyle: 'short' }) }) : t('overview:platforms.notSyncedYet')}
             </div>
           </div>
           <PlatformStatusBadge status={p.healthStatus} />
@@ -585,7 +586,7 @@ function PinnedNotes() {
   return (
     <section aria-labelledby="notes-heading">
       <h2 id="notes-heading" className="mb-2 text-sm font-medium text-muted-foreground">
-        Notițe fixate
+        {t('overview:notes.pinned')}
       </h2>
       <ul className="space-y-1">
         {pinned.data.slice(0, 3).map((note) => (
@@ -615,17 +616,17 @@ function KpiVisibilityDialog({
   const update = useMutation({
     mutationFn: (next: string[]) => api.put<OverviewConfig>('/api/metrics/overview-config', { visibleKpis: next }),
     onSuccess: (data) => queryClient.setQueryData(['metrics', 'overview-config'], data),
-    onError: () => toast.error('Alegerea nu s-a salvat. Încearcă din nou.'),
+    onError: () => toast.error(t('overview:metrics.choiceNotSaved')),
   })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="md:max-w-sm" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle className="text-base">Metricile de sub încasări</DialogTitle>
+          <DialogTitle className="text-base">{t('overview:metrics.dialogTitle')}</DialogTitle>
         </DialogHeader>
         {availableKeys.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nicio platformă nu a raportat metrici luna asta.</p>
+          <p className="text-sm text-muted-foreground">{t('overview:metrics.noneReported')}</p>
         ) : (
           <div className="space-y-2">
             {availableKeys.map((key) => (

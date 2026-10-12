@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api } from '@/shared/lib/api'
 import type { DeclarationPreview } from '@/shared/lib/types'
 import { formatDate, formatMoney } from './badges'
+import { t } from '@/shared/lib/i18n'
 
 function currentMonth(): string {
   return new Date().toISOString().slice(0, 7)
@@ -61,9 +62,9 @@ function DeclarationCard({
         {preview.isPending ? (
           <Skeleton className="h-24 w-full" />
         ) : preview.isError ? (
-          <p className="text-sm text-destructive">Nu am putut încărca datele pentru {month}.</p>
+          <p className="text-sm text-destructive">{t('accounting:declarations.loadFailed', { month })}</p>
         ) : !preview.data.lines.length ? (
-          <p className="text-sm text-muted-foreground">Nicio achiziție reverse-charge relevantă în {month}.</p>
+          <p className="text-sm text-muted-foreground">{t('accounting:declarations.none', { month })}</p>
         ) : (
           <>
             {preview.data.warnings.length > 0 ? (
@@ -76,13 +77,13 @@ function DeclarationCard({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Furnizor</TableHead>
-                  <TableHead>Țară</TableHead>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Sumă</TableHead>
-                  <TableHead className="text-right">Bază RON</TableHead>
-                  {showVat ? <TableHead className="text-right">TVA RON</TableHead> : null}
+                  <TableHead>{t('accounting:labels.supplier')}</TableHead>
+                  <TableHead>{t('common:labels.country')}</TableHead>
+                  <TableHead>{t('common:labels.document')}</TableHead>
+                  <TableHead>{t('common:labels.date')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
+                  <TableHead className="text-right">{t('accounting:declarations.baseRon')}</TableHead>
+                  {showVat ? <TableHead className="text-right">{t('accounting:declarations.vatRon')}</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -102,8 +103,8 @@ function DeclarationCard({
               </TableBody>
             </Table>
             <div className="flex justify-end gap-6 border-t pt-3 text-sm font-medium">
-              <span>Total bază: {formatMoney(preview.data.totals.baseRon, 'RON')}</span>
-              {showVat ? <span>Total TVA: {formatMoney(preview.data.totals.vatRon, 'RON')}</span> : null}
+              <span>{t('accounting:declarations.totalBase', { baseRon: formatMoney(preview.data.totals.baseRon, 'RON') })}</span>
+              {showVat ? <span>{t('accounting:declarations.totalVat', { vatRon: formatMoney(preview.data.totals.vatRon, 'RON') })}</span> : null}
             </div>
           </>
         )}
@@ -122,7 +123,7 @@ export function DeclarationsTab() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Label htmlFor="decl-month">Luna</Label>
+        <Label htmlFor="decl-month">{t('common:labels.month')}</Label>
         <input
           id="decl-month"
           type="month"
@@ -132,19 +133,18 @@ export function DeclarationsTab() {
         />
       </div>
       <p className="text-sm text-muted-foreground">
-        XML-ul exportat e conform structurii oficiale ANAF, dar depunerea prin SPV cere semnătură electronică
-        calificată aplicată manual — nu există upload direct fără semnare.
+        {t('accounting:declarations.signatureNote')}
       </p>
       <DeclarationCard
-        title="D301 — Decont special TVA"
-        helpText="Achiziții de servicii cu taxare inversă (UE și non-UE) din luna selectată, termen 25 luna următoare."
+        title={t('accounting:declarations.d301Title')}
+        helpText={t('accounting:declarations.d301Help')}
         endpoint="d301"
         month={month}
         showVat
       />
       <DeclarationCard
-        title="D390 — Recapitulativă VIES"
-        helpText="Doar achizițiile UE (Hetzner etc.) — achizițiile non-UE (Cloudflare etc.) nu apar niciodată aici."
+        title={t('accounting:declarations.d390Title')}
+        helpText={t('accounting:declarations.d390Help')}
         endpoint="d390"
         month={month}
         showVat={false}

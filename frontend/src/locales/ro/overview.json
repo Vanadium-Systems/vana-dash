@@ -1,0 +1,73 @@
+{
+  "metrics": {
+    "activeClients": "Clienți activi",
+    "users": "Utilizatori",
+    "mrr": "MRR",
+    "platformRevenue": "Venituri (platformă)",
+    "mainTransactions": "Tranzacții principale",
+    "currentStock": "Stoc curent",
+    "chooseHint": "Alege metricile de pe rândul ăsta",
+    "choose": "Alege metricile",
+    "choiceNotSaved": "Alegerea nu s-a salvat. Încearcă din nou.",
+    "dialogTitle": "Metricile de sub încasări",
+    "noneReported": "Nicio platformă nu a raportat metrici luna asta."
+  },
+  "calendar": {
+    "title": "Calendar azi",
+    "open": "Deschide calendarul",
+    "loadFailed": "Calendarul nu s-a încărcat.",
+    "nothingUntilEvening": "Nimic în calendar până diseară.",
+    "allDay": "toată ziua",
+    "bookingFromSite": "Programare de pe site"
+  },
+  "email": {
+    "newThreads": "Fire noi pe cutiile mele",
+    "open": "Deschide emailul",
+    "unread": "Emailuri necitite",
+    "countFailed": "Nu am putut număra emailurile.",
+    "threadsFailed": "Nu am putut încărca firele.",
+    "noNewThreads": "Niciun fir nou pe cutiile tale."
+  },
+  "messages": {
+    "unread": "Mesaje necitite",
+    "open": "Deschide mesajele",
+    "loadFailed": "Nu am putut încărca mesajele.",
+    "noneUnread": "Niciun mesaj necitit.",
+    "group": "Grup",
+    "empty": "Fără mesaje"
+  },
+  "todo": {
+    "title": "De rezolvat",
+    "ackFailed": "Alerta nu s-a confirmat. Încearcă din nou.",
+    "snoozeFailed": "Alerta nu s-a amânat. Încearcă din nou.",
+    "snoozeOneDay": "Amână o zi",
+    "booking": "Programare",
+    "nothingNew": "Nimic nou azi.",
+    "unreadInInbox_one": "{{count}} email necitit în inbox",
+    "unreadInInbox_few": "{{count}} emailuri necitite în inbox",
+    "unreadInInbox_other": "{{count}} de emailuri necitite în inbox",
+    "sources": {
+      "alerts": "alertele",
+      "email": "emailul",
+      "bookings": "programările"
+    },
+    "partialFailure": "Nu am putut încărca {{sources}}; restul listei e la zi."
+  },
+  "money": {
+    "collectedIn": "Încasat în {{monthName}}",
+    "collectedFailed": "Nu am putut calcula încasările.",
+    "invoiced": "Facturat {{invoiced}}",
+    "toCollect": "De încasat {{value}}",
+    "mrr": "MRR {{mrrLei}}"
+  },
+  "platforms": {
+    "loadFailed": "Platformele nu s-au încărcat.",
+    "none": "Nicio platformă conectată.",
+    "addOne": "Adaugă una",
+    "notSyncedYet": "nesincronizat încă",
+    "syncedAt": "sincronizat {{when}}"
+  },
+  "notes": {
+    "pinned": "Notițe fixate"
+  }
+}

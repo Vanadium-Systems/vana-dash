@@ -10,35 +10,36 @@ import { EmiseTab } from './EmiseTab'
 import { MesajeTab } from './MesajeTab'
 import { PrimiteTab } from './PrimiteTab'
 import { SettingsTab } from './SettingsTab'
+import { t } from '@/shared/lib/i18n'
 
 // Fiecare tab are funcționalitatea lui (PLAN.md C2): fără `facturi.anaf` nu există
 // tab-ul Mesaje SPV, iar butonul „Trimite la ANAF" din Emise dispare odată cu el.
 const TABS: Array<{ key: string; label: string; feature?: FeatureKey }> = [
-  { key: 'emise', label: 'Emise' },
-  { key: 'primite', label: 'Primite' },
-  { key: 'declaratii', label: 'Declarații', feature: 'facturi.declaratii' },
-  { key: 'mesaje', label: 'Mesaje SPV', feature: 'facturi.anaf' },
-  { key: 'clienti', label: 'Clienți', feature: 'facturi.clienti' },
-  { key: 'contracte', label: 'Contracte', feature: 'facturi.contracte' },
-  { key: 'setari', label: 'Setări', feature: 'facturi.setari' },
+  { key: 'emise', label: t('accounting:tabs.issued') },
+  { key: 'primite', label: t('accounting:tabs.received') },
+  { key: 'declaratii', label: t('accounting:tabs.declarations'), feature: 'facturi.declaratii' },
+  { key: 'mesaje', label: t('accounting:tabs.spvMessages'), feature: 'facturi.anaf' },
+  { key: 'clienti', label: t('common:nav.clients'), feature: 'facturi.clienti' },
+  { key: 'contracte', label: t('accounting:tabs.contracts'), feature: 'facturi.contracte' },
+  { key: 'setari', label: t('common:nav.settings'), feature: 'facturi.setari' },
 ]
 
 export function AccountingPage() {
   // Tabul stă în URL (pattern-ul period din CLAUDE.md) — refresh/share păstrează contextul.
   const { can } = useMe()
   const [searchParams, setSearchParams] = useSearchParams()
-  const tabs = TABS.filter((t) => can(t.feature))
+  const tabs = TABS.filter((tab) => can(tab.feature))
   // Omul a venit pe un tab pe care nu-l are (link, favorite) — îl ducem pe primul pe care îl are.
-  const tab = tabs.some((t) => t.key === searchParams.get('tab')) ? (searchParams.get('tab') as string) : tabs[0]?.key
+  const tab = tabs.some((entry) => entry.key === searchParams.get('tab')) ? (searchParams.get('tab') as string) : tabs[0]?.key
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Facturi" />
+      <PageHeader title={t('common:nav.invoices')} />
       <Tabs value={tab} onValueChange={(v) => setSearchParams({ tab: v })}>
         <TabsList>
-          {tabs.map((t) => (
-            <TabsTrigger key={t.key} value={t.key}>
-              {t.label}
+          {tabs.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>
+              {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>

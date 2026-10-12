@@ -1,6 +1,8 @@
+import { Folder } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
 import type { ArchiveFolder } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 export interface PickerCrumb {
   id: string | null
@@ -38,7 +40,7 @@ export function FolderPicker({ trail, onNavigate }: { trail: PickerCrumb[]; onNa
       </div>
       <div className="max-h-64 space-y-1 overflow-y-auto rounded-md border p-2">
         {folders.isPending ? (
-          <p className="px-2 py-1.5 text-sm text-muted-foreground">Se încarcă…</p>
+          <p className="px-2 py-1.5 text-sm text-muted-foreground">{t('common:states.loading')}</p>
         ) : folders.data?.length ? (
           folders.data.map((f) => (
             <button
@@ -47,11 +49,12 @@ export function FolderPicker({ trail, onNavigate }: { trail: PickerCrumb[]; onNa
               className="block w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
               onClick={() => onNavigate([...trail, { id: f.id, name: f.name }])}
             >
-              📁 {f.name}
+              <Folder className="mr-1.5 inline h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              {f.name}
             </button>
           ))
         ) : (
-          <p className="px-2 py-1.5 text-sm text-muted-foreground">Niciun subfolder aici.</p>
+          <p className="px-2 py-1.5 text-sm text-muted-foreground">{t('archive:picker.noSubfolder')}</p>
         )}
       </div>
     </>

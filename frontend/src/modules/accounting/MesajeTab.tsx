@@ -9,6 +9,7 @@ import { ChartError } from '@/shared/components/charts/chart-states'
 import { api } from '@/shared/lib/api'
 import type { SpvMessage } from '@/shared/lib/types'
 import { formatDate } from './badges'
+import { t } from '@/shared/lib/i18n'
 
 const DAYS = 30
 
@@ -29,7 +30,7 @@ export function MesajeTab() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['accounting', 'spv-messages'] })
-      toast.success('Mesaj salvat — rămâne la noi chiar dacă dispare din SPV')
+      toast.success(t('accounting:spv.saved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -40,21 +41,20 @@ export function MesajeTab() {
         {messages.isPending ? (
           <Skeleton className="h-32 w-full" />
         ) : messages.isError ? (
-          <ChartError message="Nu am putut încărca mesajele SPV" />
+          <ChartError message={t('accounting:spv.loadFailed')} />
         ) : !messages.data?.length ? (
           <p className="text-sm text-muted-foreground">
-            Niciun mesaj SPV în ultimele {DAYS} de zile (sau ești pe mediul de test ANAF — mesajele reale sunt doar
-            pe producție).
+            {t('accounting:spv.empty', { DAYS })}
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Tip</TableHead>
-                <TableHead>Detalii</TableHead>
-                <TableHead>CIF</TableHead>
-                <TableHead className="text-right">Salvare</TableHead>
+                <TableHead>{t('common:labels.date')}</TableHead>
+                <TableHead>{t('common:labels.type')}</TableHead>
+                <TableHead>{t('common:labels.details')}</TableHead>
+                <TableHead>{t('common:labels.cif')}</TableHead>
+                <TableHead className="text-right">{t('accounting:spv.saving')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -67,14 +67,14 @@ export function MesajeTab() {
                   <TableCell className="text-right">
                     {m.saved ? (
                       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                        <Check className="h-3.5 w-3.5" /> Salvat
+                        <Check className="h-3.5 w-3.5" /> {t('common:states.saved')}
                       </span>
                     ) : (
                       <Button
                         variant="ghost"
                         disabled={save.isPending}
                         onClick={() => save.mutate(m)}
-                        title="Salvează — rămâne la noi chiar dacă ANAF șterge mesajul"
+                        title={t('accounting:spv.saveHint')}
                       >
                         <Save className="h-4 w-4" />
                       </Button>

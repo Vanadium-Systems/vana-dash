@@ -1,0 +1,108 @@
+{
+  "sort": {
+    "recent": "Recent",
+    "old": "Oldest"
+  },
+  "storage": {
+    "hint": "Space used out of the Cloudflare R2 free plan"
+  },
+  "labels": {
+    "folder": "Folder",
+    "owner": "Owner",
+    "access": "Access",
+    "location": "Location",
+    "tags": "Tags"
+  },
+  "spaces": {
+    "sharedWithMe": "Shared with me",
+    "all": "All spaces",
+    "mine": "My space",
+    "belongsTo": "belongs to",
+    "readOnly": ", read only"
+  },
+  "toasts": {
+    "accessSaved": "Access saved",
+    "accessRemoved": "Access removed",
+    "monthlyOn": "A monthly subfolder (MM-YYYY) will be created automatically on the 1st of the month",
+    "monthlyOff": "Automatic monthly subfolder switched off",
+    "folderCreated": "Folder created",
+    "folderRenamed": "Folder renamed",
+    "folderDeleted": "Folder deleted",
+    "fileRenamed": "File renamed",
+    "fileDeleted": "File deleted",
+    "fileMoved": "File moved",
+    "folderMoved": "Folder moved",
+    "fileUploaded": "File uploaded",
+    "uploadFailed": "Upload failed",
+    "filesUploaded_one": "{{count}} file uploaded",
+    "filesUploaded_other": "{{count}} files uploaded",
+    "allFailed_one": "The file failed",
+    "allFailed_other": "All {{count}} files failed",
+    "partlyUploaded": "{{done}} of {{total}} files uploaded, {{failed}} failed"
+  },
+  "files": {
+    "deleteTitle": "Delete the file “{{name}}”",
+    "deleteConfirm": "Delete the file"
+  },
+  "actions": {
+    "downloadZip": "Download (.zip)",
+    "upload": "Upload"
+  },
+  "folders": {
+    "monthlyDisable": "Switch off the monthly subfolder",
+    "monthlyEnable": "Switch on the monthly subfolder",
+    "deleteTitle": "Delete the folder “{{name}}”",
+    "deleteBody": "Works only if the folder is empty.",
+    "deleteConfirm": "Delete the folder",
+    "new": "New folder",
+    "open": "Open the folder",
+    "root": "Archive (root)"
+  },
+  "search": {
+    "placeholder": "Search the whole archive…",
+    "tagFilter": "Tag filter (comma separated)"
+  },
+  "view": {
+    "sortFiles": "Sort files",
+    "list": "List view",
+    "grid": "Grid view"
+  },
+  "upload": {
+    "dropHere": "Drop the files here"
+  },
+  "empty": {
+    "nothingShared": "Nobody has shared a folder with you yet",
+    "noSpace": "No space",
+    "sharedHint": "When a colleague gives you access to a folder, it shows up here.",
+    "noFileFound": "No file found.",
+    "folderWithActions": "Empty folder. Create a subfolder or upload a file.",
+    "folder": "Empty folder."
+  },
+  "share": {
+    "title": "Share “{{name}}”",
+    "description": "Access is inherited by all subfolders. Whoever gets “Can edit” works in the folder but cannot pass it on."
+  },
+  "picker": {
+    "noSubfolder": "No subfolder here."
+  },
+  "move": {
+    "title": "Move “{{itemName}}”",
+    "moving": "Moving…",
+    "here": "Move here ({{name}})"
+  },
+  "save": {
+    "saved": "Saved to the Archive",
+    "discardOne": "Discard the shared file",
+    "discardBody": "Nothing is saved to the Archive.",
+    "fileName": "File name: {{name}}",
+    "error": "error",
+    "someFailed": "{{failed}} of {{total}} files could not be saved",
+    "savedMany_one": "{{count}} file saved to the Archive",
+    "savedMany_other": "{{count}} files saved to the Archive",
+    "discardMany_one": "Discard {{count}} shared file",
+    "discardMany_other": "Discard {{count}} shared files",
+    "title_one": "Save to the Archive ({{count}} file)",
+    "title_other": "Save to the Archive ({{count}} files)",
+    "here": "Save here ({{name}})"
+  }
+}

@@ -426,5 +426,33 @@
     "RON": "RON, leu românesc",
     "EUR": "EUR, euro",
     "USD": "USD, dolar american"
+  },
+  "count": {
+    "files_one": "{{count}} fișier",
+    "files_few": "{{count}} fișiere",
+    "files_other": "{{count}} de fișiere",
+    "folders_one": "{{count}} folder",
+    "folders_few": "{{count}} foldere",
+    "folders_other": "{{count}} de foldere"
+  },
+  "weekdays": {
+    "long": {
+      "mon": "Luni",
+      "tue": "Marți",
+      "wed": "Miercuri",
+      "thu": "Joi",
+      "fri": "Vineri",
+      "sat": "Sâmbătă",
+      "sun": "Duminică"
+    },
+    "short": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mie",
+      "thu": "Joi",
+      "fri": "Vin",
+      "sat": "Sâm",
+      "sun": "Dum"
+    }
   }
 }

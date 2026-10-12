@@ -17,16 +17,17 @@ import { STATUS_LABEL, STATUS_TONE } from './send-status'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Select } from '@/shared/components/ui/select'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 type SourceFilter = 'all' | 'manual' | 'sequence' | 'bulk'
-const SOURCE_LABELS: Record<SourceFilter, string> = { all: 'Toate', manual: 'Manual', sequence: 'Secvență', bulk: 'Bulk' }
+const SOURCE_LABELS: Record<SourceFilter, string> = { all: t('common:labels.all'), manual: t('email:sent.sourceManual'), sequence: t('email:labels.sequence'), bulk: t('email:sent.sourceBulk') }
 
 type EngagementFilter = 'all' | 'engaged' | 'unengaged' | 'unsubscribed'
 const ENGAGEMENT_LABELS: Record<EngagementFilter, string> = {
-  all: 'Toate mesajele',
-  engaged: 'Cu engagement',
-  unengaged: 'Fără engagement',
-  unsubscribed: 'Dezabonați',
+  all: t('email:folders.all'),
+  engaged: t('email:sent.withEngagement'),
+  unengaged: t('email:sent.withoutEngagement'),
+  unsubscribed: t('email:sent.unsubscribedFilter'),
 }
 
 function formatDate(iso: string): string {
@@ -43,25 +44,25 @@ function ReportPanel({ report, isPending }: { report: EmailSendsReport | undefin
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
-        <KPICard label="Trimise" value={totals?.sent ?? null} isPending={isPending} />
+        <KPICard label={t('email:folders.sent')} value={totals?.sent ?? null} isPending={isPending} />
         <KPICard
-          label="Rată deschidere"
+          label={t('email:sent.openRate')}
           value={totals ? pct(totals.openRate) : null}
           unit="%"
           isPending={isPending}
-          hint={totals ? `${totals.opened} din ${totals.sent} trimise` : undefined}
+          hint={totals ? t('email:sent.openedOfSent', { opened: totals.opened, sent: totals.sent }) : undefined}
         />
         <KPICard
-          label="Rată click"
+          label={t('email:sent.clickRate')}
           value={totals ? pct(totals.clickRate) : null}
           unit="%"
           isPending={isPending}
-          hint={totals ? `${totals.clicked} din ${totals.sent} trimise` : undefined}
+          hint={totals ? t('email:sent.clickedOfSent', { clicked: totals.clicked, sent: totals.sent }) : undefined}
         />
-        <KPICard label="Răspunsuri" value={totals?.replied ?? null} isPending={isPending} hint={totals && totals.sent > 0 ? `${pct(totals.replyRate)}% din trimise` : undefined} />
-        <KPICard label="Bounce" value={totals?.bounced ?? null} isPending={isPending} tone={totals && totals.bounced > 0 ? 'negative' : undefined} />
-        <KPICard label="Spam" value={totals?.complained ?? null} isPending={isPending} tone={totals && totals.complained > 0 ? 'negative' : undefined} />
-        <KPICard label="Dezabonări" value={totals?.unsubscribed ?? null} isPending={isPending} tone={totals && totals.unsubscribed > 0 ? 'negative' : undefined} hint="pur — fără bounce (card separat)" />
+        <KPICard label={t('email:sent.replies')} value={totals?.replied ?? null} isPending={isPending} hint={totals && totals.sent > 0 ? t('email:sent.replyRateOfSent', { replyRate: pct(totals.replyRate) }) : undefined} />
+        <KPICard label={t('email:status.bounceShort')} value={totals?.bounced ?? null} isPending={isPending} tone={totals && totals.bounced > 0 ? 'negative' : undefined} />
+        <KPICard label={t('email:folders.spam')} value={totals?.complained ?? null} isPending={isPending} tone={totals && totals.complained > 0 ? 'negative' : undefined} />
+        <KPICard label={t('email:sent.unsubscribes')} value={totals?.unsubscribed ?? null} isPending={isPending} tone={totals && totals.unsubscribed > 0 ? 'negative' : undefined} hint={t('email:sent.pureHint')} />
       </div>
 
       {!isPending && report && (report.bySequence.length > 0 || report.byTemplate.length > 0) ? (
@@ -71,11 +72,11 @@ function ReportPanel({ report, isPending }: { report: EmailSendsReport | undefin
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Secvență</TableHead>
-                    <TableHead className="text-right">Trimise</TableHead>
-                    <TableHead className="text-right">Deschidere</TableHead>
-                    <TableHead className="text-right">Click</TableHead>
-                    <TableHead className="text-right">Răspuns</TableHead>
+                    <TableHead>{t('email:labels.sequence')}</TableHead>
+                    <TableHead className="text-right">{t('email:folders.sent')}</TableHead>
+                    <TableHead className="text-right">{t('email:sent.open')}</TableHead>
+                    <TableHead className="text-right">{t('email:sent.click')}</TableHead>
+                    <TableHead className="text-right">{t('email:sent.reply')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -99,10 +100,10 @@ function ReportPanel({ report, isPending }: { report: EmailSendsReport | undefin
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Template</TableHead>
-                    <TableHead className="text-right">Trimise</TableHead>
-                    <TableHead className="text-right">Deschidere</TableHead>
-                    <TableHead className="text-right">Click</TableHead>
+                    <TableHead>{t('email:labels.template')}</TableHead>
+                    <TableHead className="text-right">{t('email:folders.sent')}</TableHead>
+                    <TableHead className="text-right">{t('email:sent.open')}</TableHead>
+                    <TableHead className="text-right">{t('email:sent.click')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -136,17 +137,17 @@ function SendDetailDialog({ send, onClose }: { send: EmailSend; onClose: () => v
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-muted-foreground">
-            <span>De la</span>
+            <span>{t('common:labels.from')}</span>
             <span className="text-foreground">{send.fromAddress ?? '—'}</span>
-            <span>Către</span>
+            <span>{t('common:labels.to')}</span>
             <span className="text-foreground">{send.recipient}</span>
-            <span>Când</span>
+            <span>{t('common:labels.when')}</span>
             <span className="text-foreground">{formatDate(send.createdAt)}</span>
-            <span>Stare</span>
+            <span>{t('common:labels.state')}</span>
             <span>
               <StatePill tone={STATUS_TONE[send.status]}>{STATUS_LABEL[send.status]}</StatePill>
             </span>
-            <span>Engagement</span>
+            <span>{t('email:labels.engagement')}</span>
             <span>
               <EngagementBadges send={send} />
             </span>
@@ -159,7 +160,7 @@ function SendDetailDialog({ send, onClose }: { send: EmailSend; onClose: () => v
               <pre className="whitespace-pre-wrap font-sans text-sm">{send.bodyText}</pre>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Conținutul nu a fost salvat pentru acest mesaj (trimis înainte de a păstra corpul emailului).
+                {t('email:sent.contentNotKept')}
               </p>
             )}
           </div>
@@ -226,7 +227,7 @@ export function SentTab() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Input
-              placeholder="Caută destinatar, subiect, expeditor…"
+              placeholder={t('email:sent.searchPlaceholder')}
               value={q}
               onChange={(e) => setQ(e.target.value)}
               className="max-w-[45vw] sm:max-w-xs"
@@ -248,7 +249,7 @@ export function SentTab() {
                 value={sequenceId}
                 onChange={(e) => setSequenceId(e.target.value)}
               >
-                <option value="">Toate secvențele</option>
+                <option value="">{t('email:sent.allSequences')}</option>
                 {sequences.data?.map((seq) => (
                   <option key={seq.id} value={seq.id}>
                     {seq.name}
@@ -283,27 +284,27 @@ export function SentTab() {
               }
             }}
           >
-            <Download className="h-4 w-4" /> {exporting ? 'Se exportă…' : 'Export CSV'}
+            <Download className="h-4 w-4" /> {exporting ? t('email:sent.exporting') : t('common:actions.exportCsv')}
           </Button>
         </div>
 
         {sends.isPending ? (
           <Skeleton className="h-32 w-full" />
         ) : sends.isError ? (
-          <p className="text-sm text-destructive">Nu am putut încărca istoricul.</p>
+          <p className="text-sm text-destructive">{t('email:sent.loadFailed')}</p>
         ) : !items.length ? (
-          <p className="text-sm text-muted-foreground">Niciun email trimis încă.</p>
+          <p className="text-sm text-muted-foreground">{t('email:sent.empty')}</p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Când</TableHead>
-                <TableHead>De la</TableHead>
-                <TableHead>Către</TableHead>
-                <TableHead>Subiect</TableHead>
-                <TableHead>Stare</TableHead>
-                <TableHead>Engagement</TableHead>
-                <TableHead className="text-right">Acțiuni</TableHead>
+                <TableHead>{t('common:labels.when')}</TableHead>
+                <TableHead>{t('common:labels.from')}</TableHead>
+                <TableHead>{t('common:labels.to')}</TableHead>
+                <TableHead>{t('common:labels.subject')}</TableHead>
+                <TableHead>{t('common:labels.state')}</TableHead>
+                <TableHead>{t('email:labels.engagement')}</TableHead>
+                <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -320,7 +321,7 @@ export function SentTab() {
                     <EngagementBadges send={s} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" title="Vezi conținutul" onClick={(e) => { e.stopPropagation(); setViewing(s) }}>
+                    <Button variant="outline" title={t('email:sent.viewContent')} onClick={(e) => { e.stopPropagation(); setViewing(s) }}>
                       <Eye className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -335,25 +336,25 @@ export function SentTab() {
             <Select
               size="sm"
               className="w-auto shrink-0"
-              title="Rânduri pe pagină"
+              title={t('email:sent.rowsPerPage')}
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
             >
               {[25, 50, 100].map((size) => (
                 <option key={size} value={size}>
-                  {size} / pagină
+                  {t('email:pagination.perPage', { size })}
                 </option>
               ))}
             </Select>
             <div className="flex items-center gap-1.5">
               <span className="whitespace-nowrap">
-                {page * pageSize + 1}–{Math.min((page + 1) * pageSize, total)} din {total}
+                {t('email:pagination.range', { from: page * pageSize + 1, to: Math.min((page + 1) * pageSize, total), total })}
               </span>
               <Button
                 variant="outline"
                 size="icon"
                 className="w-8"
-                title="Pagina precedentă"
+                title={t('common:actions.previousPage')}
                 disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}
               >
@@ -363,7 +364,7 @@ export function SentTab() {
                 variant="outline"
                 size="icon"
                 className="w-8"
-                title="Pagina următoare"
+                title={t('common:actions.nextPage')}
                 disabled={(page + 1) * pageSize >= total}
                 onClick={() => setPage((p) => p + 1)}
               >

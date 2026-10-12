@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { api } from '@/shared/lib/api'
 import type { EmailDraft } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 export function DraftsList({ onOpen }: { onOpen: (draft: EmailDraft) => void }) {
   const queryClient = useQueryClient()
@@ -19,7 +20,7 @@ export function DraftsList({ onOpen }: { onOpen: (draft: EmailDraft) => void }) 
     mutationFn: (id: string) => api.delete(`/api/email/drafts/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'drafts'] })
-      toast.success('Draft șters')
+      toast.success(t('email:drafts.deleted'))
     },
   })
 
@@ -29,16 +30,16 @@ export function DraftsList({ onOpen }: { onOpen: (draft: EmailDraft) => void }) 
         {drafts.isPending ? (
           <Skeleton className="h-32 w-full" />
         ) : drafts.isError ? (
-          <p className="text-sm text-destructive">Nu am putut încărca draft-urile.</p>
+          <p className="text-sm text-destructive">{t('email:drafts.loadFailed')}</p>
         ) : !drafts.data?.length ? (
-          <p className="text-sm text-muted-foreground">Niciun draft salvat.</p>
+          <p className="text-sm text-muted-foreground">{t('email:drafts.empty')}</p>
         ) : (
           <div className="space-y-1">
             {drafts.data.map((d) => (
               <div key={d.id} className="flex items-center justify-between gap-2 rounded-md p-2 text-sm hover:bg-muted">
                 <button className="min-w-0 flex-1 text-left" onClick={() => onOpen(d)}>
-                  <p className="truncate font-medium">{d.subject || '(fără subiect)'}</p>
-                  <p className="truncate text-xs text-muted-foreground">{d.to || 'fără destinatar'}</p>
+                  <p className="truncate font-medium">{d.subject || t('email:labels.noSubject')}</p>
+                  <p className="truncate text-xs text-muted-foreground">{d.to || t('email:drafts.noRecipient')}</p>
                 </button>
                 <Button variant="outline" onClick={() => remove.mutate(d.id)}>
                   <Trash2 className="h-4 w-4" />

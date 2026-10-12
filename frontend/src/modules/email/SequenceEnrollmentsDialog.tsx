@@ -8,13 +8,14 @@ import { api } from '@/shared/lib/api'
 import type { EmailSequence, EmailSequenceEnrollment, EmailSequenceEnrollmentStatus, SequenceStats } from '@/shared/lib/types'
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 const STATUS_LABEL: Record<EmailSequenceEnrollmentStatus, string> = {
-  active: 'Activ',
-  replied: 'A răspuns',
-  unsubscribed: 'Oprit',
-  completed: 'Completat',
-  failed: 'Eșuat',
+  active: t('common:states.active'),
+  replied: t('email:enrollments.replied'),
+  unsubscribed: t('email:enrollments.stopped'),
+  completed: t('email:enrollments.completed'),
+  failed: t('email:status.failed'),
 }
 const STATUS_TONE: Record<EmailSequenceEnrollmentStatus, StateTone> = {
   active: 'neutral',
@@ -89,7 +90,7 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
     mutationFn: (enrollmentId: string) => api.patch(`/api/email/sequences/${sequence!.id}/enrollments/${enrollmentId}`, { status: 'unsubscribed' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences', sequence?.id, 'enrollments'] })
-      toast.success('Înrolare oprită')
+      toast.success(t('email:enrollments.stoppedToast'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -100,7 +101,7 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
     mutationFn: (enrollmentId: string) => api.patch(`/api/email/sequences/${sequence!.id}/enrollments/${enrollmentId}`, { status: 'active' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences', sequence?.id, 'enrollments'] })
-      toast.success('Înrolare reactivată')
+      toast.success(t('email:enrollments.resumedToast'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -111,7 +112,7 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
     mutationFn: (enrollmentId: string) => api.patch(`/api/email/sequences/${sequence!.id}/enrollments/${enrollmentId}`, { status: 'replied' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences', sequence?.id, 'enrollments'] })
-      toast.success('Marcat ca „a răspuns"')
+      toast.success(t('email:enrollments.markedReplied'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -122,23 +123,23 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
     <Dialog open={Boolean(sequence)} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Înrolări — „{sequence.name}"</DialogTitle>
+          <DialogTitle>{t('email:enrollments.title', { name: sequence.name })}</DialogTitle>
         </DialogHeader>
         <StatsPanel sequenceId={sequence.id} />
         {enrollments.isPending ? (
           <Skeleton className="h-32 w-full" />
         ) : !enrollments.data?.length ? (
-          <p className="text-sm text-muted-foreground">Nicio înrolare încă — adaugă destinatari din Prospectare („Adaugă în secvență").</p>
+          <p className="text-sm text-muted-foreground">{t('email:enrollments.empty')}</p>
         ) : (
           <div className="max-h-96 overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Destinatar</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Pas</TableHead>
-                  <TableHead>Următoarea trimitere</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('common:labels.recipient')}</TableHead>
+                  <TableHead>{t('common:labels.status')}</TableHead>
+                  <TableHead>{t('email:enrollments.step')}</TableHead>
+                  <TableHead>{t('email:enrollments.nextSend')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -161,15 +162,15 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
                       {e.status === 'active' ? (
                         <div className="flex justify-end gap-1.5">
                           <Button variant="outline" disabled={markReplied.isPending} onClick={() => markReplied.mutate(e.id)}>
-                            A răspuns
+                            {t('email:enrollments.replied')}
                           </Button>
                           <Button variant="outline" disabled={stop.isPending} onClick={() => stop.mutate(e.id)}>
-                            Oprește
+                            {t('common:actions.stop')}
                           </Button>
                         </div>
                       ) : e.status === 'replied' || e.status === 'unsubscribed' ? (
                         <Button variant="outline" disabled={reactivate.isPending} onClick={() => reactivate.mutate(e.id)}>
-                          Reactivează
+                          {t('email:enrollments.resume')}
                         </Button>
                       ) : null}
                     </TableCell>

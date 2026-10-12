@@ -1,0 +1,62 @@
+{
+  "composer": {
+    "fileTooLarge": "“{{name}}” is over the 50 MB limit",
+    "uploading": "uploading…",
+    "discardFile": "Remove {{name}}",
+    "attach": "Attach",
+    "gallery": "Gallery",
+    "camera": "Camera",
+    "dropHere": "Drop the file here",
+    "placeholder": "Write a message"
+  },
+  "list": {
+    "group": "Group",
+    "conversation": "Conversation",
+    "loadFailed": "The conversations could not be loaded.",
+    "emptyTitle": "No conversation yet",
+    "emptyDescription": "Write to someone on the team: you send them a direct message, no group needed.",
+    "writeToSomeone": "Write to someone",
+    "title": "Conversations",
+    "newConversation": "New conversation",
+    "groups": "Groups",
+    "direct": "Direct",
+    "noMessagesYet": "No message yet",
+    "muted": "Notifications are off"
+  },
+  "presence": {
+    "activeNow": "Active now",
+    "unknown": "unknown when last active",
+    "seen": "Seen {{lastSeenAt}}"
+  },
+  "page": {
+    "gone": "The conversation no longer exists or you are not in it.",
+    "pickOne": "Pick a conversation on the left."
+  },
+  "new": {
+    "direct": "Direct",
+    "nobodyActive": "Nobody else on the team is active.",
+    "group": "New group",
+    "groupPlaceholder": "Sales team",
+    "members": "Members (at least one)",
+    "createGroup": "Create the group"
+  },
+  "thread": {
+    "loadFailed": "The messages could not be loaded.",
+    "backToList": "Back to conversations",
+    "unmute": "Turn notifications on",
+    "mute": "Turn notifications off",
+    "reconnecting": "Reconnecting…",
+    "older": "Older messages",
+    "empty": "No message yet. Write the first one.",
+    "newBelow": "New messages ↓",
+    "deleted": "Message deleted",
+    "messageActions": "Message actions",
+    "you": "You",
+    "editMessage": "Edit the message",
+    "edited": "edited",
+    "notSent": "Not sent",
+    "play": "Play {{filename}}",
+    "members_one": "{{count}} member · {{names}}",
+    "members_other": "{{count}} members · {{names}}"
+  }
+}

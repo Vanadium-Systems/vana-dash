@@ -10,6 +10,7 @@ import { api } from '@/shared/lib/api'
 import type { EmailTemplate } from '@/shared/lib/types'
 import { TemplateFormDialog } from './TemplateFormDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { t } from '@/shared/lib/i18n'
 
 export function TemplatesTab() {
   const confirm = useConfirm()
@@ -26,7 +27,7 @@ export function TemplatesTab() {
     mutationFn: (id: string) => api.delete<void>(`/api/email/templates/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'templates'] })
-      toast.success('Template șters')
+      toast.success(t('email:templates.deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -40,7 +41,7 @@ export function TemplatesTab() {
             setDialogOpen(true)
           }}
         >
-          <Plus className="h-4 w-4" /> Template nou
+          <Plus className="h-4 w-4" /> {t('email:templates.new')}
         </Button>
       </div>
       <Card>
@@ -48,31 +49,31 @@ export function TemplatesTab() {
           {templates.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : templates.isError ? (
-            <p className="text-sm text-destructive">Nu am putut încărca template-urile.</p>
+            <p className="text-sm text-destructive">{t('email:templates.loadFailed')}</p>
           ) : !templates.data?.length ? (
-            <p className="text-sm text-muted-foreground">Niciun template încă. Creează primul cu butonul de sus.</p>
+            <p className="text-sm text-muted-foreground">{t('email:templates.empty')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nume</TableHead>
-                  <TableHead>Subiect</TableHead>
-                  <TableHead>Conținut</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('common:labels.name')}</TableHead>
+                  <TableHead>{t('common:labels.subject')}</TableHead>
+                  <TableHead>{t('common:labels.content')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {templates.data.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.name}</TableCell>
-                    <TableCell className="max-w-xs truncate">{t.subject}</TableCell>
-                    <TableCell className="max-w-sm truncate text-muted-foreground">{t.body}</TableCell>
+                {templates.data.map((template) => (
+                  <TableRow key={template.id}>
+                    <TableCell className="font-medium">{template.name}</TableCell>
+                    <TableCell className="max-w-xs truncate">{template.subject}</TableCell>
+                    <TableCell className="max-w-sm truncate text-muted-foreground">{template.body}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
                           onClick={() => {
-                            setEditing(t)
+                            setEditing(template)
                             setDialogOpen(true)
                           }}
                         >
@@ -81,7 +82,7 @@ export function TemplatesTab() {
                         <Button
                           variant="outline"
                           onClick={() => {
-                            void confirm({ title: `Șterge șablonul „${t.name}”`, consequence: 'Emailurile trimise deja cu el nu se schimbă.', confirmLabel: 'Șterge șablonul', destructive: true }).then((ok) => ok && remove.mutate(t.id))
+                            void confirm({ title: t('email:templates.deleteTitle', { name: template.name }), consequence: t('email:templates.deleteBody'), confirmLabel: t('email:templates.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(template.id))
                           }}
                         >
                           <Trash2 className="h-4 w-4" />

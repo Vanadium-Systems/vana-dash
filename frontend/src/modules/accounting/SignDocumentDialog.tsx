@@ -8,6 +8,7 @@ import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { ContractDocument, SignatureRect } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
+import { t } from '@/shared/lib/i18n'
 
 interface SignDocumentDialogProps {
   doc: ContractDocument | null
@@ -45,7 +46,7 @@ export function SignDocumentDialog({ doc, onOpenChange }: SignDocumentDialogProp
     onSuccess: () => {
       setRectSaved(true)
       void queryClient.invalidateQueries({ queryKey: ['contract-documents'] })
-      toast.success('Dreptunghi salvat')
+      toast.success(t('accounting:sign.rectSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -58,7 +59,7 @@ export function SignDocumentDialog({ doc, onOpenChange }: SignDocumentDialogProp
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['contract-documents'] })
-      toast.success('PDF semnat încărcat — apare în listă ca document nou')
+      toast.success(t('accounting:sign.uploaded'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -112,19 +113,18 @@ export function SignDocumentDialog({ doc, onOpenChange }: SignDocumentDialogProp
     <Dialog open={Boolean(doc)} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Semnează document</DialogTitle>
+          <DialogTitle>{t('accounting:sign.title')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-xs text-muted-foreground">
-            Deschide PDF-ul într-un tab nou ca referință, apoi trage un dreptunghi mai jos exact unde vrei semnătura (cutia are
-            proporția unei pagini A4).
+            {t('accounting:sign.hint')}
           </p>
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" onClick={() => window.open(`/api/contracts/documents/${doc.id}/pdf`, '_blank')}>
-              Deschide PDF
+              {t('accounting:sign.openPdf')}
             </Button>
             <Label htmlFor="sign-page" className="text-xs text-muted-foreground">
-              Pagina
+              {t('accounting:sign.page')}
             </Label>
             <Input
               id="sign-page"
@@ -156,18 +156,18 @@ export function SignDocumentDialog({ doc, onOpenChange }: SignDocumentDialogProp
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" disabled={!hasRect || saveRect.isPending} onClick={() => rect && saveRect.mutate(rect)}>
-              Salvează dreptunghiul
+              {t('accounting:sign.saveRect')}
             </Button>
             <Button type="button" variant="outline" disabled={!rectSaved || downloading} onClick={downloadPackage}>
-              {downloading ? 'Se descarcă…' : 'Descarcă pachet de semnat'}
+              {downloading ? t('accounting:sign.downloading') : t('accounting:sign.downloadPackage')}
             </Button>
           </div>
           <div className="space-y-1.5 border-t pt-3">
             <Button type="button" variant="outline" disabled={uploadSigned.isPending} onClick={() => fileInputRef.current?.click()}>
-              {uploadSigned.isPending ? 'Se încarcă…' : 'Am semnat, încarcă PDF-ul'}
+              {uploadSigned.isPending ? t('common:states.uploading') : t('accounting:sign.uploadSigned')}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Dacă tokenul certSIGN nu merge cu JSignPdf, semnează manual în Adobe ca până acum și încarcă rezultatul aici oricum.
+              {t('accounting:sign.fallbackHint')}
             </p>
             <input
               ref={fileInputRef}

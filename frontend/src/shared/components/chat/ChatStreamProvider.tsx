@@ -112,6 +112,6 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
  */
 export function useChatStream(): ChatStreamValue {
   const value = useContext(ChatStreamContext)
-  if (!value) throw new Error('useChatStream trebuie folosit în interiorul ChatStreamProvider')
+  if (!value) throw new Error('useChatStream must be used inside ChatStreamProvider')
   return value
 }

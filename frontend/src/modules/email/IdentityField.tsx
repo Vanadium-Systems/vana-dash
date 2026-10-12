@@ -4,6 +4,7 @@ import { Select } from '@/shared/components/ui/select'
 import { useMe } from '@/shared/hooks/use-me'
 import type { EmailFromKey, EmailIdentity } from '@/shared/lib/types'
 import { extractEmailAddress, identityOptionLabel } from './identity'
+import { t } from '@/shared/lib/i18n'
 
 // Selectorul „De pe", în trei locuri (compose, trimitere în masă, secvențe). Cutii sunt per
 // om (PLAN.md C2), deci lista se taie la ce are omul — altfel un coleg ar alege o cutie care
@@ -50,7 +51,7 @@ export function IdentityField({
   if (mine.length === 1) {
     return (
       <div className="space-y-2">
-        <Label htmlFor={id}>De pe</Label>
+        <Label htmlFor={id}>{t('email:labels.fromMailbox')}</Label>
         <p id={id} className="text-sm">
           {extractEmailAddress(mine[0]!.fromAddress)}
         </p>
@@ -60,7 +61,7 @@ export function IdentityField({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>De pe</Label>
+      <Label htmlFor={id}>{t('email:labels.fromMailbox')}</Label>
       <Select id={id} value={value} onValueChange={(next) => onChange(next as EmailFromKey)}>
         {mine.map((identity) => (
           <option key={identity.key} value={identity.key}>

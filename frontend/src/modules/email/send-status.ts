@@ -1,17 +1,18 @@
 import type { StateTone } from '@/shared/components/ui/state-pill'
 import type { EmailSendStatus } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Sursă unică pt. label/culoare de status (SentTab + BulkSendTab) — status-ul unui send trece
 // prin 'sent' → 'delivered' (sau bounced/complained/delayed), actualizat de webhook-ul Resend
 // (nu doar 'sent' vs 'failed' binar — un check `=== 'sent'` arăta greșit "Eșuat" pe orice email
 // deja livrat, bug raportat live de Stefan, 2026-08-11).
 export const STATUS_LABEL: Record<EmailSendStatus, string> = {
-  sent: 'Trimis',
-  delivered: 'Livrat',
-  bounced: 'Respins (bounce)',
-  complained: 'Spam',
-  delayed: 'Întârziat',
-  failed: 'Eșuat',
+  sent: t('email:status.sent'),
+  delivered: t('email:status.delivered'),
+  bounced: t('email:status.bounced'),
+  complained: t('email:folders.spam'),
+  delayed: t('email:status.delayed'),
+  failed: t('email:status.failed'),
 }
 
 export const STATUS_TONE: Record<EmailSendStatus, StateTone> = {

@@ -12,6 +12,8 @@ import { api } from '@/shared/lib/api'
 import type { AnafStatusInfo, InvoiceSequence, QuarterlyPackageSummary } from '@/shared/lib/types'
 import { formatDate, formatMoney } from './badges'
 import { parseRoDecimal } from '@/shared/lib/utils'
+import { t } from '@/shared/lib/i18n'
+import { tNodes } from '@/shared/lib/i18n-nodes'
 
 function currentQuarter(): string {
   const now = new Date()
@@ -52,7 +54,7 @@ function QuarterlyPackageCard() {
       window.open(downloadUrl, '_blank')
       // regenerarea schimbă starea pachetului afișată pe card
       void queryClient.invalidateQueries({ queryKey: ['accounting', 'quarterly-package', quarter] })
-      toast.success('Pachet generat')
+      toast.success(t('accounting:quarterly.generated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -61,18 +63,16 @@ function QuarterlyPackageCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Package className="h-4 w-4" /> Pachet trimestrial pentru contabilă
+          <Package className="h-4 w-4" /> {t('accounting:quarterly.title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Facturi emise/primite, venituri/cheltuieli, tranzacții nereconciliate și liniile de taxare inversă din
-          trimestru, împachetate într-un zip cu tot ce a fost deja arhivat automat. Trimiterea către contabilă rămâne
-          manuală (email/WhatsApp, canalele din contract).
+          {t('accounting:quarterly.hint')}
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-2">
-            <Label htmlFor="qp-quarter">Trimestru</Label>
+            <Label htmlFor="qp-quarter">{t('accounting:quarterly.quarter')}</Label>
             <Input
               id="qp-quarter"
               className="w-32"
@@ -82,21 +82,21 @@ function QuarterlyPackageCard() {
             />
           </div>
           <Button variant="outline" disabled={generate.isPending} onClick={() => generate.mutate()}>
-            <Download className="h-4 w-4" /> {generate.isPending ? 'Se generează…' : 'Generează + descarcă zip'}
+            <Download className="h-4 w-4" /> {generate.isPending ? t('common:states.generating') : t('accounting:quarterly.generate')}
           </Button>
         </div>
         {summary.isPending ? (
           <Skeleton className="h-20 w-full" />
         ) : summary.isError ? (
-          <p className="text-sm text-destructive">Format trimestru invalid — folosește YYYY-Qn.</p>
+          <p className="text-sm text-destructive">{t('accounting:quarterly.invalidFormat')}</p>
         ) : (
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-            <div><dt className="text-muted-foreground">Facturi emise</dt><dd className="font-medium">{summary.data.invoicesIssued}</dd></div>
-            <div><dt className="text-muted-foreground">Facturi primite</dt><dd className="font-medium">{summary.data.invoicesReceived}</dd></div>
-            <div><dt className="text-muted-foreground">Venituri</dt><dd className="font-medium">{formatMoney(summary.data.revenueRon, 'RON')}</dd></div>
-            <div><dt className="text-muted-foreground">Cheltuieli</dt><dd className="font-medium">{formatMoney(summary.data.expensesRon, 'RON')}</dd></div>
-            <div><dt className="text-muted-foreground">Tranzacții nereconciliate</dt><dd className="font-medium">{summary.data.unmatchedBankTransactions}</dd></div>
-            <div><dt className="text-muted-foreground">Linii taxare inversă</dt><dd className="font-medium">{summary.data.reverseChargeLines}</dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.issuedInvoices')}</dt><dd className="font-medium">{summary.data.invoicesIssued}</dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.receivedInvoices')}</dt><dd className="font-medium">{summary.data.invoicesReceived}</dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.revenue')}</dt><dd className="font-medium">{formatMoney(summary.data.revenueRon, 'RON')}</dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.expenses')}</dt><dd className="font-medium">{formatMoney(summary.data.expensesRon, 'RON')}</dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.unreconciled')}</dt><dd className="font-medium">{summary.data.unmatchedBankTransactions}</dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.reverseChargeLines')}</dt><dd className="font-medium">{summary.data.reverseChargeLines}</dd></div>
           </dl>
         )}
       </CardContent>
@@ -125,7 +125,7 @@ function AnafConnectionCard() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['anaf-status'] })
       setCode('')
-      toast.success('ANAF conectat — sync-ul rulează orar')
+      toast.success(t('accounting:anaf.connectedToast'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -139,36 +139,40 @@ function AnafConnectionCard() {
         <CardTitle className="flex items-center gap-3">
           ANAF SPV / e-Factura
           {info?.status === 'active' ? (
-            <StatePill tone="success">Conectat</StatePill>
+            <StatePill tone="success">{t('accounting:anaf.connected')}</StatePill>
           ) : info?.status === 'needs_reauth' ? (
-            <StatePill tone="critical">Necesită re-auth</StatePill>
+            <StatePill tone="critical">{t('accounting:anaf.needsReauth')}</StatePill>
           ) : (
-            <StatePill>Neconfigurat</StatePill>
+            <StatePill>{t('accounting:anaf.notConfigured')}</StatePill>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {info?.status === 'active' ? (
           <div className="text-sm text-muted-foreground">
-            CIF: <span className="font-mono text-foreground">{info.cif}</span> · Token expiră:{' '}
-            {formatDate(info.expiresAt)} · Ultimul refresh: {formatDate(info.lastRefreshedAt)}
+            {tNodes('accounting:anaf.tokenInfo', {
+              cif: <span className="font-mono text-foreground">{info.cif}</span>,
+              expires: formatDate(info.expiresAt),
+              refreshed: formatDate(info.lastRefreshedAt),
+            })}
           </div>
         ) : null}
 
         {!info?.oauthConfigured ? (
           <p className="text-sm text-muted-foreground">
-            Setează <code className="font-mono">ANAF_CLIENT_ID</code> și{' '}
-            <code className="font-mono">ANAF_CLIENT_SECRET</code> în <code className="font-mono">.env</code>{' '}
-            (aplicația OAuth înregistrată pe portalul ANAF), apoi revino aici.
+            {tNodes('accounting:anaf.setEnv', {
+              clientId: <code className="font-mono">ANAF_CLIENT_ID</code>,
+              clientSecret: <code className="font-mono">ANAF_CLIENT_SECRET</code>,
+              envFile: <code className="font-mono">.env</code>,
+            })}
           </p>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              1. Deschide consimțirea ANAF (browser cu certificatul digital instalat) · 2. Copiază codul din
-              redirect · 3. Lipește-l mai jos cu CIF-ul firmei.
+              {t('accounting:anaf.steps')}
             </p>
             <Button variant="outline" disabled={openAuthorize.isPending} onClick={() => openAuthorize.mutate()}>
-              <ExternalLink className="h-4 w-4" /> Deschide consimțirea ANAF
+              <ExternalLink className="h-4 w-4" /> {t('accounting:anaf.openConsent')}
             </Button>
             <form
               className="flex flex-wrap items-end gap-2"
@@ -178,15 +182,15 @@ function AnafConnectionCard() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="anaf-cif">CIF</Label>
+                <Label htmlFor="anaf-cif">{t('common:labels.cif')}</Label>
                 <Input id="anaf-cif" className="w-36" value={cif} onChange={(e) => setCif(e.target.value)} required />
               </div>
               <div className="flex-1 space-y-2">
-                <Label htmlFor="anaf-code">Cod autorizare</Label>
+                <Label htmlFor="anaf-code">{t('accounting:anaf.authCode')}</Label>
                 <Input id="anaf-code" value={code} onChange={(e) => setCode(e.target.value)} required />
               </div>
               <Button type="submit" disabled={exchange.isPending}>
-                {exchange.isPending ? 'Se conectează…' : 'Conectează'}
+                {exchange.isPending ? t('common:states.connecting') : t('common:actions.connect')}
               </Button>
             </form>
           </div>
@@ -219,7 +223,7 @@ function SequenceCard() {
       setPrefix(null)
       setPadding(null)
       setDefaultPaymentTermsDays(null)
-      toast.success('Secvență actualizată')
+      toast.success(t('accounting:sequence.updated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -231,16 +235,17 @@ function SequenceCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Numerotare facturi</CardTitle>
+        <CardTitle>{t('accounting:sequence.title')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-sm text-muted-foreground">
-          Format curent: <span className="font-mono text-foreground">{formatSequencePreview(seq)}</span>{' '}
-          (ultimul număr alocat: {seq.currentValue})
+          {tNodes('accounting:sequence.currentFormat', {
+            preview: <span className="font-mono text-foreground">{formatSequencePreview(seq)}</span>,
+            last: seq.currentValue,
+          })}
         </div>
         <p className="text-xs text-muted-foreground">
-          Termenul de plată implicit se aplică oricărei facturi fără scadență explicită (issuedAt + acest număr de
-          zile). Clienții cu contract diferit au propria excepție în fișa clientului.
+          {t('accounting:sequence.paymentTermHint')}
         </p>
         <form
           className="flex flex-wrap items-end gap-2"
@@ -250,7 +255,7 @@ function SequenceCard() {
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="seq-prefix">Prefix</Label>
+            <Label htmlFor="seq-prefix">{t('accounting:sequence.prefix')}</Label>
             <Input
               id="seq-prefix"
               className="w-28"
@@ -259,7 +264,7 @@ function SequenceCard() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="seq-padding">Padding</Label>
+            <Label htmlFor="seq-padding">{t('accounting:sequence.padding')}</Label>
             <Input
               id="seq-padding"
               className="w-24"
@@ -269,7 +274,7 @@ function SequenceCard() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="seq-payment-terms">Termen de plată implicit (zile)</Label>
+            <Label htmlFor="seq-payment-terms">{t('accounting:sequence.defaultPaymentTerm')}</Label>
             <Input
               id="seq-payment-terms"
               className="w-40"
@@ -283,12 +288,11 @@ function SequenceCard() {
             variant="outline"
             disabled={save.isPending || (prefix === null && padding === null && defaultPaymentTermsDays === null)}
           >
-            Salvează
+            {t('common:actions.save')}
           </Button>
         </form>
         <p className="text-xs text-muted-foreground">
-          Resetare anuală a numerotării: {seq.resetOn === 'year' ? 'da' : 'nu'}. Nu schimba formatul în mijlocul
-          anului fiscal fără motiv.
+          {t(seq.resetOn === 'year' ? 'accounting:sequence.yearlyResetOn' : 'accounting:sequence.yearlyResetOff')}
         </p>
       </CardContent>
     </Card>

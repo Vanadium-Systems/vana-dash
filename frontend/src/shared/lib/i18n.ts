@@ -20,7 +20,7 @@ type Paths<T> = {
 
 /** Every text key, checked against the Romanian resources: a typo fails `pnpm typecheck`. */
 export type TKey = { [N in keyof Resources & string]: `${N}:${Paths<Resources[N]>}` }[keyof Resources & string]
-export type TParams = Record<string, string | number>
+export type TParams = Record<string, string | number | null | undefined>
 
 const STORAGE_KEY = 'vd.locale'
 const FALLBACK_LOCALE: Locale = 'ro'

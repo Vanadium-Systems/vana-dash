@@ -1,0 +1,113 @@
+{
+  "sort": {
+    "recent": "Recente",
+    "old": "Vechi"
+  },
+  "storage": {
+    "hint": "Spațiu folosit din planul gratuit Cloudflare R2"
+  },
+  "labels": {
+    "folder": "Folder",
+    "owner": "Al cui",
+    "access": "Acces",
+    "location": "Locație",
+    "tags": "Tag-uri"
+  },
+  "spaces": {
+    "sharedWithMe": "Partajate cu mine",
+    "all": "Toate spațiile",
+    "mine": "Spațiul meu",
+    "belongsTo": "al lui",
+    "readOnly": ", doar citire"
+  },
+  "toasts": {
+    "accessSaved": "Acces salvat",
+    "accessRemoved": "Acces scos",
+    "monthlyOn": "Subfolder lunar (LL-AAAA) va fi creat automat pe 1 ale lunii",
+    "monthlyOff": "Subfolder lunar automat dezactivat",
+    "folderCreated": "Folder creat",
+    "folderRenamed": "Folder redenumit",
+    "folderDeleted": "Folder șters",
+    "fileRenamed": "Fișier redenumit",
+    "fileDeleted": "Fișier șters",
+    "fileMoved": "Fișier mutat",
+    "folderMoved": "Folder mutat",
+    "fileUploaded": "Fișier încărcat",
+    "uploadFailed": "Încărcare eșuată",
+    "filesUploaded_one": "{{count}} fișier încărcat",
+    "filesUploaded_few": "{{count}} fișiere încărcate",
+    "filesUploaded_other": "{{count}} de fișiere încărcate",
+    "allFailed_one": "Fișierul a eșuat",
+    "allFailed_few": "Toate cele {{count}} fișiere au eșuat",
+    "allFailed_other": "Toate cele {{count}} de fișiere au eșuat",
+    "partlyUploaded": "{{done}} din {{total}} fișiere încărcate, {{failed}} eșuate"
+  },
+  "files": {
+    "deleteTitle": "Șterge fișierul „{{name}}”",
+    "deleteConfirm": "Șterge fișierul"
+  },
+  "actions": {
+    "downloadZip": "Descarcă (.zip)",
+    "upload": "Upload"
+  },
+  "folders": {
+    "monthlyDisable": "Dezactivează subfolder lunar",
+    "monthlyEnable": "Activează subfolder lunar",
+    "deleteTitle": "Șterge folderul „{{name}}”",
+    "deleteBody": "Merge doar dacă folderul e gol.",
+    "deleteConfirm": "Șterge folderul",
+    "new": "Folder nou",
+    "open": "Deschide folderul",
+    "root": "Arhivă (rădăcină)"
+  },
+  "search": {
+    "placeholder": "Caută în toată arhiva…",
+    "tagFilter": "Filtru tag-uri (separate prin virgulă)"
+  },
+  "view": {
+    "sortFiles": "Sortare fișiere",
+    "list": "Vizualizare listă",
+    "grid": "Vizualizare grilă"
+  },
+  "upload": {
+    "dropHere": "Lasă fișierele aici"
+  },
+  "empty": {
+    "nothingShared": "Nimeni nu ți-a partajat încă un folder",
+    "noSpace": "Niciun spațiu",
+    "sharedHint": "Când un coleg îți dă acces la un folder, apare aici.",
+    "noFileFound": "Niciun fișier găsit.",
+    "folderWithActions": "Folder gol. Creează un subfolder sau încarcă un fișier.",
+    "folder": "Folder gol."
+  },
+  "share": {
+    "title": "Partajează „{{name}}”",
+    "description": "Accesul se moștenește în toate subfolderele. Cine primește „Editează” lucrează în folder, dar nu-l poate da mai departe."
+  },
+  "picker": {
+    "noSubfolder": "Niciun subfolder aici."
+  },
+  "move": {
+    "title": "Mută „{{itemName}}\"",
+    "moving": "Se mută…",
+    "here": "Mută aici ({{name}})"
+  },
+  "save": {
+    "saved": "Salvat în Arhivă",
+    "discardOne": "Renunță la fișierul partajat",
+    "discardBody": "Nu se salvează nimic în Arhivă.",
+    "fileName": "Nume fișier: {{name}}",
+    "error": "eroare",
+    "someFailed": "{{failed}} din {{total}} fișiere nu au putut fi salvate",
+    "savedMany_one": "{{count}} fișier salvat în Arhivă",
+    "savedMany_few": "{{count}} fișiere salvate în Arhivă",
+    "savedMany_other": "{{count}} de fișiere salvate în Arhivă",
+    "discardMany_one": "Renunță la {{count}} fișier partajat",
+    "discardMany_few": "Renunță la {{count}} fișiere partajate",
+    "discardMany_other": "Renunță la {{count}} de fișiere partajate",
+    "title_one": "Salvează în Arhivă ({{count}} fișier)",
+    "title_few": "Salvează în Arhivă ({{count}} fișiere)",
+    "title_other": "Salvează în Arhivă ({{count}} de fișiere)",
+    "here": "Salvează aici ({{name}})"
+  }
+}

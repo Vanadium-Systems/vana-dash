@@ -14,7 +14,7 @@ import { formatBytes } from '@/shared/lib/utils'
 import type { PickerCrumb } from './FolderPicker'
 import { FolderPicker } from './FolderPicker'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
-import { formatCount } from '@/shared/lib/utils'
+import { t } from '@/shared/lib/i18n'
 
 // Popup-ul de destinație cerut la share („Share → VanaDash"): listează fișierele primite,
 // lasă Stefan să aleagă folderul din Arhivă și urcă doar la confirmare. Dialogul nu se închide
@@ -23,7 +23,7 @@ import { formatCount } from '@/shared/lib/utils'
 export function SaveShareDialog() {
   const confirm = useConfirm()
   const saves = useSyncExternalStore(subscribeSaves, getSavesSnapshot)
-  const [trail, setTrail] = useState<PickerCrumb[]>([{ id: null, name: 'Arhivă' }])
+  const [trail, setTrail] = useState<PickerCrumb[]>([{ id: null, name: t('common:nav.archive') }])
   const [failedIds, setFailedIds] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   // Redenumire înainte de salvare (Stefan recunoaște fișierul mai târziu) — doar ce a modificat
@@ -50,16 +50,16 @@ export function SaveShareDialog() {
     setSaving(false)
     if (failed.length) {
       setFailedIds(failed)
-      toast.error(`${failed.length} din ${saves.length} fișiere nu au putut fi salvate`)
+      toast.error(t('archive:save.someFailed', { failed: failed.length, total: saves.length }))
     }
-    if (uploaded > 0) toast.success(uploaded === 1 ? 'Salvat în Arhivă' : `${uploaded} fișiere salvate în Arhivă`)
+    if (uploaded > 0) toast.success(uploaded === 1 ? t('archive:save.saved') : t('archive:save.savedMany', { count: uploaded }))
   }
 
   function discard() {
     void confirm({
-      title: saves.length === 1 ? 'Renunță la fișierul partajat' : `Renunță la ${formatCount(saves.length, 'fișier partajat', 'fișiere partajate')}`,
-      consequence: 'Nu se salvează nimic în Arhivă.',
-      confirmLabel: 'Renunță',
+      title: saves.length === 1 ? t('archive:save.discardOne') : t('archive:save.discardMany', { count: saves.length }),
+      consequence: t('archive:save.discardBody'),
+      confirmLabel: t('common:actions.discard'),
       destructive: true,
     }).then((ok) => ok && discardSaves())
   }
@@ -73,7 +73,7 @@ export function SaveShareDialog() {
       >
         <DialogHeader>
           <DialogTitle>
-            Salvează în Arhivă ({saves.length} {saves.length === 1 ? 'fișier' : 'fișiere'})
+            {t('archive:save.title', { count: saves.length })}
           </DialogTitle>
         </DialogHeader>
 
@@ -84,10 +84,10 @@ export function SaveShareDialog() {
                 value={edits[save.id] ?? save.name}
                 onChange={(e) => setEdits((prev) => ({ ...prev, [save.id]: e.target.value }))}
                 className="min-w-0 flex-1"
-                aria-label={`Nume fișier: ${save.name}`}
+                aria-label={t('archive:save.fileName', { name: save.name })}
               />
               {failedIds.includes(save.id) ? (
-                <span className="shrink-0 text-xs text-destructive">eroare</span>
+                <span className="shrink-0 text-xs text-destructive">{t('archive:save.error')}</span>
               ) : (
                 <span className="shrink-0 text-xs text-muted-foreground">
                   {formatBytes(Math.round((save.base64.length * 3) / 4))}
@@ -101,10 +101,10 @@ export function SaveShareDialog() {
 
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" disabled={saving} onClick={discard}>
-            Renunță
+            {t('common:actions.discard')}
           </Button>
           <Button disabled={saving} onClick={() => void saveAll()}>
-            {saving ? 'Se salvează…' : `Salvează aici (${trail[trail.length - 1]?.name ?? 'Arhivă'})`}
+            {saving ? t('common:states.saving') : t('archive:save.here', { name: trail[trail.length - 1]?.name ?? t('common:nav.archive') })}
           </Button>
         </div>
       </DialogContent>

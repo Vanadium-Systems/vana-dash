@@ -9,6 +9,7 @@ import { api } from '@/shared/lib/api'
 import type { FinancialRecord } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface PastRecordFormDialogProps {
   open: boolean
@@ -19,32 +20,32 @@ interface PastRecordFormDialogProps {
 
 const COPY = {
   out: {
-    title: 'Factură/încasare veche (arhivă)',
+    title: t('accounting:past.incomeTitle'),
     helpText:
-      'Pt. facturi/încasări din trecut care nu sunt în e-Factura și nu pot veni prin sync ANAF — doar evidență, ' +
-      'nu generează XML/PDF și nu se trimite nicăieri.',
+      t('accounting:past.incomeHint1') +
+      t('accounting:past.incomeHint2'),
     counterpartyLabel: 'Client',
-    counterpartyPlaceholder: 'ex: Firma Client SRL',
-    secondaryType: { value: 'payment' as const, label: 'Încasare (fără factură)' },
-    paidLabel: 'Deja încasată',
-    paidDateLabel: 'Data încasării',
+    counterpartyPlaceholder: t('accounting:past.clientPlaceholder'),
+    secondaryType: { value: 'payment' as const, label: t('accounting:past.paymentNoInvoice') },
+    paidLabel: t('accounting:past.alreadyCollected'),
+    paidDateLabel: t('accounting:past.collectionDate'),
     defaultPaid: true,
     showCategory: false,
-    submitLabel: 'Adaugă în arhivă',
+    submitLabel: t('accounting:past.addToArchive'),
   },
   in: {
-    title: 'Cheltuială / factură primită',
+    title: t('accounting:past.expenseTitle'),
     helpText:
-      'Pt. cheltuieli curente sau facturi primite de la furnizori care nu sunt (sau nu vor fi) în e-Factura — ' +
-      'nu generează nimic, doar evidență. Bifează „deja achitată" doar dacă e cazul.',
-    counterpartyLabel: 'Furnizor (opțional)',
-    counterpartyPlaceholder: 'ex: Furnizor SRL',
-    secondaryType: { value: 'expense' as const, label: 'Cheltuială (fără factură)' },
-    paidLabel: 'Deja achitată',
-    paidDateLabel: 'Data plății',
+      t('accounting:past.expenseHint1') +
+      t('accounting:past.expenseHint2'),
+    counterpartyLabel: t('accounting:labels.supplierOptional'),
+    counterpartyPlaceholder: t('accounting:past.supplierPlaceholder'),
+    secondaryType: { value: 'expense' as const, label: t('accounting:past.expenseNoInvoice') },
+    paidLabel: t('accounting:past.alreadyPaid'),
+    paidDateLabel: t('accounting:past.paymentDate'),
     defaultPaid: false,
     showCategory: true,
-    submitLabel: 'Adaugă',
+    submitLabel: t('common:actions.add'),
   },
 }
 
@@ -121,7 +122,7 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['accounting'] })
-      toast.success('Înregistrare adăugată în arhivă')
+      toast.success(t('accounting:past.added'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -143,13 +144,13 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
           <p className="text-sm text-muted-foreground">{copy.helpText}</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="pr-type">Tip</Label>
+              <Label htmlFor="pr-type">{t('common:labels.type')}</Label>
               <Select
                 id="pr-type"
                 value={type}
                 onChange={(e) => setType(e.target.value as typeof type)}
               >
-                <option value="invoice">Factură</option>
+                <option value="invoice">{t('accounting:labels.invoice')}</option>
                 <option value={copy.secondaryType.value}>{copy.secondaryType.label}</option>
               </Select>
             </div>
@@ -165,28 +166,28 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="pr-description">Descriere (opțional)</Label>
+              <Label htmlFor="pr-description">{t('accounting:labels.descriptionOptional')}</Label>
               <Input
                 id="pr-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={copy.showCategory ? 'ex: Abonament AWS' : 'ex: Factura F-2025-014, emisă manual'}
+                placeholder={copy.showCategory ? t('accounting:placeholders.awsSubscription') : t('accounting:past.invoiceDescriptionPlaceholder')}
               />
             </div>
             {copy.showCategory ? (
               <div className="space-y-2">
-                <Label htmlFor="pr-category">Categorie (opțional)</Label>
-                <Input id="pr-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="ex: hosting" />
+                <Label htmlFor="pr-category">{t('accounting:labels.categoryOptional')}</Label>
+                <Input id="pr-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder={t('accounting:placeholders.hosting')} />
               </div>
             ) : null}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="pr-amount">Sumă</Label>
+              <Label htmlFor="pr-amount">{t('common:labels.amount')}</Label>
               <Input id="pr-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pr-currency">Monedă</Label>
+              <Label htmlFor="pr-currency">{t('common:labels.currency')}</Label>
               <Select
                 id="pr-currency"
                 value={currency}
@@ -198,14 +199,14 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pr-issued">Data emiterii</Label>
+              <Label htmlFor="pr-issued">{t('accounting:labels.issueDate')}</Label>
               <Input id="pr-issued" type="date" value={issuedAt} onChange={(e) => setIssuedAt(e.target.value)} required />
             </div>
           </div>
           {direction === 'in' ? (
             <div className="space-y-4 rounded-md border p-3">
               <div className="space-y-2">
-                <Label htmlFor="pr-reverse-charge">Tip achiziție (taxare inversă TVA)</Label>
+                <Label htmlFor="pr-reverse-charge">{t('accounting:reverseCharge.purchaseType')}</Label>
                 <Select
                   id="pr-reverse-charge"
                   value={reverseChargeType}
@@ -217,38 +218,37 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
                     else if (next === 'non_eu_services') setReverseChargeVatRate('0')
                   }}
                 >
-                  <option value="none">Fără taxare inversă</option>
-                  <option value="eu_services">UE — servicii (ex: Hetzner)</option>
-                  <option value="non_eu_services">Non-UE — servicii (ex: Cloudflare)</option>
+                  <option value="none">{t('accounting:reverseCharge.none')}</option>
+                  <option value="eu_services">{t('accounting:reverseCharge.eu')}</option>
+                  <option value="non_eu_services">{t('accounting:reverseCharge.nonEu')}</option>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Apare în declarația D301 a lunii facturii (câmp „Data emiterii" de mai sus). Achizițiile UE apar și
-                  în D390.
+                  {t('accounting:past.reverseChargeHint')}
                 </p>
               </div>
               {reverseChargeType !== 'none' ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="pr-rc-country">Țara furnizorului (ISO-2)</Label>
+                    <Label htmlFor="pr-rc-country">{t('accounting:reverseCharge.supplierCountry')}</Label>
                     <Input
                       id="pr-rc-country"
                       value={counterpartyCountry}
                       onChange={(e) => setCounterpartyCountry(e.target.value.toUpperCase())}
-                      placeholder={reverseChargeType === 'eu_services' ? 'ex: DE' : 'ex: US'}
+                      placeholder={reverseChargeType === 'eu_services' ? t('accounting:placeholders.countryDe') : t('accounting:placeholders.countryUs')}
                       maxLength={2}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pr-rc-vatid">Cod TVA furnizor{reverseChargeType === 'eu_services' ? '' : ' (opțional)'}</Label>
+                    <Label htmlFor="pr-rc-vatid">{reverseChargeType === 'eu_services' ? t('accounting:reverseCharge.supplierVatCode') : t('accounting:reverseCharge.supplierVatCodeOptional')}</Label>
                     <Input
                       id="pr-rc-vatid"
                       value={counterpartyCif}
                       onChange={(e) => setCounterpartyCif(e.target.value)}
-                      placeholder="fără prefix de țară"
+                      placeholder={t('accounting:reverseCharge.noCountryPrefix')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pr-rc-rate">Cotă TVA (%)</Label>
+                    <Label htmlFor="pr-rc-rate">{t('accounting:reverseCharge.vatRate')}</Label>
                     <Input
                       id="pr-rc-rate"
                       inputMode="decimal"
@@ -274,10 +274,10 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
           </div>
           <div className="flex justify-end gap-2 border-t pt-4">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Anulează
+              {t('common:actions.cancel')}
             </Button>
             <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? 'Se salvează…' : copy.submitLabel}
+              {save.isPending ? t('common:states.saving') : copy.submitLabel}
             </Button>
           </div>
         </form>

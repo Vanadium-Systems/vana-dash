@@ -17,6 +17,7 @@ import { EngagementBadges } from './EngagementBadges'
 import { IdentityField, useIdentityKey } from './IdentityField'
 import { isFailureStatus, STATUS_LABEL, STATUS_TONE } from './send-status'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 const RECENT_BATCHES_LIMIT = 5
 
@@ -95,7 +96,7 @@ export function BulkSendTab() {
   const addAttachments = async (files: FileList) => {
     const remaining = MAX_ATTACHMENTS - attachments.length
     if (remaining <= 0) {
-      toast.error(`Maxim ${MAX_ATTACHMENTS} atașamente per trimitere.`)
+      toast.error(t('email:bulk.maxAttachments', { MAX_ATTACHMENTS }))
       return
     }
     const toAdd = Array.from(files).slice(0, remaining)
@@ -103,7 +104,7 @@ export function BulkSendTab() {
       const encoded = await Promise.all(toAdd.map(readFileAsBase64))
       setAttachments((prev) => [...prev, ...encoded])
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Citire fișier eșuată')
+      toast.error(err instanceof Error ? err.message : t('email:attach.readFailed'))
     }
   }
 
@@ -131,12 +132,12 @@ export function BulkSendTab() {
     mutationFn: (id: string) => api.get<{ email: string; nume: string }[]>(`/api/email/platform-clients/${id}`),
     onSuccess: (clients, id) => {
       if (clients.length === 0) {
-        toast.warning('Niciun client activ cu email pe platforma asta.')
+        toast.warning(t('email:bulk.noActiveClients'))
         return
       }
       setRaw(clients.map((c) => `${c.email},${c.nume}`).join('\n'))
-      const platformName = platforms.data?.find((p) => p.id === id)?.name ?? 'platformă'
-      toast.success(`${clients.length} clienți activi din ${platformName} încărcați în destinatari.`)
+      const platformName = platforms.data?.find((p) => p.id === id)?.name ?? t('email:bulk.platformFallback')
+      toast.success(t('email:bulk.clientsLoaded', { count: clients.length, platformName }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -172,8 +173,8 @@ export function BulkSendTab() {
           return next
         })
       }
-      const capNote = data.capBlockedRecipients.length ? ` · Amânat (plafon warm-up): ${data.capBlockedRecipients.length}` : ''
-      toast.success(`Trimis: ${data.sent} · Sărit (deja trimis): ${data.skipped} · Dezabonați: ${data.suppressed} · Eșuat: ${data.failed}${capNote}`)
+      const capNote = data.capBlockedRecipients.length ? t('email:bulk.capNote', { count: data.capBlockedRecipients.length }) : ''
+      toast.success(t('email:bulk.resultToast', { sent: data.sent, skipped: data.skipped, suppressed: data.suppressed, failed: data.failed, capNote }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -208,7 +209,7 @@ export function BulkSendTab() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
-            <Label htmlFor="b-template">Template</Label>
+            <Label htmlFor="b-template">{t('email:labels.template')}</Label>
             <Select
               id="b-template"
               value={templateId}
@@ -216,28 +217,28 @@ export function BulkSendTab() {
               disabled={templates.isError}
               required
             >
-              <option value="">— alege un template —</option>
-              {templates.data?.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
+              <option value="">{t('email:bulk.pickTemplate')}</option>
+              {templates.data?.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name}
                 </option>
               ))}
             </Select>
-            {templates.isError ? <p className="text-sm text-destructive">Nu am putut încărca template-urile.</p> : null}
+            {templates.isError ? <p className="text-sm text-destructive">{t('email:templates.loadFailed')}</p> : null}
           </div>
 
           <IdentityField id="b-from" value={from} onChange={setFrom} identities={settings.data?.identities} />
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Atașamente ({attachments.length}/{MAX_ATTACHMENTS})</Label>
+              <Label>{t('email:attach.count', { count: attachments.length, MAX_ATTACHMENTS })}</Label>
               <Button
                 type="button"
                 variant="outline"
                 disabled={attachments.length >= MAX_ATTACHMENTS}
                 onClick={() => attachmentInputRef.current?.click()}
               >
-                <Paperclip className="h-4 w-4" /> Adaugă fișier
+                <Paperclip className="h-4 w-4" /> {t('email:attach.addFile')}
               </Button>
               <input
                 ref={attachmentInputRef}
@@ -270,13 +271,13 @@ export function BulkSendTab() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="b-recipients">Destinatari — un rând per adresă, opțional `email,nume`</Label>
+              <Label htmlFor="b-recipients">{t('email:bulk.recipientsLabel')}</Label>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="h-4 w-4" /> Urcă CSV
+                <Upload className="h-4 w-4" /> {t('email:bulk.uploadCsv')}
               </Button>
               <input
                 ref={fileInputRef}
@@ -298,7 +299,7 @@ export function BulkSendTab() {
                   value={platformId}
                   onChange={(e) => setPlatformId(e.target.value)}
                 >
-                  <option value="">— alege o platformă —</option>
+                  <option value="">{t('email:bulk.pickPlatform')}</option>
                   {platforms.data.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -311,26 +312,25 @@ export function BulkSendTab() {
                   disabled={!platformId || loadPlatformClients.isPending}
                   onClick={() => loadPlatformClients.mutate(platformId)}
                 >
-                  {loadPlatformClients.isPending ? 'Se încarcă…' : `Trimite la clienții din ${platforms.data.find((p) => p.id === platformId)?.name ?? 'platformă'}`}
+                  {loadPlatformClients.isPending ? t('common:states.loading') : t('email:bulk.sendToClientsOf', { name: platforms.data.find((p) => p.id === platformId)?.name ?? t('email:bulk.platformFallback') })}
                 </Button>
               </div>
             ) : null}
             <Textarea
               id="b-recipients"
               className="min-h-40 font-mono"
-              placeholder={'ana@exemplu.ro,Ana\nion@exemplu.ro'}
+              placeholder={t('email:bulk.recipientsPlaceholder')}
               value={raw}
               onChange={(e) => setRaw(e.target.value)}
             />
             <p className={tooMany ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}>
-              {recipients.length} destinatar{recipients.length === 1 ? '' : 'i'} detectat
-              {recipients.length === 1 ? '' : 'i'}
-              {tooMany ? ` — limita e ${MAX_RECIPIENTS} per trimitere, scoate ${recipients.length - MAX_RECIPIENTS}.` : '.'}
+              {tooMany
+                ? t('email:bulk.detectedTooMany', { count: recipients.length, max: MAX_RECIPIENTS, extra: recipients.length - MAX_RECIPIENTS })
+                : t('email:bulk.detected', { count: recipients.length })}
             </p>
             {invalidLines.length > 0 ? (
               <p className="text-sm text-destructive">
-                {invalidLines.length} rând{invalidLines.length === 1 ? '' : 'uri'} ignorat
-                {invalidLines.length === 1 ? '' : 'e'} (nu arată ca un email valid): {invalidLines.join(' · ')}
+                {t('email:bulk.ignoredLines', { count: invalidLines.length, lines: invalidLines.join(' · ') })}
               </p>
             ) : null}
           </div>
@@ -340,7 +340,7 @@ export function BulkSendTab() {
             disabled={send.isPending || !templateId || recipients.length === 0 || tooMany}
             onClick={() => send.mutate()}
           >
-            {send.isPending ? 'Se trimite…' : `Trimite către ${recipients.length} destinatar${recipients.length === 1 ? '' : 'i'}`}
+            {send.isPending ? t('common:states.sending') : t('email:bulk.sendTo', { count: recipients.length })}
           </Button>
         </CardContent>
       </Card>
@@ -350,13 +350,13 @@ export function BulkSendTab() {
           <CardContent className="space-y-4 pt-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap gap-2">
-                <StatePill tone="success">Trimise: {sentCount}</StatePill>
-                <StatePill tone="critical">Eșuate: {failedCount}</StatePill>
-                {skippedRows.length > 0 ? <StatePill>Sărite (dedup): {skippedRows.length}</StatePill> : null}
-                {suppressedRows.length > 0 ? <StatePill tone="warning">Dezabonați: {suppressedRows.length}</StatePill> : null}
+                <StatePill tone="success">{t('email:bulk.sentCount', { sentCount })}</StatePill>
+                <StatePill tone="critical">{t('email:bulk.failedCount', { failedCount })}</StatePill>
+                {skippedRows.length > 0 ? <StatePill>{t('email:bulk.skippedCount', { count: skippedRows.length })}</StatePill> : null}
+                {suppressedRows.length > 0 ? <StatePill tone="warning">{t('email:bulk.unsubscribedCount', { count: suppressedRows.length })}</StatePill> : null}
                 {capBlockedRows.length > 0 ? (
-                  <StatePill tone="warning" title="Plafonul zilnic de warm-up pt. outreach a fost atins">
-                    Amânate (plafon warm-up): {capBlockedRows.length}
+                  <StatePill tone="warning" title={t('email:bulk.capReachedHint')}>
+                    {t('email:bulk.postponedCount', { count: capBlockedRows.length })}
                   </StatePill>
                 ) : null}
               </div>
@@ -372,7 +372,7 @@ export function BulkSendTab() {
                   })
                 }}
               >
-                Golește rezultatele
+                {t('email:bulk.clearResults')}
               </Button>
             </div>
             {sendsByBatch.isPending && batchIds.length > 0 ? (
@@ -381,10 +381,10 @@ export function BulkSendTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Destinatar</TableHead>
-                    <TableHead>Stare</TableHead>
-                    <TableHead>Engagement</TableHead>
-                    <TableHead>Detalii</TableHead>
+                    <TableHead>{t('common:labels.recipient')}</TableHead>
+                    <TableHead>{t('common:labels.state')}</TableHead>
+                    <TableHead>{t('email:labels.engagement')}</TableHead>
+                    <TableHead>{t('common:labels.details')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -404,36 +404,36 @@ export function BulkSendTab() {
                     <TableRow key={key}>
                       <TableCell>{email}</TableCell>
                       <TableCell>
-                        <StatePill>Sărit</StatePill>
+                        <StatePill>{t('email:bulk.skipped')}</StatePill>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">Deja trimis anterior (dedup pe destinatar+template)</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{t('email:bulk.skippedHint')}</TableCell>
                     </TableRow>
                   ))}
                   {suppressedRows.map(({ email, key }) => (
                     <TableRow key={key}>
                       <TableCell>{email}</TableCell>
                       <TableCell>
-                        <StatePill tone="warning">Dezabonat</StatePill>
+                        <StatePill tone="warning">{t('email:labels.unsubscribed')}</StatePill>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">Nu se retrimite — adresa e pe lista de dezabonați</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{t('email:bulk.unsubscribedHint')}</TableCell>
                     </TableRow>
                   ))}
                   {capBlockedRows.map(({ email, key }) => (
                     <TableRow key={key}>
                       <TableCell>{email}</TableCell>
                       <TableCell>
-                        <StatePill tone="warning">Amânat</StatePill>
+                        <StatePill tone="warning">{t('email:bulk.postponed')}</StatePill>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">Plafon zilnic de warm-up atins — netrimis, reîncearcă mâine</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{t('email:bulk.postponedHint')}</TableCell>
                     </TableRow>
                   ))}
                   {persistedRows.length === 0 && freshResults.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-xs text-muted-foreground">
-                        Lista de sărit/dezabonat nu supraviețuiește unui refresh — vezi doar trimise/eșuate din istoric.
+                        {t('email:bulk.resultsNote')}
                       </TableCell>
                     </TableRow>
                   ) : null}

@@ -8,6 +8,7 @@ import { Label } from '@/shared/components/ui/label'
 import { RichTextEditor } from '@/shared/components/RichTextEditor'
 import { api } from '@/shared/lib/api'
 import type { EmailTemplate } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 interface TemplateFormDialogProps {
   open: boolean
@@ -33,7 +34,7 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
         : api.post<EmailTemplate>('/api/email/templates', form),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'templates'] })
-      toast.success(template ? 'Template actualizat' : 'Template creat')
+      toast.success(template ? t('email:templates.updated') : t('email:templates.created'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -43,7 +44,7 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{template ? 'Editează template-ul' : 'Template nou'}</DialogTitle>
+          <DialogTitle>{template ? t('email:templates.editTitle') : t('email:templates.new')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -53,7 +54,7 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="t-name">Nume</Label>
+            <Label htmlFor="t-name">{t('common:labels.name')}</Label>
             <Input
               id="t-name"
               value={form.name}
@@ -62,7 +63,7 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="t-subject">Subiect</Label>
+            <Label htmlFor="t-subject">{t('common:labels.subject')}</Label>
             <Input
               id="t-subject"
               value={form.subject}
@@ -72,17 +73,17 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
           </div>
           <div className="space-y-2">
             <Label htmlFor="t-body">
-              Conținut <span className="text-muted-foreground">(placeholder disponibil: {'{{nume}}'})</span>
+              {t('common:labels.content')} <span className="text-muted-foreground">{t('email:templates.contentWithPlaceholder', { token: '{{nume}}' })}</span>
             </Label>
             <RichTextEditor
               id="t-body"
               value={form.body}
               onChange={(html) => setForm((f) => ({ ...f, body: html }))}
-              placeholder="Scrie conținutul template-ului…"
+              placeholder={t('email:templates.bodyPlaceholder')}
             />
           </div>
           <Button type="submit" className="w-full" disabled={save.isPending}>
-            {save.isPending ? 'Se salvează…' : 'Salvează'}
+            {save.isPending ? t('common:states.saving') : t('common:actions.save')}
           </Button>
         </form>
       </DialogContent>

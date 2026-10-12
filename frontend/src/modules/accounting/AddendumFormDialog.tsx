@@ -8,6 +8,7 @@ import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import type { ContractAddendum } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 interface AddendumFormDialogProps {
   open: boolean
@@ -52,7 +53,7 @@ export function AddendumFormDialog({ open, onOpenChange, clientId }: AddendumFor
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['contract-addenda', clientId] })
-      toast.success('Act adițional creat — generează PDF-ul din listă')
+      toast.success(t('accounting:addendum.created'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -62,7 +63,7 @@ export function AddendumFormDialog({ open, onOpenChange, clientId }: AddendumFor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adaugă act adițional</DialogTitle>
+          <DialogTitle>{t('accounting:addendum.add')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -72,50 +73,50 @@ export function AddendumFormDialog({ open, onOpenChange, clientId }: AddendumFor
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="aa-issued-at">Data</Label>
+            <Label htmlFor="aa-issued-at">{t('common:labels.date')}</Label>
             <Input id="aa-issued-at" type="date" value={issuedAt} onChange={(e) => setIssuedAt(e.target.value)} required />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="aa-old-price">Tarif anterior</Label>
-              <Input id="aa-old-price" value={oldPriceNote} onChange={(e) => setOldPriceNote(e.target.value)} placeholder="ex: 100 RON/lună (fără TVA)" required />
+              <Label htmlFor="aa-old-price">{t('accounting:addendum.previousRate')}</Label>
+              <Input id="aa-old-price" value={oldPriceNote} onChange={(e) => setOldPriceNote(e.target.value)} placeholder={t('accounting:addendum.previousRatePlaceholder')} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="aa-new-price">Tarif nou</Label>
-              <Input id="aa-new-price" value={newPriceNote} onChange={(e) => setNewPriceNote(e.target.value)} placeholder="ex: 40 EUR/lună (fără TVA)" required />
+              <Label htmlFor="aa-new-price">{t('accounting:addendum.newRate')}</Label>
+              <Input id="aa-new-price" value={newPriceNote} onChange={(e) => setNewPriceNote(e.target.value)} placeholder={t('accounting:addendum.newRatePlaceholder')} required />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="aa-reason">Motivul modificării</Label>
+            <Label htmlFor="aa-reason">{t('accounting:addendum.changeReason')}</Label>
             <Textarea id="aa-reason" value={reason} onChange={(e) => setReason(e.target.value)} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="aa-effective">Data intrării în vigoare</Label>
+            <Label htmlFor="aa-effective">{t('accounting:addendum.effectiveDate')}</Label>
             <Input
               id="aa-effective"
               value={effectiveDateNote}
               onChange={(e) => setEffectiveDateNote(e.target.value)}
-              placeholder="ex: data semnării prezentului Act Adițional"
+              placeholder={t('accounting:addendum.effectiveDatePlaceholder')}
               required
             />
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={temporary} onChange={(e) => setTemporary(e.target.checked)} />
-            Caracter temporar (revenire automată la tariful vechi)
+            {t('accounting:addendum.temporary')}
           </label>
           {temporary && (
             <div className="space-y-2">
-              <Label htmlFor="aa-reversion">Condiția de revenire</Label>
+              <Label htmlFor="aa-reversion">{t('accounting:addendum.revertCondition')}</Label>
               <Textarea
                 id="aa-reversion"
                 value={reversionNote}
                 onChange={(e) => setReversionNote(e.target.value)}
-                placeholder="ex: Revine la tariful anterior după 3 luni de la data intrării în vigoare."
+                placeholder={t('accounting:addendum.revertConditionPlaceholder')}
               />
             </div>
           )}
           <Button type="submit" className="w-full" disabled={save.isPending}>
-            {save.isPending ? 'Se salvează…' : 'Salvează act adițional'}
+            {save.isPending ? t('common:states.saving') : t('accounting:addendum.save')}
           </Button>
         </form>
       </DialogContent>

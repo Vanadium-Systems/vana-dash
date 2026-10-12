@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { api } from '@/shared/lib/api'
 import type { ChatAttachment } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Poza sau videoul deschis peste fir, ca la WhatsApp: pe tot ecranul, încadrat întreg, cu
 // descărcare. Înainte, linkul deschidea fișierul în altă pagină, iar în APK poza apărea la
@@ -40,7 +41,7 @@ export function MediaViewer({ attachment, onClose }: { attachment: ChatAttachmen
           type="button"
           onClick={() => window.history.back()}
           className="rounded-sm p-2 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          aria-label="Închide"
+          aria-label={t('common:actions.close')}
         >
           <X className="h-5 w-5" />
         </button>
@@ -49,7 +50,7 @@ export function MediaViewer({ attachment, onClose }: { attachment: ChatAttachmen
           type="button"
           onClick={() => void api.download(`${href}?download=1`, attachment.filename).catch((err: Error) => toast.error(err.message))}
           className="rounded-sm p-2 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          aria-label="Descarcă"
+          aria-label={t('common:actions.download')}
         >
           <Download className="h-5 w-5" />
         </button>

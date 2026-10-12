@@ -18,6 +18,7 @@ import { EventFormDialog } from './EventFormDialog'
 import { MonthView } from './MonthView'
 import { WeekView, type TimeRange } from './WeekView'
 import { useConsumeParam } from '@/shared/hooks/use-consume-param'
+import { t } from '@/shared/lib/i18n'
 
 type ViewMode = 'week' | 'month'
 
@@ -146,7 +147,7 @@ export function CalendarPage() {
       api.post('/api/calendar/shares', { ownerUserId: myId, userId, level }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['calendar', 'calendars'] })
-      toast.success('Acces salvat')
+      toast.success(t('calendar:toasts.accessSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -154,7 +155,7 @@ export function CalendarPage() {
     mutationFn: (userId: string) => api.delete(`/api/calendar/shares/${myId}/${userId}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['calendar', 'calendars'] })
-      toast.success('Acces scos')
+      toast.success(t('calendar:toasts.accessRemoved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -167,7 +168,7 @@ export function CalendarPage() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['calendar'] })
-      toast.success('Eveniment mutat')
+      toast.success(t('calendar:toasts.eventMoved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -206,7 +207,7 @@ export function CalendarPage() {
     if (occ.kind === 'expense') {
       // Ocurență virtuală din recurring_expenses — nu există în calendar_events, needitabilă
       // din formularul de eveniment. Editarea reală se face din Accounting.
-      toast.info('Cheltuială recurentă: se editează din Facturi → Primite', { description: occ.title.replace(/^Plată: /, '') })
+      toast.info(t('calendar:toasts.recurringExpenseHint'), { description: occ.title.replace(/^Plată: /, '') })
       navigate('/accounting?tab=primite')
       return
     }
@@ -239,20 +240,20 @@ export function CalendarPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Calendar"
+        title={t('common:nav.calendar')}
         actions={
           <>
             <div className="flex rounded-md border">
               <Button variant={view === 'week' ? 'default' : 'ghost'} onClick={() => setView('week')}>
-                Săptămână
+                {t('calendar:view.week')}
               </Button>
               <Button variant={view === 'month' ? 'default' : 'ghost'} onClick={() => setView('month')}>
-                Lună
+                {t('calendar:view.month')}
               </Button>
             </div>
             {myId ? (
               <Button variant="outline" onClick={() => setShareOpen(true)}>
-                <Users className="h-4 w-4" /> Partajează
+                <Users className="h-4 w-4" /> {t('common:actions.share')}
               </Button>
             ) : null}
             {can('calendar.editare') ? (
@@ -263,12 +264,12 @@ export function CalendarPage() {
                   openCreate(start, new Date(start.getTime() + 60 * 60 * 1000))
                 }}
               >
-                <Plus className="h-4 w-4" /> Eveniment nou
+                <Plus className="h-4 w-4" /> {t('calendar:event.newTitle')}
               </Button>
             ) : null}
             {canBookings ? (
               <Button variant="outline" className="lg:hidden" onClick={() => setPanelOpenMobile(true)}>
-                <CalendarClock className="h-4 w-4" /> Programări
+                <CalendarClock className="h-4 w-4" /> {t('calendar:booking.short')}
               </Button>
             ) : null}
           </>
@@ -282,18 +283,18 @@ export function CalendarPage() {
               <Button
                 variant="outline"
                 size="icon"
-                aria-label={view === 'week' ? 'Săptămâna anterioară' : 'Luna anterioară'}
+                aria-label={view === 'week' ? t('calendar:nav.previousWeek') : t('calendar:nav.previousMonth')}
                 onClick={() => setAnchor(view === 'week' ? addDays(anchor, -7) : addMonths(anchor, -1))}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button variant="outline" onClick={() => setAnchor(new Date())}>
-                Astăzi
+                {t('calendar:nav.today')}
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                aria-label={view === 'week' ? 'Săptămâna următoare' : 'Luna următoare'}
+                aria-label={view === 'week' ? t('calendar:nav.nextWeek') : t('calendar:nav.nextMonth')}
                 onClick={() => setAnchor(view === 'week' ? addDays(anchor, 7) : addMonths(anchor, 1))}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -306,7 +307,7 @@ export function CalendarPage() {
 
           {layers.length > 1 ? (
             <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <legend className="sr-only">Calendare afișate</legend>
+              <legend className="sr-only">{t('calendar:layers.shown')}</legend>
               {layers.map((layer) => (
                 <label key={layer.userId} className="flex items-center gap-2 text-sm">
                   <Checkbox
@@ -314,8 +315,8 @@ export function CalendarPage() {
                     disabled={layer.owner}
                     onChange={(e) => toggleLayer(layer.userId, e.target.checked)}
                   />
-                  {layer.owner ? 'Calendarul meu' : layer.name}
-                  {!layer.owner && layer.level === 'view' ? <span className="text-xs text-muted-foreground">(vede)</span> : null}
+                  {layer.owner ? t('calendar:layers.mine') : layer.name}
+                  {!layer.owner && layer.level === 'view' ? <span className="text-xs text-muted-foreground">{t('calendar:layers.viewOnly')}</span> : null}
                 </label>
               ))}
             </fieldset>
@@ -325,9 +326,9 @@ export function CalendarPage() {
             <Skeleton className="h-96 w-full" />
           ) : occurrences.isError ? (
             <div className="rounded-lg border px-4 py-10 text-center text-sm">
-              <p>Calendarul nu s-a încărcat.</p>
+              <p>{t('calendar:loadFailed')}</p>
               <Button variant="outline" className="mt-3" onClick={() => void occurrences.refetch()}>
-                Încearcă din nou
+                {t('common:actions.retry')}
               </Button>
             </div>
           ) : view === 'week' ? (
@@ -354,7 +355,7 @@ export function CalendarPage() {
           )}
         </div>
         {canBookings ? (
-          <aside className="hidden lg:block" aria-label="Programări de pe site">
+          <aside className="hidden lg:block" aria-label={t('calendar:booking.fromSite')}>
             {panel}
           </aside>
         ) : null}
@@ -372,8 +373,8 @@ export function CalendarPage() {
         <AccessShareDialog
           open
           onOpenChange={setShareOpen}
-          title="Partajează calendarul"
-          description="Cine primește „Vede” îți vede tot calendarul. Cu „Editează” poate și adăuga sau muta evenimente, dar nu-l poate da mai departe."
+          title={t('calendar:share.title')}
+          description={t('calendar:share.description')}
           ownerUserId={myId}
           shares={shares}
           isLoading={calendars.isPending}
@@ -386,7 +387,7 @@ export function CalendarPage() {
       <Dialog open={panelOpenMobile} onOpenChange={setPanelOpenMobile}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Programări</DialogTitle>
+            <DialogTitle>{t('calendar:booking.short')}</DialogTitle>
           </DialogHeader>
           {panel}
         </DialogContent>

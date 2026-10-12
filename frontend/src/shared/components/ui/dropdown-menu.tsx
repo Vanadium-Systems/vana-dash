@@ -19,7 +19,7 @@ const DropdownMenuContext = createContext<DropdownMenuContextValue | null>(null)
 
 function useDropdownMenuContext(component: string) {
   const ctx = useContext(DropdownMenuContext)
-  if (!ctx) throw new Error(`${component} trebuie folosit în interiorul <DropdownMenu>`)
+  if (!ctx) throw new Error(`${component} must be used inside <DropdownMenu>`)
   return ctx
 }
 

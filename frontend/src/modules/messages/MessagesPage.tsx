@@ -13,6 +13,7 @@ import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
 import { ConversationList } from './ConversationList'
 import { ThreadView } from './ThreadView'
+import { t } from '@/shared/lib/i18n'
 
 // Pagina Mesaje (fișa din PLAN.md): desktop = coloană de conversații + fir în dreapta; mobil =
 // listă și fir sunt ecrane separate (`/messages/:id`), cu înapoi. Streamul e în App.tsx, deasupra
@@ -70,7 +71,7 @@ export function MessagesPage() {
       <div className="flex min-h-0 flex-1 md:grid md:grid-cols-[300px_1fr]">
         <aside
           className={id ? 'hidden min-h-0 border-r md:block' : 'min-h-0 flex-1 overflow-hidden md:border-r'}
-          aria-label="Conversații"
+          aria-label={t('messages:list.title')}
         >
           <ConversationList meId={meId} onNew={() => setNewOpen(true)} />
         </aside>
@@ -84,7 +85,7 @@ export function MessagesPage() {
               ? 'safe-top safe-bottom fixed inset-0 z-50 flex flex-col bg-background md:static md:z-auto md:min-h-0 md:flex-1 md:p-0'
               : 'hidden min-h-0 md:block'
           }
-          aria-label="Mesaje"
+          aria-label={t('common:nav.messages')}
         >
           {conversation ? (
             <ThreadView
@@ -94,11 +95,11 @@ export function MessagesPage() {
               onBack={() => (routeState?.fromList ? navigate(-1) : navigate('/messages', { replace: true }))}
             />
           ) : missing ? (
-            <p className="p-6 text-sm text-muted-foreground">Conversația nu mai există sau nu ești în ea.</p>
+            <p className="p-6 text-sm text-muted-foreground">{t('messages:page.gone')}</p>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
               <MessageSquarePlus className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-              <p className="text-sm text-muted-foreground">Alege o conversație din stânga.</p>
+              <p className="text-sm text-muted-foreground">{t('messages:page.pickOne')}</p>
             </div>
           )}
         </section>
@@ -152,13 +153,13 @@ export function NewConversationDialog({
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Scrie cuiva</DialogTitle>
+          <DialogTitle>{t('messages:list.writeToSomeone')}</DialogTitle>
         </DialogHeader>
 
         <section className="space-y-1">
-          <h3 className="text-sm font-medium">Direct</h3>
+          <h3 className="text-sm font-medium">{t('messages:new.direct')}</h3>
           {others.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nu mai e nimeni activ în echipă.</p>
+            <p className="text-sm text-muted-foreground">{t('messages:new.nobodyActive')}</p>
           ) : (
             <ul className="max-h-48 overflow-y-auto">
               {others.map((member) => (
@@ -180,10 +181,10 @@ export function NewConversationDialog({
         </section>
 
         <section className="space-y-2 border-t pt-3">
-          <Label htmlFor="group-name">Grup nou</Label>
-          <Input id="group-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Echipa de vânzări" />
+          <Label htmlFor="group-name">{t('messages:new.group')}</Label>
+          <Input id="group-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('messages:new.groupPlaceholder')} />
           <fieldset className="space-y-1">
-            <legend className="text-xs text-muted-foreground">Membri (măcar unul)</legend>
+            <legend className="text-xs text-muted-foreground">{t('messages:new.members')}</legend>
             <ul className="max-h-32 space-y-1 overflow-y-auto">
               {others.map((member) => (
                 <li key={member.id}>
@@ -207,7 +208,7 @@ export function NewConversationDialog({
             disabled={saving || name.trim().length === 0 || selected.length === 0}
           >
             <Users className="h-4 w-4" />
-            Creează grupul
+            {t('messages:new.createGroup')}
           </Button>
         </section>
       </DialogContent>

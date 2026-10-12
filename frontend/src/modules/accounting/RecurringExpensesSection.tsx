@@ -11,6 +11,7 @@ import { formatDate, formatMoney } from './badges'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface FormState {
   description: string
@@ -112,7 +113,7 @@ export function RecurringExpensesSection() {
     },
     onSuccess: () => {
       void invalidate()
-      toast.success('Cheltuială recurentă salvată')
+      toast.success(t('accounting:recurring.saved'))
       setEditingId(null)
     },
     onError: (err) => toast.error(err.message),
@@ -122,7 +123,7 @@ export function RecurringExpensesSection() {
     mutationFn: ({ id, active }: { id: string; active: boolean }) => api.patch(`/api/accounting/recurring-expenses/${id}`, { active }),
     onSuccess: () => {
       void invalidate()
-      toast.success('Actualizat')
+      toast.success(t('common:states.updated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -133,7 +134,7 @@ export function RecurringExpensesSection() {
     onSuccess: () => {
       void invalidate()
       void queryClient.invalidateQueries({ queryKey: ['calendar'] })
-      toast.success('Actualizat')
+      toast.success(t('common:states.updated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -142,7 +143,7 @@ export function RecurringExpensesSection() {
     mutationFn: (id: string) => api.delete(`/api/accounting/recurring-expenses/${id}`),
     onSuccess: () => {
       void invalidate()
-      toast.success('Cheltuială recurentă ștearsă')
+      toast.success(t('accounting:recurring.deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -150,16 +151,16 @@ export function RecurringExpensesSection() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-semibold">Cheltuieli recurente</Label>
+        <Label className="text-sm font-semibold">{t('accounting:recurring.title')}</Label>
         {editingId === null && (
           <Button type="button" variant="outline" onClick={() => { setForm(emptyForm()); setEditingId('new') }}>
-            <Plus className="h-4 w-4" /> Cheltuială recurentă nouă
+            <Plus className="h-4 w-4" /> {t('accounting:recurring.new')}
           </Button>
         )}
       </div>
 
       {expenses.isPending ? (
-        <p className="text-xs text-muted-foreground">Se încarcă…</p>
+        <p className="text-xs text-muted-foreground">{t('common:states.loading')}</p>
       ) : expenses.data && expenses.data.length > 0 ? (
         <div className="space-y-2">
           {expenses.data.map((e, i) => (
@@ -172,18 +173,18 @@ export function RecurringExpensesSection() {
                 <span className={e.active ? 'font-medium' : 'font-medium text-muted-foreground line-through'}>{e.description}</span>{' '}
                 {e.counterpartyName ? <span className="text-xs text-muted-foreground">— {e.counterpartyName}</span> : null}{' '}
                 <span className="text-xs text-muted-foreground">
-                  ({formatMoney(e.amount, e.currency)} / {e.cycle === 'monthly' ? 'lună' : 'an'}, următoarea: {formatDate(e.nextDueDate)})
+                  {t(e.cycle === 'monthly' ? 'accounting:recurring.summaryMonthly' : 'accounting:recurring.summaryYearly', { amount: formatMoney(e.amount, e.currency), date: formatDate(e.nextDueDate) })}
                 </span>
-                {!e.active && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">pauză</span>}
+                {!e.active && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">{t('accounting:recurring.paused')}</span>}
                 {e.reverseChargeType !== 'none' && (
-                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">TVA invers</span>
+                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">{t('accounting:recurring.reverseVat')}</span>
                 )}
                 {!e.autoMaterialize && (
                   <span
                     className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
-                    title="Doar reminder de calendar — factura reală se introduce manual"
+                    title={t('accounting:recurring.reminderOnlyHint')}
                   >
-                    doar reminder
+                    {t('accounting:recurring.reminderOnly')}
                   </span>
                 )}
               </div>
@@ -191,7 +192,7 @@ export function RecurringExpensesSection() {
                 <Button
                   type="button"
                   variant="ghost"
-                  title={e.active ? 'Pune pe pauză' : 'Reactivează'}
+                  title={e.active ? t('accounting:recurring.pause') : t('accounting:recurring.resume')}
                   disabled={toggleActive.isPending}
                   onClick={() => toggleActive.mutate({ id: e.id, active: !e.active })}
                 >
@@ -200,21 +201,21 @@ export function RecurringExpensesSection() {
                 <Button
                   type="button"
                   variant="ghost"
-                  title={e.showInCalendar ? 'Ascunde din Calendar' : 'Arată în Calendar'}
+                  title={e.showInCalendar ? t('accounting:recurring.hideFromCalendar') : t('accounting:recurring.showInCalendar')}
                   disabled={toggleShowInCalendar.isPending}
                   onClick={() => toggleShowInCalendar.mutate({ id: e.id, showInCalendar: !e.showInCalendar })}
                 >
                   {e.showInCalendar ? <CalendarCheck className="h-4 w-4" /> : <CalendarX className="h-4 w-4 text-muted-foreground" />}
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => { setForm(toForm(e)); setEditingId(e.id) }}>
-                  Editează
+                  {t('common:actions.edit')}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
                   disabled={remove.isPending}
                   onClick={() => {
-                    void confirm({ title: `Șterge cheltuiala recurentă „${e.description}”`, consequence: 'Nu se mai generează lunar. Cheltuielile deja create rămân.', confirmLabel: 'Șterge cheltuiala', destructive: true }).then((ok) => ok && remove.mutate(e.id))
+                    void confirm({ title: t('accounting:recurring.deleteTitle', { description: e.description }), consequence: t('accounting:recurring.deleteBody'), confirmLabel: t('accounting:recurring.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(e.id))
                   }}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -224,33 +225,33 @@ export function RecurringExpensesSection() {
           ))}
         </div>
       ) : (
-        editingId === null && <p className="text-xs text-muted-foreground">Nicio cheltuială recurentă încă.</p>
+        editingId === null && <p className="text-xs text-muted-foreground">{t('accounting:recurring.empty')}</p>
       )}
 
       {editingId !== null && (
         <div className="space-y-3 rounded-md border p-3">
           <div className="space-y-2">
-            <Label htmlFor="re-description">Descriere</Label>
+            <Label htmlFor="re-description">{t('common:labels.description')}</Label>
             <Input
               id="re-description"
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="ex: Abonament AWS"
+              placeholder={t('accounting:placeholders.awsSubscription')}
               required
             />
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="re-category">Categorie (opțional)</Label>
-              <Input id="re-category" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder="ex: hosting" />
+              <Label htmlFor="re-category">{t('accounting:labels.categoryOptional')}</Label>
+              <Input id="re-category" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} placeholder={t('accounting:placeholders.hosting')} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="re-amount">Sumă</Label>
+                <Label htmlFor="re-amount">{t('common:labels.amount')}</Label>
                 <Input id="re-amount" inputMode="decimal" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="re-currency">Monedă</Label>
+                <Label htmlFor="re-currency">{t('common:labels.currency')}</Label>
                 <Select
                   id="re-currency"
                   value={form.currency}
@@ -265,18 +266,18 @@ export function RecurringExpensesSection() {
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="re-cycle">Cadență</Label>
+              <Label htmlFor="re-cycle">{t('accounting:recurring.cadence')}</Label>
               <Select
                 id="re-cycle"
                 value={form.cycle}
                 onChange={(e) => setForm((f) => ({ ...f, cycle: e.target.value as FormState['cycle'] }))}
               >
-                <option value="monthly">Lunar</option>
-                <option value="annual">Anual</option>
+                <option value="monthly">{t('common:labels.monthly')}</option>
+                <option value="annual">{t('common:labels.yearly')}</option>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="re-cycle-day">Ziua din lună</Label>
+              <Label htmlFor="re-cycle-day">{t('accounting:clientForm.dayOfMonth')}</Label>
               <Input
                 id="re-cycle-day"
                 inputMode="numeric"
@@ -287,7 +288,7 @@ export function RecurringExpensesSection() {
             </div>
             {form.cycle === 'annual' && (
               <div className="space-y-2">
-                <Label htmlFor="re-cycle-month">Luna</Label>
+                <Label htmlFor="re-cycle-month">{t('common:labels.month')}</Label>
                 <Input
                   id="re-cycle-month"
                   inputMode="numeric"
@@ -300,18 +301,18 @@ export function RecurringExpensesSection() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="re-counterparty">Furnizor (opțional)</Label>
+            <Label htmlFor="re-counterparty">{t('accounting:labels.supplierOptional')}</Label>
             <Input
               id="re-counterparty"
               value={form.counterpartyName}
               onChange={(e) => setForm((f) => ({ ...f, counterpartyName: e.target.value }))}
-              placeholder="ex: Hetzner Online GmbH"
+              placeholder={t('accounting:placeholders.supplier')}
             />
           </div>
 
           <div className="space-y-4 rounded-md border p-3">
             <div className="space-y-2">
-              <Label htmlFor="re-reverse-charge">Tip achiziție (taxare inversă TVA)</Label>
+              <Label htmlFor="re-reverse-charge">{t('accounting:reverseCharge.purchaseType')}</Label>
               <Select
                 id="re-reverse-charge"
                 value={form.reverseChargeType}
@@ -323,35 +324,35 @@ export function RecurringExpensesSection() {
                   setForm((f) => ({ ...f, reverseChargeType, reverseChargeVatRate }))
                 }}
               >
-                <option value="none">Fără taxare inversă</option>
-                <option value="eu_services">UE — servicii (ex: Hetzner)</option>
-                <option value="non_eu_services">Non-UE — servicii (ex: Cloudflare)</option>
+                <option value="none">{t('accounting:reverseCharge.none')}</option>
+                <option value="eu_services">{t('accounting:reverseCharge.eu')}</option>
+                <option value="non_eu_services">{t('accounting:reverseCharge.nonEu')}</option>
               </Select>
-              <p className="text-xs text-muted-foreground">Se copiază pe fiecare cheltuială materializată — apare în D301/D390.</p>
+              <p className="text-xs text-muted-foreground">{t('accounting:recurring.reverseChargeHint')}</p>
             </div>
             {form.reverseChargeType !== 'none' ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="re-rc-country">Țara furnizorului (ISO-2)</Label>
+                  <Label htmlFor="re-rc-country">{t('accounting:reverseCharge.supplierCountry')}</Label>
                   <Input
                     id="re-rc-country"
                     value={form.counterpartyCountry}
                     onChange={(e) => setForm((f) => ({ ...f, counterpartyCountry: e.target.value.toUpperCase() }))}
-                    placeholder={form.reverseChargeType === 'eu_services' ? 'ex: DE' : 'ex: US'}
+                    placeholder={form.reverseChargeType === 'eu_services' ? t('accounting:placeholders.countryDe') : t('accounting:placeholders.countryUs')}
                     maxLength={2}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="re-rc-vatid">Cod TVA furnizor{form.reverseChargeType === 'eu_services' ? '' : ' (opțional)'}</Label>
+                  <Label htmlFor="re-rc-vatid">{form.reverseChargeType === 'eu_services' ? t('accounting:reverseCharge.supplierVatCode') : t('accounting:reverseCharge.supplierVatCodeOptional')}</Label>
                   <Input
                     id="re-rc-vatid"
                     value={form.counterpartyCif}
                     onChange={(e) => setForm((f) => ({ ...f, counterpartyCif: e.target.value }))}
-                    placeholder="fără prefix de țară"
+                    placeholder={t('accounting:reverseCharge.noCountryPrefix')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="re-rc-rate">Cotă TVA (%)</Label>
+                  <Label htmlFor="re-rc-rate">{t('accounting:reverseCharge.vatRate')}</Label>
                   <Input
                     id="re-rc-rate"
                     inputMode="decimal"
@@ -369,19 +370,18 @@ export function RecurringExpensesSection() {
               checked={form.autoMaterialize}
               onChange={(e) => setForm((f) => ({ ...f, autoMaterialize: e.target.checked }))}
             />
-            Generează automat cheltuiala
+            {t('accounting:recurring.autoGenerate')}
           </label>
           <p className="text-xs text-muted-foreground">
-            Debifează dacă furnizorul trimite ulterior o factură reală pe care o introduci tu manual — jobul rămâne
-            doar reminder de calendar și nu mai dublează cheltuiala.
+            {t('accounting:recurring.autoGenerateHint')}
           </p>
 
           <div className="flex gap-2">
             <Button type="button" disabled={save.isPending || !form.description} onClick={() => save.mutate()}>
-              {save.isPending ? 'Se salvează…' : 'Salvează'}
+              {save.isPending ? t('common:states.saving') : t('common:actions.save')}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setEditingId(null)}>
-              Anulează
+              {t('common:actions.cancel')}
             </Button>
           </div>
         </div>

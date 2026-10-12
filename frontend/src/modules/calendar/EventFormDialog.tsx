@@ -16,6 +16,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { toDatetimeLocalValue, WEEKDAY_LABELS } from './date-utils'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 const COLORS: string[] = [...CHART_COLORS]
 const DEFAULT_COLOR = COLORS[0] ?? '#2a78d6'
@@ -156,7 +157,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['calendar'] })
-      toast.success(event ? 'Eveniment actualizat' : 'Eveniment creat')
+      toast.success(event ? t('calendar:toasts.eventUpdated') : t('calendar:toasts.eventCreated'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -173,17 +174,17 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['booking'] })
-      toast.success('Interval blocat pentru programări')
+      toast.success(t('calendar:toasts.blockedForBookings'))
       onOpenChange(false)
     },
-    onError: () => toast.error('Intervalul nu s-a blocat. Încearcă din nou.'),
+    onError: () => toast.error(t('calendar:toasts.blockFailed')),
   })
 
   const remove = useMutation({
     mutationFn: () => api.delete<void>(`/api/calendar/events/${event?.id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['calendar'] })
-      toast.success('Eveniment șters')
+      toast.success(t('calendar:toasts.eventDeleted'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -193,11 +194,11 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{readOnly ? event?.title : event ? 'Editează evenimentul' : 'Eveniment nou'}</DialogTitle>
+          <DialogTitle>{readOnly ? event?.title : event ? t('calendar:event.editTitle') : t('calendar:event.newTitle')}</DialogTitle>
           {event && meta && meta.access !== 'owner' && meta.ownerName ? (
             <p className="text-sm text-muted-foreground">
-              {meta.isCommon ? `Eveniment comun, creat de ${meta.ownerName}` : `În calendarul lui ${meta.ownerName}`}
-              {readOnly ? ' · doar citire' : ''}
+              {meta.isCommon ? t('calendar:event.sharedCreatedBy', { ownerName: meta.ownerName }) : t('calendar:event.inCalendarOf', { ownerName: meta.ownerName })}
+              {readOnly ? t('calendar:event.readOnly') : ''}
             </p>
           ) : null}
         </DialogHeader>
@@ -211,18 +212,18 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
           <fieldset disabled={readOnly} className="space-y-4">
             {!event && writableCalendars.length > 1 ? (
               <div className="space-y-2">
-                <Label htmlFor="ev-calendar">Calendar</Label>
+                <Label htmlFor="ev-calendar">{t('common:nav.calendar')}</Label>
                 <Select id="ev-calendar" value={calendarOwnerId} onValueChange={setCalendarOwnerId}>
                   {writableCalendars.map((cal) => (
                     <option key={cal.userId} value={cal.userId}>
-                      {cal.owner ? 'Calendarul meu' : `Calendarul lui ${cal.name}`}
+                      {cal.owner ? t('calendar:layers.mine') : t('calendar:layers.calendarOf', { name: cal.name })}
                     </option>
                   ))}
                 </Select>
               </div>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor="ev-title">Titlu</Label>
+              <Label htmlFor="ev-title">{t('common:labels.title')}</Label>
               <Input id="ev-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
             </div>
             {/* Rânduri separate (nu grid 2 coloane) — date/time input-urile native au o lățime
@@ -230,7 +231,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                 Început+Sfârșit împărțeau jumătate de coloană fiecare (mai ales cu AM/PM). */}
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="ev-start-date">Început</Label>
+                <Label htmlFor="ev-start-date">{t('calendar:event.start')}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="ev-start-date"
@@ -251,7 +252,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ev-end-date">Sfârșit</Label>
+                <Label htmlFor="ev-end-date">{t('calendar:event.end')}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="ev-end-date"
@@ -273,28 +274,28 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ev-location">Locație</Label>
+              <Label htmlFor="ev-location">{t('calendar:event.location')}</Label>
               <Input id="ev-location" value={location} onChange={(e) => setLocation(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ev-description">Descriere</Label>
+              <Label htmlFor="ev-description">{t('common:labels.description')}</Label>
               <Textarea id="ev-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ev-recurrence">Recurență</Label>
+              <Label htmlFor="ev-recurrence">{t('calendar:event.recurrence')}</Label>
               <Select
                 id="ev-recurrence"
                 value={recurrence}
                 onChange={(e) => setRecurrence(e.target.value as Recurrence)}
               >
-                <option value="none">Fără recurență</option>
-                <option value="daily">Zilnic</option>
-                <option value="weekly">Săptămânal</option>
+                <option value="none">{t('calendar:event.noRecurrence')}</option>
+                <option value="daily">{t('calendar:event.daily')}</option>
+                <option value="weekly">{t('calendar:event.weekly')}</option>
               </Select>
             </div>
             {recurrence === 'weekly' ? (
               <div className="space-y-2">
-                <Label>Zile</Label>
+                <Label>{t('calendar:event.days')}</Label>
                 <div className="flex flex-wrap gap-2">
                   {WEEKDAY_LABELS.map((label, i) => {
                     const code = BYDAY_CODES[i] ?? 'MO'
@@ -322,7 +323,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
             ) : null}
             {recurrence !== 'none' ? (
               <div className="space-y-2">
-                <Label htmlFor="ev-recurrence-end">Recurență până la (opțional)</Label>
+                <Label htmlFor="ev-recurrence-end">{t('calendar:event.recurrenceUntil')}</Label>
                 <Input
                   id="ev-recurrence-end"
                   type="date"
@@ -332,30 +333,30 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
               </div>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor="ev-reminder">Reminder</Label>
+              <Label htmlFor="ev-reminder">{t('calendar:event.reminder')}</Label>
               <Select
                 id="ev-reminder"
                 value={reminderMinutesBefore}
                 onChange={(e) => setReminderMinutesBefore(e.target.value)}
               >
-                <option value="">Fără</option>
-                <option value="5">5 minute înainte</option>
-                <option value="15">15 minute înainte</option>
-                <option value="30">30 minute înainte</option>
-                <option value="60">60 minute înainte</option>
+                <option value="">{t('calendar:event.reminderNone')}</option>
+                <option value="5">{t('calendar:event.reminder5')}</option>
+                <option value="15">{t('calendar:event.reminder15')}</option>
+                <option value="30">{t('calendar:event.reminder30')}</option>
+                <option value="60">{t('calendar:event.reminder60')}</option>
               </Select>
             </div>
             {canCommon && !readOnly ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Participanți (opțional)</Label>
+                  <Label>{t('calendar:event.attendeesOptional')}</Label>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setAttendeeIds(new Set(attendeeCandidates.map((m) => m.id)))}
                   >
-                    Toată echipa
+                    {t('calendar:event.wholeTeam')}
                   </Button>
                 </div>
                 <div className="max-h-36 space-y-1 overflow-y-auto rounded-md border p-2">
@@ -377,19 +378,19 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                       </label>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground">Nu mai e nimeni în echipă.</p>
+                    <p className="text-sm text-muted-foreground">{t('calendar:event.nobodyElse')}</p>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">Evenimentul apare și în calendarul lor.</p>
+                <p className="text-xs text-muted-foreground">{t('calendar:event.attendeesHint')}</p>
               </div>
             ) : meta?.attendees.length ? (
               <div className="space-y-1">
-                <Label>Participanți</Label>
+                <Label>{t('calendar:event.attendees')}</Label>
                 <p className="text-sm">{meta.attendees.map((a) => a.name).join(', ')}</p>
               </div>
             ) : null}
             <div className="space-y-2">
-              <Label>Culoare</Label>
+              <Label>{t('calendar:event.color')}</Label>
               <div className="flex gap-2">
                 {COLORS.map((c) => (
                   <button
@@ -406,7 +407,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
           {readOnly ? null : (
             <div className="flex gap-2">
               <Button type="submit" className="flex-1" disabled={save.isPending}>
-                {save.isPending ? 'Se salvează…' : 'Salvează'}
+                {save.isPending ? t('common:states.saving') : t('common:actions.save')}
               </Button>
               {event ? (
                 <Button
@@ -414,20 +415,20 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                   variant="outline"
                   disabled={remove.isPending}
                   onClick={() => {
-                    void confirm({ title: `Șterge evenimentul „${event.title}”`, consequence: event.recurrenceRule ? 'Se șterg toate repetările lui.' : undefined, confirmLabel: 'Șterge evenimentul', destructive: true }).then((ok) => ok && remove.mutate())
+                    void confirm({ title: t('calendar:event.deleteTitle', { title: event.title }), consequence: event.recurrenceRule ? t('calendar:event.deleteRecurringBody') : undefined, confirmLabel: t('calendar:event.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate())
                   }}
                 >
-                  Șterge
+                  {t('common:actions.delete')}
                 </Button>
               ) : can('calendar.programari') ? (
                 <Button
                   type="button"
                   variant="outline"
-                  title="Scoate intervalul din orele de pe site, fără să creezi un eveniment"
+                  title={t('calendar:event.blockOnlyHint')}
                   disabled={blockForBookings.isPending || !startAt || !endAt || new Date(endAt) <= new Date(startAt)}
                   onClick={() => blockForBookings.mutate()}
                 >
-                  Doar blochează pentru programări
+                  {t('calendar:event.blockOnly')}
                 </Button>
               ) : null}
             </div>

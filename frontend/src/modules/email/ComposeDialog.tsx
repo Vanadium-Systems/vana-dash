@@ -15,6 +15,7 @@ import type { EmailDraft, EmailFromKey, EmailIdentity, EmailSettings, EmailTempl
 import { ArchiveAttachPicker } from './ArchiveAttachPicker'
 import { IdentityField, useIdentityKey } from './IdentityField'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 const MAX_ATTACHMENTS = 5
 
@@ -138,7 +139,7 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
   const addFiles = async (files: FileList) => {
     const remaining = MAX_ATTACHMENTS - attachments.length
     if (remaining <= 0) {
-      toast.error(`Maxim ${MAX_ATTACHMENTS} atașamente.`)
+      toast.error(t('email:compose.maxAttachments', { MAX_ATTACHMENTS }))
       return
     }
     const toAdd = Array.from(files).slice(0, remaining)
@@ -146,7 +147,7 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
       const encoded = await Promise.all(toAdd.map(readFileAsBase64))
       setAttachments((prev) => [...prev, ...encoded])
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Citire fișier eșuată')
+      toast.error(err instanceof Error ? err.message : t('email:attach.readFailed'))
     }
   }
 
@@ -188,7 +189,7 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
     },
     onSuccess: () => {
       invalidateAfterSend()
-      toast.success('Trimis')
+      toast.success(t('email:status.sent'))
       onOpenChange(false)
     },
     onError: (err) => {
@@ -209,12 +210,12 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
     onSuccess: (draft) => {
       setDraftId(draft.id)
       void queryClient.invalidateQueries({ queryKey: ['email', 'drafts'] })
-      toast.success('Draft salvat')
+      toast.success(t('email:compose.draftSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
 
-  const title = mode.kind === 'reply' ? 'Răspunde' : mode.kind === 'forward' ? 'Redirecționează' : draftId ? 'Editează draft' : 'Compune'
+  const title = mode.kind === 'reply' ? t('common:actions.reply') : mode.kind === 'forward' ? t('email:actions.forward') : draftId ? t('email:compose.editDraft') : t('email:compose.title')
 
   return (
     <>
@@ -235,23 +236,23 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
               <IdentityField id="cd-from" value={from} onChange={setFrom} identities={settings.data?.identities} />
               {templates.data?.length ? (
                 <div className="space-y-2">
-                  <Label htmlFor="cd-template">Template (opțional)</Label>
+                  <Label htmlFor="cd-template">{t('email:compose.templateOptional')}</Label>
                   <Select
                     id="cd-template"
                     value={templateId}
                     onChange={(e) => {
                       setTemplateId(e.target.value)
-                      const t = templates.data?.find((x) => x.id === e.target.value)
-                      if (t) {
-                        setSubject(t.subject)
-                        setBody(t.body)
+                      const template = templates.data?.find((x) => x.id === e.target.value)
+                      if (template) {
+                        setSubject(template.subject)
+                        setBody(template.body)
                       }
                     }}
                   >
-                    <option value="">— niciunul —</option>
-                    {templates.data.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
+                    <option value="">{t('email:compose.noTemplate')}</option>
+                    {templates.data.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
                       </option>
                     ))}
                   </Select>
@@ -262,11 +263,11 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
 
           {mode.kind === 'reply' ? (
             <p className="text-sm text-muted-foreground">
-              Către: <span className="font-medium text-foreground">{to}</span>
+              {t('email:compose.toColon')} <span className="font-medium text-foreground">{to}</span>
             </p>
           ) : (
             <div className="space-y-2">
-              <Label htmlFor="cd-to">Către</Label>
+              <Label htmlFor="cd-to">{t('common:labels.to')}</Label>
               <div ref={toContainerRef} className="relative">
                 <Input
                   id="cd-to"
@@ -307,35 +308,35 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
 
           {mode.kind === 'reply' ? null : (
             <div className="space-y-2">
-              <Label htmlFor="cd-subject">Subiect</Label>
+              <Label htmlFor="cd-subject">{t('common:labels.subject')}</Label>
               <Input id="cd-subject" value={subject} onChange={(e) => setSubject(e.target.value)} required={mode.kind !== 'forward'} />
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="cd-body">Mesaj</Label>
-            <RichTextEditor id="cd-body" value={body} onChange={setBody} placeholder="Scrie mesajul…" />
+            <Label htmlFor="cd-body">{t('common:labels.message')}</Label>
+            <RichTextEditor id="cd-body" value={body} onChange={setBody} placeholder={t('email:compose.bodyPlaceholder')} />
           </div>
 
           {signaturePreview ? (
             <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-              <p className="mb-1 text-xs font-medium text-muted-foreground/70">Se adaugă automat la trimitere</p>
+              <p className="mb-1 text-xs font-medium text-muted-foreground/70">{t('email:compose.signatureAdded')}</p>
               <p className="whitespace-pre-wrap">{signaturePreview}</p>
-              {settings.data?.logoUrl ? <img src={settings.data.logoUrl} alt="logo" className="mt-2 max-h-10" /> : null}
+              {settings.data?.logoUrl ? <img src={settings.data.logoUrl} alt={t('email:settings.logoAlt')} className="mt-2 max-h-10" /> : null}
             </div>
           ) : null}
 
           {mode.kind === 'forward' ? (
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input type="checkbox" checked={includeOriginalAttachments} onChange={(e) => setIncludeOriginalAttachments(e.target.checked)} />
-              Include atașamentele originale
+              {t('email:compose.includeOriginalAttachments')}
             </label>
           ) : null}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>
-                Atașamente ({attachments.length}/{MAX_ATTACHMENTS})
+                {t('email:attach.count', { count: attachments.length, MAX_ATTACHMENTS })}
               </Label>
               <div className="flex gap-2">
                 <Button
@@ -344,7 +345,7 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
                   disabled={attachments.length >= MAX_ATTACHMENTS}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Paperclip className="h-4 w-4" /> Adaugă
+                  <Paperclip className="h-4 w-4" /> {t('common:actions.add')}
                 </Button>
                 <Button
                   type="button"
@@ -352,7 +353,7 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
                   disabled={attachments.length >= MAX_ATTACHMENTS}
                   onClick={() => setArchivePickerOpen(true)}
                 >
-                  Din arhivă
+                  {t('email:attach.fromArchive')}
                 </Button>
               </div>
               <input
@@ -383,30 +384,30 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
           {repliedMeanwhile ? (
             <Alert
               tone="warning"
-              title={`${repliedMeanwhile.by ?? 'Altcineva'} a răspuns ${formatRelativeTime(repliedMeanwhile.at)}`}
+              title={t('email:compose.repliedMeanwhile', { by: repliedMeanwhile.by ?? t('email:compose.someoneElse'), at: formatRelativeTime(repliedMeanwhile.at) })}
               action={
                 <>
                   <Button type="button" variant="outline" size="sm" onClick={() => setRepliedMeanwhile(null)}>
-                    Trimite oricum
+                    {t('email:compose.sendAnyway')}
                   </Button>
                   <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-                    Vezi răspunsul
+                    {t('email:compose.seeReply')}
                   </Button>
                 </>
               }
             >
-              Mesajul tău e tot aici, netrimis.
+              {t('email:compose.stillHere')}
             </Alert>
           ) : null}
 
           <div className="flex gap-2">
             {mode.kind === 'compose' || mode.kind === 'draft' ? (
               <Button type="button" variant="outline" disabled={saveDraft.isPending} onClick={() => saveDraft.mutate()}>
-                {saveDraft.isPending ? 'Se salvează…' : 'Salvează draft'}
+                {saveDraft.isPending ? t('common:states.saving') : t('email:compose.saveDraft')}
               </Button>
             ) : null}
             <Button type="submit" className="flex-1" disabled={send.isPending}>
-              {send.isPending ? 'Se trimite…' : 'Trimite'}
+              {send.isPending ? t('common:states.sending') : t('common:actions.send')}
             </Button>
           </div>
         </form>
@@ -417,7 +418,7 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
       onOpenChange={setArchivePickerOpen}
       onSelect={(attachment) => {
         if (attachments.length >= MAX_ATTACHMENTS) {
-          toast.error(`Maxim ${MAX_ATTACHMENTS} atașamente.`)
+          toast.error(t('email:compose.maxAttachments', { MAX_ATTACHMENTS }))
           return
         }
         setAttachments((prev) => [...prev, attachment])

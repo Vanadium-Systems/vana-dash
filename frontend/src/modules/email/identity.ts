@@ -1,3 +1,4 @@
+import { t } from '@/shared/lib/i18n'
 // "Stefan <stefan@vanadium.systems>" → "stefan@vanadium.systems" (identitățile de trimitere
 // stochează formatul RFC 5322 complet; unele UI-uri au nevoie doar de adresa goală).
 export function extractEmailAddress(raw: string): string {
@@ -7,8 +8,8 @@ export function extractEmailAddress(raw: string): string {
 // Sugestii scurte lângă unele identități în dropdown-urile "De la" — nu vin din backend
 // (identities e doar key/label/fromAddress), doar context util la alegere.
 const IDENTITY_HINTS: Record<string, string> = {
-  stefan: 'personal',
-  outreach: 'cold outreach, plafon de warm-up',
+  stefan: t('email:identity.personal'),
+  outreach: t('email:identity.outreachHint'),
 }
 
 export function identityOptionLabel(identity: { key: string; label: string; fromAddress: string }): string {

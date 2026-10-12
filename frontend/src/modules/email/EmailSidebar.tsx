@@ -20,6 +20,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import type { EmailLabel, SendQuotaUsage } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Roșu peste 90% din limita zilnică SAU lunară — cea mai apropiată de prag decide culoarea,
 // nu media, altfel un consum lunar mic ar masca o zi aproape de plafon.
@@ -40,9 +41,9 @@ function SendQuotaIndicator() {
   })
   if (!quota.data) return null
   return (
-    <div className={cn('space-y-0.5 px-3 text-xs', quotaTone(quota.data))} title="Trimiteri Resend — plan gratuit">
-      <div>Azi: {quota.data.today}/{quota.data.dailyLimit}</div>
-      <div>Luna asta: {quota.data.month}/{quota.data.monthlyLimit}</div>
+    <div className={cn('space-y-0.5 px-3 text-xs', quotaTone(quota.data))} title={t('email:sidebar.quotaHint')}>
+      <div>{t('email:sidebar.quotaToday', { today: quota.data.today, dailyLimit: quota.data.dailyLimit })}</div>
+      <div>{t('email:sidebar.quotaMonth', { month: quota.data.month, monthlyLimit: quota.data.monthlyLimit })}</div>
     </div>
   )
 }
@@ -122,25 +123,25 @@ export function EmailSidebar({
     <div className="flex w-full flex-col gap-4 md:w-52 md:shrink-0">
       {can('email.trimitere') ? (
         <Button className="w-full" onClick={onCompose}>
-          Compune
+          {t('email:compose.title')}
         </Button>
       ) : null}
 
       <nav className="space-y-0.5">
-        {item({ kind: 'mailbox', folder: 'inbox' }, <Inbox className="h-4 w-4" />, 'Inbox', unreadCounts.data?.inbox)}
-        {item({ kind: 'mailbox', starred: true }, <Star className="h-4 w-4" />, 'Marcate')}
-        {item({ kind: 'mailbox', snoozed: true }, <Clock className="h-4 w-4" />, 'Amânate')}
-        {item({ kind: 'drafts' }, <FileEdit className="h-4 w-4" />, 'Draft-uri')}
-        {item({ kind: 'sent' }, <Send className="h-4 w-4" />, 'Trimise')}
-        {item({ kind: 'mailbox', folder: 'archive' }, <Archive className="h-4 w-4" />, 'Arhivă')}
-        {item({ kind: 'mailbox', folder: 'spam' }, <ShieldAlert className="h-4 w-4" />, 'Spam', unreadCounts.data?.spam)}
-        {item({ kind: 'mailbox', folder: 'trash' }, <Trash2 className="h-4 w-4" />, 'Coș de gunoi')}
-        {item({ kind: 'mailbox', folder: 'all' }, <Layers className="h-4 w-4" />, 'Toate mesajele')}
+        {item({ kind: 'mailbox', folder: 'inbox' }, <Inbox className="h-4 w-4" />, t('email:folders.inbox'), unreadCounts.data?.inbox)}
+        {item({ kind: 'mailbox', starred: true }, <Star className="h-4 w-4" />, t('email:folders.starred'))}
+        {item({ kind: 'mailbox', snoozed: true }, <Clock className="h-4 w-4" />, t('email:folders.snoozed'))}
+        {item({ kind: 'drafts' }, <FileEdit className="h-4 w-4" />, t('email:folders.drafts'))}
+        {item({ kind: 'sent' }, <Send className="h-4 w-4" />, t('email:folders.sent'))}
+        {item({ kind: 'mailbox', folder: 'archive' }, <Archive className="h-4 w-4" />, t('email:folders.archive'))}
+        {item({ kind: 'mailbox', folder: 'spam' }, <ShieldAlert className="h-4 w-4" />, t('email:folders.spam'), unreadCounts.data?.spam)}
+        {item({ kind: 'mailbox', folder: 'trash' }, <Trash2 className="h-4 w-4" />, t('email:folders.trash'))}
+        {item({ kind: 'mailbox', folder: 'all' }, <Layers className="h-4 w-4" />, t('email:folders.all'))}
       </nav>
 
       {labels.data?.length ? (
         <div className="space-y-0.5">
-          <p className="px-3 text-xs text-muted-foreground">Etichete</p>
+          <p className="px-3 text-xs text-muted-foreground">{t('email:labels.labels')}</p>
           {labels.data.map((label) =>
             item({ kind: 'mailbox', labelId: label.id }, <Tag className="h-4 w-4" style={{ color: label.color ?? undefined }} />, label.name),
           )}
@@ -151,14 +152,14 @@ export function EmailSidebar({
           pentru omul ăsta, nici măcar ca link. */}
       {canAny(['email.sabloane', 'email.bulk', 'email.setari']) ? (
         <div className="space-y-0.5 border-t pt-2">
-          {can('email.sabloane') ? item({ kind: 'templates' }, <FileEdit className="h-4 w-4" />, 'Template-uri') : null}
+          {can('email.sabloane') ? item({ kind: 'templates' }, <FileEdit className="h-4 w-4" />, t('email:sidebar.templates')) : null}
           {can('email.bulk') ? (
             <>
-              {item({ kind: 'bulk' }, <Megaphone className="h-4 w-4" />, 'Trimitere Bulk')}
-              {item({ kind: 'sequences' }, <Repeat className="h-4 w-4" />, 'Secvențe')}
+              {item({ kind: 'bulk' }, <Megaphone className="h-4 w-4" />, t('email:sidebar.bulk'))}
+              {item({ kind: 'sequences' }, <Repeat className="h-4 w-4" />, t('email:sidebar.sequences'))}
             </>
           ) : null}
-          {can('email.setari') ? item({ kind: 'settings' }, <SettingsIcon className="h-4 w-4" />, 'Setări') : null}
+          {can('email.setari') ? item({ kind: 'settings' }, <SettingsIcon className="h-4 w-4" />, t('common:nav.settings')) : null}
         </div>
       ) : null}
 

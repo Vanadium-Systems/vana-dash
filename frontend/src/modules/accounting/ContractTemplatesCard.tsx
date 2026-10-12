@@ -9,6 +9,8 @@ import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { api } from '@/shared/lib/api'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { t } from '@/shared/lib/i18n'
+import { tNodes } from '@/shared/lib/i18n-nodes'
 
 interface PlaceholderDoc {
   token: string
@@ -26,19 +28,19 @@ interface ContractTemplate {
 // Pilot — reducere/durată scoase (2026-09-21, Stefan: oferta de Perioadă Pilot nu mai e valabilă)
 // — clauza Art. 15 PERIOADA PILOT + Secțiunea 4 Anexă scoase și ele din contract-template-bodies.ts.
 const TERMS_FIELDS: Array<{ key: string; label: string }> = [
-  { key: 'penalitateIntarziere', label: 'Penalitate întârziere' },
-  { key: 'termenScadenta', label: 'Termen scadență' },
-  { key: 'gratiePlata', label: 'Zile grație plată' },
-  { key: 'preavizReziliere', label: 'Preaviz reziliere' },
-  { key: 'termenConfirmareContinuare', label: 'Termen confirmare continuare' },
-  { key: 'lunaGratuitaDurata', label: 'Lună gratuită — durată' },
-  { key: 'referralReducere', label: 'Referral — reducere' },
-  { key: 'referralDurata', label: 'Referral — durată' },
-  { key: 'referralPlafon', label: 'Referral — plafon' },
-  { key: 'slaUptime', label: 'SLA — uptime' },
-  { key: 'slaMentenanta', label: 'SLA — fereastră mentenanță' },
-  { key: 'slaP1', label: 'SLA — P1 răspuns' },
-  { key: 'slaP2', label: 'SLA — P2 răspuns' },
+  { key: 'penalitateIntarziere', label: t('accounting:terms.latePenalty') },
+  { key: 'termenScadenta', label: t('accounting:terms.dueTerm') },
+  { key: 'gratiePlata', label: t('accounting:terms.paymentGraceDays') },
+  { key: 'preavizReziliere', label: t('accounting:terms.terminationNotice') },
+  { key: 'termenConfirmareContinuare', label: t('accounting:terms.continuationConfirmTerm') },
+  { key: 'lunaGratuitaDurata', label: t('accounting:terms.freeMonthLength') },
+  { key: 'referralReducere', label: t('accounting:terms.referralDiscount') },
+  { key: 'referralDurata', label: t('accounting:terms.referralLength') },
+  { key: 'referralPlafon', label: t('accounting:terms.referralCap') },
+  { key: 'slaUptime', label: t('accounting:terms.slaUptime') },
+  { key: 'slaMentenanta', label: t('accounting:terms.slaMaintenanceWindow') },
+  { key: 'slaP1', label: t('accounting:terms.slaP1Response') },
+  { key: 'slaP2', label: t('accounting:terms.slaP2Response') },
 ]
 
 function TemplateEditor() {
@@ -53,18 +55,18 @@ function TemplateEditor() {
     queryFn: () => api.get<ContractTemplate[]>('/api/contracts/templates'),
   })
 
-  const current = templates.data?.find((t) => t.key === selectedKey) ?? null
+  const current = templates.data?.find((template) => template.key === selectedKey) ?? null
 
-  const select = (t: ContractTemplate) => {
-    setSelectedKey(t.key)
-    setBody(t.bodyHtml)
+  const select = (template: ContractTemplate) => {
+    setSelectedKey(template.key)
+    setBody(template.bodyHtml)
   }
 
   const save = useMutation({
     mutationFn: () => api.put<ContractTemplate>(`/api/contracts/templates/${selectedKey}`, { bodyHtml: body }),
     onSuccess: (row) => {
-      queryClient.setQueryData<ContractTemplate[]>(['contract-templates'], (prev) => prev?.map((t) => (t.key === row.key ? row : t)))
-      toast.success('Șablon salvat')
+      queryClient.setQueryData<ContractTemplate[]>(['contract-templates'], (prev) => prev?.map((template) => (template.key === row.key ? row : template)))
+      toast.success(t('accounting:templates.saved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -72,9 +74,9 @@ function TemplateEditor() {
   const restore = useMutation({
     mutationFn: () => api.post<ContractTemplate>(`/api/contracts/templates/${selectedKey}/restore`, {}),
     onSuccess: (row) => {
-      queryClient.setQueryData<ContractTemplate[]>(['contract-templates'], (prev) => prev?.map((t) => (t.key === row.key ? row : t)))
+      queryClient.setQueryData<ContractTemplate[]>(['contract-templates'], (prev) => prev?.map((template) => (template.key === row.key ? row : template)))
       setBody(row.bodyHtml)
-      toast.success('Restaurat la versiunea originală')
+      toast.success(t('accounting:templates.restored'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -99,20 +101,20 @@ function TemplateEditor() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {(templates.data ?? []).map((t) => (
+        {(templates.data ?? []).map((template) => (
           <button
-            key={t.key}
+            key={template.key}
             type="button"
-            onClick={() => select(t)}
-            className={`rounded-md border px-3 py-1.5 text-sm ${selectedKey === t.key ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
+            onClick={() => select(template)}
+            className={`rounded-md border px-3 py-1.5 text-sm ${selectedKey === template.key ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
           >
-            {t.name}
+            {template.name}
           </button>
         ))}
       </div>
 
       {!current ? (
-        <p className="text-sm text-muted-foreground">Alege un șablon de editat. Textul e HTML sursă — PDF-ul se generează din el.</p>
+        <p className="text-sm text-muted-foreground">{t('accounting:templates.pickHint')}</p>
       ) : (
         <>
           {current.placeholders?.length ? (
@@ -140,16 +142,16 @@ function TemplateEditor() {
           />
           <div className="flex flex-wrap items-center gap-2">
             <Button disabled={save.isPending || body === current.bodyHtml} onClick={() => save.mutate()}>
-              <Save className="h-4 w-4" /> Salvează
+              <Save className="h-4 w-4" /> {t('common:actions.save')}
             </Button>
             <Button
               variant="outline"
               disabled={restore.isPending}
               onClick={() => {
-                void confirm({ title: 'Restaurează șablonul original', consequence: 'Textul tău e înlocuit cu șablonul de exemplu din aplicație și nu mai poate fi recuperat.', confirmLabel: 'Restaurează', destructive: true }).then((ok) => ok && restore.mutate())
+                void confirm({ title: t('accounting:templates.restoreTitle'), consequence: t('accounting:templates.restoreBody'), confirmLabel: t('common:actions.restore'), destructive: true }).then((ok) => ok && restore.mutate())
               }}
             >
-              <RotateCcw className="h-4 w-4" /> Restaurează originalul
+              <RotateCcw className="h-4 w-4" /> {t('accounting:templates.restoreOriginal')}
             </Button>
           </div>
         </>
@@ -177,7 +179,7 @@ function TermsEditor() {
     onSuccess: (data) => {
       queryClient.setQueryData(['contract-terms'], data)
       setDraft(null)
-      toast.success('Termeni comerciali salvați')
+      toast.success(t('accounting:terms.saved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -190,11 +192,11 @@ function TermsEditor() {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <CardTitle className="text-sm">Termeni comerciali (TERMS)</CardTitle>
-        {draft ? <StatePill tone="warning">nemodificat încă pe disc</StatePill> : null}
+        <CardTitle className="text-sm">{t('accounting:terms.title')}</CardTitle>
+        {draft ? <StatePill tone="warning">{t('accounting:terms.notYetOnDisk')}</StatePill> : null}
       </div>
       <p className="text-xs text-muted-foreground">
-        Valorile injectate în șabloane la tokenii <code className="font-mono">{`{{term.*}}`}</code>.
+        {tNodes('accounting:terms.injectedAtToken', { token: <code className="font-mono">{`{{term.*}}`}</code> })}
       </p>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {TERMS_FIELDS.map(({ key, label }) => (
@@ -211,7 +213,7 @@ function TermsEditor() {
         ))}
       </div>
       <Button disabled={!draft || save.isPending} onClick={() => save.mutate()}>
-        <Save className="h-4 w-4" /> Salvează termenii
+        <Save className="h-4 w-4" /> {t('accounting:terms.save')}
       </Button>
     </div>
   )
@@ -221,7 +223,7 @@ export function ContractTemplatesCard() {
   return (
     <Card>
       <CardContent className="space-y-6 pt-6">
-        <CardTitle className="text-base">Șabloane contracte</CardTitle>
+        <CardTitle className="text-base">{t('accounting:templates.title')}</CardTitle>
         <TemplateEditor />
         <TermsEditor />
       </CardContent>

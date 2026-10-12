@@ -13,6 +13,7 @@ import { TemplatesTab } from './TemplatesTab'
 import { PageHeader } from '@/shared/components/PageHeader'
 import type { EmailDraft, EmailFolder, EmailMessage, EmailThread } from '@/shared/lib/types'
 import { useConsumeParam } from '@/shared/hooks/use-consume-param'
+import { t } from '@/shared/lib/i18n'
 
 function viewFromParams(params: URLSearchParams): EmailView {
   const kind = params.get('view') ?? 'mailbox'
@@ -97,7 +98,7 @@ export function EmailPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Email"
+        title={t('common:labels.email')}
         actions={
           <button className="rounded-md border p-2 md:hidden" onClick={() => setSidebarOpen((v) => !v)}>
             <Menu className="h-4 w-4" />

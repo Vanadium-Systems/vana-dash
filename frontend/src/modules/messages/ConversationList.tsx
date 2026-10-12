@@ -9,6 +9,7 @@ import { memberName } from '@/shared/hooks/use-team'
 import { cn } from '@/shared/lib/utils'
 import { formatRelativeTime } from '@/shared/lib/format'
 import type { ChatConversation } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Coloana de conversații (fișa „Mesaje"): secțiuni „Grupuri" și „Directe", necititele cu nume
 // îngroșat + număr în `Badge` — deci nu doar culoare. Prezența e text („Activ acum"), nu
@@ -16,15 +17,15 @@ import type { ChatConversation } from '@/shared/lib/types'
 
 /** DM = celălalt om. Grupul = numele lui. */
 export function conversationTitle(conversation: ChatConversation, meId: string): string {
-  if (conversation.kind === 'group') return conversation.name ?? 'Grup'
+  if (conversation.kind === 'group') return conversation.name ?? t('messages:list.group')
   const other = conversation.members.find((member) => member.id !== meId)
-  return other ? memberName(other) : 'Conversație'
+  return other ? memberName(other) : t('messages:list.conversation')
 }
 
 export function presenceLabel(presence: 'online' | 'away' | undefined, lastSeenAt: string | null): string {
-  if (presence === 'online') return 'Activ acum'
-  if (!lastSeenAt) return 'necunoscut când a fost activ'
-  return `Văzut ${formatRelativeTime(lastSeenAt)}`
+  if (presence === 'online') return t('messages:presence.activeNow')
+  if (!lastSeenAt) return t('messages:presence.unknown')
+  return t('messages:presence.seen', { lastSeenAt: formatRelativeTime(lastSeenAt) })
 }
 
 export function ConversationList({ meId, onNew }: { meId: string; onNew: () => void }) {
@@ -43,11 +44,11 @@ export function ConversationList({ meId, onNew }: { meId: string; onNew: () => v
   if (conversations.isError) {
     return (
       <p className="p-4 text-sm">
-        Nu am putut încărca conversațiile.{' '}
+        {t('messages:list.loadFailed')}{' '}
         {/* Acțiune de text în interiorul unei propoziții, fără carapacă de buton — de aceea
             nativ, nu `Button` (ar fi 32px înălțime și padding într-o frază). */}
         <button type="button" className="underline underline-offset-2" onClick={() => void conversations.refetch()}>
-          Încearcă din nou
+          {t('common:actions.retry')}
         </button>
       </p>
     )
@@ -60,12 +61,12 @@ export function ConversationList({ meId, onNew }: { meId: string; onNew: () => v
     return (
       <EmptyState
         kind="new"
-        title="Nicio conversație încă"
-        description="Scrie cuiva din echipă — îi trimiți un mesaj direct, fără grup."
+        title={t('messages:list.emptyTitle')}
+        description={t('messages:list.emptyDescription')}
         action={
           <Button onClick={onNew}>
             <MessageSquarePlus className="h-4 w-4" />
-            Scrie cuiva
+            {t('messages:list.writeToSomeone')}
           </Button>
         }
       />
@@ -75,21 +76,21 @@ export function ConversationList({ meId, onNew }: { meId: string; onNew: () => v
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-3 py-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Conversații</h2>
-        <Button variant="ghost" size="icon" aria-label="Conversație nouă" onClick={onNew}>
+        <h2 className="text-sm font-medium text-muted-foreground">{t('messages:list.title')}</h2>
+        <Button variant="ghost" size="icon" aria-label={t('messages:list.newConversation')} onClick={onNew}>
           <MessageSquarePlus className="h-4 w-4" />
         </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pb-2">
         {groups.length > 0 ? (
-          <Section title="Grupuri">
+          <Section title={t('messages:list.groups')}>
             {groups.map((conversation) => (
               <Row key={conversation.id} conversation={conversation} meId={meId} />
             ))}
           </Section>
         ) : null}
         {direct.length > 0 ? (
-          <Section title="Directe">
+          <Section title={t('messages:list.direct')}>
             {direct.map((conversation) => (
               <Row key={conversation.id} conversation={conversation} meId={meId} />
             ))}
@@ -113,7 +114,7 @@ function Row({ conversation, meId }: { conversation: ChatConversation; meId: str
   const title = conversationTitle(conversation, meId)
   const other = conversation.kind === 'dm' ? conversation.members.find((member) => member.id !== meId) : undefined
   const unread = conversation.unreadCount > 0
-  const preview = conversation.lastMessage?.body ?? 'Niciun mesaj încă'
+  const preview = conversation.lastMessage?.body ?? t('messages:list.noMessagesYet')
 
   return (
     <li>
@@ -141,7 +142,7 @@ function Row({ conversation, meId }: { conversation: ChatConversation; meId: str
           <span className="flex items-center gap-2">
             <span className={cn('min-w-0 flex-1 truncate text-sm', unread && 'font-semibold')}>{title}</span>
             {unread ? <Badge variant="destructive">{conversation.unreadCount}</Badge> : null}
-            {conversation.muted ? <BellOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Notificările sunt oprite" /> : null}
+            {conversation.muted ? <BellOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label={t('messages:list.muted')} /> : null}
           </span>
           <span className={cn('mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground', unread ? 'font-medium' : '')}>
             <span className="min-w-0 flex-1 truncate">{preview}</span>

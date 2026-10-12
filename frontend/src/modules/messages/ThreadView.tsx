@@ -16,6 +16,7 @@ import { Composer } from './Composer'
 import { MediaViewer } from './MediaViewer'
 import { conversationTitle, presenceLabel } from './ConversationList'
 import { useThreadMessages } from './useThreadMessages'
+import { t } from '@/shared/lib/i18n'
 
 // Firul (fișa „Mesaje"): rânduri plate, stil Slack — autor + oră pe primul mesaj dintr-o serie
 // (același autor, sub 5 minute), nu bule colorate. Fără animație la sosire: se întâmplă de
@@ -128,10 +129,10 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
     return (
       <div className="p-6">
         <p className="text-sm">
-          Nu am putut încărca mesajele.{' '}
+          {t('messages:thread.loadFailed')}{' '}
           {/* Aceeași excepție ca în lista de conversații: acțiune de text într-o propoziție. */}
           <button type="button" className="underline underline-offset-2" onClick={() => void thread.refetch()}>
-            Încearcă din nou
+            {t('common:actions.retry')}
           </button>
         </p>
       </div>
@@ -142,7 +143,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b px-3 py-2">
         {onBack ? (
-          <Button variant="ghost" size="icon" aria-label="Înapoi la conversații" className="md:hidden" onClick={onBack}>
+          <Button variant="ghost" size="icon" aria-label={t('messages:thread.backToList')} className="md:hidden" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
         ) : null}
@@ -151,14 +152,14 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
           <span className="block truncate text-xs text-muted-foreground">
             {conversation.kind === 'dm'
               ? presenceLabel(conversation.members.find((m) => m.id !== meId)?.presence, conversation.members.find((m) => m.id !== meId)?.lastSeenAt ?? null)
-              : `${conversation.members.length} membri · ${conversation.members.map((m) => m.displayName ?? m.email).join(', ')}`}
+              : t('messages:thread.members', { count: conversation.members.length, names: conversation.members.map((m) => m.displayName ?? m.email).join(', ') })}
           </span>
         </span>
         {conversation.kind === 'group' ? <Users className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" /> : null}
         <Button
           variant="ghost"
           size="icon"
-          aria-label={conversation.muted ? 'Activează notificările' : 'Oprește notificările'}
+          aria-label={conversation.muted ? t('messages:thread.unmute') : t('messages:thread.mute')}
           onClick={() => void toggleMute()}
         >
           {conversation.muted ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
@@ -169,7 +170,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
           omul scrie și citește; doar mesajele celorlalți întârzie. */}
       {status === 'connecting' ? (
         <p className="border-b px-4 py-1 text-xs text-muted-foreground" role="status">
-          Reconectare…
+          {t('messages:thread.reconnecting')}
         </p>
       ) : null}
 
@@ -177,13 +178,13 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
         {thread.hasMore ? (
           <div className="mb-3 text-center">
             <Button variant="outline" size="sm" disabled={thread.isLoadingOlder} onClick={() => void thread.loadOlder()}>
-              {thread.isLoadingOlder ? 'Se încarcă…' : 'Mesaje mai vechi'}
+              {thread.isLoadingOlder ? t('common:states.loading') : t('messages:thread.older')}
             </Button>
           </div>
         ) : null}
 
         {rows.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Niciun mesaj încă. Scrie primul.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">{t('messages:thread.empty')}</p>
         ) : (
           rows.map((row, index) => (
             <MessageRow
@@ -218,7 +219,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
               setMissed(0)
             }}
           >
-            Mesaje noi ↓
+            {t('messages:thread.newBelow')}
           </Button>
         </div>
       ) : null}
@@ -259,7 +260,7 @@ function MessageRow({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   if (message.deletedAt) {
-    return <p className={cn('px-1 py-1 text-xs italic text-muted-foreground', own && 'text-right')}>Mesaj șters</p>
+    return <p className={cn('px-1 py-1 text-xs italic text-muted-foreground', own && 'text-right')}>{t('messages:thread.deleted')}</p>
   }
 
   // Pe telefon nu există hover: apăsarea lungă pe mesaj deschide același meniu ca „⋯".
@@ -283,7 +284,7 @@ function MessageRow({
             )}
           >
             <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-            <span className="sr-only">Acțiuni pe mesaj</span>
+            <span className="sr-only">{t('messages:thread.messageActions')}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem
@@ -293,11 +294,11 @@ function MessageRow({
               }}
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
-              Editează
+              {t('common:actions.edit')}
             </DropdownMenuItem>
             <DropdownMenuItem destructive onClick={onDelete}>
               <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Șterge
+              {t('common:actions.delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -311,7 +312,7 @@ function MessageRow({
       >
           {startsSeries ? (
             <div className={cn('flex flex-wrap items-baseline gap-2', own && 'justify-end')}>
-              <span className="text-sm font-medium">{own ? 'Tu' : message.authorName}</span>
+              <span className="text-sm font-medium">{own ? t('messages:thread.you') : message.authorName}</span>
               <time
                 className="text-xs text-muted-foreground tnum"
                 dateTime={message.createdAt}
@@ -341,14 +342,14 @@ function MessageRow({
                   e.preventDefault()
                   setEditing(false)
                 }}
-                aria-label="Editează mesajul"
+                aria-label={t('messages:thread.editMessage')}
               />
               <div className="flex gap-2">
                 <Button type="submit" size="sm">
-                  Salvează
+                  {t('common:actions.save')}
                 </Button>
                 <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                  Renunță
+                  {t('common:actions.discard')}
                 </Button>
               </div>
             </form>
@@ -362,22 +363,22 @@ function MessageRow({
                   ))}
                 </ul>
               ) : null}
-              {message.editedAt ? <span className="text-xs text-muted-foreground">editat</span> : null}
+              {message.editedAt ? <span className="text-xs text-muted-foreground">{t('messages:thread.edited')}</span> : null}
               {message.pending ? (
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   {message.pending === 'sending' ? (
-                    <span>Se trimite…</span>
+                    <span>{t('common:states.sending')}</span>
                   ) : (
                     <>
                       {/* Starea de trimitere e rândul mesajului, cu acțiuni de text lângă ea
                           (aceleași ca în lista), nu butoane cu carapacă. */}
-                      <StatePill tone="warning">Netrimis</StatePill>
+                      <StatePill tone="warning">{t('messages:thread.notSent')}</StatePill>
                       <button type="button" className="flex items-center gap-1 underline underline-offset-2" onClick={onRetry}>
                         <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
-                        Reîncearcă
+                        {t('common:actions.tryAgainShort')}
                       </button>
                       <button type="button" className="underline underline-offset-2" onClick={onDiscard}>
-                        Renunță
+                        {t('common:actions.discard')}
                       </button>
                     </>
                   )}
@@ -409,7 +410,7 @@ function AttachmentRow({ attachment, onOpen }: { attachment: ChatAttachment; onO
           type="button"
           onClick={onOpen}
           className="relative block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={`Redă ${attachment.filename}`}
+          aria-label={t('messages:thread.play', { filename: attachment.filename })}
         >
           <video src={`${href}#t=0.1`} preload="metadata" muted playsInline className="max-h-72 max-w-[min(280px,100%)] rounded-md bg-black" />
           <span className="absolute inset-0 flex items-center justify-center">

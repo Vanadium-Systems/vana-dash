@@ -5,6 +5,7 @@ import type { BookingBlock, CalendarOccurrence } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { addDays, formatTime, isSameDay, isToday, WEEKDAY_LABELS } from './date-utils'
 import { canEditOccurrence, eventLabel } from '@/shared/lib/event-label'
+import { t } from '@/shared/lib/i18n'
 
 const VIEW_START_HOUR = 6
 const VIEW_END_HOUR = 22
@@ -49,7 +50,7 @@ function BookingLayers({ day, windows, blocks, onBlockClick }: { day: Date; wind
             className="pointer-events-none absolute inset-x-0.5 rounded-md border border-dashed border-foreground/30"
             style={style}
           >
-            <span className="absolute right-1 top-0.5 text-xs text-muted-foreground">Programări</span>
+            <span className="absolute right-1 top-0.5 text-xs text-muted-foreground">{t('calendar:booking.short')}</span>
           </div>
         ) : null
       })}
@@ -59,7 +60,7 @@ function BookingLayers({ day, windows, blocks, onBlockClick }: { day: Date; wind
           <button
             key={b.id}
             type="button"
-            title={b.reason ? `Blocat: ${b.reason}` : 'Blocat pentru programări'}
+            title={b.reason ? `Blocat: ${b.reason}` : t('calendar:week.blockedForBookings')}
             className="absolute inset-x-0.5 z-[1] overflow-hidden rounded-md border border-border bg-muted/60 px-1.5 py-0.5 text-left text-xs text-muted-foreground [background-image:repeating-linear-gradient(135deg,transparent_0_6px,hsl(var(--border))_6px_7px)]"
             style={style}
             onClick={(e) => {
@@ -67,7 +68,7 @@ function BookingLayers({ day, windows, blocks, onBlockClick }: { day: Date; wind
               onBlockClick?.(b)
             }}
           >
-            Blocat{b.reason ? ` · ${b.reason}` : ''}
+            {b.reason ? t('calendar:week.blockedWithReason', { reason: b.reason }) : t('calendar:week.blocked')}
           </button>
         ) : null
       })}
@@ -78,7 +79,7 @@ function BookingLayers({ day, windows, blocks, onBlockClick }: { day: Date; wind
 function EventTitle({ occ }: { occ: CalendarOccurrence }) {
   return (
     <div className="flex items-center gap-1 truncate font-medium">
-      {occ.source === 'booking' ? <PhoneCall className="h-3 w-3 shrink-0" aria-label="Programare de pe site" /> : null}
+      {occ.source === 'booking' ? <PhoneCall className="h-3 w-3 shrink-0" aria-label={t('calendar:booking.siteBooking')} /> : null}
       <span className="truncate">{eventLabel(occ)}</span>
     </div>
   )
@@ -252,7 +253,7 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
       </div>
 
       <div className="grid min-w-[560px] grid-cols-[48px_repeat(7,minmax(64px,1fr))] border-b">
-        <div className="px-2 py-1 text-right text-xs text-muted-foreground">toată ziua</div>
+        <div className="px-2 py-1 text-right text-xs text-muted-foreground">{t('calendar:week.allDay')}</div>
         {days.map((day) => {
           const allDayEvents = occurrences.filter((o) => o.allDay && isSameDay(new Date(o.occurrenceStart), day))
           return (

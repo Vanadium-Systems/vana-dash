@@ -1,0 +1,63 @@
+{
+  "composer": {
+    "fileTooLarge": "„{{name}}\" e peste limita de 50 MB",
+    "uploading": "se încarcă…",
+    "discardFile": "Renunță la {{name}}",
+    "attach": "Atașează",
+    "gallery": "Galerie",
+    "camera": "Cameră",
+    "dropHere": "Lasă aici fișierul",
+    "placeholder": "Scrie un mesaj"
+  },
+  "list": {
+    "group": "Grup",
+    "conversation": "Conversație",
+    "loadFailed": "Nu am putut încărca conversațiile.",
+    "emptyTitle": "Nicio conversație încă",
+    "emptyDescription": "Scrie cuiva din echipă — îi trimiți un mesaj direct, fără grup.",
+    "writeToSomeone": "Scrie cuiva",
+    "title": "Conversații",
+    "newConversation": "Conversație nouă",
+    "groups": "Grupuri",
+    "direct": "Directe",
+    "noMessagesYet": "Niciun mesaj încă",
+    "muted": "Notificările sunt oprite"
+  },
+  "presence": {
+    "activeNow": "Activ acum",
+    "unknown": "necunoscut când a fost activ",
+    "seen": "Văzut {{lastSeenAt}}"
+  },
+  "page": {
+    "gone": "Conversația nu mai există sau nu ești în ea.",
+    "pickOne": "Alege o conversație din stânga."
+  },
+  "new": {
+    "direct": "Direct",
+    "nobodyActive": "Nu mai e nimeni activ în echipă.",
+    "group": "Grup nou",
+    "groupPlaceholder": "Echipa de vânzări",
+    "members": "Membri (măcar unul)",
+    "createGroup": "Creează grupul"
+  },
+  "thread": {
+    "loadFailed": "Nu am putut încărca mesajele.",
+    "backToList": "Înapoi la conversații",
+    "unmute": "Activează notificările",
+    "mute": "Oprește notificările",
+    "reconnecting": "Reconectare…",
+    "older": "Mesaje mai vechi",
+    "empty": "Niciun mesaj încă. Scrie primul.",
+    "newBelow": "Mesaje noi ↓",
+    "deleted": "Mesaj șters",
+    "messageActions": "Acțiuni pe mesaj",
+    "you": "Tu",
+    "editMessage": "Editează mesajul",
+    "edited": "editat",
+    "notSent": "Netrimis",
+    "play": "Redă {{filename}}",
+    "members_one": "{{count}} membru · {{names}}",
+    "members_few": "{{count}} membri · {{names}}",
+    "members_other": "{{count}} de membri · {{names}}"
+  }
+}

@@ -150,7 +150,7 @@
     "time": "Time",
     "user": "User",
     "vatPercent": "VAT %",
-    "cif": "Tax ID (CIF)",
+    "cif": "CIF (tax ID)",
     "today": "Today",
     "yesterday": "Yesterday",
     "days7": "7 days",
@@ -426,5 +426,31 @@
     "RON": "RON, Romanian leu",
     "EUR": "EUR, euro",
     "USD": "USD, US dollar"
+  },
+  "count": {
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "folders_one": "{{count}} folder",
+    "folders_other": "{{count}} folders"
+  },
+  "weekdays": {
+    "long": {
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday",
+      "sun": "Sunday"
+    },
+    "short": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
   }
 }

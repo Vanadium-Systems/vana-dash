@@ -6,6 +6,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { cn, formatBytes } from '@/shared/lib/utils'
 import type { ChatAttachment } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Compunerea (fișa „Mesaje"): textarea care crește până la 6 rânduri, Enter trimite,
 // Shift+Enter rând nou. Atașamente: agrafă la vedere, drag & drop și lipire din clipboard pe
@@ -97,7 +98,7 @@ export function Composer({
 
   const start = (file: File) => {
     if (file.size > MAX_BYTES) {
-      toast.error(`„${file.name}" e peste limita de 50 MB`)
+      toast.error(t('messages:composer.fileTooLarge', { name: file.name }))
       return
     }
     const localId = crypto.randomUUID()
@@ -168,7 +169,7 @@ export function Composer({
               <UploadThumb file={entry.file} />
               <span className="max-w-[180px] truncate">{entry.file.name}</span>
               <span className="text-muted-foreground tnum">{formatBytes(entry.file.size)}</span>
-              {entry.status === 'uploading' ? <span className="text-muted-foreground">se încarcă…</span> : null}
+              {entry.status === 'uploading' ? <span className="text-muted-foreground">{t('messages:composer.uploading')}</span> : null}
               {entry.status === 'failed' ? (
                 // Acțiune de text într-un chip, nu buton cu carapacă (`ui/` are doar variante
                 // de 28/32px, care ar sparge chip-ul).
@@ -181,14 +182,14 @@ export function Composer({
                   }}
                 >
                   <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
-                  Reîncearcă
+                  {t('common:actions.tryAgainShort')}
                 </button>
               ) : null}
               <button
                 type="button"
                 className="text-muted-foreground hover:text-foreground"
                 onClick={() => drop(entry.localId)}
-                aria-label={`Renunță la ${entry.file.name}`}
+                aria-label={t('messages:composer.discardFile', { name: entry.file.name })}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -201,19 +202,19 @@ export function Composer({
         {attachOpen ? (
           <div
             role="menu"
-            aria-label="Atașează"
+            aria-label={t('messages:composer.attach')}
             className="absolute inset-x-0 bottom-full grid grid-cols-3 gap-2 border-t bg-card p-4 md:inset-x-auto md:left-3 md:mb-2 md:w-80 md:rounded-md md:border md:shadow-md"
           >
-            <AttachOption icon={Images} label="Galerie" onClick={() => pick(galleryInputRef)} />
-            {hasCamera ? <AttachOption icon={Camera} label="Cameră" onClick={() => pick(cameraInputRef)} /> : null}
-            <AttachOption icon={FileText} label="Document" onClick={() => pick(fileInputRef)} />
+            <AttachOption icon={Images} label={t('messages:composer.gallery')} onClick={() => pick(galleryInputRef)} />
+            {hasCamera ? <AttachOption icon={Camera} label={t('messages:composer.camera')} onClick={() => pick(cameraInputRef)} /> : null}
+            <AttachOption icon={FileText} label={t('common:labels.document')} onClick={() => pick(fileInputRef)} />
           </div>
         ) : null}
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          aria-label="Atașează"
+          aria-label={t('messages:composer.attach')}
           aria-haspopup="menu"
           aria-expanded={attachOpen}
           onClick={() => setAttachOpen((open) => !open)}
@@ -233,15 +234,15 @@ export function Composer({
           auto
           rows={1}
           value={body}
-          placeholder={dragging ? 'Lasă aici fișierul' : 'Scrie un mesaj'}
+          placeholder={dragging ? t('messages:composer.dropHere') : t('messages:composer.placeholder')}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={onKeyDown}
           onPaste={onPaste}
           disabled={disabled}
-          aria-label="Mesaj"
+          aria-label={t('common:labels.message')}
         />
         <Button type="button" onClick={sendNow} disabled={disabled || (!body.trim() && !uploads.some((u) => u.attachment))}>
-          Trimite
+          {t('common:actions.send')}
         </Button>
       </div>
     </div>

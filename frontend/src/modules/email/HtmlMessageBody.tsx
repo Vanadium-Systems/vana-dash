@@ -2,6 +2,7 @@ import DOMPurify from 'dompurify'
 import { useMemo, useState } from 'react'
 import { Button } from '@/shared/components/ui/button'
 import type { EmailAttachmentMeta } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Randare HTML sigură pt. emailuri primite (Sprint 3, PLAN.md). `bodyHtml` e stocat BRUT,
 // nesanitizat, în DB — sanitizarea e strict aici, client-side, la randare.
@@ -75,7 +76,7 @@ export function sanitizeAndGateImages(html: string, showExternalImages: boolean)
     if (!showExternalImages) {
       img.setAttribute('data-blocked-src', src)
       img.removeAttribute('src')
-      if (!img.getAttribute('alt')) img.setAttribute('alt', 'Imagine externă blocată')
+      if (!img.getAttribute('alt')) img.setAttribute('alt', t('email:body.externalImageBlocked'))
     }
   })
 
@@ -105,7 +106,7 @@ export function renderMessageHtml(html: string, attachments: EmailAttachmentMeta
     const rewritten = rewriteCidReferences(html, attachments)
     return sanitizeAndGateImages(rewritten, showExternalImages)
   } catch (err) {
-    console.error('[email] randare HTML eșuată, cad pe fallback text:', err)
+    console.error('[email] HTML rendering failed, falling back to text:', err)
     return null
   }
 }
@@ -134,8 +135,8 @@ export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImage
   if (shouldRender && !rendered) {
     return (
       <div className="rounded-md border border-dashed p-3 text-sm">
-        <p className="mb-1 text-muted-foreground">Nu am putut reda formatul acestui mesaj — text simplu mai jos.</p>
-        <p className="whitespace-pre-wrap break-words">{fallbackText || '(fără conținut text)'}</p>
+        <p className="mb-1 text-muted-foreground">{t('email:body.renderFailed')}</p>
+        <p className="whitespace-pre-wrap break-words">{fallbackText || t('email:body.noText')}</p>
       </div>
     )
   }
@@ -143,7 +144,7 @@ export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImage
   if (!shouldRender) {
     return (
       <Button variant="outline" onClick={() => setForceRender(true)}>
-        Mesaj complex — arată conținutul
+        {t('email:body.complex')}
       </Button>
     )
   }
@@ -154,7 +155,7 @@ export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImage
     <div>
       {hasExternalImages && !showExternalImages ? (
         <Button variant="outline" className="mb-2" onClick={() => setShowExternalImages(true)}>
-          Arată imaginile
+          {t('email:body.showImages')}
         </Button>
       ) : null}
       {/* dangerouslySetInnerHTML DOAR pe output-ul deja sanitizat de DOMPurify mai sus.

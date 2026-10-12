@@ -8,6 +8,7 @@ import { useDebounced } from '@/shared/hooks/use-debounced'
 import { api } from '@/shared/lib/api'
 import { fileFromUrl, type PendingAttachment } from '@/shared/lib/attachments'
 import type { ArchiveDownloadUrl, ArchiveSearchResult } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -43,7 +44,7 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
       onOpenChange(false)
       setQ('')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Atașare din arhivă eșuată')
+      toast.error(err instanceof Error ? err.message : t('email:attach.fromArchiveFailed'))
     } finally {
       setDownloadingId(null)
     }
@@ -58,7 +59,7 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
       const { url } = await api.get<ArchiveDownloadUrl>(`/api/archive/files/${file.id}/download-url`)
       window.open(url, '_blank', 'noopener,noreferrer')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Previzualizare eșuată')
+      toast.error(err instanceof Error ? err.message : t('email:attach.previewFailed'))
     } finally {
       setPreviewingId(null)
     }
@@ -68,22 +69,22 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Atașează din Arhivă</DialogTitle>
+          <DialogTitle>{t('email:attach.fromArchiveTitle')}</DialogTitle>
         </DialogHeader>
         {/* min-w-0 obligatoriu aici — DialogContent e display:grid, iar un grid item ia
             implicit min-width:auto (mărimea min-content a textului nowrap din interior), care
             împinge tot dialogul mai lat decât max-w-lg în loc să lase `truncate` să taie textul
             (bug Stefan — titluri/path-uri lungi ieșeau la dreapta din popup). */}
         <div className="min-w-0 space-y-3">
-          <Input autoFocus placeholder="Caută un document…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input autoFocus placeholder={t('email:attach.searchDocument')} value={q} onChange={(e) => setQ(e.target.value)} />
           {!debouncedQ.trim() ? (
-            <p className="text-sm text-muted-foreground">Scrie ca să cauți în Arhivă.</p>
+            <p className="text-sm text-muted-foreground">{t('email:attach.typeToSearch')}</p>
           ) : results.isPending ? (
-            <p className="text-sm text-muted-foreground">Se caută…</p>
+            <p className="text-sm text-muted-foreground">{t('common:states.searching')}</p>
           ) : results.isError ? (
-            <p className="text-sm text-destructive">Căutare eșuată.</p>
+            <p className="text-sm text-destructive">{t('email:attach.searchFailed')}</p>
           ) : !results.data?.length ? (
-            <p className="text-sm text-muted-foreground">Niciun rezultat.</p>
+            <p className="text-sm text-muted-foreground">{t('email:attach.noResult')}</p>
           ) : (
             <ul className="max-h-72 space-y-1 overflow-y-auto">
               {results.data.map((file) => (
@@ -102,14 +103,14 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{file.name}</span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {file.folderPath.map((f) => f.name).join(' / ') || 'Rădăcină'} · {formatBytes(file.sizeBytes)}
+                        {file.folderPath.map((f) => f.name).join(' / ') || t('email:attach.root')} · {formatBytes(file.sizeBytes)}
                       </span>
                     </span>
-                    {downloadingId === file.id ? <span className="shrink-0 text-xs text-muted-foreground">Se adaugă…</span> : null}
+                    {downloadingId === file.id ? <span className="shrink-0 text-xs text-muted-foreground">{t('email:attach.adding')}</span> : null}
                   </button>
                   <button
                     type="button"
-                    title="Deschide documentul complet într-un tab nou"
+                    title={t('email:attach.openFull')}
                     disabled={previewingId !== null}
                     onClick={() => void preview(file)}
                     className="mr-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded hover:bg-background disabled:opacity-50"

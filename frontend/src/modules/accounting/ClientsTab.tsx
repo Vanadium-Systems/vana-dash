@@ -12,6 +12,7 @@ import { api } from '@/shared/lib/api'
 import type { BillingClient } from '@/shared/lib/types'
 import { ClientFormDialog } from './ClientFormDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { t } from '@/shared/lib/i18n'
 
 const PENDING_DELETION_PURGE_DAYS = 30
 
@@ -36,15 +37,15 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Denumire</TableHead>
-          <TableHead>CIF</TableHead>
-          <TableHead>Adresă</TableHead>
+          <TableHead>{t('accounting:clientForm.name')}</TableHead>
+          <TableHead>{t('common:labels.cif')}</TableHead>
+          <TableHead>{t('common:labels.address')}</TableHead>
           <TableHead>IBAN</TableHead>
-          <TableHead>Email</TableHead>
+          <TableHead>{t('common:labels.email')}</TableHead>
           <TableHead>Vanagreen</TableHead>
-          {showDemoEndsAt && <TableHead>Demo până la</TableHead>}
-          {showPendingDeletion && <TableHead>Se șterge în</TableHead>}
-          <TableHead className="text-right">Acțiuni</TableHead>
+          {showDemoEndsAt && <TableHead>{t('accounting:clients.demoUntil')}</TableHead>}
+          {showPendingDeletion && <TableHead>{t('accounting:clients.deletedIn')}</TableHead>}
+          <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -52,7 +53,7 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
           <TableRow key={c.id}>
             <TableCell className="font-medium">
               {c.name}
-              {c.needsBillingInfo && <StatePill tone="warning" className="ml-2">Date incomplete</StatePill>}
+              {c.needsBillingInfo && <StatePill tone="warning" className="ml-2">{t('accounting:clients.incomplete')}</StatePill>}
             </TableCell>
             <TableCell className="font-mono text-xs">{c.cif}</TableCell>
             <TableCell className="max-w-xs truncate">{c.address}</TableCell>
@@ -60,7 +61,7 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
             <TableCell>{c.email ?? '—'}</TableCell>
             <TableCell>
               {c.vanagreenTenantId ? (
-                <StatePill tone="success">Mapat{c.autoInvoiceEnabled ? ' + auto' : ''}</StatePill>
+                <StatePill tone="success">{t('accounting:clients.mapped')}{c.autoInvoiceEnabled ? t('accounting:clients.plusAuto') : ''}</StatePill>
               ) : (
                 <span className="text-xs text-muted-foreground">—</span>
               )}
@@ -126,7 +127,7 @@ export function ClientsTab() {
     mutationFn: (id: string) => api.delete<void>(`/api/invoicing/clients/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
-      toast.success('Client șters')
+      toast.success(t('accounting:clients.deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -137,7 +138,7 @@ export function ClientsTab() {
     mutationFn: () => api.post('/api/invoicing/clients/sync-vanagreen'),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
-      toast.success('Sincronizat cu vanagreen')
+      toast.success(t('accounting:clients.syncedWithVanagreen'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -149,7 +150,7 @@ export function ClientsTab() {
     setDialogOpen(true)
   }
   const askDelete = (c: BillingClient) => {
-    void confirm({ title: `Șterge clientul „${c.name}”`, consequence: 'Facturile emise deja rămân în contabilitate.', confirmLabel: 'Șterge clientul', destructive: true }).then((ok) => ok && remove.mutate(c.id))
+    void confirm({ title: t('accounting:clients.deleteTitle', { name: c.name }), consequence: t('accounting:clients.deleteBody'), confirmLabel: t('accounting:clients.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(c.id))
   }
 
   return (
@@ -157,7 +158,7 @@ export function ClientsTab() {
       <div className="flex justify-end gap-2">
         <Button variant="outline" disabled={syncVanagreen.isPending} onClick={() => syncVanagreen.mutate()}>
           <RefreshCw className={syncVanagreen.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-          Sincronizează cu vanagreen
+          {t('accounting:clients.syncWithVanagreen')}
         </Button>
         <Button
           onClick={() => {
@@ -165,13 +166,12 @@ export function ClientsTab() {
             setDialogOpen(true)
           }}
         >
-          <Plus className="h-4 w-4" /> Adaugă client
+          <Plus className="h-4 w-4" /> {t('accounting:clients.add')}
         </Button>
       </div>
       {needingBillingInfo.length > 0 && (
         <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning dark:bg-transparent">
-          {needingBillingInfo.length} client{needingBillingInfo.length > 1 ? 'i noi' : ' nou'} din VanaGreen —
-          completează datele de facturare: {needingBillingInfo.map((c) => c.name).join(', ')}
+          {t('accounting:clients.needBillingInfo', { count: needingBillingInfo.length, names: needingBillingInfo.map((c) => c.name).join(', ') })}
         </div>
       )}
       <Card>
@@ -179,7 +179,7 @@ export function ClientsTab() {
           {clients.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : !clients.data?.length ? (
-            <p className="text-sm text-muted-foreground">Niciun client de facturare încă.</p>
+            <p className="text-sm text-muted-foreground">{t('accounting:clients.empty')}</p>
           ) : (
             <ClientsTable clients={clients.data} onEdit={openEdit} onDelete={askDelete} />
           )}
@@ -190,14 +190,13 @@ export function ClientsTab() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              Clienți demo
-              <StatePill tone="neutral">din VanaGreen</StatePill>
+              {t('accounting:clients.demoTitle')}
+              <StatePill tone="neutral">{t('accounting:clients.fromVanagreen')}</StatePill>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <p className="mb-3 text-sm text-muted-foreground">
-              Tenanți în trial/demo în vanagreen — apar aici automat, fără să fie facturați. Trec în tabelul de mai
-              sus automat, a doua zi, când Stefan îi convertește (din vanagreen sau printr-o plată confirmată aici).
+              {t('accounting:clients.demoHint')}
             </p>
             {demoClients.isPending ? (
               <Skeleton className="h-24 w-full" />
@@ -212,14 +211,13 @@ export function ClientsTab() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              Clienți în ștergere
-              <StatePill tone="critical">reziliați în VanaGreen</StatePill>
+              {t('accounting:clients.pendingDeletionTitle')}
+              <StatePill tone="critical">{t('accounting:clients.terminatedInVanagreen')}</StatePill>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <p className="mb-3 text-sm text-muted-foreground">
-              Tenant reziliat în vanagreen — dacă nu-l restaurezi de-acolo, se șterge automat aici la 30 de zile de la
-              reziliere (în ritm cu purjarea din vanagreen). Verifică facturile neregularizate înainte să dispară.
+              {t('accounting:clients.pendingDeletionHint')}
             </p>
             {pendingDeletionClients.isPending ? (
               <Skeleton className="h-24 w-full" />

@@ -28,6 +28,7 @@ import { useConsumeParam } from '@/shared/hooks/use-consume-param'
 import { useMe } from '@/shared/hooks/use-me'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { EmptyState } from '@/shared/components/ui/empty-state'
+import { t } from '@/shared/lib/i18n'
 
 const PAGE_SIZE = 10
 
@@ -64,7 +65,7 @@ export function EmiseTab() {
     mutationFn: (id: string) => api.post<FinancialRecord>(`/api/invoicing/invoices/${id}/issue`),
     onSuccess: (invoice) => {
       invalidate()
-      toast.success(`Factura ${invoice.documentNumber} emisă — XML generat`)
+      toast.success(t('accounting:issued.issuedToast', { documentNumber: invoice.documentNumber }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -73,7 +74,7 @@ export function EmiseTab() {
     mutationFn: (id: string) => api.post<FinancialRecord>(`/api/invoicing/invoices/${id}/send-anaf`),
     onSuccess: () => {
       invalidate()
-      toast.success('Trimisă la ANAF — starea se actualizează automat (poll la 10 min)')
+      toast.success(t('accounting:issued.sentToAnaf'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -82,7 +83,7 @@ export function EmiseTab() {
     mutationFn: (id: string) => api.delete<void>(`/api/invoicing/invoices/${id}`),
     onSuccess: () => {
       invalidate()
-      toast.success('Draft șters')
+      toast.success(t('accounting:issued.draftDeleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -96,7 +97,7 @@ export function EmiseTab() {
       void queryClient.invalidateQueries({ queryKey: ['accounting'] })
       // confirmarea manuală creează un payment_match — contorul de nematchuite din Reconciliere
       void queryClient.invalidateQueries({ queryKey: ['reconciliation'] })
-      toast.success('Factură marcată plătită')
+      toast.success(t('accounting:issued.markedPaid'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -107,7 +108,7 @@ export function EmiseTab() {
         {canIssue ? (
           <>
             <Button variant="outline" onClick={() => setPastDialogOpen(true)}>
-              <Archive className="h-4 w-4" /> Factură/încasare veche
+              <Archive className="h-4 w-4" /> {t('accounting:issued.oldRecord')}
             </Button>
             <Button
               onClick={() => {
@@ -115,7 +116,7 @@ export function EmiseTab() {
                 setDialogOpen(true)
               }}
             >
-              <Plus className="h-4 w-4" /> Factură nouă
+              <Plus className="h-4 w-4" /> {t('accounting:invoiceForm.newTitle')}
             </Button>
           </>
         ) : null}
@@ -127,7 +128,7 @@ export function EmiseTab() {
           ) : !records.data?.length ? (
             <EmptyState
               kind="new"
-              title="Nicio factură emisă încă"
+              title={t('accounting:issued.empty')}
               action={
                 canIssue ? (
                   <Button
@@ -136,7 +137,7 @@ export function EmiseTab() {
                       setDialogOpen(true)
                     }}
                   >
-                    Factură nouă
+                    {t('accounting:invoiceForm.newTitle')}
                   </Button>
                 ) : null
               }
@@ -145,14 +146,14 @@ export function EmiseTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Număr</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Emisă</TableHead>
-                  <TableHead>Scadență</TableHead>
-                  <TableHead className="text-right">Sumă</TableHead>
+                  <TableHead>{t('accounting:labels.number')}</TableHead>
+                  <TableHead>{t('common:labels.client')}</TableHead>
+                  <TableHead>{t('accounting:labels.issued')}</TableHead>
+                  <TableHead>{t('accounting:labels.due')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
                   {canAnaf ? <TableHead>ANAF</TableHead> : null}
-                  <TableHead>Plată</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('accounting:labels.payment')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -168,7 +169,7 @@ export function EmiseTab() {
                       className="animate-in fade-in-0 duration-200 ease-out"
                       style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                     >
-                      <TableCell className="font-medium">{r.documentNumber ?? '(draft)'}</TableCell>
+                      <TableCell className="font-medium">{r.documentNumber ?? t('accounting:issued.draftMarker')}</TableCell>
                       <TableCell>{r.counterpartyName ?? '—'}</TableCell>
                       <TableCell>{formatDate(r.issuedAt)}</TableCell>
                       <TableCell>{formatDate(r.dueAt)}</TableCell>
@@ -178,7 +179,7 @@ export function EmiseTab() {
                         {r.anafUploadId && (
                           <div
                             className="mt-1 font-mono text-xs text-muted-foreground"
-                            title="Index de încărcare — caută-l pe app.anaf.ro/SNMD/facturaProd/RaspunsuriFacturaProd.xhtml"
+                            title={t('accounting:issued.uploadIndexHint')}
                           >
                             #{r.anafUploadId}
                           </div>
@@ -193,7 +194,7 @@ export function EmiseTab() {
                             <>
                               <Button
                                 variant="outline"
-                                title="Emite (alocă număr + generează XML/PDF)"
+                                title={t('accounting:issued.issueHint')}
                                 disabled={issue.isPending}
                                 onClick={() => issue.mutate(r.id)}
                               >
@@ -201,7 +202,7 @@ export function EmiseTab() {
                               </Button>
                               <Button
                                 variant="outline"
-                                title="Editează draftul"
+                                title={t('accounting:invoiceForm.editTitle')}
                                 onClick={() => {
                                   setEditing(r)
                                   setDialogOpen(true)
@@ -211,9 +212,9 @@ export function EmiseTab() {
                               </Button>
                               <Button
                                 variant="outline"
-                                title="Șterge draftul"
+                                title={t('accounting:issued.deleteDraft')}
                                 onClick={() => {
-                                  void confirm({ title: `Șterge draftul pentru ${r.counterpartyName ?? 'client'}`, consequence: 'Nu consumă număr de factură; seria rămâne neschimbată.', confirmLabel: 'Șterge draftul', destructive: true }).then((ok) => ok && removeDraft.mutate(r.id))
+                                  void confirm({ title: r.counterpartyName ? t('accounting:issued.deleteDraftFor', { name: r.counterpartyName }) : t('accounting:issued.deleteDraftForClient'), consequence: t('accounting:issued.deleteDraftBody'), confirmLabel: t('accounting:issued.deleteDraft'), destructive: true }).then((ok) => ok && removeDraft.mutate(r.id))
                                 }}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -223,7 +224,7 @@ export function EmiseTab() {
                           {canSend ? (
                             <Button
                               variant="outline"
-                              title={r.anafStatus === 'rejected' ? 'Retrimite la ANAF' : 'Trimite la ANAF'}
+                              title={r.anafStatus === 'rejected' ? t('accounting:issued.resendToAnaf') : t('accounting:issued.sendToAnaf')}
                               disabled={sendAnaf.isPending}
                               onClick={() => sendAnaf.mutate(r.id)}
                             >
@@ -233,10 +234,10 @@ export function EmiseTab() {
                           {canMarkPaid ? (
                             <Button
                               variant="outline"
-                              title="Marchează plătit manual"
+                              title={t('accounting:issued.markPaidManually')}
                               disabled={markPaid.isPending}
                               onClick={() => {
-                                void confirm({ title: `Marchează ${r.documentNumber ?? 'factura'} ca plătită`, consequence: 'Dacă clientul e legat de VanaGreen, abonamentul lui se prelungește.', confirmLabel: 'Marchează plătită' }).then((ok) => ok && markPaid.mutate(r.id))
+                                void confirm({ title: r.documentNumber ? t('accounting:issued.markPaidTitle', { number: r.documentNumber }) : t('accounting:issued.markPaidTitleNoNumber'), consequence: t('accounting:issued.markPaidBody'), confirmLabel: t('accounting:issued.markPaid') }).then((ok) => ok && markPaid.mutate(r.id))
                               }}
                             >
                               <CircleDollarSign className="h-4 w-4" />
@@ -250,26 +251,26 @@ export function EmiseTab() {
                               <DropdownMenuContent>
                                 {r.hasPdf ? (
                                   <DropdownMenuItem onClick={() => window.open(`/api/accounting/records/${r.id}/pdf`, '_blank')}>
-                                    <Download className="h-4 w-4" /> Descarcă PDF
+                                    <Download className="h-4 w-4" /> {t('common:actions.downloadPdf')}
                                   </DropdownMenuItem>
                                 ) : null}
                                 {r.hasXml ? (
                                   <DropdownMenuItem onClick={() => window.open(`/api/accounting/records/${r.id}/xml`, '_blank')}>
-                                    <Download className="h-4 w-4" /> Descarcă XML
+                                    <Download className="h-4 w-4" /> {t('accounting:actions.downloadXml')}
                                   </DropdownMenuItem>
                                 ) : null}
                                 {canAnaf && r.hasAnafPdf ? (
                                   <DropdownMenuItem
                                     onClick={() => window.open(`/api/accounting/records/${r.id}/anaf-pdf`, '_blank')}
                                   >
-                                    <Download className="h-4 w-4" /> Descarcă PDF eFactura
+                                    <Download className="h-4 w-4" /> {t('accounting:issued.downloadEfacturaPdf')}
                                   </DropdownMenuItem>
                                 ) : null}
                                 {r.paymentStatus === 'paid' ? (
                                   <DropdownMenuItem
                                     onClick={() => window.open(`/api/accounting/records/${r.id}/confirmation-pdf`, '_blank')}
                                   >
-                                    <Download className="h-4 w-4" /> Descarcă confirmarea
+                                    <Download className="h-4 w-4" /> {t('accounting:issued.downloadConfirmation')}
                                   </DropdownMenuItem>
                                 ) : null}
                               </DropdownMenuContent>
@@ -287,14 +288,14 @@ export function EmiseTab() {
         {total > PAGE_SIZE ? (
           <div className="flex items-center justify-between gap-2 border-t px-6 py-3 text-xs text-muted-foreground">
             <span className="whitespace-nowrap">
-              {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, total)} din {total}
+              {t('accounting:pagination.range', { from: safePage * PAGE_SIZE + 1, to: Math.min((safePage + 1) * PAGE_SIZE, total), total })}
             </span>
             <div className="flex items-center gap-1.5">
               <Button
                 variant="outline"
                 size="icon"
                 className="w-8"
-                title="Pagina precedentă"
+                title={t('common:actions.previousPage')}
                 disabled={safePage === 0}
                 onClick={() => setPage((p) => p - 1)}
               >
@@ -304,7 +305,7 @@ export function EmiseTab() {
                 variant="outline"
                 size="icon"
                 className="w-8"
-                title="Pagina următoare"
+                title={t('common:actions.nextPage')}
                 disabled={safePage >= maxPage}
                 onClick={() => setPage((p) => p + 1)}
               >

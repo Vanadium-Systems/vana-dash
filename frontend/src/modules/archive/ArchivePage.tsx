@@ -53,11 +53,12 @@ import { MoveDialog } from './MoveDialog'
 import { SaveShareDialog } from './SaveShareDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 const VIEW_MODE_KEY = 'archive-view-mode'
 type ViewMode = 'list' | 'grid'
 type SortMode = 'recent' | 'oldest' | 'name'
-const SORT_LABELS: Record<SortMode, string> = { recent: 'Recente', oldest: 'Vechi', name: 'A-Z' }
+const SORT_LABELS: Record<SortMode, string> = { recent: t('archive:sort.recent'), oldest: t('archive:sort.old'), name: 'A-Z' }
 
 // Chrome desktop/Firefox n-au Web Share API — ascundem butonul în loc să-l arătăm mereu ca
 // să eșueze la click. Pe nativ sheet-ul vine oricum din plugin-ul Capacitor. Verificare reală
@@ -76,7 +77,7 @@ function StorageUsageIndicator() {
   const ratio = usage.data.usedBytes / usage.data.limitBytes
   const tone = ratio >= 0.9 ? 'text-destructive' : ratio >= 0.7 ? 'text-warning' : 'text-muted-foreground'
   return (
-    <span className={cn('text-sm', tone)} title="Spațiu folosit din planul gratuit Cloudflare R2">
+    <span className={cn('text-sm', tone)} title={t('archive:storage.hint')}>
       {formatBytes(usage.data.usedBytes)} / {formatBytes(usage.data.limitBytes)}
     </span>
   )
@@ -121,7 +122,7 @@ function FolderCard({ folder, onOpen, actions }: { folder: ArchiveFolder; onOpen
         <Folder className="h-16 w-16 shrink-0 text-muted-foreground" />
         <span className="line-clamp-2 w-full break-words text-center text-sm font-medium">{folder.name}</span>
         <span className="text-xs text-muted-foreground">
-          {folder.fileCount} fișiere · {folder.subfolderCount} foldere
+          {t('common:count.files', { count: folder.fileCount })} · {t('common:count.folders', { count: folder.subfolderCount })}
         </span>
       </button>
       {actions ? (
@@ -169,7 +170,7 @@ interface Crumb {
 
 type SpacesView = 'shared' | 'all'
 
-const LEVEL_LABEL: Record<AccessLevel, string> = { view: 'Vede', edit: 'Editează' }
+const LEVEL_LABEL: Record<AccessLevel, string> = { view: t('common:access.share.levelView'), edit: t('common:access.share.levelEdit') }
 
 interface ShareTarget {
   id: string
@@ -184,9 +185,9 @@ function SpacesTable({ entries, onOpen }: { entries: ArchiveSpaceEntry[]; onOpen
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Folder</TableHead>
-          <TableHead>Al cui</TableHead>
-          <TableHead className="text-right">Acces</TableHead>
+          <TableHead>{t('archive:labels.folder')}</TableHead>
+          <TableHead>{t('archive:labels.owner')}</TableHead>
+          <TableHead className="text-right">{t('archive:labels.access')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -261,7 +262,7 @@ export function ArchivePage() {
   const ownRoot = spaces.data?.own ?? null
   // Rădăcina propriului spațiu nu apare în drum: „Arhivă" e deja spațiul omului.
   const pathEntries = (pathData?.path ?? []).filter((entry, i) => !(i === 0 && entry.id === ownRoot?.id))
-  const rootLabel = spacesView === 'shared' ? 'Partajate cu mine' : spacesView === 'all' ? 'Toate spațiile' : 'Arhivă'
+  const rootLabel = spacesView === 'shared' ? t('archive:spaces.sharedWithMe') : spacesView === 'all' ? t('archive:spaces.all') : t('common:nav.archive')
   const trail: Crumb[] = [{ id: null, name: rootLabel }, ...pathEntries]
   const currentLevel: AccessLevel = pathData?.level ?? 'edit'
   const canWrite = !listingSpaces && currentLevel === 'edit'
@@ -276,7 +277,7 @@ export function ArchivePage() {
         ? { id: currentFolderId, name: pathData.path.at(-1)?.name ?? '', ownerUserId: pathData.ownerUserId }
         : null
       : ownRoot && session
-        ? { id: ownRoot.id, name: 'Spațiul meu', ownerUserId: session.user.id }
+        ? { id: ownRoot.id, name: t('archive:spaces.mine'), ownerUserId: session.user.id }
         : null
   const [q, setQ] = useState('')
   const [tagsFilter, setTagsFilter] = useState('')
@@ -350,7 +351,7 @@ export function ArchivePage() {
       api.post<AccessShare[]>(`/api/archive/folders/${shareTarget!.id}/shares`, { userId, level }),
     onSuccess: (data) => {
       queryClient.setQueryData(['archive', 'shares', shareTarget?.id], data)
-      toast.success('Acces salvat')
+      toast.success(t('archive:toasts.accessSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -359,7 +360,7 @@ export function ArchivePage() {
     mutationFn: (userId: string) => api.delete<AccessShare[]>(`/api/archive/folders/${shareTarget!.id}/shares/${userId}`),
     onSuccess: (data) => {
       queryClient.setQueryData(['archive', 'shares', shareTarget?.id], data)
-      toast.success('Acces scos')
+      toast.success(t('archive:toasts.accessRemoved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -371,8 +372,8 @@ export function ArchivePage() {
       invalidate()
       toast.success(
         vars.autoMonthlySubfolders
-          ? 'Subfolder lunar (LL-AAAA) va fi creat automat pe 1 ale lunii'
-          : 'Subfolder lunar automat dezactivat',
+          ? t('archive:toasts.monthlyOn')
+          : t('archive:toasts.monthlyOff'),
       )
     },
     onError: (err) => toast.error(err.message),
@@ -388,7 +389,7 @@ export function ArchivePage() {
       api.post<ArchiveFolder>('/api/archive/folders', { name, parentId: currentFolderId ?? undefined }),
     onSuccess: () => {
       invalidate()
-      toast.success('Folder creat')
+      toast.success(t('archive:toasts.folderCreated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -398,7 +399,7 @@ export function ArchivePage() {
       api.patch<ArchiveFolder>(`/api/archive/folders/${id}`, { name }),
     onSuccess: () => {
       invalidate()
-      toast.success('Folder redenumit')
+      toast.success(t('archive:toasts.folderRenamed'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -407,7 +408,7 @@ export function ArchivePage() {
     mutationFn: (id: string) => api.delete<void>(`/api/archive/folders/${id}`),
     onSuccess: () => {
       invalidate()
-      toast.success('Folder șters')
+      toast.success(t('archive:toasts.folderDeleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -416,7 +417,7 @@ export function ArchivePage() {
     mutationFn: ({ id, name }: { id: string; name: string }) => api.patch<ArchiveFile>(`/api/archive/files/${id}`, { name }),
     onSuccess: () => {
       invalidate()
-      toast.success('Fișier redenumit')
+      toast.success(t('archive:toasts.fileRenamed'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -425,7 +426,7 @@ export function ArchivePage() {
     mutationFn: (id: string) => api.delete<void>(`/api/archive/files/${id}`),
     onSuccess: () => {
       invalidate()
-      toast.success('Fișier șters')
+      toast.success(t('archive:toasts.fileDeleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -437,7 +438,7 @@ export function ArchivePage() {
       api.patch<ArchiveFile>(`/api/archive/files/${id}`, { folderId }),
     onSuccess: () => {
       invalidate()
-      toast.success('Fișier mutat')
+      toast.success(t('archive:toasts.fileMoved'))
       setMoveTarget(null)
     },
     onError: (err) => toast.error(err.message),
@@ -448,7 +449,7 @@ export function ArchivePage() {
       api.patch<ArchiveFolder>(`/api/archive/folders/${id}`, { parentId }),
     onSuccess: () => {
       invalidate()
-      toast.success('Folder mutat')
+      toast.success(t('archive:toasts.folderMoved'))
       setMoveTarget(null)
     },
     onError: (err) => toast.error(err.message),
@@ -473,9 +474,9 @@ export function ArchivePage() {
     },
     onSuccess: ({ total, failed }) => {
       invalidate()
-      if (failed === 0) toast.success(total === 1 ? 'Fișier încărcat' : `${total} fișiere încărcate`)
-      else if (failed === total) toast.error(total === 1 ? 'Încărcare eșuată' : `Toate cele ${total} fișiere au eșuat`)
-      else toast.warning(`${total - failed} din ${total} fișiere încărcate, ${failed} eșuate`)
+      if (failed === 0) toast.success(total === 1 ? t('archive:toasts.fileUploaded') : t('archive:toasts.filesUploaded', { count: total }))
+      else if (failed === total) toast.error(total === 1 ? t('archive:toasts.uploadFailed') : t('archive:toasts.allFailed', { count: total }))
+      else toast.warning(t('archive:toasts.partlyUploaded', { done: total - failed, total, failed }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -548,17 +549,17 @@ export function ArchivePage() {
     return (
       <RowActionsMenu>
         <DropdownMenuItem onClick={() => downloadFile.mutate({ id: file.id, name: file.name })}>
-          <Download className="h-4 w-4" /> Descarcă
+          <Download className="h-4 w-4" /> {t('common:actions.download')}
         </DropdownMenuItem>
         {canShareFiles ? (
           <DropdownMenuItem onClick={() => shareFile.mutate({ id: file.id, name: file.name })}>
-            <Share2 className="h-4 w-4" /> Trimite
+            <Share2 className="h-4 w-4" /> {t('common:actions.send')}
           </DropdownMenuItem>
         ) : null}
         {writable ? (
           <>
             <DropdownMenuItem onClick={() => setMoveTarget({ type: 'file', id: file.id, name: file.name })}>
-              <FolderInput className="h-4 w-4" /> Mută
+              <FolderInput className="h-4 w-4" /> {t('common:actions.move')}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -566,15 +567,15 @@ export function ArchivePage() {
                 if (name?.trim() && name !== file.name) renameFile.mutate({ id: file.id, name: name.trim() })
               }}
             >
-              <Pencil className="h-4 w-4" /> Redenumește
+              <Pencil className="h-4 w-4" /> {t('common:actions.rename')}
             </DropdownMenuItem>
             <DropdownMenuItem
               destructive
               onClick={() => {
-                void confirm({ title: `Șterge fișierul „${file.name}”`, confirmLabel: 'Șterge fișierul', destructive: true }).then((ok) => ok && deleteFile.mutate(file.id))
+                void confirm({ title: t('archive:files.deleteTitle', { name: file.name }), confirmLabel: t('archive:files.deleteConfirm'), destructive: true }).then((ok) => ok && deleteFile.mutate(file.id))
               }}
             >
-              <Trash2 className="h-4 w-4" /> Șterge
+              <Trash2 className="h-4 w-4" /> {t('common:actions.delete')}
             </DropdownMenuItem>
           </>
         ) : null}
@@ -588,20 +589,20 @@ export function ArchivePage() {
       <RowActionsMenu>
         {f.canShare ? (
           <DropdownMenuItem onClick={() => setShareTarget({ id: f.id, name: f.name, ownerUserId: f.ownerUserId })}>
-            <Users className="h-4 w-4" /> Partajează
+            <Users className="h-4 w-4" /> {t('common:actions.share')}
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem onClick={() => downloadFolder.mutate({ id: f.id, name: f.name })}>
-          <Download className="h-4 w-4" /> Descarcă (.zip)
+          <Download className="h-4 w-4" /> {t('archive:actions.downloadZip')}
         </DropdownMenuItem>
         {writable ? (
           <>
             <DropdownMenuItem onClick={() => toggleAutoMonthly.mutate({ id: f.id, autoMonthlySubfolders: !f.autoMonthlySubfolders })}>
               <CalendarClock className="h-4 w-4" />
-              {f.autoMonthlySubfolders ? 'Dezactivează subfolder lunar' : 'Activează subfolder lunar'}
+              {f.autoMonthlySubfolders ? t('archive:folders.monthlyDisable') : t('archive:folders.monthlyEnable')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setMoveTarget({ type: 'folder', id: f.id, name: f.name })}>
-              <FolderInput className="h-4 w-4" /> Mută
+              <FolderInput className="h-4 w-4" /> {t('common:actions.move')}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -609,15 +610,15 @@ export function ArchivePage() {
                 if (name?.trim() && name !== f.name) renameFolder.mutate({ id: f.id, name: name.trim() })
               }}
             >
-              <Pencil className="h-4 w-4" /> Redenumește
+              <Pencil className="h-4 w-4" /> {t('common:actions.rename')}
             </DropdownMenuItem>
             <DropdownMenuItem
               destructive
               onClick={() => {
-                void confirm({ title: `Șterge folderul „${f.name}”`, consequence: 'Merge doar dacă folderul e gol.', confirmLabel: 'Șterge folderul', destructive: true }).then((ok) => ok && deleteFolder.mutate(f.id))
+                void confirm({ title: t('archive:folders.deleteTitle', { name: f.name }), consequence: t('archive:folders.deleteBody'), confirmLabel: t('archive:folders.deleteConfirm'), destructive: true }).then((ok) => ok && deleteFolder.mutate(f.id))
               }}
             >
-              <Trash2 className="h-4 w-4" /> Șterge
+              <Trash2 className="h-4 w-4" /> {t('common:actions.delete')}
             </DropdownMenuItem>
           </>
         ) : null}
@@ -632,7 +633,7 @@ export function ArchivePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Arhivă"
+        title={t('common:nav.archive')}
         description={
           <div className="flex flex-wrap items-center gap-1">
             {trail.map((crumb, i) => (
@@ -652,8 +653,8 @@ export function ArchivePage() {
               <>
                 <span className="mx-1">·</span>
                 <span>
-                  al lui {othersFolder.ownerName}
-                  {othersFolder.level === 'view' ? ', doar citire' : ''}
+                  {t('archive:spaces.belongsTo')} {othersFolder.ownerName}
+                  {othersFolder.level === 'view' ? t('archive:spaces.readOnly') : ''}
                 </span>
               </>
             ) : null}
@@ -665,7 +666,7 @@ export function ArchivePage() {
           <>
             {currentShareTarget ? (
               <Button variant="outline" onClick={() => setShareTarget(currentShareTarget)}>
-                <Users className="h-4 w-4" /> Partajează
+                <Users className="h-4 w-4" /> {t('common:actions.share')}
               </Button>
             ) : null}
             {canWrite ? (
@@ -677,10 +678,10 @@ export function ArchivePage() {
                     if (name?.trim()) createFolder.mutate(name.trim())
                   }}
                 >
-                  <FolderPlus className="h-4 w-4" /> Folder nou
+                  <FolderPlus className="h-4 w-4" /> {t('archive:folders.new')}
                 </Button>
                 <Button onClick={() => fileInputRef.current?.click()} disabled={upload.isPending}>
-                  <Upload className="h-4 w-4" /> {upload.isPending ? 'Se încarcă…' : 'Upload'}
+                  <Upload className="h-4 w-4" /> {upload.isPending ? t('common:states.uploading') : t('archive:actions.upload')}
                 </Button>
               </>
             ) : null}
@@ -702,22 +703,22 @@ export function ArchivePage() {
       {showSpacesTabs ? (
         <Tabs value={spacesView ?? 'own'} onValueChange={(v) => openSpacesView(v === 'own' ? null : (v as SpacesView))}>
           <TabsList>
-            <TabsTrigger value="own">Spațiul meu</TabsTrigger>
-            <TabsTrigger value="shared">Partajate cu mine</TabsTrigger>
-            {spaces.data?.spaces ? <TabsTrigger value="all">Toate spațiile</TabsTrigger> : null}
+            <TabsTrigger value="own">{t('archive:spaces.mine')}</TabsTrigger>
+            <TabsTrigger value="shared">{t('archive:spaces.sharedWithMe')}</TabsTrigger>
+            {spaces.data?.spaces ? <TabsTrigger value="all">{t('archive:spaces.all')}</TabsTrigger> : null}
           </TabsList>
         </Tabs>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          placeholder="Caută în toată arhiva…"
+          placeholder={t('archive:search.placeholder')}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="max-w-xs"
         />
         <Input
-          placeholder="Filtru tag-uri (separate prin virgulă)"
+          placeholder={t('archive:search.tagFilter')}
           value={tagsFilter}
           onChange={(e) => setTagsFilter(e.target.value)}
           className="max-w-xs"
@@ -727,7 +728,7 @@ export function ArchivePage() {
             className="w-auto"
             value={sort}
             onChange={(e) => setSort(e.target.value as SortMode)}
-            title="Sortare fișiere"
+            title={t('archive:view.sortFiles')}
           >
             {(Object.keys(SORT_LABELS) as SortMode[]).map((s) => (
               <option key={s} value={s}>
@@ -740,7 +741,7 @@ export function ArchivePage() {
           <Button
             variant={viewMode === 'list' ? 'default' : 'ghost'}
             size="icon-sm"
-            title="Vizualizare listă"
+            title={t('archive:view.list')}
             onClick={() => setViewMode('list')}
           >
             <List className="h-4 w-4" />
@@ -748,7 +749,7 @@ export function ArchivePage() {
           <Button
             variant={viewMode === 'grid' ? 'default' : 'ghost'}
             size="icon-sm"
-            title="Vizualizare grilă"
+            title={t('archive:view.grid')}
             onClick={() => setViewMode('grid')}
           >
             <LayoutGrid className="h-4 w-4" />
@@ -783,7 +784,7 @@ export function ArchivePage() {
         {isDragOver ? (
           <div className="pointer-events-none absolute inset-1 z-10 flex animate-pulse items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary/5">
             <p className="flex items-center gap-2 text-sm font-medium text-primary">
-              <Upload className="h-4 w-4" /> Lasă fișierele aici
+              <Upload className="h-4 w-4" /> {t('archive:upload.dropHere')}
             </p>
           </div>
         ) : null}
@@ -796,15 +797,15 @@ export function ArchivePage() {
             ) : (
               <EmptyState
                 kind="new"
-                title={spacesView === 'shared' ? 'Nimeni nu ți-a partajat încă un folder' : 'Niciun spațiu'}
-                description={spacesView === 'shared' ? 'Când un coleg îți dă acces la un folder, apare aici.' : undefined}
+                title={spacesView === 'shared' ? t('archive:empty.nothingShared') : t('archive:empty.noSpace')}
+                description={spacesView === 'shared' ? t('archive:empty.sharedHint') : undefined}
               />
             )
           ) : (isSearching ? search.isPending : folders.isPending || files.isPending) ? (
             <Skeleton className="h-32 w-full" />
           ) : isEmpty ? (
             <p className="text-sm text-muted-foreground">
-              {isSearching ? 'Niciun fișier găsit.' : canWrite ? 'Folder gol. Creează un subfolder sau încarcă un fișier.' : 'Folder gol.'}
+              {isSearching ? t('archive:empty.noFileFound') : canWrite ? t('archive:empty.folderWithActions') : t('archive:empty.folder')}
             </p>
           ) : !isSearching && viewMode === 'grid' ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
@@ -824,10 +825,10 @@ export function ArchivePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nume</TableHead>
-                  <TableHead>{isSearching ? 'Locație' : 'Detalii'}</TableHead>
-                  <TableHead className="hidden sm:table-cell">Tag-uri</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('common:labels.name')}</TableHead>
+                  <TableHead>{isSearching ? t('archive:labels.location') : t('common:labels.details')}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t('archive:labels.tags')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -841,14 +842,14 @@ export function ArchivePage() {
                         <button
                           type="button"
                           className="flex items-center gap-1 hover:underline"
-                          title="Deschide folderul"
+                          title={t('archive:folders.open')}
                           onClick={(e) => {
                             e.stopPropagation()
                             goToFolder(r.folderPath)
                           }}
                         >
                           <FolderOpen className="h-3.5 w-3.5 shrink-0" />
-                          {r.folderPath.length ? r.folderPath.map((p) => p.name).join(' / ') : 'Arhivă (rădăcină)'}
+                          {r.folderPath.length ? r.folderPath.map((p) => p.name).join(' / ') : t('archive:folders.root')}
                         </button>
                         <div className="text-xs">
                           {r.mimeType} · {formatBytes(r.sizeBytes)}
@@ -856,9 +857,9 @@ export function ArchivePage() {
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <div className="flex flex-wrap gap-1">
-                          {r.tags.map((t) => (
-                            <Badge key={t} variant="secondary">
-                              {t}
+                          {r.tags.map((tag) => (
+                            <Badge key={tag} variant="secondary">
+                              {tag}
                             </Badge>
                           ))}
                         </div>
@@ -881,7 +882,7 @@ export function ArchivePage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {f.fileCount} fișiere · {f.subfolderCount} foldere
+                        {t('common:count.files', { count: f.fileCount })} · {t('common:count.folders', { count: f.subfolderCount })}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell" />
                       <TableCell className="text-right">
@@ -902,9 +903,9 @@ export function ArchivePage() {
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <div className="flex flex-wrap gap-1">
-                        {file.tags.map((t) => (
-                          <Badge key={t} variant="secondary">
-                            {t}
+                        {file.tags.map((tag) => (
+                          <Badge key={tag} variant="secondary">
+                            {tag}
                           </Badge>
                         ))}
                       </div>
@@ -939,8 +940,8 @@ export function ArchivePage() {
         <AccessShareDialog
           open
           onOpenChange={(open) => !open && setShareTarget(null)}
-          title={`Partajează „${shareTarget.name}”`}
-          description="Accesul se moștenește în toate subfolderele. Cine primește „Editează” lucrează în folder, dar nu-l poate da mai departe."
+          title={t('archive:share.title', { name: shareTarget.name })}
+          description={t('archive:share.description')}
           ownerUserId={shareTarget.ownerUserId}
           shares={shares.data}
           isLoading={shares.isPending}

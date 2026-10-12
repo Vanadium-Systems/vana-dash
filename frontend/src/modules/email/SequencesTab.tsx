@@ -12,11 +12,12 @@ import type { EmailSequence } from '@/shared/lib/types'
 import { SequenceEnrollmentsDialog } from './SequenceEnrollmentsDialog'
 import { SequenceFormDialog } from './SequenceFormDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { t } from '@/shared/lib/i18n'
 
 const FROM_LABEL: Record<string, string> = {
-  contact: 'Vanadium Systems (contact@)',
-  stefan: 'Stefan (personal)',
-  outreach: 'Outreach (cold outreach)',
+  contact: t('email:identity.contact'),
+  stefan: t('email:identity.stefanPersonal'),
+  outreach: t('email:identity.outreach'),
 }
 
 export function SequencesTab() {
@@ -35,7 +36,7 @@ export function SequencesTab() {
     mutationFn: (id: string) => api.delete<void>(`/api/email/sequences/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences'] })
-      toast.success('Secvență ștearsă')
+      toast.success(t('email:sequences.deleted'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -55,7 +56,7 @@ export function SequencesTab() {
             setDialogOpen(true)
           }}
         >
-          <Plus className="h-4 w-4" /> Secvență nouă
+          <Plus className="h-4 w-4" /> {t('email:sequences.new')}
         </Button>
       </div>
       <Card>
@@ -63,18 +64,18 @@ export function SequencesTab() {
           {sequences.isPending ? (
             <Skeleton className="h-32 w-full" />
           ) : sequences.isError ? (
-            <p className="text-sm text-destructive">Nu am putut încărca secvențele.</p>
+            <p className="text-sm text-destructive">{t('email:sequences.loadFailed')}</p>
           ) : !sequences.data?.length ? (
-            <p className="text-sm text-muted-foreground">Nicio secvență încă. Creează prima cu butonul de sus.</p>
+            <p className="text-sm text-muted-foreground">{t('email:sequences.empty')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nume</TableHead>
-                  <TableHead>De la</TableHead>
-                  <TableHead>Pași</TableHead>
-                  <TableHead>Stare</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
+                  <TableHead>{t('common:labels.name')}</TableHead>
+                  <TableHead>{t('common:labels.from')}</TableHead>
+                  <TableHead>{t('email:sequences.steps')}</TableHead>
+                  <TableHead>{t('common:labels.state')}</TableHead>
+                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -90,7 +91,7 @@ export function SequencesTab() {
                     <TableCell>
                       <button type="button" onClick={() => toggleActive.mutate({ id: s.id, active: !s.active })}>
                         <StatePill tone={s.active ? 'success' : 'neutral'}>
-                          {s.active ? 'Activă' : 'Pauzată'}
+                          {s.active ? t('common:states.activeF') : t('email:sequences.paused')}
                         </StatePill>
                       </button>
                     </TableCell>
@@ -108,7 +109,7 @@ export function SequencesTab() {
                         <Button
                           variant="outline"
                           onClick={() => {
-                            void confirm({ title: `Șterge secvența „${s.name}”`, consequence: 'Pașii programați care n-au plecat încă nu se mai trimit.', confirmLabel: 'Șterge secvența', destructive: true }).then((ok) => ok && remove.mutate(s.id))
+                            void confirm({ title: t('email:sequences.deleteTitle', { name: s.name }), consequence: t('email:sequences.deleteBody'), confirmLabel: t('email:sequences.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(s.id))
                           }}
                         >
                           <Trash2 className="h-4 w-4" />

@@ -1,0 +1,72 @@
+{
+  "metrics": {
+    "activeClients": "Active clients",
+    "users": "Users",
+    "mrr": "MRR",
+    "platformRevenue": "Revenue (platform)",
+    "mainTransactions": "Main transactions",
+    "currentStock": "Current stock",
+    "chooseHint": "Choose the metrics on this row",
+    "choose": "Choose the metrics",
+    "choiceNotSaved": "The choice was not saved. Try again.",
+    "dialogTitle": "The metrics below the collected amount",
+    "noneReported": "No platform reported metrics this month."
+  },
+  "calendar": {
+    "title": "Calendar today",
+    "open": "Open the calendar",
+    "loadFailed": "The calendar did not load.",
+    "nothingUntilEvening": "Nothing in the calendar until tonight.",
+    "allDay": "all day",
+    "bookingFromSite": "Booking from the site"
+  },
+  "email": {
+    "newThreads": "New threads in my mailboxes",
+    "open": "Open email",
+    "unread": "Unread emails",
+    "countFailed": "The emails could not be counted.",
+    "threadsFailed": "The threads could not be loaded.",
+    "noNewThreads": "No new thread in your mailboxes."
+  },
+  "messages": {
+    "unread": "Unread messages",
+    "open": "Open messages",
+    "loadFailed": "The messages could not be loaded.",
+    "noneUnread": "No unread message.",
+    "group": "Group",
+    "empty": "No messages"
+  },
+  "todo": {
+    "title": "To handle",
+    "ackFailed": "The alert was not confirmed. Try again.",
+    "snoozeFailed": "The alert was not snoozed. Try again.",
+    "snoozeOneDay": "Snooze one day",
+    "booking": "Booking",
+    "nothingNew": "Nothing new today.",
+    "unreadInInbox_one": "{{count}} unread email in the inbox",
+    "unreadInInbox_other": "{{count}} unread emails in the inbox",
+    "sources": {
+      "alerts": "the alerts",
+      "email": "the email",
+      "bookings": "the bookings"
+    },
+    "partialFailure": "Could not load {{sources}}; the rest of the list is up to date."
+  },
+  "money": {
+    "collectedIn": "Collected in {{monthName}}",
+    "collectedFailed": "The collected amount could not be computed.",
+    "invoiced": "Invoiced {{invoiced}}",
+    "toCollect": "To collect {{value}}",
+    "mrr": "MRR {{mrrLei}}"
+  },
+  "platforms": {
+    "loadFailed": "The platforms did not load.",
+    "none": "No platform connected.",
+    "addOne": "Add one",
+    "notSyncedYet": "not synced yet",
+    "syncedAt": "synced {{when}}"
+  },
+  "notes": {
+    "pinned": "Pinned notes"
+  }
+}

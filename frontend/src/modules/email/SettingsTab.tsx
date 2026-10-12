@@ -26,6 +26,7 @@ import type {
 import { cn, parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 function SignatureLogoCard() {
   const queryClient = useQueryClient()
@@ -43,7 +44,7 @@ function SignatureLogoCard() {
     onSuccess: (data) => {
       queryClient.setQueryData(['email', 'settings'], data)
       setForm({ ...data.signatures })
-      toast.success('Semnături salvate')
+      toast.success(t('email:settings.signaturesSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -55,7 +56,7 @@ function SignatureLogoCard() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'settings'] })
-      toast.success('Logo actualizat')
+      toast.success(t('email:settings.logoUpdated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -66,19 +67,19 @@ function SignatureLogoCard() {
   return (
     <Card>
       <CardContent className="space-y-4 pt-6">
-        <CardTitle className="text-base">Semnături și logo</CardTitle>
+        <CardTitle className="text-base">{t('email:settings.signaturesTitle')}</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Fiecare cutie își are semnătura. Lăsată goală, se folosește semnătura de firmă (Contact).
+          {t('email:settings.signaturesHint')}
         </p>
         <div className="flex items-center gap-4">
-          {settings.data?.logoUrl ? <img src={settings.data.logoUrl} alt="logo" className="h-12 rounded border bg-white p-1" /> : null}
+          {settings.data?.logoUrl ? <img src={settings.data.logoUrl} alt={t('email:settings.logoAlt')} className="h-12 rounded border bg-white p-1" /> : null}
           <Button
             type="button"
             variant="outline"
             disabled={uploadLogo.isPending}
             onClick={() => logoInputRef.current?.click()}
           >
-            {uploadLogo.isPending ? 'Se încarcă…' : 'Încarcă logo'}
+            {uploadLogo.isPending ? t('common:states.loading') : t('email:settings.uploadLogo')}
           </Button>
           <input
             ref={logoInputRef}
@@ -96,7 +97,7 @@ function SignatureLogoCard() {
           {identities.map((identity) => (
             <div key={identity.key} className="space-y-1">
               <Label htmlFor={`sig-${identity.key}`} className="text-xs text-muted-foreground">
-                {identity.label} — {identity.fromAddress || 'adresă neconfigurată'}
+                {identity.label} — {identity.fromAddress || t('email:settings.addressNotConfigured')}
               </Label>
               <RichTextEditor
                 id={`sig-${identity.key}`}
@@ -107,7 +108,7 @@ function SignatureLogoCard() {
           ))}
         </div>
         <Button onClick={() => save.mutate()} disabled={save.isPending}>
-          {save.isPending ? 'Se salvează…' : 'Salvează semnăturile'}
+          {save.isPending ? t('common:states.saving') : t('email:settings.saveSignatures')}
         </Button>
       </CardContent>
     </Card>
@@ -139,7 +140,7 @@ function SpamCard() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'settings'] })
-      toast.success('Setări spam salvate')
+      toast.success(t('email:settings.spamSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -150,18 +151,17 @@ function SpamCard() {
     <Card>
       <CardContent className="space-y-4 pt-6">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Detecție automată de spam</CardTitle>
+          <CardTitle className="text-base">{t('email:settings.spamTitle')}</CardTitle>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={form.autoSpamEnabled} onChange={(e) => setForm((f) => ({ ...f, autoSpamEnabled: e.target.checked }))} />
-            Activă
+            {t('common:states.activeF')}
           </label>
         </div>
         <p className="text-sm text-muted-foreground">
-          Euristică simplă (sender nou, cuvinte-cheie, linkuri suspecte, subiect ALL-CAPS) — nu e la nivelul filtrelor Google, doar un
-          ajutor de bază. Dezactiveaz-o de aici oricând dacă e prea agresivă.
+          {t('email:settings.spamHint')}
         </p>
         <div className="space-y-2">
-          <Label htmlFor="spam-threshold">Prag scor (implicit 4)</Label>
+          <Label htmlFor="spam-threshold">{t('email:settings.spamThreshold')}</Label>
           <Input
             id="spam-threshold"
             inputMode="numeric"
@@ -171,7 +171,7 @@ function SpamCard() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="spam-keywords">Cuvinte/fraze declanșator (un rând per intrare)</Label>
+          <Label htmlFor="spam-keywords">{t('email:settings.spamTriggers')}</Label>
           <Textarea
             id="spam-keywords"
             className="min-h-32 font-mono"
@@ -180,7 +180,7 @@ function SpamCard() {
           />
         </div>
         <Button onClick={() => save.mutate()} disabled={save.isPending}>
-          {save.isPending ? 'Se salvează…' : 'Salvează'}
+          {save.isPending ? t('common:states.saving') : t('common:actions.save')}
         </Button>
       </CardContent>
     </Card>
@@ -208,7 +208,7 @@ function OutreachCapCard() {
       api.put<EmailSettings>('/api/email/settings', { outreachDailyCap: cap, outreachSendHour: sendHour, outreachSendWeekdaysOnly: weekdaysOnly }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'settings'] })
-      toast.success('Setări outreach salvate')
+      toast.success(t('email:settings.outreachSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -218,14 +218,13 @@ function OutreachCapCard() {
   return (
     <Card>
       <CardContent className="space-y-4 pt-6">
-        <CardTitle className="text-base">Trimitere — outreach</CardTitle>
+        <CardTitle className="text-base">{t('email:settings.outreachTitle')}</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Câte email-uri se trimit pe zi pe identitatea „outreach" (bulk + secvențe) și în ce interval. Peste plafon, restul se
-          amână la următoarea fereastră — ajustează manual pe măsură ce vezi cum răspund Gmail/Outlook.
+          {t('email:settings.outreachHint')}
         </p>
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-2">
-            <Label htmlFor="outreach-cap">Email-uri/zi</Label>
+            <Label htmlFor="outreach-cap">{t('email:settings.emailsPerDay')}</Label>
             <Input
               id="outreach-cap"
               inputMode="numeric"
@@ -235,7 +234,7 @@ function OutreachCapCard() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="outreach-hour">Ora (Europe/Bucharest)</Label>
+            <Label htmlFor="outreach-hour">{t('email:settings.hour')}</Label>
             <Input
               id="outreach-hour"
               inputMode="numeric"
@@ -246,11 +245,11 @@ function OutreachCapCard() {
           </div>
           <label className="flex items-center gap-2 pb-2 text-sm">
             <input type="checkbox" checked={weekdaysOnly} onChange={(e) => setWeekdaysOnly(e.target.checked)} />
-            Doar zile lucrătoare (L-V)
+            {t('email:settings.weekdaysOnly')}
           </label>
         </div>
         <Button onClick={() => save.mutate()} disabled={save.isPending}>
-          {save.isPending ? 'Se salvează…' : 'Salvează'}
+          {save.isPending ? t('common:states.saving') : t('common:actions.save')}
         </Button>
       </CardContent>
     </Card>
@@ -289,7 +288,7 @@ function LabelsCard() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <CardTitle className="text-base">Etichete</CardTitle>
+        <CardTitle className="text-base">{t('email:labels.labels')}</CardTitle>
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -297,9 +296,9 @@ function LabelsCard() {
             if (name.trim()) create.mutate()
           }}
         >
-          <Input placeholder="Nume etichetă nouă" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input placeholder={t('email:settings.newLabelPlaceholder')} value={name} onChange={(e) => setName(e.target.value)} />
           <Button type="submit" disabled={create.isPending}>
-            Adaugă
+            {t('common:actions.add')}
           </Button>
         </form>
         <div className="space-y-1">
@@ -313,10 +312,10 @@ function LabelsCard() {
                     checked={!l.notificationsEnabled}
                     onChange={(e) => toggleNotifications.mutate({ id: l.id, notificationsEnabled: !e.target.checked })}
                   />
-                  Fără notificări
+                  {t('email:settings.noNotifications')}
                 </label>
                 <Button variant="outline" onClick={() => remove.mutate(l.id)}>
-                  Șterge
+                  {t('common:actions.delete')}
                 </Button>
               </div>
             </div>
@@ -328,11 +327,11 @@ function LabelsCard() {
 }
 
 const MATCH_TYPE_LABEL: Record<EmailRuleMatchType, string> = {
-  from_address: 'De la adresa exactă',
-  from_domain: 'De la domeniul',
-  subject_contains: 'Subiect conține',
+  from_address: t('email:rules.fromExactAddress'),
+  from_domain: t('email:rules.fromDomain'),
+  subject_contains: t('email:rules.subjectContains'),
 }
-const ACTION_LABEL: Record<EmailRuleAction, string> = { label: 'Etichetează', archive: 'Arhivează', trash: 'Șterge', spam: 'Marchează spam' }
+const ACTION_LABEL: Record<EmailRuleAction, string> = { label: t('email:rules.actionLabel'), archive: t('common:actions.archive'), trash: t('common:actions.delete'), spam: t('email:rules.actionSpam') }
 
 function RulesCard() {
   const queryClient = useQueryClient()
@@ -357,7 +356,7 @@ function RulesCard() {
     onSuccess: () => {
       setForm((f) => ({ ...f, matchValue: '' }))
       void queryClient.invalidateQueries({ queryKey: ['email', 'rules'] })
-      toast.success('Regulă creată')
+      toast.success(t('email:rules.created'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -373,7 +372,7 @@ function RulesCard() {
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'threads'] })
       void queryClient.invalidateQueries({ queryKey: ['email', 'unread-counts'] })
-      toast.success(`Aplicată pe ${result.affected} mesaje existente`)
+      toast.success(t('email:rules.appliedTo', { affected: result.affected }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -383,7 +382,7 @@ function RulesCard() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <CardTitle className="text-base">Reguli de rutare</CardTitle>
+        <CardTitle className="text-base">{t('email:rules.title')}</CardTitle>
         <form
           className="grid gap-2 sm:grid-cols-2"
           onSubmit={(e) => {
@@ -402,7 +401,7 @@ function RulesCard() {
               </option>
             ))}
           </Select>
-          <Input placeholder="valoare (ex: contabil.ro)" value={form.matchValue} onChange={(e) => setForm((f) => ({ ...f, matchValue: e.target.value }))} />
+          <Input placeholder={t('email:rules.valuePlaceholder')} value={form.matchValue} onChange={(e) => setForm((f) => ({ ...f, matchValue: e.target.value }))} />
           <Select
             className="w-auto"
             value={form.action}
@@ -421,7 +420,7 @@ function RulesCard() {
               onChange={(e) => setForm((f) => ({ ...f, labelId: e.target.value }))}
               required
             >
-              <option value="">— alege eticheta —</option>
+              <option value="">{t('email:rules.pickLabel')}</option>
               {labels.data?.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
@@ -432,7 +431,7 @@ function RulesCard() {
             <div />
           )}
           <Button type="submit" className="sm:col-span-2" disabled={create.isPending}>
-            Adaugă regulă
+            {t('email:rules.add')}
           </Button>
         </form>
         <div className="space-y-1">
@@ -444,10 +443,10 @@ function RulesCard() {
               </span>
               <div className="flex gap-1">
                 <Button variant="outline" onClick={() => applyExisting.mutate(r.id)}>
-                  Aplică retroactiv
+                  {t('email:rules.applyRetroactively')}
                 </Button>
                 <Button variant="outline" onClick={() => remove.mutate(r.id)}>
-                  Șterge
+                  {t('common:actions.delete')}
                 </Button>
               </div>
             </div>
@@ -484,7 +483,7 @@ function BlocklistCard() {
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'threads'] })
       void queryClient.invalidateQueries({ queryKey: ['email', 'unread-counts'] })
-      toast.success(`${result.affected} mesaje mutate în coșul de gunoi`)
+      toast.success(t('email:blocklist.movedToTrash', { affected: result.affected }))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -492,7 +491,7 @@ function BlocklistCard() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <CardTitle className="text-base">Adrese blocate</CardTitle>
+        <CardTitle className="text-base">{t('email:blocklist.title')}</CardTitle>
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -500,9 +499,9 @@ function BlocklistCard() {
             if (address.trim()) add.mutate()
           }}
         >
-          <Input type="email" placeholder="adresa@exemplu.com" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <Input type="email" placeholder={t('email:blocklist.placeholder')} value={address} onChange={(e) => setAddress(e.target.value)} />
           <Button type="submit" disabled={add.isPending}>
-            Blochează
+            {t('common:actions.block')}
           </Button>
         </form>
         <div className="space-y-1">
@@ -511,10 +510,10 @@ function BlocklistCard() {
               <span>{b.address}</span>
               <div className="flex gap-1">
                 <Button variant="outline" onClick={() => applyExisting.mutate(b.id)}>
-                  Aplică retroactiv
+                  {t('email:rules.applyRetroactively')}
                 </Button>
                 <Button variant="outline" onClick={() => remove.mutate(b.id)}>
-                  Deblochează
+                  {t('common:actions.unblock')}
                 </Button>
               </div>
             </div>
@@ -539,7 +538,7 @@ function IdentitiesCard() {
     onSuccess: (data) => {
       queryClient.setQueryData(['email', 'settings'], data)
       setRows(data.identities ?? [])
-      toast.success('Identități salvate')
+      toast.success(t('email:identities.saved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -549,16 +548,16 @@ function IdentitiesCard() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <CardTitle className="text-base">Identități de trimitere</CardTitle>
+        <CardTitle className="text-base">{t('email:identities.title')}</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Cheia e referențiată de compose/bulk/secvențe și nu se redenumește. Adresa goală = identitate încă neconfigurată.
+          {t('email:identities.hint')}
         </p>
         <div className="space-y-1">
           {rows.map((row, i) => (
             <div key={i} className="flex items-end gap-2">
               <div className="w-28 space-y-1">
                 <Label htmlFor={`id-key-${i}`} className="text-xs text-muted-foreground">
-                  Cheie
+                  {t('email:identities.key')}
                 </Label>
                 <Input
                   id={`id-key-${i}`}
@@ -569,7 +568,7 @@ function IdentitiesCard() {
               </div>
               <div className="w-40 space-y-1">
                 <Label htmlFor={`id-label-${i}`} className="text-xs text-muted-foreground">
-                  Etichetă
+                  {t('common:labels.label')}
                 </Label>
                 <Input
                   id={`id-label-${i}`}
@@ -579,19 +578,19 @@ function IdentitiesCard() {
               </div>
               <div className="flex-1 space-y-1">
                 <Label htmlFor={`id-from-${i}`} className="text-xs text-muted-foreground">
-                  Adresă „From"
+                  {t('email:identities.fromAddress')}
                 </Label>
                 <Input
                   id={`id-from-${i}`}
                   type="email"
-                  placeholder="stefan@vanadium.systems"
+                  placeholder={t('email:identities.fromPlaceholder')}
                   value={row.fromAddress}
                   onChange={(e) => setRows((prev) => prev!.map((r, j) => (j === i ? { ...r, fromAddress: e.target.value } : r)))}
                   className="font-mono"
                 />
               </div>
               {rows.length > 1 ? (
-                <Button type="button" variant="ghost" size="icon" aria-label="Șterge identitatea" onClick={() => setRows((prev) => prev!.filter((_, j) => j !== i))}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t('email:identities.delete')} onClick={() => setRows((prev) => prev!.filter((_, j) => j !== i))}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               ) : null}
@@ -600,10 +599,10 @@ function IdentitiesCard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setRows((prev) => [...prev!, { key: '', label: '', fromAddress: '' }])}>
-            <Plus className="h-4 w-4" /> Identitate nouă
+            <Plus className="h-4 w-4" /> {t('email:identities.new')}
           </Button>
           <Button disabled={!save.isPending && rows === (settings.data?.identities ?? null)} onClick={() => save.mutate()}>
-            Salvează
+            {t('common:actions.save')}
           </Button>
         </div>
       </CardContent>
@@ -624,7 +623,7 @@ function ReadingCard() {
     mutationFn: (next: boolean) => api.put<EmailSettings>('/api/email/settings', { autoLoadImages: next }),
     onSuccess: (data) => {
       queryClient.setQueryData(['email', 'settings'], data)
-      toast.success(data.autoLoadImages ? 'Imaginile se încarcă automat' : 'Imaginile externe cer confirmare')
+      toast.success(data.autoLoadImages ? t('email:reading.imagesAuto') : t('email:reading.imagesConfirm'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -634,7 +633,7 @@ function ReadingCard() {
   return (
     <Card>
       <CardContent className="space-y-2 pt-6">
-        <CardTitle className="text-base">Citire</CardTitle>
+        <CardTitle className="text-base">{t('email:reading.title')}</CardTitle>
         <label className="flex items-start gap-2 text-sm">
           <input
             type="checkbox"
@@ -646,10 +645,9 @@ function ReadingCard() {
             }}
           />
           <span>
-            <span className="font-medium">Încarcă imaginile automat</span>
+            <span className="font-medium">{t('email:reading.autoLoadImages')}</span>
             <span className="block text-xs text-muted-foreground">
-              ON: imaginile externe se încarcă la deschiderea mailului, fără buton. OFF: vezi tu un buton „Arată imaginile" pentru fiecare mesaj
-              (expeditorul nu află tăcut că ai deschis mailul).
+              {t('email:reading.autoLoadHint')}
             </span>
           </span>
         </label>
@@ -696,7 +694,7 @@ function SuppressionsCard() {
     mutationFn: (email: string) => api.delete(`/api/email/suppressions/${encodeURIComponent(email)}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'suppressions-overview'] })
-      toast.success('Scoasă din listă')
+      toast.success(t('email:suppressions.removed'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -709,18 +707,18 @@ function SuppressionsCard() {
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <CardTitle className="text-base">Dezabonări</CardTitle>
+        <CardTitle className="text-base">{t('email:suppressions.title')}</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Ștergerea de-aici e locală dashului — nu raportează nimic extern, n-are efect asupra reputației domeniului.
+          {t('email:suppressions.hint')}
         </p>
 
-        <SuppressionSection title="Dezabonați manual" count={data.unsubscribed.length}>
+        <SuppressionSection title={t('email:suppressions.manual')} count={data.unsubscribed.length}>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Dezabonat la</TableHead>
-                <TableHead className="text-right">Acțiuni</TableHead>
+                <TableHead>{t('common:labels.email')}</TableHead>
+                <TableHead>{t('email:suppressions.unsubscribedAt')}</TableHead>
+                <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -730,7 +728,7 @@ function SuppressionsCard() {
                   <TableCell className="text-xs text-muted-foreground">{formatDate(r.unsubscribedAt)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="outline" disabled={remove.isPending} onClick={() => remove.mutate(r.email)}>
-                      <Trash2 className="h-3.5 w-3.5" /> Scoate
+                      <Trash2 className="h-3.5 w-3.5" /> {t('common:actions.remove')}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -739,14 +737,14 @@ function SuppressionsCard() {
           </Table>
         </SuppressionSection>
 
-        <SuppressionSection title="Auto-dezabonați" count={data.autoUnsubscribed.length}>
+        <SuppressionSection title={t('email:suppressions.auto')} count={data.autoUnsubscribed.length}>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Motiv</TableHead>
-                <TableHead>La</TableHead>
-                <TableHead className="text-right">Acțiuni</TableHead>
+                <TableHead>{t('common:labels.email')}</TableHead>
+                <TableHead>{t('common:labels.reason')}</TableHead>
+                <TableHead>{t('email:suppressions.at')}</TableHead>
+                <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -755,13 +753,13 @@ function SuppressionsCard() {
                   <TableCell className="text-sm">{r.email}</TableCell>
                   <TableCell>
                     <StatePill tone={r.source === 'complaint' ? 'critical' : 'warning'}>
-                      {r.source === 'complaint' ? 'Spam' : 'Bounce'}
+                      {r.source === 'complaint' ? t('email:folders.spam') : t('email:status.bounceShort')}
                     </StatePill>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{formatDate(r.unsubscribedAt)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="outline" disabled={remove.isPending} onClick={() => remove.mutate(r.email)}>
-                      <Trash2 className="h-3.5 w-3.5" /> Scoate
+                      <Trash2 className="h-3.5 w-3.5" /> {t('common:actions.remove')}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -770,13 +768,13 @@ function SuppressionsCard() {
           </Table>
         </SuppressionSection>
 
-        <SuppressionSection title="Bounced" count={data.bounced.length}>
+        <SuppressionSection title={t('email:suppressions.bounced')} count={data.bounced.length}>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Destinatar</TableHead>
-                <TableHead className="text-right">De câte ori</TableHead>
-                <TableHead className="text-right">Ultimul bounce</TableHead>
+                <TableHead>{t('common:labels.recipient')}</TableHead>
+                <TableHead className="text-right">{t('email:suppressions.howManyTimes')}</TableHead>
+                <TableHead className="text-right">{t('email:suppressions.lastBounce')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

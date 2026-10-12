@@ -3,6 +3,7 @@ import { cn } from '@/shared/lib/utils'
 import type { CalendarOccurrence } from '@/shared/lib/types'
 import { addDays, isSameDay, isToday, MONTH_LABELS, startOfMonth, startOfWeek, WEEKDAY_LABELS } from './date-utils'
 import { eventLabel } from '@/shared/lib/event-label'
+import { t } from '@/shared/lib/i18n'
 
 const MAX_VISIBLE_PER_DAY = 3
 
@@ -76,7 +77,7 @@ export function MonthView({ monthDate, occurrences, onDayClick, onEventClick }: 
                 </button>
               ))}
               {dayEvents.length > MAX_VISIBLE_PER_DAY ? (
-                <div className="text-xs text-muted-foreground">+{dayEvents.length - MAX_VISIBLE_PER_DAY} mai multe</div>
+                <div className="text-xs text-muted-foreground">{t('calendar:month.more', { count: dayEvents.length - MAX_VISIBLE_PER_DAY })}</div>
               ) : null}
             </div>
           )

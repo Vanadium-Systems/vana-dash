@@ -1,12 +1,13 @@
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
 import type { AnafStatus, PaymentStatus } from '@/shared/lib/types'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 const ANAF_STYLES: Record<AnafStatus, { label: string; tone: StateTone }> = {
-  draft: { label: 'Draft', tone: 'neutral' },
-  pending: { label: 'Trimisă ANAF', tone: 'warning' },
-  validated: { label: 'Validată', tone: 'success' },
-  rejected: { label: 'Respinsă', tone: 'critical' },
+  draft: { label: t('accounting:status.draft'), tone: 'neutral' },
+  pending: { label: t('accounting:status.sentToAnaf'), tone: 'warning' },
+  validated: { label: t('accounting:status.validated'), tone: 'success' },
+  rejected: { label: t('accounting:status.rejected'), tone: 'critical' },
 }
 
 export function AnafStatusBadge({ status }: { status: AnafStatus | null }) {
@@ -16,9 +17,9 @@ export function AnafStatusBadge({ status }: { status: AnafStatus | null }) {
 }
 
 const PAYMENT_STYLES: Record<PaymentStatus, { label: string; tone: StateTone }> = {
-  unpaid: { label: 'Neplătită', tone: 'warning' },
-  partial: { label: 'Parțial', tone: 'warning' },
-  paid: { label: 'Plătită', tone: 'success' },
+  unpaid: { label: t('accounting:status.unpaid'), tone: 'warning' },
+  partial: { label: t('accounting:status.partial'), tone: 'warning' },
+  paid: { label: t('accounting:status.paid'), tone: 'success' },
 }
 
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {

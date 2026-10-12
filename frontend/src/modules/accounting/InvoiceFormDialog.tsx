@@ -12,6 +12,7 @@ import type { BillingClient, FinancialRecord, FinancialRecordDetail, InvoiceTemp
 import { formatMoney } from './badges'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface LineDraft {
   description: string
@@ -96,7 +97,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
   // ca formularul să prefilleze cifra reală, nu una goală. Draft-ul rămâne editabil după.
   async function applyTemplate(id: string) {
     setTemplateId(id)
-    const template = templates.data?.find((t) => t.id === id)
+    const template = templates.data?.find((template) => template.id === id)
     if (!template) return
     setCurrency(template.currency)
     setResolvingTemplate(true)
@@ -114,7 +115,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
         })),
       )
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Nu am putut rezolva prețurile din template')
+      toast.error(err instanceof Error ? err.message : t('accounting:invoiceForm.templatePricesFailed'))
     } finally {
       setResolvingTemplate(false)
     }
@@ -172,8 +173,8 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
     const base = (parseRoDecimal(line.quantity) || 0) * unit
     return base * (1 + (parseRoDecimal(line.vatRate) || 0) / 100)
   })
-  const totalPending = lineTotals.some((t) => t === null)
-  const total = lineTotals.reduce((acc: number, t) => acc + (t ?? 0), 0)
+  const totalPending = lineTotals.some((total) => total === null)
+  const total = lineTotals.reduce((acc: number, template) => acc + (template ?? 0), 0)
 
   const save = useMutation({
     mutationFn: () => {
@@ -196,7 +197,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['accounting'] })
-      toast.success(invoice ? 'Draft actualizat' : 'Draft de factură creat — emite-l când e gata')
+      toast.success(invoice ? t('accounting:invoiceForm.draftUpdated') : t('accounting:invoiceForm.draftCreated'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -206,7 +207,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{invoice ? 'Editează draftul' : 'Factură nouă'}</DialogTitle>
+          <DialogTitle>{invoice ? t('accounting:invoiceForm.editTitle') : t('accounting:invoiceForm.newTitle')}</DialogTitle>
           {invoice ? <EntityHistory entityType="invoice" entityId={invoice.id} /> : null}
         </DialogHeader>
         <form
@@ -214,11 +215,11 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
           onSubmit={(e) => {
             e.preventDefault()
             if (!billingClientId) {
-              toast.error('Alege un client (sau adaugă unul în tabul Clienți)')
+              toast.error(t('accounting:invoiceForm.pickClient'))
               return
             }
             if (totalPending) {
-              toast.error('Cursul BNR încă se încarcă pentru o linie în valută — așteaptă o clipă și încearcă din nou')
+              toast.error(t('accounting:invoiceForm.rateStillLoading'))
               return
             }
             save.mutate()
@@ -226,14 +227,14 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="i-client">Client</Label>
+              <Label htmlFor="i-client">{t('common:labels.client')}</Label>
               <Select
                 id="i-client"
                 value={billingClientId}
                 onChange={(e) => setBillingClientAndResetTemplate(e.target.value)}
                 required
               >
-                <option value="">— alege —</option>
+                <option value="">{t('accounting:invoiceForm.choose')}</option>
                 {(clients.data ?? []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.cif})
@@ -242,7 +243,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="i-currency">Monedă</Label>
+              <Label htmlFor="i-currency">{t('common:labels.currency')}</Label>
               <Select
                 id="i-currency"
                 value={currency}
@@ -257,46 +258,46 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
 
           {!invoice && billingClientId && (templates.data?.length ?? 0) > 0 ? (
             <div className="space-y-2">
-              <Label htmlFor="i-template">Template (opțional)</Label>
+              <Label htmlFor="i-template">{t('accounting:invoiceForm.template')}</Label>
               <Select
                 id="i-template"
                 value={templateId}
                 disabled={resolvingTemplate}
                 onChange={(e) => void applyTemplate(e.target.value)}
               >
-                <option value="">— manual (fără template) —</option>
-                {templates.data!.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} {t.isDefaultForAutoInvoice ? '(implicit)' : ''}
+                <option value="">{t('accounting:invoiceForm.noTemplate')}</option>
+                {templates.data!.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name} {template.isDefaultForAutoInvoice ? t('accounting:invoiceForm.defaultMarker') : ''}
                   </option>
                 ))}
               </Select>
               <p className="text-xs text-muted-foreground">
                 {resolvingTemplate
-                  ? 'Se calculează prețurile (poate include preț din abonamentul clientului)…'
-                  : 'Alege un template ca punct de plecare — liniile rămân editabile mai jos înainte de salvare.'}
+                  ? t('accounting:invoiceForm.resolvingPrices')
+                  : t('accounting:invoiceForm.templateHint')}
               </p>
             </div>
           ) : null}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="i-issued">Data emiterii</Label>
+              <Label htmlFor="i-issued">{t('accounting:labels.issueDate')}</Label>
               <Input id="i-issued" type="date" value={issuedAt} onChange={(e) => setIssuedAt(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="i-due">Scadență (opțional)</Label>
+              <Label htmlFor="i-due">{t('accounting:invoiceForm.dueOptional')}</Label>
               <Input id="i-due" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Linii</Label>
+            <Label>{t('accounting:invoiceForm.lines')}</Label>
             <div className="hidden flex-wrap gap-2 text-xs text-muted-foreground sm:flex">
-              <div className="sm:min-w-[10rem] sm:flex-1">Descriere</div>
-              <div className="w-16">Cant.</div>
-              <div className="w-40">Preț (+ valută dacă diferă)</div>
-              <div className="w-20">TVA %</div>
+              <div className="sm:min-w-[10rem] sm:flex-1">{t('common:labels.description')}</div>
+              <div className="w-16">{t('common:labels.quantityShort')}</div>
+              <div className="w-40">{t('accounting:invoiceForm.priceWithCurrency')}</div>
+              <div className="w-20">{t('common:labels.vatPercent')}</div>
               <div className="w-9" />
             </div>
             <div className="space-y-2">
@@ -304,7 +305,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
                 <div key={i} className="flex flex-wrap items-start gap-2">
                   <div className="w-full sm:min-w-[10rem] sm:flex-1">
                     <Input
-                      placeholder="Descriere serviciu/produs"
+                      placeholder={t('accounting:invoiceForm.lineDescriptionPlaceholder')}
                       value={line.description}
                       onChange={(e) => setLine(i, 'description', e.target.value)}
                       required
@@ -312,7 +313,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
                   </div>
                   <div className="w-16">
                     <Input
-                      placeholder="Cant."
+                      placeholder={t('common:labels.quantityShort')}
                       inputMode="decimal"
                       value={line.quantity}
                       onChange={(e) => setLine(i, 'quantity', e.target.value)}
@@ -322,7 +323,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
                   <div className="w-40 space-y-1">
                     <div className="flex gap-1">
                       <Input
-                        placeholder="Preț"
+                        placeholder={t('common:labels.price')}
                         inputMode="decimal"
                         value={line.price}
                         onChange={(e) => setLine(i, 'price', e.target.value)}
@@ -330,7 +331,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
                         className="flex-1"
                       />
                       <Select
-                        aria-label="Valuta prețului acestei linii"
+                        aria-label={t('accounting:invoiceForm.lineCurrencyAria')}
                         className="w-16 shrink-0"
                         value={line.priceCurrency}
                         onChange={(e) => setLine(i, 'priceCurrency', e.target.value)}
@@ -349,11 +350,11 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
                       ? (() => {
                           const rq = line.priceCurrency === 'EUR' ? eurRate : usdRate
                           const converted = convertedUnitPrice(line)
-                          if (rq.isPending) return <p className="text-xs text-muted-foreground">se ia cursul BNR…</p>
+                          if (rq.isPending) return <p className="text-xs text-muted-foreground">{t('accounting:invoiceForm.fetchingRate')}</p>
                           if (converted !== null)
                             return (
                               <p className="text-xs text-muted-foreground">
-                                = {formatMoney(converted, currency)} (curs {rq.data?.rate}, {rq.data?.date})
+                                {t('accounting:invoiceForm.converted', { converted: formatMoney(converted, currency), rate: rq.data?.rate, date: rq.data?.date })}
                               </p>
                             )
                           return null
@@ -362,7 +363,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
                   </div>
                   <div className="w-20">
                     <Input
-                      placeholder="TVA %"
+                      placeholder={t('common:labels.vatPercent')}
                       inputMode="decimal"
                       value={line.vatRate}
                       onChange={(e) => setLine(i, 'vatRate', e.target.value)}
@@ -380,22 +381,22 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
               ))}
             </div>
             <Button type="button" variant="outline" onClick={() => setLines((prev) => [...prev, { ...EMPTY_LINE }])}>
-              <Plus className="h-4 w-4" /> Adaugă linie
+              <Plus className="h-4 w-4" /> {t('accounting:invoiceForm.addLine')}
             </Button>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="i-note">Notă (opțional)</Label>
+            <Label htmlFor="i-note">{t('accounting:invoiceForm.noteOptional')}</Label>
             <Input id="i-note" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
 
-          <div className="flex items-center justify-between border-t pt-4">
+          <div className="flex items-center justify-between border-template pt-4">
             <div className="text-sm text-muted-foreground">
-              Total (cu TVA): <span className="font-semibold text-foreground">{formatMoney(total, currency)}</span>
-              {totalPending ? <span className="ml-1 text-xs">(curs BNR încă se încarcă pt. o linie…)</span> : null}
+              {t('accounting:invoiceForm.totalWithVat')} <span className="font-semibold text-foreground">{formatMoney(total, currency)}</span>
+              {totalPending ? <span className="ml-1 text-xs">{t('accounting:invoiceForm.rateLoadingInline')}</span> : null}
             </div>
             <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? 'Se salvează…' : invoice ? 'Salvează draftul' : 'Creează draft'}
+              {save.isPending ? t('common:states.saving') : invoice ? t('accounting:invoiceForm.saveDraft') : t('accounting:invoiceForm.createDraft')}
             </Button>
           </div>
         </form>

@@ -11,6 +11,7 @@ import type { EmailSequence, EmailSettings, EmailTemplate } from '@/shared/lib/t
 import { IdentityField, useIdentityKey } from './IdentityField'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { t } from '@/shared/lib/i18n'
 
 interface StepDraft {
   templateId: string
@@ -65,7 +66,7 @@ export function SequenceFormDialog({ open, onOpenChange, sequence }: SequenceFor
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences'] })
-      toast.success(sequence ? 'Secvență actualizată' : 'Secvență creată')
+      toast.success(sequence ? t('email:sequences.updated') : t('email:sequences.created'))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -91,7 +92,7 @@ export function SequenceFormDialog({ open, onOpenChange, sequence }: SequenceFor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{sequence ? `Editează „${sequence.name}"` : 'Secvență nouă'}</DialogTitle>
+          <DialogTitle>{sequence ? t('email:sequences.editTitle', { name: sequence.name }) : t('email:sequences.new')}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -101,13 +102,13 @@ export function SequenceFormDialog({ open, onOpenChange, sequence }: SequenceFor
           }}
         >
           <div className="space-y-2">
-            <Label htmlFor="seq-name">Nume</Label>
+            <Label htmlFor="seq-name">{t('common:labels.name')}</Label>
             <Input id="seq-name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <IdentityField id="seq-from" value={fromIdentity} onChange={setFromIdentity} identities={settings.data?.identities} />
 
           <div className="space-y-2">
-            <Label>Pași</Label>
+            <Label>{t('email:sequences.steps')}</Label>
             <div className="space-y-2">
               {steps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-md border p-2">
@@ -131,10 +132,10 @@ export function SequenceFormDialog({ open, onOpenChange, sequence }: SequenceFor
                     onChange={(e) => updateStep(i, { templateId: e.target.value })}
                     required
                   >
-                    <option value="">— alege un template —</option>
-                    {templates.data?.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
+                    <option value="">{t('email:bulk.pickTemplate')}</option>
+                    {templates.data?.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
                       </option>
                     ))}
                   </Select>
@@ -145,7 +146,7 @@ export function SequenceFormDialog({ open, onOpenChange, sequence }: SequenceFor
                       value={step.delayDays}
                       onChange={(e) => updateStep(i, { delayDays: Math.max(0, parseRoDecimal(e.target.value) || 0) })}
                     />
-                    zile
+                    {t('email:sequences.days')}
                   </div>
                   <Button type="button" variant="ghost" disabled={steps.length === 1} onClick={() => removeStep(i)}>
                     <X className="h-4 w-4" />
@@ -154,15 +155,15 @@ export function SequenceFormDialog({ open, onOpenChange, sequence }: SequenceFor
               ))}
             </div>
             <Button type="button" variant="outline" onClick={() => setSteps((prev) => [...prev, { templateId: '', delayDays: 3 }])}>
-              <Plus className="h-4 w-4" /> Adaugă pas
+              <Plus className="h-4 w-4" /> {t('email:sequences.addStep')}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Zile = de la enrollment (pasul 1) sau de la pasul anterior (restul). 0 = trimis la prima rulare a cron-ului (dimineața, 08:00).
+              {t('email:sequences.daysHint')}
             </p>
           </div>
 
           <Button type="submit" className="w-full" disabled={!canSave || save.isPending}>
-            {save.isPending ? 'Se salvează…' : sequence ? 'Salvează' : 'Creează secvența'}
+            {save.isPending ? t('common:states.saving') : sequence ? t('common:actions.save') : t('email:sequences.create')}
           </Button>
         </form>
       </DialogContent>

@@ -12,14 +12,16 @@ import { Skeleton } from '@/shared/components/ui/skeleton'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { api } from '@/shared/lib/api'
 import type { BookingBlock, BookingSettings, BookingSlots, BookingSummary } from '@/shared/lib/types'
-import { formatCount, parseRoDecimal } from '@/shared/lib/utils'
+import { parseRoDecimal } from '@/shared/lib/utils'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
+import { tNodes } from '@/shared/lib/i18n-nodes'
 
 // Panoul „Programări de pe site" (docs/BOOKING.md): ce orar vede vanadium.systems, ce e blocat
 // și cine a rezervat. Site-ul primește doar sloturi libere, niciodată titlurile din calendar.
 
 const TZ = 'Europe/Bucharest'
-const WEEKDAYS = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică']
+const WEEKDAYS = [t('common:weekdays.long.mon'), t('common:weekdays.long.tue'), t('common:weekdays.long.wed'), t('common:weekdays.long.thu'), t('common:weekdays.long.fri'), t('common:weekdays.long.sat'), t('common:weekdays.long.sun')]
 
 const slotLabel = (iso: string) =>
   new Intl.DateTimeFormat(intlTag(), { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(new Date(iso))
@@ -70,15 +72,15 @@ export function useDeleteBlock() {
     mutationFn: (block: BookingBlock) => api.delete<void>(`/api/booking/blocks/${block.id}`).then(() => block),
     onSuccess: (block) => {
       invalidate()
-      toast('Interval deblocat', {
+      toast(t('calendar:booking.blocks.unblocked'), {
         action: {
-          label: 'Anulează',
+          label: t('calendar:booking.undo'),
           onClick: () =>
             void api.post('/api/booking/blocks', { startAt: block.startAt, endAt: block.endAt, reason: block.reason ?? undefined }).then(invalidate),
         },
       })
     },
-    onError: () => toast.error('Intervalul nu s-a deblocat. Încearcă din nou.'),
+    onError: () => toast.error(t('calendar:booking.blocks.unblockFailed')),
   })
 }
 
@@ -99,29 +101,31 @@ export function BookingPanel({ focusBlockForm, onBookingClick }: { focusBlockFor
   return (
     <div className="space-y-6 text-sm">
       <section className="space-y-1">
-        <h2 className="font-medium">Programări de pe site</h2>
+        <h2 className="font-medium">{t('calendar:booking.fromSite')}</h2>
         {settings.isPending || preview.isPending ? (
           <Skeleton className="h-5 w-48" />
         ) : !settings.data?.enabled ? (
-          <p className="text-muted-foreground">Oprite: vanadium.systems nu arată nicio oră.</p>
+          <p className="text-muted-foreground">{t('calendar:booking.off')}</p>
         ) : nextSlot ? (
           <p className="text-muted-foreground">
-            Următorul slot liber: <span className="text-foreground">{slotLabel(nextSlot.start)}</span> ·{' '}
-            {formatCount(preview.data?.slots.length ?? 0, 'slot liber', 'sloturi libere')} în 14 zile
+            {tNodes('calendar:booking.nextSlot', {
+              slot: <span className="text-foreground">{slotLabel(nextSlot.start)}</span>,
+              free: t('calendar:booking.freeSlots', { count: preview.data?.slots.length ?? 0 }),
+            })}
           </p>
         ) : (
-          <p className="text-muted-foreground">Niciun slot liber în următoarele 14 zile.</p>
+          <p className="text-muted-foreground">{t('calendar:booking.noFreeSlot')}</p>
         )}
       </section>
 
       <section className="space-y-2">
-        <h3 className="text-xs text-muted-foreground">Rezervări viitoare</h3>
+        <h3 className="text-xs text-muted-foreground">{t('calendar:booking.upcoming')}</h3>
         {bookings.isPending ? (
           <Skeleton className="h-8 w-full" />
         ) : bookings.isError ? (
-          <p className="text-muted-foreground">Rezervările nu s-au încărcat.</p>
+          <p className="text-muted-foreground">{t('calendar:booking.loadFailed')}</p>
         ) : upcomingBookings.length === 0 ? (
-          <p className="text-muted-foreground">Nicio rezervare.</p>
+          <p className="text-muted-foreground">{t('calendar:booking.none')}</p>
         ) : (
           <ul className="space-y-1">
             {upcomingBookings.map((b) => (
@@ -138,8 +142,8 @@ export function BookingPanel({ focusBlockForm, onBookingClick }: { focusBlockFor
       </section>
 
       <section className="space-y-2">
-        <h3 className="text-xs text-muted-foreground">Intervale blocate</h3>
-        {upcomingBlocks.length === 0 ? <p className="text-muted-foreground">Niciun interval blocat.</p> : null}
+        <h3 className="text-xs text-muted-foreground">{t('calendar:booking.blocks.title')}</h3>
+        {upcomingBlocks.length === 0 ? <p className="text-muted-foreground">{t('calendar:booking.blocks.none')}</p> : null}
         <ul className="space-y-1">
           {upcomingBlocks.map((b) => (
             <li key={b.id} className="group flex items-center gap-2">
@@ -147,9 +151,9 @@ export function BookingPanel({ focusBlockForm, onBookingClick }: { focusBlockFor
                 <span className="font-mono text-xs tnum">{slotLabel(b.startAt)}</span>
                 {b.reason ? <span className="text-muted-foreground"> · {b.reason}</span> : null}
               </span>
-              <Button variant="ghost" size="icon-sm" title="Deblochează" disabled={deleteBlock.isPending} onClick={() => deleteBlock.mutate(b)}>
+              <Button variant="ghost" size="icon-sm" title={t('common:actions.unblock')} disabled={deleteBlock.isPending} onClick={() => deleteBlock.mutate(b)}>
                 <Trash2 />
-                <span className="sr-only">Deblochează intervalul</span>
+                <span className="sr-only">{t('calendar:booking.blocks.unblock')}</span>
               </Button>
             </li>
           ))}
@@ -186,9 +190,9 @@ function BlockForm({ autoFocus }: { autoFocus?: boolean }) {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.blocks })
       void queryClient.invalidateQueries({ queryKey: bookingKeys.preview })
       setReason('')
-      toast.success('Interval blocat')
+      toast.success(t('calendar:booking.blocks.blocked'))
     },
-    onError: () => setError('Intervalul nu s-a salvat. Încearcă din nou.'),
+    onError: () => setError(t('calendar:booking.blocks.saveFailed')),
   })
 
   const submit = (e: FormEvent) => {
@@ -196,7 +200,7 @@ function BlockForm({ autoFocus }: { autoFocus?: boolean }) {
     const start = new Date(`${date}T${from}`)
     const end = new Date(`${date}T${to}`)
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
-      setError('Ora de sfârșit trebuie să fie după cea de început.')
+      setError(t('calendar:booking.endAfterStart'))
       return
     }
     setError(null)
@@ -205,15 +209,15 @@ function BlockForm({ autoFocus }: { autoFocus?: boolean }) {
 
   return (
     <form onSubmit={submit} className="space-y-2 pt-1">
-      <Input ref={dateRef} type="date" aria-label="Ziua" value={date} onChange={(e) => setDate(e.target.value)} />
+      <Input ref={dateRef} type="date" aria-label={t('calendar:booking.day')} value={date} onChange={(e) => setDate(e.target.value)} />
       <div className="grid grid-cols-2 gap-2">
-        <TimeInput aria-label="De la" className="min-w-0" value={from} onChange={setFrom} />
-        <TimeInput aria-label="Până la" className="min-w-0" value={to} onChange={setTo} />
+        <TimeInput aria-label={t('common:labels.from')} className="min-w-0" value={from} onChange={setFrom} />
+        <TimeInput aria-label={t('common:labels.until')} className="min-w-0" value={to} onChange={setTo} />
       </div>
       <div className="flex gap-2">
-        <Input aria-label="Motiv (opțional)" placeholder="Motiv (opțional)" value={reason} onChange={(e) => setReason(e.target.value)} />
+        <Input aria-label={t('calendar:booking.reasonOptional')} placeholder={t('calendar:booking.reasonOptional')} value={reason} onChange={(e) => setReason(e.target.value)} />
         <Button type="submit" variant="outline" disabled={create.isPending}>
-          Blochează
+          {t('common:actions.block')}
         </Button>
       </div>
       {error ? <p className="text-xs text-destructive-text">{error}</p> : null}
@@ -256,16 +260,16 @@ function SettingsForm({ settings }: { settings: BookingSettings }) {
     onSuccess: (data) => {
       queryClient.setQueryData(bookingKeys.settings, data)
       void queryClient.invalidateQueries({ queryKey: bookingKeys.preview })
-      toast.success('Orarul de programări e salvat')
+      toast.success(t('calendar:booking.schedule.saved'))
     },
-    onError: () => toast.error('Orarul nu s-a salvat. Valorile tale au rămas în formular.'),
+    onError: () => toast.error(t('calendar:booking.schedule.saveFailed')),
   })
 
   const limits: Record<keyof typeof numbers, [number, number, string]> = {
-    durationMin: [15, 120, 'Durata e între 15 și 120 de minute'],
-    bufferMin: [0, 60, 'Pauza e între 0 și 60 de minute'],
-    minNoticeHours: [0, 168, 'Preavizul e între 0 și 168 de ore'],
-    horizonDays: [1, 60, 'Orizontul e între 1 și 60 de zile'],
+    durationMin: [15, 120, t('calendar:booking.schedule.durationRange')],
+    bufferMin: [0, 60, t('calendar:booking.schedule.bufferRange')],
+    minNoticeHours: [0, 168, t('calendar:booking.schedule.noticeRange')],
+    horizonDays: [1, 60, t('calendar:booking.schedule.horizonRange')],
   }
 
   const submit = (e: FormEvent) => {
@@ -279,7 +283,7 @@ function SettingsForm({ settings }: { settings: BookingSettings }) {
       parsed[key] = value
     }
     rows.forEach((r, i) => {
-      if (r.on && r.end <= r.start) nextErrors[`day-${i}`] = `${WEEKDAYS[i]}: ora de sfârșit trebuie să fie după cea de început`
+      if (r.on && r.end <= r.start) nextErrors[`day-${i}`] = t('calendar:booking.schedule.dayEndAfterStart', { value: WEEKDAYS[i] })
     })
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
@@ -298,10 +302,10 @@ function SettingsForm({ settings }: { settings: BookingSettings }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <h3 className="text-xs text-muted-foreground">Orar</h3>
+      <h3 className="text-xs text-muted-foreground">{t('calendar:booking.schedule.title')}</h3>
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-        Arată orele libere pe vanadium.systems
+        {t('calendar:booking.schedule.showOnSite')}
       </label>
       <div className="space-y-1">
         {rows.map((r, i) => (
@@ -313,7 +317,7 @@ function SettingsForm({ settings }: { settings: BookingSettings }) {
             <TimeInput
              
               className="min-w-0"
-              aria-label={`${WEEKDAYS[i]} de la`}
+              aria-label={t('calendar:booking.schedule.dayFrom', { value: WEEKDAYS[i] })}
               disabled={!r.on}
               value={r.start}
               onChange={(v) => setRows((prev) => prev.map((x, j) => (j === i ? { ...x, start: v } : x)))}
@@ -321,7 +325,7 @@ function SettingsForm({ settings }: { settings: BookingSettings }) {
             <TimeInput
              
               className="min-w-0"
-              aria-label={`${WEEKDAYS[i]} până la`}
+              aria-label={t('calendar:booking.schedule.dayUntil', { value: WEEKDAYS[i] })}
               disabled={!r.on}
               value={r.end}
               onChange={(v) => setRows((prev) => prev.map((x, j) => (j === i ? { ...x, end: v } : x)))}
@@ -337,13 +341,13 @@ function SettingsForm({ settings }: { settings: BookingSettings }) {
           ))}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {numberField('durationMin', 'Durata (min)')}
-        {numberField('bufferMin', 'Pauză (min)')}
-        {numberField('minNoticeHours', 'Preaviz (ore)')}
-        {numberField('horizonDays', 'Orizont (zile)')}
+        {numberField('durationMin', t('calendar:booking.schedule.duration'))}
+        {numberField('bufferMin', t('calendar:booking.schedule.buffer'))}
+        {numberField('minNoticeHours', t('calendar:booking.schedule.notice'))}
+        {numberField('horizonDays', t('calendar:booking.schedule.horizon'))}
       </div>
       <Button type="submit" disabled={save.isPending}>
-        Salvează orarul
+        {t('calendar:booking.schedule.save')}
       </Button>
     </form>
   )
@@ -357,31 +361,31 @@ export function BookingDetailDialog({ booking, onOpenChange }: { booking: Bookin
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['booking'] })
       void queryClient.invalidateQueries({ queryKey: ['calendar'] })
-      toast.success('Programarea e anulată')
+      toast.success(t('calendar:booking.cancelled'))
       onOpenChange(false)
     },
-    onError: () => toast.error('Programarea nu s-a anulat. Încearcă din nou.'),
+    onError: () => toast.error(t('calendar:booking.cancelFailed')),
   })
 
   if (!booking) return null
-  const who = [booking.name, booking.company].filter(Boolean).join(', ') || 'Vizitator anonimizat'
+  const who = [booking.name, booking.company].filter(Boolean).join(', ') || t('calendar:booking.anonymizedVisitor')
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="md:max-w-md" aria-describedby={undefined}>
         <DialogHeader className="pr-6">
-          <DialogTitle className="text-base">Apel · {who}</DialogTitle>
+          <DialogTitle className="text-base">{t('calendar:booking.call', { who })}</DialogTitle>
         </DialogHeader>
         <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-2 text-sm">
-          <dt className="text-muted-foreground">Când</dt>
+          <dt className="text-muted-foreground">{t('common:labels.when')}</dt>
           <dd className="font-mono tnum">{slotLabel(booking.start)}</dd>
-          <dt className="text-muted-foreground">Email</dt>
+          <dt className="text-muted-foreground">{t('common:labels.email')}</dt>
           <dd className="min-w-0 truncate">{booking.email ? <a className="underline underline-offset-2" href={`mailto:${booking.email}`}>{booking.email}</a> : '—'}</dd>
-          <dt className="text-muted-foreground">Subiect</dt>
+          <dt className="text-muted-foreground">{t('common:labels.subject')}</dt>
           <dd className="whitespace-pre-wrap">{booking.topic ?? '—'}</dd>
-          <dt className="text-muted-foreground">Stare</dt>
+          <dt className="text-muted-foreground">{t('common:labels.state')}</dt>
           <dd>
-            <StatePill tone={booking.status === 'confirmed' ? 'success' : 'neutral'}>{booking.status === 'confirmed' ? 'Confirmată' : 'Anulată'}</StatePill>
+            <StatePill tone={booking.status === 'confirmed' ? 'success' : 'neutral'}>{booking.status === 'confirmed' ? t('calendar:booking.statusConfirmed') : t('calendar:booking.statusCancelled')}</StatePill>
           </dd>
         </dl>
         {booking.status === 'confirmed' ? (
@@ -391,28 +395,28 @@ export function BookingDetailDialog({ booking, onOpenChange }: { booking: Bookin
               disabled={cancel.isPending}
               onClick={() =>
                 void confirm({
-                  title: `Anulează fără email apelul cu ${who}`,
-                  consequence: 'Pentru rezervări false: ora se eliberează, vizitatorul nu e anunțat.',
-                  confirmLabel: 'Anulează fără email',
+                  title: t('calendar:booking.cancelSilentTitle', { who }),
+                  consequence: t('calendar:booking.cancelSilentBody'),
+                  confirmLabel: t('calendar:booking.cancelSilent'),
                   destructive: true,
                 }).then((ok) => ok && cancel.mutate({ id: booking.id, notifyVisitor: false }))
               }
             >
-              Anulează fără email
+              {t('calendar:booking.cancelSilent')}
             </Button>
             <Button
               variant="outline"
               disabled={cancel.isPending}
               onClick={() =>
                 void confirm({
-                  title: `Anulează apelul cu ${who}`,
-                  consequence: 'Evenimentul dispare din calendar, iar vizitatorul primește un email de anulare.',
-                  confirmLabel: 'Anulează programarea',
+                  title: t('calendar:booking.cancelTitle', { who }),
+                  consequence: t('calendar:booking.cancelBody'),
+                  confirmLabel: t('calendar:booking.cancel'),
                   destructive: true,
                 }).then((ok) => ok && cancel.mutate({ id: booking.id, notifyVisitor: true }))
               }
             >
-              Anulează programarea
+              {t('calendar:booking.cancel')}
             </Button>
           </div>
         ) : null}

@@ -22,6 +22,7 @@ import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
 import { intlTag } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString(intlTag(), { dateStyle: 'medium', timeStyle: 'short' })
@@ -30,9 +31,9 @@ function formatDateTime(value: string): string {
 // Afișat doar în view-uri "mixte" (etichetă/Marcate/Toate mesajele), unde folder-ul nu e deja
 // implicit din context — într-un view de folder unic (Inbox/Arhivă/Spam) ar fi zgomot redundant.
 const FOLDER_BADGE_LABEL: Partial<Record<EmailThread['folder'] & string, string>> = {
-  archive: 'Arhivat',
-  spam: 'Spam',
-  trash: 'Coș de gunoi',
+  archive: t('email:toasts.archived'),
+  spam: t('email:folders.spam'),
+  trash: t('email:folders.trash'),
 }
 
 // Clientele de mail (Gmail etc.) adaugă automat "X a scris:"/"X wrote:" + corpul citat cu
@@ -76,14 +77,14 @@ function MessageBody({ text }: { text: string }) {
   return (
     <div>
       {/* Canvas alb și pt. text simplu (Contract E) — același contract vizual ca HTML. */}
-      <p className="email-canvas whitespace-pre-wrap break-words rounded-sm border p-4">{main ? linkify(main) : '(fără conținut text)'}</p>
+      <p className="email-canvas whitespace-pre-wrap break-words rounded-sm border p-4">{main ? linkify(main) : t('email:body.noText')}</p>
       {quoted ? (
         <button
           type="button"
           className="mt-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground hover:underline"
           onClick={() => setShowQuoted((v) => !v)}
         >
-          {showQuoted ? '▾ Ascunde mesajul citat' : '▸ Arată mesajul citat'}
+          {showQuoted ? t('email:thread.hideQuoted') : t('email:thread.showQuoted')}
         </button>
       ) : null}
       {quoted && showQuoted ? (
@@ -178,7 +179,7 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
     onSuccess: () => {
       onChanged()
       onBack()
-      toast.success('Actualizat')
+      toast.success(t('common:states.updated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -192,7 +193,7 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
   })
 
   if (detail.isPending) return <Skeleton className="h-64 w-full" />
-  if (detail.isError || !detail.data) return <p className="text-sm text-destructive">Nu am putut încărca thread-ul.</p>
+  if (detail.isError || !detail.data) return <p className="text-sm text-destructive">{t('email:thread.loadFailed')}</p>
 
   const { thread, messages } = detail.data
   // messages vine sortat descrescător de la backend (cel mai recent primul) — primul inbound
@@ -210,20 +211,20 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
             <h2 className="min-w-0 truncate text-lg font-semibold">{thread.subject}</h2>
           </div>
           <div className="flex gap-1">
-            <Button variant="outline" title="Arhivează" onClick={() => applyFolder.mutate('archive')}>
+            <Button variant="outline" title={t('common:actions.archive')} onClick={() => applyFolder.mutate('archive')}>
               <Archive className="h-4 w-4" />
             </Button>
-            <Button variant="outline" title="Spam" onClick={() => applyFolder.mutate('spam')}>
+            <Button variant="outline" title={t('email:folders.spam')} onClick={() => applyFolder.mutate('spam')}>
               <ShieldAlert className="h-4 w-4" />
             </Button>
-            <Button variant="outline" title="Șterge" onClick={() => applyFolder.mutate('trash')}>
+            <Button variant="outline" title={t('common:actions.delete')} onClick={() => applyFolder.mutate('trash')}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
         {lastInbound ? (
           <Button onClick={() => onReply(thread, lastInbound)}>
-            <Reply className="h-4 w-4" /> Răspunde
+            <Reply className="h-4 w-4" /> {t('common:actions.reply')}
           </Button>
         ) : null}
         <div className="space-y-3">
@@ -242,11 +243,11 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
                     <>
                       {m.sentByUserId && m.sentByUserId !== myId ? (
                         <span>
-                          Trimis de {senderName(m.sentByUserId)} · {m.toAddress}
+                          {t('email:thread.sentBy', { sentByUserId: senderName(m.sentByUserId), toAddress: m.toAddress })}
                         </span>
                       ) : (
                         <>
-                          Tu → {m.toAddress}
+                          {t('email:thread.youTo', { toAddress: m.toAddress })}
                         </>
                       )}
                     </>
@@ -255,7 +256,7 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
                 <div className="flex items-center gap-2">
                   <span>{formatDateTime(m.receivedAt ?? m.createdAt)}</span>
                   {m.direction === 'in' ? (
-                    <button onClick={() => toggleStar.mutate(m.id)} title="Marchează">
+                    <button onClick={() => toggleStar.mutate(m.id)} title={t('email:thread.star')}>
                       <Star className={cn('h-3.5 w-3.5', m.isStarred ? 'fill-warning text-warning' : 'text-muted-foreground')} />
                     </button>
                   ) : null}
@@ -264,7 +265,7 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
               {m.bodyHtml ? (
                 <HtmlMessageBody html={m.bodyHtml} attachments={m.attachments} fallbackText={m.bodyText} autoLoadImages={settings.data?.autoLoadImages} />
               ) : (
-                <MessageBody text={m.bodyText ?? '(fără conținut text)'} />
+                <MessageBody text={m.bodyText ?? t('email:body.noText')} />
               )}
               {/* disposition='inline' — poze embedate pt. estetica emailului (logo, iconițe
                   semnătură), deja randate ÎN corp de HtmlMessageBody (cid: rescris mai sus) —
@@ -281,7 +282,7 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
               {m.direction === 'in' ? (
                 <div className="mt-2 flex gap-2">
                   <Button variant="outline" onClick={() => onForward(m)}>
-                    <Forward className="h-3.5 w-3.5" /> Redirecționează
+                    <Forward className="h-3.5 w-3.5" /> {t('email:actions.forward')}
                   </Button>
                 </div>
               ) : null}
@@ -385,13 +386,13 @@ export function MailboxView({
 
   const bulkUpdate = useMutation({
     mutationFn: (patch: { folder?: string; isRead?: boolean }) => {
-      const ids = items.filter((t) => selected.has(t.id) && t.latestMessageId).map((t) => t.latestMessageId as string)
+      const ids = items.filter((thread) => selected.has(thread.id) && thread.latestMessageId).map((thread) => thread.latestMessageId as string)
       return api.post('/api/email/messages/bulk-update', { ids, patch })
     },
     onSuccess: () => {
       invalidate()
       setSelected(new Set())
-      toast.success('Actualizat')
+      toast.success(t('common:states.updated'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -446,19 +447,19 @@ export function MailboxView({
         <div className="flex gap-2">
           <Input
             type="search"
-            aria-label="Caută în email"
-            placeholder="Caută în subiect și conținut…"
+            aria-label={t('email:list.searchAria')}
+            placeholder={t('email:list.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           {receivingAddresses.length > 0 ? (
             <Select
               className="w-auto shrink-0"
-              title="Pe ce adresă am primit"
+              title={t('email:list.receivedOnHint')}
               value={toAddress}
               onChange={(e) => setToAddress(e.target.value)}
             >
-              <option value="">Orice adresă</option>
+              <option value="">{t('email:list.anyAddress')}</option>
               {receivingAddresses.map((a) => (
                 <option key={a.key} value={a.address}>
                   {a.label}
@@ -470,7 +471,7 @@ export function MailboxView({
             variant="outline"
             size="icon"
             className="shrink-0"
-            title="Reîmprospătează"
+            title={t('common:actions.refresh')}
             disabled={threads.isFetching}
             onClick={() => invalidate()}
           >
@@ -479,10 +480,10 @@ export function MailboxView({
         </div>
         {selected.size > 0 ? (
           <div className="flex flex-wrap items-center gap-1 rounded-md border bg-muted/50 p-1.5">
-            <Button variant="ghost" size="icon-sm" title="Anulează selecția" onClick={() => setSelected(new Set())}>
+            <Button variant="ghost" size="icon-sm" title={t('email:list.clearSelection')} onClick={() => setSelected(new Set())}>
               <X className="h-3.5 w-3.5" />
             </Button>
-            <span className="px-1 text-xs text-muted-foreground">{selected.size} selectate</span>
+            <span className="px-1 text-xs text-muted-foreground">{t('email:list.selected', { size: selected.size })}</span>
             <Button variant="outline" onClick={() => bulkUpdate.mutate({ folder: 'archive' })}>
               <Archive className="h-3.5 w-3.5" />
             </Button>
@@ -493,10 +494,10 @@ export function MailboxView({
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
             <Button variant="outline" onClick={() => bulkUpdate.mutate({ isRead: true })}>
-              Citit
+              {t('email:list.read')}
             </Button>
             <Button variant="outline" onClick={() => bulkUpdate.mutate({ isRead: false })}>
-              Necitit
+              {t('common:states.unread')}
             </Button>
           </div>
         ) : null}
@@ -506,83 +507,83 @@ export function MailboxView({
               <Skeleton className="h-64 w-full" />
             ) : threads.isError ? (
               <p className="text-sm">
-                Lista nu s-a încărcat.{' '}
+                {t('email:list.loadFailed')}{' '}
                 <button type="button" className="underline underline-offset-2" onClick={() => void threads.refetch()}>
-                  Încearcă din nou
+                  {t('common:actions.retry')}
                 </button>
               </p>
             ) : !items.length ? (
               search || toAddress ? (
                 <EmptyState
                   kind="filtered"
-                  title={search ? `Nimic pentru „${search}”` : 'Nimic primit pe adresa asta'}
+                  title={search ? t('email:list.nothingFor', { search }) : t('email:list.nothingOnAddress')}
                   onReset={() => {
                     setSearch('')
                     setToAddress('')
                   }}
                 />
               ) : (
-                <EmptyState kind="new" title="Nimic aici" />
+                <EmptyState kind="new" title={t('email:list.nothingHere')} />
               )
             ) : (
               <div className="space-y-1">
-                {items.map((t, i) => (
+                {items.map((thread, i) => (
                   <div
-                    key={t.id}
+                    key={thread.id}
                     className={cn(
                       'flex animate-in items-start gap-2 rounded-md p-2 text-sm transition-colors fade-in-0 duration-200 ease-out hover:bg-muted',
-                      selectedId === t.id && 'bg-muted',
+                      selectedId === thread.id && 'bg-muted',
                     )}
                     style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                   >
                     <input
                       type="checkbox"
                       className="mt-1"
-                      checked={selected.has(t.id)}
-                      onChange={() => toggleSelected(t.id)}
+                      checked={selected.has(thread.id)}
+                      onChange={() => toggleSelected(thread.id)}
                       onClick={(e) => e.stopPropagation()}
                     />
                     <button
                       className="flex min-w-0 flex-1 select-none items-start gap-1.5 text-left"
-                      onClick={(e) => handleRowActivate(e, t.id)}
+                      onClick={(e) => handleRowActivate(e, thread.id)}
                       onContextMenu={(e) => e.preventDefault()}
-                      onTouchStart={() => startLongPress(t.id)}
+                      onTouchStart={() => startLongPress(thread.id)}
                       onTouchEnd={cancelLongPress}
                       onTouchMove={cancelLongPress}
                     >
-                      {!t.isRead ? (
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive" title="Necitit" />
+                      {!thread.isRead ? (
+                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive" title={t('common:states.unread')} />
                       ) : (
                         <span className="mt-1.5 h-2 w-2 shrink-0" />
                       )}
                       <span className="min-w-0 flex-1">
-                        <p className={cn('flex items-center gap-1', !t.isRead && 'font-semibold')}>
+                        <p className={cn('flex items-center gap-1', !thread.isRead && 'font-semibold')}>
                           <span className="min-w-0 truncate">
-                            {t.isStarred ? <Star className="mr-1 inline h-3 w-3 fill-warning text-warning" /> : null}
-                            {t.subject || '(fără subiect)'}
+                            {thread.isStarred ? <Star className="mr-1 inline h-3 w-3 fill-warning text-warning" /> : null}
+                            {thread.subject || t('email:labels.noSubject')}
                           </span>
-                          {t.attachmentNames.length > 0 ? (
+                          {thread.attachmentNames.length > 0 ? (
                             <span
                               className="ml-auto flex shrink-0 items-center gap-0.5 text-xs font-normal text-muted-foreground"
-                              title={t.attachmentNames.join(', ')}
+                              title={thread.attachmentNames.join(', ')}
                             >
                               <Paperclip className="h-3 w-3 shrink-0" />
-                              {t.attachmentNames.length > 1 ? <span className="shrink-0">{t.attachmentNames.length}·</span> : null}
-                              <span className="max-w-[110px] truncate">{t.attachmentNames.join(', ')}</span>
+                              {thread.attachmentNames.length > 1 ? <span className="shrink-0">{thread.attachmentNames.length}·</span> : null}
+                              <span className="max-w-[110px] truncate">{thread.attachmentNames.join(', ')}</span>
                             </span>
                           ) : null}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">{t.fromAddress ?? t.participants.join(', ')}</p>
+                        <p className="truncate text-xs text-muted-foreground">{thread.fromAddress ?? thread.participants.join(', ')}</p>
                         <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <span className="shrink-0">{formatDateTime(t.lastMessageAt)}</span>
+                          <span className="shrink-0">{formatDateTime(thread.lastMessageAt)}</span>
                           <span className="ml-auto flex min-w-0 items-center gap-1">
-                            {t.toAddress ? (
-                              <span className="truncate rounded bg-muted px-1 py-0.5" title={`Primit pe ${t.toAddress}`}>
-                                → {t.toAddress}
+                            {thread.toAddress ? (
+                              <span className="truncate rounded bg-muted px-1 py-0.5" title={t('email:list.receivedOn', { toAddress: thread.toAddress })}>
+                                → {thread.toAddress}
                               </span>
                             ) : null}
-                            {showFolderBadge && t.folder && FOLDER_BADGE_LABEL[t.folder] ? (
-                              <span className="shrink-0 rounded bg-muted px-1 py-0.5">{FOLDER_BADGE_LABEL[t.folder]}</span>
+                            {showFolderBadge && thread.folder && FOLDER_BADGE_LABEL[thread.folder] ? (
+                              <span className="shrink-0 rounded bg-muted px-1 py-0.5">{FOLDER_BADGE_LABEL[thread.folder]}</span>
                             ) : null}
                           </span>
                         </p>
@@ -599,25 +600,25 @@ export function MailboxView({
             <Select
               size="sm"
               className="w-auto shrink-0"
-              title="Mesaje pe pagină"
+              title={t('email:list.perPageHint')}
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
             >
               {[25, 50, 100, 200].map((size) => (
                 <option key={size} value={size}>
-                  {size} / pagină
+                  {t('email:pagination.perPage', { size })}
                 </option>
               ))}
             </Select>
             <div className="flex items-center gap-1.5">
               <span className="whitespace-nowrap">
-                {page * pageSize + 1}–{Math.min((page + 1) * pageSize, total)} din {total}
+                {t('email:pagination.range', { from: page * pageSize + 1, to: Math.min((page + 1) * pageSize, total), total })}
               </span>
               <Button
                 variant="outline"
                 size="icon"
                 className="w-8"
-                title="Pagina precedentă"
+                title={t('common:actions.previousPage')}
                 disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}
               >
@@ -627,7 +628,7 @@ export function MailboxView({
                 variant="outline"
                 size="icon"
                 className="w-8"
-                title="Pagina următoare"
+                title={t('common:actions.nextPage')}
                 disabled={(page + 1) * pageSize >= total}
                 onClick={() => setPage((p) => p + 1)}
               >
