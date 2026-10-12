@@ -1,0 +1,422 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-25T13:05:00Z",
+  "host": "bot-host",
+  "services": [
+    {
+      "name": "jeffbot-trader",
+      "state": "active"
+    },
+    {
+      "name": "jeffbot-collector",
+      "state": "active"
+    },
+    {
+      "name": "jeffbot-stocks",
+      "state": "active"
+    }
+  ],
+  "data": {
+    "prices": [
+      {
+        "symbol": "BTCUSDT",
+        "lastCandleAgeSec": 62,
+        "price": 84410.24
+      },
+      {
+        "symbol": "SOLUSDT",
+        "lastCandleAgeSec": 61,
+        "price": 117.2
+      }
+    ],
+    "news": {
+      "total": 3473,
+      "last24h": 410,
+      "labeled": 3401,
+      "lastLabeledAgeSec": 40
+    },
+    "sourceErrors": [
+      {
+        "source": "gdelt",
+        "error": "429 Too Many Requests",
+        "sinceSec": 3600
+      }
+    ],
+    "fearGreed": {
+      "value": 71,
+      "label": "Greed"
+    }
+  },
+  "model": {
+    "promoted": false,
+    "file": null,
+    "holdoutRetPct": null,
+    "trainedAt": null,
+    "trainLogTail": [
+      "2026-09-26 03:31 candidat -12.4% pe holdout, nepromovat"
+    ]
+  },
+  "strategies": [
+    {
+      "key": "mix",
+      "label": "MIX trend 200z + rotație",
+      "startEquity": 3000,
+      "equity": 2998.8,
+      "cash": 0,
+      "maxDdPct": 0.4,
+      "trades": 4,
+      "feesUsdt": 3.0,
+      "startedAt": "2026-09-25T12:57:49Z",
+      "holdings": [
+        {
+          "symbol": "SOLUSDT",
+          "qty": 12.39,
+          "valueUsdt": 1452.1
+        }
+      ]
+    },
+    {
+      "key": "hold",
+      "label": "Buy & hold",
+      "startEquity": 1000,
+      "equity": 1004.2,
+      "cash": 0,
+      "maxDdPct": 0.9,
+      "trades": 1,
+      "feesUsdt": 1.0,
+      "startedAt": "2026-09-25T12:57:49Z",
+      "holdings": [
+        {
+          "symbol": "BTCUSDT",
+          "qty": 0.0118,
+          "valueUsdt": 1004.2
+        }
+      ]
+    },
+    {
+      "key": "lgbm",
+      "label": "LightGBM",
+      "startEquity": 1000,
+      "equity": 1000,
+      "cash": 1000,
+      "maxDdPct": 0,
+      "trades": 0,
+      "feesUsdt": 0,
+      "startedAt": null,
+      "holdings": []
+    }
+  ],
+  "equityPoints": [
+    {
+      "key": "mix",
+      "ts": "2026-09-25T12:00:00Z",
+      "equity": 3000
+    },
+    {
+      "key": "mix",
+      "ts": "2026-09-25T13:00:00Z",
+      "equity": 2998.8
+    },
+    {
+      "key": "hold",
+      "ts": "2026-09-25T13:00:00Z",
+      "equity": 1004.2
+    }
+  ],
+  "trades": [
+    {
+      "sourceId": "strat:17",
+      "ts": "2026-09-25T12:57:49Z",
+      "strategy": "mix",
+      "subAccount": "mix/rotation",
+      "symbol": "SOLUSDT",
+      "side": "buy",
+      "qty": 12.39,
+      "price": 120.85,
+      "feeUsdt": 1.5,
+      "reason": "intrare"
+    },
+    {
+      "sourceId": "strat:18",
+      "ts": "2026-09-25T12:57:50Z",
+      "strategy": "hold",
+      "subAccount": null,
+      "symbol": "BTCUSDT",
+      "side": "buy",
+      "qty": 0.0118,
+      "price": 84700,
+      "feeUsdt": 1.0,
+      "reason": "intrare"
+    }
+  ],
+  "news": [
+    {
+      "title": "Bitcoin ETF outflows continue",
+      "url": "https://example.com/btc-etf",
+      "publishedAt": "2026-09-25T11:00:00Z",
+      "sentiment": "bearish",
+      "importance": 1.4,
+      "coins": [
+        "BTC"
+      ]
+    }
+  ],
+  "reviews": [
+    {
+      "date": "2026-09-25",
+      "kind": "daily",
+      "severity": "ok",
+      "summary": "Toate serviciile OK.",
+      "markdown": "# Revizuire zilnică\n\nToate serviciile rulează."
+    }
+  ],
+  "stocks": {
+    "currency": "USD",
+    "session": {
+      "isOpen": true,
+      "nextOpen": "2026-09-28T13:30:00Z",
+      "nextClose": "2026-09-25T20:00:00Z"
+    },
+    "broker": {
+      "name": "alpaca",
+      "mode": "paper",
+      "ok": true,
+      "error": null
+    },
+    "prices": [
+      {
+        "symbol": "SPY",
+        "price": 657.4,
+        "asOf": "2026-09-25T13:04:00Z",
+        "ageSec": 60
+      },
+      {
+        "symbol": "QQQ",
+        "price": 578.1,
+        "asOf": "2026-09-25T13:04:00Z",
+        "ageSec": 60
+      },
+      {
+        "symbol": "GLD",
+        "price": 330.2,
+        "asOf": "2026-09-25T13:04:00Z",
+        "ageSec": 60
+      }
+    ],
+    "strategies": [
+      {
+        "key": "hold",
+        "label": "Buy & hold SPY (referință)",
+        "startEquity": 3000,
+        "equity": 3012.5,
+        "cash": 1.2,
+        "maxDdPct": 0.8,
+        "trades": 1,
+        "feesUsdt": 3.0,
+        "startedAt": "2026-09-25T13:31:00Z",
+        "holdings": [
+          {
+            "symbol": "SPY",
+            "qty": 4.58,
+            "valueUsdt": 3011.3
+          }
+        ]
+      },
+      {
+        "key": "trend200",
+        "label": "Trend 200z SPY",
+        "startEquity": 3000,
+        "equity": 3012.4,
+        "cash": 1.2,
+        "maxDdPct": 0.8,
+        "trades": 1,
+        "feesUsdt": 3.0,
+        "startedAt": "2026-09-25T13:31:00Z",
+        "holdings": [
+          {
+            "symbol": "SPY",
+            "qty": 4.58,
+            "valueUsdt": 3011.2
+          }
+        ]
+      },
+      {
+        "key": "trend200x15",
+        "label": "Trend 200z SPY, levier 1.5x",
+        "startEquity": 3000,
+        "equity": 3017.9,
+        "cash": 1.8,
+        "maxDdPct": 1.2,
+        "trades": 1,
+        "feesUsdt": 4.5,
+        "startedAt": "2026-09-25T13:31:00Z",
+        "holdings": [
+          {
+            "symbol": "SSO",
+            "qty": 14.8,
+            "valueUsdt": 3016.1
+          }
+        ]
+      },
+      {
+        "key": "gtaa",
+        "label": "GTAA: 7 ETF-uri, filtru 10 luni",
+        "startEquity": 3000,
+        "equity": 2996.1,
+        "cash": 1710.4,
+        "maxDdPct": 0.4,
+        "trades": 6,
+        "feesUsdt": 3.0,
+        "startedAt": "2026-09-25T13:31:00Z",
+        "holdings": [
+          {
+            "symbol": "SPY",
+            "qty": 0.65,
+            "valueUsdt": 428.6
+          },
+          {
+            "symbol": "GLD",
+            "qty": 1.3,
+            "valueUsdt": 429.3
+          },
+          {
+            "symbol": "EFA",
+            "qty": 4.9,
+            "valueUsdt": 427.8
+          }
+        ]
+      },
+      {
+        "key": "rotation",
+        "label": "Rotație top 3, momentum 6 luni",
+        "startEquity": 3000,
+        "equity": 3004.0,
+        "cash": 1.7,
+        "maxDdPct": 0.6,
+        "trades": 3,
+        "feesUsdt": 3.0,
+        "startedAt": "2026-09-25T13:31:00Z",
+        "holdings": [
+          {
+            "symbol": "GLD",
+            "qty": 3.03,
+            "valueUsdt": 1001.0
+          },
+          {
+            "symbol": "QQQ",
+            "qty": 1.73,
+            "valueUsdt": 1000.1
+          },
+          {
+            "symbol": "EEM",
+            "qty": 20.1,
+            "valueUsdt": 1001.2
+          }
+        ]
+      }
+    ],
+    "equityPoints": [
+      {
+        "key": "hold",
+        "ts": "2026-09-25T13:00:00Z",
+        "equity": 3000
+      },
+      {
+        "key": "hold",
+        "ts": "2026-09-25T14:00:00Z",
+        "equity": 3012.5
+      },
+      {
+        "key": "trend200",
+        "ts": "2026-09-25T13:00:00Z",
+        "equity": 3000
+      },
+      {
+        "key": "trend200",
+        "ts": "2026-09-25T14:00:00Z",
+        "equity": 3012.4
+      },
+      {
+        "key": "trend200x15",
+        "ts": "2026-09-25T13:00:00Z",
+        "equity": 3000
+      },
+      {
+        "key": "trend200x15",
+        "ts": "2026-09-25T14:00:00Z",
+        "equity": 3017.9
+      },
+      {
+        "key": "gtaa",
+        "ts": "2026-09-25T13:00:00Z",
+        "equity": 3000
+      },
+      {
+        "key": "gtaa",
+        "ts": "2026-09-25T14:00:00Z",
+        "equity": 2996.1
+      },
+      {
+        "key": "rotation",
+        "ts": "2026-09-25T13:00:00Z",
+        "equity": 3000
+      },
+      {
+        "key": "rotation",
+        "ts": "2026-09-25T14:00:00Z",
+        "equity": 3004.0
+      }
+    ],
+    "trades": [
+      {
+        "sourceId": "stk:1",
+        "ts": "2026-09-25T13:31:00Z",
+        "strategy": "hold",
+        "subAccount": null,
+        "symbol": "SPY",
+        "side": "buy",
+        "qty": 4.57,
+        "price": 656.3,
+        "feeUsdt": 3.0,
+        "reason": "intrare"
+      },
+      {
+        "sourceId": "stk:2",
+        "ts": "2026-09-25T13:31:05Z",
+        "strategy": "gtaa",
+        "subAccount": null,
+        "symbol": "GLD",
+        "side": "buy",
+        "qty": 1.3,
+        "price": 330.2,
+        "feeUsdt": 0.43,
+        "reason": "intrare"
+      }
+    ],
+    "news": [
+      {
+        "title": "Fed's Hammack worried inflation expectations could deteriorate",
+        "url": "https://www.reuters.com/markets/us/fed-hammack-inflation-expectations-2026-09-25/",
+        "publishedAt": "2026-09-25T12:40:00Z",
+        "sentiment": "bearish",
+        "importance": 1,
+        "category": "macro_inflation",
+        "etfs": [
+          "SPY",
+          "TLT"
+        ]
+      },
+      {
+        "title": "Nvidia beats estimates as data center revenue climbs",
+        "url": "https://www.cnbc.com/2026/09/25/nvidia-earnings.html",
+        "publishedAt": null,
+        "sentiment": "bullish",
+        "importance": 2,
+        "category": "earnings",
+        "etfs": [
+          "QQQ"
+        ]
+      }
+    ]
+  }
+}

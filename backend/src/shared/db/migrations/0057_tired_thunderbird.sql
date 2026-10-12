@@ -1,0 +1,1 @@
+ALTER TABLE "tender_watch_rules" ADD COLUMN "exclude" boolean DEFAULT false NOT NULL;

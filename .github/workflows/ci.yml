@@ -1,0 +1,66 @@
+name: CI
+
+# Runs on GitHub's runner, never on the production server, and uses no secrets:
+# pull requests from forks get exactly the same job.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: vanadash
+          POSTGRES_PASSWORD: vanadash
+          POSTGRES_DB: vanadash
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U vanadash"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://vanadash:vanadash@localhost:5433/vanadash
+      # Throwaway values: the test database is created and destroyed with this job.
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: ci-only-password-123
+      JWT_SECRET: ci-only-jwt-secret-not-used-anywhere-else-0123456789
+      # Quoted: an unquoted run of digits is a YAML number, and the key would arrive as "0".
+      MASTER_ENCRYPTION_KEY: "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
+      FRONTEND_ORIGIN: http://localhost:5174
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      # pdftoppm renders the PDF thumbnails in the Archive; one test exercises it for real.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm test
+      - run: pnpm build

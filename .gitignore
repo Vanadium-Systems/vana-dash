@@ -1,0 +1,44 @@
+node_modules/
+dist/
+build/
+*.log
+.env
+.env.local
+.env.production
+.DS_Store
+coverage/
+.vite/
+.pnpm-store/
+backend/storage/
+storage/
+backend/storage-test/
+storage-test/
+.wrangler/
+scratchpad/
+.claude/settings.local.json
+.opencode/
+
+# Firebase — secrete locale, niciodată în git (google-services.json e per-proiect,
+# adminsdk JSON conține cheia privată de semnare a token-urilor FCM)
+frontend/android/app/google-services.json
+scripts/build-android.local.env
+*vana-dash-firebase-adminsdk*.json
+.caddyfile.sha256
+
+# Instrucțiuni AI (Claude Code / OpenCode) — nu fac parte din produs.
+# They live in a separate private repo; only symlinks exist here.
+/CLAUDE.md
+/AGENTS.md
+/QWEN.md
+/opencode.json
+/.claude/
+/.opencode/
+/.agents/
+/.github/agents
+/GEMINI.md
+
+# Internal roadmap and backlog: symlinks into the private instructions repo.
+/VANA_DASH.md
+/TODO.md
+/docs-internal
+*.tsbuildinfo

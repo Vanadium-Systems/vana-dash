@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#ffffff" />
+    <!-- Spune browserului că pagina asumă explicit tema curentă — esențial pe Android
+         (Chrome/Samsung Internet "Force Dark"), care altfel re-colorează algoritmic o pagină
+         pe care o crede "doar light" cu telefonul pe dark mode, dând un negru spălăcit/inversat
+         în loc de tema dark reală de mai jos. Actualizat sincron de scriptul de mai jos și de
+         shared/hooks/use-theme.ts la schimbarea temei. -->
+    <meta name="color-scheme" content="light dark" />
+    <title>VanaDash</title>
+    <script>
+      // Aplicat ÎNAINTE de primul paint (blocking, în <head>) — altfel pagina randează întâi
+      // light, apoi React montează și comută la dark, un flash vizibil de temă greșită la orice
+      // reload cu tema dark activă. Logica trebuie ținută identică cu use-theme.ts.
+      ;(function () {
+        var stored = localStorage.getItem('vana-dash-theme')
+        var isDark = stored === 'dark' || ((!stored || stored === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.toggle('dark', isDark)
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light'
+      })()
+    </script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="alternate icon" href="/favicon.ico" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

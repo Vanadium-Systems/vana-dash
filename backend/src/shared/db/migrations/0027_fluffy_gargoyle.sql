@@ -1,0 +1,1 @@
+ALTER TABLE "email_messages" ADD COLUMN "reply_to_address" text;

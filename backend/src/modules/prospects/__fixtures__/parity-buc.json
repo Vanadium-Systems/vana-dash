@@ -1,0 +1,524 @@
+[
+  {
+    "firma": "Bucharest Sample 01 SRL",
+    "raw": {
+      "cifra": 18781237,
+      "profit": 357502,
+      "venituri": 18783705,
+      "angajati": 5,
+      "capital": 1995686,
+      "datorii": 6438868,
+      "stocuri": 810492,
+      "disponib": 210569,
+      "creante": 4618303
+    },
+    "foundingYear": 2012,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 58.31,
+      "scoreNeed": 86.82,
+      "scoreTech": 82.5,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 81.3
+    }
+  },
+  {
+    "firma": "Bucharest Sample 02 SRL",
+    "raw": {
+      "cifra": 9922368,
+      "profit": 105253,
+      "venituri": 9934794,
+      "angajati": 48,
+      "capital": 4783962,
+      "datorii": 1452928,
+      "stocuri": 122233,
+      "disponib": 48053,
+      "creante": 4224697
+    },
+    "foundingYear": 2010,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": false,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 65.9,
+      "scoreNeed": 68.72,
+      "scoreTech": 70,
+      "scoreContact": 85,
+      "gate": 1,
+      "scoreFinal": 71.6
+    }
+  },
+  {
+    "firma": "Bucharest Sample 03 SRL",
+    "raw": {
+      "cifra": 2888510,
+      "profit": 35087,
+      "venituri": 2902138,
+      "angajati": 8,
+      "capital": 1754711,
+      "datorii": 645531,
+      "stocuri": 447250,
+      "disponib": 36256,
+      "creante": 818007
+    },
+    "foundingYear": 2014,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 67.82,
+      "scoreNeed": 98.2,
+      "scoreTech": 82.5,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 87
+    }
+  },
+  {
+    "firma": "Bucharest Sample 04 SRL",
+    "raw": {
+      "cifra": 9594412,
+      "profit": 1059489,
+      "venituri": 9656265,
+      "angajati": 42,
+      "capital": 5072673,
+      "datorii": 3396690,
+      "stocuri": 3543517,
+      "disponib": 70801,
+      "creante": 510013
+    },
+    "foundingYear": 2007,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 77.04,
+      "scoreNeed": 68.59,
+      "scoreTech": 70,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 77.3
+    }
+  },
+  {
+    "firma": "Bucharest Sample 05 SRL",
+    "raw": {
+      "cifra": 18717388,
+      "profit": 72464,
+      "venituri": 18737026,
+      "angajati": 46,
+      "capital": 7697055,
+      "datorii": 8019955,
+      "stocuri": 10187043,
+      "disponib": 384117,
+      "creante": 1580787
+    },
+    "foundingYear": 2003,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 64.62,
+      "scoreNeed": 69.63,
+      "scoreTech": 70,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 74.5
+    }
+  },
+  {
+    "firma": "Bucharest Sample 06 SRL",
+    "raw": {
+      "cifra": 1040000,
+      "profit": 310864,
+      "venituri": 1040000,
+      "angajati": 10,
+      "capital": 317864,
+      "datorii": 696564,
+      "stocuri": 0,
+      "disponib": 51364,
+      "creante": 175263
+    },
+    "foundingYear": 2005,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": false,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 80.37,
+      "scoreNeed": 88.87,
+      "scoreTech": 70,
+      "scoreContact": 75,
+      "gate": 1,
+      "scoreFinal": 79.3
+    }
+  },
+  {
+    "firma": "Bucharest Sample 07 SRL",
+    "raw": {
+      "cifra": 1310831,
+      "profit": 36683,
+      "venituri": 1310831,
+      "angajati": 5,
+      "capital": 50447,
+      "datorii": 77094,
+      "stocuri": 5045,
+      "disponib": 74932,
+      "creante": 17466
+    },
+    "foundingYear": 2007,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 72.45,
+      "scoreNeed": 74.51,
+      "scoreTech": 50,
+      "scoreContact": 80,
+      "gate": 1,
+      "scoreFinal": 69
+    }
+  },
+  {
+    "firma": "Bucharest Sample 08 SRL",
+    "raw": {
+      "cifra": 573787,
+      "profit": -44513,
+      "venituri": 653776,
+      "angajati": 5,
+      "capital": 742200,
+      "datorii": 3456537,
+      "stocuri": 2700578,
+      "disponib": 238744,
+      "creante": 287251
+    },
+    "foundingYear": 2001,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 57.42,
+      "scoreNeed": 82.06,
+      "scoreTech": 50,
+      "scoreContact": 80,
+      "gate": 1,
+      "scoreFinal": 67.5
+    }
+  },
+  {
+    "firma": "Bucharest Sample 09 SRL",
+    "raw": {
+      "cifra": 8106240,
+      "profit": 2664900,
+      "venituri": 8107096,
+      "angajati": 16,
+      "capital": 6538783,
+      "datorii": 3878361,
+      "stocuri": 254106,
+      "disponib": 339166,
+      "creante": 922316
+    },
+    "foundingYear": 2006,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 85.09,
+      "scoreNeed": 93.12,
+      "scoreTech": 70,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 86.7
+    }
+  },
+  {
+    "firma": "Bucharest Sample 10 SRL",
+    "raw": {
+      "cifra": 915727,
+      "profit": -388029,
+      "venituri": 823997,
+      "angajati": 22,
+      "capital": 1591818,
+      "datorii": 12858511,
+      "stocuri": 19264926,
+      "disponib": 46592,
+      "creante": 2638277
+    },
+    "foundingYear": 2013,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 47.66,
+      "scoreNeed": 81.81,
+      "scoreTech": 62.5,
+      "scoreContact": 80,
+      "gate": 1,
+      "scoreFinal": 68.1
+    }
+  },
+  {
+    "firma": "Bucharest Sample 11 SRL",
+    "raw": {
+      "cifra": 3371320,
+      "profit": -2757929,
+      "venituri": 3372557,
+      "angajati": 37,
+      "capital": 12462961,
+      "datorii": 5892058,
+      "stocuri": 0,
+      "disponib": 933018,
+      "creante": 1399952
+    },
+    "foundingYear": 2001,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 52.86,
+      "scoreNeed": 85.75,
+      "scoreTech": 70,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 76.4
+    }
+  },
+  {
+    "firma": "Bucharest Sample 12 SRL",
+    "raw": {
+      "cifra": 4238943,
+      "profit": 1370010,
+      "venituri": 6315514,
+      "angajati": 4,
+      "capital": 6170812,
+      "datorii": 10251968,
+      "stocuri": 2098187,
+      "disponib": 6560586,
+      "creante": 575836
+    },
+    "foundingYear": 2018,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 97.32,
+      "scoreNeed": 89.55,
+      "scoreTech": 92.5,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 94.3
+    }
+  },
+  {
+    "firma": "Bucharest Sample 13 SRL",
+    "raw": {
+      "cifra": 68766821,
+      "profit": 5998082,
+      "venituri": 68833508,
+      "angajati": 47,
+      "capital": 18268132,
+      "datorii": 13251177,
+      "stocuri": 2856212,
+      "disponib": 3780302,
+      "creante": 20997698
+    },
+    "foundingYear": 2016,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 79.5,
+      "scoreNeed": 67.75,
+      "scoreTech": 82.5,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 80.8
+    }
+  },
+  {
+    "firma": "Bucharest Sample 14 SRL",
+    "raw": {
+      "cifra": 2542312,
+      "profit": 6293,
+      "venituri": 2625197,
+      "angajati": 18,
+      "capital": 831194,
+      "datorii": 625072,
+      "stocuri": 86352,
+      "disponib": 80727,
+      "creante": 787451
+    },
+    "foundingYear": 2014,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 65.77,
+      "scoreNeed": 96.89,
+      "scoreTech": 82.5,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 86.1
+    }
+  },
+  {
+    "firma": "Bucharest Sample 15 SRL",
+    "raw": {
+      "cifra": 1663886,
+      "profit": 119108,
+      "venituri": 1694084,
+      "angajati": 15,
+      "capital": 4058284,
+      "datorii": 393495,
+      "stocuri": 0,
+      "disponib": 182349,
+      "creante": 354898
+    },
+    "foundingYear": 2002,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": false,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 87.11,
+      "scoreNeed": 92.69,
+      "scoreTech": 50,
+      "scoreContact": 55,
+      "gate": 1,
+      "scoreFinal": 73.1
+    }
+  },
+  {
+    "firma": "Bucharest Sample 16 SRL",
+    "raw": {
+      "cifra": 11778332,
+      "profit": 811386,
+      "venituri": 11785739,
+      "angajati": 24,
+      "capital": 4291390,
+      "datorii": 930268,
+      "stocuri": 653074,
+      "disponib": 359441,
+      "creante": 2330837
+    },
+    "foundingYear": 2001,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 82.09,
+      "scoreNeed": 83.6,
+      "scoreTech": 70,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 83.1
+    }
+  },
+  {
+    "firma": "Bucharest Sample 17 SRL",
+    "raw": {
+      "cifra": 16403554,
+      "profit": 4381007,
+      "venituri": 18208395,
+      "angajati": 22,
+      "capital": 10099747,
+      "datorii": 7636629,
+      "stocuri": 7178801,
+      "disponib": 10543,
+      "creante": 3918615
+    },
+    "foundingYear": 2019,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 81.28,
+      "scoreNeed": 87.23,
+      "scoreTech": 92.5,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 89.6
+    }
+  },
+  {
+    "firma": "Bucharest Sample 18 SRL",
+    "raw": {
+      "cifra": 19701875,
+      "profit": 5680385,
+      "venituri": 19853343,
+      "angajati": 39,
+      "capital": 12109043,
+      "datorii": 4056190,
+      "stocuri": 1324356,
+      "disponib": 4783011,
+      "creante": 2845566
+    },
+    "foundingYear": 1991,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 98.54,
+      "scoreNeed": 82.6,
+      "scoreTech": 60,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 84.4
+    }
+  }
+]

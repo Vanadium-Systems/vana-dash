@@ -1,0 +1,408 @@
+[
+  {
+    "firma": "Brasov Sample 01 SRL",
+    "raw": {
+      "cifra": 3341724,
+      "profit": 500266,
+      "venituri": 3342403,
+      "angajati": 7,
+      "capital": 708654,
+      "datorii": 1374022,
+      "stocuri": 0,
+      "disponib": 289503,
+      "creante": 1071193
+    },
+    "foundingYear": null,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 79.92,
+      "scoreNeed": 87.07,
+      "scoreTech": 100,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 91.1
+    }
+  },
+  {
+    "firma": "Brasov Sample 02 SRL",
+    "raw": {
+      "cifra": 2407120,
+      "profit": 346641,
+      "venituri": 2477099,
+      "angajati": 3,
+      "capital": 1688291,
+      "datorii": 54882,
+      "stocuri": 356264,
+      "disponib": 81847,
+      "creante": 1297566
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": false,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 96.46,
+      "scoreNeed": 58.78,
+      "scoreTech": 60,
+      "scoreContact": 55,
+      "gate": 1,
+      "scoreFinal": 67.7
+    }
+  },
+  {
+    "firma": "Brasov Sample 03 SRL",
+    "raw": {
+      "cifra": 191359,
+      "profit": -29321,
+      "venituri": 191359,
+      "angajati": 1,
+      "capital": -15237,
+      "datorii": 465283,
+      "stocuri": 433487,
+      "disponib": 204,
+      "creante": 0
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": false,
+    "hasEmail": false,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 20.04,
+      "scoreNeed": 49.09,
+      "scoreTech": 60,
+      "scoreContact": 15,
+      "gate": 0.5,
+      "scoreFinal": 18.9
+    }
+  },
+  {
+    "firma": "Brasov Sample 04 SRL",
+    "raw": {
+      "cifra": 96000,
+      "profit": 337,
+      "venituri": 96000,
+      "angajati": 1,
+      "capital": 42120,
+      "datorii": 7216,
+      "stocuri": 0,
+      "disponib": 35805,
+      "creante": 13531
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 80.75,
+      "scoreNeed": 41.27,
+      "scoreTech": 60,
+      "scoreContact": 80,
+      "gate": 1,
+      "scoreFinal": 63.6
+    }
+  },
+  {
+    "firma": "Brasov Sample 05 SRL",
+    "raw": {
+      "cifra": 281150,
+      "profit": 143657,
+      "venituri": 281238,
+      "angajati": 2,
+      "capital": 143898,
+      "datorii": 22538,
+      "stocuri": 0,
+      "disponib": 41529,
+      "creante": 124907
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 98.44,
+      "scoreNeed": 48.59,
+      "scoreTech": 60,
+      "scoreContact": 80,
+      "gate": 1,
+      "scoreFinal": 70.2
+    }
+  },
+  {
+    "firma": "Brasov Sample 06 SRL",
+    "raw": {
+      "cifra": 787780,
+      "profit": 319404,
+      "venituri": 920280,
+      "angajati": 1,
+      "capital": 319604,
+      "datorii": 281550,
+      "stocuri": 6347,
+      "disponib": -17536,
+      "creante": 272322
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": false,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 77.6,
+      "scoreNeed": 51.36,
+      "scoreTech": 60,
+      "scoreContact": 55,
+      "gate": 1,
+      "scoreFinal": 60.8
+    }
+  },
+  {
+    "firma": "Brasov Sample 07 SRL",
+    "raw": {
+      "cifra": 10000,
+      "profit": 7250,
+      "venituri": 10000,
+      "angajati": 0,
+      "capital": -4580,
+      "datorii": 18703,
+      "stocuri": 0,
+      "disponib": 9670,
+      "creante": 4453
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": false,
+    "hasEmail": false,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 66.07,
+      "scoreNeed": 38.86,
+      "scoreTech": 60,
+      "scoreContact": 15,
+      "gate": 0.5,
+      "scoreFinal": 23.1
+    }
+  },
+  {
+    "firma": "Brasov Sample 08 SRL",
+    "raw": {
+      "cifra": 488353,
+      "profit": -3649,
+      "venituri": 512190,
+      "angajati": 3,
+      "capital": -545579,
+      "datorii": 764867,
+      "stocuri": 0,
+      "disponib": -96090,
+      "creante": 315114
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": false,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 29.6,
+      "scoreNeed": 51.1,
+      "scoreTech": 60,
+      "scoreContact": 40,
+      "gate": 0,
+      "scoreFinal": 0
+    }
+  },
+  {
+    "firma": "Brasov Sample 09 SRL",
+    "raw": {
+      "cifra": 2997316,
+      "profit": 892939,
+      "venituri": 4210342,
+      "angajati": 1,
+      "capital": 1860559,
+      "datorii": 781730,
+      "stocuri": 203336,
+      "disponib": 51092,
+      "creante": 2289453
+    },
+    "foundingYear": null,
+    "hasWebsite": true,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 83.69,
+      "scoreNeed": 59.45,
+      "scoreTech": 100,
+      "scoreContact": 100,
+      "gate": 1,
+      "scoreFinal": 83.8
+    }
+  },
+  {
+    "firma": "Brasov Sample 10 SRL",
+    "raw": {
+      "cifra": 21216787,
+      "profit": 128232,
+      "venituri": 22436338,
+      "angajati": 58,
+      "capital": 2090609,
+      "datorii": 19798993,
+      "stocuri": 3335890,
+      "disponib": 93228,
+      "creante": 5369285
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 55.16,
+      "scoreNeed": 68.48,
+      "scoreTech": 60,
+      "scoreContact": 80,
+      "gate": 1,
+      "scoreFinal": 65.3
+    }
+  },
+  {
+    "firma": "Brasov Sample 11 SRL",
+    "raw": {
+      "cifra": 9276397,
+      "profit": 92767,
+      "venituri": 9305842,
+      "angajati": 2,
+      "capital": -559945,
+      "datorii": 2651142,
+      "stocuri": 178654,
+      "disponib": 14567,
+      "creante": 1702958
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 36.65,
+      "scoreNeed": 54.86,
+      "scoreTech": 60,
+      "scoreContact": 80,
+      "gate": 0,
+      "scoreFinal": 0
+    }
+  },
+  {
+    "firma": "Brasov Sample 12 SRL",
+    "raw": {
+      "cifra": 13500,
+      "profit": 79078,
+      "venituri": 188896,
+      "angajati": 0,
+      "capital": -55405,
+      "datorii": 82965,
+      "stocuri": 0,
+      "disponib": 110,
+      "creante": 27450
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": true,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 52.55,
+      "scoreNeed": 40.11,
+      "scoreTech": 60,
+      "scoreContact": 80,
+      "gate": 0.5,
+      "scoreFinal": 28.1
+    }
+  },
+  {
+    "firma": "Brasov Sample 13 SRL",
+    "raw": {
+      "cifra": 198950,
+      "profit": 20703,
+      "venituri": 198990,
+      "angajati": 1,
+      "capital": 28509,
+      "datorii": 102605,
+      "stocuri": 78609,
+      "disponib": 50434,
+      "creante": 2071
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": false,
+    "hasEmail": false,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 81.27,
+      "scoreNeed": 47.58,
+      "scoreTech": 60,
+      "scoreContact": 15,
+      "gate": 1,
+      "scoreFinal": 52.6
+    }
+  },
+  {
+    "firma": "Brasov Sample 14 SRL",
+    "raw": {
+      "cifra": 1770885,
+      "profit": -54349,
+      "venituri": 1785057,
+      "angajati": 15,
+      "capital": -595354,
+      "datorii": 1126923,
+      "stocuri": 1249,
+      "disponib": 125225,
+      "creante": 327894
+    },
+    "foundingYear": null,
+    "hasWebsite": false,
+    "hasPhone": true,
+    "hasEmail": false,
+    "hasContactName": true,
+    "isActive": true,
+    "hasAnyFinancialData": true,
+    "expected": {
+      "scoreBudget": 34.45,
+      "scoreNeed": 92.23,
+      "scoreTech": 60,
+      "scoreContact": 55,
+      "gate": 0,
+      "scoreFinal": 0
+    }
+  }
+]

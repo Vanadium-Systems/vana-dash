@@ -1,0 +1,1 @@
+ALTER TABLE "bank_accounts" ADD COLUMN "refresh_token_enc" text;

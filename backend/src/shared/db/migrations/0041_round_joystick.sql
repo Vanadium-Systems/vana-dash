@@ -1,0 +1,1 @@
+ALTER TABLE "archive_folders" DROP COLUMN "hidden_from_accountant";

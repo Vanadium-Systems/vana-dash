@@ -1,0 +1,33 @@
+packages:
+  - backend
+  - frontend
+allowBuilds:
+  # firebase-admin/messaging nu are nevoie de postinstall-uri ca să ruleze (import testat);
+  # false = supply-chain minim, fără scripturi de build rulate.
+  '@firebase/util': false
+  argon2: true
+  esbuild: true
+  protobufjs: false
+minimumReleaseAgeExclude:
+  - '@anthropic-ai/sdk@0.114.0'
+overrides:
+  # ajv (fastify's schema validator) pins fast-uri@^3.0.1 internally;
+  # bump within that range to patch the host-confusion advisories.
+  'ajv>fast-uri': ^3.1.5
+  # node-cron hard-pins uuid@8.3.2 (pre-fix); only used for internal job IDs.
+  'node-cron>uuid': ^11.1.1
+  # legacy esbuild-kit loader inside drizzle-kit, unused at runtime (drizzle-kit uses tsx).
+  '@esbuild-kit/core-utils>esbuild': ^0.25.0
+  # test-only vite instance pulled in via vitest's mocker peer dep — keep
+  # separate from frontend's real build-time vite (pinned ^6.4.3 above).
+  '@vitest/mocker>vite': ^8.2.1
+  # jsdom (test-only) allows any undici@7.x; force the patched release.
+  'jsdom>undici': ^7.29.0
+audit:
+  ignore:
+    # brace-expansion DoS, only reachable via vite-plugin-pwa's build-time
+    # workbox-build>...>jake>filelist>minimatch chain (unmaintained, CJS-only —
+    # bumping minimatch to a patched major breaks `require()`). No attacker input
+    # reaches it (local build only).
+    - GHSA-mh99-v99m-4gvg
+    - GHSA-rgw5-rvv9-x895

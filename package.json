@@ -1,0 +1,19 @@
+{
+  "name": "vana-dash",
+  "version": "0.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "description": "Vanadium Systems SRL — internal hub dashboard (single user: Stefan)",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @vana-dash/backend db:generate",
+    "db:migrate": "pnpm --filter @vana-dash/backend db:migrate",
+    "db:seed": "pnpm --filter @vana-dash/backend db:seed",
+    "db:seed:demo": "pnpm --filter @vana-dash/backend db:seed:demo"
+  }
+}

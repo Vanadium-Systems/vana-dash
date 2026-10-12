@@ -1,0 +1,1 @@
+ALTER TABLE "email_labels" ADD COLUMN "notifications_enabled" boolean DEFAULT true NOT NULL;

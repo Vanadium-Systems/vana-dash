@@ -1,0 +1,244 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Monochrome on light, graphite terminal on dark. Primary is not blue: near-black on light,
+     near-white on dark. The blue #0077b6 stays in charts (the categorical palette in
+     chart-colors.ts), in the logo and favicon, and in a few accents. */
+  :root {
+    --background: 0 0% 100%; /* alb pur */
+    --foreground: 0 0% 9%; /* near-black */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 9%; /* butoane/stări active solide near-black */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%; /* griuri neutre, fără tentă */
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 42%; /* gri real pt. text secundar */
+    --accent: 0 0% 93%; /* hover neutru */
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 152 58% 32%; /* NOU — stări pozitive (pastile soft light) */
+    --success-foreground: 0 0% 100%;
+    --warning: 35 85% 38%; /* NOU — stări parțiale / atenționare */
+    --warning-foreground: 0 0% 100%;
+    --border: 0 0% 90%; /* gri pur — border-ele ies definitiv din albastru */
+    --input: 0 0% 58%; /* conturul câmpurilor, 3:1 pe fundal (WCAG 1.4.11); butoanele outline stau pe --border */
+    --ring: 0 0% 9%;
+    --radius: 0.375rem; /* colțuri mai strânse, densitate de date */
+    /* Text semantic, separat de umpluturi: >=4.5:1 pe --background și --muted (DESIGN.md). */
+    --success-text: 152 58% 28%;
+    --warning-text: 35 85% 32%;
+    --destructive-text: 0 72% 42%;
+    --surface-raised: 0 0% 98%;
+    --surface-overlay: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 0 0% 6%; /* grafit neutru, nu navy — și decizie de baterie pe AMOLED */
+    --foreground: 0 0% 93%;
+    --card: 0 0% 9%; /* o treaptă peste background, separare prin suprafață + bordură */
+    --card-foreground: 0 0% 93%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 0 0% 96%; /* inversat: acțiune primară aproape-albă, text negru */
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 93%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 62%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 93%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 20% 98%;
+    --success: 152 45% 45%;
+    --success-foreground: 152 60% 8%;
+    --warning: 38 80% 55%;
+    --warning-foreground: 30 70% 10%;
+    --border: 0 0% 17%;
+    --input: 0 0% 40%;
+    --ring: 0 0% 96%;
+    --success-text: 152 45% 58%;
+    --warning-text: 38 80% 62%;
+    --destructive-text: 0 70% 66%;
+    --surface-raised: 0 0% 9%;
+    --surface-overlay: 0 0% 12%;
+  }
+
+  /* Un singur set de înălțimi pentru tot ce se completează și se apasă (DESIGN.md): sm doar în
+     rânduri de tabel dense, md implicit, lg în Setări și dialoguri. */
+  :root {
+    --control-sm: 1.75rem;
+    --control-md: 2rem;
+    --control-lg: 2.25rem;
+  }
+  /* Setări și dialoguri: o treaptă mai aerisit, aceleași componente. */
+  [data-density='comfortable'] {
+    --control-sm: 2rem;
+    --control-md: 2.25rem;
+    --control-lg: 2.5rem;
+  }
+
+  :root {
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  /* Cifre ca la trading (referință boltnew/figma): orice număr, dată sau cod document
+     folosește `font-mono tnum` — tabular figures aliniază coloanele de sume la dreapta. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Touch targets ≥44px doar pe pointer coarse (Contractul H) — desktop rămâne compact. */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  @media (pointer: fine) {
+    .touch-target {
+      min-height: 0;
+      min-width: 0;
+    }
+  }
+
+  /* Press-state discret (skill emil-design-eng) — feedback tactil uniform pe elemente
+     interactive; respectă automat prefers-reduced-motion prin regula globală de mai sus. */
+  .press {
+    transition: transform 120ms var(--ease-out);
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+}
+
+@layer components {
+  .offline-banner {
+    transition: transform 200ms var(--ease-out), opacity 200ms var(--ease-out);
+  }
+  .offline-banner[data-state='open'] {
+    transform: translateY(0);
+    opacity: 1;
+
+    @starting-style {
+      transform: translateY(-0.25rem);
+      opacity: 0;
+    }
+  }
+  .offline-banner[data-state='closed'] {
+    transform: translateY(-0.25rem);
+    opacity: 0;
+  }
+
+  /* Canvas alb forțat pt. corpul mesajelor de email (Contract E) — un email HTML e proiectat
+     mereu pe alb; pe tema dark textul negru din HTML cădea pe fundal întunecat (ilizibil).
+     Culori EXPLICITE, nu tokeni — canvasul nu moștenește tema niciodată, ca Gmail/Apple Mail.
+     Sanitizarea DOMPurify rămâne neatinsă (are teste). Placeholder-ul de imagini blocate
+     rămâne pe tema aplicației (nu e în .email-canvas). */
+  .email-canvas {
+    background: #fff;
+    color: #18181b;
+    color-scheme: light;
+  }
+  .email-canvas a {
+    color: #0369a1;
+  }
+
+  /* Tooltip (componenta `ui/tooltip.tsx`): balonul apare la hover și la focus pe dispozitive
+     cu pointer fin. Pe touch nu există hover, deci același text stă static sub control —
+     o singură copie în DOM, comutată aici, nu în componentă. */
+  .tooltip-anchor {
+    position: relative;
+    display: inline-flex;
+  }
+  .tooltip-bubble {
+    display: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .tooltip-anchor:hover .tooltip-bubble,
+    .tooltip-anchor:focus-within .tooltip-bubble {
+      display: block;
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      z-index: 50;
+      margin-top: 0.25rem;
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: 16rem;
+      border-radius: var(--radius);
+      border: 1px solid hsl(var(--border));
+      background: hsl(var(--surface-overlay));
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      line-height: 1rem;
+      color: hsl(var(--popover-foreground));
+      box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+    }
+  }
+  @media not (hover: hover) {
+    .tooltip-bubble {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      line-height: 1rem;
+      color: hsl(var(--muted-foreground));
+    }
+  }
+
+  /* Safe areas (Contractul H) — bottom nav + header mobil + container principal, sincronizat
+     cu viewport-fit=cover; pe desktop valorile sunt 0. */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* QoL mobil (2026-08-26): cât timp se tastează oriunde în app, bottom nav-ul se ascunde —
+     câștigă spațiu de tastatură deja acoperit (interactive-widget=resizes-content în
+     index.html face layout-ul să se micșoreze sub tastatură, pe Android 15+ edge-to-edge).
+     :has() e suportat în WebView-ul modern (Chrome 105+). */
+  @media (pointer: coarse) {
+    body:has(input:focus, textarea:focus, [contenteditable='true']:focus) .mobile-bottom-nav {
+      display: none;
+    }
+  }
+
+  /* RichTextEditor (2026-08-11, @tiptap/extension-placeholder) — textul de placeholder nu se
+     afișează automat, extensia doar marchează paragraful gol cu `data-placeholder`; CSS-ul
+     efectiv (::before) trebuie adăugat de aplicație, nu vine bundle-uit. */
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+  }
+}

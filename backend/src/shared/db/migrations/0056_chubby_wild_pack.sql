@@ -1,0 +1,2 @@
+ALTER TABLE "tender_opportunities" ADD COLUMN "is_priority" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "tender_watch_rules" ADD COLUMN "high_priority" boolean DEFAULT false NOT NULL;

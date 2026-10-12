@@ -1,0 +1,56 @@
+# vana-dash: reverse proxy with automatic HTTPS (Let's Encrypt).
+# DOMAIN comes from env (docker-compose.prod.yml).
+{$DOMAIN} {
+	encode gzip
+
+	# An internal tool behind a login has no business in search results.
+	header X-Robots-Tag "noindex, nofollow"
+
+	# The API sets its own headers (helmet). These cover what Caddy serves itself: the SPA
+	# and its assets. `?` leaves alone a header the backend already sent.
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		?X-Content-Type-Options "nosniff"
+		?X-Frame-Options "SAMEORIGIN"
+		?Referrer-Policy "same-origin"
+	}
+
+	# API → the Fastify backend
+	handle /api/* {
+		reverse_proxy backend:3001
+	}
+	handle /health {
+		reverse_proxy backend:3001
+	}
+
+	# Domain verification for the Android app (Digital Asset Links). Served with an explicit
+	# Content-Type, which has to be exactly application/json.
+	handle /.well-known/assetlinks.json {
+		root * /srv/frontend
+		header Content-Type application/json
+		file_server
+	}
+
+	# The service worker is never cached by an intermediary or a CDN; otherwise its updates
+	# (registerType: autoUpdate) do not reach the browser after a deploy.
+	handle /sw.js {
+		root * /srv/frontend
+		header Cache-Control "no-cache"
+		file_server
+	}
+
+	# The SPA: serves the Vite build and falls back to index.html for react-router.
+	# Without a Cache-Control header, the WebView in the Android app (which has no service
+	# worker, see main.tsx) kept index.html for hours on heuristic caching (10% of the age of
+	# Last-Modified), so a new deploy did not show up on the phone. Files under /assets/ have a
+	# hash in their name and can be cached for as long as you like.
+	handle {
+		root * /srv/frontend
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@unhashed not path /assets/*
+		header @unhashed Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

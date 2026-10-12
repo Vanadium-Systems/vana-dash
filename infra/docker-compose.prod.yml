@@ -1,0 +1,91 @@
+# vana-dash: production stack, for one VPS.
+#
+# Run: docker compose -f infra/docker-compose.prod.yml --env-file .env up -d --build
+# (scripts/deploy-prod.sh does it). Needs the production .env at the repository root
+# (mode 600), with DOMAIN set.
+name: vana-dash
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:-vanadash}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:?}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/backend.Dockerfile
+    restart: unless-stopped
+    # Every variable in .env (RESEND_API_KEY, REVOLUT_*, ANAF_*, COMPANY_*, …) reaches the
+    # container. Without env_file, each new key in config.ts would also have to be listed
+    # here, and a forgotten one would be silently empty. `environment:` below wins over
+    # env_file on the same keys; it holds only the values that have to be computed or fixed
+    # inside the container (the postgres hostname, DOMAIN).
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-vanadash}
+      PORT: 3001
+      JWT_SECRET: ${JWT_SECRET:?}
+      MASTER_ENCRYPTION_KEY: ${MASTER_ENCRYPTION_KEY:?}
+      FRONTEND_ORIGIN: https://${DOMAIN:?}
+      # The daily pg_dump (jobs/backup.ts) writes to its own volume below, separate from
+      # storage_data (invoices, XML).
+      BACKUP_DIR: /backups
+    volumes:
+      - storage_data:/app/backend/storage
+      - backup_data:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-sf', 'http://localhost:3001/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN:?}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../frontend/dist:/srv/frontend:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      # Not http://localhost:80: Caddy redirects any HTTP request to https://localhost/
+      # (not to $DOMAIN), and the TLS handshake fails on the SNI "localhost", which has no
+      # site config. The local admin API (plain HTTP, no TLS, no redirect) is the right
+      # target for an internal healthcheck.
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:2019/config/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  storage_data:
+  backup_data:

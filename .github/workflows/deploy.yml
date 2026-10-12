@@ -1,0 +1,127 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy vana-dash
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            bash "$HOME/vana-dash/scripts/deploy-prod.sh"
+
+  # Does this push touch anything native? Everything else (backend, web UI) reaches the APK
+  # live when it is reopened, with no reinstall, so rebuilding on every push only cost five
+  # minutes for nothing.
+  changes:
+    name: Detect native changes
+    runs-on: ubuntu-latest
+    needs: deploy
+    outputs:
+      native: ${{ steps.filter.outputs.native }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            native:
+              - 'frontend/android/**'
+              - 'frontend/capacitor.config.ts'
+              - 'frontend/package.json'
+
+  # The Capacitor APK is a thin shell that loads the deployed web app, so a native rebuild
+  # matters only when plugins, the manifest or versionCode change (the `changes` job above).
+  # It runs after the deploy (needs), otherwise the server's rewrite of dist/ would delete it.
+  # Signed for release with the key from secrets.
+  apk:
+    name: Build + publish APK
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.native == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter @vana-dash/frontend build
+
+      - name: Sync Capacitor Android
+        run: pnpm --filter @vana-dash/frontend exec cap sync android
+
+      - name: Restore google-services.json
+        # The file is gitignored (Firebase client config belongs to the project, not the code)
+        # and comes from a secret here. Without it FCM does not initialise and the APK crashes
+        # on start, so fail loudly rather than ship a broken APK.
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON_B64 lipsește — APK-ul ar crăpa fără config Firebase"
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > frontend/android/app/google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+
+      - name: Restore release signing
+        run: |
+          mkdir -p "$HOME/vana-dash-secrets"
+          echo "$VANADASH_KEYSTORE_B64" | base64 -d > "$HOME/vana-dash-secrets/vanadash-release.keystore"
+          # storeFile in the properties is an absolute path from a developer machine; rewritten for the runner
+          echo "$VANADASH_SIGNING_PROPS_B64" | base64 -d \
+            | sed "s|^storeFile=.*|storeFile=$HOME/vana-dash-secrets/vanadash-release.keystore|" \
+            > "$HOME/vana-dash-secrets/vanadash-signing.properties"
+          chmod 600 "$HOME/vana-dash-secrets"/*
+        env:
+          VANADASH_KEYSTORE_B64: ${{ secrets.VANADASH_KEYSTORE_B64 }}
+          VANADASH_SIGNING_PROPS_B64: ${{ secrets.VANADASH_SIGNING_PROPS_B64 }}
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Assemble release APK
+        run: |
+          cd frontend/android
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Stage APK
+        run: cp frontend/android/app/build/outputs/apk/release/app-release.apk vanadash.apk
+
+      - name: Upload APK to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: vanadash.apk
+          target: /home/${{ secrets.VPS_USER }}/vana-dash/frontend/dist
+          strip_components: 0

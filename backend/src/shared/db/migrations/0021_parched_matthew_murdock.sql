@@ -1,0 +1,1 @@
+ALTER TABLE "archive_files" ADD COLUMN "thumbnail_r2_key" text;

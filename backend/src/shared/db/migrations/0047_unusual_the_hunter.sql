@@ -1,0 +1,1 @@
+ALTER TABLE "prospects" ADD COLUMN "archived_at" timestamp with time zone;

@@ -1,0 +1,1 @@
+ALTER TABLE "plan_goals" ADD COLUMN "target_date" date;

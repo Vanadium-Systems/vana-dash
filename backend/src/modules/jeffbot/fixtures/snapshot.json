@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-25T13:05:00Z",
+  "host": "bot-host",
+  "services": [
+    { "name": "jeffbot-trader", "state": "active" },
+    { "name": "jeffbot-collector", "state": "active" }
+  ],
+  "data": {
+    "prices": [
+      { "symbol": "BTCUSDT", "lastCandleAgeSec": 62, "price": 84410.24 },
+      { "symbol": "SOLUSDT", "lastCandleAgeSec": 61, "price": 117.2 }
+    ],
+    "news": { "total": 3473, "last24h": 410, "labeled": 3401, "lastLabeledAgeSec": 40 },
+    "sourceErrors": [{ "source": "gdelt", "error": "429 Too Many Requests", "sinceSec": 3600 }],
+    "fearGreed": { "value": 71, "label": "Greed" }
+  },
+  "model": {
+    "promoted": false,
+    "file": null,
+    "holdoutRetPct": null,
+    "trainedAt": null,
+    "trainLogTail": ["2026-09-26 03:31 candidat -12.4% pe holdout, nepromovat"]
+  },
+  "strategies": [
+    {
+      "key": "mix", "label": "MIX trend 200z + rotație", "startEquity": 3000, "equity": 2998.8,
+      "cash": 0, "maxDdPct": 0.4, "trades": 4, "feesUsdt": 3.0, "startedAt": "2026-09-25T12:57:49Z",
+      "holdings": [{ "symbol": "SOLUSDT", "qty": 12.39, "valueUsdt": 1452.1 }]
+    },
+    {
+      "key": "hold", "label": "Buy & hold", "startEquity": 1000, "equity": 1004.2,
+      "cash": 0, "maxDdPct": 0.9, "trades": 1, "feesUsdt": 1.0, "startedAt": "2026-09-25T12:57:49Z",
+      "holdings": [{ "symbol": "BTCUSDT", "qty": 0.0118, "valueUsdt": 1004.2 }]
+    },
+    {
+      "key": "lgbm", "label": "LightGBM", "startEquity": 1000, "equity": 1000,
+      "cash": 1000, "maxDdPct": 0, "trades": 0, "feesUsdt": 0, "startedAt": null, "holdings": []
+    }
+  ],
+  "equityPoints": [
+    { "key": "mix", "ts": "2026-09-25T12:00:00Z", "equity": 3000 },
+    { "key": "mix", "ts": "2026-09-25T13:00:00Z", "equity": 2998.8 },
+    { "key": "hold", "ts": "2026-09-25T13:00:00Z", "equity": 1004.2 }
+  ],
+  "trades": [
+    {
+      "sourceId": "strat:17", "ts": "2026-09-25T12:57:49Z", "strategy": "mix", "subAccount": "mix/rotation",
+      "symbol": "SOLUSDT", "side": "buy", "qty": 12.39, "price": 120.85, "feeUsdt": 1.5, "reason": "intrare"
+    },
+    {
+      "sourceId": "strat:18", "ts": "2026-09-25T12:57:50Z", "strategy": "hold", "subAccount": null,
+      "symbol": "BTCUSDT", "side": "buy", "qty": 0.0118, "price": 84700, "feeUsdt": 1.0, "reason": "intrare"
+    }
+  ],
+  "news": [
+    {
+      "title": "Bitcoin ETF outflows continue", "url": "https://example.com/btc-etf",
+      "publishedAt": "2026-09-25T11:00:00Z", "sentiment": "bearish", "importance": 1.4, "coins": ["BTC"]
+    }
+  ],
+  "reviews": [
+    {
+      "date": "2026-09-25", "kind": "daily", "severity": "ok", "summary": "Toate serviciile OK.",
+      "markdown": "# Revizuire zilnică\n\nToate serviciile rulează."
+    }
+  ]
+}

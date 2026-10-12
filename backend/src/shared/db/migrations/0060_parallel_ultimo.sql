@@ -1,0 +1,2 @@
+ALTER TABLE "system_metrics_snapshots" ADD COLUMN "host" text DEFAULT 'dash' NOT NULL;--> statement-breakpoint
+CREATE INDEX "idx_system_metrics_snapshots_host_captured_at" ON "system_metrics_snapshots" USING btree ("host","captured_at");

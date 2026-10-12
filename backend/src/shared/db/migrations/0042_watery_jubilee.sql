@@ -1,0 +1,1 @@
+ALTER TABLE "billing_clients" ADD COLUMN "pending_deletion_at" timestamp with time zone;

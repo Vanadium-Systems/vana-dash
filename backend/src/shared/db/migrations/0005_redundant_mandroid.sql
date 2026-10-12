@@ -1,0 +1,1 @@
+ALTER TABLE "email_sends" ADD COLUMN "from_address" text;

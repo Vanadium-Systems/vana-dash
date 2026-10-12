@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vana-dash-cloudflare-email-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-17",
+  "vars": {
+    "VANA_DASH_WEBHOOK_URL": "https://dash.vanadium.systems/api/webhooks/cloudflare-inbound",
+    "OWN_DOMAIN": "vanadium.systems"
+  }
+  // The two values above belong to one installation; change them to yours.
+  // CLOUDFLARE_EMAIL_INGEST_TOKEN never goes here, in code or in vars. Set it only with:
+  //   npx wrangler secret put CLOUDFLARE_EMAIL_INGEST_TOKEN
+  // It has to be identical to the value in the app's production .env (config.ts,
+  // cloudflareEmailIngestToken). Two places, easy to let drift apart.
+}

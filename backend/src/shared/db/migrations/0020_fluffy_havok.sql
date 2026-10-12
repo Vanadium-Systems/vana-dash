@@ -1,0 +1,1 @@
+ALTER TABLE "archive_folders" ADD COLUMN "auto_monthly_subfolders" boolean DEFAULT false NOT NULL;

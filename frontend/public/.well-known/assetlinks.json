@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "systems.vanadium.dash.twa",
+        "sha256_cert_fingerprints": ["79:C2:58:B4:06:2E:A5:C5:CA:09:AE:CF:4B:22:B8:6A:D8:B9:B5:5E:3E:AA:09:24:B7:2D:1B:D2:04:23:26:5F"]
+      }
+    }]

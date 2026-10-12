@@ -1,0 +1,306 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Download, ExternalLink, Package } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { StatePill } from '@/shared/components/ui/state-pill'
+import { Button } from '@/shared/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
+import { Skeleton } from '@/shared/components/ui/skeleton'
+import { api } from '@/shared/lib/api'
+import type { AnafStatusInfo, InvoiceSequence, QuarterlyPackageSummary } from '@/shared/lib/types'
+import { formatDate, formatMoney } from './badges'
+import { parseRoDecimal } from '@/shared/lib/utils'
+
+function currentQuarter(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-Q${Math.floor(now.getMonth() / 3) + 1}`
+}
+
+// Oglindește formatInvoiceNumber din backend/src/shared/lib/sequences.ts — separatorul
+// apare STRICT între părți existente, nu inserat necondiționat (bug: producea "VAN--0002"
+// când yearFormat='none', separatorul de dinaintea anului rămânea cu string gol după el).
+function formatSequencePreview(seq: InvoiceSequence): string {
+  const year = new Date().getFullYear()
+  const parts: string[] = []
+  if (seq.prefix !== '') parts.push(seq.prefix)
+  if (seq.yearFormat === 'yyyy') parts.push(String(year))
+  else if (seq.yearFormat === 'yy') parts.push(String(year % 100).padStart(2, '0'))
+  parts.push(String(seq.currentValue + 1).padStart(seq.padding, '0'))
+  return parts.join(seq.separator)
+}
+
+// The quarterly package for the accountant: a preview (no zip is rebuilt) when the quarter
+// changes, and an explicit build on the button, which can take a while because it downloads
+// everything from R2. Sending stays manual: the zip is downloaded and sent by a person.
+function QuarterlyPackageCard() {
+  const queryClient = useQueryClient()
+  const [quarter, setQuarter] = useState(currentQuarter())
+
+  const summary = useQuery({
+    queryKey: ['accounting', 'quarterly-package', quarter],
+    queryFn: () => api.get<QuarterlyPackageSummary>(`/api/accounting/quarterly-package?quarter=${quarter}`),
+  })
+
+  const generate = useMutation({
+    mutationFn: () =>
+      api.post<{ summary: QuarterlyPackageSummary; downloadUrl: string }>(
+        `/api/accounting/quarterly-package/generate?quarter=${quarter}`,
+      ),
+    onSuccess: ({ downloadUrl }) => {
+      window.open(downloadUrl, '_blank')
+      // regenerarea schimbă starea pachetului afișată pe card
+      void queryClient.invalidateQueries({ queryKey: ['accounting', 'quarterly-package', quarter] })
+      toast.success('Pachet generat')
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Package className="h-4 w-4" /> Pachet trimestrial pentru contabilă
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Facturi emise/primite, venituri/cheltuieli, tranzacții nereconciliate și liniile de taxare inversă din
+          trimestru, împachetate într-un zip cu tot ce a fost deja arhivat automat. Trimiterea către contabilă rămâne
+          manuală (email/WhatsApp, canalele din contract).
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="qp-quarter">Trimestru</Label>
+            <Input
+              id="qp-quarter"
+              className="w-32"
+              value={quarter}
+              onChange={(e) => setQuarter(e.target.value.toUpperCase())}
+              placeholder="2026-Q3"
+            />
+          </div>
+          <Button variant="outline" disabled={generate.isPending} onClick={() => generate.mutate()}>
+            <Download className="h-4 w-4" /> {generate.isPending ? 'Se generează…' : 'Generează + descarcă zip'}
+          </Button>
+        </div>
+        {summary.isPending ? (
+          <Skeleton className="h-20 w-full" />
+        ) : summary.isError ? (
+          <p className="text-sm text-destructive">Format trimestru invalid — folosește YYYY-Qn.</p>
+        ) : (
+          <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+            <div><dt className="text-muted-foreground">Facturi emise</dt><dd className="font-medium">{summary.data.invoicesIssued}</dd></div>
+            <div><dt className="text-muted-foreground">Facturi primite</dt><dd className="font-medium">{summary.data.invoicesReceived}</dd></div>
+            <div><dt className="text-muted-foreground">Venituri</dt><dd className="font-medium">{formatMoney(summary.data.revenueRon, 'RON')}</dd></div>
+            <div><dt className="text-muted-foreground">Cheltuieli</dt><dd className="font-medium">{formatMoney(summary.data.expensesRon, 'RON')}</dd></div>
+            <div><dt className="text-muted-foreground">Tranzacții nereconciliate</dt><dd className="font-medium">{summary.data.unmatchedBankTransactions}</dd></div>
+            <div><dt className="text-muted-foreground">Linii taxare inversă</dt><dd className="font-medium">{summary.data.reverseChargeLines}</dd></div>
+          </dl>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function AnafConnectionCard() {
+  const queryClient = useQueryClient()
+  const [cif, setCif] = useState('')
+  const [code, setCode] = useState('')
+
+  const status = useQuery({
+    queryKey: ['anaf-status'],
+    queryFn: () => api.get<AnafStatusInfo>('/api/accounting/anaf/status'),
+  })
+
+  const openAuthorize = useMutation({
+    mutationFn: () => api.get<{ url: string }>('/api/accounting/anaf/authorize-url'),
+    onSuccess: ({ url }) => window.open(url, '_blank'),
+    onError: (err) => toast.error(err.message),
+  })
+
+  const exchange = useMutation({
+    mutationFn: () => api.post<AnafStatusInfo>('/api/accounting/anaf/exchange-code', { code, cif }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['anaf-status'] })
+      setCode('')
+      toast.success('ANAF conectat — sync-ul rulează orar')
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  if (status.isPending) return <Skeleton className="h-40 w-full" />
+  const info = status.data
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-3">
+          ANAF SPV / e-Factura
+          {info?.status === 'active' ? (
+            <StatePill tone="success">Conectat</StatePill>
+          ) : info?.status === 'needs_reauth' ? (
+            <StatePill tone="critical">Necesită re-auth</StatePill>
+          ) : (
+            <StatePill>Neconfigurat</StatePill>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {info?.status === 'active' ? (
+          <div className="text-sm text-muted-foreground">
+            CIF: <span className="font-mono text-foreground">{info.cif}</span> · Token expiră:{' '}
+            {formatDate(info.expiresAt)} · Ultimul refresh: {formatDate(info.lastRefreshedAt)}
+          </div>
+        ) : null}
+
+        {!info?.oauthConfigured ? (
+          <p className="text-sm text-muted-foreground">
+            Setează <code className="font-mono">ANAF_CLIENT_ID</code> și{' '}
+            <code className="font-mono">ANAF_CLIENT_SECRET</code> în <code className="font-mono">.env</code>{' '}
+            (aplicația OAuth înregistrată pe portalul ANAF), apoi revino aici.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              1. Deschide consimțirea ANAF (browser cu certificatul digital instalat) · 2. Copiază codul din
+              redirect · 3. Lipește-l mai jos cu CIF-ul firmei.
+            </p>
+            <Button variant="outline" disabled={openAuthorize.isPending} onClick={() => openAuthorize.mutate()}>
+              <ExternalLink className="h-4 w-4" /> Deschide consimțirea ANAF
+            </Button>
+            <form
+              className="flex flex-wrap items-end gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                exchange.mutate()
+              }}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="anaf-cif">CIF</Label>
+                <Input id="anaf-cif" className="w-36" value={cif} onChange={(e) => setCif(e.target.value)} required />
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="anaf-code">Cod autorizare</Label>
+                <Input id="anaf-code" value={code} onChange={(e) => setCode(e.target.value)} required />
+              </div>
+              <Button type="submit" disabled={exchange.isPending}>
+                {exchange.isPending ? 'Se conectează…' : 'Conectează'}
+              </Button>
+            </form>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function SequenceCard() {
+  const queryClient = useQueryClient()
+  const sequence = useQuery({
+    queryKey: ['invoice-sequence'],
+    queryFn: () => api.get<InvoiceSequence>('/api/invoicing/sequence'),
+  })
+
+  const [prefix, setPrefix] = useState<string | null>(null)
+  const [padding, setPadding] = useState<string | null>(null)
+  const [defaultPaymentTermsDays, setDefaultPaymentTermsDays] = useState<string | null>(null)
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.patch<InvoiceSequence>('/api/invoicing/sequence', {
+        ...(prefix !== null ? { prefix } : {}),
+        ...(padding !== null ? { padding: parseRoDecimal(padding) } : {}),
+        ...(defaultPaymentTermsDays !== null ? { defaultPaymentTermsDays: parseRoDecimal(defaultPaymentTermsDays) } : {}),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['invoice-sequence'] })
+      setPrefix(null)
+      setPadding(null)
+      setDefaultPaymentTermsDays(null)
+      toast.success('Secvență actualizată')
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  if (sequence.isPending) return <Skeleton className="h-32 w-full" />
+  const seq = sequence.data
+  if (!seq) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Numerotare facturi</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="text-sm text-muted-foreground">
+          Format curent: <span className="font-mono text-foreground">{formatSequencePreview(seq)}</span>{' '}
+          (ultimul număr alocat: {seq.currentValue})
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Termenul de plată implicit se aplică oricărei facturi fără scadență explicită (issuedAt + acest număr de
+          zile). Clienții cu contract diferit au propria excepție în fișa clientului.
+        </p>
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            save.mutate()
+          }}
+        >
+          <div className="space-y-2">
+            <Label htmlFor="seq-prefix">Prefix</Label>
+            <Input
+              id="seq-prefix"
+              className="w-28"
+              value={prefix ?? seq.prefix}
+              onChange={(e) => setPrefix(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="seq-padding">Padding</Label>
+            <Input
+              id="seq-padding"
+              className="w-24"
+              inputMode="numeric"
+              value={padding ?? String(seq.padding)}
+              onChange={(e) => setPadding(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="seq-payment-terms">Termen de plată implicit (zile)</Label>
+            <Input
+              id="seq-payment-terms"
+              className="w-40"
+              inputMode="numeric"
+              value={defaultPaymentTermsDays ?? String(seq.defaultPaymentTermsDays)}
+              onChange={(e) => setDefaultPaymentTermsDays(e.target.value)}
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={save.isPending || (prefix === null && padding === null && defaultPaymentTermsDays === null)}
+          >
+            Salvează
+          </Button>
+        </form>
+        <p className="text-xs text-muted-foreground">
+          Resetare anuală a numerotării: {seq.resetOn === 'year' ? 'da' : 'nu'}. Nu schimba formatul în mijlocul
+          anului fiscal fără motiv.
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
+export function SettingsTab() {
+  return (
+    <div className="space-y-6">
+      <AnafConnectionCard />
+      <SequenceCard />
+      <QuarterlyPackageCard />
+    </div>
+  )
+}

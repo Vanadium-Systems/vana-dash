@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: I want VanaDash for my company
+    url: https://vanadium.systems/produse/vanadash/
+    about: Tell us what you need; commercial licences and hosted instances are arranged by email.
+  - name: Report a vulnerability
+    url: https://github.com/Vanadium-Systems/vana-dash/security/advisories/new
+    about: Please do not open a public issue for security problems.

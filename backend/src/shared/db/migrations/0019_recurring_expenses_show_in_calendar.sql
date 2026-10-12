@@ -1,0 +1,1 @@
+ALTER TABLE "recurring_expenses" ADD COLUMN "show_in_calendar" boolean DEFAULT true NOT NULL;
