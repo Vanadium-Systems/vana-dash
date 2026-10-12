@@ -12,6 +12,7 @@ import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 interface FormState {
   description: string
@@ -34,7 +35,7 @@ function emptyForm(): FormState {
     description: '',
     category: '',
     amount: '',
-    currency: 'RON',
+    currency: BASE_CURRENCY,
     cycle: 'monthly',
     cycleDay: '1',
     cycleMonth: '1',

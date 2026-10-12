@@ -460,5 +460,15 @@
       "sat": "Sat",
       "sun": "Sun"
     }
+  },
+  "money": {
+    "converted": "≈ Amounts in {{currency}}, converted from lei at the BNR rate of each record's day. The books stay in lei.",
+    "noRate": "There is no BNR rate for {{currency}} yet, so the amounts are in lei.",
+    "convertedHint": "converted at the BNR rate",
+    "units": {
+      "RON": "RON",
+      "EUR": "EUR",
+      "USD": "USD"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 export interface BnrRatePoint {
   date: string
@@ -44,7 +45,7 @@ function ChartTooltip({
   return (
     <div className="rounded-md border bg-card px-3 py-2 text-xs text-card-foreground shadow-sm">
       <div className="font-medium">{point.label}</div>
-      <div className="tnum font-mono">{point.value.toFixed(decimals)} RON</div>
+      <div className="tnum font-mono">{point.value.toFixed(decimals)} {BASE_CURRENCY}</div>
       {point.missedSync && <div className="mt-1 text-destructive">{t('financials:bnr.syncFailed')}</div>}
     </div>
   )

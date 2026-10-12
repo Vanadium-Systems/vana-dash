@@ -11,6 +11,9 @@ export const LOCALE_NAMES: Record<Locale, string> = { ro: 'Română', en: 'Engli
 export const DISPLAY_CURRENCIES = ['RON', 'EUR', 'USD'] as const
 export type DisplayCurrency = (typeof DISPLAY_CURRENCIES)[number]
 
+/** The currency the books are kept in, and the default of a new document. */
+export const BASE_CURRENCY = 'RON' satisfies DisplayCurrency
+
 export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && (LOCALES as readonly string[]).includes(value)
 }

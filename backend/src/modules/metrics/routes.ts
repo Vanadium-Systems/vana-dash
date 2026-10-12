@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { resolvePeriod } from '../../shared/lib/period.js'
 import { OverviewConfigUpdateSchema, PeriodQuerySchema, SeriesQuerySchema } from './schema.js'
 import * as service from './service.js'
+import { moneyMeta } from '../../shared/lib/display-money.js'
 
 export async function metricRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -12,7 +13,7 @@ export async function metricRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: PeriodQuerySchema } },
     async (req) => {
       const range = resolvePeriod(req.query.period, req.query.from, req.query.to)
-      return { success: true, data: await service.getSummary(range, req.query.platformId) }
+      return { success: true, data: await service.getSummary(range, req.query.platformId), money: await moneyMeta() }
     },
   )
 
@@ -24,6 +25,7 @@ export async function metricRoutes(app: FastifyInstance) {
       return {
         success: true,
         data: await service.getSeries(req.query.metricKey, range, req.query.platformId),
+        money: await moneyMeta(),
       }
     },
   )

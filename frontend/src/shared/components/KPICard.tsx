@@ -3,6 +3,7 @@ import { Skeleton } from '@/shared/components/ui/skeleton'
 import { cn } from '@/shared/lib/utils'
 import { formatNumber } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { APPROX } from '@/shared/components/MoneyNote'
 
 interface KPICardProps {
   label: string
@@ -18,6 +19,8 @@ interface KPICardProps {
   deltaLabel?: string
   /** Mini-trend dreapta (boltnew) — seria deja încărcată, nu se refetch-uiește. */
   sparkline?: number[]
+  /** The value was converted from the books' currency: it is shown with "≈" in front. */
+  converted?: boolean
 }
 
 const TONE_CLASS: Record<NonNullable<KPICardProps['tone']>, string> = {
@@ -49,7 +52,7 @@ function SparklinePath({ points }: { points: number[] }) {
   )
 }
 
-export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, deltaLabel, sparkline }: KPICardProps) {
+export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, deltaLabel, sparkline, converted }: KPICardProps) {
   const deltaRising = deltaPct != null && deltaPct >= 0
   // Săgeata e semantică pe direcția cifrei, nu pe semn: pentru o valoare "bună" creșterea e verde.
   const deltaClass =
@@ -79,7 +82,18 @@ export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, d
                 tone && TONE_CLASS[tone],
               )}
             >
-              {value === null || value === undefined ? '—' : formatNumber(value, unit)}
+              {value === null || value === undefined ? (
+                '—'
+              ) : (
+                <>
+                  {converted ? (
+                    <span title={t('common:money.convertedHint')} aria-label={t('common:money.convertedHint')}>
+                      {APPROX}{' '}
+                    </span>
+                  ) : null}
+                  {formatNumber(value, unit)}
+                </>
+              )}
             </div>
           )}
           {sparkline ? <SparklinePath points={sparkline} /> : null}

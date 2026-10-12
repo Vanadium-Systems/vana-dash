@@ -20,6 +20,7 @@ import { tierLabel } from './tiers'
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 const SCOPES = [
   { key: 'personal', label: t('common:labels.personal') },
@@ -88,7 +89,7 @@ function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onE
             {goal.title}
           </span>
           {goal.thresholdType === 'mrr_ron' ? <Badge variant="outline">{t('plan:mrrThresholdTag')}</Badge> : null}
-          {monthlyCost !== null ? <Badge variant="outline">{t('plan:perMonth', { amount: `${formatRon(monthlyCost)} RON` })}</Badge> : null}
+          {monthlyCost !== null ? <Badge variant="outline">{t('plan:perMonth', { amount: `${formatRon(monthlyCost)} ${BASE_CURRENCY}` })}</Badge> : null}
           {targetPrice !== null ? (
             <Badge variant="outline">
               {formatRon(targetPrice)} {goal.targetPriceCurrency}
@@ -107,7 +108,7 @@ function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onE
               <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progressPct}%` }} />
             </div>
             <p className="text-xs text-muted-foreground">
-              {t('plan:mrrProgress', { current: formatRon(mrrRon), target: `${formatRon(thresholdValue!)} RON` })}
+              {t('plan:mrrProgress', { current: formatRon(mrrRon), target: `${formatRon(thresholdValue!)} ${BASE_CURRENCY}` })}
             </p>
           </div>
         ) : null}
@@ -222,12 +223,12 @@ function TieredGoals({ goals, mrrRon, onEdit }: { goals: PlanGoal[]; mrrRon: num
           <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4 text-sm">
             <span className="text-muted-foreground">
               {tNodes('plan:totalVsMrr', {
-                cost: <span className="font-medium text-foreground">{formatRon(totalMonthlyCost)} RON</span>,
-                mrr: <span className="font-medium text-foreground">{formatRon(mrrRon)} RON</span>,
+                cost: <span className="font-medium text-foreground">{formatRon(totalMonthlyCost)} {BASE_CURRENCY}</span>,
+                mrr: <span className="font-medium text-foreground">{formatRon(mrrRon)} {BASE_CURRENCY}</span>,
               })}
             </span>
             <Badge variant={gap > 0 ? 'warning' : 'success'}>
-              {gap > 0 ? t('plan:gap', { amount: `${formatRon(gap)} RON` }) : t('plan:coveredByMrr')}
+              {gap > 0 ? t('plan:gap', { amount: `${formatRon(gap)} ${BASE_CURRENCY}` }) : t('plan:coveredByMrr')}
             </Badge>
           </CardContent>
         </Card>
@@ -241,9 +242,9 @@ function TieredGoals({ goals, mrrRon, onEdit }: { goals: PlanGoal[]; mrrRon: num
               <CardTitle className="text-base">{tierLabel(tier)}</CardTitle>
               {tierCost > 0 ? (
                 <div className="flex flex-wrap gap-1">
-                  <Badge variant="outline">{t('plan:perMonth', { amount: `${formatRon(tierCost)} RON` })}</Badge>
+                  <Badge variant="outline">{t('plan:perMonth', { amount: `${formatRon(tierCost)} ${BASE_CURRENCY}` })}</Badge>
                   <Badge variant={cumulativeGap > 0 ? 'warning' : 'success'}>
-                    {cumulativeGap > 0 ? t('plan:cumulativeGap', { amount: `${formatRon(cumulativeGap)} RON` }) : t('plan:coveredByMrr')}
+                    {cumulativeGap > 0 ? t('plan:cumulativeGap', { amount: `${formatRon(cumulativeGap)} ${BASE_CURRENCY}` }) : t('plan:coveredByMrr')}
                   </Badge>
                 </div>
               ) : null}

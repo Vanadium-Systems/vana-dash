@@ -3,7 +3,8 @@ import { db } from '../../shared/db/client.js'
 import { alerts, financialRecords, platformMetrics, syncLog } from '../../shared/db/schema/index.js'
 import { getCurrentMrr, getPnlTotals } from '../../shared/lib/financial-aggregation.js'
 import { htmlToPdf, isPdfAvailable } from '../../shared/lib/pdf.js'
-import { ronAmountSql } from '../../shared/lib/sql-fx.js'
+import { displayMoney, fromRon } from '../../shared/lib/display-money.js'
+import { displayAmountSql } from '../../shared/lib/sql-fx.js'
 import type {
   ExpenseBreakdownTrendQuerySchema,
   MonthlySnapshotQuerySchema,
@@ -46,8 +47,8 @@ export async function getMrrTrend(query: z.infer<typeof MrrTrendQuerySchema>) {
     .groupBy(month, platformMetrics.metricKey)
     .orderBy(month)
 
-  const currentMrr = await getCurrentMrr()
-  return { clientsByMonth, currentMrr }
+  const [mrr, money] = await Promise.all([getCurrentMrr(), displayMoney()])
+  return { clientsByMonth, currentMrr: { ...mrr, mrrDisplay: fromRon(mrr.mrrLei, money) } }
 }
 
 export async function getPeriodComparison(query: z.infer<typeof PeriodComparisonQuerySchema>) {
@@ -58,8 +59,10 @@ export async function getPeriodComparison(query: z.infer<typeof PeriodComparison
   return { periodA, periodB }
 }
 
-export function periodComparisonToCsv(comparison: Awaited<ReturnType<typeof getPeriodComparison>>): string {
-  const header = ['perioada', 'venit_ron', 'cheltuiala_ron', 'net_ron']
+/** The column names carry the currency the figures are in (`venit_ron`, `venit_eur`). */
+export function periodComparisonToCsv(comparison: Awaited<ReturnType<typeof getPeriodComparison>>, currency: string = 'RON'): string {
+  const unit = currency.toLowerCase()
+  const header = ['perioada', `venit_${unit}`, `cheltuiala_${unit}`, `net_${unit}`]
   const rows = [
     ['A', comparison.periodA.revenue, comparison.periodA.expense, comparison.periodA.net],
     ['B', comparison.periodB.revenue, comparison.periodB.expense, comparison.periodB.net],
@@ -71,13 +74,13 @@ export function periodComparisonToCsv(comparison: Awaited<ReturnType<typeof getP
 export async function getExpenseBreakdownTrend(query: z.infer<typeof ExpenseBreakdownTrendQuerySchema>) {
   const month = sql<string>`TO_CHAR(DATE_TRUNC('month', ${financialRecords.issuedAt}) AT TIME ZONE 'UTC', 'YYYY-MM')`
   const category = sql<string>`COALESCE(${financialRecords.category}, 'necategorizat')`
-  const ronAmount = ronAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt)
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
 
   return db
     .select({
       month,
       category,
-      total: sql<number>`SUM(${ronAmount})::float`,
+      total: sql<number>`SUM(${displayAmount})::float`,
     })
     .from(financialRecords)
     .where(
@@ -110,7 +113,8 @@ export async function getMonthlySnapshot(query: z.infer<typeof MonthlySnapshotQu
   const { from, to } = monthRange(query.month)
   const range = { from, to }
 
-  const [totals, mrr, topExpenseCategories, alertCount, syncStats] = await Promise.all([
+  const [money, totals, mrr, topExpenseCategories, alertCount, syncStats] = await Promise.all([
+    displayMoney(),
     getPnlTotals(range),
     getCurrentMrr(),
     getTopExpenseCategories(range),
@@ -120,10 +124,11 @@ export async function getMonthlySnapshot(query: z.infer<typeof MonthlySnapshotQu
 
   return {
     month: query.month,
+    currency: money.currency,
     revenue: totals.revenue,
     expense: totals.expense,
     net: totals.net,
-    mrr,
+    mrr: { ...mrr, mrrDisplay: fromRon(mrr.mrrLei, money) },
     topExpenseCategories,
     alertsTriggered: alertCount,
     syncSuccessRate: syncStats,
@@ -132,10 +137,10 @@ export async function getMonthlySnapshot(query: z.infer<typeof MonthlySnapshotQu
 
 async function getTopExpenseCategories(range: { from: Date; to: Date }) {
   const category = sql<string>`COALESCE(${financialRecords.category}, 'necategorizat')`
-  const ronAmount = ronAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt)
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
 
   return db
-    .select({ category, total: sql<number>`SUM(${ronAmount})::float` })
+    .select({ category, total: sql<number>`SUM(${displayAmount})::float` })
     .from(financialRecords)
     .where(
       and(
@@ -146,7 +151,7 @@ async function getTopExpenseCategories(range: { from: Date; to: Date }) {
       ),
     )
     .groupBy(category)
-    .orderBy(sql`SUM(${ronAmount}) DESC`)
+    .orderBy(sql`SUM(${displayAmount}) DESC`)
     .limit(5)
 }
 
@@ -172,13 +177,13 @@ async function getSyncSuccessRate(range: { from: Date; to: Date }): Promise<numb
   return total > 0 ? Math.round((success / total) * 1000) / 10 : 100
 }
 
-function money(value: number): string {
-  return `${value.toFixed(2)} RON`
+function money(value: number, currency: string): string {
+  return `${value.toFixed(2)} ${currency}`
 }
 
 function renderMonthlySnapshotHtml(snapshot: Awaited<ReturnType<typeof getMonthlySnapshot>>): string {
   const categoryRows = snapshot.topExpenseCategories
-    .map((c) => `<tr><td>${c.category}</td><td class="num">${money(c.total)}</td></tr>`)
+    .map((c) => `<tr><td>${c.category}</td><td class="num">${money(c.total, snapshot.currency)}</td></tr>`)
     .join('')
 
   return `<!doctype html>
@@ -201,10 +206,10 @@ function renderMonthlySnapshotHtml(snapshot: Awaited<ReturnType<typeof getMonthl
 <body>
   <h1>${tr('emails.monthlyReport.pdf.title', { month: snapshot.month })}</h1>
   <div class="kpis">
-    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.revenue')}</div><div class="value">${money(snapshot.revenue)}</div></div>
-    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.expenses')}</div><div class="value">${money(snapshot.expense)}</div></div>
-    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.net')}</div><div class="value">${money(snapshot.net)}</div></div>
-    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.mrr')}</div><div class="value">${money(snapshot.mrr.mrrLei)}</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.revenue')}</div><div class="value">${money(snapshot.revenue, snapshot.currency)}</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.expenses')}</div><div class="value">${money(snapshot.expense, snapshot.currency)}</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.net')}</div><div class="value">${money(snapshot.net, snapshot.currency)}</div></div>
+    <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.mrr')}</div><div class="value">${money(snapshot.mrr.mrrDisplay, snapshot.currency)}</div></div>
   </div>
   <div class="kpis">
     <div class="kpi"><div class="label">${tr('emails.monthlyReport.pdf.alerts')}</div><div class="value">${snapshot.alertsTriggered}</div></div>

@@ -2,7 +2,9 @@
 import { Directory, Filesystem } from '@capacitor/filesystem'
 import { toast } from 'sonner'
 import { getLocale, t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { blobToBase64, isNative } from '@/shared/lib/native'
+import type { MoneyMeta } from '@/shared/lib/types'
 
 export class ApiError extends Error {
   constructor(
@@ -29,6 +31,8 @@ export function onForbiddenRefreshMe(refresh: () => Promise<unknown>) {
 interface ApiEnvelope<T> {
   success: boolean
   data: T
+  /** Present on responses with totals: the currency the figures are in. */
+  money?: MoneyMeta
   error?: string | { code?: string; message?: string; [key: string]: unknown }
 }
 
@@ -80,7 +84,7 @@ function userMessage(status: number, body: ApiEnvelope<unknown> | null): string 
   return t('common:errors.api.generic', { status })
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function requestEnvelope<T>(path: string, init?: RequestInit): Promise<ApiEnvelope<T>> {
   // FormData (upload arhivă) — browserul setează singur Content-Type cu boundary-ul multipart,
   // nu-l suprascriem cu application/json.
   const isFormData = init?.body instanceof FormData
@@ -102,14 +106,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   const body = (await res.json().catch(() => null)) as (ApiEnvelope<T> & { message?: string }) | null
   // Rutele fără răspuns (204: forgot-password, reset-password) nu trimit envelope.
-  if (res.status === 204) return undefined as T
+  if (res.status === 204) return { success: true, data: undefined as T }
   if (!res.ok || !body?.success) {
     const { message, code } = errorDetails(res.status, body)
     // Rolul tocmai i-a fost schimbat: reîncărcăm `/me` ca interfața să se potrivească.
     if (res.status === 403 && code === 'FEATURE_FORBIDDEN') void refreshMeOnce?.()
     throw new ApiError(res.status, message, code, body)
   }
-  return body.data
+  return body
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return (await requestEnvelope<T>(path, init)).data
 }
 
 // Pt. rute binare (nu envelope-ul {success,data}). Citește Content-Disposition dacă serverul
@@ -159,6 +167,11 @@ async function downloadFile(path: string, fallbackFileName: string): Promise<voi
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  /** For totals: the figures together with the currency the server computed them in. */
+  getWithMoney: async <T>(path: string): Promise<{ data: T; money: MoneyMeta }> => {
+    const body = await requestEnvelope<T>(path)
+    return { data: body.data, money: body.money ?? { currency: BASE_CURRENCY, converted: false, rateSource: 'BNR' } }
+  },
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) =>

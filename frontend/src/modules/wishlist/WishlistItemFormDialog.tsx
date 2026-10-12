@@ -11,6 +11,7 @@ import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 
 interface WishlistItemFormDialogProps {
@@ -30,7 +31,7 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
   const [scope, setScope] = useState<WishlistScope>('personal')
   const [priority, setPriority] = useState<WishlistPriority>('medium')
   const [estimatedPrice, setEstimatedPrice] = useState('')
-  const [currency, setCurrency] = useState('RON')
+  const [currency, setCurrency] = useState<string>(BASE_CURRENCY)
   const [link, setLink] = useState('')
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
     setScope(item?.scope ?? defaultScope ?? 'personal')
     setPriority(item?.priority ?? 'medium')
     setEstimatedPrice(item?.estimatedPrice ?? '')
-    setCurrency(item?.currency ?? 'RON')
+    setCurrency(item?.currency ?? BASE_CURRENCY)
     setLink(item?.link ?? '')
   }, [open, item, defaultScope])
 

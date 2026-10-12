@@ -9,6 +9,7 @@ import { api } from '@/shared/lib/api'
 import type { BankAccount, BankProvider } from '@/shared/lib/types'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 interface BankAccountFormDialogProps {
   open: boolean
@@ -22,7 +23,7 @@ export function BankAccountFormDialog({ open, onOpenChange, account }: BankAccou
   const [provider, setProvider] = useState('revolut')
   const [name, setName] = useState('')
   const [accountRef, setAccountRef] = useState('')
-  const [currency, setCurrency] = useState('RON')
+  const [currency, setCurrency] = useState<string>(BASE_CURRENCY)
   const [apiKey, setApiKey] = useState('')
 
   const providers = useQuery({
@@ -36,7 +37,7 @@ export function BankAccountFormDialog({ open, onOpenChange, account }: BankAccou
       setProvider(account?.provider ?? 'revolut')
       setName(account?.name ?? '')
       setAccountRef(account?.accountRef ?? '')
-      setCurrency(account?.currency ?? 'RON')
+      setCurrency(account?.currency ?? BASE_CURRENCY)
       // API key-ul nu vine niciodată din backend — la edit rămâne gol dacă nu-l schimbi
       setApiKey('')
     }

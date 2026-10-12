@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import { Download } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -11,7 +10,6 @@ import { MetricBarChart } from '@/shared/components/charts/MetricBarChart'
 import { KPICard } from '@/shared/components/KPICard'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { PeriodSelector, usePeriod } from '@/shared/components/PeriodSelector'
-import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { CHART_NEUTRAL, chartColor } from '@/shared/lib/chart-colors'
 import { formatNumber } from '@/shared/lib/format'
@@ -22,6 +20,9 @@ import type {
   PeriodComparisonResponse,
 } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
+import { approx, MoneyNote } from '@/shared/components/MoneyNote'
+import { useMoneyQuery } from '@/shared/hooks/use-money-query'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 // Convertește ?period= (7d|30d|90d|mtd|ytd) în {from,to} ISO — mirror al
 // shared/lib/period.ts din backend (resolvePeriod), dar rutele /api/reports/* cer
@@ -70,10 +71,10 @@ function MrrAndClientsSection() {
   // dat senzația de delogare repetată — BUG raportat de Stefan 2026-07-21, vezi CHANGELOG).
   const range = useMemo(() => resolvePeriodToRange(period), [period])
 
-  const mrrTrend = useQuery({
-    queryKey: ['reports', 'mrr-trend', range.from, range.to],
-    queryFn: () => api.get<MrrTrendResponse>(`/api/reports/mrr-trend?from=${range.from}&to=${range.to}`),
-  })
+  const mrrTrend = useMoneyQuery<MrrTrendResponse>(
+    ['reports', 'mrr-trend', range.from, range.to],
+    `/api/reports/mrr-trend?from=${range.from}&to=${range.to}`,
+  )
 
   const months = [...new Set(mrrTrend.data?.clientsByMonth.map((p) => p.month) ?? [])].sort()
   const chartData = months.map((month) => {
@@ -85,9 +86,16 @@ function MrrAndClientsSection() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <KPICard label={t('reports:kpi.currentMrr')} value={mrrTrend.data?.currentMrr.mrrLei ?? null} unit="RON" isPending={mrrTrend.isPending} />
+        <KPICard
+          label={t('reports:kpi.currentMrr')}
+          value={mrrTrend.data?.currentMrr.mrrDisplay ?? null}
+          unit={mrrTrend.money?.currency ?? BASE_CURRENCY}
+          converted={mrrTrend.money?.converted}
+          isPending={mrrTrend.isPending}
+        />
         <KPICard label={t('reports:kpi.currentMrrEur')} value={mrrTrend.data?.currentMrr.mrrEur ?? null} unit="EUR" isPending={mrrTrend.isPending} />
       </div>
+      <MoneyNote money={mrrTrend.money} />
       <Card>
         <CardHeader>
           <CardTitle>{t('reports:clients.evolution')}</CardTitle>
@@ -125,13 +133,11 @@ function PeriodComparisonSection() {
   const [fromB, setFromB] = useState(monthAgo)
   const [toB, setToB] = useState(today)
 
-  const comparison = useQuery({
-    queryKey: ['reports', 'period-comparison', fromA, toA, fromB, toB],
-    queryFn: () =>
-      api.get<PeriodComparisonResponse>(
-        `/api/reports/period-comparison?fromA=${fromA}&toA=${toA}&fromB=${fromB}&toB=${toB}`,
-      ),
-  })
+  const comparison = useMoneyQuery<PeriodComparisonResponse>(
+    ['reports', 'period-comparison', fromA, toA, fromB, toB],
+    `/api/reports/period-comparison?fromA=${fromA}&toA=${toA}&fromB=${fromB}&toB=${toB}`,
+  )
+  const amount = (value: number) => approx(formatNumber(value, comparison.money?.currency ?? BASE_CURRENCY), comparison.money)
 
   return (
     <Card>
@@ -175,12 +181,12 @@ function PeriodComparisonSection() {
             {(['periodA', 'periodB'] as const).map((key) => (
               <div key={key} className="space-y-1 rounded-md bg-muted/50 p-3">
                 <p className="text-xs font-medium text-muted-foreground">{key === 'periodA' ? 'A' : 'B'}</p>
-                <p className="text-sm">{t('reports:compare.revenue')} <strong className="tnum font-mono">{formatNumber(comparison.data![key].revenue, 'RON')}</strong></p>
-                <p className="text-sm">{t('reports:compare.expense')} <strong className="tnum font-mono">{formatNumber(comparison.data![key].expense, 'RON')}</strong></p>
+                <p className="text-sm">{t('reports:compare.revenue')} <strong className="tnum font-mono">{amount(comparison.data![key].revenue)}</strong></p>
+                <p className="text-sm">{t('reports:compare.expense')} <strong className="tnum font-mono">{amount(comparison.data![key].expense)}</strong></p>
                 <p className="text-sm">
                   {t('reports:compare.net')}{' '}
                   <strong className={cn('tnum font-mono', comparison.data![key].net < 0 && 'text-destructive')}>
-                    {formatNumber(comparison.data![key].net, 'RON')}
+                    {amount(comparison.data![key].net)}
                   </strong>
                 </p>
               </div>
@@ -196,11 +202,10 @@ function ExpenseBreakdownSection() {
   const period = usePeriod()
   const range = useMemo(() => resolvePeriodToRange(period), [period])
 
-  const breakdown = useQuery({
-    queryKey: ['reports', 'expense-breakdown-trend', range.from, range.to],
-    queryFn: () =>
-      api.get<ExpenseBreakdownTrendPoint[]>(`/api/reports/expense-breakdown-trend?from=${range.from}&to=${range.to}`),
-  })
+  const breakdown = useMoneyQuery<ExpenseBreakdownTrendPoint[]>(
+    ['reports', 'expense-breakdown-trend', range.from, range.to],
+    `/api/reports/expense-breakdown-trend?from=${range.from}&to=${range.to}`,
+  )
 
   const categories = [...new Set(breakdown.data?.map((p) => p.category) ?? [])]
   const months = [...new Set(breakdown.data?.map((p) => p.month) ?? [])].sort()
@@ -228,7 +233,7 @@ function ExpenseBreakdownSection() {
           <MetricBarChart
             data={chartData}
             series={categories.map((c, i) => ({ key: c, label: c, color: chartColor(i) }))}
-            unit="RON"
+            unit={breakdown.money?.currency ?? BASE_CURRENCY}
             stacked
           />
         )}
@@ -241,10 +246,9 @@ function MonthlySnapshotSection() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
   const [downloading, setDownloading] = useState(false)
 
-  const snapshot = useQuery({
-    queryKey: ['reports', 'monthly-snapshot', month],
-    queryFn: () => api.get<MonthlySnapshot>(`/api/reports/monthly-snapshot?month=${month}`),
-  })
+  const snapshot = useMoneyQuery<MonthlySnapshot>(['reports', 'monthly-snapshot', month], `/api/reports/monthly-snapshot?month=${month}`)
+  const currency = snapshot.money?.currency ?? BASE_CURRENCY
+  const converted = snapshot.money?.converted
 
   return (
     <Card>
@@ -278,10 +282,10 @@ function MonthlySnapshotSection() {
           <ChartError message={t('reports:monthly.loadFailed')} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <KPICard label={t('reports:monthly.revenue')} value={snapshot.data?.revenue ?? null} unit="RON" />
-            <KPICard label={t('reports:monthly.expenses')} value={snapshot.data?.expense ?? null} unit="RON" />
-            <KPICard label={t('reports:monthly.net')} value={snapshot.data?.net ?? null} unit="RON" />
-            <KPICard label={t('reports:monthly.mrr')} value={snapshot.data?.mrr.mrrLei ?? null} unit="RON" />
+            <KPICard label={t('reports:monthly.revenue')} value={snapshot.data?.revenue ?? null} unit={currency} converted={converted} />
+            <KPICard label={t('reports:monthly.expenses')} value={snapshot.data?.expense ?? null} unit={currency} converted={converted} />
+            <KPICard label={t('reports:monthly.net')} value={snapshot.data?.net ?? null} unit={currency} converted={converted} />
+            <KPICard label={t('reports:monthly.mrr')} value={snapshot.data?.mrr.mrrDisplay ?? null} unit={currency} converted={converted} />
             <KPICard label={t('reports:monthly.alertsTriggered')} value={snapshot.data?.alertsTriggered ?? null} />
             <KPICard label={t('reports:monthly.syncSuccessRate')} value={snapshot.data?.syncSuccessRate ?? null} unit="%" />
           </div>

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ExternalLink, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -17,6 +17,9 @@ import { formatNumber, intlTag } from '@/shared/lib/format'
 import type { WishlistCategory, WishlistItem, WishlistResponse, WishlistScope } from '@/shared/lib/types'
 import { WishlistItemFormDialog } from './WishlistItemFormDialog'
 import { t } from '@/shared/lib/i18n'
+import { approx, MoneyNote } from '@/shared/components/MoneyNote'
+import { useMoneyQuery } from '@/shared/hooks/use-money-query'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 const TABS = [
   { key: 'all', label: t('common:labels.all') },
@@ -103,10 +106,9 @@ export function WishlistPage() {
   if (tab !== 'all') params.set('category', tab)
   if (scopeTab !== 'all') params.set('scope', scopeTab)
   const query = params.toString()
-  const wishlist = useQuery({
-    queryKey: ['wishlist', tab, scopeTab],
-    queryFn: () => api.get<WishlistResponse>(`/api/wishlist${query ? `?${query}` : ''}`),
-  })
+  const wishlist = useMoneyQuery<WishlistResponse>(['wishlist', tab, scopeTab], `/api/wishlist${query ? `?${query}` : ''}`)
+  const total = (category: WishlistCategory, scope: WishlistScope) =>
+    approx(formatNumber(scopeTotal(totals, category, scope), wishlist.money?.currency ?? BASE_CURRENCY), wishlist.money)
 
   const openCreate = () => {
     setEditingItem(null)
@@ -152,11 +154,11 @@ export function WishlistPage() {
           <CardContent className="flex gap-6">
             <div>
               <div className="text-xs text-muted-foreground">{t('common:labels.personal')}</div>
-              <div className="text-xl font-bold">{formatNumber(scopeTotal(totals, 'necesitate', 'personal'), 'RON')}</div>
+              <div className="text-xl font-bold">{total('necesitate', 'personal')}</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">{t('common:labels.company')}</div>
-              <div className="text-xl font-bold">{formatNumber(scopeTotal(totals, 'necesitate', 'firma'), 'RON')}</div>
+              <div className="text-xl font-bold">{total('necesitate', 'firma')}</div>
             </div>
           </CardContent>
         </Card>
@@ -167,15 +169,16 @@ export function WishlistPage() {
           <CardContent className="flex gap-6">
             <div>
               <div className="text-xs text-muted-foreground">{t('common:labels.personal')}</div>
-              <div className="text-xl font-bold">{formatNumber(scopeTotal(totals, 'placere', 'personal'), 'RON')}</div>
+              <div className="text-xl font-bold">{total('placere', 'personal')}</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">{t('common:labels.company')}</div>
-              <div className="text-xl font-bold">{formatNumber(scopeTotal(totals, 'placere', 'firma'), 'RON')}</div>
+              <div className="text-xl font-bold">{total('placere', 'firma')}</div>
             </div>
           </CardContent>
         </Card>
       </div>
+      <MoneyNote money={wishlist.money} />
 
       {/* Medii separate — Personal/Firmă e independent de Necesități/Plăceri (cerință
           explicită Stefan, 2026-07-22): două rânduri de tab-uri, nu unul combinat, ca să poți

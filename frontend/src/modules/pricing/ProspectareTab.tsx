@@ -23,6 +23,7 @@ import { ScoringConfigCard } from './ScoringConfigCard'
 import { StatusDot } from './status-colors'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 const PRIORITY_VARIANT: Record<ProspectPriority, 'destructive' | 'warning' | 'secondary' | 'outline'> = {
   HOT: 'destructive',
@@ -502,7 +503,7 @@ export function ProspectareTab() {
                         />
                       </TableCell>
                       <TableCell>{p.employeeCount ?? '—'}</TableCell>
-                      <TableCell>{p.revenue ? formatNumber(Number(p.revenue), 'RON') : '—'}</TableCell>
+                      <TableCell>{p.revenue ? formatNumber(Number(p.revenue), BASE_CURRENCY) : '—'}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           <Button type="button" variant="outline" onClick={() => navigate(`/pricing?tab=calculator&prospectId=${p.id}`)}>

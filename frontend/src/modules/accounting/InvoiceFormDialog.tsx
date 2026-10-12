@@ -13,6 +13,7 @@ import { formatMoney } from './badges'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 interface LineDraft {
   description: string
@@ -42,7 +43,7 @@ interface InvoiceFormDialogProps {
 export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDialogProps) {
   const queryClient = useQueryClient()
   const [billingClientId, setBillingClientId] = useState('')
-  const [currency, setCurrency] = useState('RON')
+  const [currency, setCurrency] = useState<string>(BASE_CURRENCY)
   const [issuedAt, setIssuedAt] = useState('')
   const [dueAt, setDueAt] = useState('')
   const [note, setNote] = useState('')
@@ -148,7 +149,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
       )
     } else if (!invoice) {
       setBillingClientId('')
-      setCurrency('RON')
+      setCurrency(BASE_CURRENCY)
       setIssuedAt(new Date().toISOString().slice(0, 10))
       setDueAt('')
       setNote('')

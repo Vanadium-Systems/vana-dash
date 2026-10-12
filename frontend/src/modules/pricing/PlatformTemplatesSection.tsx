@@ -10,6 +10,7 @@ import type { InvoiceTemplate } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 // Sprint D, Track 3; re-scope 2026-07-18 — template-uri de facturi PER PLATFORMĂ (aplicație
 // integrată), nu per client: 2-3 template-uri reutilizate de toți clienții unei platforme
@@ -35,7 +36,7 @@ interface TemplateFormState {
 }
 
 function emptyForm(): TemplateFormState {
-  return { name: '', currency: 'RON', isDefaultForAutoInvoice: false, lines: [{ ...EMPTY_LINE }] }
+  return { name: '', currency: BASE_CURRENCY, isDefaultForAutoInvoice: false, lines: [{ ...EMPTY_LINE }] }
 }
 
 function toForm(template: InvoiceTemplate): TemplateFormState {

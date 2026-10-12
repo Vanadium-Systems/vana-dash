@@ -14,6 +14,7 @@ import { formatDate, formatMoney } from './badges'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 function currentQuarter(): string {
   const now = new Date()
@@ -93,8 +94,8 @@ function QuarterlyPackageCard() {
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
             <div><dt className="text-muted-foreground">{t('accounting:quarterly.issuedInvoices')}</dt><dd className="font-medium">{summary.data.invoicesIssued}</dd></div>
             <div><dt className="text-muted-foreground">{t('accounting:quarterly.receivedInvoices')}</dt><dd className="font-medium">{summary.data.invoicesReceived}</dd></div>
-            <div><dt className="text-muted-foreground">{t('accounting:quarterly.revenue')}</dt><dd className="font-medium">{formatMoney(summary.data.revenueRon, 'RON')}</dd></div>
-            <div><dt className="text-muted-foreground">{t('accounting:quarterly.expenses')}</dt><dd className="font-medium">{formatMoney(summary.data.expensesRon, 'RON')}</dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.revenue')}</dt><dd className="font-medium">{formatMoney(summary.data.revenueRon, BASE_CURRENCY)}</dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.expenses')}</dt><dd className="font-medium">{formatMoney(summary.data.expensesRon, BASE_CURRENCY)}</dd></div>
             <div><dt className="text-muted-foreground">{t('accounting:quarterly.unreconciled')}</dt><dd className="font-medium">{summary.data.unmatchedBankTransactions}</dd></div>
             <div><dt className="text-muted-foreground">{t('accounting:quarterly.reverseChargeLines')}</dt><dd className="font-medium">{summary.data.reverseChargeLines}</dd></div>
           </dl>

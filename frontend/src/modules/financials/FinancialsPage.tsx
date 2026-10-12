@@ -14,6 +14,9 @@ import type { CashflowEntry, ExchangeRatePoint, PnlByCategory, PnlByMonth, PnlRe
 import { formatNumber, intlTag } from '@/shared/lib/format'
 import { BnrRateChart, type BnrRatePoint } from './BnrRateChart'
 import { t } from '@/shared/lib/i18n'
+import { approx, MoneyNote } from '@/shared/components/MoneyNote'
+import { useMoneyQuery } from '@/shared/hooks/use-money-query'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 const BAR_SERIES = [
   { key: 'out', label: t('financials:labels.revenueCollected'), color: 'hsl(var(--primary))' },
@@ -29,21 +32,19 @@ const CASHFLOW_LABELS: Record<CashflowEntry['paymentStatus'], string> = {
 export function FinancialsPage() {
   const period = usePeriod()
 
-  const pnl = useQuery({
-    queryKey: ['financials', 'pnl', period],
-    queryFn: () => api.get<PnlResponse>(`/api/financials/pnl?period=${period}`),
-  })
-  const cashflow = useQuery({
-    queryKey: ['financials', 'cashflow', period],
-    queryFn: () => api.get<CashflowEntry[]>(`/api/financials/cashflow?period=${period}`),
-  })
+  const pnl = useMoneyQuery<PnlResponse>(['financials', 'pnl', period], `/api/financials/pnl?period=${period}`)
+  const cashflow = useMoneyQuery<CashflowEntry[]>(['financials', 'cashflow', period], `/api/financials/cashflow?period=${period}`)
   // Calculat LIVE din recurring_expenses, nu din financial_records — o cheltuială recurentă abia
   // creată n-are încă niciun rând materializat (cron-ul scrie unul doar la nextDueDate), deci
   // fără query-ul ăsta separat ar fi invizibilă pe Financials până la următoarea rulare de cron.
-  const recurringExpensesMonthly = useQuery({
-    queryKey: ['financials', 'recurring-expenses'],
-    queryFn: () => api.get<{ monthlyRon: number }>('/api/financials/recurring-expenses'),
-  })
+  const recurringExpensesMonthly = useMoneyQuery<{ monthlyRon: number; monthlyDisplay: number }>(
+    ['financials', 'recurring-expenses'],
+    '/api/financials/recurring-expenses',
+  )
+  // The server says which currency the totals are in; nothing here assumes lei.
+  const money = pnl.money
+  const currency = money?.currency ?? BASE_CURRENCY
+  const converted = money?.converted
 
   // direction: 'out' = factură emisă de Stefan (venit), 'in' = document primit (cheltuială).
   // "Venituri" = doar facturile plătite — o factură emisă dar neîncasată nu e venit realizat,
@@ -58,8 +59,8 @@ export function FinancialsPage() {
   // cheltuieli (Revolut/SPV), trecerea unpaid→paid se va întâmpla automat, la fel ca la facturi.
   const pendingExpense = sumByDirection(pnl.data?.byMonth, 'in', ['unpaid', 'partial'])
   const profit = revenue != null && expense != null ? revenue - expense : null
-  // Rată income/outcome — venituri încasate / cheltuieli, ambele deja convertite la RON în SQL
-  // (ronAmountSql), deci corecte indiferent de moneda cheltuielilor individuale. Cheltuieli 0 →
+  // Rată income/outcome — venituri încasate / cheltuieli, ambele deja convertite în aceeași monedă în SQL
+  // (displayAmountSql), deci corecte indiferent de moneda cheltuielilor individuale. Cheltuieli 0 →
   // raport nedefinit (nu Infinity), afișat "—".
   const incomeOutcomeRatio = revenue != null && expense != null && expense > 0 ? revenue / expense : null
 
@@ -71,24 +72,26 @@ export function FinancialsPage() {
       <PageHeader title={t('common:nav.financials')} actions={<PeriodSelector />} />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        <KPICard label={t('financials:labels.revenueCollected')} value={revenue} unit="RON" isPending={pnl.isPending} />
-        <KPICard label={t('financials:kpi.invoicedPending')} value={pendingRevenue} unit="RON" isPending={pnl.isPending} />
-        <KPICard label={t('financials:labels.expenses')} value={expense} unit="RON" isPending={pnl.isPending} />
+        <KPICard label={t('financials:labels.revenueCollected')} value={revenue} unit={currency} converted={converted} isPending={pnl.isPending} />
+        <KPICard label={t('financials:kpi.invoicedPending')} value={pendingRevenue} unit={currency} converted={converted} isPending={pnl.isPending} />
+        <KPICard label={t('financials:labels.expenses')} value={expense} unit={currency} converted={converted} isPending={pnl.isPending} />
         <KPICard
           label={t('financials:kpi.expensesPending')}
           value={pendingExpense}
-          unit="RON"
+          unit={currency}
+          converted={converted}
           isPending={pnl.isPending}
           hint={t('financials:kpi.expensesPendingHint')}
         />
         <KPICard
           label={t('financials:kpi.recurringMonthly')}
-          value={recurringExpensesMonthly.data?.monthlyRon ?? null}
-          unit="RON"
+          value={recurringExpensesMonthly.data?.monthlyDisplay ?? null}
+          unit={recurringExpensesMonthly.money?.currency ?? currency}
+          converted={recurringExpensesMonthly.money?.converted}
           isPending={recurringExpensesMonthly.isPending}
           hint={t('financials:kpi.recurringMonthlyHint')}
         />
-        <KPICard label={t('financials:kpi.netProfit')} value={profit} unit="RON" isPending={pnl.isPending} />
+        <KPICard label={t('financials:kpi.netProfit')} value={profit} unit={currency} converted={converted} isPending={pnl.isPending} />
         <KPICard
           label={t('financials:kpi.revenueToExpenses')}
           value={incomeOutcomeRatio}
@@ -97,6 +100,7 @@ export function FinancialsPage() {
           hint={t('financials:kpi.revenueToExpensesHint')}
         />
       </div>
+      <MoneyNote money={money} />
 
       <Card>
         <CardHeader>
@@ -110,7 +114,7 @@ export function FinancialsPage() {
           ) : !monthlyChartData.length ? (
             <ChartEmpty label={t('common:states.noData')} />
           ) : (
-            <MetricBarChart data={monthlyChartData} series={BAR_SERIES} unit="RON" />
+            <MetricBarChart data={monthlyChartData} series={BAR_SERIES} unit={currency} />
           )}
         </CardContent>
       </Card>
@@ -140,11 +144,11 @@ export function FinancialsPage() {
                 {categoryRows.map((row) => (
                   <TableRow key={row.category}>
                     <TableCell className="font-medium capitalize">{row.category}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatNumber(row.out, 'RON')}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatNumber(row.in, 'RON')}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">{approx(formatNumber(row.out, currency), money)}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">{approx(formatNumber(row.in, currency), money)}</TableCell>
                     <TableCell className="text-right font-mono text-sm tnum">
                       <span className={row.out - row.in < 0 ? 'text-destructive' : undefined}>
-                        {formatNumber(row.out - row.in, 'RON')}
+                        {approx(formatNumber(row.out - row.in, currency), money)}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -173,7 +177,7 @@ export function FinancialsPage() {
                   <div className="text-xs text-muted-foreground">
                     {entry.direction === 'out' ? t('financials:cashFlow.issued') : t('financials:cashFlow.received')} · {CASHFLOW_LABELS[entry.paymentStatus]}
                   </div>
-                  <div className="tnum font-mono text-lg font-semibold">{formatNumber(entry.total, 'RON')}</div>
+                  <div className="tnum font-mono text-lg font-semibold">{approx(formatNumber(entry.total, cashflow.money?.currency ?? currency), cashflow.money)}</div>
                   <div className="text-xs text-muted-foreground">{t('common:count.records', { count: entry.count })}</div>
                 </div>
               ))}
@@ -296,7 +300,7 @@ function ExchangeRateCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="tnum font-mono text-2xl font-semibold">
-          {latest ? `1 ${currency} = ${Number(latest.rate).toFixed(4)} RON` : '—'}
+          {latest ? `1 ${currency} = ${Number(latest.rate).toFixed(4)} ${BASE_CURRENCY}` : '—'}
           {latest && <span className="ml-2 font-sans text-sm font-normal text-muted-foreground">{t('financials:bnr.asOf', { date: latest.date })}</span>}
         </div>
         {history.isPending ? (

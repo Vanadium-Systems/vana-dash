@@ -15,11 +15,14 @@ import { eventLabel } from '@/shared/lib/event-label'
 import { api } from '@/shared/lib/api'
 import { sumByDirection } from '@/shared/lib/financial-utils'
 import { cn } from '@/shared/lib/utils'
-import { formatDate, formatNumber, intlTag } from '@/shared/lib/format'
-import type { AlertInstance, AlertSeverity, BookingSummary, CalendarOccurrence, EmailThread, MetricSummary, Note, OverviewConfig, Platform, PnlResponse } from '@/shared/lib/types'
+import { formatDate, formatMoney, formatNumber, intlTag } from '@/shared/lib/format'
+import type { AlertInstance, AlertSeverity, BookingSummary, CalendarOccurrence, EmailThread, MetricSummary, Note, OverviewConfig, Platform, PnlResponse, MoneyMeta } from '@/shared/lib/types'
 import { extractEmailAddress } from '@/modules/email/identity'
 import { conversationTitle } from '@/modules/messages/ConversationList'
 import { t } from '@/shared/lib/i18n'
+import { approx, MoneyNote } from '@/shared/components/MoneyNote'
+import { useMoneyQuery } from '@/shared/hooks/use-money-query'
+import { BASE_CURRENCY, type DisplayCurrency } from '@/shared/lib/locale'
 
 // „Azi" (sprint Remake v2, DESIGN.md): un singur număr primar, apoi ce trebuie rezolvat și ce
 // e în calendar. Propoziția de 2 secunde: cât am încasat luna asta, ce arde azi, ce am în calendar.
@@ -41,8 +44,10 @@ function kpiLabel(key: string): string {
   return KPI_LABELS[key] ?? key.replace(/^[^.]+\./, '').replace(/_/g, ' ')
 }
 
-function lei(value: number): string {
-  return `${new Intl.NumberFormat(intlTag(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} lei`
+/** "1.234,50 lei" in Romanian, "1,234.50 RON" in English; "≈" in front when it was converted. */
+function amount(value: number, money: MoneyMeta | undefined): string {
+  const currency: DisplayCurrency = money?.currency ?? BASE_CURRENCY
+  return approx(formatMoney(value, t(`common:money.units.${currency}`)), money)
 }
 
 const time = (iso: string) => new Intl.DateTimeFormat(intlTag(), { hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(new Date(iso))
@@ -287,18 +292,12 @@ function UnreadMessages() {
 
 function PrimaryNumber({ monthName }: { monthName: string }) {
   const [editing, setEditing] = useState(false)
-  const pnl = useQuery({
-    queryKey: ['financials', 'pnl', 'mtd'],
-    queryFn: () => api.get<PnlResponse>('/api/financials/pnl?period=mtd'),
-  })
-  const recurring = useQuery({
-    queryKey: ['financials', 'recurring-revenue'],
-    queryFn: () => api.get<{ mrrLei: number; mrrEur: number }>('/api/financials/recurring-revenue'),
-  })
-  const summary = useQuery({
-    queryKey: ['metrics', 'summary', 'mtd'],
-    queryFn: () => api.get<MetricSummary[]>('/api/metrics/summary?period=mtd'),
-  })
+  const pnl = useMoneyQuery<PnlResponse>(['financials', 'pnl', 'mtd'], '/api/financials/pnl?period=mtd')
+  const recurring = useMoneyQuery<{ mrrLei: number; mrrEur: number; mrrDisplay: number }>(
+    ['financials', 'recurring-revenue'],
+    '/api/financials/recurring-revenue',
+  )
+  const summary = useMoneyQuery<MetricSummary[]>(['metrics', 'summary', 'mtd'], '/api/metrics/summary?period=mtd')
   const overviewConfig = useQuery({
     queryKey: ['metrics', 'overview-config'],
     queryFn: () => api.get<OverviewConfig>('/api/metrics/overview-config'),
@@ -325,17 +324,17 @@ function PrimaryNumber({ monthName }: { monthName: string }) {
           </button>
         </p>
       ) : (
-        <p className="mt-1 font-mono text-3xl font-semibold tnum">{lei(collected ?? 0)}</p>
+        <p className="mt-1 font-mono text-3xl font-semibold tnum">{amount(collected ?? 0, pnl.money)}</p>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-        {invoiced !== null ? <span>{t('overview:money.invoiced', { invoiced: lei(invoiced) })}</span> : null}
-        {invoiced !== null && collected !== null ? <span>{t('overview:money.toCollect', { value: lei(invoiced - collected) })}</span> : null}
-        {recurring.data ? <span>{t('overview:money.mrr', { mrrLei: lei(recurring.data.mrrLei) })}</span> : null}
+        {invoiced !== null ? <span>{t('overview:money.invoiced', { invoiced: amount(invoiced, pnl.money) })}</span> : null}
+        {invoiced !== null && collected !== null ? <span>{t('overview:money.toCollect', { value: amount(invoiced - collected, pnl.money) })}</span> : null}
+        {recurring.data ? <span>{t('overview:money.mrr', { mrrLei: amount(recurring.data.mrrDisplay, recurring.money) })}</span> : null}
         {extra.map((key) => {
           const metric = byKey.get(key)
           return metric ? (
             <span key={key}>
-              {kpiLabel(key)} {formatNumber(metric.latest, metric.unit)}
+              {kpiLabel(key)} {metric.unit === summary.money?.currency ? approx(formatNumber(metric.latest, metric.unit), summary.money) : formatNumber(metric.latest, metric.unit)}
             </span>
           ) : null
         })}
@@ -344,6 +343,7 @@ function PrimaryNumber({ monthName }: { monthName: string }) {
           <span className="sr-only">{t('overview:metrics.choose')}</span>
         </Button>
       </div>
+      <MoneyNote money={pnl.money} className="mt-2" />
       <KpiVisibilityDialog
         open={editing}
         onOpenChange={setEditing}

@@ -37,6 +37,16 @@ export interface SessionPayload {
   displayCurrencies: DisplayCurrency[]
 }
 
+/** Sent next to totals: the currency the figures are in and whether they were converted. */
+export interface MoneyMeta {
+  currency: DisplayCurrency
+  /** False when the figures are in RON, the currency the books are kept in. */
+  converted: boolean
+  rateSource: 'BNR'
+  /** Another currency was asked for, but there is no rate for it: the figures are in RON. */
+  fallback?: 'no_rate'
+}
+
 // modules/support — tichete către Vanadium.
 export type SupportTicketStatus = 'deschis' | 'raspuns' | 'inchis'
 
@@ -1224,7 +1234,8 @@ export interface MrrTrendClientPoint {
 
 export interface MrrTrendResponse {
   clientsByMonth: MrrTrendClientPoint[]
-  currentMrr: { mrrLei: number; mrrEur: number }
+  /** `mrrDisplay` is the MRR in the display currency of the person (see `money` on the response). */
+  currentMrr: { mrrLei: number; mrrEur: number; mrrDisplay: number }
 }
 
 export interface PnlTotals {
@@ -1249,7 +1260,7 @@ export interface MonthlySnapshot {
   revenue: number
   expense: number
   net: number
-  mrr: { mrrLei: number; mrrEur: number }
+  mrr: { mrrLei: number; mrrEur: number; mrrDisplay: number }
   topExpenseCategories: Array<{ category: string; total: number }>
   alertsTriggered: number
   syncSuccessRate: number

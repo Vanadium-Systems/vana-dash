@@ -2,7 +2,8 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { financialRecords, wishlistItems } from '../../shared/db/schema/index.js'
-import { ronAmountSql } from '../../shared/lib/sql-fx.js'
+import { displayMoney } from '../../shared/lib/display-money.js'
+import { displayAmountSql } from '../../shared/lib/sql-fx.js'
 import type {
   CreateWishlistItemSchema,
   ListWishlistQuerySchema,
@@ -31,21 +32,22 @@ export async function listWishlistItems(me: SessionUser, query: ListQuery) {
 
 /**
  * "Cât mai ai de cumpărat" per scope × categorie — SUM pe estimated_price al itemilor NU încă
- * cumpărați, în RON (`ronAmountSql`, itemii pot avea preț estimat în EUR/USD). Agregare SQL
+ * cumpărați, în moneda de afișare (`displayAmountSql`, itemii pot avea preț estimat în EUR/USD). Agregare SQL
  * (regula #9 CLAUDE.md), nu `.reduce()` pe array-ul din `listWishlistItems`. Frontend agregă
  * mai departe pe scope='toate' (sumă peste ambele scope-uri per categorie) — vezi WishlistPage.
  */
 export async function getWishlistTotals(me: SessionUser) {
-  const ronAmount = ronAmountSql(
+  const displayAmount = displayAmountSql(
     sql`COALESCE(${wishlistItems.estimatedPrice}, 0)`,
     wishlistItems.currency,
     wishlistItems.createdAt,
+    (await displayMoney()).currency,
   )
   return db
     .select({
       scope: wishlistItems.scope,
       category: wishlistItems.category,
-      total: sql<number>`COALESCE(SUM(${ronAmount}), 0)::float`,
+      total: sql<number>`COALESCE(SUM(${displayAmount}), 0)::float`,
     })
     .from(wishlistItems)
     .where(and(isNull(wishlistItems.deletedAt), eq(wishlistItems.purchased, false), eq(wishlistItems.ownerUserId, me.id)))

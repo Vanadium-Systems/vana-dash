@@ -1,3 +1,4 @@
+import type { Locale } from '../../shared/lib/locale.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { userName } from '../../shared/lib/session.js'
 
@@ -54,7 +55,20 @@ Email: trimiți și citești doar de pe cutiile atribuite lui {{nume}} (ale lui,
 Răspunsul la un fir îl scrii în numele lui, deci nu spune „eu" despre acțiunile făcute în
 aplicație.`
 
+// The instructions above stay in Romanian whatever the reader's language: they are for the
+// model. What changes is the language it answers in. Romanian needs no note.
+const LANGUAGE_NOTE: Record<Locale, string> = {
+  ro: '',
+  en: `
+
+Limba: {{nume}} folosește aplicația în engleză. Răspunde-i în engleză, inclusiv când rezumi
+rezultatul unui tool care a venit în română. Paginile se numesc în interfața lui: Today,
+Invoices, Financials, Reconciliation, Clients, Tenders, Investments, Email, Messages, Calendar,
+Archive, Notes, Team, Modules, History, Alerts, Platforms, Server, Settings. Termenii e-Factura,
+SPV, ANAF, D301, D390 și CUI rămân neschimbați.`,
+}
+
 /** Numele afișat al omului, ca să nu sune „null" în prompt. */
 export function systemPrompt(user: SessionUser): string {
-  return SYSTEM_PROMPT_TEMPLATE.replaceAll('{{nume}}', userName(user))
+  return (SYSTEM_PROMPT_TEMPLATE + LANGUAGE_NOTE[user.locale]).replaceAll('{{nume}}', userName(user))
 }

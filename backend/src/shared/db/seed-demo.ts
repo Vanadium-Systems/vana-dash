@@ -1,7 +1,9 @@
 import '../load-env.js'
 import argon2 from 'argon2'
 import { eq } from 'drizzle-orm'
+import { config } from '../config.js'
 import { encryptApiKey } from '../lib/crypto.js'
+import { ENABLED_LOCALES, isLocale, type Locale } from '../lib/locale.js'
 import { db, sql } from './client.js'
 import {
   alertRules,
@@ -11,11 +13,13 @@ import {
   conversationMembers,
   conversations,
   dashboardConfig,
+  exchangeRates,
   financialRecords,
   messages,
   notes,
   platformMetrics,
   platforms,
+  prospectStatuses,
   prospects,
   roles,
   supportTicketReplies,
@@ -28,8 +32,18 @@ import {
 //
 // Run after `db:seed`, on an otherwise empty database. It refuses to run in production and
 // refuses to run twice, so it can never mix invented rows into real ones.
+//
+//   db:seed:demo [ro|en]     the language of the invented texts and of the demo people;
+//                            without it, DEFAULT_LOCALE. Rows and figures are the same in both.
 
 if (process.env.NODE_ENV === 'production') throw new Error('db:seed:demo never runs with NODE_ENV=production')
+
+const requested = process.argv[2]
+if (requested !== undefined && !isLocale(requested)) throw new Error(`Unknown language "${requested}": use ro or en`)
+const locale: Locale = requested ?? config.defaultLocale
+if (!ENABLED_LOCALES.includes(locale)) throw new Error(`The language "${locale}" is not enabled in this build`)
+/** One invented text, in the language of the seed. */
+const L = (text: Record<Locale, string>) => text[locale]
 
 const [existingClient] = await db.select({ id: billingClients.id }).from(billingClients).limit(1)
 if (existingClient) {
@@ -40,6 +54,7 @@ if (existingClient) {
 
 const [admin] = await db.select().from(users).where(eq(users.isPlatformAdmin, true))
 if (!admin) throw new Error('Run `db:seed` first: the demo data needs the admin user')
+await db.update(users).set({ locale }).where(eq(users.id, admin.id))
 
 const DAY = 24 * 60 * 60 * 1000
 const now = Date.now()
@@ -77,8 +92,8 @@ const [managerRole] = await db.select().from(roles).where(eq(roles.name, 'Manage
 const [ana, mihai] = await db
   .insert(users)
   .values([
-    { email: 'ana@example.com', passwordHash: demoPasswordHash, displayName: 'Ana Popescu', roleId: salesRole!.id, lastSeenAt: daysAgo(0, 8) },
-    { email: 'mihai@example.com', passwordHash: demoPasswordHash, displayName: 'Mihai Ionescu', roleId: managerRole?.id ?? null, lastSeenAt: daysAgo(2) },
+    { email: 'ana@example.com', passwordHash: demoPasswordHash, displayName: 'Ana Popescu', roleId: salesRole!.id, lastSeenAt: daysAgo(0, 8), locale },
+    { email: 'mihai@example.com', passwordHash: demoPasswordHash, displayName: 'Mihai Ionescu', roleId: managerRole?.id ?? null, lastSeenAt: daysAgo(2), locale },
   ])
   .returning()
 
@@ -112,6 +127,17 @@ const metricRows = Array.from({ length: 90 }, (_, i) => {
 }).flat()
 await db.insert(platformMetrics).values(metricRows)
 
+// Invented EUR and USD rates for the same 90 days. The BNR job is off above, and without a
+// rate no total could be shown in anything but lei.
+const rateRows = Array.from({ length: 91 }, (_, i) => {
+  const date = daysAgo(90 - i, 0).toISOString().slice(0, 10)
+  return [
+    { date, currency: 'EUR', rate: (4.97 + i * 0.0012 + wobble(i, 4) / 1000).toFixed(4) },
+    { date, currency: 'USD', rate: (4.58 + i * 0.0009 + wobble(i + 11, 6) / 1000).toFixed(4) },
+  ]
+}).flat()
+await db.insert(exchangeRates).values(rateRows).onConflictDoNothing({ target: [exchangeRates.date, exchangeRates.currency] })
+
 // ── Clients and invoices ─────────────────────────────────────────────────────
 
 const clientSeeds = [
@@ -128,11 +154,11 @@ const clients = await db
     clientSeeds.map((c, i) => ({
       name: c.name,
       cif: c.cif,
-      address: `Str. Exemplu nr. ${i + 1}`,
+      address: L({ ro: `Str. Exemplu nr. ${i + 1}`, en: `${i + 1} Example St.` }),
       city: c.city,
       email: `office@client${i + 1}.example.com`,
       contactName: c.contact,
-      contactTitle: 'Administrator',
+      contactTitle: L({ ro: 'Administrator', en: 'Director' }),
       phone: `021000000${i + 1}`,
       contractPlan: 'Standard',
       subscriptionPriceEur: c.price,
@@ -157,7 +183,7 @@ const issued = [2, 1, 0].flatMap((monthsBack) =>
       direction: 'out' as const,
       amount: (Number(clientSeeds[i]!.price) * 5).toFixed(2),
       currency: 'RON',
-      description: `Abonament lunar ${client.name}`,
+      description: L({ ro: `Abonament lunar ${client.name}`, en: `Monthly subscription ${client.name}` }),
       issuedAt,
       dueAt: new Date(issuedAt.getTime() + 10 * DAY),
       paidAt: paid ? new Date(issuedAt.getTime() + (3 + i) * DAY) : null,
@@ -171,13 +197,16 @@ const issued = [2, 1, 0].flatMap((monthsBack) =>
     }
   }),
 )
+const INFRASTRUCTURE = L({ ro: 'Infrastructură', en: 'Infrastructure' })
+const ACCOUNTING = L({ ro: 'Contabilitate', en: 'Accounting' })
+const ACCOUNTANT = L({ ro: 'Contabilitate Exemplu SRL', en: 'Example Accounting SRL' })
 const received = [
-  { name: 'Hosting Provider GmbH', amount: '180.00', category: 'Infrastructură', day: 62 },
-  { name: 'Hosting Provider GmbH', amount: '180.00', category: 'Infrastructură', day: 32 },
-  { name: 'Hosting Provider GmbH', amount: '195.00', category: 'Infrastructură', day: 2 },
-  { name: 'Contabilitate Exemplu SRL', amount: '600.00', category: 'Contabilitate', day: 40 },
-  { name: 'Contabilitate Exemplu SRL', amount: '600.00', category: 'Contabilitate', day: 10 },
-  { name: 'Office Supplies SRL', amount: '312.40', category: 'Birou', day: 21 },
+  { name: 'Hosting Provider GmbH', amount: '180.00', category: INFRASTRUCTURE, day: 62 },
+  { name: 'Hosting Provider GmbH', amount: '180.00', category: INFRASTRUCTURE, day: 32 },
+  { name: 'Hosting Provider GmbH', amount: '195.00', category: INFRASTRUCTURE, day: 2 },
+  { name: ACCOUNTANT, amount: '600.00', category: ACCOUNTING, day: 40 },
+  { name: ACCOUNTANT, amount: '600.00', category: ACCOUNTING, day: 10 },
+  { name: 'Office Supplies SRL', amount: '312.40', category: L({ ro: 'Birou', en: 'Office' }), day: 21 },
 ].map((e) => ({
   type: 'expense' as const,
   direction: 'in' as const,
@@ -196,7 +225,24 @@ await db.insert(financialRecords).values([...issued, ...received])
 
 // ── Prospects ────────────────────────────────────────────────────────────────
 
-const prospectStatuses = ['necontactat', 'necontactat', 'nu_a_raspuns', 'de_revenit', 'email', 'aprobat', 'respins']
+// The status labels are rows created by the migrations, in Romanian. An English demo gets
+// English labels; the keys, which the rest of the app goes by, stay as they are.
+if (locale === 'en') {
+  const labels: Record<string, string> = {
+    necontactat: 'Not contacted',
+    nu_a_raspuns: 'No answer',
+    respins: 'Rejected',
+    de_revenit: 'Call back',
+    aprobat: 'Approved',
+    caz_particular: 'Special case',
+    nu_e_de_interes: 'Not interested',
+  }
+  for (const [key, label] of Object.entries(labels)) {
+    await db.update(prospectStatuses).set({ label }).where(eq(prospectStatuses.key, key))
+  }
+}
+
+const statusKeys = ['necontactat', 'necontactat', 'nu_a_raspuns', 'de_revenit', 'email', 'aprobat', 'respins']
 await db.insert(prospects).values(
   Array.from({ length: 15 }, (_, i) => ({
     name: `Prospect ${String(i + 1).padStart(2, '0')} SRL`,
@@ -210,7 +256,7 @@ await db.insert(prospects).values(
     revenue: String(400000 + i * 310000),
     profit: String(30000 + i * 21000),
     score: (45 + ((i * 13) % 50)).toFixed(1),
-    status: prospectStatuses[i % prospectStatuses.length],
+    status: statusKeys[i % statusKeys.length],
     source: 'demo',
     createdByUserId: admin.id,
   })),
@@ -223,7 +269,7 @@ const [dm, group] = await db
   .insert(conversations)
   .values([
     { kind: 'dm', dmKey, createdByUserId: admin.id },
-    { kind: 'group', name: 'Echipa', createdByUserId: admin.id },
+    { kind: 'group', name: L({ ro: 'Echipa', en: 'The team' }), createdByUserId: admin.id },
   ])
   .returning()
 await db.insert(conversationMembers).values([
@@ -241,11 +287,11 @@ const say = (conversationId: string, authorUserId: string, body: string, minutes
   createdAt: new Date(now - minutesAgo * 60_000),
 })
 await db.insert(messages).values([
-  say(dm!.id, ana!.id, 'Am vorbit cu Prospect 04, vor o ofertă până vineri.', 190),
-  say(dm!.id, admin.id, 'Bun. Fă calculul din Clienți și trimite-l de pe sales@.', 185),
-  say(dm!.id, ana!.id, 'Trimis. Am pus și un reminder în calendar pentru luni.', 40),
-  say(group!.id, mihai!.id, 'Facturile pe luna asta sunt emise, mai puțin două.', 300),
-  say(group!.id, admin.id, 'Mulțumesc. Le închid eu mâine dimineață.', 290),
+  say(dm!.id, ana!.id, L({ ro: 'Am vorbit cu Prospect 04, vor o ofertă până vineri.', en: 'I talked to Prospect 04; they want an offer by Friday.' }), 190),
+  say(dm!.id, admin.id, L({ ro: 'Bun. Fă calculul din Clienți și trimite-l de pe sales@.', en: 'Good. Do the calculation in Clients and send it from sales@.' }), 185),
+  say(dm!.id, ana!.id, L({ ro: 'Trimis. Am pus și un reminder în calendar pentru luni.', en: 'Sent. I also put a reminder in the calendar for Monday.' }), 40),
+  say(group!.id, mihai!.id, L({ ro: 'Facturile pe luna asta sunt emise, mai puțin două.', en: "This month's invoices are issued, except two." }), 300),
+  say(group!.id, admin.id, L({ ro: 'Mulțumesc. Le închid eu mâine dimineață.', en: 'Thanks. I will close them tomorrow morning.' }), 290),
 ])
 
 // ── Calendar, notes, alerts, support ─────────────────────────────────────────
@@ -256,36 +302,48 @@ const inDays = (n: number, hour: number, minutes = 0) => {
   return d
 }
 await db.insert(calendarEvents).values([
-  { ownerUserId: admin.id, title: 'Apel Acme Recycling', startAt: inDays(1, 8), endAt: inDays(1, 8, 30), reminderMinutesBefore: 15, createdByUserId: admin.id },
-  { ownerUserId: admin.id, title: 'Închidere lună', startAt: inDays(3, 7), endAt: inDays(3, 9), createdByUserId: admin.id },
-  { ownerUserId: ana!.id, title: 'Revenit la Prospect 04', startAt: inDays(4, 9), endAt: inDays(4, 9, 30), createdByUserId: ana!.id },
+  { ownerUserId: admin.id, title: L({ ro: 'Apel Acme Recycling', en: 'Call with Acme Recycling' }), startAt: inDays(1, 8), endAt: inDays(1, 8, 30), reminderMinutesBefore: 15, createdByUserId: admin.id },
+  { ownerUserId: admin.id, title: L({ ro: 'Închidere lună', en: 'Month-end close' }), startAt: inDays(3, 7), endAt: inDays(3, 9), createdByUserId: admin.id },
+  { ownerUserId: ana!.id, title: L({ ro: 'Revenit la Prospect 04', en: 'Follow up with Prospect 04' }), startAt: inDays(4, 9), endAt: inDays(4, 9, 30), createdByUserId: ana!.id },
   { ownerUserId: admin.id, title: 'Demo Cobalt Logistics', location: 'Online', startAt: inDays(6, 11), endAt: inDays(6, 12), createdByUserId: admin.id },
 ])
 
 await db.insert(notes).values([
-  { ownerUserId: admin.id, title: 'Demo data', body: 'Everything you see was created by `db:seed:demo`. Reset with `./dev reset`.', pinned: true },
-  { ownerUserId: admin.id, title: 'De întrebat contabila', body: 'Termenul pentru D301 pe luna curentă.' },
+  {
+    ownerUserId: admin.id,
+    title: L({ ro: 'Date demo', en: 'Demo data' }),
+    body: L({
+      ro: 'Tot ce vezi a fost creat de `db:seed:demo`. Resetezi cu `./dev reset`.',
+      en: 'Everything you see was created by `db:seed:demo`. Reset with `./dev reset`.',
+    }),
+    pinned: true,
+  },
+  {
+    ownerUserId: admin.id,
+    title: L({ ro: 'De întrebat contabila', en: 'To ask the accountant' }),
+    body: L({ ro: 'Termenul pentru D301 pe luna curentă.', en: 'The D301 deadline for the current month.' }),
+  },
 ])
 
 const [rule] = await db
   .insert(alertRules)
-  .values({ name: 'Venit zilnic sub 1000 RON', metricKey: 'revenue', condition: 'lt', threshold: '1000', windowHours: 24, severity: 'warning', platformId: platform!.id, createdByUserId: admin.id })
+  .values({ name: L({ ro: 'Venit zilnic sub 1000 RON', en: 'Daily revenue below 1000 RON' }), metricKey: 'revenue', condition: 'lt', threshold: '1000', windowHours: 24, severity: 'warning', platformId: platform!.id, createdByUserId: admin.id })
   .returning()
-await db.insert(alerts).values({ ruleId: rule!.id, severity: 'warning', message: 'Venit zilnic sub 1000 RON pe Acme Platform (demo)', triggeredAt: daysAgo(1, 7) })
+await db.insert(alerts).values({ ruleId: rule!.id, severity: 'warning', message: L({ ro: 'Venit zilnic sub 1000 RON pe Acme Platform (demo)', en: 'Daily revenue below 1000 RON on Acme Platform (demo)' }), triggeredAt: daysAgo(1, 7) })
 
 const [ticket] = await db
   .insert(supportTickets)
   .values({
     createdByUserId: ana!.id,
-    subject: 'Nu văd cutia sales@ în Email',
-    description: 'Am intrat azi și în Email apare doar cutia mea.',
+    subject: L({ ro: 'Nu văd cutia sales@ în Email', en: 'I do not see the sales@ mailbox in Email' }),
+    description: L({ ro: 'Am intrat azi și în Email apare doar cutia mea.', en: 'I signed in today and Email shows only my own mailbox.' }),
     page: '/email',
     status: 'raspuns',
     unreadByPlatform: false,
     lastActivityAt: daysAgo(0, 7),
   })
   .returning()
-await db.insert(supportTicketReplies).values({ ticketId: ticket!.id, authorUserId: admin.id, body: 'Ți-am atribuit-o acum din Echipă. Reîncarcă pagina.', isPlatformReply: true })
+await db.insert(supportTicketReplies).values({ ticketId: ticket!.id, authorUserId: admin.id, body: L({ ro: 'Ți-am atribuit-o acum din Echipă. Reîncarcă pagina.', en: 'I just assigned it to you from Team. Reload the page.' }), isPlatformReply: true })
 
-console.log(`Demo data added: ${clients.length} clients, ${issued.length + received.length} invoices and expenses, 15 prospects, 90 days of metrics.`)
+console.log(`Demo data added (${locale}): ${clients.length} clients, ${issued.length + received.length} invoices and expenses, 15 prospects, 90 days of metrics.`)
 await sql.end()

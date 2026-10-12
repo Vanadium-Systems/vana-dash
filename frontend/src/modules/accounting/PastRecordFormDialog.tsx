@@ -10,6 +10,7 @@ import type { FinancialRecord } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 interface PastRecordFormDialogProps {
   open: boolean
@@ -63,7 +64,7 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState('RON')
+  const [currency, setCurrency] = useState<string>(BASE_CURRENCY)
   const [issuedAt, setIssuedAt] = useState('')
   const [paid, setPaid] = useState(copy.defaultPaid)
   const [paidAt, setPaidAt] = useState('')
@@ -80,7 +81,7 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
     setDescription('')
     setCategory('')
     setAmount('')
-    setCurrency('RON')
+    setCurrency(BASE_CURRENCY)
     const today = new Date().toISOString().slice(0, 10)
     setIssuedAt(today)
     setPaid(copy.defaultPaid)

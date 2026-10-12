@@ -466,5 +466,15 @@
       "sat": "Sâm",
       "sun": "Dum"
     }
+  },
+  "money": {
+    "converted": "≈ Sume în {{currency}}, convertite din lei la cursul BNR din ziua fiecărei înregistrări. Evidența rămâne în lei.",
+    "noRate": "Nu există încă un curs BNR pentru {{currency}}, deci sumele sunt în lei.",
+    "convertedHint": "convertit la cursul BNR",
+    "units": {
+      "RON": "lei",
+      "EUR": "EUR",
+      "USD": "USD"
+    }
   }
 }

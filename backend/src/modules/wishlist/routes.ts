@@ -7,6 +7,7 @@ import {
   UpdateWishlistItemSchema,
 } from './schema.js'
 import * as service from './service.js'
+import { moneyMeta } from '../../shared/lib/display-money.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 export async function wishlistRoutes(app: FastifyInstance) {
@@ -17,7 +18,7 @@ export async function wishlistRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: ListWishlistQuerySchema } },
     async (req) => {
       const [items, totals] = await Promise.all([service.listWishlistItems(req.me, req.query), service.getWishlistTotals(req.me)])
-      return { success: true, data: { items, totals } }
+      return { success: true, data: { items, totals }, money: await moneyMeta() }
     },
   )
 

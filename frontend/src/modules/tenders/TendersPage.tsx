@@ -16,6 +16,7 @@ import { cn } from '@/shared/lib/utils'
 import { formatNumber, intlTag } from '@/shared/lib/format'
 import { TenderWatchRulesCard } from './TenderWatchRulesCard'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 const SOURCE_LABEL: Record<TenderSource, string> = {
   direct_acquisition: t('tenders:types.direct'),
@@ -179,7 +180,7 @@ export function TendersPage() {
                           className="mt-1 block w-fit rounded-full border border-destructive/40 px-2 py-0.5 text-xs text-destructive"
                           title={tender.eligibilityNote ?? undefined}
                         >
-                          {t('tenders:minTurnover', { value: formatNumber(Number(tender.minTurnoverRon), 'RON') })}
+                          {t('tenders:minTurnover', { value: formatNumber(Number(tender.minTurnoverRon), BASE_CURRENCY) })}
                         </span>
                       ) : null}
                     </TableCell>
@@ -189,7 +190,7 @@ export function TendersPage() {
                       <Badge variant="outline">{SOURCE_LABEL[tender.source]}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
-                      {tender.estimatedValueRon ? formatNumber(Number(tender.estimatedValueRon), 'RON') : '—'}
+                      {tender.estimatedValueRon ? formatNumber(Number(tender.estimatedValueRon), BASE_CURRENCY) : '—'}
                     </TableCell>
                     <TableCell>
                       <DeadlineCell deadlineAt={tender.deadlineAt} isOpen={tender.isOpen} />

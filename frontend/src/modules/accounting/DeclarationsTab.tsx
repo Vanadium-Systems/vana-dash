@@ -10,6 +10,7 @@ import { api } from '@/shared/lib/api'
 import type { DeclarationPreview } from '@/shared/lib/types'
 import { formatDate, formatMoney } from './badges'
 import { t } from '@/shared/lib/i18n'
+import { BASE_CURRENCY } from '@/shared/lib/locale'
 
 function currentMonth(): string {
   return new Date().toISOString().slice(0, 7)
@@ -94,17 +95,17 @@ function DeclarationCard({
                     <TableCell>{l.documentNumber}</TableCell>
                     <TableCell>{formatDate(l.issuedAt)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatMoney(l.amountForeign, l.currency)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatMoney(l.baseRon, 'RON')}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">{formatMoney(l.baseRon, BASE_CURRENCY)}</TableCell>
                     {showVat ? (
-                      <TableCell className="text-right font-mono text-sm">{formatMoney(l.vatRon, 'RON')}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">{formatMoney(l.vatRon, BASE_CURRENCY)}</TableCell>
                     ) : null}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             <div className="flex justify-end gap-6 border-t pt-3 text-sm font-medium">
-              <span>{t('accounting:declarations.totalBase', { baseRon: formatMoney(preview.data.totals.baseRon, 'RON') })}</span>
-              {showVat ? <span>{t('accounting:declarations.totalVat', { vatRon: formatMoney(preview.data.totals.vatRon, 'RON') })}</span> : null}
+              <span>{t('accounting:declarations.totalBase', { baseRon: formatMoney(preview.data.totals.baseRon, BASE_CURRENCY) })}</span>
+              {showVat ? <span>{t('accounting:declarations.totalVat', { vatRon: formatMoney(preview.data.totals.vatRon, BASE_CURRENCY) })}</span> : null}
             </div>
           </>
         )}

@@ -7,6 +7,7 @@ import {
   PeriodComparisonQuerySchema,
 } from './schema.js'
 import * as service from './service.js'
+import { moneyMeta } from '../../shared/lib/display-money.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 export async function reportsRoutes(app: FastifyInstance) {
@@ -17,7 +18,7 @@ export async function reportsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: MrrTrendQuerySchema } },
     async (req) => {
       const data = await service.getMrrTrend(req.query)
-      return { success: true, data }
+      return { success: true, data, money: await moneyMeta() }
     },
   )
 
@@ -26,7 +27,7 @@ export async function reportsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: PeriodComparisonQuerySchema } },
     async (req) => {
       const data = await service.getPeriodComparison(req.query)
-      return { success: true, data }
+      return { success: true, data, money: await moneyMeta() }
     },
   )
 
@@ -38,7 +39,7 @@ export async function reportsRoutes(app: FastifyInstance) {
       return reply
         .type('text/csv')
         .header('Content-Disposition', 'attachment; filename="period-comparison.csv"')
-        .send(service.periodComparisonToCsv(comparison))
+        .send(service.periodComparisonToCsv(comparison, (await moneyMeta()).currency))
     },
   )
 
@@ -47,7 +48,7 @@ export async function reportsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: ExpenseBreakdownTrendQuerySchema } },
     async (req) => {
       const data = await service.getExpenseBreakdownTrend(req.query)
-      return { success: true, data }
+      return { success: true, data, money: await moneyMeta() }
     },
   )
 
@@ -56,7 +57,7 @@ export async function reportsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: MonthlySnapshotQuerySchema } },
     async (req) => {
       const data = await service.getMonthlySnapshot(req.query)
-      return { success: true, data }
+      return { success: true, data, money: await moneyMeta() }
     },
   )
 

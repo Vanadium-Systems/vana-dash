@@ -3,7 +3,11 @@ import { db } from '../db/client.js'
 import { billingClients, financialRecords } from '../db/schema/index.js'
 import { getRateForDate } from './bnr.js'
 import type { PeriodRange } from './period.js'
-import { ronAmountSql } from './sql-fx.js'
+import { displayMoney } from './display-money.js'
+import { displayAmountSql } from './sql-fx.js'
+
+// Totals come back in the display currency of the request (`displayMoney`): RON unless the
+// person chose EUR or USD. A job has no request, so it gets the installation's default.
 
 /**
  * Extras din `modules/financials/service.ts` (Sprint Notițe+Wishlist+Alerts+Reports) — logica
@@ -22,14 +26,14 @@ function baseFilters(range: PeriodRange) {
 
 export async function getPnlByMonth(range: PeriodRange) {
   const month = sql<string>`TO_CHAR(DATE_TRUNC('month', ${financialRecords.issuedAt}) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`
-  const ronAmount = ronAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt)
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
 
   return db
     .select({
       month,
       direction: financialRecords.direction,
       paymentStatus: financialRecords.paymentStatus,
-      total: sql<number>`SUM(${ronAmount})::float`,
+      total: sql<number>`SUM(${displayAmount})::float`,
     })
     .from(financialRecords)
     .where(and(...baseFilters(range)))
@@ -38,7 +42,7 @@ export async function getPnlByMonth(range: PeriodRange) {
 }
 
 export async function getPnlByCategory(range: PeriodRange) {
-  const ronAmount = ronAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt)
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
   const category = sql<string>`COALESCE(${financialRecords.category}, 'necategorizat')`
 
   return db
@@ -46,21 +50,21 @@ export async function getPnlByCategory(range: PeriodRange) {
       category,
       direction: financialRecords.direction,
       paymentStatus: financialRecords.paymentStatus,
-      total: sql<number>`SUM(${ronAmount})::float`,
+      total: sql<number>`SUM(${displayAmount})::float`,
     })
     .from(financialRecords)
     .where(and(...baseFilters(range)))
     .groupBy(category, financialRecords.direction, financialRecords.paymentStatus)
-    .orderBy(sql`SUM(${ronAmount}) DESC`)
+    .orderBy(sql`SUM(${displayAmount}) DESC`)
 }
 
 export async function getCashflowByStatus(range: PeriodRange) {
-  const ronAmount = ronAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt)
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
   return db
     .select({
       direction: financialRecords.direction,
       paymentStatus: financialRecords.paymentStatus,
-      total: sql<number>`SUM(${ronAmount})::float`,
+      total: sql<number>`SUM(${displayAmount})::float`,
       count: sql<number>`COUNT(*)::int`,
     })
     .from(financialRecords)
@@ -74,11 +78,11 @@ export async function getCashflowByStatus(range: PeriodRange) {
  * SUM condiționat pe direcție (regula #9 CLAUDE.md — agregare SQL, nu JS).
  */
 export async function getPnlTotals(range: PeriodRange) {
-  const ronAmount = ronAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt)
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
   const [row] = await db
     .select({
-      revenue: sql<number>`COALESCE(SUM(CASE WHEN ${financialRecords.direction} = 'out' THEN ${ronAmount} ELSE 0 END), 0)::float`,
-      expense: sql<number>`COALESCE(SUM(CASE WHEN ${financialRecords.direction} = 'in' THEN ${ronAmount} ELSE 0 END), 0)::float`,
+      revenue: sql<number>`COALESCE(SUM(CASE WHEN ${financialRecords.direction} = 'out' THEN ${displayAmount} ELSE 0 END), 0)::float`,
+      expense: sql<number>`COALESCE(SUM(CASE WHEN ${financialRecords.direction} = 'in' THEN ${displayAmount} ELSE 0 END), 0)::float`,
     })
     .from(financialRecords)
     .where(and(...baseFilters(range)))
@@ -106,12 +110,12 @@ export async function getPnlTotals(range: PeriodRange) {
  */
 export async function getDailyPaidRevenue(range: PeriodRange) {
   const day = sql<string>`TO_CHAR(DATE_TRUNC('day', ${financialRecords.issuedAt}) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`
-  const ronAmount = ronAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt)
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
 
   return db
     .select({
       date: day,
-      value: sql<number>`SUM(${ronAmount})::float`,
+      value: sql<number>`SUM(${displayAmount})::float`,
     })
     .from(financialRecords)
     .where(

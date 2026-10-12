@@ -228,12 +228,12 @@ cmd_logs() {
   ( cd "$REPO_ROOT" && dc logs -f --tail=50 backend frontend )
 }
 
-## help: Run a DB command from host (migrate|seed|seed:demo|generate)
+## help: Run a DB command from host (migrate|seed|seed:demo [ro|en]|generate)
 cmd_db() {
   require_cmd pnpm
   local subcmd="${1:-}"
   if [[ -z "$subcmd" ]]; then
-    err "usage: ./dev db <migrate|seed|seed:demo|generate>"
+    err "usage: ./dev db <migrate|seed|seed:demo [ro|en]|generate>"
     exit 1
   fi
 
@@ -250,8 +250,12 @@ cmd_db() {
       ;;
   esac
 
-  log "running $script"
-  ( cd "$REPO_ROOT/backend" && pnpm "$script" )
+  # Only seed:demo takes an argument: the language of the invented texts.
+  local extra=()
+  if [[ "$subcmd" == "seed:demo" && -n "${2:-}" ]]; then extra=("$2"); fi
+
+  log "running $script ${extra[*]:-}"
+  ( cd "$REPO_ROOT/backend" && pnpm "$script" "${extra[@]}" )
 }
 
 ## help: Show this help
