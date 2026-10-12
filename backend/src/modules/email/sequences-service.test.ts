@@ -34,6 +34,8 @@ const admin: SessionUser = {
   notificationPrefs: null,
   navLayout: null,
   updatesSeenAt: null,
+  locale: 'ro',
+  displayCurrency: 'RON',
   sessionVersion: 1,
 }
 

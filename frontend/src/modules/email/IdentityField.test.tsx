@@ -28,6 +28,10 @@ function session(mailboxes: string[] | null): SessionPayload {
     notificationPrefs: { chat: 'all', emailNew: true, alerts: true },
     navLayout: null,
     updatesSeenAt: null,
+    locale: 'ro',
+    enabledLocales: ['ro'],
+    displayCurrency: 'RON',
+    displayCurrencies: ['RON', 'EUR', 'USD'],
   }
 }
 

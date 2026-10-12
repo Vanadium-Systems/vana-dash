@@ -25,6 +25,8 @@ const admin = {
   notificationPrefs: null,
   navLayout: null,
   updatesSeenAt: null,
+  locale: 'ro',
+  displayCurrency: 'RON',
   sessionVersion: 1,
 } satisfies SessionUser
 const [adminRoleRow] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))

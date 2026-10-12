@@ -94,6 +94,10 @@ beforeEach(() => {
     notificationPrefs: { chat: 'all' as const, emailNew: true, alerts: true },
     navLayout: null,
     updatesSeenAt: null,
+    locale: 'ro',
+    enabledLocales: ['ro'],
+    displayCurrency: 'RON',
+    displayCurrencies: ['RON', 'EUR', 'USD'],
   } satisfies SessionPayload
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   queryClient.setQueryData(ME_QUERY_KEY, session)
@@ -175,6 +179,10 @@ describe('ChatStreamProvider', () => {
       notificationPrefs: { chat: 'none', emailNew: true, alerts: true },
       navLayout: null,
       updatesSeenAt: null,
+      locale: 'ro',
+      enabledLocales: ['ro'],
+      displayCurrency: 'RON',
+      displayCurrencies: ['RON', 'EUR', 'USD'],
     } satisfies SessionPayload)
     render()
     expect(source.listeners['message.created']).toBeUndefined()

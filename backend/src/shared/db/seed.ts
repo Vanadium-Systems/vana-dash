@@ -1,6 +1,7 @@
 import '../load-env.js'
 import argon2 from 'argon2'
 import { eq } from 'drizzle-orm'
+import { config } from '../config.js'
 import { db, sql } from './client.js'
 import { roles, users } from './schema/index.js'
 
@@ -20,7 +21,16 @@ if (existing) {
   userId = existing.id
   console.log(`User ${email} updated.`)
 } else {
-  const [created] = await db.insert(users).values({ email, passwordHash, displayName: process.env.ADMIN_NAME ?? 'Admin' }).returning()
+  const [created] = await db
+    .insert(users)
+    .values({
+      email,
+      passwordHash,
+      displayName: process.env.ADMIN_NAME ?? 'Admin',
+      locale: config.defaultLocale,
+      displayCurrency: config.defaultDisplayCurrency,
+    })
+    .returning()
   if (!created) throw new Error('Insert user nu a returnat nimic')
   userId = created.id
   console.log(`User ${email} created.`)

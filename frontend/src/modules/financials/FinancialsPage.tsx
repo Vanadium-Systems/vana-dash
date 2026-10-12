@@ -11,7 +11,7 @@ import { MetricBarChart } from '@/shared/components/charts/MetricBarChart'
 import { api } from '@/shared/lib/api'
 import { sumByDirection } from '@/shared/lib/financial-utils'
 import type { CashflowEntry, ExchangeRatePoint, PnlByCategory, PnlByMonth, PnlResponse } from '@/shared/lib/types'
-import { formatNumber } from '@/shared/lib/utils'
+import { formatNumber } from '@/shared/lib/format'
 import { BnrRateChart, type BnrRatePoint } from './BnrRateChart'
 
 const BAR_SERIES = [

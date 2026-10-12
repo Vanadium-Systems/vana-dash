@@ -34,6 +34,10 @@ async function renderApp(path: string) {
     notificationPrefs: { chat: 'all' as const, emailNew: true, alerts: true },
     navLayout: null,
     updatesSeenAt: null,
+    locale: 'ro',
+    enabledLocales: ['ro'],
+    displayCurrency: 'RON',
+    displayCurrencies: ['RON', 'EUR', 'USD'],
   } satisfies SessionPayload
 
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })

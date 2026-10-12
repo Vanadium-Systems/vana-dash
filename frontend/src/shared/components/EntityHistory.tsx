@@ -5,7 +5,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
 import { actionLabel, type AuditListItem } from '@/shared/lib/audit'
-import { formatDateTime, formatRelativeTime } from '@/shared/lib/utils'
+import { formatDateTime, formatRelativeTime } from '@/shared/lib/format'
 
 // „Creat de … · Modificat de …" sub titlul unui obiect, cu panoul care arată cine, ce câmp,
 // vechi → nou, când (PLAN.md C2, fișa „Istoric"). Se hrănește din `audit_log` prin

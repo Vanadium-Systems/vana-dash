@@ -1,4 +1,6 @@
-import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { boolean, check, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
+import { DISPLAY_CURRENCIES, LOCALES } from '../../lib/locale.js'
 import { standardColumns } from './helpers.js'
 import { roles } from './roles.js'
 
@@ -42,9 +44,15 @@ export const users = pgTable(
     // Până când a văzut omul pagina Noutăți (PLAN.md C5): ce e mai nou e marcat „Nou”. Pe user,
     // nu în browser, ca telefonul și desktopul să fie de acord.
     updatesSeenAt: timestamp('updates_seen_at', { withTimezone: true }),
+    // Interface language and the currency totals are shown in. Display preferences only:
+    // bookkeeping stays in RON and every document keeps its own currency.
+    locale: text('locale', { enum: LOCALES }).notNull().default('ro'),
+    displayCurrency: text('display_currency', { enum: DISPLAY_CURRENCIES }).notNull().default('RON'),
   },
   (t) => [
     uniqueIndex('uq_users_email').on(t.email),
     index('ix_users_role').on(t.roleId),
+    check('ck_users_locale', sql`${t.locale} IN ('ro', 'en')`),
+    check('ck_users_display_currency', sql`${t.displayCurrency} IN ('RON', 'EUR', 'USD')`),
   ],
 )

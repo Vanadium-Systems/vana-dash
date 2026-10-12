@@ -1,5 +1,5 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { formatNumber } from '@/shared/lib/utils'
+import { formatNumber } from '@/shared/lib/format'
 
 interface BarSeriesDef {
   key: string

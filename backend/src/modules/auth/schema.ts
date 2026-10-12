@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DISPLAY_CURRENCIES, LOCALES } from '../../shared/lib/locale.js'
 
 export const LoginBodySchema = z.object({
   email: z.string().email(),
@@ -16,6 +17,8 @@ export const PatchMeSchema = z.object({
       alerts: z.boolean(),
     })
     .optional(),
+  locale: z.enum(LOCALES).optional(),
+  displayCurrency: z.enum(DISPLAY_CURRENCIES).optional(),
 })
 
 export const ForgotPasswordSchema = z.object({ email: z.string().email() })

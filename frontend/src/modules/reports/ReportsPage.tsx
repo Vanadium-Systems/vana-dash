@@ -14,7 +14,7 @@ import { PeriodSelector, usePeriod } from '@/shared/components/PeriodSelector'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { CHART_NEUTRAL, chartColor } from '@/shared/lib/chart-colors'
-import { formatNumber } from '@/shared/lib/utils'
+import { formatNumber } from '@/shared/lib/format'
 import type {
   ExpenseBreakdownTrendPoint,
   MonthlySnapshot,

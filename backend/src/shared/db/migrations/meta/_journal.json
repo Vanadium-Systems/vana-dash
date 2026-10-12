@@ -470,6 +470,13 @@
       "when": 1791790071991,
       "tag": "0066_medical_george_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1791842268124,
+      "tag": "0067_equal_proudstar",
+      "breakpoints": true
     }
   ]
 }

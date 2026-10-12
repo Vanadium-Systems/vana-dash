@@ -4,6 +4,7 @@ import fp from 'fastify-plugin'
 import { db } from '../db/client.js'
 import { users } from '../db/schema/index.js'
 import { safeEqual } from '../lib/crypto.js'
+import { ENABLED_LOCALES, isLocale } from '../lib/locale.js'
 import { actorStore, runWithFreshActor } from '../lib/request-context.js'
 import type { SessionUser } from '../lib/session.js'
 import { loadSessionUser } from '../lib/session.js'
@@ -33,7 +34,10 @@ const LAST_SEEN_MIN_INTERVAL_MS = 60_000
 export const authPlugin = fp(async (app) => {
   // Store-ul de actor se deschide aici, înainte de orice rută; `authenticate` îl completează.
   app.addHook('onRequest', (request, _reply, done) => {
-    runWithFreshActor({ userId: null, ip: request.ip }, done)
+    // The pages before login send the language the visitor picked; a session overrides it below.
+    const asked = request.headers['x-locale']
+    const locale = isLocale(asked) && ENABLED_LOCALES.includes(asked) ? asked : undefined
+    runWithFreshActor({ userId: null, ip: request.ip, locale }, done)
   })
 
   const authenticate = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -64,7 +68,11 @@ export const authPlugin = fp(async (app) => {
     // Contextul requestului (audit, created_by) primește acum omul — servicile îl citesc
     // fără să-l primească la fiecare apel.
     const store = actorStore()
-    if (store) store.userId = me.id
+    if (store) {
+      store.userId = me.id
+      store.locale = me.locale
+      store.displayCurrency = me.displayCurrency
+    }
 
     // „Ultima activitate" din pagina Echipă. Cel mult o scriere pe minut și om, ca un poll
     // la 15s să nu devină un UPDATE pe fiecare cerere.

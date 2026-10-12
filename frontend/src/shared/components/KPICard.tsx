@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { cn, formatNumber } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
+import { formatNumber } from '@/shared/lib/format'
 
 interface KPICardProps {
   label: string

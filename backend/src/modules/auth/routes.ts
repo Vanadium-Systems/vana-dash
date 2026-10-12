@@ -6,6 +6,8 @@ import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
 import { users } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
+import { tr } from '../../shared/lib/i18n.js'
+import { DISPLAY_CURRENCIES, ENABLED_LOCALES } from '../../shared/lib/locale.js'
 import { sendEmail } from '../../shared/lib/email.js'
 import { consumeUserToken, createUserToken } from '../../shared/lib/user-tokens.js'
 import { loadSessionUser, DEFAULT_NOTIFICATION_PREFS, type SessionUser } from '../../shared/lib/session.js'
@@ -33,6 +35,10 @@ export function sessionPayload(me: SessionUser) {
     notificationPrefs: me.notificationPrefs ?? { ...DEFAULT_NOTIFICATION_PREFS },
     navLayout: me.navLayout ?? null,
     updatesSeenAt: me.updatesSeenAt,
+    locale: me.locale,
+    enabledLocales: ENABLED_LOCALES,
+    displayCurrency: me.displayCurrency,
+    displayCurrencies: DISPLAY_CURRENCIES,
   }
 }
 
@@ -64,11 +70,11 @@ export async function authRoutes(app: FastifyInstance) {
       // Un user dezactivat primește același răspuns ca unul inexistent — altfel formularul
       // de login ar confirma că adresa există.
       if (!user || user.status !== 'active') {
-        return reply.code(401).send({ success: false, error: 'Email sau parolă greșită' })
+        return reply.code(401).send({ success: false, error: tr('errors.auth.invalidCredentials') })
       }
 
       const me = await loadSessionUser(user.id)
-      if (!me) return reply.code(401).send({ success: false, error: 'Email sau parolă greșită' })
+      if (!me) return reply.code(401).send({ success: false, error: tr('errors.auth.invalidCredentials') })
 
       const token = await reply.jwtSign(
         { sub: user.id, sv: user.sessionVersion },
@@ -87,6 +93,12 @@ export async function authRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate] },
     async (req) => ({ success: true, data: sessionPayload(req.me) }),
   )
+
+  // What the pages before login need to pick a language. Nothing about the company or its people.
+  server.get('/api/auth/locale', async () => ({
+    success: true,
+    data: { defaultLocale: config.defaultLocale, enabledLocales: ENABLED_LOCALES },
+  }))
 }
 
 // ── Parole, profil și acceptarea invitației (PLAN.md C2, BE-8) ───────────────────────────────
@@ -102,7 +114,7 @@ function assertPasswordStrength(password: string) {
   // Minim 12 caractere, fără reguli de compoziție (decizie Stefan): o parolă lungă e mai
   // bună decât una scurtă cu „!1".
   if (password.length < PASSWORD_MIN) {
-    return `Parola trebuie să aibă cel puțin ${PASSWORD_MIN} caractere`
+    return tr('errors.auth.passwordTooShort', { min: PASSWORD_MIN })
   }
   return null
 }
@@ -225,8 +237,15 @@ export async function passwordRoutes(app: FastifyInstance) {
 
   // ── Profilul meu (self) ──────────────────────────────────────────────────────────────────
 
-  server.patch('/api/auth/me', { preHandler: [app.authenticate], schema: { body: PatchMeSchema } }, async (req) => {
+  server.patch('/api/auth/me', { preHandler: [app.authenticate], schema: { body: PatchMeSchema } }, async (req, reply) => {
     const patch: Partial<typeof users.$inferInsert> = { updatedAt: new Date() }
+    if (req.body.locale !== undefined) {
+      if (!ENABLED_LOCALES.includes(req.body.locale)) {
+        return reply.code(400).send({ success: false, error: tr('errors.auth.localeNotEnabled') })
+      }
+      patch.locale = req.body.locale
+    }
+    if (req.body.displayCurrency !== undefined) patch.displayCurrency = req.body.displayCurrency
     if (req.body.displayName !== undefined) patch.displayName = req.body.displayName
     if (req.body.updatesSeenAt !== undefined) {
       patch.updatesSeenAt = new Date(Math.min(Date.parse(req.body.updatesSeenAt), Date.now()))
@@ -246,11 +265,11 @@ export async function passwordRoutes(app: FastifyInstance) {
   server.post('/api/auth/me/password', { preHandler: [app.authenticate] }, async (req, reply) => {
     const parsed = ChangePasswordSchema.safeParse(req.body)
     if (!parsed.success) {
-      return reply.code(400).send({ success: false, error: 'Parola nouă nu e validă' })
+      return reply.code(400).send({ success: false, error: tr('errors.auth.newPasswordInvalid') })
     }
     const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id))
     if (!row || !(await argon2.verify(row.passwordHash, parsed.data.currentPassword))) {
-      return reply.code(401).send({ success: false, error: 'Parola curentă nu e corectă' })
+      return reply.code(401).send({ success: false, error: tr('errors.auth.currentPasswordWrong') })
     }
     const weak = assertPasswordStrength(parsed.data.newPassword)
     if (weak) return reply.code(400).send({ success: false, error: weak })

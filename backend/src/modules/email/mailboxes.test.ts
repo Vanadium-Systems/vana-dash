@@ -70,6 +70,8 @@ async function userWithMailboxes(email: string, identityKeys: string[]): Promise
     notificationPrefs: null,
     navLayout: null,
     updatesSeenAt: null,
+    locale: 'ro',
+    displayCurrency: 'RON',
     sessionVersion: 1,
   }
   return { me, token }

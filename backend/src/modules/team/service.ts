@@ -73,6 +73,8 @@ export async function inviteMember(actor: SessionUser, input: { email: string; d
       passwordHash: `invitat:${randomBytes(32).toString('hex')}`,
       roleId: role.id,
       status: 'invited',
+      locale: config.defaultLocale,
+      displayCurrency: config.defaultDisplayCurrency,
     })
     .returning()
   if (!created) throw new Error('User necreat')

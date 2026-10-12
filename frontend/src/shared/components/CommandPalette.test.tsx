@@ -62,6 +62,10 @@ beforeEach(() => {
     notificationPrefs: { chat: 'all', emailNew: true, alerts: true },
     navLayout: null,
     updatesSeenAt: null,
+    locale: 'ro',
+    enabledLocales: ['ro'],
+    displayCurrency: 'RON',
+    displayCurrencies: ['RON', 'EUR', 'USD'],
   }
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true, data: [] }) }))
 })

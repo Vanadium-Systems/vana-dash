@@ -612,6 +612,7 @@ const KNOWN_PREFIXES: Array<{
 }> = [
   { prefix: '/health', kind: 'public' },
   { prefix: '/api/auth/login', kind: 'public' },
+  { prefix: '/api/auth/locale', kind: 'public' },
   { prefix: '/api/auth/forgot-password', kind: 'public' },
   { prefix: '/api/auth/reset-password', kind: 'public' },
   { prefix: '/api/auth/accept-invite', kind: 'public' },

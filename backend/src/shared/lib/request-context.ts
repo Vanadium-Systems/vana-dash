@@ -1,4 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
+import { config } from '../config.js'
+import type { DisplayCurrency, Locale } from './locale.js'
 
 // Cine e actorul requestului curent (PLAN.md C2). Serviciile nu primesc `actor` la fiecare
 // apel — îliau din context, ca `created_by`/`updated_by` și înregistrările de audit să fie
@@ -13,6 +15,9 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 export interface RequestActor {
   userId: string | null
   ip: string | null
+  /** Display preferences of the person making the request; absent = the installation defaults. */
+  locale?: Locale
+  displayCurrency?: DisplayCurrency
 }
 
 const storage = new AsyncLocalStorage<RequestActor>()
@@ -30,4 +35,14 @@ export function actorStore(): RequestActor | undefined {
 
 export function currentActor(): RequestActor {
   return storage.getStore() ?? { userId: null, ip: null }
+}
+
+/** Language of the current request. Outside a request (jobs) it is the installation default. */
+export function currentLocale(): Locale {
+  return storage.getStore()?.locale ?? config.defaultLocale
+}
+
+/** Currency the current person wants totals in. Jobs and machine routes get the default. */
+export function currentDisplayCurrency(): DisplayCurrency {
+  return storage.getStore()?.displayCurrency ?? config.defaultDisplayCurrency
 }

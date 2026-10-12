@@ -2,6 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { roles, userMailboxes, users } from '../db/schema/index.js'
 import { availableFeatures, PAGES } from './features.js'
+import type { DisplayCurrency, Locale } from './locale.js'
 
 // Cine e omul din sesiune, cu tot ce trebuie ca să autorizeze un request (PLAN.md C2).
 // Un singur query pe request, indexat pe PK — de aceea rolul vine în același SELECT ca
@@ -29,6 +30,8 @@ export interface SessionUser {
   navLayout: unknown
   updatesSeenAt: Date | null
   sessionVersion: number
+  locale: Locale
+  displayCurrency: DisplayCurrency
 }
 
 export const DEFAULT_NOTIFICATION_PREFS = { chat: 'all', emailNew: true, alerts: true } as const
@@ -74,6 +77,8 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
       notificationPrefs: users.notificationPrefs,
       navLayout: users.navLayout,
       updatesSeenAt: users.updatesSeenAt,
+      locale: users.locale,
+      displayCurrency: users.displayCurrency,
       roleId: roles.id,
       roleName: roles.name,
       roleKind: roles.kind,
@@ -106,6 +111,8 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
     navLayout: row.navLayout,
     updatesSeenAt: row.updatesSeenAt,
     sessionVersion: row.sessionVersion,
+    locale: row.locale,
+    displayCurrency: row.displayCurrency,
   }
 }
 

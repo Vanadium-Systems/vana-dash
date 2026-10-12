@@ -85,6 +85,8 @@ async function user(email: string, features: string[]): Promise<TestSession> {
     notificationPrefs: null,
     navLayout: null,
     updatesSeenAt: null,
+    locale: 'ro',
+    displayCurrency: 'RON',
     sessionVersion: 1,
   }
   return { me, token }

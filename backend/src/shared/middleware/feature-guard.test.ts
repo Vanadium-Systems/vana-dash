@@ -229,6 +229,7 @@ describe('bootul cu o rută nerezolvată', () => {
   it('every route the real server answers without a session is on the declared list', () => {
     expect(guard.open.map((route) => `${route.method} ${route.url}`).sort()).toMatchInlineSnapshot(`
       [
+        "GET /api/auth/locale",
         "GET /api/email-images/:filename",
         "GET /api/email/settings/logo",
         "GET /api/email/unsubscribe/:token",

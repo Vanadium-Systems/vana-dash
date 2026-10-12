@@ -50,6 +50,8 @@ const admin = {
   notificationPrefs: null,
   navLayout: null,
   updatesSeenAt: null,
+  locale: 'ro',
+  displayCurrency: 'RON',
   sessionVersion: 1,
 } satisfies SessionUser
 

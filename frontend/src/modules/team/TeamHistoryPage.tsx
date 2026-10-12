@@ -10,7 +10,7 @@ import { Select } from '@/shared/components/ui/select'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { useTeamMembers, memberName } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
-import { formatDateTime, formatRelativeTime } from '@/shared/lib/utils'
+import { formatDateTime, formatRelativeTime } from '@/shared/lib/format'
 import { actionLabel, type AuditListItem } from '@/shared/lib/audit'
 
 // „Cine a făcut ce" (PLAN.md C2, fișa „Istoric"). Filtrele stau în URL, ca un link să poată

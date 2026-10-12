@@ -1,3 +1,4 @@
+import type { DisplayCurrency, Locale } from './locale'
 export type FeatureKey = string
 
 export interface SessionRole {
@@ -30,6 +31,10 @@ export interface SessionPayload {
   navLayout: Array<{ to: string; visible: boolean }> | null
   /** Până când a văzut omul pagina Noutăți; `null` = niciodată. */
   updatesSeenAt: string | null
+  locale: Locale
+  enabledLocales: Locale[]
+  displayCurrency: DisplayCurrency
+  displayCurrencies: DisplayCurrency[]
 }
 
 // modules/support — tichete către Vanadium.

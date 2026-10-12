@@ -1,0 +1,10 @@
+{
+  "internal": "Eroare internă",
+  "auth": {
+    "invalidCredentials": "Email sau parolă greșită",
+    "passwordTooShort": "Parola trebuie să aibă cel puțin {{min}} caractere",
+    "newPasswordInvalid": "Parola nouă nu e validă",
+    "currentPasswordWrong": "Parola curentă nu e corectă",
+    "localeNotEnabled": "Limba aleasă nu e disponibilă"
+  }
+}

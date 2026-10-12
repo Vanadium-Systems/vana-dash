@@ -1,6 +1,7 @@
 // Fetch wrapper: same-origin (/api proxied în dev), cookie HttpOnly, 401 → login.
 import { Directory, Filesystem } from '@capacitor/filesystem'
 import { toast } from 'sonner'
+import { getLocale } from '@/shared/lib/i18n'
 import { blobToBase64, isNative } from '@/shared/lib/native'
 
 export class ApiError extends Error {
@@ -85,7 +86,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const isFormData = init?.body instanceof FormData
   const res = await fetch(path, {
     credentials: 'include',
-    headers: init?.body && !isFormData ? { 'Content-Type': 'application/json' } : undefined,
+    headers: {
+      // Before login the server has no profile to read the language from.
+      'X-Locale': getLocale(),
+      ...(init?.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+    },
     ...init,
   }).catch(() => {
     throw new ApiError(0, 'Nu ajung la server. Verifică conexiunea și încearcă din nou.')

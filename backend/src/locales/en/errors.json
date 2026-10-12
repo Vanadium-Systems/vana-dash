@@ -1,0 +1,10 @@
+{
+  "internal": "Internal error",
+  "auth": {
+    "invalidCredentials": "Wrong email or password",
+    "passwordTooShort": "The password must be at least {{min}} characters long",
+    "newPasswordInvalid": "The new password is not valid",
+    "currentPasswordWrong": "The current password is not correct",
+    "localeNotEnabled": "The selected language is not available"
+  }
+}

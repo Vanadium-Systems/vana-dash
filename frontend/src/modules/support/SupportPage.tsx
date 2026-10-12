@@ -17,7 +17,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { findNavItem } from '@/shared/lib/nav-items'
 import type { SupportTicket, SupportTicketDetail, SupportTicketStatus } from '@/shared/lib/types'
-import { formatRelativeTime } from '@/shared/lib/utils'
+import { formatRelativeTime } from '@/shared/lib/format'
 import { STATUS_LABEL, STATUS_TONE, SUPPORT_PATHS, type SupportScope } from './support-api'
 
 const STATUS_FILTERS: SupportTicketStatus[] = ['deschis', 'raspuns', 'inchis']

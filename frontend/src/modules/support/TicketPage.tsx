@@ -11,7 +11,8 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { api, ApiError } from '@/shared/lib/api'
 import { findNavItem } from '@/shared/lib/nav-items'
 import type { SupportTicketDetail } from '@/shared/lib/types'
-import { cn, formatDateTime } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
+import { formatDateTime } from '@/shared/lib/format'
 import { STATUS_LABEL, STATUS_TONE, SUPPORT_PATHS, SUPPORT_UNREAD_KEY, type SupportScope } from './support-api'
 
 export function TicketPage({ scope }: { scope: SupportScope }) {

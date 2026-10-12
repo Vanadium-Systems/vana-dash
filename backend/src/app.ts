@@ -49,6 +49,7 @@ import { teamRoutes } from './modules/team/routes.js'
 import { tendersRoutes } from './modules/tenders/routes.js'
 import { wishlistRoutes } from './modules/wishlist/routes.js'
 import { config } from './shared/config.js'
+import { tr } from './shared/lib/i18n.js'
 import { authPlugin } from './shared/middleware/auth.js'
 import { featureGuardPlugin } from './shared/middleware/feature-guard.js'
 
@@ -86,7 +87,7 @@ export async function buildServer() {
     }
     const statusCode = error.statusCode ?? 500
     if (statusCode >= 500) request.log.error(error)
-    return reply.code(statusCode).send({ success: false, error: statusCode >= 500 ? 'Eroare internă' : error.message })
+    return reply.code(statusCode).send({ success: false, error: statusCode >= 500 ? tr('errors.internal') : error.message })
   })
 
   await app.register(helmet)

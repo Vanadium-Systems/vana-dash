@@ -1,4 +1,5 @@
 import './load-env.js'
+import { isDisplayCurrency, isLocale, type DisplayCurrency, type Locale } from './lib/locale.js'
 
 function required(name: string): string {
   const value = process.env[name]
@@ -15,6 +16,13 @@ export const config = {
   jwtSecret: required('JWT_SECRET'),
   masterEncryptionKey: required('MASTER_ENCRYPTION_KEY'),
   frontendOrigin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5174',
+
+  // What a new person, a visitor before login and every job start with. Each person can then
+  // change both in My profile. An unknown value falls back instead of stopping the server.
+  defaultLocale: (isLocale(process.env.DEFAULT_LOCALE) ? process.env.DEFAULT_LOCALE : 'ro') as Locale,
+  defaultDisplayCurrency: (isDisplayCurrency(process.env.DEFAULT_DISPLAY_CURRENCY)
+    ? process.env.DEFAULT_DISPLAY_CURRENCY
+    : 'RON') as DisplayCurrency,
 
   // Fișiere generate/descărcate (XML e-Factura, PDF facturi). Relativ la cwd în dev,
   // volum Docker în prod.

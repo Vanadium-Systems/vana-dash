@@ -10,8 +10,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'sonner'
-import { App } from './App'
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary'
+import { initI18n } from '@/shared/lib/i18n'
 import { isNative } from '@/shared/lib/native'
 import './index.css'
 
@@ -45,19 +45,28 @@ if ('serviceWorker' in navigator) {
   }
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-          <Toaster
-            richColors
-            position="top-right"
-            toastOptions={{ style: { fontFamily: 'Inter, system-ui, sans-serif' } }}
-          />
-        </BrowserRouter>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  </React.StrictMode>,
-)
+// The language has to be known before any module that builds labels is evaluated, so the app
+// itself is imported only after the texts are loaded.
+async function start() {
+  await initI18n()
+  const { App } = await import('./App')
+
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <App />
+            <Toaster
+              richColors
+              position="top-right"
+              toastOptions={{ style: { fontFamily: 'Inter, system-ui, sans-serif' } }}
+            />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </React.StrictMode>,
+  )
+}
+
+void start()

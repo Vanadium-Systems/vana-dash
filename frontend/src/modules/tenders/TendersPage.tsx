@@ -12,7 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api } from '@/shared/lib/api'
 import { downloadCsv } from '@/shared/lib/csv'
 import type { TenderOpportunity, TenderSource } from '@/shared/lib/types'
-import { cn, formatNumber } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
+import { formatNumber } from '@/shared/lib/format'
 import { TenderWatchRulesCard } from './TenderWatchRulesCard'
 
 const SOURCE_LABEL: Record<TenderSource, string> = {

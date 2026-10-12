@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { cn } from '@/shared/lib/utils'
 import { api } from '@/shared/lib/api'
-import { formatNumber } from '@/shared/lib/utils'
+import { formatNumber } from '@/shared/lib/format'
 import type { WishlistCategory, WishlistItem, WishlistResponse, WishlistScope } from '@/shared/lib/types'
 import { WishlistItemFormDialog } from './WishlistItemFormDialog'
 

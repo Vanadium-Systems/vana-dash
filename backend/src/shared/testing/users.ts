@@ -49,6 +49,8 @@ export async function createTestUser(label: string, cleanup: string[], options: 
     notificationPrefs: null,
     navLayout: null,
     updatesSeenAt: null,
+    locale: 'ro',
+    displayCurrency: 'RON',
     sessionVersion: 1,
   }
   return me

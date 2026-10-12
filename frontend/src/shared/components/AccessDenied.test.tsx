@@ -23,6 +23,10 @@ function render(feature: string, features: string[], admin: string | null = 'Ana
     notificationPrefs: { chat: 'all' as const, emailNew: true, alerts: true },
     navLayout: null,
     updatesSeenAt: null,
+    locale: 'ro',
+    enabledLocales: ['ro'],
+    displayCurrency: 'RON',
+    displayCurrencies: ['RON', 'EUR', 'USD'],
   } satisfies SessionPayload
   queryClient.setQueryData(ME_QUERY_KEY, session)
   queryClient.setQueryData(['team', 'members'], admin ? [{ id: 'a1', displayName: admin, email: 'ana@vanadium.systems', status: 'active', lastSeenAt: null, role: { id: 'r0', name: 'Admin', kind: 'admin' } }] : [])

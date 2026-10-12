@@ -6,7 +6,8 @@ import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { useLiveChatConversations } from '@/shared/hooks/use-chat'
 import { memberName } from '@/shared/hooks/use-team'
-import { cn, formatRelativeTime } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
+import { formatRelativeTime } from '@/shared/lib/format'
 import type { ChatConversation } from '@/shared/lib/types'
 
 // Coloana de conversații (fișa „Mesaje"): secțiuni „Grupuri" și „Directe", necititele cu nume
