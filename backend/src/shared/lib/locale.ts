@@ -5,8 +5,8 @@ export const LOCALES = ['ro', 'en'] as const
 export type Locale = (typeof LOCALES)[number]
 export const INTL_TAG: Record<Locale, string> = { ro: 'ro-RO', en: 'en-GB' }
 
-/** Languages a person can pick. A locale stays out of this list until every screen has it. */
-export const ENABLED_LOCALES: readonly Locale[] = ['ro']
+/** Languages a person can pick. A new locale stays out of this list until every screen has it. */
+export const ENABLED_LOCALES: readonly Locale[] = ['ro', 'en']
 
 // The currencies the BNR feed stores a rate for, plus RON itself.
 export const DISPLAY_CURRENCIES = ['RON', 'EUR', 'USD'] as const

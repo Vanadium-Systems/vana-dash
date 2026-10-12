@@ -63,8 +63,8 @@
     "scheduled": "The call with Vanadium Systems is scheduled for {{label}} (Romanian time), 30 minutes.",
     "linkLater": "You will get the call link by email before the meeting.",
     "cancelHere": "If you can no longer make it, cancel here: {{cancelUrl}}",
-    "cancelledSubject": "Booking cancelled · {{label}}",
-    "cancelledByVisitor": "The call of {{label}} is cancelled. If you want another time, you can pick one again on vanadium.systems.",
+    "cancelledSubject": "Booking canceled · {{label}}",
+    "cancelledByVisitor": "The call of {{label}} is canceled. If you want another time, you can pick one again on vanadium.systems.",
     "cancelledByOwner": "Unfortunately I have to cancel the call of {{label}}. I will write to you separately to find another time.",
     "icsFilename": "booking.ics"
   },

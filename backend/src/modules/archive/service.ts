@@ -484,7 +484,7 @@ export async function ensureFolderPath(rootId: string, names: string[]): Promise
   for (const name of names) {
     parentId = await ensureFolder(name, parentId)
   }
-  if (!parentId) throw new Error('ensureFolderPath necesită cel puțin un nume de folder')
+  if (!parentId) throw new Error('ensureFolderPath needs at least one folder name')
   return parentId
 }
 

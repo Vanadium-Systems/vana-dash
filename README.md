@@ -96,7 +96,7 @@ Then:
 
 ```bash
 ./dev start              # postgres, backend on :3001, frontend on :5174; migrates and seeds
-./dev db seed:demo       # optional: invented clients, invoices, prospects, messages
+./dev db seed:demo en    # optional: invented clients, invoices, prospects, messages (en or ro)
 ```
 
 Open <http://localhost:5174> and sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `.env`.
@@ -121,8 +121,10 @@ The backend tests run against the local PostgreSQL from `./dev start`.
 
 In production since mid-2026, used daily by its author and a few colleagues.
 
-- **The interface is in Romanian.** Translating it is the next piece of work; until then the
-  screenshots and `db:seed:demo` are the quickest way to see what it does.
+- **The interface is in Romanian and English.** Each person picks a language and a display
+  currency in My profile; `DEFAULT_LOCALE` sets what a new installation starts in. Invoices,
+  declarations and contract templates stay in Romanian. Terms are in
+  [docs/GLOSSARY.md](docs/GLOSSARY.md).
 - Code comments are mostly in Romanian too. New code and all public documentation are written in
   English; older comments are translated as the files are touched.
 - Not planned for now: multi-company hosting on one instance, video calls.

@@ -4,7 +4,7 @@ import { getPlatform } from '../platforms/service.js'
 import { isSelfServePricingEnabled, setSelfServePricingEnabled } from '../vanagreen-ingest/service.js'
 import { htmlToPdf, isPdfAvailable } from '../../shared/lib/pdf.js'
 import { calculatePrice } from './calc.js'
-import { renderPriceSheetHtml } from './price-sheet.js'
+import { PRICE_SHEET_PLATFORM_FALLBACK, renderPriceSheetHtml } from './price-sheet.js'
 import {
   PricingCalculateSchema,
   PricingConfigQuerySchema,
@@ -71,7 +71,7 @@ export async function pricingRoutes(app: FastifyInstance) {
       if (!isPdfAvailable()) {
         return reply.code(503).send({ success: false, error: tr('errors.pdf.unavailableRetry') })
       }
-      const html = renderPriceSheetHtml(configRow.config as PricingConfig, platform?.name ?? 'Platformă')
+      const html = renderPriceSheetHtml(configRow.config as PricingConfig, platform?.name ?? PRICE_SHEET_PLATFORM_FALLBACK)
       const pdf = await htmlToPdf(html)
       reply.header('Content-Disposition', 'inline; filename="fisa-preturi.pdf"')
       return reply.type('application/pdf').send(pdf)

@@ -4,7 +4,10 @@
     "title": "BNR rate",
     "asOf": "as of {{date}}",
     "loadFailed": "The BNR rate could not be loaded",
-    "noHistory": "No historical rate yet; the daily BNR job has only just started"
+    "noHistory": "No historical rate yet; the daily BNR job has only just started",
+    "rangeWeek": "Week",
+    "rangeMonth": "Month",
+    "rangeYear": "Year"
   },
   "labels": {
     "revenueCollected": "Revenue (collected)",
@@ -36,7 +39,6 @@
   "cashFlow": {
     "title": "Cash flow",
     "issued": "Issued",
-    "received": "Received",
-    "week": "Week"
+    "received": "Received"
   }
 }

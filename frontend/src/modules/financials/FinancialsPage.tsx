@@ -194,9 +194,9 @@ export function FinancialsPage() {
 type BnrRangeKey = 'week' | 'month' | 'year'
 
 const BNR_RANGE_OPTIONS: [BnrRangeKey, string][] = [
-  ['week', t('financials:cashFlow.week')],
-  ['month', 'Luna'],
-  ['year', 'Anul'],
+  ['week', t('financials:bnr.rangeWeek')],
+  ['month', t('financials:bnr.rangeMonth')],
+  ['year', t('financials:bnr.rangeYear')],
 ]
 
 function toDateKey(d: Date): string {

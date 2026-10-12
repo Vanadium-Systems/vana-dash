@@ -46,6 +46,16 @@ const wrongPassword = (cookie: string) =>
   })
 
 describe('language of an error', () => {
+  it('uses the language picked on a page before login', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: { 'x-locale': 'en' },
+      payload: { email: 'nobody@example.com', password: 'x' },
+    })
+    expect(res.json().error).toBe('Wrong email or password')
+  })
+
   it('follows the person, not the installation', async () => {
     expect((await wrongPassword(roCookie)).json().error).toBe('Parola curentă nu e corectă')
     expect((await wrongPassword(enCookie)).json().error).toBe('The current password is not correct')
@@ -95,6 +105,14 @@ describe('PATCH /api/auth/me', () => {
 
   it('refuses a language outside the list', async () => {
     expect((await patch({ locale: 'fr' })).statusCode).toBe(400)
+  })
+
+  it('saves the language, and the next error comes in it', async () => {
+    const res = await patch({ locale: 'en' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().data.locale).toBe('en')
+    expect((await wrongPassword(roCookie)).json().error).toBe('The current password is not correct')
+    await patch({ locale: 'ro' })
   })
 })
 

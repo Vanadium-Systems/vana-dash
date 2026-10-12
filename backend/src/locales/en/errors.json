@@ -88,7 +88,7 @@
   },
   "booking": {
     "blockNotFound": "Time slot not found",
-    "notFoundOrCancelled": "Booking not found or already cancelled",
+    "notFoundOrCancelled": "Booking not found or already canceled",
     "timeFormat": "The time in HH:mm format",
     "eachIntervalEndsAfterStart": "Each interval must end after it starts",
     "intervalEndsAfterStart": "The interval must end after it starts",
@@ -221,7 +221,8 @@
     "unknownTokens": "Unknown tokens: {{unknown}}",
     "templateNotFound": "The template does not exist",
     "signReadmeName": "README.txt",
-    "signReadme": "Digital signature: {{file}}\n=======================================\n\n1. Install Java (if you do not have it yet) and download JSignPdf: http://jsignpdf.sourceforge.net/\n2. Run from this folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = reads the certificate from the Windows certificate store (certSIGN,\n   virtual token); when it runs, JSignPdf/Windows asks for the token PIN.\n   -llx/-lly/-urx/-ury/-page = the position of the rectangle picked in the app (PDF coordinates, points).\n\n3. The result is \"semnat_{{file}}\". Upload it back with the button\n   \"I signed it, upload the PDF\" in the Sign tab.\n\nIf JSignPdf does not find the certSIGN certificate in -kst WINDOWS-MY, your virtual token does not\nexpose its private key outside the provider's own app. Sign by hand in Adobe Acrobat as before\nand upload the result here anyway, so it stays in the document's history.\n"
+    "signReadme": "Digital signature: {{file}}\n=======================================\n\n1. Install Java (if you do not have it yet) and download JSignPdf: http://jsignpdf.sourceforge.net/\n2. Run from this folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = reads the certificate from the Windows certificate store (certSIGN,\n   virtual token); when it runs, JSignPdf/Windows asks for the token PIN.\n   -llx/-lly/-urx/-ury/-page = the position of the rectangle picked in the app (PDF coordinates, points).\n\n3. The result is \"semnat_{{file}}\". Upload it back with the button\n   \"I signed it, upload the PDF\" in the Sign tab.\n\nIf JSignPdf does not find the certSIGN certificate in -kst WINDOWS-MY, your virtual token does not\nexpose its private key outside the provider's own app. Sign by hand in Adobe Acrobat as before\nand upload the result here anyway, so it stays in the document's history.\n",
+    "reservedSeedNote": "Collaboration contract, outside the app"
   },
   "reconciliation": {
     "configureFirst": "set the client_id and generate the certificate first",
@@ -394,5 +395,6 @@
     "rateNotNumber": "The {{currency}} rate in the BNR feed could not be parsed as a positive number: \"{{value}}\"",
     "noValidRate": "No valid rate in the BNR feed: {{errors}}",
     "noRateAtDate": "No {{currency}} rate available on or before {{dateIso}}, not even after a live BNR fetch"
-  }
+  },
+  "rateLimited": "Too many attempts. Try again in a few minutes."
 }

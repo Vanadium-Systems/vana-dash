@@ -98,7 +98,7 @@ export function SupportPage({ scope }: { scope: SupportScope }) {
             kind="new"
             title={t('support:emptyMineTitle')}
             description={t('support:emptyMineHint')}
-            action={newTicketButton('Deschide primul tichet')}
+            action={newTicketButton(t('support:openFirstTicket'))}
           />
         )
       ) : (

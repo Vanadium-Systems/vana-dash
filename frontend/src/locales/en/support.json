@@ -37,5 +37,6 @@
     "open": "Open",
     "answered": "Answered",
     "closed": "Closed"
-  }
+  },
+  "openFirstTicket": "Open the first ticket"
 }

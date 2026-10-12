@@ -222,7 +222,8 @@
     "unknownTokens": "Tokeni necunoscuți: {{unknown}}",
     "templateNotFound": "Șablon inexistent",
     "signReadmeName": "CITEȘTE-MĂ.txt",
-    "signReadme": "Semnătură digitală — {{file}}\n=======================================\n\n1. Instalează Java (dacă nu-l ai deja) și descarcă JSignPdf: http://jsignpdf.sourceforge.net/\n2. Rulează din acest folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = citește certificatul din magazinul de certificate Windows (certSIGN,\n   token virtual) — la rulare, JSignPdf/Windows îți va cere PIN-ul tokenului.\n   -llx/-lly/-urx/-ury/-page = poziția dreptunghiului ales în dash (coordonate PDF, puncte).\n\n3. Rezultatul e \"semnat_{{file}}\" — încarcă-l înapoi în dash cu butonul\n   \"Am semnat, încarcă PDF-ul\" din tab-ul Semnează.\n\nDacă JSignPdf nu găsește certificatul certSIGN în -kst WINDOWS-MY, tokenul tău virtual nu-și\nexpune cheia privată în afara aplicației proprii a providerului — semnează manual în Adobe\nAcrobat ca până acum și încarcă rezultatul aici oricum, ca să rămână în istoricul documentului.\n"
+    "signReadme": "Semnătură digitală — {{file}}\n=======================================\n\n1. Instalează Java (dacă nu-l ai deja) și descarcă JSignPdf: http://jsignpdf.sourceforge.net/\n2. Rulează din acest folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = citește certificatul din magazinul de certificate Windows (certSIGN,\n   token virtual) — la rulare, JSignPdf/Windows îți va cere PIN-ul tokenului.\n   -llx/-lly/-urx/-ury/-page = poziția dreptunghiului ales în dash (coordonate PDF, puncte).\n\n3. Rezultatul e \"semnat_{{file}}\" — încarcă-l înapoi în dash cu butonul\n   \"Am semnat, încarcă PDF-ul\" din tab-ul Semnează.\n\nDacă JSignPdf nu găsește certificatul certSIGN în -kst WINDOWS-MY, tokenul tău virtual nu-și\nexpune cheia privată în afara aplicației proprii a providerului — semnează manual în Adobe\nAcrobat ca până acum și încarcă rezultatul aici oricum, ca să rămână în istoricul documentului.\n",
+    "reservedSeedNote": "Contract de colaborare, în afara aplicației"
   },
   "reconciliation": {
     "configureFirst": "configurează client_id și generează certificatul mai întâi",
@@ -396,5 +397,6 @@
     "rateNotNumber": "Cursul {{currency}} din feed-ul BNR nu s-a putut parsa la un număr pozitiv: \"{{value}}\"",
     "noValidRate": "Niciun curs valabil în feed-ul BNR: {{errors}}",
     "noRateAtDate": "Niciun curs {{currency}} disponibil la sau înainte de {{dateIso}}, nici după un fetch BNR live"
-  }
+  },
+  "rateLimited": "Prea multe încercări. Mai încearcă peste câteva minute."
 }

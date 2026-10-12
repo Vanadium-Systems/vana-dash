@@ -4,6 +4,18 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-13: English interface and display currency
+
+### Added
+- The interface in English next to Romanian. Texts live in `frontend/src/locales` and
+  `backend/src/locales`; a parity test keeps the two languages in step and a lint rule rejects
+  a literal written in JSX. Each person picks a language in My profile.
+- A display currency per person (RON, EUR, USD). Totals are converted in SQL at the BNR rate of
+  each row's day and marked as converted; documents and declarations are not converted.
+- System emails and push notifications are written in the recipient's language.
+- `db:seed:demo [ro|en]`, with invented EUR and USD rates.
+- `DEFAULT_LOCALE` and `DEFAULT_DISPLAY_CURRENCY` in `.env.example`.
+
 ## 2026-10-12 — Initial public release
 
 The repository becomes public under the PolyForm Noncommercial License 1.0.0. Everything built

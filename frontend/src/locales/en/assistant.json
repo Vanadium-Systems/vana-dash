@@ -11,7 +11,7 @@
   "deleted": "Conversation deleted",
   "deleteFailed": "The conversation could not be deleted",
   "modelChangeFailed": "The model could not be changed",
-  "cancelTaskFailed": "The task could not be cancelled",
+  "cancelTaskFailed": "The task could not be canceled",
   "defaultModel": "Default model",
   "conversations": "Conversations",
   "newConversation": "New conversation",

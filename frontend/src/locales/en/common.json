@@ -385,7 +385,7 @@
     "supportTickets": "Support tickets",
     "unread": "unread",
     "new": "new",
-    "logout": "Log out",
+    "logout": "Sign out",
     "apkDownloaded": "APK downloaded. Open it from the notification to install",
     "savedToDocuments": "Saved to Documents: {{name}}"
   },
@@ -416,7 +416,7 @@
       "addendumCreated": "addendum created",
       "signedPdfUploaded": "signed PDF uploaded",
       "contractSigned": "contract signed",
-      "signatureCancelled": "signature cancelled",
+      "signatureCancelled": "signature canceled",
       "termsChanged": "terms changed",
       "reservedNumbersChanged": "reserved numbers changed",
       "manualMatch": "manual match"

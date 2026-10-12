@@ -3,20 +3,21 @@ import { db } from '../../shared/db/client.js'
 import { dashboardConfig } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
 import { ReservedNumbersSchema, type ReservedNumber } from './schema.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export const RESERVED_NUMBERS_CONFIG_KEY = 'contract.reservedNumbers'
 
 // Valabil doar cât timp cheia lipsește din dashboard_config: după prima salvare (inclusiv o
 // listă golită de om) contează rândul din DB, deci 003 șters nu reapare.
-const SEED_RESERVED_NUMBERS: ReservedNumber[] = [
-  { number: '003', note: 'Contract de colaborare, în afara aplicației', date: '2026-09-28' },
+const seedReservedNumbers = (): ReservedNumber[] => [
+  { number: '003', note: tr('errors.contracts.reservedSeedNote'), date: '2026-09-28' },
 ]
 
 export class ReservedNumberDuplicateError extends Error {}
 
 export async function listReservedNumbers(): Promise<ReservedNumber[]> {
   const [row] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, RESERVED_NUMBERS_CONFIG_KEY))
-  return row ? ReservedNumbersSchema.parse(row.value) : SEED_RESERVED_NUMBERS
+  return row ? ReservedNumbersSchema.parse(row.value) : seedReservedNumbers()
 }
 
 export async function replaceReservedNumbers(next: ReservedNumber[]): Promise<ReservedNumber[]> {

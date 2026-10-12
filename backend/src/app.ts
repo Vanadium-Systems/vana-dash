@@ -86,6 +86,8 @@ export async function buildServer() {
     }
     const statusCode = error.statusCode ?? 500
     if (statusCode >= 500) request.log.error(error)
+    // The rate limiter writes its own message, in English, with the time left.
+    if (statusCode === 429) return reply.code(429).send({ success: false, error: tr('errors.rateLimited') })
     return reply.code(statusCode).send({ success: false, error: statusCode >= 500 ? tr('errors.internal') : error.message })
   })
 

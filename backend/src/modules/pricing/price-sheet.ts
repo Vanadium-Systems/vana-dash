@@ -1,6 +1,9 @@
 import { calculatePrice } from './calc.js'
 import type { PricingCalculateInput, PricingConfig } from './schema.js'
 
+/** Heading of the sheet when the platform has no name. The sheet is a Romanian document. */
+export const PRICE_SHEET_PLATFORM_FALLBACK = 'Platformă'
+
 // Fișă de prețuri (2026-09-21, Stefan) — un-pager PDF exportat din Config preț, de trimis unui
 // prospect alături de contracte, fără date de client. Stilat identic cu documentele contractuale
 // (paleta/fonturile din shared/lib/contract-template-bodies.ts: #0f2447, Helvetica Neue, tabele

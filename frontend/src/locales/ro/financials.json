@@ -4,7 +4,10 @@
     "title": "Curs BNR",
     "asOf": "la {{date}}",
     "loadFailed": "Nu am putut încărca cursul BNR",
-    "noHistory": "Niciun curs istoric încă — jobs/bnr-daily-fetch.ts abia a pornit"
+    "noHistory": "Niciun curs istoric încă — jobs/bnr-daily-fetch.ts abia a pornit",
+    "rangeWeek": "Săptămâna",
+    "rangeMonth": "Luna",
+    "rangeYear": "Anul"
   },
   "labels": {
     "revenueCollected": "Venituri (încasate)",
@@ -36,7 +39,6 @@
   "cashFlow": {
     "title": "Cash flow",
     "issued": "Emise",
-    "received": "Primite",
-    "week": "Săptămâna"
+    "received": "Primite"
   }
 }

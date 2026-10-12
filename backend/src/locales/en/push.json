@@ -18,7 +18,7 @@
   },
   "booking": {
     "newTitle": "New booking",
-    "cancelledTitle": "Booking cancelled"
+    "cancelledTitle": "Booking canceled"
   },
   "chat": {
     "attachment": "Attachment",

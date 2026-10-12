@@ -37,7 +37,7 @@
     "loadFailed": "The accounts could not be loaded"
   },
   "transactions": {
-    "matchCancelled": "Match cancelled. The invoice is back to unpaid",
+    "matchCancelled": "Match canceled. The invoice is back to unpaid",
     "title": "Transactions",
     "onlyUnmatched": "Unmatched only",
     "allMatchedTitle": "All transactions are matched with invoices",

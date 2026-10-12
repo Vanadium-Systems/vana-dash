@@ -37,5 +37,6 @@
     "open": "Deschis",
     "answered": "Răspuns",
     "closed": "Închis"
-  }
+  },
+  "openFirstTicket": "Deschide primul tichet"
 }
