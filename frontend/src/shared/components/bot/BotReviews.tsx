@@ -8,11 +8,13 @@ import { Skeleton } from '@/shared/components/ui/skeleton'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { safeHttpUrl, type ReviewMeta, type ReviewSeverity } from './types'
+import { t } from '@/shared/lib/i18n'
+import { intlTag } from '@/shared/lib/format'
 
 const SEVERITY: Record<ReviewSeverity, { label: string; icon: typeof CircleCheck; className: string }> = {
-  ok: { label: 'OK', icon: CircleCheck, className: 'text-success' },
-  warn: { label: 'Atenție', icon: AlertTriangle, className: 'text-warning' },
-  critical: { label: 'Critic', icon: OctagonAlert, className: 'text-destructive-text' },
+  ok: { label: t('common:actions.ok'), icon: CircleCheck, className: 'text-success' },
+  warn: { label: t('common:states.warning'), icon: AlertTriangle, className: 'text-warning' },
+  critical: { label: t('common:states.critical'), icon: OctagonAlert, className: 'text-destructive-text' },
 }
 
 // Un raport Claude acoperă tot botul (crypto + bursă), deci aceeași listă apare în ambele tab-uri.
@@ -23,12 +25,12 @@ export function BotReviews({ reviews, standalone = false }: { reviews: ReviewMet
   return (
     <div className={standalone ? 'min-w-0 space-y-2' : 'space-y-1'}>
       {standalone ? (
-        <h2 className="text-sm font-semibold">Rapoartele Claude</h2>
+        <h2 className="text-sm font-semibold">{t('common:bot.reviews.title')}</h2>
       ) : (
-        <h3 className="text-xs text-muted-foreground">Rapoartele Claude</h3>
+        <h3 className="text-xs text-muted-foreground">{t('common:bot.reviews.title')}</h3>
       )}
       {!reviews.length ? (
-        <p className="text-sm text-muted-foreground">Niciun raport încă. Revizuirea zilnică rulează la 09:00 pe server.</p>
+        <p className="text-sm text-muted-foreground">{t('common:bot.reviews.empty')}</p>
       ) : (
         <ul className="-mx-2">
           {reviews.map((r) => {
@@ -43,7 +45,7 @@ export function BotReviews({ reviews, standalone = false }: { reviews: ReviewMet
                   <sev.icon className={cn('mt-0.5 h-4 w-4 shrink-0', sev.className)} aria-label={sev.label} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-xs text-muted-foreground">
-                      {r.kind === 'weekly' ? 'Săptămânal' : 'Zilnic'} · {formatDay(r.date)}
+                      {r.kind === 'weekly' ? t('common:bot.reviews.weekly') : t('common:bot.reviews.daily')} · {formatDay(r.date)}
                     </span>
                     <span className="line-clamp-2 text-sm [overflow-wrap:anywhere]">{r.summary}</span>
                   </span>
@@ -77,8 +79,8 @@ function ReviewDialog({ id, onClose }: { id: string | null; onClose: () => void 
         <DialogHeader>
           <DialogTitle>
             {review.data
-              ? `Revizuire ${review.data.kind === 'weekly' ? 'săptămânală' : 'zilnică'}, ${formatDay(review.data.date)}`
-              : 'Raport'}
+              ? t(review.data.kind === 'weekly' ? 'common:bot.reviews.weeklyTitle' : 'common:bot.reviews.dailyTitle', { date: formatDay(review.data.date) })
+              : t('common:bot.reviews.report')}
           </DialogTitle>
         </DialogHeader>
         {review.isPending ? (
@@ -88,7 +90,7 @@ function ReviewDialog({ id, onClose }: { id: string | null; onClose: () => void 
             <Skeleton className="h-4 w-5/6" />
           </div>
         ) : review.isError ? (
-          <p className="text-sm text-muted-foreground">Nu am putut încărca raportul.</p>
+          <p className="text-sm text-muted-foreground">{t('common:bot.reviews.loadFailed')}</p>
         ) : (
           <div className="max-h-[70vh] space-y-2 overflow-y-auto text-sm leading-relaxed [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-4 [&_h2]:font-semibold [&_h3]:font-medium [&_li]:ml-4 [&_ol]:list-decimal [&_ul]:list-disc">
             <ReactMarkdown
@@ -127,7 +129,7 @@ function ReviewDialog({ id, onClose }: { id: string | null; onClose: () => void 
 }
 
 export function formatDay(iso: string): string {
-  return new Date(iso).toLocaleDateString('ro-RO', {
+  return new Date(iso).toLocaleDateString(intlTag(), {
     day: 'numeric',
     month: 'short',
   })

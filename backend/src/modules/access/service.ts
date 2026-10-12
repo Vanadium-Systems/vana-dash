@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { roles, users } from '../../shared/db/schema/index.js'
-import { availableFeatures, FEATURE_KEYS, PAGES } from '../../shared/lib/features.js'
+import { availableFeatures, FEATURE_KEYS, featureLabel, pageGroupLabel, pageLabel, PAGES } from '../../shared/lib/features.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { recordAudit } from '../../shared/lib/audit.js'
 
@@ -43,12 +43,12 @@ export function getCatalog() {
   const available = availableFeatures()
   return PAGES.map((page) => ({
     page: page.key,
-    label: page.label,
-    group: page.group,
+    label: pageLabel(page.key),
+    group: pageGroupLabel(page.group),
     viewFeature: page.viewFeature,
     features: available.filter((f) => f.page === page.key).map((f) => ({
       key: f.key,
-      label: f.label,
+      label: featureLabel(f.key),
       ownerOnly: f.ownerOnly === true,
     })),
   }))

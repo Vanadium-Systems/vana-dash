@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { RequireFeature } from '@/shared/components/AccessDenied'
@@ -7,6 +7,7 @@ import { AppLayout } from '@/shared/components/layout/AppLayout'
 import { LinkedSection, RedirectToTab, TabbedSection } from '@/shared/components/layout/PageSection'
 import { useAuth } from '@/shared/hooks/use-auth'
 import { useShareIn } from '@/shared/lib/share-in'
+import { syncLocaleWithProfile, t } from '@/shared/lib/i18n'
 
 const AccountingPage = lazy(() => import('@/modules/accounting/AccountingPage').then((m) => ({ default: m.AccountingPage })))
 const AlertsPage = lazy(() => import('@/modules/alerts/AlertsPage').then((m) => ({ default: m.AlertsPage })))
@@ -45,8 +46,8 @@ const UpdatesPage = lazy(() => import('@/modules/updates/UpdatesPage').then((m) 
 const WishlistPage = lazy(() => import('@/modules/wishlist/WishlistPage').then((m) => ({ default: m.WishlistPage })))
 
 const INVESTMENT_LINKS = [
-  { to: '/crypto', label: 'Crypto' },
-  { to: '/assets', label: 'Acțiuni' },
+  { to: '/crypto', label: t('common:nav.crypto') },
+  { to: '/assets', label: t('common:nav.stocks') },
 ]
 
 function PageFallback() {
@@ -58,8 +59,12 @@ function PageFallback() {
 }
 
 function RequireAuth() {
-  const { isAuthenticated, isPending } = useAuth()
+  const { isAuthenticated, isPending, session } = useAuth()
   useShareIn()
+  // A copy of /me cached before this field existed has no language in it.
+  useEffect(() => {
+    if (session?.locale && session.enabledLocales) syncLocaleWithProfile(session.locale, session.enabledLocales)
+  }, [session])
   if (isPending) return null
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return <Outlet />
@@ -79,46 +84,46 @@ export function App() {
               în shell, ar arunca la fiecare pagină. */}
           <Route element={<ChatStreamProvider><Outlet /></ChatStreamProvider>}>
           <Route element={<AppLayout />}>
-            <Route path="/accounting" element={<RequireFeature feature="facturi.view" page="Facturi"><AccountingPage /></RequireFeature>} />
-            <Route path="/archive" element={<RequireFeature feature="arhiva.view" page="Arhivă"><ArchivePage /></RequireFeature>} />
+            <Route path="/accounting" element={<RequireFeature feature="facturi.view" page={t('common:nav.invoices')}><AccountingPage /></RequireFeature>} />
+            <Route path="/archive" element={<RequireFeature feature="arhiva.view" page={t('common:nav.archive')}><ArchivePage /></RequireFeature>} />
             <Route path="/" element={<OverviewPage />} />
-            <Route path="/assistant" element={<RequireFeature feature="asistent.view" page="Asistent"><AssistantPage /></RequireFeature>} />
-            <Route path="/platforms" element={<RequireFeature feature="platforme.view" page="Platforme"><PlatformsPage /></RequireFeature>} />
+            <Route path="/assistant" element={<RequireFeature feature="asistent.view" page={t('common:nav.assistant')}><AssistantPage /></RequireFeature>} />
+            <Route path="/platforms" element={<RequireFeature feature="platforme.view" page={t('common:nav.platforms')}><PlatformsPage /></RequireFeature>} />
             <Route
               path="/financials"
               element={
-                <RequireFeature feature="financiar.view" page="Financiar">
+                <RequireFeature feature="financiar.view" page={t('common:nav.financials')}>
                 <TabbedSection
-                  title="Financiar"
+                  title={t('common:nav.financials')}
                   tabs={[
-                    { key: 'pnl', label: 'Profit și pierdere', element: <FinancialsPage /> },
-                    { key: 'rapoarte', label: 'Rapoarte', element: <ReportsPage />, feature: 'financiar.rapoarte' },
+                    { key: 'pnl', label: t('common:nav.profitAndLoss'), element: <FinancialsPage /> },
+                    { key: 'rapoarte', label: t('common:nav.reports'), element: <ReportsPage />, feature: 'financiar.rapoarte' },
                   ]}
                 />
                 </RequireFeature>
               }
             />
-            <Route path="/reconciliation/*" element={<RequireFeature feature="reconciliere.view" page="Reconciliere"><ReconciliationPage /></RequireFeature>} />
-            <Route path="/crypto" element={<RequireFeature feature="investitii.view" page="Investiții"><LinkedSection title="Investiții" links={INVESTMENT_LINKS}><CryptoPage /></LinkedSection></RequireFeature>} />
-            <Route path="/crypto/coin/:id" element={<RequireFeature feature="investitii.view" page="Investiții"><CoinDetailPage /></RequireFeature>} />
-            <Route path="/assets" element={<RequireFeature feature="investitii.view" page="Investiții"><LinkedSection title="Investiții" links={INVESTMENT_LINKS}><AssetsPage /></LinkedSection></RequireFeature>} />
-            <Route path="/assets/:category/:symbol" element={<RequireFeature feature="investitii.view" page="Investiții"><AssetDetailPage /></RequireFeature>} />
-            <Route path="/pricing" element={<RequireFeature feature="clienti.view" page="Clienți"><PricingPage /></RequireFeature>} />
-            <Route path="/tenders" element={<RequireFeature feature="licitatii.view" page="Licitații"><TendersPage /></RequireFeature>} />
-            <Route path="/email" element={<RequireFeature feature="email.view" page="Email"><EmailPage /></RequireFeature>} />
-            <Route path="/messages" element={<RequireFeature feature="mesaje.view" page="Mesaje"><MessagesPage /></RequireFeature>} />
-            <Route path="/messages/:id" element={<RequireFeature feature="mesaje.view" page="Mesaje"><MessagesPage /></RequireFeature>} />
-            <Route path="/calendar" element={<RequireFeature feature="calendar.view" page="Calendar"><CalendarPage /></RequireFeature>} />
+            <Route path="/reconciliation/*" element={<RequireFeature feature="reconciliere.view" page={t('common:nav.reconciliation')}><ReconciliationPage /></RequireFeature>} />
+            <Route path="/crypto" element={<RequireFeature feature="investitii.view" page={t('common:nav.investments')}><LinkedSection title={t('common:nav.investments')} links={INVESTMENT_LINKS}><CryptoPage /></LinkedSection></RequireFeature>} />
+            <Route path="/crypto/coin/:id" element={<RequireFeature feature="investitii.view" page={t('common:nav.investments')}><CoinDetailPage /></RequireFeature>} />
+            <Route path="/assets" element={<RequireFeature feature="investitii.view" page={t('common:nav.investments')}><LinkedSection title={t('common:nav.investments')} links={INVESTMENT_LINKS}><AssetsPage /></LinkedSection></RequireFeature>} />
+            <Route path="/assets/:category/:symbol" element={<RequireFeature feature="investitii.view" page={t('common:nav.investments')}><AssetDetailPage /></RequireFeature>} />
+            <Route path="/pricing" element={<RequireFeature feature="clienti.view" page={t('common:nav.clients')}><PricingPage /></RequireFeature>} />
+            <Route path="/tenders" element={<RequireFeature feature="licitatii.view" page={t('common:nav.tenders')}><TendersPage /></RequireFeature>} />
+            <Route path="/email" element={<RequireFeature feature="email.view" page={t('common:nav.email')}><EmailPage /></RequireFeature>} />
+            <Route path="/messages" element={<RequireFeature feature="mesaje.view" page={t('common:nav.messages')}><MessagesPage /></RequireFeature>} />
+            <Route path="/messages/:id" element={<RequireFeature feature="mesaje.view" page={t('common:nav.messages')}><MessagesPage /></RequireFeature>} />
+            <Route path="/calendar" element={<RequireFeature feature="calendar.view" page={t('common:nav.calendar')}><CalendarPage /></RequireFeature>} />
             <Route
               path="/notes"
               element={
-                <RequireFeature feature="notite.view" page="Notițe">
+                <RequireFeature feature="notite.view" page={t('common:nav.notes')}>
                 <TabbedSection
-                  title="Notițe"
+                  title={t('common:nav.notes')}
                   tabs={[
-                    { key: 'notite', label: 'Notițe', element: <NotesPage /> },
-                    { key: 'plan', label: 'Plan', element: <PlanPage /> },
-                    { key: 'wishlist', label: 'Wishlist', element: <WishlistPage /> },
+                    { key: 'notite', label: t('common:nav.notes'), element: <NotesPage /> },
+                    { key: 'plan', label: t('common:nav.plan'), element: <PlanPage /> },
+                    { key: 'wishlist', label: t('common:nav.wishlist'), element: <WishlistPage /> },
                   ]}
                 />
                 </RequireFeature>
@@ -126,9 +131,9 @@ export function App() {
             />
             <Route path="/wishlist" element={<RedirectToTab to="/notes" tab="wishlist" />} />
             <Route path="/plan" element={<RedirectToTab to="/notes" tab="plan" />} />
-            <Route path="/alerts" element={<RequireFeature feature="alerte.view" page="Alerte"><AlertsPage /></RequireFeature>} />
+            <Route path="/alerts" element={<RequireFeature feature="alerte.view" page={t('common:nav.alerts')}><AlertsPage /></RequireFeature>} />
             <Route path="/reports" element={<RedirectToTab to="/financials" tab="rapoarte" />} />
-            <Route path="/system-health" element={<RequireFeature feature="server.view" page="Server"><SystemHealthPage /></RequireFeature>} />
+            <Route path="/system-health" element={<RequireFeature feature="server.view" page={t('common:nav.server')}><SystemHealthPage /></RequireFeature>} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/me" element={<ProfilePage />} />
             <Route path="/team" element={<TeamPage />} />
@@ -140,8 +145,8 @@ export function App() {
             <Route path="/platform/support/:id" element={<TicketPage scope="platform" />} />
             <Route path="/help" element={<GuidesPage />} />
             <Route path="/updates" element={<UpdatesPage />} />
-            <Route path="/team/history" element={<RequireFeature feature="echipa.istoric" page="Istoric"><TeamHistoryPage /></RequireFeature>} />
-            <Route path="/modules" element={<RequireFeature feature="echipa.administrare" page="Module"><ModulesPage /></RequireFeature>} />
+            <Route path="/team/history" element={<RequireFeature feature="echipa.istoric" page={t('common:nav.history')}><TeamHistoryPage /></RequireFeature>} />
+            <Route path="/modules" element={<RequireFeature feature="echipa.administrare" page={t('common:nav.modules')}><ModulesPage /></RequireFeature>} />
           </Route>
           </Route>
         </Route>

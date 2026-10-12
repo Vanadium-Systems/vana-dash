@@ -18,6 +18,7 @@ import type { AlertInstance, AlertRule, AlertSeverity } from '@/shared/lib/types
 import { cn, formatCount } from '@/shared/lib/utils'
 import { AlertRuleFormDialog } from './AlertRuleFormDialog'
 import { RuleSparkline } from './RuleSparkline'
+import { intlTag } from '@/shared/lib/format'
 
 // Citit și scris la alerte sunt funcționalități diferite: cine vede declanșările nu poate
 // neapărat să editeze regulile care le produc (PLAN.md C2).
@@ -34,7 +35,7 @@ const SEVERITY_GROUPS: AlertSeverity[] = ['critical', 'warning', 'info']
 const SNOOZE_OPTIONS = [1, 3, 7] as const
 
 const triggeredLabel = (iso: string) =>
-  new Intl.DateTimeFormat('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' }).format(new Date(iso))
+  new Intl.DateTimeFormat(intlTag(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' }).format(new Date(iso))
 
 function useAlertActions() {
   const queryClient = useQueryClient()

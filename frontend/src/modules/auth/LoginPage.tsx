@@ -7,6 +7,7 @@ import { Field } from '@/shared/components/ui/field'
 import { Input } from '@/shared/components/ui/input'
 import { useAuth, useLogin } from '@/shared/hooks/use-auth'
 import { PasswordInput } from './PasswordInput'
+import { t } from '@/shared/lib/i18n'
 
 // Login (fișa „Login"). Eroarea stă sub formular și nu spune dacă emailul există —
 // enumerarea de adrese ar fi o metodă de aflare a conturilor.
@@ -22,12 +23,12 @@ export function LoginPage() {
   if (!isPending && isAuthenticated) return <Navigate to="/" replace />
 
   return (
-    <AuthLayout title="VanaDash, de la Vanadium Systems" subline="Finanțe, clienți și email într-un singur loc.">
-      <h1 className="text-xl font-semibold">Intră în cont</h1>
+    <AuthLayout title={t('auth:brand.title')} subline={t('auth:brand.subline')}>
+      <h1 className="text-xl font-semibold">{t('auth:login.title')}</h1>
       {params.get('reset') ? (
-        <p className="mt-1 text-sm text-success-text">Parola e schimbată. Intră cu parola nouă.</p>
+        <p className="mt-1 text-sm text-success-text">{t('auth:login.passwordChanged')}</p>
       ) : (
-        <p className="mt-1 text-sm text-muted-foreground">Emailul și parola de la VanaDash.</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('auth:login.hint')}</p>
       )}
 
       <form
@@ -37,7 +38,7 @@ export function LoginPage() {
           login.mutate({ email, password }, { onSuccess: () => navigate('/', { replace: true }) })
         }}
       >
-        <Field label="Email">
+        <Field label={t('common:labels.email')}>
           <Input
             type="email"
             autoComplete="username"
@@ -48,7 +49,7 @@ export function LoginPage() {
             autoFocus
           />
         </Field>
-        <Field label="Parolă" error={login.isError ? login.error.message : null}>
+        <Field label={t('common:labels.password')} error={login.isError ? login.error.message : null}>
           <PasswordInput
             autoComplete="current-password"
             value={password}
@@ -58,11 +59,11 @@ export function LoginPage() {
         </Field>
         <div className="flex justify-end">
           <Link to="/forgot-password" className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground">
-            Ai uitat parola?
+            {t('auth:login.forgot')}
           </Link>
         </div>
         <Button type="submit" className="w-full" disabled={login.isPending}>
-          {login.isPending ? 'Se conectează…' : 'Intră'}
+          {login.isPending ? t('common:states.connecting') : t('auth:login.submit')}
         </Button>
       </form>
     </AuthLayout>

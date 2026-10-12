@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { api } from '@/shared/lib/api'
 import { isNative } from '@/shared/lib/native'
 import { useAuth } from '@/shared/hooks/use-auth'
+import { t } from '@/shared/lib/i18n'
 
 interface SharedFile {
   path?: string
@@ -118,7 +119,7 @@ let processingChain: Promise<void> = Promise.resolve()
 function scheduleProcessing(navigate: (path: string) => void): Promise<void> {
   const run = processingChain.then(() => processPendingShares(navigate))
   processingChain = run.catch((err) => {
-    toast.error(`Share în Arhivă eșuat: ${err instanceof Error ? err.message : 'eroare necunoscută'}`)
+    toast.error(t('common:errors.shareToArchive', { message: err instanceof Error ? err.message : t('common:errors.unknown') }))
   })
   return run.catch(() => {})
 }

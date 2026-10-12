@@ -11,6 +11,7 @@
 // din Etapa 3 (SICAP, platformele, serverul, boții de trading, prețurile VanaGreen).
 
 import { config } from '../config.js'
+import { tr, type TrKey } from './i18n.js'
 
 export const PAGE_KEYS = [
   'facturi',
@@ -44,7 +45,6 @@ export interface RouteRule {
 export interface FeatureDef {
   key: string
   page: PageKey
-  label: string
   routes: RouteRule[]
   /** Nu poate fi dată niciodată altei firme (Etapa 3). */
   ownerOnly?: true
@@ -67,49 +67,41 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'facturi.view',
     page: 'facturi',
-    label: 'Vede facturile',
     routes: [...read('/api/accounting/records'), ...read('/api/invoicing/invoices')],
   },
   {
     key: 'facturi.emitere',
     page: 'facturi',
-    label: 'Emite și editează facturi',
     routes: [...write('/api/accounting/records'), ...write('/api/invoicing/invoices'), ...all('/api/invoicing/exchange-rate')],
   },
   {
     key: 'facturi.anaf',
     page: 'facturi',
-    label: 'e-Factura și mesaje SPV',
     routes: [...all('/api/accounting/anaf'), ...write('/api/invoicing/invoices/:id/send-anaf')],
   },
   {
     key: 'facturi.declaratii',
     page: 'facturi',
-    label: 'D301/D390 și pachetul trimestrial',
     routes: whole('/api/accounting/d301', '/api/accounting/d390', '/api/accounting/quarterly-package'),
   },
   {
     key: 'facturi.contracte',
     page: 'facturi',
-    label: 'Contracte și anexe',
     routes: whole('/api/contracts'),
   },
   {
     key: 'facturi.clienti',
     page: 'facturi',
-    label: 'Clienți de facturare',
     routes: whole('/api/invoicing/clients', '/api/invoicing/anaf-lookup'),
   },
   {
     key: 'facturi.cheltuieli',
     page: 'facturi',
-    label: 'Cheltuieli recurente',
     routes: whole('/api/accounting/recurring-expenses'),
   },
   {
     key: 'facturi.setari',
     page: 'facturi',
-    label: 'Serie și șabloane de factură',
     routes: whole('/api/invoicing/sequence', '/api/invoicing/platforms'),
   },
 
@@ -119,7 +111,6 @@ export const FEATURES: FeatureDef[] = [
     // cardurilor ei nu au ce arăta. `overview-config` e aici, nu la setări: nu e o setare de firmă.
     key: 'financiar.view',
     page: 'financiar',
-    label: 'P&L, cashflow, KPI-uri',
     routes: whole(
       '/api/financials',
       '/api/metrics',
@@ -128,7 +119,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'financiar.rapoarte',
     page: 'financiar',
-    label: 'Rapoarte',
     routes: whole('/api/reports'),
   },
 
@@ -136,7 +126,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'reconciliere.view',
     page: 'reconciliere',
-    label: 'Tranzacții',
     routes: [
       ...read('/api/reconciliation/transactions'),
       ...all('/api/reconciliation/open-invoices'),
@@ -147,7 +136,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'reconciliere.potrivire',
     page: 'reconciliere',
-    label: 'Potrivire manuală',
     routes: whole(
       '/api/reconciliation/transactions/:id/match',
       '/api/reconciliation/invoices/:id/mark-paid',
@@ -156,7 +144,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'reconciliere.conturi',
     page: 'reconciliere',
-    label: 'Conturi bancare și chei',
     routes: whole(
       '/api/reconciliation/accounts',
       '/api/reconciliation/providers',
@@ -168,7 +155,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'clienti.view',
     page: 'clienti',
-    label: 'Clienți și prețuri',
     routes: read('/api/prospects').concat(
       // Configul de prețuri e citit de toată pagina (nu doar de editor), de aceea read = view.
       read('/api/pricing/config'),
@@ -178,19 +164,16 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'clienti.prospectare',
     page: 'clienti',
-    label: 'Prospecți și statusuri',
     routes: [...write('/api/prospects'), ...all('/api/prospects/scoring-config')],
   },
   {
     key: 'clienti.calculator',
     page: 'clienti',
-    label: 'Calculator de preț',
     routes: all('/api/pricing/calculate'),
   },
   {
     key: 'clienti.config-pret',
     page: 'clienti',
-    label: 'Configurează prețurile VanaGreen',
     ownerOnly: true,
     routes: [...write('/api/pricing/config'), ...all('/api/pricing/self-serve-toggle')],
   },
@@ -199,7 +182,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'email.view',
     page: 'email',
-    label: 'Citește inbox-ul',
     routes: [
       ...read('/api/email/threads'),
       ...all('/api/email/unread-counts'),
@@ -213,7 +195,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'email.trimitere',
     page: 'email',
-    label: 'Compune și răspunde',
     routes: whole(
       '/api/email/send',
       '/api/email/threads/:id/reply',
@@ -226,7 +207,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'email.bulk',
     page: 'email',
-    label: 'Trimitere în masă și secvențe',
     routes: whole(
       '/api/email/bulk-send',
       '/api/email/sequences',
@@ -238,13 +218,11 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'email.sabloane',
     page: 'email',
-    label: 'Șabloane',
     routes: whole('/api/email/templates'),
   },
   {
     key: 'email.setari',
     page: 'email',
-    label: 'Identități, reguli, blocklist',
     routes: [
       ...all('/api/email/settings'),
       ...all('/api/email/rules'),
@@ -257,7 +235,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'email.cutii',
     page: 'email',
-    label: 'Atribuie cutii de email',
     routes: all('/api/team/members/:id/mailboxes'),
   },
 
@@ -265,7 +242,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'calendar.view',
     page: 'calendar',
-    label: 'Vede calendarul',
     routes: [
       ...read('/api/calendar/events'),
       // Layer-ele de calendar (al meu + cele partajate) și share-urile puse de mine.
@@ -275,7 +251,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'calendar.editare',
     page: 'calendar',
-    label: 'Adaugă și editează evenimente',
     routes: [...write('/api/calendar/events'), ...write('/api/calendar/shares')],
   },
   {
@@ -284,7 +259,6 @@ export const FEATURES: FeatureDef[] = [
     // iar regula „participanți doar cu asta" e verificată în service, lângă scriere.
     key: 'calendar.comune',
     page: 'calendar',
-    label: 'Evenimente comune cu participanți',
     routes: [],
   },
   {
@@ -292,13 +266,11 @@ export const FEATURES: FeatureDef[] = [
     // funcționalitatea lărgește doar filtrul din service (`visibleCondition`).
     key: 'calendar.administrare',
     page: 'calendar',
-    label: 'Vede toate calendarele',
     routes: [],
   },
   {
     key: 'calendar.programari',
     page: 'calendar',
-    label: 'Programările publice de pe site',
     ownerOnly: true,
     routes: all('/api/booking'),
   },
@@ -307,7 +279,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'arhiva.view',
     page: 'arhiva',
-    label: 'Vede fișierele',
     routes: [
       ...read('/api/archive/files'),
       ...read('/api/archive/folders'),
@@ -319,7 +290,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'arhiva.editare',
     page: 'arhiva',
-    label: 'Încarcă, mută, șterge',
     routes: [...write('/api/archive/files'), ...write('/api/archive/folders')],
   },
   {
@@ -330,7 +300,6 @@ export const FEATURES: FeatureDef[] = [
     // captura POST `/api/archive/folders/:id/assign` pe `arhiva.editare`.
     key: 'arhiva.administrare',
     page: 'arhiva',
-    label: 'Vede toate spațiile și atribuie',
     routes: [...write('/api/archive/folders/:id/assign'), ...write('/api/archive/spaces/:ownerUserId/assign')],
   },
 
@@ -338,7 +307,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'notite.view',
     page: 'notite',
-    label: 'Notițe, plan și wishlist',
     routes: whole('/api/notes', '/api/plan', '/api/wishlist'),
   },
 
@@ -346,7 +314,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'asistent.view',
     page: 'asistent',
-    label: 'Asistentul AI',
     routes: [
       ...all('/api/assistant/conversations'),
       ...all('/api/assistant/actions'),
@@ -359,7 +326,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'investitii.view',
     page: 'investitii',
-    label: 'Piețe, watchlist, portofoliu',
     routes: [
       ...all('/api/crypto/markets'),
       ...all('/api/crypto/coin'),
@@ -378,13 +344,11 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'investitii.ordine',
     page: 'investitii',
-    label: 'Ordine paper/live',
     routes: whole('/api/crypto/orders', '/api/assets/orders'),
   },
   {
     key: 'investitii.setari',
     page: 'investitii',
-    label: 'Exchange-uri și chei',
     routes: whole(
       '/api/crypto/settings',
       '/api/crypto/exchanges',
@@ -396,7 +360,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'investitii.bots',
     page: 'investitii',
-    label: 'Boți de trading',
     ownerOnly: true,
     available: () => config.jeffbotIngestToken !== '',
     // Doar aici, nu și la `investitii.view`: ruterile se rezolvă la cel mai lung prefix, deci
@@ -408,13 +371,11 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'alerte.view',
     page: 'alerte',
-    label: 'Vede alertele',
     routes: all('/api/alerts'),
   },
   {
     key: 'alerte.reguli',
     page: 'alerte',
-    label: 'Editează regulile',
     routes: all('/api/alert-rules'),
   },
 
@@ -423,25 +384,21 @@ export const FEATURES: FeatureDef[] = [
     // Poarta paginii: cine nu o are nu vede Setări în nav. Secțiunile ei sunt cele de mai jos.
     key: 'setari.view',
     page: 'setari',
-    label: 'Vede setările',
     routes: [],
   },
   {
     key: 'setari.firma',
     page: 'setari',
-    label: 'Profilul firmei',
     routes: all('/api/settings/company-profile'),
   },
   {
     key: 'setari.asistent',
     page: 'setari',
-    label: 'Furnizori AI și chei',
     routes: all('/api/assistant/providers'),
   },
   {
     key: 'setari.joburi',
     page: 'setari',
-    label: 'Joburile de sistem',
     ownerOnly: true,
     routes: all('/api/settings/ops-jobs'),
   },
@@ -450,7 +407,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'echipa.administrare',
     page: 'echipa',
-    label: 'Invită oameni și editează roluri',
     routes: [
       ...all('/api/access'),
       ...write('/api/team/members'),
@@ -461,7 +417,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'echipa.istoric',
     page: 'echipa',
-    label: 'Vede istoricul',
     routes: all('/api/audit'),
   },
 
@@ -472,7 +427,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'mesaje.view',
     page: 'mesaje',
-    label: 'Mesaje între oameni',
     routes: all('/api/chat'),
   },
 
@@ -484,7 +438,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'cautare.view',
     page: 'cautare',
-    label: 'Căutarea din Ctrl K',
     routes: all('/api/search'),
   },
 
@@ -492,7 +445,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'licitatii.view',
     page: 'licitatii',
-    label: 'Licitații (SICAP)',
     ownerOnly: true,
     // Doar Vanadium: SICAP e o sursă publică de stat cu plafon strict (CLAUDE.md) — per firmă
     // s-ar înmulți request-urile și s-ar ajunge la blocarea IP-ului.
@@ -501,14 +453,12 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'platforme.view',
     page: 'platforme',
-    label: 'Platformele conectate',
     ownerOnly: true,
     routes: read('/api/platforms'),
   },
   {
     key: 'platforme.editare',
     page: 'platforme',
-    label: 'Cheile platformelor',
     ownerOnly: true,
     // Sync-ul unei platforme e tot o scriere (pleacă un connector în exterior).
     routes: write('/api/platforms'),
@@ -516,7 +466,6 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'server.view',
     page: 'server',
-    label: 'Starea serverului',
     ownerOnly: true,
     routes: read('/api/monitoring/health-signals'),
   },
@@ -535,30 +484,44 @@ export function availableFeatures(): FeatureDef[] {
 // ca să îi scrie cuiva (GET /api/team/members e `self`).
 export interface PageDef {
   key: PageKey
-  label: string
-  group: 'Azi' | 'Bani' | 'Lucru' | 'Sistem'
+  group: 'today' | 'money' | 'work' | 'system'
   viewFeature: string | null
 }
 
+// Names shown to people are in locales/{ro,en}/features.json: `items.<feature key>`,
+// `pages.<page key>`, `groups.<group>`. The helpers below read them in the request's language.
+
+export function featureLabel(key: string): string {
+  return tr(`features.items.${key}` as TrKey)
+}
+
+export function pageLabel(key: PageKey): string {
+  return tr(`features.pages.${key}`)
+}
+
+export function pageGroupLabel(group: PageDef['group']): string {
+  return tr(`features.groups.${group}`)
+}
+
 export const PAGES: PageDef[] = [
-  { key: 'facturi', label: 'Facturi', group: 'Bani', viewFeature: 'facturi.view' },
-  { key: 'financiar', label: 'Financiar', group: 'Bani', viewFeature: 'financiar.view' },
-  { key: 'reconciliere', label: 'Reconciliere', group: 'Bani', viewFeature: 'reconciliere.view' },
-  { key: 'clienti', label: 'Clienți', group: 'Bani', viewFeature: 'clienti.view' },
-  { key: 'licitatii', label: 'Licitații', group: 'Bani', viewFeature: 'licitatii.view' },
-  { key: 'investitii', label: 'Investiții', group: 'Bani', viewFeature: 'investitii.view' },
-  { key: 'email', label: 'Email', group: 'Lucru', viewFeature: 'email.view' },
-  { key: 'calendar', label: 'Calendar', group: 'Lucru', viewFeature: 'calendar.view' },
-  { key: 'arhiva', label: 'Arhivă', group: 'Lucru', viewFeature: 'arhiva.view' },
-  { key: 'notite', label: 'Notițe', group: 'Lucru', viewFeature: 'notite.view' },
-  { key: 'mesaje', label: 'Mesaje', group: 'Lucru', viewFeature: 'mesaje.view' },
-  { key: 'cautare', label: 'Căutare', group: 'Sistem', viewFeature: 'cautare.view' },
-  { key: 'asistent', label: 'Asistent', group: 'Azi', viewFeature: 'asistent.view' },
-  { key: 'alerte', label: 'Alerte', group: 'Sistem', viewFeature: 'alerte.view' },
-  { key: 'platforme', label: 'Platforme', group: 'Sistem', viewFeature: 'platforme.view' },
-  { key: 'server', label: 'Server', group: 'Sistem', viewFeature: 'server.view' },
-  { key: 'setari', label: 'Setări', group: 'Sistem', viewFeature: 'setari.view' },
-  { key: 'echipa', label: 'Echipă', group: 'Sistem', viewFeature: null },
+  { key: 'facturi', group: 'money', viewFeature: 'facturi.view' },
+  { key: 'financiar', group: 'money', viewFeature: 'financiar.view' },
+  { key: 'reconciliere', group: 'money', viewFeature: 'reconciliere.view' },
+  { key: 'clienti', group: 'money', viewFeature: 'clienti.view' },
+  { key: 'licitatii', group: 'money', viewFeature: 'licitatii.view' },
+  { key: 'investitii', group: 'money', viewFeature: 'investitii.view' },
+  { key: 'email', group: 'work', viewFeature: 'email.view' },
+  { key: 'calendar', group: 'work', viewFeature: 'calendar.view' },
+  { key: 'arhiva', group: 'work', viewFeature: 'arhiva.view' },
+  { key: 'notite', group: 'work', viewFeature: 'notite.view' },
+  { key: 'mesaje', group: 'work', viewFeature: 'mesaje.view' },
+  { key: 'cautare', group: 'system', viewFeature: 'cautare.view' },
+  { key: 'asistent', group: 'today', viewFeature: 'asistent.view' },
+  { key: 'alerte', group: 'system', viewFeature: 'alerte.view' },
+  { key: 'platforme', group: 'system', viewFeature: 'platforme.view' },
+  { key: 'server', group: 'system', viewFeature: 'server.view' },
+  { key: 'setari', group: 'system', viewFeature: 'setari.view' },
+  { key: 'echipa', group: 'system', viewFeature: null },
 ]
 
 const isReadMethod = (method: string) => method === 'GET' || method === 'HEAD'

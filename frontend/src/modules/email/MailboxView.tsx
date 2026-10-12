@@ -21,9 +21,10 @@ import { useConsumeParam } from '@/shared/hooks/use-consume-param'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
+import { intlTag } from '@/shared/lib/format'
 
 function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('ro-RO', { dateStyle: 'medium', timeStyle: 'short' })
+  return new Date(value).toLocaleString(intlTag(), { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 // Afișat doar în view-uri "mixte" (etichetă/Marcate/Toate mesajele), unde folder-ul nu e deja

@@ -2,6 +2,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import * as React from 'react'
 import { Button } from './button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './dialog'
+import { t } from '@/shared/lib/i18n'
 
 // Înlocuiește window.confirm (DESIGN.md, Ștergere): titlul numește obiectul, corpul spune
 // consecința, butonul are verbul. Focusul pleacă pe „Anulează", ca un Enter reflex să nu
@@ -40,7 +41,7 @@ export function ConfirmDialog({ open, onOpenChange, onConfirm, title, consequenc
         <DialogFooter>
           <DialogPrimitive.Close asChild>
             <Button ref={cancelRef} variant="outline">
-              Anulează
+              {t('common:actions.cancel')}
             </Button>
           </DialogPrimitive.Close>
           <Button

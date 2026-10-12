@@ -1,12 +1,13 @@
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/shared/components/ui/button'
+import { t } from '@/shared/lib/i18n'
 
 const PERIODS = [
-  { value: '7d', label: '7 zile' },
-  { value: '30d', label: '30 zile' },
-  { value: '90d', label: '90 zile' },
-  { value: 'mtd', label: 'Luna curentă' },
-  { value: 'ytd', label: 'Anul curent' },
+  { value: '7d', label: t('common:labels.days7') },
+  { value: '30d', label: t('common:labels.days30') },
+  { value: '90d', label: t('common:labels.days90') },
+  { value: 'mtd', label: t('common:period.currentMonth') },
+  { value: 'ytd', label: t('common:period.currentYear') },
 ] as const
 
 // Perioada trăiește în URL (?period=), nu în useState — regula din CLAUDE.md.

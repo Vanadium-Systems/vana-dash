@@ -16,6 +16,7 @@ import { EngagementBadges } from './EngagementBadges'
 import { STATUS_LABEL, STATUS_TONE } from './send-status'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Select } from '@/shared/components/ui/select'
+import { intlTag } from '@/shared/lib/format'
 
 type SourceFilter = 'all' | 'manual' | 'sequence' | 'bulk'
 const SOURCE_LABELS: Record<SourceFilter, string> = { all: 'Toate', manual: 'Manual', sequence: 'Secvență', bulk: 'Bulk' }
@@ -29,7 +30,7 @@ const ENGAGEMENT_LABELS: Record<EngagementFilter, string> = {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('ro-RO', { dateStyle: 'medium', timeStyle: 'short' })
+  return new Date(iso).toLocaleString(intlTag(), { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 // Rată 0..1 → procent cu o zecimală, pt. KPICard (unit="%").

@@ -14,6 +14,7 @@ import { cn } from '@/shared/lib/utils'
 import { CandleChart } from './CandleChart'
 import { OrderDialog } from './OrderDialog'
 import { formatUsd, type ChartPoint, type CoinDetails, type WatchEntry } from './types'
+import { intlTag } from '@/shared/lib/format'
 
 // Pagina unei monede (cerință Stefan: „cum e pe Binance") — grafic cu intervale, statistici
 // complete din /coins/{id}, descriere, favorite + ordin direct de aici.
@@ -135,7 +136,7 @@ export function CoinDetailPage() {
 
   const coin = details.data
   const watched = watchlist.data?.some((w) => w.kind === 'cex' && w.id === id) ?? false
-  const chartData = (chart.data?.points ?? []).map((p) => ({ ...p, label: new Date(p.t).toLocaleString('ro-RO', { day: 'numeric', month: 'short', hour: days === 1 ? '2-digit' : undefined, minute: days === 1 ? '2-digit' : undefined }) }))
+  const chartData = (chart.data?.points ?? []).map((p) => ({ ...p, label: new Date(p.t).toLocaleString(intlTag(), { day: 'numeric', month: 'short', hour: days === 1 ? '2-digit' : undefined, minute: days === 1 ? '2-digit' : undefined }) }))
   const first = chartData[0]?.p
   const last = chartData.at(-1)?.p
   const rangeUp = first != null && last != null ? last >= first : true
@@ -272,9 +273,9 @@ export function CoinDetailPage() {
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Stat label="Market cap" value={formatCompact(coin.marketCapUsd)} />
         <Stat label="Volum 24h" value={formatCompact(coin.volume24hUsd)} />
-        <Stat label="Supply circulant" value={coin.circulatingSupply?.toLocaleString('ro-RO', { maximumFractionDigits: 0 }) ?? '—'} sub={coin.maxSupply ? `max ${coin.maxSupply.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}` : coin.totalSupply ? `total ${coin.totalSupply.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}` : null} />
-        <Stat label="ATH" value={formatUsd(coin.athUsd)} sub={coin.athDate ? new Date(coin.athDate).toLocaleDateString('ro-RO') : null} />
-        <Stat label="ATL" value={formatUsd(coin.atlUsd)} sub={coin.atlDate ? new Date(coin.atlDate).toLocaleDateString('ro-RO') : null} />
+        <Stat label="Supply circulant" value={coin.circulatingSupply?.toLocaleString(intlTag(), { maximumFractionDigits: 0 }) ?? '—'} sub={coin.maxSupply ? `max ${coin.maxSupply.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}` : coin.totalSupply ? `total ${coin.totalSupply.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}` : null} />
+        <Stat label="ATH" value={formatUsd(coin.athUsd)} sub={coin.athDate ? new Date(coin.athDate).toLocaleDateString(intlTag()) : null} />
+        <Stat label="ATL" value={formatUsd(coin.atlUsd)} sub={coin.atlDate ? new Date(coin.atlDate).toLocaleDateString(intlTag()) : null} />
         <Stat label="Față de ATH" value={coin.athChangePct != null ? `${coin.athChangePct.toFixed(1)}%` : '—'} />
         <Stat label="Față de ATL" value={coin.atlChangePct != null ? `+${coin.atlChangePct.toFixed(1)}%` : '—'} />
         <Stat label="Pereche Binance" value={binanceSymbol} sub="butonul Ordin deschide formularul" />

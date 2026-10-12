@@ -1,3 +1,4 @@
+import { t } from '@/shared/lib/i18n'
 // Encodare fișiere → base64 pt. atașamente email (modules/email) — API-ul trimite
 // JSON, nu multipart, deci fișierul intră ca string base64 în body.
 
@@ -14,7 +15,7 @@ export function readFileAsBase64(file: File): Promise<PendingAttachment> {
       const base64 = result.slice(result.indexOf(',') + 1)
       resolve({ filename: file.name, content: base64 })
     }
-    reader.onerror = () => reject(reader.error ?? new Error(`Citire eșuată pentru ${file.name}`))
+    reader.onerror = () => reject(reader.error ?? new Error(t('common:errors.attachments.readFailed', { name: file.name })))
     reader.readAsDataURL(file)
   })
 }
@@ -33,7 +34,7 @@ export function readFileAsBase64(file: File): Promise<PendingAttachment> {
 // ruta cere sesiune (authenticate).
 export async function fileFromUrl(url: string, filename: string): Promise<PendingAttachment> {
   const res = await fetch(url, { credentials: 'include' })
-  if (!res.ok) throw new Error(`Descărcare eșuată pentru ${filename}`)
+  if (!res.ok) throw new Error(t('common:errors.attachments.downloadFailed', { filename }))
   const blob = await res.blob()
   return readFileAsBase64(new File([blob], filename))
 }

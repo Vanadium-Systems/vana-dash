@@ -25,6 +25,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
+import { t } from '@/shared/lib/i18n'
 
 // 2026-08-11 — editor unic pt. Compose/Reply/Forward/Templates (nu mai există un mod separat
 // "text simplu" vs "HTML": dacă nu atingi toolbar-ul, iese text simplu; dacă vrei, adaugi
@@ -170,7 +171,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className }: 
       const { url } = await api.upload<{ url: string }>('/api/email/images', fd)
       editor.chain().focus().insertContent(`<img src="${url}" style="${DEFAULT_UPLOADED_IMAGE_STYLE}">`).run()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Încărcare poză eșuată')
+      toast.error(err instanceof Error ? err.message : t('common:editor.imageUploadFailed'))
     }
   }
 
@@ -179,20 +180,20 @@ export function RichTextEditor({ id, value, onChange, placeholder, className }: 
   return (
     <div id={id} className={cn('rounded-md border border-input', className)}>
       <div className="flex flex-wrap items-center gap-0.5 border-b px-1 py-1">
-        <ToolbarButton title="Anulează (Ctrl+Z)" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}>
+        <ToolbarButton title={t('common:editor.undo')} disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}>
           <Undo className="h-4 w-4" />
         </ToolbarButton>
-        <ToolbarButton title="Refă (Ctrl+Y)" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}>
+        <ToolbarButton title={t('common:editor.redo')} disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}>
           <Redo className="h-4 w-4" />
         </ToolbarButton>
         <div className="mx-1 h-5 w-px bg-border" />
-        <ToolbarButton title="Bold (Ctrl+B)" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <ToolbarButton title={t('common:editor.bold')} active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold className="h-4 w-4" />
         </ToolbarButton>
-        <ToolbarButton title="Italic (Ctrl+I)" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <ToolbarButton title={t('common:editor.italic')} active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <Italic className="h-4 w-4" />
         </ToolbarButton>
-        <ToolbarButton title="Subliniat (Ctrl+U)" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+        <ToolbarButton title={t('common:editor.underline')} active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
           <UnderlineIcon className="h-4 w-4" />
         </ToolbarButton>
         <div className="mx-1 h-5 w-px bg-border" />
@@ -200,7 +201,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className }: 
           <button
             key={color}
             type="button"
-            title={`Culoare text ${color}`}
+            title={t('common:editor.textColor', { color })}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().setColor(color).run()}
             className="h-4 w-4 shrink-0 rounded-full border"
@@ -209,39 +210,39 @@ export function RichTextEditor({ id, value, onChange, placeholder, className }: 
         ))}
         <div className="mx-1 h-5 w-px bg-border" />
         <ToolbarButton
-          title="Aliniază la stânga"
+          title={t('common:editor.alignLeft')}
           active={editor.isActive({ textAlign: 'left' })}
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
         >
           <AlignLeft className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
-          title="Centrează"
+          title={t('common:editor.alignCenter')}
           active={editor.isActive({ textAlign: 'center' })}
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
         >
           <AlignCenter className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
-          title="Aliniază la dreapta"
+          title={t('common:editor.alignRight')}
           active={editor.isActive({ textAlign: 'right' })}
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
         >
           <AlignRight className="h-4 w-4" />
         </ToolbarButton>
         <div className="mx-1 h-5 w-px bg-border" />
-        <ToolbarButton title="Listă cu puncte" active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+        <ToolbarButton title={t('common:editor.bulletList')} active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
           <List className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
-          title="Listă numerotată"
+          title={t('common:editor.numberedList')}
           active={editor.isActive('orderedList')}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
         >
           <ListOrdered className="h-4 w-4" />
         </ToolbarButton>
         <div className="mx-1 h-5 w-px bg-border" />
-        <ToolbarButton title="Inserează o poză" onClick={() => imageInputRef.current?.click()}>
+        <ToolbarButton title={t('common:editor.insertImage')} onClick={() => imageInputRef.current?.click()}>
           <ImageIcon className="h-4 w-4" />
         </ToolbarButton>
         <input
@@ -257,7 +258,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className }: 
         />
         <div className="mx-1 h-5 w-px bg-border" />
         <ToolbarButton
-          title="Importă HTML brut (ex: un template stilizat extern)"
+          title={t('common:editor.importHtml')}
           active={htmlImportOpen}
           onClick={() => {
             setHtmlDraft(editor.getHTML())
@@ -273,11 +274,11 @@ export function RichTextEditor({ id, value, onChange, placeholder, className }: 
             className="h-32 w-full rounded-md border border-input bg-background p-2 font-mono text-xs"
             value={htmlDraft}
             onChange={(e) => setHtmlDraft(e.target.value)}
-            placeholder="Lipește aici codul HTML (ex: un template primit de la Claude) și apasă Aplică."
+            placeholder={t('common:editor.importHtmlPlaceholder')}
           />
           <div className="flex justify-end gap-2">
             <button type="button" className="rounded-md border px-2 py-1 text-xs hover:bg-muted" onClick={() => setHtmlImportOpen(false)}>
-              Anulează
+              {t('common:actions.cancel')}
             </button>
             <button
               type="button"
@@ -288,7 +289,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className }: 
                 setHtmlImportOpen(false)
               }}
             >
-              Aplică
+              {t('common:actions.apply')}
             </button>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api } from '@/shared/lib/api'
 import type { EmailSequence, EmailSequenceEnrollment, EmailSequenceEnrollmentStatus, SequenceStats } from '@/shared/lib/types'
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
+import { intlTag } from '@/shared/lib/format'
 
 const STATUS_LABEL: Record<EmailSequenceEnrollmentStatus, string> = {
   active: 'Activ',
@@ -154,7 +155,7 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
                       {e.currentStep} / {sequence.steps.length}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {e.status === 'active' ? new Date(e.nextSendAt).toLocaleDateString('ro-RO') : '—'}
+                      {e.status === 'active' ? new Date(e.nextSendAt).toLocaleDateString(intlTag()) : '—'}
                     </TableCell>
                     <TableCell className="text-right">
                       {e.status === 'active' ? (

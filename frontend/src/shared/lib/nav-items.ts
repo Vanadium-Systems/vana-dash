@@ -1,5 +1,6 @@
 import { Activity, Archive, Bell, CalendarDays, Gavel, History, Landmark, LayoutDashboard, LineChart, Mail, MessageSquare, Receipt, Server, SlidersHorizontal, Sparkles, StickyNote, Users, Wallet, Grid3x3 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { t } from './i18n'
 import type { FeatureKey } from './types'
 
 // Definiția canonică a navigației (Contractul F, sprint UI remake 2026-08-25) — o singură
@@ -12,8 +13,13 @@ import type { FeatureKey } from './types'
 // paginile fără funcționalitate proprie (Azi și Echipă — vezi `features.ts`). Setările
 // personale ale omului stau la `/me`, care nu are poartă: e contul lui, nu al firmei.
 
-export const NAV_GROUP_ORDER = ['Azi', 'Bani', 'Lucru', 'Sistem'] as const
+// Group ids are not shown; `navGroupLabel` gives the name in the current language.
+export const NAV_GROUP_ORDER = ['today', 'money', 'work', 'system'] as const
 export type NavGroup = (typeof NAV_GROUP_ORDER)[number]
+
+export function navGroupLabel(group: NavGroup): string {
+  return t(`common:nav.groups.${group}`)
+}
 
 export interface NavItemDef {
   to: string
@@ -22,7 +28,7 @@ export interface NavItemDef {
   group: NavGroup
   /** Funcționalitatea care deschide pagina; absent = pagină fără poartă. */
   feature?: FeatureKey
-  /** Cuvinte în plus pentru Ctrl K (numele vechi ale paginii, sinonime). */
+  /** Extra words for Ctrl K: the page name in both languages, old names, synonyms. No diacritics. */
   keywords?: string[]
   /** Alte rute pe care itemul apare activ (Investiții = /crypto + /assets). */
   activeOn?: string[]
@@ -30,33 +36,33 @@ export interface NavItemDef {
   noMobileShortcut?: boolean
 }
 
-// Sprint Remake v2 (DESIGN.md, Navigație): 16 destinații pe 4 grupuri, etichete în română.
+// Sprint Remake v2 (DESIGN.md, Navigație): 16 destinații pe 4 grupuri.
 // Rutele nu se schimbă (push-uri, APK, nav.layout salvat); Rapoarte, Plan, Wishlist și Acțiuni
 // au ieșit din listă pentru că trăiesc acum ca tab-uri sau comutator în pagina gazdă.
 export const NAV_ITEMS: NavItemDef[] = [
-  { to: '/', label: 'Azi', icon: LayoutDashboard, group: 'Azi', keywords: ['overview', 'acasa'] },
-  { to: '/assistant', label: 'Asistent', icon: Sparkles, group: 'Azi', feature: 'asistent.view', keywords: ['chat', 'ai'] },
+  { to: '/', label: t('common:nav.today'), icon: LayoutDashboard, group: 'today', keywords: ['azi', 'today', 'overview', 'acasa', 'home'] },
+  { to: '/assistant', label: t('common:nav.assistant'), icon: Sparkles, group: 'today', feature: 'asistent.view', keywords: ['asistent', 'assistant', 'chat', 'ai'] },
 
-  { to: '/accounting', label: 'Facturi', icon: Receipt, group: 'Bani', feature: 'facturi.view', keywords: ['accounting', 'contabilitate', 'efactura', 'anaf'] },
-  { to: '/financials', label: 'Financiar', icon: Wallet, group: 'Bani', feature: 'financiar.view', keywords: ['financials', 'rapoarte', 'reports', 'profit'] },
-  { to: '/reconciliation', label: 'Reconciliere', icon: Landmark, group: 'Bani', feature: 'reconciliere.view', keywords: ['banca', 'revolut', 'tranzactii'] },
-  { to: '/pricing', label: 'Clienți', icon: Users, group: 'Bani', feature: 'clienti.view', keywords: ['pricing', 'prospectare', 'preturi'] },
-  { to: '/tenders', label: 'Licitații', icon: Gavel, group: 'Bani', feature: 'licitatii.view', keywords: ['sicap', 'tenders'] },
-  { to: '/crypto', label: 'Investiții', icon: LineChart, group: 'Bani', feature: 'investitii.view', keywords: ['crypto', 'actiuni', 'assets', 'bursa', 'bot'], activeOn: ['/crypto', '/assets'] },
+  { to: '/accounting', label: t('common:nav.invoices'), icon: Receipt, group: 'money', feature: 'facturi.view', keywords: ['facturi', 'invoices', 'accounting', 'contabilitate', 'efactura', 'anaf'] },
+  { to: '/financials', label: t('common:nav.financials'), icon: Wallet, group: 'money', feature: 'financiar.view', keywords: ['financiar', 'financials', 'rapoarte', 'reports', 'profit'] },
+  { to: '/reconciliation', label: t('common:nav.reconciliation'), icon: Landmark, group: 'money', feature: 'reconciliere.view', keywords: ['reconciliere', 'reconciliation', 'banca', 'bank', 'revolut', 'tranzactii', 'transactions'] },
+  { to: '/pricing', label: t('common:nav.clients'), icon: Users, group: 'money', feature: 'clienti.view', keywords: ['clienti', 'clients', 'pricing', 'prospectare', 'prospects', 'preturi', 'prices'] },
+  { to: '/tenders', label: t('common:nav.tenders'), icon: Gavel, group: 'money', feature: 'licitatii.view', keywords: ['licitatii', 'tenders', 'sicap'] },
+  { to: '/crypto', label: t('common:nav.investments'), icon: LineChart, group: 'money', feature: 'investitii.view', keywords: ['investitii', 'investments', 'crypto', 'actiuni', 'stocks', 'assets', 'bursa', 'bot'], activeOn: ['/crypto', '/assets'] },
 
-  { to: '/email', label: 'Email', icon: Mail, group: 'Lucru', feature: 'email.view', keywords: ['mail', 'inbox'] },
-  { to: '/messages', label: 'Mesaje', icon: MessageSquare, group: 'Lucru', feature: 'mesaje.view', keywords: ['chat', 'scrie', 'grup', 'direct'] },
-  { to: '/calendar', label: 'Calendar', icon: CalendarDays, group: 'Lucru', feature: 'calendar.view', keywords: ['programari', 'evenimente'] },
-  { to: '/archive', label: 'Arhivă', icon: Archive, group: 'Lucru', feature: 'arhiva.view', keywords: ['fisiere', 'documente'] },
-  { to: '/notes', label: 'Notițe', icon: StickyNote, group: 'Lucru', feature: 'notite.view', keywords: ['plan', 'wishlist', 'obiective'] },
+  { to: '/email', label: t('common:nav.email'), icon: Mail, group: 'work', feature: 'email.view', keywords: ['mail', 'inbox'] },
+  { to: '/messages', label: t('common:nav.messages'), icon: MessageSquare, group: 'work', feature: 'mesaje.view', keywords: ['mesaje', 'messages', 'chat', 'scrie', 'grup', 'group', 'direct'] },
+  { to: '/calendar', label: t('common:nav.calendar'), icon: CalendarDays, group: 'work', feature: 'calendar.view', keywords: ['programari', 'bookings', 'evenimente', 'events'] },
+  { to: '/archive', label: t('common:nav.archive'), icon: Archive, group: 'work', feature: 'arhiva.view', keywords: ['arhiva', 'archive', 'fisiere', 'files', 'documente', 'documents'] },
+  { to: '/notes', label: t('common:nav.notes'), icon: StickyNote, group: 'work', feature: 'notite.view', keywords: ['notite', 'notes', 'plan', 'wishlist', 'obiective', 'goals'] },
 
-  { to: '/team', label: 'Echipă', icon: Users, group: 'Sistem', keywords: ['colegi', 'angajati', 'roluri'] },
-  { to: '/modules', label: 'Module', icon: Grid3x3, group: 'Sistem', feature: 'echipa.administrare', keywords: ['acces', 'functionalitati', 'roluri'] },
-  { to: '/team/history', label: 'Istoric', icon: History, group: 'Sistem', feature: 'echipa.istoric', keywords: ['audit', 'cine a facut ce'], noMobileShortcut: true },
-  { to: '/alerts', label: 'Alerte', icon: Bell, group: 'Sistem', feature: 'alerte.view', keywords: ['alerts'] },
-  { to: '/platforms', label: 'Platforme', icon: Server, group: 'Sistem', feature: 'platforme.view', keywords: ['platforms', 'vanagreen'] },
-  { to: '/system-health', label: 'Server', icon: Activity, group: 'Sistem', feature: 'server.view', keywords: ['sanatate sistem', 'system health', 'cpu', 'disk'] },
-  { to: '/settings', label: 'Setări', icon: SlidersHorizontal, group: 'Sistem', feature: 'setari.view', keywords: ['settings'] },
+  { to: '/team', label: t('common:nav.team'), icon: Users, group: 'system', keywords: ['echipa', 'team', 'colegi', 'angajati', 'people', 'roluri', 'roles'] },
+  { to: '/modules', label: t('common:nav.modules'), icon: Grid3x3, group: 'system', feature: 'echipa.administrare', keywords: ['module', 'modules', 'acces', 'access', 'functionalitati', 'features', 'roluri', 'roles'] },
+  { to: '/team/history', label: t('common:nav.history'), icon: History, group: 'system', feature: 'echipa.istoric', keywords: ['istoric', 'history', 'audit', 'cine a facut ce'], noMobileShortcut: true },
+  { to: '/alerts', label: t('common:nav.alerts'), icon: Bell, group: 'system', feature: 'alerte.view', keywords: ['alerte', 'alerts'] },
+  { to: '/platforms', label: t('common:nav.platforms'), icon: Server, group: 'system', feature: 'platforme.view', keywords: ['platforme', 'platforms', 'vanagreen'] },
+  { to: '/system-health', label: t('common:nav.server'), icon: Activity, group: 'system', feature: 'server.view', keywords: ['sanatate sistem', 'system health', 'cpu', 'disk'] },
+  { to: '/settings', label: t('common:nav.settings'), icon: SlidersHorizontal, group: 'system', feature: 'setari.view', keywords: ['setari', 'settings'] },
 ]
 
 /** Shortcut-urile fixe din bottom nav-ul de mobil (Contractul H). De la 2026-10-01 Mesaje ia

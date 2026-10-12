@@ -13,7 +13,7 @@ import { api } from '@/shared/lib/api'
 import { downloadCsv } from '@/shared/lib/csv'
 import type { TenderOpportunity, TenderSource } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
-import { formatNumber } from '@/shared/lib/format'
+import { formatNumber, intlTag } from '@/shared/lib/format'
 import { TenderWatchRulesCard } from './TenderWatchRulesCard'
 
 const SOURCE_LABEL: Record<TenderSource, string> = {
@@ -39,7 +39,7 @@ function DeadlineCell({ deadlineAt, isOpen }: { deadlineAt: string | null; isOpe
   const soon = isOpen && days >= 0 && days <= DEADLINE_SOON_DAYS
   return (
     <span className={cn(soon ? 'font-medium text-destructive' : undefined)}>
-      {new Date(deadlineAt).toLocaleDateString('ro-RO')}
+      {new Date(deadlineAt).toLocaleDateString(intlTag())}
       {soon ? ` (${days} zile)` : ''}
     </span>
   )
@@ -88,7 +88,7 @@ export function TendersPage() {
         t.contractingAuthority ?? '',
         t.cpvCode ?? '',
         t.estimatedValueRon ?? '',
-        t.deadlineAt ? new Date(t.deadlineAt).toLocaleDateString('ro-RO') : '',
+        t.deadlineAt ? new Date(t.deadlineAt).toLocaleDateString(intlTag()) : '',
         t.stateText ?? '',
         t.detailUrl,
       ]),

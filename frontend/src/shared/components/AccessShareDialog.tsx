@@ -7,14 +7,15 @@ import { Skeleton } from '@/shared/components/ui/skeleton'
 import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { useMe } from '@/shared/hooks/use-me'
 import type { AccessLevel, AccessShare } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // „Partajează" pe un folder din Arhivă sau pe un calendar întreg — același model în ambele
 // (vede / editează, dat de proprietar sau de admin), deci un singur dialog. Pagina aduce lista
 // și face cererile; dialogul doar o arată.
 
 const LEVEL_OPTIONS = [
-  { value: 'view', label: 'Vede' },
-  { value: 'edit', label: 'Editează' },
+  { value: 'view', label: t('common:access.share.levelView') },
+  { value: 'edit', label: t('common:access.share.levelEdit') },
 ]
 
 interface AccessShareDialogProps {
@@ -65,7 +66,7 @@ export function AccessShareDialog({
         {isLoading ? (
           <Skeleton className="h-16 w-full" />
         ) : shares?.length ? (
-          <ul className="divide-y" aria-label="Cine are acces">
+          <ul className="divide-y" aria-label={t('common:access.share.whoHasAccess')}>
             {shares.map((s) => (
               <li key={s.userId} className="flex items-center gap-2 py-2">
                 <div className="min-w-0 flex-1">
@@ -74,20 +75,20 @@ export function AccessShareDialog({
                 </div>
                 <Select
                   className="w-32"
-                  aria-label={`Nivelul lui ${s.displayName ?? s.email}`}
+                  aria-label={t('common:access.share.levelOf', { name: s.displayName ?? s.email })}
                   value={s.level}
                   options={LEVEL_OPTIONS}
                   disabled={isPending}
                   onValueChange={(v) => onSet(s.userId, v as AccessLevel)}
                 />
                 <Button variant="ghost" disabled={isPending} onClick={() => onRemove(s.userId)}>
-                  Scoate
+                  {t('common:actions.remove')}
                 </Button>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">Doar tu ai acces.</p>
+          <p className="text-sm text-muted-foreground">{t('common:access.share.onlyYou')}</p>
         )}
 
         <form
@@ -95,7 +96,7 @@ export function AccessShareDialog({
           onSubmit={(e) => {
             e.preventDefault()
             if (!userId) {
-              setError('Alege omul căruia îi dai acces')
+              setError(t('common:access.share.pickPerson'))
               return
             }
             setError(null)
@@ -103,9 +104,9 @@ export function AccessShareDialog({
             setUserId('')
           }}
         >
-          <Field label="Om" error={error} className="min-w-48 flex-1">
+          <Field label={t('common:access.share.person')} error={error} className="min-w-48 flex-1">
             <Select value={userId} onValueChange={setUserId} disabled={!candidates.length}>
-              <option value="">{candidates.length ? 'Alege…' : 'Toată echipa are deja acces'}</option>
+              <option value="">{candidates.length ? t('common:access.share.choose') : t('common:access.share.everyoneHasAccess')}</option>
               {candidates.map((m) => (
                 <option key={m.id} value={m.id}>
                   {memberName(m)}
@@ -113,11 +114,11 @@ export function AccessShareDialog({
               ))}
             </Select>
           </Field>
-          <Field label="Nivel" className="w-32">
+          <Field label={t('common:access.share.level')} className="w-32">
             <Select value={level} options={LEVEL_OPTIONS} onValueChange={(v) => setLevel(v as AccessLevel)} />
           </Field>
           <Button type="submit" disabled={isPending || !candidates.length}>
-            Dă acces
+            {t('common:access.share.grant')}
           </Button>
         </form>
       </DialogContent>

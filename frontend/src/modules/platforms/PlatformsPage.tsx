@@ -13,6 +13,7 @@ import type { Platform, SyncLogEntry } from '@/shared/lib/types'
 import { PlatformFormDialog } from './PlatformFormDialog'
 import { PlatformOpsSignalsDialog } from './PlatformOpsSignalsDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { intlTag } from '@/shared/lib/format'
 
 export function PlatformsPage() {
   const confirm = useConfirm()
@@ -100,7 +101,7 @@ export function PlatformsPage() {
                       <PlatformStatusBadge status={p.healthStatus} />
                     </TableCell>
                     <TableCell className="font-mono text-xs">{p.syncCron}</TableCell>
-                    <TableCell>{p.lastSyncAt ? new Date(p.lastSyncAt).toLocaleString('ro-RO') : '—'}</TableCell>
+                    <TableCell>{p.lastSyncAt ? new Date(p.lastSyncAt).toLocaleString(intlTag()) : '—'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button
@@ -181,8 +182,8 @@ export function PlatformsPage() {
                         </span>
                       </TableCell>
                       <TableCell>{entry.recordsSync}</TableCell>
-                      <TableCell>{new Date(entry.startedAt).toLocaleString('ro-RO')}</TableCell>
-                      <TableCell>{entry.finishedAt ? new Date(entry.finishedAt).toLocaleString('ro-RO') : '—'}</TableCell>
+                      <TableCell>{new Date(entry.startedAt).toLocaleString(intlTag())}</TableCell>
+                      <TableCell>{entry.finishedAt ? new Date(entry.finishedAt).toLocaleString(intlTag()) : '—'}</TableCell>
                       <TableCell className="max-w-md truncate text-xs text-muted-foreground" title={entry.errorMessage ?? ''}>
                         {entry.errorMessage ?? '—'}
                       </TableCell>

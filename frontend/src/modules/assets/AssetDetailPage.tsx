@@ -13,6 +13,7 @@ import { cn } from '@/shared/lib/utils'
 import { CandleChart } from '@/modules/crypto/CandleChart'
 import { OrderDialog } from './OrderDialog'
 import { CATEGORY_LABEL, formatUsd, type AssetCategory, type AssetDetail, type ChartBar, type WatchEntry } from './types'
+import { intlTag } from '@/shared/lib/format'
 
 // Pagina unui simbol (cerință Stefan: „cum e pe Crypto") — schelet identic CoinDetailPage:
 // grafic cu intervale + candele, statistici, favorite + ordin direct de aici. Graficul vine din
@@ -129,7 +130,7 @@ export function AssetDetailPage() {
   const bars = chart.data?.bars ?? []
   const chartData = bars.map((b) => ({
     ...b,
-    label: new Date(b.t).toLocaleString('ro-RO', { day: 'numeric', month: 'short', hour: days <= 7 ? '2-digit' : undefined, minute: days <= 7 ? '2-digit' : undefined }),
+    label: new Date(b.t).toLocaleString(intlTag(), { day: 'numeric', month: 'short', hour: days <= 7 ? '2-digit' : undefined, minute: days <= 7 ? '2-digit' : undefined }),
   }))
   const first = chartData[0]?.c
   const last = chartData.at(-1)?.c
@@ -248,7 +249,7 @@ export function AssetDetailPage() {
         {a.category !== 'metal' ? (
           <>
             <Stat label="Market cap" value={formatCompact(a.marketCapUsd)} />
-            <Stat label="Acțiuni în circulație" value={a.sharesOutstanding?.toLocaleString('ro-RO', { maximumFractionDigits: 0 }) ?? '—'} />
+            <Stat label="Acțiuni în circulație" value={a.sharesOutstanding?.toLocaleString(intlTag(), { maximumFractionDigits: 0 }) ?? '—'} />
             <Stat label="Bursă" value={a.exchange ?? '—'} />
             <Stat label="IPO" value={a.ipoDate ?? '—'} />
           </>

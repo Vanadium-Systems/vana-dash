@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChartError } from '@/shared/components/charts/chart-states'
 import { api } from '@/shared/lib/api'
 import type { BankAccount, VanagreenExtensionLogEntry, VanagreenSettings } from '@/shared/lib/types'
+import { intlTag } from '@/shared/lib/format'
 
 function SetupGuide() {
   const [open, setOpen] = useState(false)
@@ -77,7 +78,7 @@ function SetupGuide() {
 }
 
 function formatDateTime(value: string | null): string {
-  return value ? new Date(value).toLocaleString('ro-RO') : '—'
+  return value ? new Date(value).toLocaleString(intlTag()) : '—'
 }
 
 function downloadCertificate(account: BankAccount) {
@@ -300,7 +301,7 @@ function VanagreenExtensionCard() {
               <TableBody>
                 {log.data.map((entry) => (
                   <TableRow key={entry.id}>
-                    <TableCell className="text-xs">{new Date(entry.createdAt).toLocaleString('ro-RO')}</TableCell>
+                    <TableCell className="text-xs">{new Date(entry.createdAt).toLocaleString(intlTag())}</TableCell>
                     <TableCell className="text-xs">
                       {entry.source === 'auto_match' ? 'Match bancar' : 'Marcat manual'}
                     </TableCell>

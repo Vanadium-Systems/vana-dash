@@ -9,7 +9,7 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { cn, formatBytes } from '@/shared/lib/utils'
-import { formatDateTime } from '@/shared/lib/format'
+import { formatDateTime, intlTag } from '@/shared/lib/format'
 import type { ChatAttachment, ChatConversation } from '@/shared/lib/types'
 import { useChatStream } from '@/shared/components/chat/ChatStreamProvider'
 import { Composer } from './Composer'
@@ -437,7 +437,7 @@ function AttachmentRow({ attachment, onOpen }: { attachment: ChatAttachment; onO
 }
 
 function time(iso: string): string {
-  return new Intl.DateTimeFormat('ro-RO', {
+  return new Intl.DateTimeFormat(intlTag(), {
     hour: '2-digit',
     minute: '2-digit',
     timeZone: 'Europe/Bucharest',

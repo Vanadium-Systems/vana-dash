@@ -17,6 +17,7 @@ import { cn } from '@/shared/lib/utils'
 import type { PlanGoal, PlanResponse, PlanScope } from '@/shared/lib/types'
 import { PlanGoalFormDialog } from './PlanGoalFormDialog'
 import { tierLabel } from './tiers'
+import { intlTag } from '@/shared/lib/format'
 
 const SCOPES = [
   { key: 'personal', label: 'Personal' },
@@ -36,11 +37,11 @@ function StatusIcon({ status }: { status: PlanGoal['status'] }) {
 }
 
 function formatRon(value: number): string {
-  return value.toLocaleString('ro-RO')
+  return value.toLocaleString(intlTag())
 }
 
 function formatTargetDate(value: string): string {
-  return new Date(`${value}T00:00:00`).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(`${value}T00:00:00`).toLocaleDateString(intlTag(), { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onEdit: (goal: PlanGoal) => void }) {

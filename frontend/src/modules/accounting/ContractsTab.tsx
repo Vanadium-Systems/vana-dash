@@ -13,6 +13,7 @@ import { AddendumFormDialog } from './AddendumFormDialog'
 import { ContractTemplatesCard } from './ContractTemplatesCard'
 import { ReservedNumbersCard } from './ReservedNumbersCard'
 import { SignDocumentDialog } from './SignDocumentDialog'
+import { intlTag } from '@/shared/lib/format'
 
 const DOC_TYPE_LABEL: Record<ContractDocument['docType'], string> = {
   contract: 'Contract',
@@ -212,7 +213,7 @@ export function ContractsTab() {
                       <TableRow key={d.id}>
                         <TableCell>{DOC_TYPE_LABEL[d.docType]}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {new Date(d.createdAt).toLocaleString('ro-RO')}
+                          {new Date(d.createdAt).toLocaleString(intlTag())}
                         </TableCell>
                         <TableCell>
                           {d.isSigned ? (

@@ -1,11 +1,12 @@
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
 import type { HealthStatus } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 const config: Record<HealthStatus, { label: string; tone: StateTone }> = {
-  healthy: { label: 'Funcțional', tone: 'success' },
-  degraded: { label: 'Degradat', tone: 'warning' },
-  down: { label: 'Căzut', tone: 'critical' },
-  unknown: { label: 'Necunoscut', tone: 'neutral' },
+  healthy: { label: t('common:platformStatus.healthy'), tone: 'success' },
+  degraded: { label: t('common:platformStatus.degraded'), tone: 'warning' },
+  down: { label: t('common:platformStatus.down'), tone: 'critical' },
+  unknown: { label: t('common:states.unknown'), tone: 'neutral' },
 }
 
 export function PlatformStatusBadge({ status }: { status: HealthStatus }) {

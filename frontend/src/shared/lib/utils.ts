@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { extendTailwindMerge } from 'tailwind-merge'
+import { intlTag } from '@/shared/lib/format'
 
 // Token-ii de înălțime (DESIGN.md) trebuie să se bată corect cu `h-8` & co. într-un className.
 const twMerge = extendTailwindMerge({
@@ -38,7 +39,7 @@ export function formatCount(n: number, singular: string, plural: string): string
   if (n === 1) return `1 ${singular}`
   const rest = n % 100
   const needsDe = n !== 0 && (rest === 0 || rest >= 20)
-  return `${new Intl.NumberFormat('ro-RO').format(n)} ${needsDe ? 'de ' : ''}${plural}`
+  return `${new Intl.NumberFormat(intlTag()).format(n)} ${needsDe ? 'de ' : ''}${plural}`
 }
 
 /**

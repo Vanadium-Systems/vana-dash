@@ -1,5 +1,6 @@
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
 import type { AnafStatus, PaymentStatus } from '@/shared/lib/types'
+import { intlTag } from '@/shared/lib/format'
 
 const ANAF_STYLES: Record<AnafStatus, { label: string; tone: StateTone }> = {
   draft: { label: 'Draft', tone: 'neutral' },
@@ -26,9 +27,9 @@ export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
 }
 
 export function formatMoney(amount: string | number, currency: string): string {
-  return `${Number(amount).toLocaleString('ro-RO', { minimumFractionDigits: 2 })} ${currency}`
+  return `${Number(amount).toLocaleString(intlTag(), { minimumFractionDigits: 2 })} ${currency}`
 }
 
 export function formatDate(value: string | null): string {
-  return value ? new Date(value).toLocaleDateString('ro-RO') : '—'
+  return value ? new Date(value).toLocaleDateString(intlTag()) : '—'
 }

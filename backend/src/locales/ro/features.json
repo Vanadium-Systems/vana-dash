@@ -1,1 +1,117 @@
-{}
+{
+  "groups": {
+    "today": "Azi",
+    "money": "Bani",
+    "work": "Lucru",
+    "system": "Sistem"
+  },
+  "pages": {
+    "facturi": "Facturi",
+    "financiar": "Financiar",
+    "reconciliere": "Reconciliere",
+    "clienti": "Clienți",
+    "licitatii": "Licitații",
+    "investitii": "Investiții",
+    "email": "Email",
+    "calendar": "Calendar",
+    "arhiva": "Arhivă",
+    "notite": "Notițe",
+    "mesaje": "Mesaje",
+    "cautare": "Căutare",
+    "asistent": "Asistent",
+    "alerte": "Alerte",
+    "platforme": "Platforme",
+    "server": "Server",
+    "setari": "Setări",
+    "echipa": "Echipă"
+  },
+  "items": {
+    "facturi": {
+      "view": "Vede facturile",
+      "emitere": "Emite și editează facturi",
+      "anaf": "e-Factura și mesaje SPV",
+      "declaratii": "D301/D390 și pachetul trimestrial",
+      "contracte": "Contracte și anexe",
+      "clienti": "Clienți de facturare",
+      "cheltuieli": "Cheltuieli recurente",
+      "setari": "Serie și șabloane de factură"
+    },
+    "financiar": {
+      "view": "P&L, cashflow, KPI-uri",
+      "rapoarte": "Rapoarte"
+    },
+    "reconciliere": {
+      "view": "Tranzacții",
+      "potrivire": "Potrivire manuală",
+      "conturi": "Conturi bancare și chei"
+    },
+    "clienti": {
+      "view": "Clienți și prețuri",
+      "prospectare": "Prospecți și statusuri",
+      "calculator": "Calculator de preț",
+      "config-pret": "Configurează prețurile VanaGreen"
+    },
+    "email": {
+      "view": "Citește inbox-ul",
+      "trimitere": "Compune și răspunde",
+      "bulk": "Trimitere în masă și secvențe",
+      "sabloane": "Șabloane",
+      "setari": "Identități, reguli, blocklist",
+      "cutii": "Atribuie cutii de email"
+    },
+    "calendar": {
+      "view": "Vede calendarul",
+      "editare": "Adaugă și editează evenimente",
+      "comune": "Evenimente comune cu participanți",
+      "administrare": "Vede toate calendarele",
+      "programari": "Programările publice de pe site"
+    },
+    "arhiva": {
+      "view": "Vede fișierele",
+      "editare": "Încarcă, mută, șterge",
+      "administrare": "Vede toate spațiile și atribuie"
+    },
+    "notite": {
+      "view": "Notițe, plan și wishlist"
+    },
+    "asistent": {
+      "view": "Asistentul AI"
+    },
+    "investitii": {
+      "view": "Piețe, watchlist, portofoliu",
+      "ordine": "Ordine paper/live",
+      "setari": "Exchange-uri și chei",
+      "bots": "Boți de trading"
+    },
+    "alerte": {
+      "view": "Vede alertele",
+      "reguli": "Editează regulile"
+    },
+    "setari": {
+      "view": "Vede setările",
+      "firma": "Profilul firmei",
+      "asistent": "Furnizori AI și chei",
+      "joburi": "Joburile de sistem"
+    },
+    "echipa": {
+      "administrare": "Invită oameni și editează roluri",
+      "istoric": "Vede istoricul"
+    },
+    "mesaje": {
+      "view": "Mesaje între oameni"
+    },
+    "cautare": {
+      "view": "Căutarea din Ctrl K"
+    },
+    "licitatii": {
+      "view": "Licitații (SICAP)"
+    },
+    "platforme": {
+      "view": "Platformele conectate",
+      "editare": "Cheile platformelor"
+    },
+    "server": {
+      "view": "Starea serverului"
+    }
+  }
+}

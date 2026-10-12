@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { intlTag } from '@/shared/lib/format'
 
 export interface Candle {
   t: number
@@ -62,7 +63,7 @@ export function CandleChart({ candles, height = 320 }: CandleChartProps) {
       .filter(({ i }) => i % labelEvery === 0)
       .map(({ i, c }) => ({
         x: x(i),
-        label: new Date(c.t).toLocaleString('ro-RO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        label: new Date(c.t).toLocaleString(intlTag(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
       }))
 
     const candleAt = (px: number): Candle | null => {
@@ -118,7 +119,7 @@ export function CandleChart({ candles, height = 320 }: CandleChartProps) {
             <g key={c.t} className={colorClass}>
               <line x1={cx} x2={cx} y1={yOf(c.h)} y2={yOf(c.l)} strokeWidth={wickW} />
               <rect x={cx - bodyW / 2} y={bodyY} width={bodyW} height={bodyH} rx={1}>
-                <title>{`${new Date(c.t).toLocaleString('ro-RO')} — O: ${fmt(c.o)}  H: ${fmt(c.h)}  L: ${fmt(c.l)}  C: ${fmt(c.c)}`}</title>
+                <title>{`${new Date(c.t).toLocaleString(intlTag())} — O: ${fmt(c.o)}  H: ${fmt(c.h)}  L: ${fmt(c.l)}  C: ${fmt(c.c)}`}</title>
               </rect>
             </g>
           )
@@ -134,7 +135,7 @@ export function CandleChart({ candles, height = 320 }: CandleChartProps) {
 
       {hovered ? (
         <div className="pointer-events-none absolute left-2 top-2 rounded-md border bg-popover px-2 py-1 font-mono text-xs shadow-sm">
-          <span className="text-muted-foreground">{new Date(hovered.t).toLocaleString('ro-RO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+          <span className="text-muted-foreground">{new Date(hovered.t).toLocaleString(intlTag(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
           {'  '}O {fmt(hovered.o)} H {fmt(hovered.h)} L {fmt(hovered.l)} C{' '}
           <span className={hovered.c >= hovered.o ? 'text-success-text' : 'text-destructive-text'}>{fmt(hovered.c)}</span>
         </div>
@@ -144,7 +145,7 @@ export function CandleChart({ candles, height = 320 }: CandleChartProps) {
 }
 
 function formatPrice(v: number): string {
-  if (Math.abs(v) >= 1000) return `${v.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}$`
-  if (Math.abs(v) >= 1) return `${v.toLocaleString('ro-RO', { maximumFractionDigits: 2 })}$`
+  if (Math.abs(v) >= 1000) return `${v.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}$`
+  if (Math.abs(v) >= 1) return `${v.toLocaleString(intlTag(), { maximumFractionDigits: 2 })}$`
   return `${v.toPrecision(4)}$`
 }

@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { cn } from '@/shared/lib/utils'
 import { api } from '@/shared/lib/api'
-import { formatNumber } from '@/shared/lib/format'
+import { formatNumber, intlTag } from '@/shared/lib/format'
 import type { WishlistCategory, WishlistItem, WishlistResponse, WishlistScope } from '@/shared/lib/types'
 import { WishlistItemFormDialog } from './WishlistItemFormDialog'
 
@@ -245,7 +245,7 @@ export function WishlistPage() {
                       <Badge className={PRIORITY_STYLES[item.priority]}>{priorityLabel(item.priority)}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
-                      {item.estimatedPrice ? `${Number(item.estimatedPrice).toLocaleString('ro-RO')} ${item.currency}` : '—'}
+                      {item.estimatedPrice ? `${Number(item.estimatedPrice).toLocaleString(intlTag())} ${item.currency}` : '—'}
                     </TableCell>
                     <TableCell>
                       {item.purchased ? <Badge variant="success">Cumpărat</Badge> : <Badge variant="outline">În listă</Badge>}

@@ -6,6 +6,7 @@ import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
 import { actionLabel, type AuditListItem } from '@/shared/lib/audit'
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 // „Creat de … · Modificat de …" sub titlul unui obiect, cu panoul care arată cine, ce câmp,
 // vechi → nou, când (PLAN.md C2, fișa „Istoric"). Se hrănește din `audit_log` prin
@@ -18,23 +19,23 @@ const CREATE_ACTIONS: Record<string, string[]> = {
 }
 
 const CHANGE_LABEL: Record<string, string> = {
-  name: 'nume',
-  email: 'email',
-  address: 'adresă',
-  cif: 'CUI',
-  phone: 'telefon',
-  amount: 'sumă',
-  status: 'stare',
-  contractDetails: 'detalii contract',
-  displayName: 'nume afișat',
-  roleId: 'rol',
-  cutii: 'cutii de email',
+  name: t('common:history.fields.name'),
+  email: t('common:history.fields.email'),
+  address: t('common:history.fields.address'),
+  cif: t('common:history.fields.cif'),
+  phone: t('common:history.fields.phone'),
+  amount: t('common:history.fields.amount'),
+  status: t('common:history.fields.status'),
+  contractDetails: t('common:history.fields.contractDetails'),
+  displayName: t('common:history.fields.displayName'),
+  roleId: t('common:history.fields.role'),
+  cutii: t('common:history.fields.mailboxes'),
 }
 
 function actorName(item: AuditListItem, members: ReturnType<typeof useTeamMembers>['data']): string {
-  if (!item.actor) return 'Sistem'
+  if (!item.actor) return t('common:labels.system')
   const member = members?.find((m) => m.id === item.actor?.id)
-  return member ? memberName(member) : (item.actor.displayName ?? 'Un om din echipă')
+  return member ? memberName(member) : (item.actor.displayName ?? t('common:history.someone'))
 }
 
 /** Valoarea veche → cea nouă, pe o singură linie; obiectele lungi devin JSON scurt. */
@@ -64,7 +65,7 @@ export function EntityHistory({ entityType, entityId }: { entityType: string; en
   const changes = items.filter((item) => !createActions.includes(item.action))
   const lastChange = changes[0]
 
-  if (query.isPending) return <p className="text-xs text-muted-foreground">Se citește istoricul…</p>
+  if (query.isPending) return <p className="text-xs text-muted-foreground">{t('common:history.loading')}</p>
   if (query.isError || items.length === 0) return null
 
   return (
@@ -72,24 +73,24 @@ export function EntityHistory({ entityType, entityId }: { entityType: string; en
       <p className="text-xs text-muted-foreground">
         {created ? (
           <>
-            Creat de {actorName(created, members.data)} · {formatDateTime(created.createdAt)}
+            {t('common:history.createdBy', { created: actorName(created, members.data), createdAt: formatDateTime(created.createdAt) })}
           </>
         ) : null}
         {created && lastChange ? ' · ' : null}
         {lastChange ? (
           <>
-            Modificat de {actorName(lastChange, members.data)} {formatRelativeTime(lastChange.createdAt)}
+            {t('common:history.changedBy', { lastChange: actorName(lastChange, members.data), createdAt: formatRelativeTime(lastChange.createdAt) })}
           </>
         ) : null}
         {' · '}
         <button type="button" className="underline underline-offset-2 hover:text-foreground" onClick={() => setOpen(true)}>
-          Istoric
+          {t('common:nav.history')}
         </button>
       </p>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="md:max-w-lg" aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle className="text-base">Istoric</DialogTitle>
+            <DialogTitle className="text-base">{t('common:nav.history')}</DialogTitle>
           </DialogHeader>
           <ul className="space-y-3 text-sm">
             {items.map((item) => (

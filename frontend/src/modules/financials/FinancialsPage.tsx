@@ -11,7 +11,7 @@ import { MetricBarChart } from '@/shared/components/charts/MetricBarChart'
 import { api } from '@/shared/lib/api'
 import { sumByDirection } from '@/shared/lib/financial-utils'
 import type { CashflowEntry, ExchangeRatePoint, PnlByCategory, PnlByMonth, PnlResponse } from '@/shared/lib/types'
-import { formatNumber } from '@/shared/lib/format'
+import { formatNumber, intlTag } from '@/shared/lib/format'
 import { BnrRateChart, type BnrRatePoint } from './BnrRateChart'
 
 const BAR_SERIES = [
@@ -320,7 +320,7 @@ function pivotByMonth(rows: PnlByMonth[] | undefined): Array<{ label: string; in
   for (const row of rows) {
     if (row.direction === 'out' && row.paymentStatus !== 'paid') continue
     const entry = byMonth.get(row.month) ?? {
-      label: new Date(row.month).toLocaleDateString('ro-RO', { month: 'short', year: '2-digit' }),
+      label: new Date(row.month).toLocaleDateString(intlTag(), { month: 'short', year: '2-digit' }),
       in: 0,
       out: 0,
     }

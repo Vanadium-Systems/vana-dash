@@ -105,3 +105,14 @@ describe('GET /api/auth/locale', () => {
     expect(res.json()).toEqual({ success: true, data: { defaultLocale: 'ro', enabledLocales: [...ENABLED_LOCALES] } })
   })
 })
+
+describe('catalog labels', () => {
+  it('come in the language of the person', async () => {
+    const catalog = (cookie: string) => app.inject({ method: 'GET', url: '/api/access/catalog', cookies: { vana_session: cookie } })
+    const ro = (await catalog(roCookie)).json().data as Array<{ page: string; label: string; group: string; features: Array<{ label: string }> }>
+    const en = (await catalog(enCookie)).json().data as typeof ro
+    expect(ro.find((page) => page.page === 'facturi')).toMatchObject({ label: 'Facturi', group: 'Bani' })
+    expect(en.find((page) => page.page === 'facturi')).toMatchObject({ label: 'Invoices', group: 'Money' })
+    expect(JSON.stringify(en)).not.toMatch(/[ăâîșțĂÂÎȘȚ]/)
+  })
+})

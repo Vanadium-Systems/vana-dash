@@ -16,6 +16,8 @@ import {
   resolveFeatureKeys,
   PAGES,
 } from './features.js'
+import { trFor, type TrKey } from './i18n.js'
+import { LOCALES } from './locale.js'
 
 const app = await buildServer()
 await app.ready()
@@ -65,7 +67,18 @@ describe('catalog de funcționalități', () => {
     expect(new Set(keys).size).toBe(keys.length)
     for (const feature of FEATURES) {
       expect(feature.key.startsWith(`${feature.page}.`), feature.key).toBe(true)
-      expect(feature.label.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('every feature, page and group has a name in each language', () => {
+    for (const locale of LOCALES) {
+      for (const feature of FEATURES) {
+        expect(trFor(locale, `features.items.${feature.key}` as TrKey), `${locale} ${feature.key}`).not.toContain('features.')
+      }
+      for (const page of PAGES) {
+        expect(trFor(locale, `features.pages.${page.key}`), `${locale} ${page.key}`).not.toContain('features.')
+        expect(trFor(locale, `features.groups.${page.group}`)).not.toContain('features.')
+      }
     }
   })
 

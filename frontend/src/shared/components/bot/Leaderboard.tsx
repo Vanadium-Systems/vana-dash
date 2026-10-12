@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { cn } from '@/shared/lib/utils'
 import { formatMoney, formatPct, pnlClass, REFERENCE_KEY, returnPct, strategyColor, type BotStrategy } from './types'
+import { t } from '@/shared/lib/i18n'
 
 // `featured`: strategia al cărei randament e numărul mare din antet (MIX pe crypto). Bursa
 // n-are o strategie favorită, deci acolo antetul rămâne doar titlul.
@@ -27,7 +28,7 @@ export function Leaderboard({
     <section className="space-y-3" aria-labelledby={titleId}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id={titleId} className="text-sm font-semibold">
-          Clasament strategii
+          {t('common:bot.leaderboard.title')}
         </h2>
         {featured ? (
           <p className="text-sm text-muted-foreground">
@@ -38,18 +39,18 @@ export function Leaderboard({
         ) : null}
       </div>
       {!strategies.length ? (
-        <p className="text-sm text-muted-foreground">Nicio strategie în snapshot.</p>
+        <p className="text-sm text-muted-foreground">{t('common:bot.leaderboard.empty')}</p>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-normal">Strategie</TableHead>
-              <TableHead className="text-right font-normal">Randament</TableHead>
-              <TableHead className="hidden text-right font-normal sm:table-cell">vs {referenceLabel}</TableHead>
-              <TableHead className="hidden text-right font-normal md:table-cell">DD max</TableHead>
-              <TableHead className="hidden text-right font-normal lg:table-cell">Tranz.</TableHead>
-              <TableHead className="hidden text-right font-normal lg:table-cell">Comisioane</TableHead>
-              <TableHead className="font-normal">Deține</TableHead>
+              <TableHead className="font-normal">{t('common:bot.strategy')}</TableHead>
+              <TableHead className="text-right font-normal">{t('common:bot.leaderboard.return')}</TableHead>
+              <TableHead className="hidden text-right font-normal sm:table-cell">{t('common:bot.leaderboard.vsReference', { referenceLabel })}</TableHead>
+              <TableHead className="hidden text-right font-normal md:table-cell">{t('common:bot.leaderboard.maxDrawdown')}</TableHead>
+              <TableHead className="hidden text-right font-normal lg:table-cell">{t('common:bot.leaderboard.trades')}</TableHead>
+              <TableHead className="hidden text-right font-normal lg:table-cell">{t('common:bot.leaderboard.fees')}</TableHead>
+              <TableHead className="font-normal">{t('common:bot.leaderboard.holds')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -67,7 +68,7 @@ export function Leaderboard({
                         style={{ backgroundColor: strategyColor(s.key) }}
                       />
                       <span className={cn(s.key === featuredKey && 'font-medium')}>{s.label}</span>
-                      {isReference ? <span className="text-xs text-muted-foreground">referință</span> : null}
+                      {isReference ? <span className="text-xs text-muted-foreground">{t('common:bot.leaderboard.reference')}</span> : null}
                     </span>
                   </TableCell>
                   <TableCell className={cn('tnum text-right font-mono text-xs', pnlClass(pct))}>{formatPct(pct)}</TableCell>
@@ -95,7 +96,7 @@ export function Leaderboard({
 }
 
 function Holdings({ strategy }: { strategy: BotStrategy }) {
-  if (!strategy.holdings.length) return <span className="text-xs text-muted-foreground">cash</span>
+  if (!strategy.holdings.length) return <span className="text-xs text-muted-foreground">{t('common:bot.leaderboard.cash')}</span>
   return (
     <span className="flex flex-wrap gap-1">
       {strategy.holdings.map((h) => (

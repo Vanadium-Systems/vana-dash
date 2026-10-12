@@ -1,3 +1,4 @@
+import { intlTag } from '@/shared/lib/format'
 export interface MarketCoin {
   id: string
   symbol: string
@@ -117,8 +118,8 @@ export interface ChartPoint {
 export function formatUsd(value: number | null | undefined): string {
   if (value == null) return '—'
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M$`
-  if (Math.abs(value) >= 1000) return `${value.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}$`
-  if (Math.abs(value) >= 1) return `${value.toLocaleString('ro-RO', { maximumFractionDigits: 2 })}$`
+  if (Math.abs(value) >= 1000) return `${value.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}$`
+  if (Math.abs(value) >= 1) return `${value.toLocaleString(intlTag(), { maximumFractionDigits: 2 })}$`
   // memecoins sub 1$ — semnificative până la 6 zecimale
   return `${value.toPrecision(4)}$`
 }

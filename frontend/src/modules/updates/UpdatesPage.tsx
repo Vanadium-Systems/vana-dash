@@ -7,8 +7,9 @@ import { ME_QUERY_KEY, useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import type { SessionPayload } from '@/shared/lib/types'
 import { isUnseen, visibleReleases } from './releases'
+import { intlTag } from '@/shared/lib/format'
 
-const DATE = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Bucharest' })
+const DATE = new Intl.DateTimeFormat(intlTag(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Bucharest' })
 
 export function UpdatesPage() {
   const { can, session } = useMe()

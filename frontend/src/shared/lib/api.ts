@@ -1,7 +1,7 @@
 // Fetch wrapper: same-origin (/api proxied în dev), cookie HttpOnly, 401 → login.
 import { Directory, Filesystem } from '@capacitor/filesystem'
 import { toast } from 'sonner'
-import { getLocale } from '@/shared/lib/i18n'
+import { getLocale, t } from '@/shared/lib/i18n'
 import { blobToBase64, isNative } from '@/shared/lib/native'
 
 export class ApiError extends Error {
@@ -73,11 +73,11 @@ function errorDetails(status: number, body: ApiEnvelope<unknown> | null): { mess
 
 function userMessage(status: number, body: ApiEnvelope<unknown> | null): string {
   if (import.meta.env.DEV && body) console.warn(`[api] ${status}`, body)
-  if (status === 429) return 'Prea multe cereri într-un minut. Mai încearcă puțin mai târziu.'
-  if (status === 400 || status === 422) return 'Datele trimise nu sunt valide. Verifică câmpurile și încearcă din nou.'
-  if (status === 404) return 'N-am găsit ce căutai; poate a fost șters între timp.'
-  if (status >= 500) return 'Serverul a dat o eroare. Încearcă din nou; dacă se repetă, verifică pagina Server.'
-  return `Cererea n-a mers (cod ${status}). Încearcă din nou.`
+  if (status === 429) return t('common:errors.api.tooManyRequests')
+  if (status === 400 || status === 422) return t('common:errors.api.invalidData')
+  if (status === 404) return t('common:errors.api.notFound')
+  if (status >= 500) return t('common:errors.api.server')
+  return t('common:errors.api.generic', { status })
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -93,7 +93,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
     ...init,
   }).catch(() => {
-    throw new ApiError(0, 'Nu ajung la server. Verifică conexiunea și încearcă din nou.')
+    throw new ApiError(0, t('common:errors.api.network'))
   })
 
   if (res.status === 401 && !path.startsWith('/api/auth/')) {
@@ -143,7 +143,7 @@ async function downloadFile(path: string, fallbackFileName: string): Promise<voi
       directory: Directory.Documents,
       recursive: true,
     })
-    toast.success(`Salvat în Documente: ${name}`)
+    toast.success(t('common:shell.savedToDocuments', { name }))
     return
   }
 

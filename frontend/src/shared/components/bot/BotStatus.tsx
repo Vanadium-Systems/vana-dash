@@ -1,6 +1,7 @@
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { cn } from '@/shared/lib/utils'
 import { botStatus, formatAge, minutesSince, type BotService } from './types'
+import { t } from '@/shared/lib/i18n'
 
 // Începutul benzii de stare, comun ambelor piețe: vârsta ultimului snapshot + serviciile.
 export function BotHealth({ receivedAt, services }: { receivedAt: string; services: BotService[] }) {
@@ -15,24 +16,24 @@ export function BotHealth({ receivedAt, services }: { receivedAt: string; servic
       <span className="inline-flex items-center gap-2 font-medium">
         <span aria-hidden="true" className={cn('h-2 w-2 rounded-full', offline ? 'bg-destructive-text' : late ? 'bg-warning' : 'bg-success')} />
         {offline
-          ? `Offline, ultimul semnal ${formatAge(age)}`
+          ? t('common:bot.status.offline', { age: formatAge(age) })
           : late
-            ? `Întârzie, ultimul semnal ${formatAge(age)}`
-            : `Online, ${formatAge(age)}`}
+            ? t('common:bot.status.late', { age: formatAge(age) })
+            : t('common:bot.status.online', { age: formatAge(age) })}
       </span>
       <span className="text-muted-foreground">
-        Servicii{' '}
+        {t('common:bot.status.services')}{' '}
         <span className={cn('tnum', down.length ? 'font-medium text-foreground' : undefined)}>
           {services.length - down.length}/{services.length}
         </span>
-        {down.length ? ` · oprit: ${down.map((s) => s.name).join(', ')}` : ''}
+        {down.length ? t('common:bot.status.stopped', { value: down.map((s) => s.name).join(', ') }) : ''}
       </span>
     </>
   )
 }
 
 export function PaperBadge() {
-  return <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">pe hârtie, fără bani reali</span>
+  return <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{t('common:bot.status.paperTrading')}</span>
 }
 
 export function BotSkeleton() {

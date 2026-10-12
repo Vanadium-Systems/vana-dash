@@ -4,6 +4,7 @@ import { Button } from '@/shared/components/ui/button'
 import { useMe } from '@/shared/hooks/use-me'
 import { activeAdminName, useTeamMembers } from '@/shared/hooks/use-team'
 import type { FeatureKey } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
 
 // Ruta deschisă direct, fără funcționalitatea ei: nu e 404 și nici ecran gol, ci o pagină
 // care spune ce lipsește și cine poate da (PLAN.md C2, §5.17). Ascundem ce nu poate face
@@ -19,12 +20,12 @@ export function AccessDenied({ page }: { page: string }) {
   const admin = activeAdminName(useTeamMembers().data)
   return (
     <div data-density="comfortable" className="max-w-md py-8">
-      <h1 className="text-lg font-semibold">Nu ai acces la {page}</h1>
+      <h1 className="text-lg font-semibold">{t('common:access.denied.title', { page })}</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        {admin ? `Cere-l de la ${admin}.` : 'Cere-le unui administrator să îți deschidă pagina.'}
+        {admin ? t('common:access.denied.askAdmin', { admin }) : t('common:access.denied.hint')}
       </p>
       <Button variant="outline" asChild className="mt-4">
-        <Link to="/team">Vezi echipa</Link>
+        <Link to="/team">{t('common:access.denied.seeTeam')}</Link>
       </Button>
     </div>
   )

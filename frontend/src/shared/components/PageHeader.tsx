@@ -3,6 +3,7 @@ import { createContext, useContext, type ReactNode } from 'react'
 import { Link, useInRouterContext, useLocation } from 'react-router-dom'
 import { guideRouteOf, visibleGuides } from '@/modules/help/guides'
 import { useMe } from '@/shared/hooks/use-me'
+import { t } from '@/shared/lib/i18n'
 
 interface PageHeaderProps {
   title: string
@@ -51,8 +52,8 @@ function PageGuidesLink() {
   return (
     <Link
       to={`/help?pagina=${encodeURIComponent(route)}`}
-      aria-label="Ghidurile acestei pagini"
-      title="Ghidurile acestei pagini"
+      aria-label={t('common:guides.forThisPage')}
+      title={t('common:guides.forThisPage')}
       className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <CircleHelp className="h-4 w-4" aria-hidden="true" />

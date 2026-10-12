@@ -11,6 +11,7 @@ import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { postSse, type AssistantSseEvent } from './sse'
 import { ChatBubble, ToolLine, type BubbleMessage } from './ChatBubble'
+import { intlTag } from '@/shared/lib/format'
 
 const CONVERSATION_STORAGE_KEY = 'assistant-conversation-id'
 const INPUT_MAX_CHARS = 32_000
@@ -461,7 +462,7 @@ export function AssistantPage() {
                 {run.kind === 'reminder' ? run.text : run.prompt}
               </span>
               <span className="tnum shrink-0 font-mono text-xs">
-                {new Date(run.runAt).toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                {new Date(run.runAt).toLocaleString(intlTag(), { timeZone: 'Europe/Bucharest', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </span>
               <button
                 type="button"

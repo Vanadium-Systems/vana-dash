@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { downloadApk, isAndroidBrowser } from '@/shared/lib/native'
+import { t } from '@/shared/lib/i18n'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -37,7 +38,7 @@ export function useInstallPrompt() {
       canInstall: !installed,
       promptInstall: () =>
         downloadApk().then(
-          () => toast.success('APK descărcat — deschide-l din notificare pt. instalare'),
+          () => toast.success(t('common:shell.apkDownloaded')),
           (err: Error) => toast.error(err.message),
         ),
     }

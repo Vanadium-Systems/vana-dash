@@ -13,6 +13,7 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { api } from '@/shared/lib/api'
 import type { BookingBlock, BookingSettings, BookingSlots, BookingSummary } from '@/shared/lib/types'
 import { formatCount, parseRoDecimal } from '@/shared/lib/utils'
+import { intlTag } from '@/shared/lib/format'
 
 // Panoul „Programări de pe site" (docs/BOOKING.md): ce orar vede vanadium.systems, ce e blocat
 // și cine a rezervat. Site-ul primește doar sloturi libere, niciodată titlurile din calendar.
@@ -21,7 +22,7 @@ const TZ = 'Europe/Bucharest'
 const WEEKDAYS = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică']
 
 const slotLabel = (iso: string) =>
-  new Intl.DateTimeFormat('ro-RO', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(new Date(iso))
+  new Intl.DateTimeFormat(intlTag(), { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(new Date(iso))
 
 export const bookingKeys = {
   settings: ['booking', 'settings'] as const,

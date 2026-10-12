@@ -1,6 +1,7 @@
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { chartColor } from '@/shared/lib/chart-colors'
 import type { HealthHistoryPoint } from '@/shared/lib/types'
+import { intlTag } from '@/shared/lib/format'
 
 interface SparklineProps {
   data: HealthHistoryPoint[]
@@ -64,5 +65,5 @@ export function Sparkline({ data, height = 220 }: SparklineProps) {
 }
 
 function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('ro-RO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleString(intlTag(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }

@@ -1,4 +1,5 @@
 import { api } from './api'
+import { t } from '@/shared/lib/i18n'
 
 // Web Push (PLAN.md Sprint 2) — cere permisiune, ia cheia VAPID publică, subscrie
 // PushManager-ul din Service Worker-ul deja înregistrat de vite-plugin-pwa, POST la backend.
@@ -15,13 +16,13 @@ export function isPushSupported(): boolean {
 }
 
 export async function subscribeToPush(): Promise<void> {
-  if (!isPushSupported()) throw new Error('Browserul acesta nu suportă notificări push')
+  if (!isPushSupported()) throw new Error(t('common:errors.push.unsupported'))
 
   const permission = await Notification.requestPermission()
-  if (permission !== 'granted') throw new Error('Permisiune refuzată pt. notificări')
+  if (permission !== 'granted') throw new Error(t('common:errors.push.denied'))
 
   const { publicKey } = await api.get<{ publicKey: string }>('/api/push/vapid-public-key')
-  if (!publicKey) throw new Error('VAPID neconfigurat pe server — contactează administratorul')
+  if (!publicKey) throw new Error(t('common:errors.push.vapidMissing'))
 
   const registration = await navigator.serviceWorker.ready
   let subscription = await registration.pushManager.getSubscription()
@@ -34,7 +35,7 @@ export async function subscribeToPush(): Promise<void> {
 
   const json = subscription.toJSON()
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
-    throw new Error('Subscripție push invalidă (lipsesc cheile)')
+    throw new Error(t('common:errors.push.invalidSubscription'))
   }
 
   await api.post('/api/push/subscribe', {

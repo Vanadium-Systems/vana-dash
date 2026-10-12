@@ -1,1 +1,117 @@
-{}
+{
+  "groups": {
+    "today": "Today",
+    "money": "Money",
+    "work": "Work",
+    "system": "System"
+  },
+  "pages": {
+    "facturi": "Invoices",
+    "financiar": "Financials",
+    "reconciliere": "Reconciliation",
+    "clienti": "Clients",
+    "licitatii": "Tenders",
+    "investitii": "Investments",
+    "email": "Email",
+    "calendar": "Calendar",
+    "arhiva": "Archive",
+    "notite": "Notes",
+    "mesaje": "Messages",
+    "cautare": "Search",
+    "asistent": "Assistant",
+    "alerte": "Alerts",
+    "platforme": "Platforms",
+    "server": "Server",
+    "setari": "Settings",
+    "echipa": "Team"
+  },
+  "items": {
+    "facturi": {
+      "view": "Sees the invoices",
+      "emitere": "Issues and edits invoices",
+      "anaf": "e-Factura and SPV messages",
+      "declaratii": "D301/D390 and the quarterly package",
+      "contracte": "Contracts and addenda",
+      "clienti": "Billing clients",
+      "cheltuieli": "Recurring expenses",
+      "setari": "Invoice series and templates"
+    },
+    "financiar": {
+      "view": "P&L, cash flow, KPIs",
+      "rapoarte": "Reports"
+    },
+    "reconciliere": {
+      "view": "Transactions",
+      "potrivire": "Manual matching",
+      "conturi": "Bank accounts and keys"
+    },
+    "clienti": {
+      "view": "Clients and prices",
+      "prospectare": "Prospects and statuses",
+      "calculator": "Price calculator",
+      "config-pret": "Configures the VanaGreen prices"
+    },
+    "email": {
+      "view": "Reads the inbox",
+      "trimitere": "Writes and replies",
+      "bulk": "Bulk sends and sequences",
+      "sabloane": "Templates",
+      "setari": "Identities, rules, blocklist",
+      "cutii": "Assigns mailboxes"
+    },
+    "calendar": {
+      "view": "Sees the calendar",
+      "editare": "Adds and edits events",
+      "comune": "Shared events with attendees",
+      "administrare": "Sees all calendars",
+      "programari": "Public bookings from the site"
+    },
+    "arhiva": {
+      "view": "Sees the files",
+      "editare": "Uploads, moves, deletes",
+      "administrare": "Sees all spaces and assigns them"
+    },
+    "notite": {
+      "view": "Notes, plan and wishlist"
+    },
+    "asistent": {
+      "view": "The AI assistant"
+    },
+    "investitii": {
+      "view": "Markets, watchlist, portfolio",
+      "ordine": "Paper and live orders",
+      "setari": "Exchanges and keys",
+      "bots": "Trading bots"
+    },
+    "alerte": {
+      "view": "Sees the alerts",
+      "reguli": "Edits the rules"
+    },
+    "setari": {
+      "view": "Sees the settings",
+      "firma": "Company profile",
+      "asistent": "AI providers and keys",
+      "joburi": "System jobs"
+    },
+    "echipa": {
+      "administrare": "Invites people and edits roles",
+      "istoric": "Sees the history"
+    },
+    "mesaje": {
+      "view": "Messages between people"
+    },
+    "cautare": {
+      "view": "The Ctrl K search"
+    },
+    "licitatii": {
+      "view": "Tenders (SICAP)"
+    },
+    "platforme": {
+      "view": "Connected platforms",
+      "editare": "Platform keys"
+    },
+    "server": {
+      "view": "Server status"
+    }
+  }
+}

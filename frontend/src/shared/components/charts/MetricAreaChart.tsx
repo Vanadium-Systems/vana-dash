@@ -1,6 +1,6 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { SeriesPoint } from '@/shared/lib/types'
-import { formatNumber } from '@/shared/lib/format'
+import { formatNumber, intlTag } from '@/shared/lib/format'
 
 interface MetricAreaChartProps {
   data: SeriesPoint[]
@@ -15,7 +15,7 @@ interface MetricAreaChartProps {
 export function MetricAreaChart({ data, unit, height = 300, decimals, yDomain = [0, 'auto'] }: MetricAreaChartProps) {
   const points = data.map((d) => ({ ...d, label: formatDate(d.date) }))
   const format = (value: number) =>
-    decimals === undefined ? formatNumber(value, unit) : `${new Intl.NumberFormat('ro-RO', { maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(value)}${unit ? ` ${unit}` : ''}`
+    decimals === undefined ? formatNumber(value, unit) : `${new Intl.NumberFormat(intlTag(), { maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(value)}${unit ? ` ${unit}` : ''}`
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -61,5 +61,5 @@ export function MetricAreaChart({ data, unit, height = 300, decimals, yDomain = 
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })
+  return new Date(iso).toLocaleDateString(intlTag(), { day: 'numeric', month: 'short' })
 }

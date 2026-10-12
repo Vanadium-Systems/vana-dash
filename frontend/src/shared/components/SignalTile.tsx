@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/shared/components/ui/card'
 import type { SignalLevel } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
+import { t } from '@/shared/lib/i18n'
 
 const LEVEL_DOT: Record<SignalLevel, string> = {
   green: 'bg-success',
@@ -9,9 +10,9 @@ const LEVEL_DOT: Record<SignalLevel, string> = {
 }
 
 const LEVEL_LABEL: Record<SignalLevel, string> = {
-  green: 'OK',
-  yellow: 'Atenție',
-  red: 'Critic',
+  green: t('common:actions.ok'),
+  yellow: t('common:states.warning'),
+  red: t('common:states.critical'),
 }
 
 export interface SignalTileData {

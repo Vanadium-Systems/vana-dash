@@ -25,6 +25,7 @@ import type {
 } from '@/shared/lib/types'
 import { cn, parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { intlTag } from '@/shared/lib/format'
 
 function SignatureLogoCard() {
   const queryClient = useQueryClient()
@@ -658,7 +659,7 @@ function ReadingCard() {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('ro-RO', { dateStyle: 'medium' })
+  return new Date(iso).toLocaleDateString(intlTag(), { dateStyle: 'medium' })
 }
 
 // Închise implicit: listele cresc cu fiecare campanie și, deschise toate, făceau din tabul de

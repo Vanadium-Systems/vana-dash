@@ -8,9 +8,10 @@ import { useNavigate } from 'react-router-dom'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
-import { NAV_ITEMS } from '@/shared/lib/nav-items'
+import { NAV_ITEMS, navGroupLabel } from '@/shared/lib/nav-items'
 import type { FeatureKey } from '@/shared/lib/types'
 import { normalizeForSearch } from '@/shared/lib/utils'
+import { t } from '@/shared/lib/i18n'
 
 // Ctrl K (DESIGN.md): fără animație la deschidere, pentru că pornește din tastatură de zeci de
 // ori pe zi. Paginile vin din NAV_ITEMS, mai însă filtrate pe funcționalități — un item
@@ -28,19 +29,19 @@ interface PaletteAction {
 }
 
 const ACTIONS: PaletteAction[] = [
-  { id: 'invoice', label: 'Factură nouă', icon: FilePlus2, to: '/accounting?tab=emise&new=1', feature: 'facturi.emitere', keywords: ['emite', 'factura'] },
-  { id: 'event', label: 'Eveniment nou', icon: CalendarPlus, to: '/calendar?new=1', feature: 'calendar.editare', keywords: ['calendar', 'intalnire'] },
-  { id: 'note', label: 'Notiță nouă', icon: StickyNote, to: '/notes?new=1', feature: 'notite.view', keywords: ['notita'] },
-  { id: 'compose', label: 'Scrie un email', icon: Mail, to: '/email?compose=1', feature: 'email.trimitere', keywords: ['mail', 'trimite'] },
-  { id: 'block', label: 'Blochează interval pentru programări', icon: CalendarOff, to: '/calendar?block=1', feature: 'calendar.programari', keywords: ['programari', 'ocupat', 'site'] },
+  { id: 'invoice', label: t('common:palette.newInvoice'), icon: FilePlus2, to: '/accounting?tab=emise&new=1', feature: 'facturi.emitere', keywords: ['emite', 'factura', 'new invoice', 'factura noua'] },
+  { id: 'event', label: t('common:palette.newEvent'), icon: CalendarPlus, to: '/calendar?new=1', feature: 'calendar.editare', keywords: ['calendar', 'intalnire', 'meeting', 'new event', 'eveniment nou'] },
+  { id: 'note', label: t('common:palette.newNote'), icon: StickyNote, to: '/notes?new=1', feature: 'notite.view', keywords: ['notita', 'new note', 'notita noua'] },
+  { id: 'compose', label: t('common:palette.composeEmail'), icon: Mail, to: '/email?compose=1', feature: 'email.trimitere', keywords: ['mail', 'trimite', 'compose', 'scrie un email', 'write an email'] },
+  { id: 'block', label: t('common:palette.blockBookingSlot'), icon: CalendarOff, to: '/calendar?block=1', feature: 'calendar.programari', keywords: ['programari', 'ocupat', 'site', 'bookings', 'busy', 'block'] },
 ]
 
 // Pagini care nu mai au item propriu în meniu (tab-uri sau comutator în pagina gazdă).
 const SUB_PAGES: Array<{ to: string; label: string; icon: LucideIcon; parent: string; feature?: FeatureKey; keywords?: string[] }> = [
-  { to: '/financials?tab=rapoarte', label: 'Rapoarte', icon: BarChart3, parent: 'Financiar', feature: 'financiar.rapoarte', keywords: ['reports'] },
-  { to: '/notes?tab=plan', label: 'Plan', icon: Rocket, parent: 'Notițe', feature: 'notite.view', keywords: ['obiective'] },
-  { to: '/notes?tab=wishlist', label: 'Wishlist', icon: Gift, parent: 'Notițe', feature: 'notite.view', keywords: ['dorinte'] },
-  { to: '/assets', label: 'Acțiuni', icon: LineChart, parent: 'Investiții', feature: 'investitii.view', keywords: ['assets', 'bursa', 'trading212'] },
+  { to: '/financials?tab=rapoarte', label: t('common:nav.reports'), icon: BarChart3, parent: 'Financiar', feature: 'financiar.rapoarte', keywords: ['rapoarte', 'reports'] },
+  { to: '/notes?tab=plan', label: t('common:nav.plan'), icon: Rocket, parent: t('common:nav.notes'), feature: 'notite.view', keywords: ['obiective', 'goals'] },
+  { to: '/notes?tab=wishlist', label: t('common:nav.wishlist'), icon: Gift, parent: t('common:nav.notes'), feature: 'notite.view', keywords: ['dorinte', 'wishes'] },
+  { to: '/assets', label: t('common:nav.stocks'), icon: LineChart, parent: t('common:nav.investments'), feature: 'investitii.view', keywords: ['actiuni', 'stocks', 'assets', 'bursa', 'trading212'] },
 ]
 
 interface SearchItem {
@@ -117,14 +118,14 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           aria-describedby={undefined}
           className="fixed inset-x-2 top-[max(0.5rem,env(safe-area-inset-top,0px))] z-50 overflow-hidden rounded-lg border bg-surface-overlay text-popover-foreground md:left-1/2 md:right-auto md:top-[15vh] md:w-full md:max-w-lg md:-translate-x-1/2"
         >
-          <DialogPrimitive.Title className="sr-only">Caută o pagină, o acțiune sau un obiect</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="sr-only">{t('common:palette.title')}</DialogPrimitive.Title>
           <Command filter={paletteFilter} loop>
             <div className="flex items-center gap-2 border-b px-3">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <Command.Input
                 value={search}
                 onValueChange={setSearch}
-                placeholder="Caută o pagină, un client, o factură, un fir de email"
+                placeholder={t('common:palette.placeholder')}
                 className="h-11 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
               />
             </div>
@@ -132,7 +133,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
               {!searching || waiting ? (
                 <>
                   {actions.length > 0 ? (
-                    <Command.Group heading="Acțiuni" className={GROUP_CLASS}>
+                    <Command.Group heading={t('common:labels.actions')} className={GROUP_CLASS}>
                       {actions.map((action) => (
                         <Command.Item key={action.id} value={action.label} keywords={action.keywords} onSelect={() => go(action.to)} className={ITEM_CLASS}>
                           <action.icon className="h-4 w-4" aria-hidden="true" />
@@ -142,12 +143,12 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                     </Command.Group>
                   ) : null}
 
-                  <Command.Group heading="Pagini" className={GROUP_CLASS}>
+                  <Command.Group heading={t('common:palette.pages')} className={GROUP_CLASS}>
                     {pages.map((item) => (
                       <Command.Item key={item.to} value={item.label} keywords={item.keywords} onSelect={() => go(item.to)} className={ITEM_CLASS}>
                         <item.icon className="h-4 w-4" aria-hidden="true" />
                         {item.label}
-                        <span className="ml-auto text-xs text-muted-foreground">{item.group}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">{navGroupLabel(item.group)}</span>
                       </Command.Item>
                     ))}
                     {subPages.map((page) => (
@@ -176,8 +177,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                 ) : (
                   <p className="px-3 py-6 text-center text-sm text-muted-foreground">
                     {results.isError
-                      ? 'Nu am putut căuta. Încearcă din nou.'
-                      : `Nimic pentru „${term}”.`}
+                      ? t('common:palette.searchFailed')
+                      : t('common:palette.nothingFor', { term })}
                   </p>
                 )
               ) : null}

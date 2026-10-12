@@ -8,6 +8,7 @@ import { SignalTile } from '@/shared/components/SignalTile'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import type { HealthHistoryPoint, HealthSignalsSummary, HostHealthSummary } from '@/shared/lib/types'
+import { intlTag } from '@/shared/lib/format'
 
 type HealthRange = '1h' | '1d' | '7d'
 const RANGES: Array<{ value: HealthRange; label: string }> = [
@@ -21,7 +22,7 @@ function formatLastSeen(iso: string | null): string {
   const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
   if (minutes < 1) return 'actualizat acum'
   if (minutes < 60) return `ultima actualizare acum ${minutes} min`
-  return `ultima actualizare ${new Date(iso).toLocaleString('ro-RO', { dateStyle: 'short', timeStyle: 'short' })}`
+  return `ultima actualizare ${new Date(iso).toLocaleString(intlTag(), { dateStyle: 'short', timeStyle: 'short' })}`
 }
 
 function HistoryCard({ history, emptyLabel }: { history: HealthHistoryPoint[]; emptyLabel: string }) {

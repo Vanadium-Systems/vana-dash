@@ -5,12 +5,14 @@ import { ChartEmpty, ChartError, ChartSkeleton } from '@/shared/components/chart
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { formatPct, REFERENCE_KEY, strategyColor, type BotStrategy, type EquityPoint, type Market } from './types'
+import { t } from '@/shared/lib/i18n'
+import { intlTag } from '@/shared/lib/format'
 
 const RANGES = [
   { key: '7', label: '7z' },
   { key: '30', label: '30z' },
   { key: '90', label: '90z' },
-  { key: 'all', label: 'Tot' },
+  { key: 'all', label: t('common:bot.equity.rangeAll') },
 ] as const
 type RangeKey = (typeof RANGES)[number]['key']
 
@@ -62,9 +64,9 @@ export function EquityChart({ strategies, market }: { strategies: BotStrategy[];
     <section className="space-y-3" aria-labelledby={titleId}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id={titleId} className="text-sm font-semibold">
-          Echitate față de start
+          {t('common:bot.equity.title')}
         </h2>
-        <div role="group" aria-label="Perioadă" className="flex rounded-md bg-muted p-0.5">
+        <div role="group" aria-label={t('common:labels.period')} className="flex rounded-md bg-muted p-0.5">
           {RANGES.map((r) => (
             <button
               key={r.key}
@@ -85,9 +87,9 @@ export function EquityChart({ strategies, market }: { strategies: BotStrategy[];
       {equity.isPending ? (
         <ChartSkeleton height={HEIGHT} />
       ) : equity.isError ? (
-        <ChartError message="Nu am putut încărca seria de echitate" />
+        <ChartError message={t('common:bot.equity.loadFailed')} />
       ) : rows.length < 2 ? (
-        <ChartEmpty label="Prea puține puncte încă — seria crește cu un punct pe oră" />
+        <ChartEmpty label={t('common:bot.equity.tooFewPoints')} />
       ) : (
         <>
           <ResponsiveContainer width="100%" height={HEIGHT}>
@@ -114,7 +116,7 @@ export function EquityChart({ strategies, market }: { strategies: BotStrategy[];
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.5} />
               <Tooltip
                 labelFormatter={(ts: string) =>
-                  new Date(ts).toLocaleString('ro-RO', {
+                  new Date(ts).toLocaleString(intlTag(), {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   })
@@ -144,7 +146,7 @@ export function EquityChart({ strategies, market }: { strategies: BotStrategy[];
               ))}
             </LineChart>
           </ResponsiveContainer>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Legendă">
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label={t('common:bot.equity.legend')}>
             {keys.map((key) => (
               <li key={key} className="inline-flex items-center gap-1.5">
                 <svg width="16" height="8" aria-hidden="true">
@@ -169,7 +171,7 @@ export function EquityChart({ strategies, market }: { strategies: BotStrategy[];
 }
 
 function formatTick(ts: string): string {
-  return new Date(ts).toLocaleDateString('ro-RO', {
+  return new Date(ts).toLocaleDateString(intlTag(), {
     day: 'numeric',
     month: 'short',
   })

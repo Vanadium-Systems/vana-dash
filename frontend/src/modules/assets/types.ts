@@ -1,3 +1,4 @@
+import { intlTag } from '@/shared/lib/format'
 export type AssetCategory = 'stock' | 'etf' | 'metal'
 
 export interface WatchEntry {
@@ -106,8 +107,8 @@ export interface PaperOrderRow {
 export function formatUsd(value: number | null | undefined): string {
   if (value == null) return '—'
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M$`
-  if (Math.abs(value) >= 1000) return `${value.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}$`
-  return `${value.toLocaleString('ro-RO', { maximumFractionDigits: 2 })}$`
+  if (Math.abs(value) >= 1000) return `${value.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}$`
+  return `${value.toLocaleString(intlTag(), { maximumFractionDigits: 2 })}$`
 }
 
 export const CATEGORY_LABEL: Record<AssetCategory, string> = {

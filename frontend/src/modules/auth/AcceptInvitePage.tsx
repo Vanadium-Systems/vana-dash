@@ -9,6 +9,7 @@ import { api, ApiError } from '@/shared/lib/api'
 import type { SessionPayload } from '@/shared/lib/types'
 import { PasswordInput } from './PasswordInput'
 import { ExpiredLink } from './ResetPasswordPage'
+import { t } from '@/shared/lib/i18n'
 
 // Acceptarea invitației: omul a primit un link, pune o parolă și intră direct în cont —
 // sesiunea se setează pe loc, deci nu mai scrie parola a doua oară.
@@ -36,36 +37,36 @@ export function AcceptInvitePage() {
   if (token.length < 20 || errorCode === 'INVITE_EXPIRED') {
     // Fără sesiune nu putem afla numele adminului, deci ieșirea e către resetare — un om cu
     // parolă veche își face cont propriu, un om nou cere altă invitație.
-    return <ExpiredLink to="/forgot-password" cta="Am deja parolă" />
+    return <ExpiredLink to="/forgot-password" cta={t('auth:invite.haveAccount')} />
   }
 
   return (
-    <AuthLayout title="VanaDash, de la Vanadium Systems" subline="Finanțe, clienți și email într-un singur loc.">
-      <h1 className="text-xl font-semibold">Acceptă invitația</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Alege-ți parola și ești în cont. Minim 12 caractere.</p>
+    <AuthLayout title={t('auth:brand.title')} subline={t('auth:brand.subline')}>
+      <h1 className="text-xl font-semibold">{t('auth:invite.title')}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{t('auth:invite.hint')}</p>
 
       <form
         className="mt-6 space-y-4"
         onSubmit={(event) => {
           event.preventDefault()
-          setError(password !== repeat ? 'Cele două parole nu sunt la fel.' : null)
+          setError(password !== repeat ? t('auth:password.mismatch') : null)
           if (password !== repeat) return
           accept.mutate()
         }}
       >
-        <Field label="Parolă">
+        <Field label={t('common:labels.password')}>
           <PasswordInput autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required autoFocus />
         </Field>
-        <Field label="Parolă, din nou" error={error}>
+        <Field label={t('auth:password.again')} error={error}>
           <PasswordInput autoComplete="new-password" value={repeat} onChange={(event) => setRepeat(event.target.value)} required />
         </Field>
         <Button type="submit" className="w-full" disabled={accept.isPending || password.length < 12}>
-          {accept.isPending ? 'Se conectează…' : 'Acceptă și intră'}
+          {accept.isPending ? t('common:states.connecting') : t('auth:invite.submit')}
         </Button>
       </form>
       <p className="mt-6 text-center text-sm">
         <Link to="/login" className="text-muted-foreground underline underline-offset-2 hover:text-foreground">
-          Am acceptat deja, vreau să intru
+          {t('auth:invite.alreadyAccepted')}
         </Link>
       </p>
     </AuthLayout>
@@ -76,17 +77,17 @@ export function AcceptInvitePage() {
 // live 2026-10-02 — fără ieșire spre login, a retrimis formularul de patru ori.
 function InviteUsed() {
   return (
-    <AuthLayout title="VanaDash, de la Vanadium Systems" subline="Finanțe, clienți și email într-un singur loc.">
-      <h1 className="text-xl font-semibold">Invitația a fost deja acceptată</h1>
+    <AuthLayout title={t('auth:brand.title')} subline={t('auth:brand.subline')}>
+      <h1 className="text-xl font-semibold">{t('auth:invite.usedTitle')}</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Linkul din email merge o singură dată. Intră cu emailul și parola pe care ți le-ai ales.
+        {t('auth:invite.usedBody')}
       </p>
       <Button asChild className="mt-6 w-full">
-        <Link to="/login">Intră în cont</Link>
+        <Link to="/login">{t('auth:login.title')}</Link>
       </Button>
       <p className="mt-6 text-center text-sm">
         <Link to="/forgot-password" className="text-muted-foreground underline underline-offset-2 hover:text-foreground">
-          Nu mai știu parola
+          {t('auth:login.forgotShort')}
         </Link>
       </p>
     </AuthLayout>

@@ -15,6 +15,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { MatchDialog } from './MatchDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { EmptyState } from '@/shared/components/ui/empty-state'
+import { intlTag } from '@/shared/lib/format'
 
 export function ConturiTab() {
   const confirm = useConfirm()
@@ -117,7 +118,7 @@ export function ConturiTab() {
                       <PlatformStatusBadge status={account.healthStatus} />
                     </TableCell>
                     <TableCell>
-                      {account.lastSyncAt ? new Date(account.lastSyncAt).toLocaleString('ro-RO') : '—'}
+                      {account.lastSyncAt ? new Date(account.lastSyncAt).toLocaleString(intlTag()) : '—'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

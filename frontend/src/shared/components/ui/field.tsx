@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Label } from './label'
+import { t } from '@/shared/lib/i18n'
 
 // Eticheta deasupra, „(opțional)" în loc de asterisc, eroarea sub câmp (DESIGN.md, Formulare).
 // Id-ul, aria-invalid și aria-describedby se pun pe copil, ca un cititor de ecran să lege
@@ -26,7 +27,7 @@ export function Field({ label, optional, error, hint, className, children }: Fie
     <div className={cn('space-y-1.5', className)}>
       <Label htmlFor={id}>
         {label}
-        {optional ? <span className="font-normal text-muted-foreground"> (opțional)</span> : null}
+        {optional ? <span className="font-normal text-muted-foreground"> {t('common:states.optional')}</span> : null}
       </Label>
       {React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
         id,

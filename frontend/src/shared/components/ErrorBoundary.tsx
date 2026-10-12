@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Button } from '@/shared/components/ui/button'
+import { t } from '@/shared/lib/i18n'
 
 const CHUNK_LOAD_RELOAD_KEY = 'chunkLoadReloadAttempted'
 
@@ -39,11 +40,11 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
     if (this.state.error) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-          <h1 className="text-xl font-semibold">Ceva nu a mers bine</h1>
+          <h1 className="text-xl font-semibold">{t('common:errors.boundary.title')}</h1>
           <p className="max-w-md text-sm text-muted-foreground">
-            A apărut o eroare neașteptată. Încearcă să reîncarci pagina — dacă problema persistă, revino mai târziu.
+            {t('common:errors.boundary.body')}
           </p>
-          <Button onClick={() => window.location.reload()}>Reîncarcă pagina</Button>
+          <Button onClick={() => window.location.reload()}>{t('common:errors.boundary.reload')}</Button>
         </div>
       )
     }

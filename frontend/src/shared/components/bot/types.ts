@@ -1,4 +1,6 @@
 import { CHART_COLORS, CHART_NEUTRAL } from '@/shared/lib/chart-colors'
+import { t } from '@/shared/lib/i18n'
+import { intlTag } from '@/shared/lib/format'
 
 // Părțile comune ale tab-urilor „Bot" din Crypto și Assets (jeffbot, PLAN.md Contract B + D).
 // Specificul fiecărei piețe stă în modulul ei: crypto/bot (știri, model), assets/bot (bursa).
@@ -129,13 +131,13 @@ export function formatPct(value: number, digits = 2): string {
 }
 
 export function formatMoney(value: number, currency: string): string {
-  const amount = value.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const amount = value.toLocaleString(intlTag(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return currency === 'USD' ? `${amount} $` : `${amount} ${currency}`
 }
 
 export function formatPrice(value: number): string {
-  if (Math.abs(value) >= 1000) return `${value.toLocaleString('ro-RO', { maximumFractionDigits: 0 })}$`
-  if (Math.abs(value) >= 1) return `${value.toLocaleString('ro-RO', { maximumFractionDigits: 2 })}$`
+  if (Math.abs(value) >= 1000) return `${value.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}$`
+  if (Math.abs(value) >= 1) return `${value.toLocaleString(intlTag(), { maximumFractionDigits: 2 })}$`
   return `${value.toPrecision(4)}$`
 }
 
@@ -144,11 +146,11 @@ export function minutesSince(iso: string, now = Date.now()): number {
 }
 
 export function formatAge(minutes: number): string {
-  if (minutes < 1) return 'acum câteva secunde'
-  if (minutes < 60) return `acum ${minutes} min`
+  if (minutes < 1) return t('common:bot.fewSecondsAgo')
+  if (minutes < 60) return t('common:bot.minutesAgo', { count: minutes })
   const hours = Math.floor(minutes / 60)
-  if (hours < 48) return `acum ${hours} h`
-  return `acum ${Math.floor(hours / 24)} zile`
+  if (hours < 48) return t('common:bot.hoursAgo', { count: hours })
+  return t('common:bot.daysAgo', { count: Math.floor(hours / 24) })
 }
 
 export function formatSeconds(sec: number | null): string {

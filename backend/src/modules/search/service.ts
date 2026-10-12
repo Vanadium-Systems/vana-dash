@@ -5,6 +5,7 @@ import type { SessionUser } from '../../shared/lib/session.js'
 import { searchFiles } from '../archive/service.js'
 import { searchEvents } from '../calendar/service.js'
 import { mailboxAddresses, threadVisibleTo } from '../email/mailboxes.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 // Căutarea din Ctrl K (PLAN.md C2, BE-9). Fiecare grupă de rezultate poartă funcționalitatea
 // care o deschide: grupa fără funcționalitate nu e interogată deloc (nici goală nu apare), iar
@@ -53,7 +54,7 @@ async function searchInvoices(term: string, limit: number): Promise<SearchGroup 
     .limit(limit)
   if (rows.length === 0) return null
   return {
-    group: 'Facturi',
+    group: tr('search.groups.invoices'),
     feature: 'facturi.view',
     items: rows.map((r) => ({
       id: r.id,
@@ -86,7 +87,7 @@ async function searchProspects(term: string, limit: number): Promise<SearchGroup
     .limit(limit)
   if (rows.length === 0) return null
   return {
-    group: 'Clienți',
+    group: tr('search.groups.clients'),
     feature: 'clienti.view',
     items: rows.map((r) => ({
       id: r.id,
@@ -116,7 +117,7 @@ async function searchThreads(me: SessionUser, term: string, limit: number): Prom
     .limit(limit)
   if (rows.length === 0) return null
   return {
-    group: 'Email',
+    group: tr('search.groups.email'),
     feature: 'email.view',
     items: rows.map((r) => ({
       id: r.id,
@@ -133,7 +134,7 @@ async function searchArchive(me: SessionUser, term: string, limit: number): Prom
   const rows = (await searchFiles(me, term)).slice(0, limit)
   if (rows.length === 0) return null
   return {
-    group: 'Arhivă',
+    group: tr('search.groups.archive'),
     feature: 'arhiva.view',
     items: rows.map((r) => ({
       id: r.id,
@@ -148,7 +149,7 @@ async function searchCalendar(me: SessionUser, term: string, limit: number): Pro
   const rows = await searchEvents(me, term, limit)
   if (rows.length === 0) return null
   return {
-    group: 'Calendar',
+    group: tr('search.groups.calendar'),
     feature: 'calendar.view',
     items: rows.map((r) => {
       const start = new Date(r.startAt)

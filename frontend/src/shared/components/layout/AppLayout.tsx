@@ -24,10 +24,11 @@ import { useOfflinePrefetch } from '@/shared/hooks/use-offline-prefetch'
 import { useOnline } from '@/shared/hooks/use-online'
 import { isNative } from '@/shared/lib/native'
 import { registerNativeDeviceToken } from '@/shared/lib/native-push'
-import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem } from '@/shared/lib/nav-items'
+import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem, navGroupLabel } from '@/shared/lib/nav-items'
 import { BrandMark } from '@/shared/components/BrandMark'
 import { sessionUserName } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
+import { t } from '@/shared/lib/i18n'
 
 // Shell-ul nou (Contractul F, sprint UI remake 2026-08-25): sidebar cu nav grupat pe etichete
 // mici, iteme compacte h-8, stare activă = fundal muted + text foreground; footer curat cu
@@ -64,7 +65,7 @@ function SidebarNav({
         .filter(([, groupItems]) => groupItems.length > 0)
         .map(([group, groupItems], sectionIndex) => (
           <div key={group} className={cn(sectionIndex > 0 && 'mt-4')}>
-            <div className="px-2 pb-1 text-xs font-medium text-muted-foreground">{group}</div>
+            <div className="px-2 pb-1 text-xs font-medium text-muted-foreground">{navGroupLabel(group)}</div>
             {groupItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -177,7 +178,7 @@ export function AppLayout() {
             className="touch-target -mr-1 ml-auto flex items-center justify-center rounded-sm p-1 hover:bg-accent"
             onClick={onClose}
           >
-            <span className="sr-only">Închide meniul</span>
+            <span className="sr-only">{t('common:shell.closeMenu')}</span>
             <X className="h-5 w-5" />
           </button>
         ) : null}
@@ -192,7 +193,7 @@ export function AppLayout() {
           className="flex h-control-md w-full items-center gap-2 rounded-md border border-border px-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Search className="h-4 w-4" aria-hidden="true" />
-          Caută
+          {t('common:actions.search')}
           <kbd className="ml-auto hidden font-sans text-xs md:inline">{PALETTE_SHORTCUT}</kbd>
         </button>
       </div>
@@ -207,7 +208,7 @@ export function AppLayout() {
         {canInstall ? (
           <Button variant="outline" className="mb-2 w-full" onClick={promptInstall}>
             <Download className="h-4 w-4" />
-            Instalează aplicația
+            {t('common:shell.installApp')}
           </Button>
         ) : null}
         <div className="mb-2">
@@ -223,39 +224,39 @@ export function AppLayout() {
               <span className="block truncate text-sm">{name}</span>
               <span className="block truncate text-xs text-muted-foreground">{user?.email}</span>
             </span>
-            {helpUnread > 0 ? <span className="sr-only">Ai lucruri necitite în Ajutor</span> : null}
+            {helpUnread > 0 ? <span className="sr-only">{t('common:shell.unreadInHelp')}</span> : null}
             <Ellipsis className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => navigate('/me')}>
               <User className="h-4 w-4" aria-hidden="true" />
-              Profilul meu
+              {t('common:nav.myProfile')}
             </DropdownMenuItem>
             {/* Ajutor: trei pagini rare, ținute în meniul contului ca să nu ocupe nav-ul. */}
             <DropdownMenuItem onClick={() => navigate('/support', { state: { from: guideRouteOf(location.pathname) } })}>
               <LifeBuoy className="h-4 w-4" aria-hidden="true" />
-              Suport
-              <MenuCount count={supportUnread.data?.mine} label="cu răspuns necitit" />
+              {t('common:nav.support')}
+              <MenuCount count={supportUnread.data?.mine} label={t('common:shell.withUnreadReply')} />
             </DropdownMenuItem>
             {session?.isPlatformAdmin ? (
               <DropdownMenuItem onClick={() => navigate('/platform/support')}>
                 <Inbox className="h-4 w-4" aria-hidden="true" />
-                Tichete de suport
-                <MenuCount count={supportUnread.data?.platform} label="necitite" />
+                {t('common:shell.supportTickets')}
+                <MenuCount count={supportUnread.data?.platform} label={t('common:shell.unread')} />
               </DropdownMenuItem>
             ) : null}
             <DropdownMenuItem onClick={() => navigate('/help')}>
               <BookOpen className="h-4 w-4" aria-hidden="true" />
-              Ghiduri
+              {t('common:nav.guides')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/updates')}>
               <Megaphone className="h-4 w-4" aria-hidden="true" />
-              Noutăți
-              <MenuCount count={unseenUpdates} label="noi" />
+              {t('common:nav.updates')}
+              <MenuCount count={unseenUpdates} label={t('common:shell.new')} />
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => logout.mutate()}>
               <LogOut className="h-4 w-4" aria-hidden="true" />
-              Logout
+              {t('common:shell.logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -341,7 +342,7 @@ export function AppLayout() {
             onClick={() => setDrawerOpen((open) => !open)}
           >
             <Ellipsis className="h-5 w-5" strokeWidth={1.8} />
-            Mai mult
+            {t('common:actions.more')}
           </button>
         </nav>
       </div>

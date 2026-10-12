@@ -5,6 +5,7 @@ import { BrandMark } from '@/shared/components/BrandMark'
 import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/shared/lib/utils'
 import { AssistantText } from './AssistantText'
+import { intlTag } from '@/shared/lib/format'
 
 export interface BubbleMessage {
   id: string
@@ -70,7 +71,7 @@ function MessageMeta({ text, iso }: { text: string; iso?: string }) {
   }, [copied])
 
   const time = iso
-    ? new Date(iso).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' })
+    ? new Date(iso).toLocaleTimeString(intlTag(), { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' })
     : null
   return (
     <div className="flex shrink-0 items-center gap-1 self-end opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100">

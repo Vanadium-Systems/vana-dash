@@ -1,1 +1,9 @@
-{}
+{
+  "groups": {
+    "invoices": "Facturi",
+    "clients": "Clienți",
+    "email": "Email",
+    "archive": "Arhivă",
+    "calendar": "Calendar"
+  }
+}

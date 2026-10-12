@@ -21,6 +21,7 @@ import { memberName, TEAM_QUERY_KEY, useTeamMembers, type TeamMember } from '@/s
 import { api, ApiError } from '@/shared/lib/api'
 import type { EmailIdentity, EmailSettings } from '@/shared/lib/types'
 import { cn, normalizeForSearch } from '@/shared/lib/utils'
+import { intlTag } from '@/shared/lib/format'
 
 // Cine e în echipă, ce rol are fiecare și cine n-a acceptat încă invitația (fișa „Echipă").
 // Lista e `self` — orice om activ o vede, ca să îi poată scrie cuiva din Mesaje; partea de
@@ -41,11 +42,11 @@ const MAILBOX_QUERY_KEY = ['email', 'settings'] as const
 function LastSeen({ at }: { at: string | null }) {
   if (!at) return <span className="text-sm text-muted-foreground">nu a intrat niciodată</span>
   const minutes = Math.round((Date.now() - new Date(at).getTime()) / 60_000)
-  const full = new Intl.DateTimeFormat('ro-RO', { dateStyle: 'medium', timeStyle: 'short', timeZone: TZ }).format(new Date(at))
+  const full = new Intl.DateTimeFormat(intlTag(), { dateStyle: 'medium', timeStyle: 'short', timeZone: TZ }).format(new Date(at))
   // Fără prezență (push B vine cu Mesajele), „activ acum" înseamnă că a venit un request
   // în ultimele două minute — `last_seen_at` se scrie cel mult o dată pe minut.
   const active = minutes < 2
-  const label = active ? 'Activ acum' : new Intl.RelativeTimeFormat('ro-RO', { numeric: 'auto' }).format(-minutes, 'minute')
+  const label = active ? 'Activ acum' : new Intl.RelativeTimeFormat(intlTag(), { numeric: 'auto' }).format(-minutes, 'minute')
   return (
     <Tooltip content={full}>
       <span className="text-sm text-muted-foreground">

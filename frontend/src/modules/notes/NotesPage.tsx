@@ -11,6 +11,7 @@ import { api } from '@/shared/lib/api'
 import type { Note } from '@/shared/lib/types'
 import { NoteFormDialog } from './NoteFormDialog'
 import { useConsumeParam } from '@/shared/hooks/use-consume-param'
+import { intlTag } from '@/shared/lib/format'
 
 export function NotesPage() {
   const queryClient = useQueryClient()
@@ -97,7 +98,7 @@ export function NotesPage() {
                   </Button>
                 </div>
                 <p className="line-clamp-4 whitespace-pre-wrap text-sm text-muted-foreground">{note.body}</p>
-                <p className="text-xs text-muted-foreground">{new Date(note.updatedAt).toLocaleDateString('ro-RO')}</p>
+                <p className="text-xs text-muted-foreground">{new Date(note.updatedAt).toLocaleDateString(intlTag())}</p>
               </CardContent>
             </Card>
           ))}

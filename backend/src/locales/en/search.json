@@ -1,1 +1,9 @@
-{}
+{
+  "groups": {
+    "invoices": "Invoices",
+    "clients": "Clients",
+    "email": "Email",
+    "archive": "Archive",
+    "calendar": "Calendar"
+  }
+}

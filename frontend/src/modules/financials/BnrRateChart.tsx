@@ -1,4 +1,5 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { intlTag } from '@/shared/lib/format'
 
 export interface BnrRatePoint {
   date: string
@@ -15,7 +16,7 @@ interface BnrRateChartProps {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })
+  return new Date(iso).toLocaleDateString(intlTag(), { day: 'numeric', month: 'short' })
 }
 
 // Punct roșu = zi lucrătoare în care cronul BNR nu a prins un curs nou (SICAP-style

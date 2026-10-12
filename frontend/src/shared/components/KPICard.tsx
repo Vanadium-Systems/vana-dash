@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { cn } from '@/shared/lib/utils'
 import { formatNumber } from '@/shared/lib/format'
+import { t } from '@/shared/lib/i18n'
 
 interface KPICardProps {
   label: string
@@ -88,7 +89,7 @@ export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, d
             <span className={cn('tnum font-mono', deltaClass)}>
               {deltaRising ? '↑' : '↓'} {Math.abs(deltaPct).toFixed(1)}%
             </span>
-            <span>{deltaLabel ?? 'vs. perioada anterioară'}</span>
+            <span>{deltaLabel ?? t('common:kpi.vsPreviousPeriod')}</span>
           </p>
         ) : hint ? (
           <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
