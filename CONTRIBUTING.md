@@ -54,6 +54,27 @@ These are the ones that get a pull request sent back.
 - Code, tests and comments contain no real names, addresses, phone numbers or figures. Tests
   use `Acme` and `example.com`.
 
+## Texts and languages
+
+The interface is in Romanian and English, and every text exists in both.
+
+- Frontend: add the key to `frontend/src/locales/ro/<module>.json` and to the same file under
+  `en/`, then read it with `t('module:path.to.key')` from `@/shared/lib/i18n`. Keys are
+  checked against the Romanian files, so a typo fails `pnpm typecheck`. Counts use plural
+  forms (`_one`, `_few`, `_other` in Romanian; `_one`, `_other` in English). A sentence with
+  an element inside it goes through `tNodes()` or `tRich()`.
+- Backend: add the key under `backend/src/locales/{ro,en}/` and use `tr()` where the error is
+  thrown. A message for someone other than the caller (email, push, alert) uses `trFor()` or
+  `tl()` with the recipient's language. A Zod schema message uses `lazyTr()`.
+- Numbers, money and dates go through `frontend/src/shared/lib/format.ts`. An amount is shown
+  with the currency the server sent, never an assumed one.
+- Check [docs/GLOSSARY.md](docs/GLOSSARY.md) so the same thing keeps the same name.
+- Tests fail on a key missing from one language, on a literal written in JSX, and on Romanian
+  text in code outside `locales/`. The exceptions (invoices, declarations, contracts, emails
+  to clients) are listed in `no-romanian-in-code.test.ts`.
+- A new language is a new folder next to `ro/` and `en/`, an entry in `LOCALES` and
+  `INTL_TAG` on both sides, and, once every screen has it, in `ENABLED_LOCALES`.
+
 For the interface, read [DESIGN.md](DESIGN.md): reuse the existing tokens
 and components before adding a colour, a spacing value or a variant.
 

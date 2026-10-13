@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-13T12:00:00+03:00',
+    title: {
+      ro: 'Aplicația e și în engleză',
+      en: 'The app is also in English',
+    },
+    body: {
+      ro: 'Din Profilul meu, la Afișare, alegi limba interfeței și moneda în care vezi totalurile (lei, euro sau dolari). Sumele convertite au „≈” în față și folosesc cursul BNR din ziua fiecărei înregistrări. Facturile și declarațiile rămân în lei și în română.',
+      en: 'In My profile, under Display, you pick the interface language and the currency totals are shown in (lei, euros or dollars). Converted amounts have “≈” in front and use the BNR rate of each record\'s day. Invoices and declarations stay in lei and in Romanian.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-10-12T23:30:00+03:00',
     title: {
       ro: 'Atașamentele din emailuri se descarcă',

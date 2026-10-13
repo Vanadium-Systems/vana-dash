@@ -28,6 +28,28 @@ The JWT is `{ sub, sv }`. `session_version` goes up when a person is deactivated
 their password, so old sessions get `401`. The role and the features are read on every request,
 so a change in Modules takes effect without logging out.
 
+## Language and display currency
+
+Every text the server sends (errors, validation messages, feature labels, search groups) is in
+the language of the request: the person's `locale` once signed in, otherwise the `X-Locale`
+header sent by the pages before login, otherwise `DEFAULT_LOCALE`. The shape of an error does
+not change, only its language. System emails and push notifications use the recipient's
+language, not the sender's.
+
+Responses with totals (Financials, Reports, Metrics, Wishlist) carry a `money` object next to
+`data`:
+
+```json
+{ "success": true, "data": {}, "money": { "currency": "EUR", "converted": true, "rateSource": "BNR" } }
+```
+
+The figures are in `money.currency`, the person's display currency. Each row is converted in
+SQL at the BNR rate of its own day. If no rate exists for that currency, the figures stay in
+RON and `money` says `"converted": false, "fallback": "no_rate"`. The amount of a single
+document, reconciliation, the D301/D390 declarations and the quarterly package are never
+converted. `recurring-revenue` and `recurring-expenses` add `mrrDisplay` and `monthlyDisplay`,
+converted at the latest rate.
+
 ## Routes without a session
 
 These are all of them; a test snapshot (`feature-guard.test.ts`) keeps the list honest.
@@ -36,6 +58,7 @@ These are all of them; a test snapshot (`feature-guard.test.ts`) keeps the list 
 |---|---|
 | `GET /health` | nothing, returns `{ status: 'ok' }` |
 | `POST /api/auth/login` | rate limit, 5 per 15 minutes per IP |
+| `GET /api/auth/locale` | nothing; returns only `{ defaultLocale, enabledLocales }` |
 | `POST /api/auth/forgot-password`, `/reset-password`, `/accept-invite` | rate limit, 5 per minute per IP; one-time tokens |
 | `GET`/`POST /api/email/unsubscribe/:token` | HMAC token |
 | `GET /api/email-images/:filename` | unguessable generated name |
@@ -53,8 +76,9 @@ route refuses every request.
 |---|---|---|
 | POST | `/api/auth/login` | `{ email, password }` → sets the cookie. A deactivated or still-invited person gets 401, like a wrong password |
 | POST | `/api/auth/logout` | Clears the cookie |
-| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt }`. `mailboxes: null` means all (admin) |
-| PATCH | `/api/auth/me` | `{ displayName?, notificationPrefs?: { chat: 'all'\|'dm'\|'none', emailNew, alerts }, updatesSeenAt? }`. `updatesSeenAt` (ISO) is how far the person has read What's new; the server caps it at now |
+| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies }`. `mailboxes: null` means all (admin) |
+| GET | `/api/auth/locale` | `{ defaultLocale, enabledLocales }`, for the pages before login |
+| PATCH | `/api/auth/me` | `{ displayName?, notificationPrefs?: { chat: 'all'\|'dm'\|'none', emailNew, alerts }, updatesSeenAt?, locale?: 'ro'\|'en', displayCurrency?: 'RON'\|'EUR'\|'USD' }`. `400` for a language or currency outside the lists. `updatesSeenAt` (ISO) is how far the person has read What's new; the server caps it at now |
 | POST | `/api/auth/me/password` | `{ currentPassword, newPassword }` (12 characters minimum). Logs out the other sessions |
 | POST | `/api/auth/forgot-password` | `{ email }` → always `204`, whether the address has an account or not |
 | POST | `/api/auth/reset-password` | `{ token, password }`. Single-use token, 1h. `RESET_TOKEN_EXPIRED` |

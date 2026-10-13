@@ -37,7 +37,7 @@
       "horizon": "Horizon (days)",
       "save": "Save the schedule"
     },
-    "canceled": "The booking is canceled",
+    "cancelled": "The booking is canceled",
     "cancelFailed": "The booking was not canceled. Try again.",
     "anonymizedVisitor": "Anonymized visitor",
     "call": "Call · {{who}}",

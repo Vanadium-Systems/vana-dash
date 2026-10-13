@@ -112,9 +112,13 @@ under the field says what to do ("Introdu suma în lei"), never "invalid". Amoun
 cannot gets a `ConfirmDialog`: "Șterge clientul Acme SRL" / "Clientul și cele 12 facturi legate
 se șterg." / a button that says "Șterge clientul".
 
-**Romanian.** `Intl` with `ro-RO` and an explicit `timeZone: 'Europe/Bucharest'`; "lei" from
-one helper; the plural with "20 de …" (`Intl.PluralRules('ro')`); search ignores diacritics,
-including the cedilla forms ş/ţ.
+**Language and formatting.** Texts come from `src/locales` through `t()`, never from a literal
+in a component. Numbers, money and dates go through `shared/lib/format.ts`, which formats in
+the language of the interface (`ro-RO` or `en-GB`) and always in `Europe/Bucharest` time. The
+plural with "20 de …" comes from the plural forms in the Romanian files. An amount shows the
+currency the server sent; one converted to the person's display currency has "≈" in front and
+a line under the group saying so, not just a different color. Search ignores diacritics,
+including the cedilla forms ş/ţ. English labels are checked at 390px: they run longer.
 
 **Settings.** They belong to the company (profile, AI providers, jobs, exchanges, the Android
 app). What belongs to the person (name, password, notifications, push on this device, menu) is
