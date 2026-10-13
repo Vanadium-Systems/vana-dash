@@ -25,7 +25,7 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
-    publishedAt: '2026-10-13T12:00:00+03:00',
+    publishedAt: '2026-10-13T08:20:00+03:00',
     title: {
       ro: 'Aplicația e și în engleză',
       en: 'The app is also in English',
