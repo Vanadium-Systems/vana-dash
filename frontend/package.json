@@ -43,7 +43,7 @@
     "class-variance-authority": "0.7.0",
     "clsx": "2.1.1",
     "cmdk": "1.0.4",
-    "dompurify": "^3.4.13",
+    "dompurify": "^3.4.16",
     "heic-to": "^1.5.2",
     "i18next": "26.4.2",
     "lucide-react": "0.446.0",
