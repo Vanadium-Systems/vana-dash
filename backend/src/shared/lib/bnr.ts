@@ -55,11 +55,13 @@ export function parseBnrRate(xml: string, currency: string): { date: string; rat
   const cubeMatch = /<Cube date="(\d{4}-\d{2}-\d{2})">([\s\S]*?)<\/Cube>/.exec(xml)
   if (!cubeMatch) throw new Error(tr('errors.bnr.noCube'))
   const [, date, cubeBody] = cubeMatch
-  const rateMatch = new RegExp(`<Rate currency="${currency}"[^>]*>([\\d.]+)</Rate>`).exec(cubeBody!)
+  const rateMatch = [...cubeBody!.matchAll(/<Rate currency="([^"]+)"[^>]*>([\d.]+)<\/Rate>/g)].find(
+    (match) => match[1] === currency,
+  )
   if (!rateMatch) throw new Error(tr('errors.bnr.noRate', { currency }))
-  const rate = Number.parseFloat(rateMatch[1]!)
+  const rate = Number.parseFloat(rateMatch[2]!)
   if (!Number.isFinite(rate) || rate <= 0) {
-    throw new Error(tr('errors.bnr.rateNotNumber', { currency, value: rateMatch[1] }))
+    throw new Error(tr('errors.bnr.rateNotNumber', { currency, value: rateMatch[2] }))
   }
   return { date: date!, rate }
 }

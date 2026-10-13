@@ -39,7 +39,7 @@ export async function suppressEmail(email: string, source: 'manual' | 'bounce' |
   try {
     await markProspectUnsubscribedByEmail(normalized)
   } catch (err) {
-    console.error(`[email/unsubscribe] marcare prospect eșuată pentru ${normalized}:`, err)
+    console.error('[email/unsubscribe] marcare prospect eșuată pentru %s:', normalized, err)
   }
 }
 

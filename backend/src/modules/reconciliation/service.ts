@@ -266,7 +266,7 @@ export async function markInvoicePaidManually(financialRecordId: string) {
       sourceId: `mark-paid:${financialRecordId}`,
     })
   } catch (err) {
-    console.error(`[reconciliation] extindere vanagreen eșuată pt. factura ${financialRecordId}:`, err)
+    console.error('[reconciliation] extindere vanagreen eșuată pt. factura %s:', financialRecordId, err)
   }
 
   void notifyPush('paymentMatch', (locale) => ({

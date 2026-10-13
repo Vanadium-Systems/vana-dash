@@ -13,7 +13,7 @@ import { tr } from '../../shared/lib/i18n.js'
 
 /** Adresa dintr-un header care poate fi „Vanadium Systems <contact@vanadium.systems>". */
 export function bareAddress(value: string): string {
-  const match = /<([^>]+)>/.exec(value)
+  const match = /<([^<>]+)>/.exec(value)
   return (match?.[1] ?? value).trim().toLowerCase()
 }
 

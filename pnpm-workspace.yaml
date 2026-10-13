@@ -13,16 +13,28 @@ minimumReleaseAgeExclude:
 overrides:
   # ajv (fastify's schema validator) pins fast-uri@^3.0.1 internally;
   # bump within that range to patch the host-confusion advisories.
-  'ajv>fast-uri': ^3.1.5
+  'ajv>fast-uri': ^3.1.8
   # node-cron hard-pins uuid@8.3.2 (pre-fix); only used for internal job IDs.
   'node-cron>uuid': ^11.1.1
+  # same advisory through firebase-admin's Google client stack and Capacitor's
+  # CLI; all three only call v4(), which uuid@11 still ships for require().
+  'gaxios>uuid': ^11.1.1
+  'teeny-request>uuid': ^11.1.1
+  'xcode>uuid': ^11.1.1
   # legacy esbuild-kit loader inside drizzle-kit, unused at runtime (drizzle-kit uses tsx).
   '@esbuild-kit/core-utils>esbuild': ^0.25.0
   # test-only vite instance pulled in via vitest's mocker peer dep — keep
   # separate from frontend's real build-time vite (pinned ^6.4.3 above).
   '@vitest/mocker>vite': ^8.2.1
   # jsdom (test-only) allows any undici@7.x; force the patched release.
-  'jsdom>undici': ^7.29.0
+  'jsdom>undici': ^7.29.1
+  # css-tree (jsdom, test-only) locks the pre-fix source-map-js.
+  'css-tree>source-map-js': ^1.2.2
+  # tailwindcss@3 and postcss-nested ask for ^6, which has no fix for the
+  # quadratic selector parse. Build-time only; the generated CSS is unchanged.
+  postcss-selector-parser: ^7.1.6
+  # workbox-build's jake>filelist>minimatch@5 chain stays on brace-expansion@2.
+  'minimatch@5>brace-expansion': ^2.1.7
 audit:
   ignore:
     # brace-expansion DoS, only reachable via vite-plugin-pwa's build-time
@@ -31,3 +43,7 @@ audit:
     # reaches it (local build only).
     - GHSA-mh99-v99m-4gvg
     - GHSA-rgw5-rvv9-x895
+    # braces stack exhaustion on deeply nested patterns: no patched release
+    # exists (3.0.3 is the latest). Reached only through tailwindcss@3's
+    # chokidar/micromatch at build time, with globs from tailwind.config.js.
+    - GHSA-vfj7-8cjw-p6xm

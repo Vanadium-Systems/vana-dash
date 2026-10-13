@@ -13,7 +13,7 @@ import { getEmailSettings } from './settings-service.js'
 export type EmailFromKey = string
 
 export function escapeHtml(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 export function textToHtmlParagraph(text: string): string {

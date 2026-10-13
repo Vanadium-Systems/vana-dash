@@ -186,7 +186,7 @@ export async function coinDetails(id: string): Promise<CoinDetails | null> {
     atlUsd: md.atl?.usd ?? null,
     atlChangePct: md.atl_change_percentage?.usd ?? null,
     atlDate: md.atl_date?.usd ?? null,
-    description: raw.description?.en ? raw.description.en.replace(/<[^>]*>/g, '').slice(0, 1200) : null,
+    description: raw.description?.en ? raw.description.en.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').slice(0, 1200) : null,
   }
 }
 

@@ -4,6 +4,16 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-13: Dependency and code scanning fixes
+
+### Security
+- Dependencies raised to patched releases, among them `fastify` 5.12.5, `@capacitor/android`
+  8.5.3, `@tiptap/*` 3.31, `csv-parse` 7 and `react-router-dom` 7. Transitive packages that
+  stayed pinned are forced through `overrides` in `pnpm-workspace.yaml`.
+- `escapeHtml` in the email module also escapes double quotes, the BNR rate parser no longer
+  builds a regular expression from the currency code, and `deploy.yml` runs with a read-only
+  token.
+
 ## 2026-10-13: English interface and display currency
 
 ### Added

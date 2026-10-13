@@ -54,7 +54,7 @@ export async function inlineStoredImages(html: string): Promise<{ html: string; 
     } catch (err) {
       // Poza a dispărut de pe disc între upload și trimitere (foarte improbabil, nume unic
       // generat) — izolat per poză, restul trimiterii continuă, doar imaginea asta rămâne ruptă.
-      console.error(`[email] inline poză "${filename}" eșuat (fișier lipsă?):`, err)
+      console.error('[email] inline poză "%s" eșuat (fișier lipsă?):', filename, err)
     }
   }
 
