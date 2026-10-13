@@ -158,6 +158,17 @@ interface RawCoinFull {
   description?: { en?: string }
 }
 
+// Removing tags once can splice a new one together ("<scr<b>ipt>"), so repeat until stable.
+function stripTags(html: string): string {
+  let text = html
+  let previous: string
+  do {
+    previous = text
+    text = text.replace(/<[^>]*>/g, '')
+  } while (text !== previous)
+  return text
+}
+
 /** Detalii complete pt. pagina monedei — /coins/{id} cu tickers/community/developer oprite. */
 export async function coinDetails(id: string): Promise<CoinDetails | null> {
   if (!/^[a-z0-9-]{1,60}$/.test(id)) return null
@@ -186,7 +197,7 @@ export async function coinDetails(id: string): Promise<CoinDetails | null> {
     atlUsd: md.atl?.usd ?? null,
     atlChangePct: md.atl_change_percentage?.usd ?? null,
     atlDate: md.atl_date?.usd ?? null,
-    description: raw.description?.en ? raw.description.en.replace(/<[^>]*>/g, '').replace(/[<>]/g, '').slice(0, 1200) : null,
+    description: raw.description?.en ? stripTags(raw.description.en).slice(0, 1200) : null,
   }
 }
 
