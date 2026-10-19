@@ -4,6 +4,17 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-19: Safer unsubscribe and platform URL check
+
+### Fixed
+- Unsubscribe links in emails no longer unsubscribe on open. Link scanners (Outlook Safe Links,
+  antivirus gateways) open every link in a message, so `GET /api/email/unsubscribe/:token` now
+  shows a confirm button and only the `POST` unsubscribes.
+- One-click unsubscribe (RFC 8058) answered 415: the client posts a form body and the server had
+  no parser for it. The route now accepts it, so Gmail's Unsubscribe chip works.
+- A platform URL whose name resolves to a private or loopback address (`localtest.me` is
+  127.0.0.1) is refused on create and edit, not only an address written as such.
+
 ## 2026-10-19: Message bubbles, read receipts and photo thumbnails
 
 ### Added

@@ -22,8 +22,10 @@ import { tr } from '../../shared/lib/i18n.js'
 
 const UNSUBSCRIBE_PAGE_STYLE = 'font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1.5rem;color:#1a1a1a;line-height:1.5'
 
-function unsubscribePage(message: string): string {
-  return `<!doctype html><html lang="ro"><head><meta charset="utf-8"><title>Dezabonare</title></head><body style="${UNSUBSCRIBE_PAGE_STYLE}"><h1 style="font-size:1.25rem">${message}</h1></body></html>`
+const UNSUBSCRIBE_BUTTON_STYLE = 'font:inherit;padding:.5rem 1rem;border:0;border-radius:.375rem;background:#1a1a1a;color:#fff;cursor:pointer'
+
+function unsubscribePage(message: string, action = ''): string {
+  return `<!doctype html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dezabonare</title></head><body style="${UNSUBSCRIBE_PAGE_STYLE}"><h1 style="font-size:1.25rem">${message}</h1>${action}</body></html>`
 }
 
 // Rutele din secțiunea asta (templates / send / bulk-send / sends) sunt ale BE.
@@ -169,10 +171,12 @@ export async function emailRoutes(app: FastifyInstance) {
   )
 
   // ── Unsubscribe (PUBLIC, fără authenticate — click dintr-un client de mail) ─
-  // Singura rută din modul fără sesiune Stefan. Token stateless (unsubscribe-token.ts) — nu
-  // verificăm decât semnătura HMAC, niciun secret nu ajunge în răspuns. Rate-limit ca la
-  // celelalte rute publice (webhooks/vanagreen-alert) — token-urile sunt greu de ghicit
-  // (HMAC), dar tot merită o plasă împotriva scanării.
+  // Token stateless (unsubscribe-token.ts): only the HMAC signature is checked, no secret
+  // reaches the response. Rate-limited like the other public routes, as a net against scanning.
+  //
+  // GET only shows a confirm button. Link scanners (Outlook Safe Links, antivirus gateways)
+  // open every link in an email on their own, so a GET that unsubscribed would drop people
+  // who never clicked anything.
   server.get(
     '/api/email/unsubscribe/:token',
     {
@@ -184,40 +188,43 @@ export async function emailRoutes(app: FastifyInstance) {
       if (!email) {
         return reply.code(400).type('text/html').send(unsubscribePage('Link invalid sau expirat.'))
       }
-
-      try {
-        await suppressEmail(email)
-      } catch (err) {
-        req.log.error({ err }, `[email] unsubscribe eșuat pentru ${email}`)
-        return reply.code(500).type('text/html').send(unsubscribePage('A apărut o eroare — încearcă din nou mai târziu.'))
-      }
-
-      return reply.type('text/html').send(unsubscribePage(`Adresa ${escapeHtml(email)} a fost dezabonată. Nu vei mai primi acest tip de email.`))
+      return reply.type('text/html').send(unsubscribePage(
+        `Dezabonezi adresa ${escapeHtml(email)}?`,
+        `<form method="post"><button type="submit" style="${UNSUBSCRIBE_BUTTON_STYLE}">Confirmă dezabonarea</button></form>`,
+      ))
     },
   )
 
-  // One-click unsubscribe (RFC 8058, header `List-Unsubscribe-Post` trimis de bulkSend) —
-  // clientul de mail (ex: chip-ul "Unsubscribe" din Gmail lângă numele expeditorului) face
-  // POST direct pe URL, fără să deschidă vreun tab/pagină — nu-i arată niciodată răspunsul,
-  // deci nu are rost HTML aici, doar statusul. Fără asta, chip-ul nativ nu apare deloc.
-  server.post(
-    '/api/email/unsubscribe/:token',
-    {
-      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
-      schema: { params: UnsubscribeTokenParamsSchema },
-    },
-    async (req, reply) => {
-      const email = verifyUnsubscribeToken(req.params.token)
-      if (!email) return reply.code(400).send()
+  // The POST does the unsubscribe, for the button above and for one-click (RFC 8058): Gmail's
+  // "Unsubscribe" chip posts `List-Unsubscribe=One-Click` as a form body straight to this URL.
+  // Fastify has no form parser by default and would answer 415, so this context gets one that
+  // ignores the body: the token in the path is all we need.
+  await app.register(async (instance) => {
+    instance.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, _body, done) => {
+      done(null, {})
+    })
 
-      try {
-        await suppressEmail(email)
-      } catch (err) {
-        req.log.error({ err }, `[email] one-click unsubscribe eșuat pentru ${email}`)
-        return reply.code(500).send()
-      }
+    instance.withTypeProvider<ZodTypeProvider>().post(
+      '/api/email/unsubscribe/:token',
+      {
+        config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+        schema: { params: UnsubscribeTokenParamsSchema },
+      },
+      async (req, reply) => {
+        const email = verifyUnsubscribeToken(req.params.token)
+        if (!email) {
+          return reply.code(400).type('text/html').send(unsubscribePage('Link invalid sau expirat.'))
+        }
 
-      return reply.code(200).send()
-    },
-  )
+        try {
+          await suppressEmail(email)
+        } catch (err) {
+          req.log.error({ err }, `[email] unsubscribe eșuat pentru ${email}`)
+          return reply.code(500).type('text/html').send(unsubscribePage('A apărut o eroare — încearcă din nou mai târziu.'))
+        }
+
+        return reply.type('text/html').send(unsubscribePage(`Adresa ${escapeHtml(email)} a fost dezabonată. Nu vei mai primi acest tip de email.`))
+      },
+    )
+  })
 }

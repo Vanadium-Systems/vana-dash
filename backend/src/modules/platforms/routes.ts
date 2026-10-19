@@ -4,6 +4,7 @@ import { connectors } from '../../connectors/index.js'
 import { rescheduleSyncJobs, triggerSyncNow } from '../../jobs/sync-runner.js'
 import { PlatformCreateSchema, PlatformIdParamsSchema, PlatformUpdateSchema } from './schema.js'
 import * as service from './service.js'
+import { assertResolvesToPublicAddress, SsrfBlockedError } from '../../shared/lib/ssrf-guard.js'
 
 export async function platformRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -34,6 +35,12 @@ export async function platformRoutes(app: FastifyInstance) {
       if (!connectors[req.body.type]) {
         return reply.code(400).send({ success: false, error: `Unknown platform type: ${req.body.type}` })
       }
+      try {
+        await assertResolvesToPublicAddress(req.body.apiUrl)
+      } catch (err) {
+        if (err instanceof SsrfBlockedError) return reply.code(400).send({ success: false, error: err.message })
+        throw err
+      }
       const platform = await service.createPlatform(req.body)
       await rescheduleSyncJobs()
       return reply.code(201).send({ success: true, data: platform })
@@ -49,6 +56,14 @@ export async function platformRoutes(app: FastifyInstance) {
     async (req, reply) => {
       if (req.body.type && !connectors[req.body.type]) {
         return reply.code(400).send({ success: false, error: `Unknown platform type: ${req.body.type}` })
+      }
+      if (req.body.apiUrl) {
+        try {
+          await assertResolvesToPublicAddress(req.body.apiUrl)
+        } catch (err) {
+          if (err instanceof SsrfBlockedError) return reply.code(400).send({ success: false, error: err.message })
+          throw err
+        }
       }
       const platform = await service.updatePlatform(req.params.id, req.body)
       if (!platform) return reply.code(404).send({ success: false, error: 'Platform not found' })
