@@ -1,4 +1,5 @@
-import { localized, type Localized } from '@/shared/lib/i18n'
+import { localized, t, type Localized } from '@/shared/lib/i18n'
+import { findNavItem } from '@/shared/lib/nav-items'
 import type { FeatureKey } from '@/shared/lib/types'
 import { normalizeForSearch } from '@/shared/lib/utils'
 
@@ -13,7 +14,8 @@ import { normalizeForSearch } from '@/shared/lib/utils'
 interface GuideSource {
   id: string
   route: string
-  feature: FeatureKey
+  /** Missing on a page every person has, such as My profile. */
+  feature?: FeatureKey
   title: Localized
   summary: Localized
   steps: Localized[]
@@ -24,7 +26,7 @@ export interface Guide {
   id: string
   /** Ruta din nav a paginii (`/email`), aceeași ca în `nav-items.ts`. */
   route: string
-  feature: FeatureKey
+  feature?: FeatureKey
   title: string
   summary: string
   steps: string[]
@@ -242,6 +244,36 @@ const SOURCES: GuideSource[] = [
       },
     ],
   },
+  {
+    id: 'profil-meu',
+    route: '/me',
+    title: {
+      ro: 'Îți reglezi contul',
+      en: 'Adjusting your account',
+    },
+    summary: {
+      ro: 'Profilul meu e doar al tău: numele cu care te văd colegii, limba, moneda totalurilor, parola și ce notificări primești. Emailul și rolul le schimbă adminul.',
+      en: 'My profile is yours only: the name colleagues see, the language, the currency of totals, the password and which notifications you get. The email and the role are changed by the admin.',
+    },
+    steps: [
+      {
+        ro: 'Apasă pe numele tău, jos în bara din stânga (pe telefon, în „Mai mult”), și alege Profilul meu.',
+        en: 'Click your name at the bottom of the left bar (on the phone, under “More”) and pick My profile.',
+      },
+      {
+        ro: 'La Afișare alegi limba interfeței și moneda în care vezi totalurile. Pagina se reîncarcă în limba nouă.',
+        en: 'Under Display you pick the interface language and the currency totals are shown in. The page reloads in the new language.',
+      },
+      {
+        ro: 'La Parolă scrii parola de acum și una nouă, de minim 12 caractere. Celelalte dispozitive sunt delogate.',
+        en: 'Under Password you type the current password and a new one of at least 12 characters. Your other devices are logged out.',
+      },
+      {
+        ro: 'La Notificări alegi despre ce ești anunțat: mesajele (toate sau doar cele directe), emailul nou pe cutiile tale și alertele.',
+        en: 'Under Notifications you choose what you are told about: messages (all or only direct ones), new email in your mailboxes and alerts.',
+      },
+    ],
+  },
 ]
 
 export const GUIDES: Guide[] = SOURCES.map((guide) => ({
@@ -252,7 +284,16 @@ export const GUIDES: Guide[] = SOURCES.map((guide) => ({
 }))
 
 export function visibleGuides(can: (feature: FeatureKey) => boolean): Guide[] {
-  return GUIDES.filter((guide) => can(guide.feature))
+  return GUIDES.filter((guide) => !guide.feature || can(guide.feature))
+}
+
+// Pages every person has, reached from the account menu rather than the nav.
+const PAGES_OUTSIDE_NAV: Record<string, () => string> = {
+  '/me': () => t('common:nav.myProfile'),
+}
+
+export function guidePageLabel(route: string): string | undefined {
+  return findNavItem(route)?.label ?? PAGES_OUTSIDE_NAV[route]?.()
 }
 
 /** Prima parte a căii, ca `/messages/abc` să găsească ghidurile de la `/messages`. */

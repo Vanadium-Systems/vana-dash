@@ -41,6 +41,7 @@ const ACTION_LABEL: Record<string, string> = {
   'contract.termeni.modificati': t('common:audit.actions.termsChanged'),
   'contract.numere-rezervate.modificate': t('common:audit.actions.reservedNumbersChanged'),
   'reconciliere.potrivire.manuala': t('common:audit.actions.manualMatch'),
+  'prospect.responsabil.schimbat': t('common:audit.actions.prospectOwnerChanged'),
 }
 
 /** Acțiune necunoscută (de după acest fișier) → codul ei, ca text lizibil, nu un `undefined`. */

@@ -142,6 +142,10 @@ export async function prospectsRoutes(app: FastifyInstance) {
     },
   )
 
+  server.get('/api/prospects/assignees', { preHandler: [app.authenticate] }, async () => {
+    return { success: true, data: await service.listAssignees() }
+  })
+
   server.patch(
     '/api/prospects/:id',
     { preHandler: [app.authenticate], schema: { body: UpdateProspectSchema } },
@@ -151,7 +155,9 @@ export async function prospectsRoutes(app: FastifyInstance) {
         if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
         return { success: true, data: row }
       } catch (err) {
-        if (err instanceof service.InvalidProspectStatusError) return reply.code(400).send({ success: false, error: err.message })
+        if (err instanceof service.InvalidProspectStatusError || err instanceof service.InvalidAssigneeError) {
+          return reply.code(400).send({ success: false, error: err.message })
+        }
         throw err
       }
     },

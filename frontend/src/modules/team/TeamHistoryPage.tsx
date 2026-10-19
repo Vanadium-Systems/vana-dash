@@ -27,6 +27,7 @@ const ENTITY_LABEL: Record<string, string> = {
   payment_match: t('team:history.entities.match'),
   role: t('team:history.entities.role'),
   user: t('team:history.entities.person'),
+  prospect: t('team:history.entities.prospect'),
 }
 
 export function TeamHistoryPage() {

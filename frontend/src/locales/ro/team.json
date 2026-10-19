@@ -9,7 +9,8 @@
       "contractNumbers": "numere de contract",
       "match": "potrivire",
       "role": "rol",
-      "person": "om"
+      "person": "om",
+      "prospect": "prospect"
     },
     "description": "Cine a făcut ce, pe obiectele comune.",
     "everyone": "Toți",

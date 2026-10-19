@@ -182,7 +182,7 @@ export function ModulesPage() {
             </div>
           ) : null}
 
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full border-collapse">
               <caption className="sr-only">{t('access:tableCaption')}</caption>
               <thead>

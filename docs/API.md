@@ -190,6 +190,7 @@ not `platform_metrics`, so revenue is never counted twice.
 | GET | `/api/accounting/records/:id/pdf` | The PDF, if one was generated |
 | GET | `/api/accounting/anaf/status` | The state of the ANAF connection. Tokens are never returned |
 | GET | `/api/accounting/anaf/authorize-url` | The OAuth consent URL (browser + digital certificate) |
+| POST | `/api/accounting/anaf/refresh` | Renews the ANAF tokens now → the status. 400 if not connected, 502 if ANAF refuses; a failure does not mark the credentials as needing re-authorization |
 | POST | `/api/accounting/anaf/exchange-code` | `{ code, cif }` → tokens, encrypted in the database |
 | POST | `/api/accounting/anaf/sync` | Manual e-Factura sync (received invoices, last 30 days) |
 | GET | `/api/accounting/d301?month=YYYY-MM` | Preview of declaration D301 (reverse charge, every line): `{ lines, totals, warnings }` |
@@ -238,6 +239,7 @@ sample text if the row is missing.
 | GET | `/api/contracts/templates` | The three templates (`contract-saas`, `anexa-preturi`, `act-aditional`) and the documented list of placeholders |
 | PUT | `/api/contracts/templates/:key` | `{ bodyHtml }`. Trusted source HTML; the per-client values injected at generation are escaped anyway |
 | POST | `/api/contracts/templates/:key/restore` | Replaces the body with the sample text from the code. The edited text cannot be recovered |
+| GET | `/api/contracts/templates/:key/blank` | The document as a PDF with the client's fields as dotted lines, from the current body and terms. Nothing is stored |
 | GET | `/api/contracts/terms` | The commercial terms from `dashboard_config['contract.terms']` |
 | PUT | `/api/contracts/terms` | Partial update on the known keys |
 | GET | `/api/contracts/reserved-numbers` | Contract numbers taken outside the app, `[{ number, note, date }]` from `dashboard_config['contract.reservedNumbers']` |
@@ -595,7 +597,8 @@ not stored.
 |---|---|---|
 | GET | `/api/prospects` | Query: `status?`, `priority?`, `source?`, `search?` (name or tax id), sorted by `score` descending |
 | POST | `/api/prospects` | Manual creation: `{ name, cif?, phone?, email?, website?, contactName?, caenCode?, foundingYear?, employeeCount?, revenue?, profit?, debt?, equity?, cash?, receivables?, inventory?, source?, platformId? }`; the score is computed |
-| PATCH | `/api/prospects/:id` | Partial update; recomputes the score. 404 if missing |
+| PATCH | `/api/prospects/:id` | Partial update; recomputes the score. `assignedUserId` (an active person, or `null`) sets the owner and writes the change to the history. 404 if missing, 400 for an unknown status or owner |
+| GET | `/api/prospects/assignees` | The active people a prospect can be assigned to → `[{ id, displayName, email }]` |
 | DELETE | `/api/prospects/:id` | Soft delete |
 | POST | `/api/prospects/import` | Multipart (`file`) or JSON `{ csv, source? }`. Tolerant of column aliases; UPSERT on `cif`, field by field, so an empty value in the new row does not erase an existing one |
 | POST | `/api/prospects/:id/promote` | `{ address, city?, county?, cif? }`, creates a `billing_client` from the prospect, links it and sets the status to `aprobat`. `cif` is required in the body only if the prospect has none |
@@ -782,7 +785,7 @@ are called only by the website's server-side function, after Turnstile, with the
 | Method | Route | Description |
 |---|---|---|
 | GET | `/api/v1/public/booking/slots` | Query: `days?` (1–60, default 14). `{ timezone, durationMin, slots: [{ start, end }] }`, ISO UTC. Empty while booking is off. No titles or details from the calendar. Rate limit 60 per minute |
-| POST | `/api/v1/public/booking` | `{ start, name, email, company?, topic, consent: true }`. 201 `{ bookingId, start, end }`; 409 `slot_taken`; 422 `validation` (links in the name or company included); 429 `daily_cap` (5 new bookings a day). Rate limit 10 per minute |
+| POST | `/api/v1/public/booking` | `{ start, name, email, company?, topic, consent: true, locale? }`. `locale` is the two-letter language of the site page; it picks the language of the emails and the cancel link (`BOOKING_CANCEL_URL_<LANG>`). 201 `{ bookingId, start, end }`; 409 `slot_taken`; 422 `validation` (links in the name or company included); 429 `daily_cap` (5 new bookings a day). Rate limit 10 per minute |
 | POST | `/api/v1/public/booking/cancel` | `{ token }` from the link in the email. 200 `{ start, end }`; 404 `not_found` (unknown, already cancelled or purged); 410 `too_late` (after the call started). There is no GET |
 | GET | `/api/booking/settings` | `{ enabled, durationMin, bufferMin, minNoticeHours, horizonDays, weekly: [{ weekday 1–7, start, end }] }`, hours on Bucharest time |
 | PUT | `/api/booking/settings` | The same object, validated as a whole |

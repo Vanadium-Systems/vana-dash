@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { downloadCsv } from '@/shared/lib/csv'
-import type { Prospect, ProspectImportResult, ProspectPriority, ProspectStatusEntry } from '@/shared/lib/types'
+import type { Prospect, ProspectAssignee, ProspectImportResult, ProspectPriority, ProspectStatusEntry } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { formatNumber } from '@/shared/lib/format'
 import { AddToSequenceDialog } from './AddToSequenceDialog'
@@ -22,6 +22,7 @@ import { ProspectStatusesCard } from './ProspectStatusesCard'
 import { ScoringConfigCard } from './ScoringConfigCard'
 import { StatusDot } from './status-colors'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { useMe } from '@/shared/hooks/use-me'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 
@@ -70,6 +71,7 @@ export function ProspectareTab() {
   const [search, setSearch] = useState('')
   // Arhivați — ascunși din lista implicită, dar căutabili la nevoie (toggle explicit).
   const [showArchived, setShowArchived] = useState(false)
+  const [mineOnly, setMineOnly] = useState(false)
   const [promoteTarget, setPromoteTarget] = useState<Prospect | null>(null)
   const [importSource, setImportSource] = useState('')
   // Editare la cerere, un singur rând deodată — nu ținem ~500 input-uri montate simultan
@@ -102,16 +104,25 @@ export function ProspectareTab() {
     queryKey: ['prospects', 'statuses'],
     queryFn: () => api.get<ProspectStatusEntry[]>('/api/prospects/statuses'),
   })
+  const { session } = useMe()
+  const assignees = useQuery({
+    queryKey: ['prospects', 'assignees'],
+    queryFn: () => api.get<ProspectAssignee[]>('/api/prospects/assignees'),
+    staleTime: 5 * 60 * 1000,
+  })
   const statusCatalog = statuses.data ?? []
   const statusToken = (status: string) => statusCatalog.find((s) => s.key === status)?.colorToken
 
   // Filtrare pe status/prioritate client-side (nu server) — multi-select, volum mic (~164 rânduri),
   // instant la fiecare bifă fără round-trip la API.
   const visibleProspects = (prospects.data ?? []).filter(
-    (p) => (statusFilter.length === 0 || statusFilter.includes(p.status)) && (priorityFilter.length === 0 || priorityFilter.includes(p.priority)),
+    (p) =>
+      (statusFilter.length === 0 || statusFilter.includes(p.status)) &&
+      (priorityFilter.length === 0 || priorityFilter.includes(p.priority)) &&
+      (!mineOnly || p.assignedUserId === session?.user.id),
   )
 
-  useEffect(() => setPage(0), [search, statusFilter, priorityFilter])
+  useEffect(() => setPage(0), [search, statusFilter, priorityFilter, mineOnly])
 
   const pageCount = Math.max(1, Math.ceil(visibleProspects.length / pageSize))
   const clampedPage = Math.min(page, pageCount - 1)
@@ -260,6 +271,19 @@ export function ProspectareTab() {
 
       <div className="flex flex-wrap items-start gap-4">
         <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">{t('pricing:prospects.owner')}</label>
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              aria-pressed={mineOnly}
+              onClick={() => setMineOnly((prev) => !prev)}
+              className={cn(FILTER_CHIP, mineOnly ? FILTER_CHIP_ON : FILTER_CHIP_OFF)}
+            >
+              {t('pricing:prospects.mine')}
+            </button>
+          </div>
+        </div>
+        <div className="space-y-1">
           <label className="text-xs text-muted-foreground">{t('pricing:prospects.priorityFilter')}</label>
           <div className="flex flex-wrap gap-1">
             {(['HOT', 'WARM', 'NURTURE', 'SKIP'] as const).map((p) => {
@@ -359,6 +383,7 @@ export function ProspectareTab() {
                     <TableHead>{t('common:labels.company')}</TableHead>
                     <TableHead>{t('pricing:prospects.contact')}</TableHead>
                     <TableHead>{t('common:labels.status')}</TableHead>
+                    <TableHead>{t('pricing:prospects.owner')}</TableHead>
                     <TableHead>{t('common:nav.notes')}</TableHead>
                     <TableHead>{t('pricing:prospects.employees')}</TableHead>
                     <TableHead>{t('pricing:prospects.turnoverShort')}</TableHead>
@@ -492,6 +517,22 @@ export function ProspectareTab() {
                             ))}
                           </Select>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          size="sm"
+                          aria-label={t('pricing:prospects.ownerOf', { name: p.name })}
+                          className="w-36"
+                          value={p.assignedUserId ?? ''}
+                          onValueChange={(assignedUserId) => updateProspect.mutate({ id: p.id, body: { assignedUserId: assignedUserId || null } })}
+                        >
+                          <option value="">{t('pricing:prospects.noOwner')}</option>
+                          {(assignees.data ?? []).map((person) => (
+                            <option key={person.id} value={person.id}>
+                              {person.displayName ?? person.email}
+                            </option>
+                          ))}
+                        </Select>
                       </TableCell>
                       <TableCell className="min-w-[12rem]">
                         <Textarea

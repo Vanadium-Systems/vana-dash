@@ -74,6 +74,7 @@ export const UpdateProspectSchema = z.object({
   source: z.string().trim().max(255).nullable().optional(),
   platformId: z.string().uuid().nullable().optional(),
   lastContactedAt: z.coerce.date().nullable().optional(),
+  assignedUserId: z.string().uuid().nullable().optional(),
 })
 
 export const ListProspectsQuerySchema = z.object({

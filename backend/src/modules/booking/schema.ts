@@ -45,6 +45,7 @@ export const PublicBookingBodySchema = z.object({
   company: z.string().trim().max(160).refine(noLinks).optional(),
   topic: z.string().trim().min(5).max(1000),
   consent: z.literal(true),
+  locale: z.string().regex(/^[a-z]{2}$/).optional(),
 })
 
 export const PublicCancelBodySchema = z.object({

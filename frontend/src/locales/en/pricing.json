@@ -182,6 +182,10 @@
     "manage": "Manage statuses"
   },
   "prospects": {
+    "owner": "Owner",
+    "mine": "Mine",
+    "ownerOf": "Owner of {{name}}",
+    "noOwner": "Nobody",
     "deleted": "Prospect deleted",
     "archived": "Prospect archived",
     "unarchived": "Prospect unarchived",

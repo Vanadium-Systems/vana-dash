@@ -1313,8 +1313,15 @@ export interface Prospect {
   billingClientId: string | null
   lastContactedAt: string | null
   archivedAt: string | null
+  assignedUserId: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface ProspectAssignee {
+  id: string
+  displayName: string | null
+  email: string
 }
 
 export interface ProspectScoringConfig {

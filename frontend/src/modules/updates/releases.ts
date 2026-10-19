@@ -25,6 +25,30 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-19T09:30:00+03:00',
+    title: {
+      ro: 'Fiecare prospect are un responsabil',
+      en: 'Every prospect has an owner',
+    },
+    body: {
+      ro: 'În Clienți → Prospectare, coloana Responsabil spune care coleg lucrează pe firmă, ca să nu o sune doi oameni. „Ai mei” arată doar prospecții tăi. Schimbarea responsabilului apare în Istoric.',
+      en: 'In Clients → Prospecting, the Owner column says which colleague works the company, so two people do not call it. “Mine” shows only your prospects. A change of owner shows up in History.',
+    },
+    features: ['clienti.view'],
+  },
+  {
+    publishedAt: '2026-10-19T09:29:00+03:00',
+    title: {
+      ro: 'Ghid pentru Profilul meu și ecrane care încap pe telefon',
+      en: 'A guide for My profile, and screens that fit the phone',
+    },
+    body: {
+      ro: 'Profilul meu are „?” lângă titlu, cu pașii pentru limbă, parolă și notificări. Echipa și Modulele nu mai fug în lateral pe telefon: tabelul se derulează în cardul lui. Pe Investiții, când lipsesc cheile de date, pagina spune de ce nu apar prețurile.',
+      en: 'My profile has a “?” next to the title, with the steps for language, password and notifications. Team and Modules no longer slide sideways on the phone: the table scrolls inside its card. On Investments, when the data keys are missing, the page says why prices do not show.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-10-19T07:30:00+03:00',
     title: {
       ro: 'Contractele se descarcă și goale',

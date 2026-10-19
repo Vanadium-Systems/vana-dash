@@ -4,10 +4,10 @@
  * prioritate trebuia să refolosească expresia CASE WHEN brută, nu alias-ul `priority`), CRUD-ul
  * de bază și promovarea la client.
  */
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { billingClients, prospects } from '../../shared/db/schema/index.js'
+import { auditLog, billingClients, prospects, users } from '../../shared/db/schema/index.js'
 import * as service from './service.js'
 
 const prospectIds: string[] = []
@@ -252,5 +252,44 @@ describe('catalog statusuri prospect (Wave 0/1, sprint de-hardcodare 2026-08-20)
     const created = await service.createProspect({ name: 'QA BADSTATUS FIRMA SRL', cif: 'QA-STATUS-2' })
     prospectIds.push(created!.id)
     await expect(service.updateProspect(created!.id, { status: 'status_inexistent' })).rejects.toThrow(service.InvalidProspectStatusError)
+  })
+})
+
+describe('responsabil per prospect', () => {
+  const email = 'qa-prospect-owner@example.com'
+  let prospectId: string
+  let ownerId: string
+
+  beforeAll(async () => {
+    await db.delete(users).where(eq(users.email, email))
+    const [owner] = await db.insert(users).values({ email, passwordHash: 'x', displayName: 'QA Owner' }).returning()
+    ownerId = owner!.id
+    const prospect = await service.createProspect({ name: 'QA OWNER FIRMA SRL', cif: 'QA-SVC-OWNER' })
+    prospectId = prospect!.id
+    prospectIds.push(prospectId)
+  })
+
+  afterAll(async () => {
+    await db.delete(auditLog).where(eq(auditLog.entityId, prospectId))
+    await db.update(prospects).set({ assignedUserId: null }).where(eq(prospects.id, prospectId))
+    await db.delete(users).where(eq(users.id, ownerId))
+  })
+
+  it('assigns an active colleague and writes the change to the history', async () => {
+    const row = await service.updateProspect(prospectId, { assignedUserId: ownerId })
+    expect(row?.assignedUserId).toBe(ownerId)
+    const entries = await db
+      .select()
+      .from(auditLog)
+      .where(and(eq(auditLog.entityId, prospectId), eq(auditLog.action, 'prospect.responsabil.schimbat')))
+    expect(entries).toHaveLength(1)
+    expect(entries[0]!.changes).toEqual({ responsabil: [null, 'QA Owner'] })
+    expect((await service.listAssignees()).some((a) => a.id === ownerId)).toBe(true)
+  })
+
+  it('refuses someone who is not an active colleague', async () => {
+    await db.update(users).set({ status: 'disabled' }).where(eq(users.id, ownerId))
+    await expect(service.updateProspect(prospectId, { assignedUserId: ownerId })).rejects.toBeInstanceOf(service.InvalidAssigneeError)
+    await db.update(users).set({ status: 'active' }).where(eq(users.id, ownerId))
   })
 })

@@ -30,6 +30,9 @@ export const bookings = pgTable(
     email: text('email'),
     company: text('company'),
     topic: text('topic'),
+    // The language of the site page the visitor booked from ('ro', 'en', 'fr'...). Picks the
+    // language of the emails and the cancel page they link to.
+    locale: text('locale'),
     status: text('status').notNull().default('confirmed'),
     // Momentul în care formularul a afișat informarea (nu un acord: temeiul e art. 6(1)(b)).
     consentAt: timestamp('consent_at', { withTimezone: true }).notNull(),

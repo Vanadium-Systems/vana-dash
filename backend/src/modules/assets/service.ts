@@ -277,7 +277,7 @@ export interface IndexQuote {
 /** Listă „top" (Stefan, 2026-08-27): S&P 500 + Nasdaq 100, NU un ranking live după market cap
  * (ar cere un endpoint plătit) — doar o listă mare, cunoscută, paginată; preț LIVE cerut DOAR
  * pt. simbolurile paginii vizibile (Finnhub, cache 60s), la fel ca /coins/markets la crypto. */
-export async function listIndexPage(page: number, perPage: 25 | 50, search?: string): Promise<{ items: IndexQuote[]; totalPages: number }> {
+export async function listIndexPage(page: number, perPage: 25 | 50, search?: string): Promise<{ items: IndexQuote[]; totalPages: number; priceKeyMissing: boolean }> {
   const needle = search?.trim().toLowerCase()
   const filtered = needle
     ? INDEX_CONSTITUENTS.filter((c) => c.symbol.toLowerCase().includes(needle) || c.name.toLowerCase().includes(needle))
@@ -297,7 +297,7 @@ export async function listIndexPage(page: number, perPage: 25 | 50, search?: str
       }
     }),
   )
-  return { items, totalPages }
+  return { items, totalPages, priceKeyMissing: !key }
 }
 
 // ── Kill-switch ────────────────────────────────────────────────────────────────

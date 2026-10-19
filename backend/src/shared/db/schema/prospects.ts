@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { index, integer, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
-import { auditColumns } from './users.js'
+import { auditColumns, users } from './users.js'
 import { platforms } from './platforms.js'
 import { billingClients } from './billing-clients.js'
 
@@ -40,10 +40,13 @@ export const prospects = pgTable(
     // Arhivare — distinctă de `deletedAt` (soft delete "definitiv"): un prospect arhivat dispare
     // din lista implicită, dar rămâne căutabil explicit (filtru "Arhivate"), nu e o ștergere.
     archivedAt: timestamp('archived_at', { withTimezone: true }),
+    // The colleague working this prospect, so two salespeople do not call the same company.
+    assignedUserId: uuid('assigned_user_id').references(() => users.id),
   },
   (t) => [
     index('idx_prospects_score').on(t.score.desc()),
     index('idx_prospects_status').on(t.status),
+    index('idx_prospects_assigned_user').on(t.assignedUserId),
     uniqueIndex('idx_prospects_cif').on(t.cif).where(sql`${t.cif} IS NOT NULL`),
   ],
 )

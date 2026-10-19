@@ -254,6 +254,7 @@
     "statusExists": "Statusul \"{{key}}\" există deja",
     "statusOrderMismatch": "orderedIds nu corespunde exact cu statusurile active existente",
     "scoringConfigFailed": "Nu am putut crea config-ul de scoring implicit",
+    "assigneeInvalid": "Responsabilul ales nu e un coleg activ",
     "statusNotInCatalog": "Statusul \"{{status}}\" nu există în catalogul activ",
     "cifMissing": "CIF lipsă — completează CIF-ul la promovare",
     "clientNotCreated": "Nu am putut crea clientul din prospect",

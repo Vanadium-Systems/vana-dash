@@ -12,7 +12,7 @@ import { BookingSettingsSchema, DEFAULT_BOOKING_SETTINGS, type BookingSettings, 
 import { allDayToInterval, computeSlots, type Interval, type Slot } from './slots.js'
 import type { z } from 'zod'
 import { tr, trFor } from '../../shared/lib/i18n.js'
-import { INTL_TAG, type Locale } from '../../shared/lib/locale.js'
+import { INTL_TAG, isLocale, type Locale } from '../../shared/lib/locale.js'
 
 const SETTINGS_KEY = 'booking.settings'
 // Plafonul de rezervări noi pe zi (Contract D): o limită peste Turnstile și rate limit, ca un
@@ -210,6 +210,7 @@ export async function createPublicBooking(input: PublicBookingInput, now = new D
           email: input.email,
           company: input.company || null,
           topic: input.topic,
+          locale: input.locale ?? null,
           createdAt: now,
           consentAt: now,
           cancelTokenHash: hashToken(cancelToken),
@@ -228,11 +229,22 @@ export async function createPublicBooking(input: PublicBookingInput, now = new D
 }
 
 // După commit: eșecul emailului sau al push-ului se loghează, rezervarea rămâne.
+// The visitor has no profile: the language comes from the site page they booked on. A site
+// language the app has no texts for gets English, which they are more likely to read than the
+// installation's default.
+function visitorLocale(booking: typeof bookings.$inferSelect): Locale {
+  if (!booking.locale) return config.defaultLocale
+  return isLocale(booking.locale) ? booking.locale : 'en'
+}
+
+function cancelPageUrl(booking: typeof bookings.$inferSelect): string {
+  return (booking.locale && config.bookingCancelUrlByLocale[booking.locale]) || config.bookingCancelUrl
+}
+
 async function notifyAfterBooking(booking: typeof bookings.$inferSelect, cancelToken: string) {
-  // The visitor has no profile to read a language from: they get the installation's.
-  const visitor = config.defaultLocale
+  const visitor = visitorLocale(booking)
   const label = formatSlotLabel(booking.startAt, visitor)
-  const cancelUrl = `${config.bookingCancelUrl}?t=${encodeURIComponent(cancelToken)}`
+  const cancelUrl = `${cancelPageUrl(booking)}?t=${encodeURIComponent(cancelToken)}`
   await Promise.allSettled([
     sendEmail({
       from: config.emailFromContact,
@@ -270,7 +282,7 @@ async function cancelBooking(booking: typeof bookings.$inferSelect, by: 'visitor
       await tx.update(calendarEvents).set({ deletedAt: new Date() }).where(eq(calendarEvents.id, booking.calendarEventId))
     }
   })
-  const visitor = config.defaultLocale
+  const visitor = visitorLocale(booking)
   const label = formatSlotLabel(booking.startAt, visitor)
   await Promise.allSettled([
     booking.email && notifyVisitor

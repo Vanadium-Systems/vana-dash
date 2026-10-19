@@ -71,5 +71,11 @@
   "categories": {
     "etfs": "ETFs",
     "metals": "Metals"
+  },
+  "noPriceKey": {
+    "title": "Prices do not show without a data key",
+    "hintAdmin": "The list and the favorites are here, but prices and changes come from Finnhub (stocks) and Twelve Data (metals). Both have a free account; the keys go in Settings, in the “Stocks · Trading212 + prices” card.",
+    "hint": "The list and the favorites are here, but prices and changes come from Finnhub and Twelve Data. Ask the admin to connect the keys.",
+    "openSettings": "Open Settings"
   }
 }

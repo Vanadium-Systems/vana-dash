@@ -1,9 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { findNavItem } from '@/shared/lib/nav-items'
 import { RELEASES, isUnseen, visibleReleases } from '@/modules/updates/releases'
-import { GUIDES, guideRouteOf, searchGuides, visibleGuides } from './guides'
+import { GUIDES, guidePageLabel, guideRouteOf, searchGuides, visibleGuides } from './guides'
 
 // Catalogul de funcționalități e în backend; frontend-ul îl primește doar ca șiruri. Citit ca
 // text, ca o cheie scrisă greșit într-un ghid (care l-ar ascunde tuturor) să pice aici.
@@ -13,10 +12,10 @@ const inCatalog = (key: string) => catalog.includes(`key: '${key}'`)
 const only = (...features: string[]) => (feature: string) => features.includes(feature)
 
 describe('ghiduri', () => {
-  it('fiecare ghid ține de o funcționalitate din catalog și de o pagină din nav', () => {
+  it('fiecare ghid ține de o funcționalitate din catalog (sau de nicio funcționalitate) și de o pagină cu nume', () => {
     for (const guide of GUIDES) {
-      expect(inCatalog(guide.feature), `${guide.id}: ${guide.feature}`).toBe(true)
-      expect(findNavItem(guide.route), `${guide.id}: ${guide.route}`).toBeDefined()
+      if (guide.feature) expect(inCatalog(guide.feature), `${guide.id}: ${guide.feature}`).toBe(true)
+      expect(guidePageLabel(guide.route), `${guide.id}: ${guide.route}`).toBeDefined()
       expect(guide.steps.length, guide.id).toBeGreaterThan(0)
     }
     expect(new Set(GUIDES.map((g) => g.id)).size).toBe(GUIDES.length)
@@ -24,8 +23,8 @@ describe('ghiduri', () => {
 
   it('omul vede doar ghidurile funcționalităților pe care le are', () => {
     const sales = visibleGuides(only('email.view', 'clienti.prospectare'))
-    expect(sales.map((g) => g.id).sort()).toEqual(['clienti-prospecti', 'email-citire'])
-    expect(visibleGuides(only())).toEqual([])
+    expect(sales.map((g) => g.id).sort()).toEqual(['clienti-prospecti', 'email-citire', 'profil-meu'])
+    expect(visibleGuides(only()).map((g) => g.id)).toEqual(['profil-meu'])
   })
 
   it('pagina se ia din prima parte a căii', () => {

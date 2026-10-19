@@ -4,6 +4,20 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-19: Prospect owners, booking language and small fixes
+
+### Added
+- Prospects have an owner (`assigned_user_id`, migration 0068): `GET /api/prospects/assignees`,
+  `assignedUserId` on `PATCH /api/prospects/:id`, a "Mine" filter and a history entry on change.
+- Bookings keep the language of the site page (`bookings.locale`, migration 0069). The emails
+  are written in it and the cancel link uses `BOOKING_CANCEL_URL_<LANG>` when set.
+- A guide for My profile. A guide may have no feature, meaning everyone sees it.
+- `GET /api/assets/index-list` returns `priceKeyMissing`; the page explains the empty prices.
+
+### Fixed
+- On a 390px screen, Modules and Team were wider than the viewport: visually hidden labels in
+  the table escaped its scroll container, which was not positioned.
+
 ## 2026-10-19: Blank contracts and the ANAF token alert
 
 ### Added

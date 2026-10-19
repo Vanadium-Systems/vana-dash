@@ -253,6 +253,7 @@
     "statusExists": "The status \"{{key}}\" already exists",
     "statusOrderMismatch": "orderedIds does not match exactly the existing active statuses",
     "scoringConfigFailed": "The default scoring config could not be created",
+    "assigneeInvalid": "The chosen owner is not an active colleague",
     "statusNotInCatalog": "The status \"{{status}}\" does not exist in the active catalog",
     "cifMissing": "The CIF is missing; fill it in when promoting",
     "clientNotCreated": "The client could not be created from the prospect",

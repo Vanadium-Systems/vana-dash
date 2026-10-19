@@ -419,7 +419,8 @@
       "signatureCancelled": "signature canceled",
       "termsChanged": "terms changed",
       "reservedNumbersChanged": "reserved numbers changed",
-      "manualMatch": "manual match"
+      "manualMatch": "manual match",
+      "prospectOwnerChanged": "prospect owner changed"
     }
   },
   "currencies": {

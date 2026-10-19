@@ -1,8 +1,8 @@
 import { and, asc, eq, getTableColumns, ilike, inArray, isNull, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
-import { createdByUserId, updatedByUserId } from '../../shared/lib/audit.js'
-import { prospects, prospectScoringConfig, prospectStatuses } from '../../shared/db/schema/index.js'
+import { createdByUserId, recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
+import { prospects, prospectScoringConfig, prospectStatuses, users } from '../../shared/db/schema/index.js'
 import * as invoicingService from '../invoicing/service.js'
 import { computeScore, type ScoringWeights } from './scoring.js'
 import type {
@@ -33,6 +33,7 @@ export class ProspectStatusInUseError extends Error {
   }
 }
 export class InvalidProspectStatusError extends Error {}
+export class InvalidAssigneeError extends Error {}
 
 export async function listProspectStatuses() {
   return db
@@ -134,6 +135,23 @@ export function toScoringWeights(config: Awaited<ReturnType<typeof getScoringCon
     techWeight: Number(config.techWeight),
     contactWeight: Number(config.contactWeight),
   }
+}
+
+// ── Responsabil ──────────────────────────────────────────────────────────────
+
+/** The colleagues a prospect can be assigned to: active people only. */
+export async function listAssignees() {
+  return db
+    .select({ id: users.id, displayName: users.displayName, email: users.email })
+    .from(users)
+    .where(and(eq(users.status, 'active'), isNull(users.deletedAt)))
+    .orderBy(sql`COALESCE(${users.displayName}, ${users.email})`)
+}
+
+async function assigneeName(userId: string | null): Promise<string | null> {
+  if (!userId) return null
+  const [row] = await db.select({ displayName: users.displayName, email: users.email }).from(users).where(eq(users.id, userId))
+  return row ? (row.displayName ?? row.email) : null
 }
 
 // ── Prospects CRUD ────────────────────────────────────────────────────────────
@@ -261,6 +279,14 @@ export async function updateProspect(id: string, input: UpdateInput) {
     if (!activeStatus) throw new InvalidProspectStatusError(tr('errors.prospects.statusNotInCatalog', { status: input.status }))
   }
 
+  if (input.assignedUserId) {
+    const [assignee] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, input.assignedUserId), eq(users.status, 'active'), isNull(users.deletedAt)))
+    if (!assignee) throw new InvalidAssigneeError(tr('errors.prospects.assigneeInvalid'))
+  }
+
   const { revenue, profit, debt, equity, cash, receivables, inventory, ...rest } = input
 
   const merged = {
@@ -303,6 +329,15 @@ export async function updateProspect(id: string, input: UpdateInput) {
     })
     .where(eq(prospects.id, id))
     .returning()
+
+  if (input.assignedUserId !== undefined && input.assignedUserId !== existing.assignedUserId) {
+    await recordAudit({
+      action: 'prospect.responsabil.schimbat',
+      entityType: 'prospect',
+      entityId: id,
+      changes: { responsabil: [await assigneeName(existing.assignedUserId), await assigneeName(input.assignedUserId)] },
+    })
+  }
   return row
 }
 

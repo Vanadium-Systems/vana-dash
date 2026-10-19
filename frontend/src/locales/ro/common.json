@@ -419,7 +419,8 @@
       "signatureCancelled": "semnătură anulată",
       "termsChanged": "termeni modificați",
       "reservedNumbersChanged": "numere rezervate modificate",
-      "manualMatch": "potrivire manuală"
+      "manualMatch": "potrivire manuală",
+      "prospectOwnerChanged": "responsabil de prospect schimbat"
     }
   },
   "currencies": {

@@ -9,7 +9,8 @@
       "contractNumbers": "contract numbers",
       "match": "match",
       "role": "role",
-      "person": "person"
+      "person": "person",
+      "prospect": "prospect"
     },
     "description": "Who did what, on the shared items.",
     "everyone": "Everyone",

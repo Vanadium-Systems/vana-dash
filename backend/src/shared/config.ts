@@ -160,8 +160,15 @@ export const config = {
   // Programări publice (docs/BOOKING.md): secretul cu care Function-ul din vana-site cheamă
   // /api/v1/public/booking/*. Gol = rutele publice resping orice (fail-closed).
   bookingToken: process.env.BOOKING_TOKEN ?? '',
-  // Pagina de pe site pe care duce linkul de anulare din emailul de confirmare.
+  // The site page the cancel link in the confirmation email leads to. BOOKING_CANCEL_URL_<LANG>
+  // (BOOKING_CANCEL_URL_RO, ...) is the page in that language, for a site with one URL per
+  // language; without it, the visitor gets BOOKING_CANCEL_URL.
   bookingCancelUrl: process.env.BOOKING_CANCEL_URL ?? '',
+  bookingCancelUrlByLocale: Object.fromEntries(
+    Object.entries(process.env)
+      .map(([key, value]) => [/^BOOKING_CANCEL_URL_([A-Z]{2})$/.exec(key)?.[1]?.toLowerCase(), value] as const)
+      .filter((entry): entry is readonly [string, string] => Boolean(entry[0] && entry[1])),
+  ) as Record<string, string>,
 
   // 2026-08-11 — cheia HMAC pt. link-ul de dezabonare din footer-ul bulk-send
   // (modules/email/unsubscribe-token.ts). Token stateless (email + semnătură, fără tabel de

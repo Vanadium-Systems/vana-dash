@@ -1,13 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Search, ShieldAlert, Star, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
+import { Alert } from '@/shared/components/ui/alert'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
@@ -143,7 +144,7 @@ export function AssetsPage() {
   const indexList = useQuery({
     queryKey: ['assets', 'index-list', indexPage, indexLimit, indexQuery],
     queryFn: () =>
-      api.get<{ items: IndexQuote[]; totalPages: number }>(
+      api.get<{ items: IndexQuote[]; totalPages: number; priceKeyMissing: boolean }>(
         `/api/assets/index-list?page=${indexPage}&limit=${indexLimit}${indexQuery ? `&q=${encodeURIComponent(indexQuery)}` : ''}`,
       ),
     staleTime: 60_000,
@@ -253,6 +254,21 @@ export function AssetsPage() {
             </button>
           ))}
         </div>
+
+        {indexList.data?.priceKeyMissing ? (
+          <Alert
+            title={t('assets:noPriceKey.title')}
+            action={
+              can('investitii.setari') ? (
+                <Link to="/settings" className="text-foreground underline underline-offset-2">
+                  {t('assets:noPriceKey.openSettings')}
+                </Link>
+              ) : null
+            }
+          >
+            {can('investitii.setari') ? t('assets:noPriceKey.hintAdmin') : t('assets:noPriceKey.hint')}
+          </Alert>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div className="min-w-0 space-y-6">

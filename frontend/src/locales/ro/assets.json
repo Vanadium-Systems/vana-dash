@@ -71,5 +71,11 @@
   "categories": {
     "etfs": "ETF-uri",
     "metals": "Metale"
+  },
+  "noPriceKey": {
+    "title": "Prețurile nu apar fără o cheie de date",
+    "hintAdmin": "Lista și favoritele sunt aici, dar prețurile și variațiile vin de la Finnhub (acțiuni) și Twelve Data (metale). Ambele au cont gratuit; cheile se pun în Setări, în cardul „Assets · Trading212 + prețuri”.",
+    "hint": "Lista și favoritele sunt aici, dar prețurile și variațiile vin de la Finnhub și Twelve Data. Cere-i adminului să conecteze cheile.",
+    "openSettings": "Deschide Setările"
   }
 }

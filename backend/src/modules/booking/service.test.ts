@@ -7,6 +7,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { bookingBlocks, bookings, calendarEvents, dashboardConfig, users } from '../../shared/db/schema/index.js'
+import { config } from '../../shared/config.js'
 import type { BookingSettings } from './schema.js'
 
 const sendEmailMock = vi.fn()
@@ -150,6 +151,24 @@ describe('rezervare', () => {
       }
     }
     expect(outcomes).toEqual(['ok', 'ok', 'ok', 'ok', 'ok', 'daily_cap'])
+  })
+})
+
+describe('limba vizitatorului', () => {
+  it('trimite emailul și linkul de anulare în limba paginii de pe care s-a programat', async () => {
+    config.bookingCancelUrlByLocale.ro = 'https://example.com/ro/cancel'
+    try {
+      await service.createPublicBooking({ ...visitor, start: new Date(MONDAY_10), locale: 'ro' }, NOW)
+      const ro = sendEmailMock.mock.calls[0]![0]
+      expect(ro.text).toContain('https://example.com/ro/cancel?t=')
+
+      await service.createPublicBooking({ ...visitor, email: 'fr@example.com', start: new Date('2031-03-03T08:30:00.000Z'), locale: 'fr' }, NOW)
+      const fr = sendEmailMock.mock.calls[1]![0]
+      expect(fr.text).toContain(`${config.bookingCancelUrl}?t=`)
+      expect(fr.attachments[0].filename).toBe('booking.ics')
+    } finally {
+      delete config.bookingCancelUrlByLocale.ro
+    }
   })
 })
 

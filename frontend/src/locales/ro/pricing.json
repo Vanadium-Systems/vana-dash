@@ -186,6 +186,10 @@
     "manage": "Gestionare statusuri"
   },
   "prospects": {
+    "owner": "Responsabil",
+    "mine": "Ai mei",
+    "ownerOf": "Responsabil pentru {{name}}",
+    "noOwner": "Nimeni",
     "deleted": "Prospect șters",
     "archived": "Prospect arhivat",
     "unarchived": "Prospect dezarhivat",

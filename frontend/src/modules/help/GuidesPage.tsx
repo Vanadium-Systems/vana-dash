@@ -4,11 +4,10 @@ import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
 import { useMe } from '@/shared/hooks/use-me'
-import { findNavItem } from '@/shared/lib/nav-items'
-import { searchGuides, visibleGuides, type Guide } from './guides'
+import { guidePageLabel, searchGuides, visibleGuides, type Guide } from './guides'
 import { t } from '@/shared/lib/i18n'
 
-const pageLabel = (route: string) => findNavItem(route)?.label ?? route
+const pageLabel = (route: string) => guidePageLabel(route) ?? route
 
 export function GuidesPage() {
   const { can } = useMe()
