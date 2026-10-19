@@ -4,6 +4,23 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-19: Message bubbles, read receipts and photo thumbnails
+
+### Added
+- Delivered and seen ticks: `conversation_members.delivered_up_to` (migration 0070), moved when
+  the reader loads the conversation list or the thread, a `delivered` stream event and
+  `receipts` on the thread. Seen comes from the existing last-read message.
+- Message bubbles, with the time and the ticks inside.
+- `?size=thumb` on chat image attachments: a 640px JPEG made with `vipsthumbnail` (vips-tools in
+  the backend image) on first request and kept in R2. Attachments are cached as `immutable`.
+
+### Fixed
+- A thread now opens at the last message and stays there while photos load or the keyboard
+  opens; sending a message always brings you down to it.
+- The tender sync could insert one notice twice in a single upsert, which Postgres rejects; the
+  rejection was unhandled and stopped the server. Rows are deduplicated, and an unhandled
+  rejection from any job is now logged instead of ending the process.
+
 ## 2026-10-19: Prospect owners, booking language and small fixes
 
 ### Added

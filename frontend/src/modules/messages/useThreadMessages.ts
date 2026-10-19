@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
 import { useChatStream } from '@/shared/components/chat/ChatStreamProvider'
 import { api } from '@/shared/lib/api'
-import type { ChatAttachment, ChatMessage } from '@/shared/lib/types'
+import type { ChatAttachment, ChatMessage, ChatReceipt } from '@/shared/lib/types'
 
 // Firul unei conversații (PLAN.md C3). Starea e locală, nu un query: mesajul optimist, cel
 // „netrimis" și paginile vechi încărcate manual nu au loc într-un cache de query, iar lista
@@ -27,6 +27,13 @@ export interface SendInput {
 
 const PAGE_SIZE = 50
 
+type ThreadPage = { messages: ChatMessage[]; hasMore: boolean; receipts: ChatReceipt[] }
+
+/** Moves a member's receipt forward, never back; members not in the list are the viewer. */
+function advanceReceipt(receipts: ChatReceipt[], userId: string, field: 'deliveredUpTo' | 'readUpTo', at: string): ChatReceipt[] {
+  return receipts.map((r) => (r.userId === userId && (!r[field] || Date.parse(r[field]!) < Date.parse(at)) ? { ...r, [field]: at } : r))
+}
+
 export function useThreadMessages(conversationId: string | undefined) {
   const queryClient = useQueryClient()
   const { subscribe } = useChatStream()
@@ -37,7 +44,7 @@ export function useThreadMessages(conversationId: string | undefined) {
   const query = useQuery({
     queryKey,
     queryFn: async () => {
-      const data = await api.get<{ messages: ChatMessage[]; hasMore: boolean }>(
+      const data = await api.get<ThreadPage>(
         `/api/chat/conversations/${conversationId}/messages?limit=${PAGE_SIZE}`,
       )
       return data
@@ -59,14 +66,25 @@ export function useThreadMessages(conversationId: string | undefined) {
         if (event.type === 'message.created' && event.conversationId === conversationId) {
           // Optimistul rămâne până vine răspunsul POST-ului, care aduce id-ul real; dedupe pe
           // clientId, ca mesajul să nu apară de două ori.
-          queryClient.setQueryData<{ messages: ChatMessage[]; hasMore: boolean }>(queryKey, (current) =>
+          queryClient.setQueryData<ThreadPage>(queryKey, (current) =>
             current && !current.messages.some((m) => m.id === event.message.id || m.clientId === event.message.clientId)
               ? { ...current, messages: [...current.messages, event.message] }
               : current,
           )
         }
+        if (event.type === 'read' && event.conversationId === conversationId) {
+          queryClient.setQueryData<ThreadPage>(queryKey, (current) => {
+            const read = current?.messages.find((m) => m.id === event.messageId)
+            return current && read ? { ...current, receipts: advanceReceipt(current.receipts, event.userId, 'readUpTo', read.createdAt) } : current
+          })
+        }
+        if (event.type === 'delivered' && event.conversationId === conversationId) {
+          queryClient.setQueryData<ThreadPage>(queryKey, (current) =>
+            current ? { ...current, receipts: advanceReceipt(current.receipts, event.userId, 'deliveredUpTo', event.at) } : current,
+          )
+        }
         if (event.type === 'message.updated' && event.conversationId === conversationId) {
-          queryClient.setQueryData<{ messages: ChatMessage[]; hasMore: boolean }>(queryKey, (current) =>
+          queryClient.setQueryData<ThreadPage>(queryKey, (current) =>
             current
               ? { ...current, messages: current.messages.map((m) => (m.id === event.message.id ? { ...m, ...event.message } : m)) }
               : current,
@@ -98,7 +116,7 @@ export function useThreadMessages(conversationId: string | undefined) {
       try {
         const saved = await api.post<ChatMessage>(`/api/chat/conversations/${conversationId}/messages`, payload)
         setPending((current) => current.filter((m) => m.clientId !== clientId))
-        queryClient.setQueryData<{ messages: ChatMessage[]; hasMore: boolean }>(queryKey, (current) =>
+        queryClient.setQueryData<ThreadPage>(queryKey, (current) =>
           current && !current.messages.some((m) => m.id === saved.id || m.clientId === clientId)
             ? { ...current, messages: [...current.messages, saved] }
             : current,
@@ -131,7 +149,7 @@ export function useThreadMessages(conversationId: string | undefined) {
   const loadOlder = useCallback(async () => {
     const oldest = query.data?.messages[0]
     if (!conversationId || !oldest) return
-    const page = await api.get<{ messages: ChatMessage[]; hasMore: boolean }>(
+    const page = await api.get<ThreadPage>(
       `/api/chat/conversations/${conversationId}/messages?before=${oldest.id}&limit=${PAGE_SIZE}`,
     )
     setOlder((current) => [...page.messages, ...current])
@@ -141,7 +159,7 @@ export function useThreadMessages(conversationId: string | undefined) {
     async (messageId: string, body: string) => {
       if (!conversationId) return
       const saved = await api.patch<ChatMessage>(`/api/chat/messages/${messageId}`, { body })
-      queryClient.setQueryData<{ messages: ChatMessage[]; hasMore: boolean }>(queryKey, (current) =>
+      queryClient.setQueryData<ThreadPage>(queryKey, (current) =>
         current
           ? { ...current, messages: current.messages.map((m) => (m.id === messageId ? saved : m)) }
           : current,
@@ -154,7 +172,7 @@ export function useThreadMessages(conversationId: string | undefined) {
     async (messageId: string) => {
       if (!conversationId) return
       await api.delete(`/api/chat/messages/${messageId}`)
-      queryClient.setQueryData<{ messages: ChatMessage[]; hasMore: boolean }>(queryKey, (current) =>
+      queryClient.setQueryData<ThreadPage>(queryKey, (current) =>
         current
           ? { ...current, messages: current.messages.map((m) => (m.id === messageId ? { ...m, body: '', deletedAt: new Date().toISOString() } : m)) }
           : current,
@@ -168,6 +186,7 @@ export function useThreadMessages(conversationId: string | undefined) {
     messages: [...older, ...(query.data?.messages ?? [])],
     pending,
     hasMore: query.data?.hasMore ?? false,
+    receipts: query.data?.receipts ?? [],
     loadOlder: async () => {
       if (loadingOlder) return
       setLoadingOlder(true)

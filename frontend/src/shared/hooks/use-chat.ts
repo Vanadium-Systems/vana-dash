@@ -47,6 +47,8 @@ export function useLiveChatConversations() {
           )
           return
         }
+        // Ticks live in the thread; the list has nothing to refetch for them.
+        if (event.type === 'delivered') return
         void queryClient.invalidateQueries({ queryKey: CHAT_CONVERSATIONS_KEY })
       }),
     [queryClient, subscribe],

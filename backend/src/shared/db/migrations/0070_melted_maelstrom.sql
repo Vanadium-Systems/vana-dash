@@ -1,0 +1,1 @@
+ALTER TABLE "conversation_members" ADD COLUMN "delivered_up_to" timestamp with time zone;

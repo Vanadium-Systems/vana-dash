@@ -44,3 +44,22 @@ export async function generatePdfThumbnail(pdfBuffer: Buffer): Promise<Buffer | 
     await rm(dir, { recursive: true, force: true }).catch(() => {})
   }
 }
+
+// A photo from a phone is several megabytes; the chat thread shows it at under 300px. libvips
+// (`vipsthumbnail`, the vips-tools package) shrinks it in a separate process, turns it by its
+// EXIF orientation and drops the metadata. Best-effort like the PDF one: without the binary or
+// with an unreadable file the caller serves the original.
+export async function generateImageThumbnail(image: Buffer, maxSize = 640): Promise<Buffer | null> {
+  const dir = await mkdtemp(join(tmpdir(), 'image-thumb-'))
+  try {
+    const inputPath = join(dir, 'input')
+    const outputPath = join(dir, 'out.jpg')
+    await writeFile(inputPath, image)
+    await execFileAsync('vipsthumbnail', [inputPath, '--size', `${maxSize}x${maxSize}>`, '-o', `${outputPath}[Q=80,strip]`])
+    return await readFile(outputPath)
+  } catch {
+    return null
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {})
+  }
+}

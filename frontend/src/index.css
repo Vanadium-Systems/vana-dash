@@ -37,6 +37,10 @@
     --destructive-text: 0 72% 42%;
     --surface-raised: 0 0% 98%;
     --surface-overlay: 0 0% 100%;
+    /* Messages: your bubbles take a light tint of the brand blue, the others' stay neutral. */
+    --bubble-own: 214 95% 94%;
+    --bubble-other: 0 0% 95%;
+    --tick-seen: 214 97% 42%;
   }
 
   .dark {
@@ -68,6 +72,9 @@
     --destructive-text: 0 70% 66%;
     --surface-raised: 0 0% 9%;
     --surface-overlay: 0 0% 12%;
+    --bubble-own: 214 40% 20%;
+    --bubble-other: 0 0% 13%;
+    --tick-seen: 214 90% 68%;
   }
 
   /* Un singur set de înălțimi pentru tot ce se completează și se apasă (DESIGN.md): sm doar în

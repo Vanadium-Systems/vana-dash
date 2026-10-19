@@ -4,6 +4,7 @@ import { and, eq, inArray, isNull, lt } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { messageAttachments, messages } from '../../shared/db/schema/index.js'
 import { deleteFromR2, downloadFromR2, getPresignedDownloadUrl, uploadToR2 } from '../../shared/lib/r2.js'
+import { generateImageThumbnail } from '../../shared/lib/thumbnail.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { isMember } from './service.js'
 
@@ -86,6 +87,7 @@ export async function readAttachment(
   viewerId: string,
   attachmentId: string,
   forDownload = false,
+  thumbnail = false,
 ): Promise<AttachmentFile | null> {
   const [row] = await db
     .select({
@@ -108,12 +110,32 @@ export async function readAttachment(
     return { kind: 'redirect', url: await getPresignedDownloadUrl(row.storagePath, VIDEO_URL_TTL_SECONDS) }
   }
 
+  if (thumbnail && !forDownload && THUMBNAIL_CONTENT_TYPES.has(row.contentType)) {
+    const thumb = await readThumbnail(row.storagePath)
+    if (thumb) return { kind: 'file', buffer: thumb, filename: row.filename, contentType: 'image/jpeg', inline: true }
+  }
+
   return {
     kind: 'file',
     buffer: await downloadFromR2(row.storagePath),
     filename: row.filename,
     contentType: row.contentType,
     inline: INLINE_CONTENT_TYPES.has(row.contentType),
+  }
+}
+
+// GIF stays whole (it would lose the animation). The thumbnail is made on the first request and
+// kept in R2 next to the original, so older photos get one too and none is made twice.
+const THUMBNAIL_CONTENT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+async function readThumbnail(storagePath: string): Promise<Buffer | null> {
+  const key = `${storagePath}.thumb.jpg`
+  try {
+    return await downloadFromR2(key)
+  } catch {
+    const thumb = await generateImageThumbnail(await downloadFromR2(storagePath))
+    if (thumb) await uploadToR2(key, Readable.from(thumb), 'image/jpeg').catch(() => {})
+    return thumb
   }
 }
 
@@ -133,6 +155,7 @@ export async function purgeUnattachedAttachments(): Promise<number> {
 
   for (const row of rows) {
     await deleteFromR2(row.storagePath).catch(() => {})
+    await deleteFromR2(`${row.storagePath}.thumb.jpg`).catch(() => {})
   }
   await db.delete(messageAttachments).where(inArray(messageAttachments.id, rows.map((r) => r.id)))
   return rows.length

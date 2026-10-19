@@ -69,10 +69,14 @@ export async function upsertTenderOpportunities(
 }> {
   if (rows.length === 0) return { inserted: 0, updated: 0, rows: [] }
 
+  // The same notice can come twice in one run (two sources, or two pages of one listing), and
+  // Postgres refuses an ON CONFLICT that touches one row twice in a statement. The last copy wins.
+  const unique = [...new Map(rows.map((r) => [`${r.source}\u0000${r.externalId}`, r])).values()]
+
   const result = await db
     .insert(tenderOpportunities)
     .values(
-      rows.map((r) => ({
+      unique.map((r) => ({
         source: r.source,
         externalId: r.externalId,
         title: r.title,

@@ -1452,6 +1452,13 @@ export interface ChatMessage {
   attachments: ChatAttachment[]
 }
 
+/** How far another member has got, for the ticks on your own messages. */
+export interface ChatReceipt {
+  userId: string
+  deliveredUpTo: string | null
+  readUpTo: string | null
+}
+
 export interface ChatConversation {
   id: string
   kind: 'dm' | 'group'
@@ -1467,4 +1474,5 @@ export type ChatStreamEvent =
   | { type: 'message.updated'; conversationId: string; message: Partial<ChatMessage> & { id: string } }
   | { type: 'conversation.updated'; conversationId: string }
   | { type: 'read'; conversationId: string; userId: string; messageId: string }
+  | { type: 'delivered'; conversationId: string; userId: string; at: string }
   | { type: 'presence'; userId: string; presence: 'online' | 'away'; lastSeenAt: string | null }

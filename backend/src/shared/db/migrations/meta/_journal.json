@@ -491,6 +491,13 @@
       "when": 1792385369857,
       "tag": "0069_certain_firestar",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1792386062507,
+      "tag": "0070_melted_maelstrom",
+      "breakpoints": true
     }
   ]
 }

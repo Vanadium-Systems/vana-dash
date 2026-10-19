@@ -129,18 +129,18 @@ goes through POST. The admin has no way to read other people's direct messages.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/chat/stream` | SSE: `message.created`, `message.updated`, `conversation.updated`, `read`, `presence`. Heartbeat every 25s |
+| GET | `/api/chat/stream` | SSE: `message.created`, `message.updated`, `conversation.updated`, `read`, `delivered` (`{ conversationId, userId, at }`), `presence`. Heartbeat every 25s |
 | POST | `/api/chat/heartbeat` | A sign of life sent while the page is visible (every 45s). A sleeping device can keep the SSE socket "open", so presence relies on the heartbeat, not on the connection |
 | GET | `/api/chat/conversations` | `[{ id, kind, name, members: [{ id, displayName, presence, lastSeenAt }], lastMessage, unreadCount }]` |
 | POST | `/api/chat/conversations` | `{ kind: 'dm', userId }` (returns the existing one) or `{ kind: 'group', name, memberIds }` |
 | PATCH | `/api/chat/conversations/:id` | `{ name?, addMemberIds?, removeMemberIds? }`. The group's owner or `echipa.administrare` |
-| GET | `/api/chat/conversations/:id/messages` | Query: `before?` (message id), `limit?` (default 50) |
+| GET | `/api/chat/conversations/:id/messages` | Query: `before?` (message id), `limit?` (default 50) → `{ messages, hasMore, receipts }`; `receipts` is `[{ userId, deliveredUpTo, readUpTo }]` for the other members. Loading the thread, like loading the conversation list, marks its messages delivered to the reader |
 | POST | `/api/chat/conversations/:id/messages` | `{ body, clientId, attachmentIds? }`. `clientId` deduplicates a resend; `body` may be empty when there are attachments |
 | POST | `/api/chat/conversations/:id/read` | `{ messageId }` |
 | PATCH | `/api/chat/messages/:id` | `{ body }`. The author only; marked as edited |
 | DELETE | `/api/chat/messages/:id` | The author only; soft delete, shown as "Mesaj șters" |
 | POST | `/api/chat/attachments` | Multipart, 50 MB per file at most, 10 per message. Uploads not sent within 24h are removed by a job |
-| GET | `/api/chat/attachments/:id` | Members of the conversation only. Only plain images open inline; everything else (SVG and HTML included) is a download, with `nosniff` |
+| GET | `/api/chat/attachments/:id` | Members of the conversation only. Only plain images open inline; everything else (SVG and HTML included) is a download, with `nosniff`. `?size=thumb` on a JPEG, PNG or WebP returns a 640px JPEG made once and kept in R2. Cached as `immutable` |
 
 ## Platforms
 

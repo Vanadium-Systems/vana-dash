@@ -104,6 +104,8 @@ export async function chatRoutes(app: FastifyInstance) {
 
   server.get('/api/chat/conversations', { preHandler: [app.authenticate] }, async (req) => {
     const list = await service.listConversations(req.me)
+    const now = new Date()
+    await publishDelivered(req.me.id, now, await service.markDelivered(req.me.id, now))
     return {
       success: true,
       data: list.map((conversation) => ({
@@ -141,7 +143,12 @@ export async function chatRoutes(app: FastifyInstance) {
   server.get(
     '/api/chat/conversations/:id/messages',
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, querystring: ListMessagesQuerySchema } },
-    async (req) => ({ success: true, data: await service.listMessages(req.me, req.params.id, req.query) }),
+    async (req) => {
+      const data = await service.listMessages(req.me, req.params.id, req.query)
+      const now = new Date()
+      await publishDelivered(req.me.id, now, await service.markDelivered(req.me.id, now, req.params.id))
+      return { success: true, data }
+    },
   )
 
   server.post(
@@ -223,17 +230,26 @@ export async function chatRoutes(app: FastifyInstance) {
     '/api/chat/attachments/:id',
     { preHandler: [app.authenticate], schema: { params: AttachmentIdParamsSchema, querystring: AttachmentQuerySchema } },
     async (req, reply) => {
-      const file = await readAttachment(req.me.id, req.params.id, req.query.download === '1')
+      const file = await readAttachment(req.me.id, req.params.id, req.query.download === '1', req.query.size === 'thumb')
       if (!file) return reply.code(404).send({ success: false, error: tr('errors.chat.attachmentNotFound') })
       if (file.kind === 'redirect') return reply.redirect(file.url, 302)
       reply.header('X-Content-Type-Options', 'nosniff')
-      // Un atașament nu se schimbă după upload; fără cache, fiecare deschidere a firului
-      // ar trage iar toate pozele din R2 prin VPS.
-      reply.header('Cache-Control', 'private, max-age=86400')
+      // An attachment never changes after upload, so the phone keeps it for good instead of
+      // pulling every photo from R2 through the VPS again each day.
+      reply.header('Cache-Control', 'private, max-age=31536000, immutable')
       reply.header('Content-Disposition', `${file.inline && req.query.download !== '1' ? 'inline' : 'attachment'}; filename="${file.filename.replace(/"/g, "'")}"`)
       return reply.type(file.contentType).send(file.buffer)
     },
   )
+}
+
+// The authors' second tick. Sent to every member, the reader included: their other tabs and
+// devices show the same ticks.
+async function publishDelivered(userId: string, upTo: Date, conversationIds: string[]): Promise<void> {
+  const at = upTo.toISOString()
+  for (const conversationId of conversationIds) {
+    publish({ type: 'delivered', conversationId, userId, at }, await service.memberIds(conversationId))
+  }
 }
 
 /**

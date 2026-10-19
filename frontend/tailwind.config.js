@@ -41,6 +41,11 @@ export default {
           foreground: 'hsl(var(--destructive-foreground))',
           text: 'hsl(var(--destructive-text))',
         },
+        bubble: {
+          own: 'hsl(var(--bubble-own))',
+          other: 'hsl(var(--bubble-other))',
+        },
+        'tick-seen': 'hsl(var(--tick-seen))',
         surface: {
           raised: 'hsl(var(--surface-raised))',
           overlay: 'hsl(var(--surface-overlay))',

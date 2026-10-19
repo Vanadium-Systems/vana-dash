@@ -52,6 +52,13 @@ export interface ChatMember {
   lastSeenAt: string | null
 }
 
+/** How far each other member has got: the ticks on the viewer's own messages. */
+export interface ChatReceipt {
+  userId: string
+  deliveredUpTo: string | null
+  readUpTo: string | null
+}
+
 export interface ChatConversationSummary {
   id: string
   kind: 'dm' | 'group'
@@ -387,7 +394,7 @@ export async function listMessages(
   me: SessionUser,
   conversationId: string,
   query: ListMessagesQuery,
-): Promise<{ messages: ChatMessage[]; hasMore: boolean }> {
+): Promise<{ messages: ChatMessage[]; hasMore: boolean; receipts: ChatReceipt[] }> {
   await assertMember(conversationId, me.id)
   const cursor = query.before
     ? (await db.select({ createdAt: messages.createdAt, id: messages.id }).from(messages).where(eq(messages.id, query.before)))[0]
@@ -407,7 +414,49 @@ export async function listMessages(
     .limit(query.limit + 1)
 
   const hasMore = rows.length > query.limit
-  return { messages: await attachToMessages(rows.slice(0, query.limit).reverse()), hasMore }
+  return { messages: await attachToMessages(rows.slice(0, query.limit).reverse()), hasMore, receipts: await listReceipts(conversationId, me.id) }
+}
+
+async function listReceipts(conversationId: string, viewerId: string): Promise<ChatReceipt[]> {
+  const rows = await db
+    .select({
+      userId: conversationMembers.userId,
+      deliveredUpTo: conversationMembers.deliveredUpTo,
+      readUpTo: sql<Date | null>`(SELECT m.created_at FROM messages m WHERE m.id = ${conversationMembers.lastReadMessageId})`,
+    })
+    .from(conversationMembers)
+    .where(and(eq(conversationMembers.conversationId, conversationId), ne(conversationMembers.userId, viewerId)))
+  return rows.map((r) => ({
+    userId: r.userId,
+    deliveredUpTo: r.deliveredUpTo?.toISOString() ?? null,
+    readUpTo: r.readUpTo ? new Date(r.readUpTo).toISOString() : null,
+  }))
+}
+
+/**
+ * The person's app has received everything up to `upTo` (in one conversation, or all of theirs).
+ * Returns the conversations where that covered a message from someone else not yet marked, so
+ * the authors' ticks can move; a reload with nothing new returns nothing and publishes nothing.
+ */
+export async function markDelivered(userId: string, upTo: Date, conversationId?: string): Promise<string[]> {
+  const rows = await db
+    .update(conversationMembers)
+    .set({ deliveredUpTo: upTo })
+    .where(
+      and(
+        eq(conversationMembers.userId, userId),
+        conversationId ? eq(conversationMembers.conversationId, conversationId) : undefined,
+        sql`EXISTS (
+          SELECT 1 FROM ${messages} m
+          WHERE m.conversation_id = ${conversationMembers.conversationId}
+            AND m.author_user_id <> ${userId}
+            AND m.created_at <= ${upTo.toISOString()}::timestamptz
+            AND m.created_at > COALESCE(${conversationMembers.deliveredUpTo}, 'epoch'::timestamptz)
+        )`,
+      ),
+    )
+    .returning({ conversationId: conversationMembers.conversationId })
+  return rows.map((r) => r.conversationId)
 }
 
 export async function sendMessage(me: SessionUser, conversationId: string, input: SendMessageInput): Promise<ChatMessage> {

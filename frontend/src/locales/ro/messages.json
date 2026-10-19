@@ -58,6 +58,11 @@
     "play": "Redă {{filename}}",
     "members_one": "{{count}} membru · {{names}}",
     "members_few": "{{count}} membri · {{names}}",
-    "members_other": "{{count}} de membri · {{names}}"
+    "members_other": "{{count}} de membri · {{names}}",
+    "receipt": {
+      "sent": "Trimis",
+      "delivered": "Livrat",
+      "seen": "Văzut"
+    }
   }
 }

@@ -12,7 +12,7 @@ import type { ChatStreamEvent } from '@/shared/lib/types'
 
 export type ChatStreamStatus = 'off' | 'connecting' | 'live'
 
-const EVENT_TYPES = ['message.created', 'message.updated', 'conversation.updated', 'read', 'presence'] as const
+const EVENT_TYPES = ['message.created', 'message.updated', 'conversation.updated', 'read', 'delivered', 'presence'] as const
 
 /** La 45s, sub pragul de 90s din presence.ts — un timer strimuit într-un tab ascuns nu ajunge
  *  să numere drept „online", iar serverul trece omul în „away" și îi trimite push. */

@@ -38,6 +38,9 @@ export const conversationMembers = pgTable(
       onDelete: 'set null',
     }),
     muted: boolean('muted').notNull().default(false),
+    // Up to when this person's app has received the conversation's messages: the second tick.
+    // Moved forward when they load the conversation list or the thread.
+    deliveredUpTo: timestamp('delivered_up_to', { withTimezone: true }),
   },
   (t) => [uniqueIndex('uq_conversation_members_user').on(t.conversationId, t.userId)],
 )

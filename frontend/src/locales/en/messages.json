@@ -57,6 +57,11 @@
     "notSent": "Not sent",
     "play": "Play {{filename}}",
     "members_one": "{{count}} member · {{names}}",
-    "members_other": "{{count}} members · {{names}}"
+    "members_other": "{{count}} members · {{names}}",
+    "receipt": {
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "seen": "Seen"
+    }
   }
 }

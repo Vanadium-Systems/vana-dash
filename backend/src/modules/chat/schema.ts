@@ -45,4 +45,4 @@ export const MessageIdParamsSchema = z.object({ id: z.string().uuid() })
 export const AttachmentIdParamsSchema = z.object({ id: z.string().uuid() })
 // `download=1`: fișierul vine prin VPS și la video, ca JS-ul să aibă bytes de salvat (în APK nu
 // există download manager, iar R2 nu are CORS pentru fetch).
-export const AttachmentQuerySchema = z.object({ download: z.literal('1').optional() })
+export const AttachmentQuerySchema = z.object({ download: z.literal('1').optional(), size: z.literal('thumb').optional() })

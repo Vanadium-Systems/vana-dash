@@ -33,6 +33,12 @@ import { startVanagreenTenantSyncJob } from './jobs/vanagreen-tenant-sync.js'
 import { config } from './shared/config.js'
 import { closeBrowser } from './shared/lib/pdf.js'
 
+// Most cron jobs start with `void runXJob()`. A rejection there used to stop the whole process
+// (Node's default), so one bad job run took the API down with it. Log it and keep serving.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason)
+})
+
 const app = await buildServer()
 await startSyncRunner()
 startAnafSyncJob()

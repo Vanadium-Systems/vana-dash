@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Bell, BellOff, FileText, MoreHorizontal, Pencil, Play, RotateCw, Trash2, Users } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowLeft, Bell, BellOff, Check, CheckCheck, Clock, FileText, MoreHorizontal, Pencil, Play, RotateCw, Trash2, Users } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
@@ -10,7 +10,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { cn, formatBytes } from '@/shared/lib/utils'
 import { formatDateTime, intlTag } from '@/shared/lib/format'
-import type { ChatAttachment, ChatConversation } from '@/shared/lib/types'
+import type { ChatAttachment, ChatConversation, ChatReceipt } from '@/shared/lib/types'
 import { useChatStream } from '@/shared/components/chat/ChatStreamProvider'
 import { Composer } from './Composer'
 import { MediaViewer } from './MediaViewer'
@@ -18,9 +18,11 @@ import { conversationTitle, presenceLabel } from './ConversationList'
 import { useThreadMessages } from './useThreadMessages'
 import { t } from '@/shared/lib/i18n'
 
-// Firul (fișa „Mesaje"): rânduri plate, stil Slack — autor + oră pe primul mesaj dintr-o serie
-// (același autor, sub 5 minute), nu bule colorate. Fără animație la sosire: se întâmplă de
-// zeci de ori pe zi. Scroll la ultimul mesaj doar dacă erai deja jos, altfel „Mesaje noi ↓".
+// The thread: one bubble per message, as in WhatsApp (Stefan, 2026-10-19), yours on the right
+// with the time and the ticks inside. A series (same author, under 5 minutes) sits close and only
+// its first bubble gets the corner and, in a group, the author's name. No animation on arrival:
+// it happens dozens of times a day. The thread stays at the last message until you scroll up;
+// then new ones are counted in "New messages ↓".
 
 const SERIES_WINDOW_MS = 5 * 60 * 1000
 const LONG_PRESS_MS = 500
@@ -47,7 +49,11 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
   const thread = useThreadMessages(conversation.id)
   const queryClient = useQueryClient()
   const { status } = useChatStream()
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  // Pinned to the end until the person scrolls up. A ref, not state: the resize observer and
+  // the effect on new rows read it without re-subscribing.
+  const pinnedRef = useRef(true)
   const [atBottom, setAtBottom] = useState(true)
   const [missed, setMissed] = useState(0)
   const [viewing, setViewing] = useState<ChatAttachment | null>(null)
@@ -79,27 +85,47 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
     void api.post(`/api/chat/conversations/${conversation.id}/read`, { messageId: lastReadId }).catch(() => undefined)
   }, [conversation.id, conversation.unreadCount, lastReadId])
 
-  useEffect(() => {
-    const el = bottomRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      (entries) => setAtBottom(entries.some((entry) => entry.isIntersecting)),
-      { rootMargin: '80px' },
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
+  const scrollToEnd = useCallback(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [])
 
-  // Poziția de scroll se ține într-un ref, nu în dependențe: coborâm la mesajele nou doar
-  // dacă omul era deja jos, nu de fiecare dată când se mișcă IntersectionObserver-ul.
-  const atBottomRef = useRef(atBottom)
   useEffect(() => {
-    atBottomRef.current = atBottom
-  }, [atBottom])
+    pinnedRef.current = true
+    setAtBottom(true)
+    setMissed(0)
+  }, [conversation.id])
 
+  // The pane exists only once the thread has loaded, hence `thread.isPending` below.
   useEffect(() => {
-    if (atBottomRef.current) {
-      bottomRef.current?.scrollIntoView({ block: 'end' })
+    const el = scrollRef.current
+    if (!el) return
+    const onScroll = () => {
+      const near = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+      pinnedRef.current = near
+      setAtBottom(near)
+      if (near) setMissed(0)
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    // Photos finish loading after the text, and the phone keyboard shrinks the pane: while
+    // pinned, both keep the last message in view.
+    const observer = new ResizeObserver(() => {
+      if (pinnedRef.current) scrollToEnd()
+    })
+    observer.observe(el)
+    if (contentRef.current) observer.observe(contentRef.current)
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      observer.disconnect()
+    }
+  }, [scrollToEnd, thread.isPending])
+
+  const lastAuthorId = rows[rows.length - 1]?.authorUserId
+  useEffect(() => {
+    // Your own message always brings you down to it, even after scrolling up.
+    if (pinnedRef.current || lastAuthorId === meId) {
+      pinnedRef.current = true
+      scrollToEnd()
       setMissed(0)
     } else {
       setMissed((count) => count + 1)
@@ -174,7 +200,8 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
         </p>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+        <div ref={contentRef}>
         {thread.hasMore ? (
           <div className="mb-3 text-center">
             <Button variant="outline" size="sm" disabled={thread.isLoadingOlder} onClick={() => void thread.loadOlder()}>
@@ -192,6 +219,8 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
               message={row}
               own={row.authorUserId === meId}
               startsSeries={index === 0 || !sameSeries(rows[index - 1], row)}
+              showAuthor={conversation.kind === 'group'}
+              receipt={row.authorUserId === meId && !row.pending ? receiptState(row.createdAt, thread.receipts) : null}
               onRetry={() => void thread.retry(row.clientId)}
               onDiscard={() => thread.discard(row.clientId)}
               onEdit={(body) => {
@@ -206,7 +235,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
             />
           ))
         )}
-        <div ref={bottomRef} />
+        </div>
       </div>
 
       {missed > 0 && !atBottom ? (
@@ -215,7 +244,8 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
             variant="outline"
             size="sm"
             onClick={() => {
-              bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+              pinnedRef.current = true
+              scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
               setMissed(0)
             }}
           >
@@ -230,6 +260,29 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
   )
 }
 
+type ReceiptState = 'sent' | 'delivered' | 'seen'
+
+/** WhatsApp's rule: in a group, the second tick and the blue only once every member got there. */
+function receiptState(createdAt: string, receipts: ChatReceipt[]): ReceiptState {
+  if (receipts.length === 0) return 'sent'
+  const sentAt = Date.parse(createdAt)
+  const reached = (iso: string | null) => iso !== null && Date.parse(iso) >= sentAt
+  if (receipts.every((r) => reached(r.readUpTo))) return 'seen'
+  if (receipts.every((r) => reached(r.readUpTo) || reached(r.deliveredUpTo))) return 'delivered'
+  return 'sent'
+}
+
+function Ticks({ state }: { state: ReceiptState }) {
+  const label = t(`messages:thread.receipt.${state}`)
+  const Icon = state === 'sent' ? Check : CheckCheck
+  return (
+    <span title={label} className={cn('inline-flex', state === 'seen' ? 'text-tick-seen' : 'text-muted-foreground')}>
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      <span className="sr-only">{label}</span>
+    </span>
+  )
+}
+
 function sameSeries(previous: ThreadRow | undefined, current: ThreadRow): boolean {
   if (!previous || previous.authorUserId !== current.authorUserId) return false
   return new Date(current.createdAt).getTime() - new Date(previous.createdAt).getTime() < SERIES_WINDOW_MS
@@ -239,6 +292,8 @@ function MessageRow({
   message,
   own,
   startsSeries,
+  showAuthor,
+  receipt,
   onRetry,
   onDiscard,
   onEdit,
@@ -248,6 +303,8 @@ function MessageRow({
   message: ThreadRow
   own: boolean
   startsSeries: boolean
+  showAuthor: boolean
+  receipt: ReceiptState | null
   onRetry: () => void
   onDiscard: () => void
   onEdit: (body: string) => void
@@ -310,18 +367,7 @@ function MessageRow({
         onTouchEnd={cancelLongPress}
         onTouchMove={cancelLongPress}
       >
-          {startsSeries ? (
-            <div className={cn('flex flex-wrap items-baseline gap-2', own && 'justify-end')}>
-              <span className="text-sm font-medium">{own ? t('messages:thread.you') : message.authorName}</span>
-              <time
-                className="text-xs text-muted-foreground tnum"
-                dateTime={message.createdAt}
-                title={formatDateTime(message.createdAt)}
-              >
-                {time(message.createdAt)}
-              </time>
-            </div>
-          ) : null}
+          {startsSeries && showAuthor && !own ? <span className="mb-0.5 px-1 text-xs font-medium text-muted-foreground">{message.authorName}</span> : null}
 
           {editing ? (
             <form
@@ -355,33 +401,47 @@ function MessageRow({
             </form>
           ) : (
             <>
-              {message.body ? <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p> : null}
-              {message.attachments.length > 0 ? (
-                <ul className={cn('mt-1 flex flex-col gap-1', own ? 'items-end' : 'items-start')}>
-                  {message.attachments.map((attachment) => (
-                    <AttachmentRow key={attachment.id} attachment={attachment} onOpen={() => onOpenMedia(attachment)} />
-                  ))}
-                </ul>
-              ) : null}
-              {message.editedAt ? <span className="text-xs text-muted-foreground">{t('messages:thread.edited')}</span> : null}
-              {message.pending ? (
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <div
+                className={cn(
+                  'min-w-0 max-w-full rounded-lg px-2.5 py-1.5',
+                  own ? 'bg-bubble-own' : 'bg-bubble-other',
+                  startsSeries && (own ? 'rounded-tr-sm' : 'rounded-tl-sm'),
+                )}
+              >
+                {message.attachments.length > 0 ? (
+                  <ul className={cn('flex flex-col gap-1', message.body && 'mb-1')}>
+                    {message.attachments.map((attachment) => (
+                      <AttachmentRow key={attachment.id} attachment={attachment} onOpen={() => onOpenMedia(attachment)} />
+                    ))}
+                  </ul>
+                ) : null}
+                {message.body ? <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p> : null}
+                <div className="mt-0.5 flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                  {message.editedAt ? <span>{t('messages:thread.edited')}</span> : null}
+                  <time className="tnum" dateTime={message.createdAt} title={formatDateTime(message.createdAt)}>
+                    {time(message.createdAt)}
+                  </time>
                   {message.pending === 'sending' ? (
-                    <span>{t('common:states.sending')}</span>
-                  ) : (
-                    <>
-                      {/* Starea de trimitere e rândul mesajului, cu acțiuni de text lângă ea
-                          (aceleași ca în lista), nu butoane cu carapacă. */}
-                      <StatePill tone="warning">{t('messages:thread.notSent')}</StatePill>
-                      <button type="button" className="flex items-center gap-1 underline underline-offset-2" onClick={onRetry}>
-                        <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
-                        {t('common:actions.tryAgainShort')}
-                      </button>
-                      <button type="button" className="underline underline-offset-2" onClick={onDiscard}>
-                        {t('common:actions.discard')}
-                      </button>
-                    </>
-                  )}
+                    <span title={t('common:states.sending')} className="inline-flex">
+                      <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="sr-only">{t('common:states.sending')}</span>
+                    </span>
+                  ) : null}
+                  {receipt ? <Ticks state={receipt} /> : null}
+                </div>
+              </div>
+              {message.pending === 'failed' ? (
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  {/* Starea de trimitere e rândul mesajului, cu acțiuni de text lângă ea
+                      (aceleași ca în lista), nu butoane cu carapacă. */}
+                  <StatePill tone="warning">{t('messages:thread.notSent')}</StatePill>
+                  <button type="button" className="flex items-center gap-1 underline underline-offset-2" onClick={onRetry}>
+                    <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
+                    {t('common:actions.tryAgainShort')}
+                  </button>
+                  <button type="button" className="underline underline-offset-2" onClick={onDiscard}>
+                    {t('common:actions.discard')}
+                  </button>
                 </div>
               ) : null}
             </>
@@ -397,7 +457,8 @@ function AttachmentRow({ attachment, onOpen }: { attachment: ChatAttachment; onO
     return (
       <li>
         <button type="button" onClick={onOpen} className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <img src={href} alt={attachment.filename} loading="lazy" className="max-h-72 max-w-[min(280px,100%)] rounded-md object-cover" />
+          {/* The thumbnail (640px), not the original: a phone photo is megabytes, shown here at 280px. */}
+          <img src={`${href}?size=thumb`} alt={attachment.filename} loading="lazy" className="max-h-72 max-w-[min(280px,100%)] rounded-md object-cover" />
         </button>
       </li>
     )

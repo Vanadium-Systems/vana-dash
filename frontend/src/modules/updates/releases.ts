@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-19T11:40:00+03:00',
+    title: {
+      ro: 'Mesajele arată ca în WhatsApp',
+      en: 'Messages look like WhatsApp',
+    },
+    body: {
+      ro: 'Fiecare mesaj are bula lui, ale tale în dreapta, cu ora și bifele: una pentru trimis, două pentru livrat, două albastre pentru văzut. Conversația se deschide la ultimul mesaj și rămâne acolo cât se încarcă pozele. Pozele din fir se încarcă mici și rămân pe telefon; la deschidere vezi originalul.',
+      en: 'Each message has its own bubble, yours on the right, with the time and the ticks: one for sent, two for delivered, two blue ones for seen. A conversation opens at the last message and stays there while the photos load. Photos in the thread load small and stay on the phone; opening one shows the original.',
+    },
+    features: ['mesaje.view'],
+  },
+  {
     publishedAt: '2026-10-19T09:30:00+03:00',
     title: {
       ro: 'Fiecare prospect are un responsabil',

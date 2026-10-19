@@ -21,6 +21,7 @@ export type ChatEvent =
   | { type: 'message.updated'; conversationId: string; message: unknown }
   | { type: 'conversation.updated'; conversationId: string }
   | { type: 'read'; conversationId: string; userId: string; messageId: string }
+  | { type: 'delivered'; conversationId: string; userId: string; at: string }
   | { type: 'presence'; userId: string; presence: 'online' | 'away'; lastSeenAt: string | null }
 
 interface Connection {

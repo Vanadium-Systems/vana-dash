@@ -247,6 +247,26 @@ describe('necitite și „nu mai notifica"', () => {
     expect(afterRead.json().data.find((c: { id: string }) => c.id === id).unreadCount).toBe(0)
   })
 
+  it('bifele: trimis, livrat când Ion își încarcă lista, văzut după citire', async () => {
+    const conv = await post('/api/chat/conversations', ana, { kind: 'group', name: 'QA bife', memberIds: [ion.me.id] })
+    const id = conv.json().data.id as string
+    conversationIds.push(id)
+    const created = await post(`/api/chat/conversations/${id}/messages`, ana, { body: 'ai primit?', clientId: crypto.randomUUID() })
+    const { id: messageId, createdAt } = created.json().data as { id: string; createdAt: string }
+    const receiptOfIon = async () =>
+      (await get(`/api/chat/conversations/${id}/messages`, ana)).json().data.receipts.find((r: { userId: string }) => r.userId === ion.me.id)
+
+    expect(await receiptOfIon()).toEqual({ userId: ion.me.id, deliveredUpTo: null, readUpTo: null })
+
+    await get('/api/chat/conversations', ion)
+    const delivered = await receiptOfIon()
+    expect(Date.parse(delivered.deliveredUpTo)).toBeGreaterThanOrEqual(Date.parse(createdAt))
+    expect(delivered.readUpTo).toBeNull()
+
+    await post(`/api/chat/conversations/${id}/read`, ion, { messageId })
+    expect((await receiptOfIon()).readUpTo).toBe(createdAt)
+  })
+
   it('„nu mai notifica" taie și numărul de necitite', async () => {
     const conv = await post('/api/chat/conversations', ana, { kind: 'group', name: 'QA mut', memberIds: [ion.me.id] })
     const id = conv.json().data.id as string

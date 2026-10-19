@@ -34,7 +34,8 @@ const CRON_EXPR = '0 6,14 * * *'
 
 export function startTenderWatchSyncJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runTenderWatchSyncJob()
+    // Without the catch, a failed run is an unhandled rejection and takes the whole server down.
+    runTenderWatchSyncJob().catch((err) => console.error(`[tender-watch-sync] Run failed: ${String(err)}`))
   })
   console.log(`[tender-watch-sync] Scheduled (${CRON_EXPR})`)
 }
