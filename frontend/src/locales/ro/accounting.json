@@ -152,6 +152,7 @@
   "templates": {
     "saved": "Șablon salvat",
     "restored": "Restaurat la versiunea originală",
+    "blankHint": "Actele în PDF fără un client anume: datele firmei și termenii sunt completați, câmpurile clientului rămân libere.",
     "pickHint": "Alege un șablon de editat. Textul e HTML sursă — PDF-ul se generează din el.",
     "restoreTitle": "Restaurează șablonul original",
     "restoreBody": "Textul tău e înlocuit cu șablonul de exemplu din aplicație și nu mai poate fi recuperat.",
@@ -381,6 +382,9 @@
     "openConsent": "Deschide consimțirea ANAF",
     "authCode": "Cod autorizare",
     "tokenInfo": "CIF: {{cif}} · Token expiră: {{expires}} · Ultimul refresh: {{refreshed}}",
+    "refreshNow": "Reînnoiește acum",
+    "refreshing": "Se reînnoiește…",
+    "refreshedToast": "Token ANAF reînnoit",
     "setEnv": "Setează {{clientId}} și {{clientSecret}} în {{envFile}} (aplicația OAuth înregistrată pe portalul ANAF), apoi revino aici."
   },
   "sequence": {

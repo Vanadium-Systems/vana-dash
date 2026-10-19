@@ -12,6 +12,7 @@ import {
   formatMonthlyPrice,
   renderActAditionalHtml,
   renderAnexaHtml,
+  renderBlankHtml,
   renderContractHtml,
   CONTRACT_TEMPLATE_BODIES,
   CONTRACT_TEMPLATE_KEYS,
@@ -364,5 +365,16 @@ describe('no em dash in the sample texts', () => {
   it('addendum', () => {
     const html = renderActAditionalHtml(makeAddendum({ temporary: true, reversionNote: 'Revine după 2 luni.' }), makeClient(), { nrContract: '010', dataContract: '1 august 2026' })
     expect(withoutEmptyValueCells(html)).not.toContain('—')
+  })
+})
+
+describe('renderBlankHtml', () => {
+  it('renders every template with dotted lines and no client data', () => {
+    for (const key of CONTRACT_TEMPLATE_KEYS) {
+      const html = renderBlankHtml(key, DEFAULT_CONTRACT_TERMS, CONTRACT_TEMPLATE_BODIES[key], DEFAULT_CONTRACT_FRAGMENTS)
+      expect(html).toContain('……………………')
+      expect(html).not.toContain('{{')
+      expect(html).not.toMatch(/undefined|null|NaN/)
+    }
   })
 })

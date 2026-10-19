@@ -10,7 +10,7 @@
  * real (soft-delete) cât rulează testul și-l restaurăm exact în afterAll, ca
  * să nu pierdem/stricăm credențialele lui reale.
  */
-import { and, eq, inArray, isNull, like } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNull, like } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { db } from '../shared/db/client.js'
 import {
@@ -30,6 +30,7 @@ const REVOLUT_LAST_REFRESHED = new Date(Date.now() - 85 * DAY_MS) // < 7d de la 
 let anafCredId = ''
 let revolutAccountId = ''
 let neutralizedRealAnafIds: string[] = []
+const testStartedAt = new Date()
 
 async function ruleRow(metricKey: string) {
   const [row] = await db.select().from(alertRules).where(eq(alertRules.metricKey, metricKey))
@@ -87,6 +88,8 @@ afterAll(async () => {
   // regula asta creată în fereastra testului e garantat a noastră.
   const anafRule = await ruleRow('accounting.anaf_refresh_token_expiring')
   if (anafRule) await db.delete(alerts).where(eq(alerts.ruleId, anafRule.id))
+  const tokenRule = await ruleRow('accounting.anaf_token_expiring')
+  if (tokenRule) await db.delete(alerts).where(and(eq(alerts.ruleId, tokenRule.id), gte(alerts.triggeredAt, testStartedAt)))
   const revolutRule = await ruleRow('accounting.revolut_refresh_token_expiring')
   if (revolutRule) {
     await db
@@ -263,5 +266,25 @@ describe('checkAccountingAlerts — d301/d390 deadline reminder', () => {
       r.message.includes(prevPeriod),
     ).length
     expect(after).toBe(before)
+  })
+})
+
+describe('checkAccountingAlerts — anaf_token_expiring', () => {
+  // The nightly refresh renews the access token once under 48h remain, so only under 24h is
+  // worth an alert.
+  async function alertsForExpiry(expiresAt: Date) {
+    await db.update(anafCredentials).set({ expiresAt }).where(eq(anafCredentials.id, anafCredId))
+    await checkAccountingAlerts()
+    await db.update(anafCredentials).set({ expiresAt: null }).where(eq(anafCredentials.id, anafCredId))
+    const day = expiresAt.toISOString().slice(0, 10)
+    return (await alertsFor('accounting.anaf_token_expiring')).filter((r) => r.message.includes(day))
+  }
+
+  it('stays quiet while the automatic refresh still has time', async () => {
+    expect(await alertsForExpiry(new Date(Date.now() + 3 * DAY_MS))).toHaveLength(0)
+  })
+
+  it('raises the alert under 24h', async () => {
+    expect(await alertsForExpiry(new Date(Date.now() + 12 * 60 * 60 * 1000))).toHaveLength(1)
   })
 })

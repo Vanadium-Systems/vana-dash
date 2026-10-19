@@ -4,6 +4,20 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-19: Blank contracts and the ANAF token alert
+
+### Added
+- `GET /api/contracts/templates/:key/blank` returns the contract, the price annex or the
+  addendum as a PDF with the client's fields as dotted lines. Nothing is stored. Three buttons
+  on the contract templates card call it.
+- `POST /api/accounting/anaf/refresh` renews the ANAF tokens on demand, with a button on the
+  ANAF card. A failure there does not mark the credentials as needing re-authorization.
+
+### Fixed
+- The `anaf_token_expiring` alert fired with under 7 days left while the nightly refresh only
+  acts under 48 hours, so it warned for days about something that would fix itself. It now
+  fires under 24 hours.
+
 ## 2026-10-13: Dependency and code scanning fixes
 
 ### Security

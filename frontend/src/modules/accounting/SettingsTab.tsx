@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, ExternalLink, Package } from 'lucide-react'
+import { Download, ExternalLink, Package, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { StatePill } from '@/shared/components/ui/state-pill'
@@ -131,6 +131,15 @@ function AnafConnectionCard() {
     onError: (err) => toast.error(err.message),
   })
 
+  const refresh = useMutation({
+    mutationFn: () => api.post<AnafStatusInfo>('/api/accounting/anaf/refresh', {}),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['anaf-status'] })
+      toast.success(t('accounting:anaf.refreshedToast'))
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
   if (status.isPending) return <Skeleton className="h-40 w-full" />
   const info = status.data
 
@@ -150,12 +159,18 @@ function AnafConnectionCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         {info?.status === 'active' ? (
-          <div className="text-sm text-muted-foreground">
-            {tNodes('accounting:anaf.tokenInfo', {
-              cif: <span className="font-mono text-foreground">{info.cif}</span>,
-              expires: formatDate(info.expiresAt),
-              refreshed: formatDate(info.lastRefreshedAt),
-            })}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="text-sm text-muted-foreground">
+              {tNodes('accounting:anaf.tokenInfo', {
+                cif: <span className="font-mono text-foreground">{info.cif}</span>,
+                expires: formatDate(info.expiresAt),
+                refreshed: formatDate(info.lastRefreshedAt),
+              })}
+            </div>
+            <Button variant="outline" disabled={refresh.isPending} onClick={() => refresh.mutate()}>
+              <RefreshCw className="h-4 w-4" />
+              {refresh.isPending ? t('accounting:anaf.refreshing') : t('accounting:anaf.refreshNow')}
+            </Button>
           </div>
         ) : null}
 

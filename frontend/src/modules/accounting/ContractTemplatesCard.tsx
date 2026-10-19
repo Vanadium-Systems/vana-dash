@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RotateCcw, Save } from 'lucide-react'
+import { Download, RotateCcw, Save } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { StatePill } from '@/shared/components/ui/state-pill'
@@ -219,11 +219,43 @@ function TermsEditor() {
   )
 }
 
+const BLANK_DOCUMENTS = [
+  { key: 'contract-saas', label: t('accounting:docTypes.contract') },
+  { key: 'anexa-preturi', label: t('accounting:docTypes.priceAnnex') },
+  { key: 'act-aditional', label: t('accounting:docTypes.addendum') },
+]
+
+function BlankDocuments() {
+  const download = useMutation({
+    mutationFn: (key: string) => api.download(`/api/contracts/templates/${key}/blank`, `${key}-gol.pdf`),
+    onError: (err) => toast.error(err.message),
+  })
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-muted-foreground">{t('accounting:templates.blankHint')}</p>
+      <div className="flex flex-wrap gap-2">
+        {BLANK_DOCUMENTS.map(({ key, label }) => (
+          <Button
+            key={key}
+            variant="outline"
+            disabled={download.isPending && download.variables === key}
+            onClick={() => download.mutate(key)}
+          >
+            <Download className="h-4 w-4" /> {label}
+          </Button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function ContractTemplatesCard() {
   return (
     <Card>
       <CardContent className="space-y-6 pt-6">
         <CardTitle className="text-base">{t('accounting:templates.title')}</CardTitle>
+        <BlankDocuments />
         <TemplateEditor />
         <TermsEditor />
       </CardContent>

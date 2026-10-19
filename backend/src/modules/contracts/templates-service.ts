@@ -12,6 +12,7 @@ import {
   renderContractHtml,
   renderAnexaHtml,
   renderActAditionalHtml,
+  renderBlankHtml,
   type ContractFragments,
   type ContractTemplateKey,
   type ContractTerms,
@@ -155,4 +156,9 @@ export async function renderDocument(docType: 'contract' | 'anexa', data: Contra
 export async function renderAddendum(addendum: ContractAddendum, client: Parameters<typeof renderActAditionalHtml>[1], contractInfo: { nrContract: string; dataContract: string }): Promise<string> {
   const [bodyHtml, terms, fragments] = await Promise.all([getTemplateBody('act-aditional'), getContractTerms(), getContractFragments()])
   return renderActAditionalHtml(addendum, client, contractInfo, terms, bodyHtml, fragments)
+}
+
+export async function renderBlank(key: ContractTemplateKey): Promise<string> {
+  const [bodyHtml, terms, fragments] = await Promise.all([getTemplateBody(key), getContractTerms(), getContractFragments()])
+  return renderBlankHtml(key, terms, bodyHtml, fragments)
 }

@@ -25,6 +25,30 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-19T07:30:00+03:00',
+    title: {
+      ro: 'Contractele se descarcă și goale',
+      en: 'Contracts can be downloaded blank',
+    },
+    body: {
+      ro: 'În Facturi → Contracte, cardul cu șabloane are trei butoane: contractul, anexa de prețuri și actul adițional, ca PDF fără un client anume. Datele firmei și termenii sunt completați, câmpurile clientului rămân linii punctate.',
+      en: 'In Invoices → Contracts, the templates card has three buttons: the contract, the price annex and the addendum, as a PDF without a particular client. The company details and terms are filled in, the client\'s fields are dotted lines.',
+    },
+    features: ['facturi.contracte'],
+  },
+  {
+    publishedAt: '2026-10-19T07:29:00+03:00',
+    title: {
+      ro: 'Token-ul ANAF se reînnoiește și la cerere',
+      en: 'The ANAF token can be refreshed on demand',
+    },
+    body: {
+      ro: 'Alerta „Token-ul ANAF expiră” apare doar dacă mai sunt sub 24 de ore, adică doar când reînnoirea automată de noapte n-a reușit. Până acum venea cu o săptămână înainte, deși nu era nimic de făcut. Pe cardul ANAF din Setări e și un buton „Reînnoiește acum”.',
+      en: 'The “ANAF token expires” alert only appears with under 24 hours left, that is only when the automatic overnight refresh has failed. Until now it came a week ahead, with nothing to do. The ANAF card in Settings also has a “Refresh now” button.',
+    },
+    features: ['facturi.anaf'],
+  },
+  {
     publishedAt: '2026-10-13T08:20:00+03:00',
     title: {
       ro: 'Aplicația e și în engleză',

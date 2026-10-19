@@ -1,9 +1,10 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { anafConnector } from '../../connectors/anaf/index.js'
-import { buildAuthorizeUrl, exchangeCode, isOauthConfigured } from '../../connectors/anaf/oauth.js'
+import { buildAuthorizeUrl, exchangeCode, isOauthConfigured, refreshTokens } from '../../connectors/anaf/oauth.js'
 import { triggerAnafSyncNow } from '../../jobs/sync-anaf.js'
-import { getAnafSession, saveAnafTokens } from '../../shared/lib/anaf.js'
+import { getAnafCredentialsRow, getAnafSession, saveAnafTokens } from '../../shared/lib/anaf.js'
+import { decryptApiKey } from '../../shared/lib/crypto.js'
 import { readDocument } from '../../shared/lib/storage.js'
 import * as d301 from './d301.js'
 import * as quarterlyPackage from './quarterly-package.js'
@@ -166,6 +167,21 @@ export async function accountingRoutes(app: FastifyInstance) {
       }
     },
   )
+
+  // On-demand refresh. A failure does not mark needs_reauth: a passing ANAF outage should not
+  // force a new consent. The nightly job does that if the failure persists.
+  server.post('/api/accounting/anaf/refresh', { preHandler: [app.authenticate] }, async (_req, reply) => {
+    const row = await getAnafCredentialsRow()
+    if (!row || row.status !== 'active' || !row.refreshTokenEnc) {
+      return reply.code(400).send({ success: false, error: tr('errors.anaf.notConfigured') })
+    }
+    try {
+      await saveAnafTokens(row.cif, await refreshTokens(decryptApiKey(row.refreshTokenEnc)))
+      return { success: true, data: await service.getAnafStatus() }
+    } catch (err) {
+      return reply.code(502).send({ success: false, error: tr('errors.anaf.refreshFailed', { err: String(err) }) })
+    }
+  })
 
   server.post('/api/accounting/anaf/sync', { preHandler: [app.authenticate] }, async (_req, reply) => {
     try {

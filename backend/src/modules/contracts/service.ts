@@ -3,11 +3,11 @@ import { zipSync } from 'fflate'
 import { db } from '../../shared/db/client.js'
 import { billingClients, contractAddenda, contractDocuments } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
-import { assertContractDataComplete, formatMonthlyPrice } from '../../shared/lib/contract-templates.js'
+import { assertContractDataComplete, formatMonthlyPrice, type ContractTemplateKey } from '../../shared/lib/contract-templates.js'
 import { htmlToPdf, isPdfAvailable } from '../../shared/lib/pdf.js'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import { ContractDetailsSchema, type ContractDetails, type CreateAddendumSchema, type SignatureRectSchema } from './schema.js'
-import { renderAddendum, renderDocument } from './templates-service.js'
+import { renderAddendum, renderBlank, renderDocument } from './templates-service.js'
 import type { z } from 'zod'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -77,6 +77,13 @@ export async function previewDocument(clientId: string, docType: 'contract' | 'a
   const monthlyPriceFormatted = formatMonthlyPrice(client)
   const html = await renderDocument(docType, { client, details, monthlyPriceFormatted })
 
+  if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
+  return htmlToPdf(html)
+}
+
+// Like the preview, nothing is stored: the blank copy is generated again on every download.
+export async function blankDocumentPdf(key: ContractTemplateKey): Promise<Buffer> {
+  const html = await renderBlank(key)
   if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
   return htmlToPdf(html)
 }

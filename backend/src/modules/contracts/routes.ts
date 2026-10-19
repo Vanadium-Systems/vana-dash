@@ -159,6 +159,20 @@ export async function contractsRoutes(app: FastifyInstance) {
     },
   )
 
+  server.get(
+    '/api/contracts/templates/:key/blank',
+    { preHandler: [app.authenticate], schema: { params: TemplateKeyParamsSchema } },
+    async (req, reply) => {
+      try {
+        const pdf = await service.blankDocumentPdf(req.params.key)
+        reply.header('Content-Disposition', `attachment; filename="${req.params.key}-gol.pdf"`)
+        return reply.type('application/pdf').send(pdf)
+      } catch (err) {
+        return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
+      }
+    },
+  )
+
   server.post(
     '/api/contracts/templates/:key/restore',
     { preHandler: [app.authenticate], schema: { params: TemplateKeyParamsSchema } },

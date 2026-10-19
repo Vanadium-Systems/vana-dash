@@ -22,7 +22,9 @@ import { notifyPush } from '../shared/lib/push.js'
 // Dedup: nu re-emitem cât timp există o alertă neconfirmată cu același mesaj.
 
 const CRON_EXPR = '0 8 * * *'
-const TOKEN_EXPIRING_DAYS = 7
+// refresh-anaf-token.ts renews overnight once under 48h remain, so under 24h at 08:00 means
+// that refresh failed or did not run. A wider window raised a daily alert for nothing.
+const TOKEN_EXPIRING_HOURS = 24
 const UNMATCHED_TXN_DAYS = 7
 
 // Estimări pentru expirarea refresh token-urilor (nu access token-urile, alea
@@ -157,14 +159,14 @@ export async function checkAccountingAlerts(): Promise<void> {
     )
   }
 
-  // 2. anaf_token_expiring — expiră în <7 zile sau necesită deja re-auth.
+  // 2. anaf_token_expiring: expires in under 24h, or already needs re-auth.
   const [creds] = await db.select().from(anafCredentials).where(isNull(anafCredentials.deletedAt)).limit(1)
   if (creds?.status === 'needs_reauth') {
     await raiseAlert(rules, 'accounting.anaf_token_expiring', tl('alerts.accounting.anafNeedsReauth'))
   } else if (
     creds?.status === 'active' &&
     creds.expiresAt &&
-    creds.expiresAt.getTime() - now.getTime() < TOKEN_EXPIRING_DAYS * 24 * 60 * 60 * 1000
+    creds.expiresAt.getTime() - now.getTime() < TOKEN_EXPIRING_HOURS * 60 * 60 * 1000
   ) {
     await raiseAlert(
       rules,

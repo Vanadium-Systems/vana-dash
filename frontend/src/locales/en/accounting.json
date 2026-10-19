@@ -151,6 +151,7 @@
   "templates": {
     "saved": "Template saved",
     "restored": "Restored to the original version",
+    "blankHint": "The documents as PDF without a particular client: the company details and terms are filled in, the client's fields are left empty.",
     "pickHint": "Pick a template to edit. The text is HTML source; the PDF is generated from it.",
     "restoreTitle": "Restore the original template",
     "restoreBody": "Your text is replaced with the example template from the app and cannot be recovered.",
@@ -380,6 +381,9 @@
     "openConsent": "Open the ANAF consent page",
     "authCode": "Authorization code",
     "tokenInfo": "CIF: {{cif}} · Token expires: {{expires}} · Last refresh: {{refreshed}}",
+    "refreshNow": "Refresh now",
+    "refreshing": "Refreshing…",
+    "refreshedToast": "ANAF token refreshed",
     "setEnv": "Set {{clientId}} and {{clientSecret}} in {{envFile}} (the OAuth app registered on the ANAF portal), then come back here."
   },
   "sequence": {

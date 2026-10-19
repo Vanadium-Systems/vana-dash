@@ -18,7 +18,7 @@ import {
 type BillingClientRow = typeof billingClients.$inferSelect
 
 export interface ContractRenderData {
-  client: BillingClientRow
+  client: ClientTokensInput['client']
   details: ContractDetails
   monthlyPriceFormatted: string
 }
@@ -277,9 +277,14 @@ function anexaTokens(data: ContractRenderData, terms: ContractTerms, fragments: 
   }
 }
 
+type AddendumFields = Pick<
+  ContractAddendum,
+  'number' | 'issuedAt' | 'oldPriceNote' | 'newPriceNote' | 'reason' | 'effectiveDateNote' | 'reversionNote' | 'temporary'
+>
+
 function actTokens(
-  addendum: ContractAddendum,
-  client: BillingClientRow,
+  addendum: AddendumFields,
+  client: ClientTokensInput['client'],
   contractInfo: { nrContract: string; dataContract: string },
   terms: ContractTerms,
   fragments: ContractFragments,
@@ -324,14 +329,57 @@ export function renderAnexaHtml(
 }
 
 export function renderActAditionalHtml(
-  addendum: ContractAddendum,
-  client: BillingClientRow,
+  addendum: AddendumFields,
+  client: ClientTokensInput['client'],
   contractInfo: { nrContract: string; dataContract: string },
   terms: ContractTerms = DEFAULT_CONTRACT_TERMS,
   bodyHtml: string = CONTRACT_TEMPLATE_BODIES['act-aditional'],
   fragments: ContractFragments = DEFAULT_CONTRACT_FRAGMENTS,
 ): string {
   return renderTemplateBody(bodyHtml, actTokens(addendum, client, contractInfo, terms, fragments))
+}
+
+// A blank copy of a document, to read or fill in by hand before the client exists in the app.
+// Every client-specific value becomes a dotted line; the provider and the terms stay filled in.
+const BLANK = '……………………'
+
+export function renderBlankHtml(
+  key: ContractTemplateKey,
+  terms: ContractTerms,
+  bodyHtml: string,
+  fragments: ContractFragments,
+): string {
+  const client = { name: BLANK, address: BLANK, regCom: BLANK, cif: BLANK, contactName: BLANK, contactTitle: BLANK }
+  if (key === 'act-aditional') {
+    const addendum = {
+      number: 0,
+      issuedAt: BLANK,
+      oldPriceNote: BLANK,
+      newPriceNote: BLANK,
+      reason: BLANK,
+      effectiveDateNote: BLANK,
+      reversionNote: null,
+      temporary: false,
+    }
+    const tokens = { ...actTokens(addendum, client, { nrContract: BLANK, dataContract: BLANK }, terms, fragments), actNumar: BLANK }
+    return renderTemplateBody(bodyHtml, tokens)
+  }
+  const details: ContractDetails = {
+    nrContract: BLANK,
+    dataContract: BLANK,
+    taxaInitiere: BLANK,
+    facturareTip: BLANK,
+    operatoriGestiune: BLANK,
+    operatoriTeren: BLANK,
+    puncteLucru: BLANK,
+    flux: BLANK,
+    moduleAddon: BLANK,
+    conditiiSpeciale: BLANK,
+  }
+  const data = { client, details, monthlyPriceFormatted: BLANK }
+  return key === 'contract-saas'
+    ? renderTemplateBody(bodyHtml, saasTokens(data, terms, fragments))
+    : renderTemplateBody(bodyHtml, anexaTokens(data, terms, fragments))
 }
 
 export { CONTRACT_TEMPLATE_BODIES, CONTRACT_TEMPLATE_KEYS, CONTRACT_TEMPLATE_PLACEHOLDERS, DEFAULT_CONTRACT_FRAGMENTS }
