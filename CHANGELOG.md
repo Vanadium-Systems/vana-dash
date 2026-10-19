@@ -4,6 +4,13 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-19: Pull requests paused
+
+### Changed
+- Pull requests from outside the company are not accepted for now; issues still are. `CLA.md` is
+  removed, along with its checkbox in the pull request template, until the terms for outside
+  contributions are settled.
+
 ## 2026-10-19: Safer unsubscribe and platform URL check
 
 ### Fixed

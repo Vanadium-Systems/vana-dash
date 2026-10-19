@@ -3,15 +3,14 @@
 Thanks for looking. VanaDash is one company's back office made public, so the bar for a change
 is simple: it must keep working for the people who use it every day.
 
-Issues, pull requests and code comments are in English.
+## Pull requests are not accepted for now
 
-## Before you start
+Issues are welcome: bugs, questions, a connector you would like to see. Pull requests from
+outside the company are closed without review for the time being, because the terms under which
+a contribution could be accepted are not settled yet. You are free to fork under the
+[licence](LICENSE.md); the rest of this file describes how the code is kept, which helps if you do.
 
-- Bug fixes, translations and connectors for other countries are welcome as pull requests.
-- New modules, and changes to how access works, start as an issue. The app is deliberately
-  small; a feature nobody here uses will probably be declined, however well it is built.
-- Your first pull request asks you to accept the [CLA](CLA.md). The project is
-  [source-available](LICENSE.md), and the CLA is what lets it also be licensed commercially.
+Issues and code comments are in English.
 
 ## Setup
 
@@ -90,4 +89,4 @@ One change per pull request, with a description of what it does and how you chec
 changes come with a generated migration (`./dev db generate`); never edit a migration that has
 already shipped.
 
-Merging to `main` deploys to production, so a maintainer reviews and merges every pull request.
+Merging to `main` deploys to production.

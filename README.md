@@ -70,8 +70,8 @@ The neutral modules work as they are. To use the money side elsewhere you would 
 3. the exchange-rate source ([`shared/lib/bnr.ts`](backend/src/shared/lib/bnr.ts));
 4. the contract templates, which are Romanian legal text.
 
-Start with [`docs/CONNECTOR_GUIDE.md`](docs/CONNECTOR_GUIDE.md). A connector for another country
-is the most useful contribution this project can receive.
+Start with [`docs/CONNECTOR_GUIDE.md`](docs/CONNECTOR_GUIDE.md). Pull requests are not accepted
+for now (see [CONTRIBUTING.md](CONTRIBUTING.md)), but an issue saying which country you need helps.
 
 ## Run it locally
 
@@ -149,5 +149,6 @@ Write to <contact@vanadium.systems>.
 
 ## Contributing and security
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Report vulnerabilities
-privately, as described in [SECURITY.md](SECURITY.md).
+Pull requests are not accepted for now; issues are. [CONTRIBUTING.md](CONTRIBUTING.md) says why
+and how the code is kept. Report vulnerabilities privately, as described in
+[SECURITY.md](SECURITY.md).
