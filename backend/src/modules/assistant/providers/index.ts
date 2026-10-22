@@ -29,6 +29,15 @@ async function ensureSeeded(): Promise<void> {
         enabled: true,
       },
       { provider: 'openrouter', models: [], defaultModel: null, enabled: false },
+      {
+        provider: 'local',
+        models: [
+          { id: 'ista', label: tr('errors.assistant.models.localNormal') },
+          { id: 'swift', label: tr('errors.assistant.models.localUnrestricted') },
+        ],
+        defaultModel: 'ista',
+        enabled: false,
+      },
     ])
     .onConflictDoNothing({ target: assistantProviders.provider })
 }
@@ -62,7 +71,11 @@ export async function listProviderSettings(): Promise<Array<{
   return ASSISTANT_PROVIDER_IDS.map((id) => {
     const row = rows.find((r) => r.provider === id)
     const envFallback =
-      id === 'anthropic' ? Boolean(config.anthropic.apiKey) : id === 'openrouter' ? Boolean(config.openrouter.apiKey) : false
+      id === 'anthropic'
+        ? Boolean(config.anthropic.apiKey)
+        : id === 'openrouter'
+          ? Boolean(config.openrouter.apiKey)
+          : Boolean(config.localAi.apiKey)
     let apiKeyPreview: string | null = null
     if (row?.apiKeyEnc) {
       try {
@@ -77,7 +90,11 @@ export async function listProviderSettings(): Promise<Array<{
       isDefault: defaultProvider === id,
       baseUrl: row?.baseUrl ?? null,
       effectiveBaseUrl:
-        id === 'anthropic' ? null : row?.baseUrl || OPENROUTER_DEFAULT_BASE_URL,
+        id === 'anthropic'
+          ? null
+          : id === 'local'
+            ? row?.baseUrl || config.localAi.baseUrl || null
+            : row?.baseUrl || OPENROUTER_DEFAULT_BASE_URL,
       apiKeyPreview,
       hasEnvFallbackKey: envFallback,
       models: row?.models ?? [],
@@ -89,7 +106,7 @@ export async function listProviderSettings(): Promise<Array<{
 async function getDefaultProvider(): Promise<AssistantProviderId> {
   const [row] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, DEFAULT_PROVIDER_KEY))
   const value = row ? (row.value as string) : null
-  return value === 'openrouter' ? 'openrouter' : 'anthropic'
+  return value === 'openrouter' || value === 'local' ? value : 'anthropic'
 }
 
 const DEFAULT_PROVIDER_KEY = 'assistant.default_provider'
@@ -150,13 +167,32 @@ export async function listAvailableModels(): Promise<
 export async function buildActiveProvider(override: string | null | undefined): Promise<{ provider: AssistantProvider; id: AssistantProviderId }> {
   await ensureSeeded()
   const requested = override ?? (await getDefaultProvider())
-  const id: AssistantProviderId = requested === 'openrouter' ? 'openrouter' : 'anthropic'
+  const id: AssistantProviderId = requested === 'openrouter' || requested === 'local' ? requested : 'anthropic'
   const row = await getRow(id)
 
   if (id === 'anthropic') {
     const apiKey = row?.apiKeyEnc ? decryptApiKey(row.apiKeyEnc) : config.anthropic.apiKey
     if (!apiKey) throw new Error(tr('errors.assistant.anthropicKeyMissing'))
     return { provider: createAnthropicProvider(apiKey), id }
+  }
+
+  if (id === 'local') {
+    if (!row?.enabled) throw new Error(tr('errors.assistant.localOff'))
+    const baseUrl = row.baseUrl || config.localAi.baseUrl
+    if (!baseUrl) throw new Error(tr('errors.assistant.localNotConfigured'))
+    const apiKey = row.apiKeyEnc ? decryptApiKey(row.apiKeyEnc) : config.localAi.apiKey
+    return {
+      provider: createOpenRouterProvider({
+        apiKey,
+        baseUrl,
+        id: 'local',
+        label: 'Local',
+        timeoutMs: config.localAi.timeoutMs,
+        maxTokens: config.localAi.maxTokens,
+        offlineMessage: tr('errors.assistant.localOffline'),
+      }),
+      id,
+    }
   }
 
   if (row && !row.enabled) throw new Error(tr('errors.assistant.openRouterOff'))
@@ -171,5 +207,6 @@ export async function resolveModel(conversationModel: string | null | undefined,
   const row = await getRow(providerId)
   if (row?.defaultModel) return row.defaultModel
   if (providerId === 'anthropic') return config.anthropic.model
+  if (providerId === 'local') throw new Error(tr('errors.assistant.localNoDefaultModel'))
   throw new Error(tr('errors.assistant.openRouterNoDefaultModel'))
 }

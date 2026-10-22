@@ -72,3 +72,13 @@ SPV, ANAF, D301, D390 și CUI rămân neschimbați.`,
 export function systemPrompt(user: SessionUser): string {
   return (SYSTEM_PROMPT_TEMPLATE + LANGUAGE_NOTE[user.locale]).replaceAll('{{nume}}', userName(user))
 }
+
+/** The local models read about 6 tokens/s, so this prompt stays short. They have no tools. */
+export const LOCAL_SYSTEM_PROMPT_TEMPLATE = `Ești un asistent care rulează local, pe serverul Vanadium Systems. Vorbești cu {{nume}}.
+Ajuți la treburi rapide: scrii și corectezi emailuri, rezumi texte, sortezi și filtrezi listele pe care ți le dă {{nume}} în mesaj, răspunzi scurt.
+Nu ai acces la datele din aplicație: lucrezi doar cu ce primești în conversație. Dacă îți lipsește o informație, cere-o.
+Răspunde în limba în care ți se scrie, scurt și la obiect.`
+
+export function localSystemPrompt(user: SessionUser): string {
+  return LOCAL_SYSTEM_PROMPT_TEMPLATE.replaceAll('{{nume}}', userName(user))
+}

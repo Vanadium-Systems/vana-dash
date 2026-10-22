@@ -7,12 +7,13 @@ import * as quota from './quota.js'
 import * as scheduledService from './tools/scheduled.js'
 import * as providers from './providers/index.js'
 import { ProviderIdParamsSchema, ProviderUpdateSchema } from './providers-schema.js'
+import { ASSISTANT_PROVIDER_IDS } from './providers/types.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 // Modelele nu mai sunt un enum hardcodat — vin din assistant_providers (editabile din UI),
 // cu fallback pe ASSISTANT_MODELS. Validarea rămâne la service (contra listei disponibile).
 const ModelSchema = z.string().trim().min(1)
-const ProviderOverrideSchema = z.enum(['anthropic', 'openrouter'])
+const ProviderOverrideSchema = z.enum(ASSISTANT_PROVIDER_IDS)
 
 const SendMessageSchema = z.object({ text: z.string().min(1) })
 // .nullish(), nu .optional(): Fastify 5 livrează req.body = null pe POST-ul fără corp trimis

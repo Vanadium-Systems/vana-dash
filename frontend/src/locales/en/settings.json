@@ -2,6 +2,7 @@
   "providers": {
     "anthropicHint": "The key from env is used when you do not set one here.",
     "openRouterHint": "ox/OpenAI-compatible models through the chat/completions API.",
+    "localHint": "The models on our own server, over the private network. The address ends in /v1. They get no tools and none of the app data; they answer slowly.",
     "setDefault": "set as default",
     "active": "active",
     "apiKey": "API key",

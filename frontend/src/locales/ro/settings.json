@@ -2,6 +2,7 @@
   "providers": {
     "anthropicHint": "Cheie din env folosită când nu setezi una aici.",
     "openRouterHint": "Modele ox/OpenAI-compatible prin API-ul chat/completions.",
+    "localHint": "Modelele de pe serverul nostru, prin rețeaua privată. Adresa se termină în /v1. Nu primesc tool-uri și nici datele din aplicație; răspund încet.",
     "setDefault": "setează implicit",
     "active": "activ",
     "apiKey": "Cheie API",

@@ -35,6 +35,7 @@ interface ProviderSettings {
 const PROVIDER_META: Record<string, { title: string; hint: string }> = {
   anthropic: { title: 'Anthropic (Claude)', hint: t('settings:providers.anthropicHint') },
   openrouter: { title: 'OpenRouter', hint: t('settings:providers.openRouterHint') },
+  local: { title: 'Local (llama.cpp)', hint: t('settings:providers.localHint') },
 }
 
 function ProviderCard({ settings }: { settings: ProviderSettings }) {

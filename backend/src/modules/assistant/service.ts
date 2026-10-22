@@ -6,7 +6,7 @@ import { loadSessionUser, userName, type SessionUser } from '../../shared/lib/se
 import { buildAssistantTools, confirmExecutors, toolFeature, type PendingConfirmation } from './tools/index.js'
 import { checkQuota, recordUsage } from './quota.js'
 import type { AssistantModelId } from './models.js'
-import { systemPrompt } from './system-prompt.js'
+import { localSystemPrompt, systemPrompt } from './system-prompt.js'
 import { repairHistory } from './history.js'
 import { toNeutralTools, buildActiveProvider, resolveModel, type AssistantProviderId } from './providers/index.js'
 import { tr } from '../../shared/lib/i18n.js'
@@ -159,11 +159,13 @@ async function* driveTurn(
     yield { type: 'error', message: quota.message }
     return
   }
-  const betaTools = await buildAssistantTools({ onConfirmRequired: (p) => pending.push(p), conversationId, user })
-  const tools = toNeutralTools(betaTools)
-
   const { provider, id: providerId } = await buildActiveProvider(providerOverride)
   const effectiveModel = await resolveModel(model ?? null, providerId)
+  // Local models only see what the person types: no tools, so no company data leaves for them.
+  const isLocal = providerId === 'local'
+  const tools = isLocal
+    ? []
+    : toNeutralTools(await buildAssistantTools({ onConfirmRequired: (p) => pending.push(p), conversationId, user }))
 
   let fullText = ''
   let producedContent = false
@@ -172,7 +174,7 @@ async function* driveTurn(
   try {
     for await (const event of provider.streamTurn({
       model: effectiveModel,
-      system: systemPrompt(user),
+      system: isLocal ? localSystemPrompt(user) : systemPrompt(user),
       tools,
       messages,
       shouldStopAfterTurn: () => pending.length > 0,

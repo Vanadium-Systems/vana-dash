@@ -362,13 +362,19 @@
     "models": {
       "haiku": "Haiku 4.5: fast, cheap",
       "opus": "Opus 4.8: the most capable",
-      "sonnet": "Sonnet 5: balanced"
+      "sonnet": "Sonnet 5: balanced",
+      "localNormal": "Normal (local)",
+      "localUnrestricted": "Unrestricted (local)"
     },
     "anthropicKeyMissing": "ANTHROPIC_API_KEY is not configured; see Settings → Assistant",
     "openRouterOff": "OpenRouter is switched off; switch it on in Settings → Assistant",
     "openRouterKeyMissing": "The OpenRouter key is missing; set it in Settings → Assistant",
     "openRouterNoDefaultModel": "No default model is configured for OpenRouter; pick one in Settings",
     "openRouterNoBody": "The OpenRouter response has no body",
+    "localOff": "The local assistant is switched off. Switch it on in Settings → Assistant.",
+    "localNotConfigured": "The local assistant has no server address. Set it in Settings → Assistant or in LOCAL_AI_BASE_URL.",
+    "localOffline": "The local assistant does not answer: the server is off or offline. Try again later or pick a Claude model.",
+    "localNoDefaultModel": "The local assistant has no default model. Pick one in Settings → Assistant.",
     "streamError": "error in the stream",
     "unknownTool": "Unknown tool: {{name}}",
     "toolFailed": "Error running the tool: {{message}}",

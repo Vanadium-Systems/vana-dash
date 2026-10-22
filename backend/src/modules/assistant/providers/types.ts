@@ -42,5 +42,5 @@ export interface AssistantProvider {
   streamTurn(params: ProviderTurnParams): AsyncGenerator<ProviderTurnEvent>
 }
 
-export const ASSISTANT_PROVIDER_IDS = ['anthropic', 'openrouter'] as const
+export const ASSISTANT_PROVIDER_IDS = ['anthropic', 'openrouter', 'local'] as const
 export type AssistantProviderId = (typeof ASSISTANT_PROVIDER_IDS)[number]

@@ -364,13 +364,19 @@
     "models": {
       "haiku": "Haiku 4.5 — rapid, ieftin",
       "opus": "Opus 4.8 — cel mai capabil",
-      "sonnet": "Sonnet 5 — echilibrat"
+      "sonnet": "Sonnet 5 — echilibrat",
+      "localNormal": "Normal (local)",
+      "localUnrestricted": "Fără restricții (local)"
     },
     "anthropicKeyMissing": "ANTHROPIC_API_KEY nu e configurat — vezi Setări → Asistent",
     "openRouterOff": "OpenRouter e dezactivat — activează-l din Setări → Asistent",
     "openRouterKeyMissing": "Cheie OpenRouter lipsă — configureaz-o din Setări → Asistent",
     "openRouterNoDefaultModel": "Niciun model implicit configurat pentru OpenRouter — alege unul din Setări",
     "openRouterNoBody": "Răspuns OpenRouter fără body",
+    "localOff": "Asistentul local e oprit. Pornește-l din Setări → Asistent.",
+    "localNotConfigured": "Asistentul local nu are adresa serverului. Pune-o în Setări → Asistent sau în LOCAL_AI_BASE_URL.",
+    "localOffline": "Asistentul local nu răspunde: serverul e oprit sau fără rețea. Încearcă mai târziu sau alege un model Claude.",
+    "localNoDefaultModel": "Asistentul local nu are un model implicit. Alege unul din Setări → Asistent.",
     "streamError": "eroare în stream",
     "unknownTool": "Tool necunoscut: {{name}}",
     "toolFailed": "Eroare la executarea tool-ului: {{message}}",

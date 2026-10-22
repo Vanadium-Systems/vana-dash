@@ -219,6 +219,16 @@ export const config = {
     apiKey: process.env.OPENROUTER_API_KEY ?? '',
   },
 
+  // Self-hosted llama-server for the local assistant, reached over a private network. Empty URL =
+  // the provider reports "not configured" on first use instead of failing at boot. The models are
+  // slow on CPU, hence the long timeout and the cap on generated tokens.
+  localAi: {
+    baseUrl: process.env.LOCAL_AI_BASE_URL ?? '',
+    apiKey: process.env.LOCAL_AI_API_KEY ?? '',
+    timeoutMs: Number(process.env.LOCAL_AI_TIMEOUT_MS ?? 1_800_000),
+    maxTokens: Number(process.env.LOCAL_AI_MAX_TOKENS ?? 1500),
+  },
+
   // Notificări native APK prin FCM (PLAN.md Contract C) — service account JSON-ul complet al
   // proiectului Firebase, ca string. Gol implicit = sendFcm() e no-op silențios (pattern
   // identic VAPID), web-push-ul browserelor continuă neafectat.

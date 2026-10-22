@@ -205,3 +205,47 @@ describe('createOpenRouterProvider — bucla de tool-uri', () => {
     }).rejects.toThrow(/tool_call_id fără răspuns \(400\)/)
   })
 })
+
+describe('createOpenRouterProvider — local server options', () => {
+  const local = (extra: Record<string, unknown> = {}) =>
+    createOpenRouterProvider({ apiKey: 'k', baseUrl: 'http://llm.example.com/v1', id: 'local', label: 'Local', maxTokens: 900, offlineMessage: 'OFFLINE', ...extra })
+
+  async function drain(provider: ReturnType<typeof createOpenRouterProvider>) {
+    const events: Array<Record<string, unknown>> = []
+    for await (const event of provider.streamTurn({ model: 'ista', system: 'S', tools: [], messages: [], shouldStopAfterTurn: noopStop })) {
+      events.push(event as Record<string, unknown>)
+    }
+    return events
+  }
+
+  it('reports its own id and sends max_tokens, without an empty tools array', async () => {
+    const bodies: Array<Record<string, unknown>> = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string | URL, init?: RequestInit) => {
+        bodies.push(JSON.parse(String(init?.body)))
+        return sseResponse([{ choices: [{ delta: { content: 'ok' } }] }, { choices: [{ delta: {}, finish_reason: 'stop' }] }])
+      }),
+    )
+    const provider = local()
+    expect(provider.id).toBe('local')
+    await drain(provider)
+    expect(bodies[0]?.max_tokens).toBe(900)
+    expect(bodies[0]).not.toHaveProperty('tools')
+  })
+
+  it('a refused connection becomes the offline message', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('fetch failed') }))
+    await expect(drain(local())).rejects.toThrow('OFFLINE')
+  })
+
+  it('a timeout becomes the offline message', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new DOMException('timed out', 'TimeoutError') }))
+    await expect(drain(local({ timeoutMs: 5 }))).rejects.toThrow('OFFLINE')
+  })
+
+  it('an HTTP error keeps the status and uses the label', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('bad key', { status: 401 })))
+    await expect(drain(local())).rejects.toThrow(/Local returned 401/)
+  })
+})

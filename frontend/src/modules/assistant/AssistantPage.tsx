@@ -57,7 +57,7 @@ interface ScheduledRunRow {
 interface AssistantModel {
   id: string
   label: string
-  provider: 'anthropic' | 'openrouter'
+  provider: 'anthropic' | 'openrouter' | 'local'
   contextWindow?: number
   inputPricePerMtok?: number
   outputPricePerMtok?: number

@@ -135,57 +135,84 @@ interface AccumulatedToolCall {
 export interface OpenRouterProviderOptions {
   apiKey: string
   baseUrl?: string | null
+  /** The local llama-server reuses this transport under its own provider id. */
+  id?: 'openrouter' | 'local'
+  /** Name shown in error messages. */
+  label?: string
+  timeoutMs?: number
+  maxTokens?: number
+  /** Replaces network errors and timeouts, so the person reads "server offline", not "fetch failed". */
+  offlineMessage?: string
 }
 
 export function createOpenRouterProvider(options: OpenRouterProviderOptions): AssistantProvider {
   const baseUrl = options.baseUrl?.replace(/\/$/, '') || OPENROUTER_DEFAULT_BASE_URL
+  const label = options.label ?? 'OpenRouter'
+  const isNetworkFailure = (err: unknown) =>
+    err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError' || err.message === 'fetch failed')
 
   return {
-    id: 'openrouter',
+    id: options.id ?? 'openrouter',
     async *streamTurn(params: ProviderTurnParams): AsyncGenerator<ProviderTurnEvent> {
       const messages: OpenAiMessage[] = [{ role: 'system', content: params.system }, ...anthropicToOpenAiMessages(params.messages)]
 
       while (true) {
-        const res = await fetch(`${baseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${options.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: params.model,
-            messages,
-            stream: true,
-            usage: { include: true },
-            tools: params.tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } })),
-          }),
-        })
+        let res: Response
+        try {
+          res = await fetch(`${baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${options.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: params.model,
+              messages,
+              stream: true,
+              usage: { include: true },
+              ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
+              // Some OpenAI-compatible servers reject an empty tools array.
+              ...(params.tools.length > 0
+                ? { tools: params.tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } })) }
+                : {}),
+            }),
+            ...(options.timeoutMs ? { signal: AbortSignal.timeout(options.timeoutMs) } : {}),
+          })
+        } catch (err) {
+          if (options.offlineMessage && isNetworkFailure(err)) throw new Error(options.offlineMessage)
+          throw err
+        }
         if (!res.ok) {
           const detail = await res.text().catch(() => '')
-          throw new Error(`OpenRouter returned ${res.status}: ${detail.slice(0, 300)}`)
+          throw new Error(`${label} returned ${res.status}: ${detail.slice(0, 300)}`)
         }
 
         let text = ''
         let usage: { inputTokens: number; outputTokens: number } | undefined
         const toolAccumulators = new Map<number, AccumulatedToolCall>()
-        for await (const chunk of parseSse(res)) {
-          if (chunk.error) throw new Error(`OpenRouter: ${chunk.error.message ?? tr('errors.assistant.streamError')}${chunk.error.code != null ? ` (${chunk.error.code})` : ''}`)
-          if (chunk.usage?.prompt_tokens != null) {
-            usage = { inputTokens: chunk.usage.prompt_tokens, outputTokens: chunk.usage.completion_tokens ?? 0 }
+        try {
+          for await (const chunk of parseSse(res)) {
+            if (chunk.error) throw new Error(`${label}: ${chunk.error.message ?? tr('errors.assistant.streamError')}${chunk.error.code != null ? ` (${chunk.error.code})` : ''}`)
+            if (chunk.usage?.prompt_tokens != null) {
+              usage = { inputTokens: chunk.usage.prompt_tokens, outputTokens: chunk.usage.completion_tokens ?? 0 }
+            }
+            const choice = chunk.choices?.[0]
+            if (!choice) continue
+            if (choice.delta?.content) {
+              text += choice.delta.content
+              yield { type: 'text_delta', text: choice.delta.content }
+            }
+            for (const call of choice.delta?.tool_calls ?? []) {
+              const acc = toolAccumulators.get(call.index) ?? { id: '', name: '', arguments: '' }
+              if (call.id) acc.id = call.id
+              if (call.function?.name) acc.name += call.function.name
+              if (call.function?.arguments) acc.arguments += call.function.arguments
+              toolAccumulators.set(call.index, acc)
+            }
           }
-          const choice = chunk.choices?.[0]
-          if (!choice) continue
-          if (choice.delta?.content) {
-            text += choice.delta.content
-            yield { type: 'text_delta', text: choice.delta.content }
-          }
-          for (const call of choice.delta?.tool_calls ?? []) {
-            const acc = toolAccumulators.get(call.index) ?? { id: '', name: '', arguments: '' }
-            if (call.id) acc.id = call.id
-            if (call.function?.name) acc.name += call.function.name
-            if (call.function?.arguments) acc.arguments += call.function.arguments
-            toolAccumulators.set(call.index, acc)
-          }
+        } catch (err) {
+          if (options.offlineMessage && isNetworkFailure(err)) throw new Error(options.offlineMessage)
+          throw err
         }
 
         const toolCalls = [...toolAccumulators.entries()].sort(([a], [b]) => a - b).map(([, v]) => v)
