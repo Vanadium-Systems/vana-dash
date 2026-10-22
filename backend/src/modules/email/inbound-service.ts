@@ -729,6 +729,7 @@ export async function getMessageAttachment(me: SessionUser, id: string): Promise
       createdAt: emailAttachments.createdAt,
       updatedAt: emailAttachments.updatedAt,
       deletedAt: emailAttachments.deletedAt,
+      tenantId: emailAttachments.tenantId,
       messageId: emailAttachments.messageId,
       storagePath: emailAttachments.storagePath,
       filename: emailAttachments.filename,

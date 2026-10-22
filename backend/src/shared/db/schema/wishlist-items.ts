@@ -2,10 +2,12 @@ import { boolean, index, numeric, pgTable, text, timestamp, uuid } from 'drizzle
 import { standardColumns } from './helpers.js'
 import { financialRecords } from './financial-records.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 export const wishlistItems = pgTable(
   'wishlist_items',
   {
+    ...tenantColumns,
     ...standardColumns,
     ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),

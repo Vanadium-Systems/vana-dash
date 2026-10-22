@@ -47,7 +47,7 @@ async function ensureSeeded(): Promise<void> {
       })),
     )
     .onConflictDoUpdate({
-      target: contractTemplates.key,
+      target: [contractTemplates.tenantId, contractTemplates.key],
       set: { bodyHtml: sql`excluded.body_html`, placeholders: sql`excluded.placeholders` },
       setWhere: sql`${contractTemplates.updatedAt} = ${contractTemplates.createdAt}`,
     })
@@ -117,7 +117,7 @@ export async function updateContractTerms(patch: z.infer<typeof ContractTermsUpd
   await db
     .insert(dashboardConfig)
     .values({ key: TERMS_CONFIG_KEY, value: next })
-    .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: sql`excluded.value`, updatedAt: new Date() } })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
   // Termenii intră în toate contractele generate de acum încolo, deci schimbarea lor e de
   // greutate contabilă și merge în istoric (C2), cu valorile vechi pe câmpurile atinse.
   await recordAudit({

@@ -62,7 +62,7 @@ export async function saveSettings(settings: BookingSettings): Promise<BookingSe
   await db
     .insert(dashboardConfig)
     .values({ key: SETTINGS_KEY, value: settings })
-    .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: sql`excluded.value`, updatedAt: new Date() } })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
   return settings
 }
 

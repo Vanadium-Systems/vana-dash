@@ -29,7 +29,7 @@ export async function replaceReservedNumbers(next: ReservedNumber[]): Promise<Re
   await db
     .insert(dashboardConfig)
     .values({ key: RESERVED_NUMBERS_CONFIG_KEY, value: sorted })
-    .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: sql`excluded.value`, updatedAt: new Date() } })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
   await recordAudit({
     action: 'contract.numere-rezervate.modificate',
     entityType: 'contract_reserved_numbers',

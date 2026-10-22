@@ -1,5 +1,6 @@
 import { boolean, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Conexiunea la broker (PLAN.md Track D — Wave 7): Trading212, cheie API unică (fără secret
 // separat — API-ul public T212 folosește o singură cheie în header). Criptată AES-256-GCM,
@@ -7,6 +8,7 @@ import { standardColumns } from './helpers.js'
 export const assetBrokers = pgTable(
   'asset_brokers',
   {
+    ...tenantColumns,
     ...standardColumns,
     broker: text('broker', { enum: ['trading212'] }).notNull(),
     apiKeyEnc: text('api_key_enc').notNull(),

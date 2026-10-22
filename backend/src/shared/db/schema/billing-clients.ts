@@ -3,6 +3,7 @@ import { boolean, date, integer, jsonb, numeric, pgEnum, pgTable, text, timestam
 import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { platforms } from './platforms.js'
+import { tenantColumns } from './tenant-column.js'
 
 export const billingClientCurrency = pgEnum('billing_client_currency', ['lei', 'eur'])
 export const billingClientCycle = pgEnum('billing_client_cycle', ['monthly', 'annual'])
@@ -12,6 +13,7 @@ export const billingClientCycle = pgEnum('billing_client_cycle', ['monthly', 'an
 export const billingClients = pgTable(
   'billing_clients',
   {
+    ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
     name: text('name').notNull(),
@@ -99,6 +101,6 @@ export const billingClients = pgTable(
   (table) => ({
     // Parțial: permite mai multe NULL (clienți nemapați/nebackfilled încă) cât timp valorile
     // ne-null rămân unice.
-    slugUnique: uniqueIndex('idx_billing_clients_slug_unique').on(table.slug).where(sql`${table.slug} IS NOT NULL`),
+    slugUnique: uniqueIndex('idx_billing_clients_slug_unique').on(table.tenantId, table.slug).where(sql`${table.slug} IS NOT NULL`),
   }),
 )

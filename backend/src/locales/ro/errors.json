@@ -413,5 +413,15 @@
     "noValidRate": "Niciun curs valabil în feed-ul BNR: {{errors}}",
     "noRateAtDate": "Niciun curs {{currency}} disponibil la sau înainte de {{dateIso}}, nici după un fetch BNR live"
   },
-  "rateLimited": "Prea multe încercări. Mai încearcă peste câteva minute."
+  "rateLimited": "Prea multe încercări. Mai încearcă peste câteva minute.",
+  "tenants": {
+    "notFound": "Firma nu există.",
+    "rlsRequired": "O firmă nouă se poate crea doar cu izolarea pornită (RLS_ENABLED=true). Altfel datele ei s-ar amesteca cu ale tale.",
+    "slugTaken": "Există deja o firmă cu numele ăsta.",
+    "ownerLocked": "Firma platformei nu se poate suspenda și nu i se pot opri funcționalități.",
+    "featureOwnerOnly": "Funcționalitatea {{feature}} e doar pentru firma platformei.",
+    "unknownFeature": "Funcționalitate necunoscută: {{feature}}.",
+    "headerForbidden": "Doar adminul platformei poate deschide altă firmă.",
+    "suspended": "Contul firmei e suspendat."
+  }
 }

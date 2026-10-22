@@ -13,6 +13,10 @@ export const config = {
   port: Number(process.env.PORT ?? 3001),
   host: process.env.HOST ?? '0.0.0.0',
   databaseUrl: required('DATABASE_URL'),
+  // Row-Level Security between companies. Off by default; when on, the app must connect with
+  // DATABASE_URL_APP, a role without superuser and without BYPASSRLS (RLS never applies to those).
+  rlsEnabled: process.env.RLS_ENABLED === 'true',
+  databaseUrlApp: process.env.DATABASE_URL_APP ?? '',
   jwtSecret: required('JWT_SECRET'),
   masterEncryptionKey: required('MASTER_ENCRYPTION_KEY'),
   frontendOrigin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5174',

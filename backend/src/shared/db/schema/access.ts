@@ -2,6 +2,7 @@ import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'dri
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
 import { emailThreads } from './email-threads.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Citit/necitit per om, nu per cutie (decizie Stefan, 2026-09-28): aceeași cutie poate fi la
 // doi oameni, iar unul care citește nu îl marchează citit și celuilalt. `last_read_at` e
@@ -10,6 +11,7 @@ import { emailThreads } from './email-threads.js'
 export const emailThreadReads = pgTable(
   'email_thread_reads',
   {
+    ...tenantColumns,
     ...standardColumns,
     userId: uuid('user_id')
       .notNull()
@@ -28,6 +30,7 @@ export const emailThreadReads = pgTable(
 export const assistantUsage = pgTable(
   'assistant_usage',
   {
+    ...tenantColumns,
     ...standardColumns,
     userId: uuid('user_id')
       .notNull()

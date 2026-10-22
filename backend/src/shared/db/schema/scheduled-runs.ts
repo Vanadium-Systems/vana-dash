@@ -2,12 +2,14 @@ import { index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-c
 import { standardColumns } from './helpers.js'
 import { assistantConversations } from './assistant-conversations.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Task-uri programate din chat (PLAN.md Contract B): reminder-e și rapoarte de asistent,
 // executate de jobs/scheduled-tick.ts (scan la minut pe (status, run_at)).
 export const scheduledRuns = pgTable(
   'scheduled_runs',
   {
+    ...tenantColumns,
     ...standardColumns,
     // Autorul = ale cărui drepturi rulează. Recalculat la fiecare rulare (BE-5).
     ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),

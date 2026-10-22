@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { check, date, index, jsonb, numeric, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // jeffbot: an external paper trading bot. It pushes a snapshot every 5 minutes to
 // POST /api/v1/integrations/jeffbot/snapshot. Everything is idempotent (upsert on the unique
@@ -10,6 +11,7 @@ import { standardColumns } from './helpers.js'
 export const jeffbotState = pgTable(
   'jeffbot_state',
   {
+    ...tenantColumns,
     ...standardColumns,
     key: text('key').notNull().default('current'),
     payload: jsonb('payload').notNull(),
@@ -26,6 +28,7 @@ const MARKETS = ['crypto', 'stocks'] as const
 export const jeffbotEquityPoints = pgTable(
   'jeffbot_equity_points',
   {
+    ...tenantColumns,
     ...standardColumns,
     market: text('market', { enum: MARKETS }).notNull().default('crypto'),
     key: text('key').notNull(),
@@ -41,6 +44,7 @@ export const jeffbotEquityPoints = pgTable(
 export const jeffbotTrades = pgTable(
   'jeffbot_trades',
   {
+    ...tenantColumns,
     ...standardColumns,
     market: text('market', { enum: MARKETS }).notNull().default('crypto'),
     sourceId: text('source_id').notNull(), // id-ul din SQLite-ul botului ("strat:17", "lgbm:3")
@@ -65,6 +69,7 @@ export const jeffbotTrades = pgTable(
 export const jeffbotReviews = pgTable(
   'jeffbot_reviews',
   {
+    ...tenantColumns,
     ...standardColumns,
     date: date('date').notNull(),
     kind: text('kind', { enum: ['daily', 'weekly'] }).notNull(),

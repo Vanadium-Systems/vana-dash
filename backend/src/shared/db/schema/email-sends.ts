@@ -3,11 +3,13 @@ import { standardColumns } from './helpers.js'
 import { emailSequenceEnrollments } from './email-sequences.js'
 import { emailTemplates } from './email-templates.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Istoric trimiteri (1:1 și bulk) — sursă de adevăr pentru dedup la bulk send.
 export const emailSends = pgTable(
   'email_sends',
   {
+    ...tenantColumns,
     ...standardColumns,
     // nullable — compose liber fără template
     templateId: uuid('template_id').references(() => emailTemplates.id, { onDelete: 'set null' }),

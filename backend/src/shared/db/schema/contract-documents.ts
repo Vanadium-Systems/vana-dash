@@ -3,6 +3,7 @@ import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { billingClients } from './billing-clients.js'
 import { contractAddenda } from './contract-addenda.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Ledger-ul PDF-urilor contractuale generate — servește și ca bază pt. wave-ul CertSign
 // ulterior (status semnat/nesemnat per DOCUMENT, nu per client ca-n sistemul YAML vechi).
@@ -11,6 +12,7 @@ import { contractAddenda } from './contract-addenda.js'
 export const contractDocuments = pgTable(
   'contract_documents',
   {
+    ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
     billingClientId: uuid('billing_client_id')

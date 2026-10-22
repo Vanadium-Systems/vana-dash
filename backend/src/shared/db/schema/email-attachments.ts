@@ -1,9 +1,11 @@
 import { pgTable, text, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { emailMessages } from './email-messages.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Atașamente descărcate de la Resend, stocate local (pattern identic cu documents din Accounting).
 export const emailAttachments = pgTable('email_attachments', {
+  ...tenantColumns,
   ...standardColumns,
   messageId: uuid('message_id')
     .notNull()

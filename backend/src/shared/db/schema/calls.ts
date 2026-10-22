@@ -4,12 +4,14 @@ import { billingClients } from './billing-clients.js'
 import { bookings } from './booking.js'
 import { standardColumns } from './helpers.js'
 import { prospects } from './prospects.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Video calls (Daily Prebuilt). The room lives at Daily; this row keeps the link we send,
 // the time window and, after the call, how long it lasted.
 export const calls = pgTable(
   'calls',
   {
+    ...tenantColumns,
     ...standardColumns,
     title: text('title').notNull(),
     // Daily room name, 24 random characters: the room is public, the name is the lock.

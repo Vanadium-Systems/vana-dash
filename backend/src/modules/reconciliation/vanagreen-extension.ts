@@ -35,7 +35,7 @@ export async function setAutoExtendEnabled(enabled: boolean): Promise<void> {
   await db
     .insert(dashboardConfig)
     .values({ key: TOGGLE_KEY, value: enabled })
-    .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: sql`excluded.value`, updatedAt: new Date() } })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
 }
 
 /** Null dacă platforma 'vanagreen' nu e configurată în Platforme — apelanții tratează ca no-op. */

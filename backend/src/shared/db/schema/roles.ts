@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import { index, pgTable, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Rolurile de acces (PLAN.md C2). În Etapa 1 există o singură firmă, deci fără `tenant_id`
 // (vine în Etapa 3, pe tot inventarul). `features` = chei din shared/lib/features.ts; gol la
@@ -9,6 +10,7 @@ import { users } from './users.js'
 export const roles = pgTable(
   'roles',
   {
+    ...tenantColumns,
     ...standardColumns,
     name: text('name').notNull(),
     kind: text('kind', { enum: ['admin', 'manager', 'custom'] }).notNull().default('custom'),
@@ -18,7 +20,7 @@ export const roles = pgTable(
       .default(sql`'{}'::text[]`),
     createdByUserId: uuid('created_by_user_id').references((): AnyPgColumn => users.id, { onDelete: 'set null' }),
   },
-  (t) => [uniqueIndex('uq_roles_name').on(t.name)],
+  (t) => [uniqueIndex('uq_roles_name').on(t.tenantId, t.name)],
 )
 
 // Token-uri de unică folosire: invitație (72h), resetare de parolă (1h), înscriere (24h).
@@ -27,6 +29,7 @@ export const roles = pgTable(
 export const userTokens = pgTable(
   'user_tokens',
   {
+    ...tenantColumns,
     ...standardColumns,
     userId: uuid('user_id')
       .notNull()
@@ -48,6 +51,7 @@ export const userTokens = pgTable(
 export const userMailboxes = pgTable(
   'user_mailboxes',
   {
+    ...tenantColumns,
     ...standardColumns,
     userId: uuid('user_id')
       .notNull()

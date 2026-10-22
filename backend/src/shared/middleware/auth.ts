@@ -2,7 +2,10 @@ import { eq } from 'drizzle-orm'
 import type { FastifyReply, FastifyRequest, onRequestHookHandler } from 'fastify'
 import fp from 'fastify-plugin'
 import { db } from '../db/client.js'
-import { users } from '../db/schema/index.js'
+import { platformAccessLog, users } from '../db/schema/index.js'
+import { tr } from '../lib/i18n.js'
+import { findActiveTenant } from '../lib/tenant-loop.js'
+import { withRlsBypass } from '../lib/tenancy.js'
 import { safeEqual } from '../lib/crypto.js'
 import { ENABLED_LOCALES, isLocale } from '../lib/locale.js'
 import { actorStore, runWithFreshActor } from '../lib/request-context.js'
@@ -24,8 +27,8 @@ declare module '@fastify/jwt' {
   interface FastifyJWT {
     // `sv` = session_version la emiterea tokenului; o sesiune veche (parolă resetată, user
     // dezactivat) primește 401 chiar dacă tokenul nu a expirat.
-    payload: { sub: string; sv: number }
-    user: { sub: string; sv: number }
+    payload: { sub: string; sv: number; tid?: string }
+    user: { sub: string; sv: number; tid?: string }
   }
 }
 
@@ -41,20 +44,38 @@ export const authPlugin = fp(async (app) => {
   })
 
   const authenticate = async (req: FastifyRequest, reply: FastifyReply) => {
-    let payload: { sub: string; sv: number }
+    let payload: { sub: string; sv: number; tid?: string }
     try {
       payload = await req.jwtVerify()
     } catch {
       return await reply.code(401).send({ success: false, error: 'Unauthorized' })
     }
 
-    const me = await loadSessionUser(payload.sub)
+    // The company is not known before this row is read, so the lookup crosses companies.
+    const me = await withRlsBypass(() => loadSessionUser(payload.sub))
     if (!me) return await reply.code(401).send({ success: false, error: 'Unauthorized' })
     // Dezactivat sau cu sesiunea invalidată (parolă schimbată/resetată): delogat imediat,
     // fără să aștepte expirarea tokenului. 'invited' nu ajunge aici — n-are încă parolă.
     if (me.status !== 'active' || me.sessionVersion !== payload.sv) {
       return await reply.code(401).send({ success: false, error: 'Unauthorized' })
     }
+    if (payload.tid && me.tenant && payload.tid !== me.tenant.id) {
+      return await reply.code(401).send({ success: false, error: 'Unauthorized' })
+    }
+    if (me.tenant && me.tenant.status !== 'active' && !me.tenant.isPlatformOwner) {
+      return await reply.code(403).send({ success: false, error: tr('errors.tenants.suspended') })
+    }
+    // The platform admin can look at another company. Every request made that way is logged.
+    let tenantId = me.tenant?.id
+    const asked = req.headers['x-tenant-id']
+    if (typeof asked === 'string' && asked !== tenantId) {
+      if (!me.isPlatformAdmin) return await reply.code(403).send({ success: false, error: tr('errors.tenants.headerForbidden') })
+      const target = /^[0-9a-f-]{36}$/i.test(asked) ? await findActiveTenant(asked) : null
+      if (!target) return await reply.code(404).send({ success: false, error: tr('errors.tenants.notFound') })
+      tenantId = target.id
+      await db.insert(platformAccessLog).values({ userId: me.id, tenantId, method: req.method, path: req.url.split('?')[0] ?? req.url, ip: req.ip })
+    }
+
     // Guard de funcționalitate: rută nouă → decizie nouă, nu implicit „merge" (catalogul
     // acoperă toate rutele sau serverul nu pornește, vezi feature-guard.ts).
     const required = featureForRequest(req, app.featureGuard)
@@ -72,12 +93,13 @@ export const authPlugin = fp(async (app) => {
       store.userId = me.id
       store.locale = me.locale
       store.displayCurrency = me.displayCurrency
+      store.tenantId = tenantId
     }
 
     // „Ultima activitate" din pagina Echipă. Cel mult o scriere pe minut și om, ca un poll
     // la 15s să nu devină un UPDATE pe fiecare cerere.
     if (!me.lastSeenAt || Date.now() - me.lastSeenAt.getTime() > LAST_SEEN_MIN_INTERVAL_MS) {
-      await db.update(users).set({ lastSeenAt: new Date() }).where(eq(users.id, me.id))
+      await withRlsBypass(() => db.update(users).set({ lastSeenAt: new Date() }).where(eq(users.id, me.id)))
     }
   }
   app.decorate('authenticate', authenticate)

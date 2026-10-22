@@ -2,6 +2,7 @@ import { index, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { archiveFolders } from './archive-folders.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Share pe folder, pe două niveluri (PLAN.md C2): `view` (vede conținutul) și `edit`
 // (încarcă, mută, șterge). Dreptul se moștenește în subarbore, deci un rând aici e suficient
@@ -10,6 +11,7 @@ import { users } from './users.js'
 export const archiveFolderShares = pgTable(
   'archive_folder_shares',
   {
+    ...tenantColumns,
     ...standardColumns,
     folderId: uuid('folder_id')
       .notNull()

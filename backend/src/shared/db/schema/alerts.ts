@@ -1,10 +1,12 @@
 import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { alertRules } from './alert-rules.js'
+import { tenantColumns } from './tenant-column.js'
 
 export const alerts = pgTable(
   'alerts',
   {
+    ...tenantColumns,
     ...standardColumns,
     ruleId: uuid('rule_id')
       .notNull()

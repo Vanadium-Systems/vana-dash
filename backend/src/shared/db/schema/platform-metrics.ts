@@ -1,10 +1,12 @@
 import { index, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { platforms } from './platforms.js'
+import { tenantColumns } from './tenant-column.js'
 
 export const platformMetrics = pgTable(
   'platform_metrics',
   {
+    ...tenantColumns,
     ...standardColumns,
     platformId: uuid('platform_id')
       .notNull()

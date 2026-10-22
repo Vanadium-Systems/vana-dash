@@ -3,6 +3,7 @@ import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { billingClients } from './billing-clients.js'
 import { platforms } from './platforms.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Extinsă în sprintul Accounting Hub: vana-dash e sursă primară de adevăr pentru
 // facturile EMISE (direction='out', source='generated') și agregator pentru cele
@@ -10,6 +11,7 @@ import { platforms } from './platforms.js'
 export const financialRecords = pgTable(
   'financial_records',
   {
+    ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
     type: text('type', { enum: ['invoice', 'expense', 'payment'] }).notNull(),
@@ -62,7 +64,7 @@ export const financialRecords = pgTable(
     index('ix_financial_records_payment').on(t.direction, t.paymentStatus),
     index('ix_financial_records_anaf_status').on(t.anafStatus),
     // O singură factură per număr alocat (partial: doar rândurile cu număr).
-    uniqueIndex('uq_financial_records_doc_number').on(t.documentNumber),
+    uniqueIndex('uq_financial_records_doc_number').on(t.tenantId, t.documentNumber),
     index('ix_financial_records_reverse_charge').on(t.reverseChargeType, t.issuedAt),
   ],
 )

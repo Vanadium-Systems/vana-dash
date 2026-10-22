@@ -1,12 +1,14 @@
 import { pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Token-uri FCM ale APK-ului Capacitor (PLAN.md Contract C). Web-push-ul browserelor
 // trăiește separat în push_subscriptions — notify() face fan-out pe ambele canale.
 export const deviceTokens = pgTable(
   'device_tokens',
   {
+    ...tenantColumns,
     ...standardColumns,
     ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
     token: text('token').notNull(),

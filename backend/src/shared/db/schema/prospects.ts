@@ -4,6 +4,7 @@ import { standardColumns } from './helpers.js'
 import { auditColumns, users } from './users.js'
 import { platforms } from './platforms.js'
 import { billingClients } from './billing-clients.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Prospects (CRM): local data only, no connector, like `notes` and `wishlist_items`. The
 // status is plain text, not a DB enum, so the vocabulary can grow without a migration (same
@@ -11,6 +12,7 @@ import { billingClients } from './billing-clients.js'
 export const prospects = pgTable(
   'prospects',
   {
+    ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
     name: text('name').notNull(),
@@ -47,7 +49,7 @@ export const prospects = pgTable(
     index('idx_prospects_score').on(t.score.desc()),
     index('idx_prospects_status').on(t.status),
     index('idx_prospects_assigned_user').on(t.assignedUserId),
-    uniqueIndex('idx_prospects_cif').on(t.cif).where(sql`${t.cif} IS NOT NULL`),
+    uniqueIndex('idx_prospects_cif').on(t.tenantId, t.cif).where(sql`${t.cif} IS NOT NULL`),
   ],
 )
 
@@ -55,6 +57,7 @@ export const prospects = pgTable(
 // pragurile scoring-ului, editabile din UI. Curbele din sub-scoruri rămân constante fixe în
 // scoring.ts (decizie de scop, vezi PLAN.md).
 export const prospectScoringConfig = pgTable('prospect_scoring_config', {
+  ...tenantColumns,
   ...standardColumns,
   budgetWeight: numeric('budget_weight', { precision: 4, scale: 3 }).notNull().default('0.25'),
   needWeight: numeric('need_weight', { precision: 4, scale: 3 }).notNull().default('0.30'),

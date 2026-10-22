@@ -23,7 +23,7 @@ export async function setNavLayout(input: z.infer<typeof NavLayoutUpdateSchema>)
   await db
     .insert(dashboardConfig)
     .values({ key: NAV_LAYOUT_KEY, value: input.items })
-    .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: sql`excluded.value`, updatedAt: new Date() } })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
   return input.items
 }
 
@@ -38,7 +38,7 @@ export async function setCompanyProfile(profile: CompanyProfile): Promise<Compan
   await db
     .insert(dashboardConfig)
     .values({ key: COMPANY_PROFILE_KEY, value: profile })
-    .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: sql`excluded.value`, updatedAt: new Date() } })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
   return profile
 }
 
@@ -60,6 +60,6 @@ export async function setOpsJobToggles(patch: Partial<OpsJobToggles>): Promise<O
   await db
     .insert(dashboardConfig)
     .values({ key: OPS_JOB_TOGGLES_KEY, value: next })
-    .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: sql`excluded.value`, updatedAt: new Date() } })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
   return next
 }

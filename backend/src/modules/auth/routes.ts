@@ -13,6 +13,7 @@ import { consumeUserToken, createUserToken } from '../../shared/lib/user-tokens.
 import { loadSessionUser, DEFAULT_NOTIFICATION_PREFS, type SessionUser } from '../../shared/lib/session.js'
 import { AcceptInviteSchema, ChangePasswordSchema, ForgotPasswordSchema, LoginBodySchema, PatchMeSchema, ResetPasswordSchema } from './schema.js'
 import { verifyCredentials } from './service.js'
+import { withRlsBypass } from '../../shared/lib/tenancy.js'
 
 export const SESSION_COOKIE = 'vana_session'
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
@@ -29,6 +30,7 @@ export function sessionPayload(me: SessionUser) {
       role: me.role ? { id: me.role.id, name: me.role.name, kind: me.role.kind } : null,
       status: me.status,
     },
+    tenant: me.tenant ? { id: me.tenant.id, name: me.tenant.name, isPlatformOwner: me.tenant.isPlatformOwner } : null,
     features: me.features,
     isPlatformAdmin: me.isPlatformAdmin,
     mailboxes: me.mailboxes,
@@ -66,18 +68,19 @@ export async function authRoutes(app: FastifyInstance) {
           maxAge: SESSION_MAX_AGE_SECONDS,
         })
 
-      const user = await verifyCredentials(email, password)
+      // Before login there is no company in the context; email addresses are unique across companies.
+      const user = await withRlsBypass(() => verifyCredentials(email, password))
       // Un user dezactivat primește același răspuns ca unul inexistent — altfel formularul
       // de login ar confirma că adresa există.
       if (!user || user.status !== 'active') {
         return reply.code(401).send({ success: false, error: tr('errors.auth.invalidCredentials') })
       }
 
-      const me = await loadSessionUser(user.id)
+      const me = await withRlsBypass(() => loadSessionUser(user.id))
       if (!me) return reply.code(401).send({ success: false, error: tr('errors.auth.invalidCredentials') })
 
       const token = await reply.jwtSign(
-        { sub: user.id, sv: user.sessionVersion },
+        { sub: user.id, sv: user.sessionVersion, ...(me.tenant ? { tid: me.tenant.id } : {}) },
         { expiresIn: SESSION_MAX_AGE_SECONDS },
       )
       return setSessionCookie(token).send({ success: true, data: sessionPayload(me) })
@@ -282,7 +285,10 @@ export async function passwordRoutes(app: FastifyInstance) {
       .where(eq(users.id, req.me.id))
     await recordAudit({ action: 'parola.schimbata', entityType: 'user', entityId: req.me.id })
 
-    const token = await reply.jwtSign({ sub: req.me.id, sv: nextVersion }, { expiresIn: SESSION_MAX_AGE_SECONDS })
+    const token = await reply.jwtSign(
+      { sub: req.me.id, sv: nextVersion, ...(req.me.tenant ? { tid: req.me.tenant.id } : {}) },
+      { expiresIn: SESSION_MAX_AGE_SECONDS },
+    )
     return reply
       .setCookie(SESSION_COOKIE, token, {
         httpOnly: true,

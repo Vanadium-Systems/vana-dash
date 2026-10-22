@@ -1,5 +1,6 @@
 import { index, jsonb, pgTable, text, timestamp, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Istoricul „cine a făcut ce" (PLAN.md C2). APPEND-ONLY: fără `updated_at` și fără
 // `deleted_at` (restul tabelelor au coloanele standard) — o intrare de audit nu se editează și
@@ -8,6 +9,7 @@ import { users } from './users.js'
 export const auditLog = pgTable(
   'audit_log',
   {
+    ...tenantColumns,
     id: uuid('id').primaryKey().defaultRandom(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     actorUserId: uuid('actor_user_id').references((): AnyPgColumn => users.id, { onDelete: 'set null' }),

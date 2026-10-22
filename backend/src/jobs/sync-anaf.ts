@@ -178,7 +178,7 @@ async function runAnafSync(): Promise<{ imported: number }> {
           // prin vana-dash, source='generated'), doar completăm metadatele ANAF pe rândul
           // existent, NU-i suprascriem suma/contrapartea (sursa noastră rămâne autoritativă
           // pt. propriile facturi emise).
-          target: financialRecords.documentNumber,
+          target: [financialRecords.tenantId, financialRecords.documentNumber],
           set: {
             anafMessageId: rawSql`EXCLUDED.anaf_message_id`,
             anafStatus: rawSql`EXCLUDED.anaf_status`,

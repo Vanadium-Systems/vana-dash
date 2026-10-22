@@ -3,6 +3,7 @@ import { boolean, check, index, integer, jsonb, pgTable, text, timestamp, unique
 import { DISPLAY_CURRENCIES, LOCALES } from '../../lib/locale.js'
 import { standardColumns } from './helpers.js'
 import { roles } from './roles.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Coloanele de autor (istoric „cine a făcut ce", PLAN.md C2). Nullable cu backfill = Stefan:
 // în Etapa 1 un singur om, deci valoarea vine acum, iar NOT NULL se pune când fiecare cale de
@@ -24,6 +25,7 @@ export interface NotificationPrefs {
 export const users = pgTable(
   'users',
   {
+    ...tenantColumns,
     ...standardColumns,
     email: text('email').notNull(),
     passwordHash: text('password_hash').notNull(),

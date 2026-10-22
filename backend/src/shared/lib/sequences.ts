@@ -16,7 +16,7 @@ export async function nextInvoiceNumber(key = 'invoice', tx?: DrizzleTx): Promis
 
 async function allocateWithinTx(tx: DrizzleTx, key: string): Promise<string> {
   // Lazy-init: prima emitere creează rândul cu config default (VAN-yyyy-0001).
-  await tx.insert(invoiceSequences).values({ key }).onConflictDoNothing({ target: invoiceSequences.key })
+  await tx.insert(invoiceSequences).values({ key }).onConflictDoNothing({ target: [invoiceSequences.tenantId, invoiceSequences.key] })
   const rows = await tx.select().from(invoiceSequences).where(eq(invoiceSequences.key, key)).for('update')
   const row = rows[0]
   if (!row) throw new Error(tr('errors.invoicing.sequenceKeyNotCreated', { key }))

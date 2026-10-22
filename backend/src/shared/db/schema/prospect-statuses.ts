@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { boolean, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Catalog de statusuri prospect editabil din UI (Wave 0, sprint de-hardcodare) — înlocuiește
 // STATUS_OPTIONS/STATUS_LABELS/STATUS_COLORS hardcodate în ProspectareTab.tsx. `colorToken` e
@@ -10,6 +11,7 @@ import { standardColumns } from './helpers.js'
 export const prospectStatuses = pgTable(
   'prospect_statuses',
   {
+    ...tenantColumns,
     ...standardColumns,
     key: text('key').notNull(),
     label: text('label').notNull(),
@@ -19,5 +21,5 @@ export const prospectStatuses = pgTable(
   },
   // Parțial (nu pe toate rândurile): un status șters (soft-delete) eliberează `key`-ul,
   // ca să poată fi recreat — la fel ca `idx_prospects_cif` (pattern existent).
-  (t) => [uniqueIndex('uq_prospect_statuses_key').on(t.key).where(sql`${t.deletedAt} IS NULL`)],
+  (t) => [uniqueIndex('uq_prospect_statuses_key').on(t.tenantId, t.key).where(sql`${t.deletedAt} IS NULL`)],
 )

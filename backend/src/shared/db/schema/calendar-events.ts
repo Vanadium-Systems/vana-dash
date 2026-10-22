@@ -2,6 +2,7 @@ import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } 
 import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Orar recurent + evenimente ad-hoc într-un singur tabel — recurrenceRule null = eveniment
 // unic, altfel RRULE (iCal) expandat server-side (modules/calendar/service.ts, lib. `rrule`).
@@ -13,6 +14,7 @@ import { users } from './users.js'
 export const calendarEvents = pgTable(
   'calendar_events',
   {
+    ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
     ownerUserId: uuid('owner_user_id')
@@ -47,6 +49,7 @@ export const calendarEvents = pgTable(
 export const calendarShares = pgTable(
   'calendar_shares',
   {
+    ...tenantColumns,
     ...standardColumns,
     // Cui îi aparține calendarul (owner_user_id), nu evenimentul.
     ownerUserId: uuid('owner_user_id')
@@ -68,6 +71,7 @@ export const calendarShares = pgTable(
 export const calendarEventAttendees = pgTable(
   'calendar_event_attendees',
   {
+    ...tenantColumns,
     ...standardColumns,
     eventId: uuid('event_id')
       .notNull()

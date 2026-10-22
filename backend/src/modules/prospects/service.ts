@@ -55,7 +55,7 @@ export async function createProspectStatus(input: CreateStatusInput) {
     // Indexul unic pe `key` e PARȚIAL (WHERE deleted_at IS NULL — vezi schema) — `where` aici
     // trebuie să oglindească exact predicatul, altfel Postgres nu poate infera arbitrul de
     // conflict ("no unique or exclusion constraint matching") și insert-ul aruncă, nu face 409.
-    .onConflictDoNothing({ target: prospectStatuses.key, where: isNull(prospectStatuses.deletedAt) })
+    .onConflictDoNothing({ target: [prospectStatuses.tenantId, prospectStatuses.key], where: isNull(prospectStatuses.deletedAt) })
     .returning()
   if (!row) throw new ProspectStatusKeyTakenError(tr('errors.prospects.statusExists', { key: input.key }))
   return row

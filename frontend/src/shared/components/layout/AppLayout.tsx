@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Download, Ellipsis, Inbox, LifeBuoy, LogOut, Megaphone, Search, User, X } from 'lucide-react'
+import { BookOpen, Building2, Download, Ellipsis, Inbox, LifeBuoy, LogOut, Megaphone, Search, User, X } from 'lucide-react'
 import { guideRouteOf } from '@/modules/help/guides'
 import { useSupportUnread } from '@/modules/support/support-api'
 import { isUnseen, visibleReleases } from '@/modules/updates/releases'
@@ -29,6 +29,7 @@ import { BrandMark } from '@/shared/components/BrandMark'
 import { sessionUserName } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
+import { getTenantOverride, setTenantOverride } from '@/shared/lib/tenant-override'
 
 // Shell-ul nou (Contractul F, sprint UI remake 2026-08-25): sidebar cu nav grupat pe etichete
 // mici, iteme compacte h-8, stare activă = fundal muted + text foreground; footer curat cu
@@ -121,6 +122,7 @@ export function AppLayout() {
   const { canInstall, promptInstall } = useInstallPrompt()
   const online = useOnline()
   const supportUnread = useSupportUnread()
+  const tenantOverride = getTenantOverride()
   const unseenUpdates = session ? visibleReleases(can).filter((release) => isUnseen(release, session.updatesSeenAt)).length : 0
   const helpUnread = unseenUpdates + (supportUnread.data?.mine ?? 0) + (supportUnread.data?.platform ?? 0)
 
@@ -245,6 +247,12 @@ export function AppLayout() {
                 <MenuCount count={supportUnread.data?.platform} label={t('common:shell.unread')} />
               </DropdownMenuItem>
             ) : null}
+            {session?.isPlatformAdmin ? (
+              <DropdownMenuItem onClick={() => navigate('/platform/tenants')}>
+                <Building2 className="h-4 w-4" aria-hidden="true" />
+                {t('tenants:title')}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={() => navigate('/help')}>
               <BookOpen className="h-4 w-4" aria-hidden="true" />
               {t('common:nav.guides')}
@@ -286,6 +294,14 @@ export function AppLayout() {
           {!online ? (
             <div className="px-4 pt-4 md:px-6 md:pt-6">
               <OfflineBanner visible={!online} />
+            </div>
+          ) : null}
+          {tenantOverride ? (
+            <div role="status" className="flex flex-wrap items-center justify-between gap-2 bg-warning/15 px-4 py-2 text-sm md:px-6">
+              <span>{t('tenants:banner.text', { name: tenantOverride.name })}</span>
+              <Button variant="outline" size="sm" onClick={() => setTenantOverride(null)}>
+                {t('tenants:banner.back')}
+              </Button>
             </div>
           ) : null}
           <div className={cn('p-4 md:p-6', isFullWidthPage ? '' : 'mx-auto max-w-6xl')}>

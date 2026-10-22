@@ -1,5 +1,6 @@
 import { jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Structura mapărilor conectorului generic — declarată structural identic aici (DB nu
 // importă din connectors/, izolare de layere), sursa canonică: connectors/generic/types.ts.
@@ -11,6 +12,7 @@ export interface PlatformMetricMapping {
 }
 
 export const platforms = pgTable('platforms', {
+  ...tenantColumns,
   ...standardColumns,
   name: text('name').notNull(),
   // Cheia din connectors/index.ts registry (ex: 'vanagreen')

@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Mesaje SPV salvate explicit de Stefan (buton „Salvează" din tab-ul Mesaje) — opt-in, NU
 // toate mesajele. ANAF își șterge mesajele din SPV după un timp; ce salvăm aici rămâne
@@ -8,6 +9,7 @@ import { standardColumns } from './helpers.js'
 export const spvMessages = pgTable(
   'spv_messages',
   {
+    ...tenantColumns,
     ...standardColumns,
     anafMessageId: text('anaf_message_id').notNull(),
     type: text('type').notNull(),

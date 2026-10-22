@@ -1,12 +1,14 @@
 import { index, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { assistantConversations } from './assistant-conversations.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Acțiuni din whitelist-ul "confirm" (vezi PLAN_INAPP_AGENT.md) — Claude le înregistrează aici
 // în loc să le execute direct; execuția reală se întâmplă doar la POST /actions/:id/confirm.
 export const assistantPendingActions = pgTable(
   'assistant_pending_actions',
   {
+    ...tenantColumns,
     ...standardColumns,
     conversationId: uuid('conversation_id')
       .notNull()

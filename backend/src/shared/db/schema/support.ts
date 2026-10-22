@@ -1,6 +1,7 @@
 import { boolean, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Tichete de suport către Vanadium (PLAN.md C5). Un om vede doar tichetele lui; administratorul
 // de platformă le vede pe toate. Cele două steaguri de necitit țin loc de tabel de citiri:
@@ -9,6 +10,7 @@ import { users } from './users.js'
 export const supportTickets = pgTable(
   'support_tickets',
   {
+    ...tenantColumns,
     ...standardColumns,
     createdByUserId: uuid('created_by_user_id')
       .notNull()
@@ -32,6 +34,7 @@ export const supportTickets = pgTable(
 export const supportTicketReplies = pgTable(
   'support_ticket_replies',
   {
+    ...tenantColumns,
     ...standardColumns,
     ticketId: uuid('ticket_id')
       .notNull()

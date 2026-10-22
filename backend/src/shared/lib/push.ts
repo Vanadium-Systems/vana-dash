@@ -63,7 +63,7 @@ export async function setPushPreferences(patch: Partial<PushPreferences>): Promi
     .insert(dashboardConfig)
     .values({ key: PREFERENCES_KEY, value: next })
     .onConflictDoUpdate({
-      target: dashboardConfig.key,
+      target: [dashboardConfig.tenantId, dashboardConfig.key],
       set: { value: sql`excluded.value`, updatedAt: new Date() },
     })
   return next

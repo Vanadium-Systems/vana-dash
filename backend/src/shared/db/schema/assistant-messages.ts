@@ -1,6 +1,7 @@
 import { index, integer, jsonb, pgTable, text, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { assistantConversations } from './assistant-conversations.js'
+import { tenantColumns } from './tenant-column.js'
 
 // content: array de content blocks Anthropic (text / tool_use / tool_result) — persistat 1:1
 // ca să poată fi retrimis direct în `messages` la reluarea conversației (Tool Runner).
@@ -9,6 +10,7 @@ import { assistantConversations } from './assistant-conversations.js'
 export const assistantMessages = pgTable(
   'assistant_messages',
   {
+    ...tenantColumns,
     ...standardColumns,
     conversationId: uuid('conversation_id')
       .notNull()

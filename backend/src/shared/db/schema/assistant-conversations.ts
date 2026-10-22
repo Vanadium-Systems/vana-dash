@@ -1,8 +1,10 @@
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 export const assistantConversations = pgTable('assistant_conversations', {
+  ...tenantColumns,
   ...standardColumns,
   // Rulările programate din conversație rulează cu drepturile autorului (BE-5).
   ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),

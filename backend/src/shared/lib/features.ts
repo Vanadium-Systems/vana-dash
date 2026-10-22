@@ -604,6 +604,7 @@ const KNOWN_PREFIXES: Array<{
   // (`platformOnly`), nu o funcționalitate de rol.
   { prefix: '/api/support', kind: 'self' },
   { prefix: '/api/platform/support', kind: 'self' },
+  { prefix: '/api/platform/tenants', kind: 'self' },
   { prefix: '/api/email/unsubscribe', kind: 'public' },
   { prefix: '/api/email-images', kind: 'public' },
   // The page a call guest opens: no account, rate limited, answers only the time window.

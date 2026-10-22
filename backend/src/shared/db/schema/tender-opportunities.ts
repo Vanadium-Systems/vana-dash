@@ -1,5 +1,6 @@
 import { boolean, index, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Monitor licitații publice (e-licitatie.ro/SICAP) — sursă externă de oportunități, NU un
 // `PlatformConnector` (nu e o platformă Vanadium Systems, vezi PLAN.md „Decizie de scop"),
@@ -7,6 +8,7 @@ import { standardColumns } from './helpers.js'
 export const tenderOpportunities = pgTable(
   'tender_opportunities',
   {
+    ...tenantColumns,
     ...standardColumns,
     source: text('source').notNull(), // 'direct_acquisition' | 'contract_notice'
     externalId: text('external_id').notNull(), // uniqueIdentificationCode / noticeNo
@@ -49,6 +51,7 @@ export const tenderOpportunities = pgTable(
 // 2026-08-20, ca `prospect_statuses`). Validare "cel puțin unul din cpvPrefix/keyword" în
 // service, nu constraint DB — pattern simplu, ca alte validări din module existente.
 export const tenderWatchRules = pgTable('tender_watch_rules', {
+  ...tenantColumns,
   ...standardColumns,
   label: text('label').notNull(),
   cpvPrefix: text('cpv_prefix'), // ex. '72' — match pe prefixul cpvCode

@@ -39,6 +39,7 @@ const TeamHistoryPage = lazy(() => import('@/modules/team/TeamHistoryPage').then
 const TeamPage = lazy(() => import('@/modules/team/TeamPage').then((m) => ({ default: m.TeamPage })))
 const SettingsPage = lazy(() => import('@/modules/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const TendersPage = lazy(() => import('@/modules/tenders/TendersPage').then((m) => ({ default: m.TendersPage })))
+const TenantsPage = lazy(() => import('@/modules/tenants/TenantsPage').then((m) => ({ default: m.TenantsPage })))
 const SupportPage = lazy(() => import('@/modules/support/SupportPage').then((m) => ({ default: m.SupportPage })))
 const TicketPage = lazy(() => import('@/modules/support/TicketPage').then((m) => ({ default: m.TicketPage })))
 const GuidesPage = lazy(() => import('@/modules/help/GuidesPage').then((m) => ({ default: m.GuidesPage })))
@@ -142,6 +143,7 @@ export function App() {
             <Route path="/support" element={<SupportPage scope="mine" />} />
             <Route path="/support/:id" element={<TicketPage scope="mine" />} />
             <Route path="/platform/support" element={<SupportPage scope="platform" />} />
+            <Route path="/platform/tenants" element={<TenantsPage />} />
             <Route path="/platform/support/:id" element={<TicketPage scope="platform" />} />
             <Route path="/help" element={<GuidesPage />} />
             <Route path="/updates" element={<UpdatesPage />} />

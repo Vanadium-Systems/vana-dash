@@ -1,5 +1,6 @@
 import { boolean, integer, numeric, pgEnum, pgTable, text, date } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Cadență separată de `billing_client_cycle` (nu reutilizată) — cheltuielile și abonamentele
 // clienților sunt domenii diferite, cuplarea lor pe același tip Postgres ar fi o dependență
@@ -12,6 +13,7 @@ export const expenseCycle = pgEnum('expense_cycle', ['monthly', 'annual'])
 // de venituri. Cheltuielile one-time NU au rând aici — merg direct în financial_records prin
 // POST /api/accounting/records (createManualRecord, deja existent).
 export const recurringExpenses = pgTable('recurring_expenses', {
+  ...tenantColumns,
   ...standardColumns,
   description: text('description').notNull(),
   category: text('category'),

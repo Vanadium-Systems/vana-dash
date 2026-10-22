@@ -71,7 +71,7 @@ const wobble = (i: number, amplitude: number) => Math.round(Math.sin(i * 1.7) * 
 await db
   .insert(dashboardConfig)
   .values({ key: 'ops_jobs.enabled', value: { bankSync: false, tenderWatch: false, bnrFeed: false } })
-  .onConflictDoNothing({ target: dashboardConfig.key })
+  .onConflictDoNothing({ target: [dashboardConfig.tenantId, dashboardConfig.key] })
 
 // ── People ───────────────────────────────────────────────────────────────────
 

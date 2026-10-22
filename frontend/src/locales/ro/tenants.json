@@ -1,0 +1,55 @@
+{
+  "title": "Firme",
+  "description": "Firmele de pe instalarea asta. Firma platformei are tot catalogul.",
+  "newTenant": "Firmă nouă",
+  "columns": {
+    "name": "Firmă",
+    "cif": "CUI",
+    "users": "Oameni",
+    "features": "Funcționalități",
+    "status": "Stare",
+    "created": "Creată"
+  },
+  "status": {
+    "active": "Activă",
+    "suspended": "Suspendată"
+  },
+  "owner": "Firma platformei",
+  "allFeatures": "Toate",
+  "featureCount_one": "{{count}} funcționalitate",
+  "featureCount_few": "{{count}} funcționalități",
+  "featureCount_other": "{{count}} de funcționalități",
+  "actions": {
+    "open": "Deschide",
+    "suspend": "Suspendă",
+    "reactivate": "Reactivează",
+    "features": "Funcționalități"
+  },
+  "empty": "Doar firma platformei, deocamdată.",
+  "error": "Nu am putut încărca firmele.",
+  "retry": "Încearcă din nou",
+  "dialog": {
+    "title": "Firmă nouă",
+    "name": "Numele firmei",
+    "nameRequired": "Scrie numele firmei.",
+    "cif": "CUI (opțional)",
+    "create": "Creează firma",
+    "cancel": "Renunță"
+  },
+  "suspendConfirm": {
+    "title": "Suspenzi {{name}}?",
+    "body_one": "{{count}} om nu se mai poate loga până o reactivezi.",
+    "body_few": "{{count}} oameni nu se mai pot loga până o reactivezi.",
+    "body_other": "{{count}} de oameni nu se mai pot loga până o reactivezi.",
+    "action": "Suspendă firma"
+  },
+  "featuresDialog": {
+    "title": "Funcționalitățile firmei {{name}}",
+    "hint": "O funcționalitate oprită aici dispare pentru toți oamenii firmei, oricare le-ar fi rolul.",
+    "close": "Gata"
+  },
+  "banner": {
+    "text": "Ești în contul firmei {{name}}. Tot ce vezi și ce schimbi e al ei.",
+    "back": "Înapoi la firma ta"
+  }
+}

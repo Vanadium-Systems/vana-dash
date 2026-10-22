@@ -1,6 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { roles, userMailboxes, users } from '../db/schema/index.js'
+import { roles, tenants, userMailboxes, users } from '../db/schema/index.js'
 import { availableFeatures, PAGES } from './features.js'
 import type { DisplayCurrency, Locale } from './locale.js'
 
@@ -14,12 +14,23 @@ export interface SessionRole {
   kind: 'admin' | 'manager' | 'custom'
 }
 
+export interface SessionTenant {
+  id: string
+  name: string
+  isPlatformOwner: boolean
+  status: 'active' | 'suspended'
+  /** What the company may use; ignored for the platform owner, who has the whole catalog. */
+  features: string[]
+}
+
 export interface SessionUser {
   id: string
   email: string
   displayName: string | null
   role: SessionRole | null
   isPlatformAdmin: boolean
+  /** The person's company. Absent only on users built by hand in tests (= the platform owner). */
+  tenant?: SessionTenant
   /** Funcționalitățile efective (rolul ∩ catalog, cu poarta paginii respectată). */
   features: string[]
   /** Cheile cutiilor de email; `null` = toate (adminul). */
@@ -48,8 +59,16 @@ export function userName(user: Pick<SessionUser, 'displayName' | 'email'>): stri
  * paginii rămân salvate în rol dar sunt inactive — nu se pot da efectiv. Deci un rol poate
  * avea `facturi.emitere` salvat cu `facturi.view` oprit, și atunci nu poate emite.
  */
-export function effectiveFeatures(roleFeatures: string[] | null, roleKind: string | null): string[] {
-  const available = availableFeatures()
+export function effectiveFeatures(
+  roleFeatures: string[] | null,
+  roleKind: string | null,
+  tenant?: Pick<SessionTenant, 'isPlatformOwner' | 'features'>,
+): string[] {
+  // Another company gets only what it was given, and never what is the platform's own.
+  const available =
+    tenant && !tenant.isPlatformOwner
+      ? availableFeatures().filter((feature) => !feature.ownerOnly && tenant.features.includes(feature.key))
+      : availableFeatures()
   if (roleKind === 'admin') return available.map((feature) => feature.key)
   if (!roleFeatures) return []
   const granted = new Set(roleFeatures)
@@ -83,9 +102,15 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
       roleName: roles.name,
       roleKind: roles.kind,
       roleFeatures: roles.features,
+      tenantId: tenants.id,
+      tenantName: tenants.name,
+      tenantIsPlatformOwner: tenants.isPlatformOwner,
+      tenantStatus: tenants.status,
+      tenantFeatures: tenants.features,
     })
     .from(users)
     .leftJoin(roles, eq(roles.id, users.roleId))
+    .innerJoin(tenants, eq(tenants.id, users.tenantId))
     .where(and(eq(users.id, userId), isNull(users.deletedAt)))
   if (!row) return null
 
@@ -94,6 +119,14 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
   // (BE-4), dar rămâne cu ale lui.
   const mailboxes =
     row.roleKind === 'admin' ? null : (await listMailboxes(row.id)) ?? []
+
+  const tenant: SessionTenant = {
+    id: row.tenantId,
+    name: row.tenantName,
+    isPlatformOwner: row.tenantIsPlatformOwner,
+    status: row.tenantStatus,
+    features: row.tenantFeatures,
+  }
 
   return {
     id: row.id,
@@ -104,7 +137,8 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
       : null,
     isPlatformAdmin: row.isPlatformAdmin,
     status: row.status,
-    features: effectiveFeatures(row.roleFeatures, row.roleKind),
+    tenant,
+    features: effectiveFeatures(row.roleFeatures, row.roleKind, tenant),
     mailboxes,
     lastSeenAt: row.lastSeenAt,
     notificationPrefs: row.notificationPrefs ?? null,

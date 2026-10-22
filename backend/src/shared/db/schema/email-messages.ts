@@ -4,11 +4,13 @@ import { standardColumns } from './helpers.js'
 import { emailThreads } from './email-threads.js'
 import { emailLabels } from './email-labels.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Mesaje individuale — inbound din webhook Resend + outbound reply-uri legate de thread.
 export const emailMessages = pgTable(
   'email_messages',
   {
+    ...tenantColumns,
     ...standardColumns,
     threadId: uuid('thread_id')
       .notNull()

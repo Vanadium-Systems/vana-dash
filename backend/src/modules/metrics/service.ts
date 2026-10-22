@@ -21,7 +21,7 @@ export async function setOverviewConfig(visibleKpis: string[]): Promise<void> {
   await db
     .insert(dashboardConfig)
     .values({ key: OVERVIEW_CONFIG_KEY, value: visibleKpis })
-    .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: sql`excluded.value`, updatedAt: new Date() } })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
 }
 
 // Toată agregarea se face în SQL (regula #9) — niciodată .reduce() în JS.

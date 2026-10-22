@@ -1,10 +1,12 @@
 import { index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { platforms } from './platforms.js'
+import { tenantColumns } from './tenant-column.js'
 
 export const syncLog = pgTable(
   'sync_log',
   {
+    ...tenantColumns,
     ...standardColumns,
     // null pentru sync-urile non-platformă (ANAF, bănci) — vezi jobKey.
     platformId: uuid('platform_id').references(() => platforms.id, { onDelete: 'cascade' }),

@@ -39,7 +39,7 @@ async function ensureSeeded(): Promise<void> {
         enabled: false,
       },
     ])
-    .onConflictDoNothing({ target: assistantProviders.provider })
+    .onConflictDoNothing({ target: [assistantProviders.tenantId, assistantProviders.provider] })
 }
 
 type ProviderRow = typeof assistantProviders.$inferSelect
@@ -129,7 +129,7 @@ export async function updateProvider(
     await db
       .insert(dashboardConfig)
       .values({ key: DEFAULT_PROVIDER_KEY, value: provider })
-      .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: provider, updatedAt: new Date() } })
+      .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: provider, updatedAt: new Date() } })
   }
 }
 

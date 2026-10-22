@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import { index, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { calendarEvents } from './calendar-events.js'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Programări publice de pe vanadium.systems (docs/BOOKING.md). Orele de lucru stau în
 // dashboard_config['booking.settings']; aici doar intervalele blocate și rezervările.
@@ -9,6 +10,7 @@ import { standardColumns } from './helpers.js'
 export const bookingBlocks = pgTable(
   'booking_blocks',
   {
+    ...tenantColumns,
     ...standardColumns,
     startAt: timestamp('start_at', { withTimezone: true }).notNull(),
     endAt: timestamp('end_at', { withTimezone: true }).notNull(),
@@ -22,6 +24,7 @@ export const bookingBlocks = pgTable(
 export const bookings = pgTable(
   'bookings',
   {
+    ...tenantColumns,
     ...standardColumns,
     calendarEventId: uuid('calendar_event_id').references(() => calendarEvents.id),
     startAt: timestamp('start_at', { withTimezone: true }).notNull(),

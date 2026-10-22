@@ -35,7 +35,7 @@ async function writeConfigJson(key: string, value: unknown): Promise<void> {
   await db
     .insert(dashboardConfig)
     .values({ key, value })
-    .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: sql`excluded.value`, updatedAt: new Date() } })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
 }
 
 export async function getWatchlist(): Promise<WatchEntry[]> {

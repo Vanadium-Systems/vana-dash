@@ -23,8 +23,9 @@ import reports from './reports.json'
 import settings from './settings.json'
 import support from './support.json'
 import team from './team.json'
+import tenants from './tenants.json'
 import tenders from './tenders.json'
 import updates from './updates.json'
 import wishlist from './wishlist.json'
 
-export default { access, accounting, alerts, archive, assets, assistant, auth, calendar, common, crypto, email, financials, help, messages, monitoring, notes, overview, plan, platforms, pricing, reconciliation, reports, settings, support, team, tenders, updates, wishlist }
+export default { access, accounting, alerts, archive, assets, assistant, auth, calendar, common, crypto, email, financials, help, messages, monitoring, notes, overview, plan, platforms, pricing, reconciliation, reports, settings, support, team, tenants, tenders, updates, wishlist }

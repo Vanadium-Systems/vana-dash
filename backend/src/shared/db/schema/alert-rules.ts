@@ -2,8 +2,10 @@ import { boolean, integer, numeric, pgTable, text, uuid } from 'drizzle-orm/pg-c
 import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { platforms } from './platforms.js'
+import { tenantColumns } from './tenant-column.js'
 
 export const alertRules = pgTable('alert_rules', {
+  ...tenantColumns,
   ...standardColumns,
   ...auditColumns,
   name: text('name').notNull(),

@@ -3,6 +3,7 @@ import { bigint, index, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-
 import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { archiveFolders } from './archive-folders.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Metadate fișiere din Arhivă. Conținutul NU stă în Postgres — merge pe Cloudflare R2,
 // aici păstrăm doar cheia obiectului (r2Key). restrict pe folderId: nu poți șterge un
@@ -16,6 +17,7 @@ import { archiveFolders } from './archive-folders.js'
 export const archiveFiles = pgTable(
   'archive_files',
   {
+    ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
     folderId: uuid('folder_id')

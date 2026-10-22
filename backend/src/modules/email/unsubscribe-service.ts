@@ -34,7 +34,7 @@ export async function suppressEmail(email: string, source: 'manual' | 'bounce' |
   await db
     .insert(emailSuppressions)
     .values({ email: normalized, source })
-    .onConflictDoUpdate({ target: emailSuppressions.email, set: { unsubscribedAt: sql`now()`, source } })
+    .onConflictDoUpdate({ target: [emailSuppressions.tenantId, emailSuppressions.email], set: { unsubscribedAt: sql`now()`, source } })
 
   try {
     await markProspectUnsubscribedByEmail(normalized)

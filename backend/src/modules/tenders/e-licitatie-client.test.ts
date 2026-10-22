@@ -12,6 +12,7 @@ type WatchRule = typeof tenderWatchRules.$inferSelect
 function makeRule(overrides: Partial<WatchRule>): WatchRule {
   return {
     id: 'rule-1',
+    tenantId: '00000000-0000-4000-8000-000000000001',
     label: 'QA rule',
     cpvPrefix: null,
     keyword: null,

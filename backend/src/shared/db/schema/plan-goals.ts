@@ -1,10 +1,12 @@
 import { date, index, integer, numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 export const planGoals = pgTable(
   'plan_goals',
   {
+    ...tenantColumns,
     ...standardColumns,
     ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
     scope: text('scope', { enum: ['personal', 'firma'] }).notNull(),

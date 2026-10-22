@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // 2026-08-11 — sursa de adevăr pt. "nu mai trimite aici", populată prin click pe link-ul de
 // dezabonare din footer-ul bulk-send (modules/email/unsubscribe-token.ts). Distinct de
@@ -7,6 +8,7 @@ import { standardColumns } from './helpers.js'
 export const emailSuppressions = pgTable(
   'email_suppressions',
   {
+    ...tenantColumns,
     ...standardColumns,
     // Normalizată lowercase la insert/compare (ca email_blocklist.address).
     email: text('email').notNull(),
@@ -16,5 +18,5 @@ export const emailSuppressions = pgTable(
     // 'manual' — nu se poate reconstrui retroactiv care au fost de fapt bounce.
     source: text('source', { enum: ['manual', 'bounce', 'complaint'] }).notNull().default('manual'),
   },
-  (t) => [uniqueIndex('uq_email_suppressions_email').on(t.email)],
+  (t) => [uniqueIndex('uq_email_suppressions_email').on(t.tenantId, t.email)],
 )

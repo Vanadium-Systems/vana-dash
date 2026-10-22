@@ -2,11 +2,13 @@ import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } 
 import { standardColumns } from './helpers.js'
 import { emailTemplates } from './email-templates.js'
 import { prospects } from './prospects.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Sprint Secvențe outreach (2026-08-12) — drip automat peste bulkSend existent (vezi
 // PLAN.md). O secvență = listă ordonată de pași (template + delay), pornită per destinatar
 // printr-un enrollment.
 export const emailSequences = pgTable('email_sequences', {
+  ...tenantColumns,
   ...standardColumns,
   name: text('name').notNull(),
   // Din sprintul de-hardcodare (2026-08-25): orice cheie de identitate configurată din Setări
@@ -18,6 +20,7 @@ export const emailSequences = pgTable('email_sequences', {
 export const emailSequenceSteps = pgTable(
   'email_sequence_steps',
   {
+    ...tenantColumns,
     ...standardColumns,
     sequenceId: uuid('sequence_id')
       .notNull()
@@ -35,6 +38,7 @@ export const emailSequenceSteps = pgTable(
 export const emailSequenceEnrollments = pgTable(
   'email_sequence_enrollments',
   {
+    ...tenantColumns,
     ...standardColumns,
     sequenceId: uuid('sequence_id')
       .notNull()

@@ -57,7 +57,7 @@ beforeAll(async () => {
     await db
       .insert(dashboardConfig)
       .values({ key: 'email.identities', value: [...identitatiSalvate, { key: 'sales', label: 'Sales', fromAddress: 'sales@vanadium.systems' }] })
-      .onConflictDoUpdate({ target: dashboardConfig.key, set: { value: [...identitatiSalvate, { key: 'sales', label: 'Sales', fromAddress: 'sales@vanadium.systems' }] } })
+      .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: [...identitatiSalvate, { key: 'sales', label: 'Sales', fromAddress: 'sales@vanadium.systems' }] } })
   }
 })
 

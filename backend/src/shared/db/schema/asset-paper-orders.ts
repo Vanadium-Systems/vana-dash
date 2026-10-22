@@ -1,12 +1,14 @@
 import { numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { assetBrokers } from './asset-brokers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Ordine simulate în paper mode (PLAN.md Track D — Wave 7) — Trading212 nu are testnet prin
 // API, deci paper e ÎNTOTDEAUNA local: market se execută imediat la prețul live (Finnhub/
 // Twelve Data), limit rămâne open până ce sync-ul o trece prin preț. Pattern identic
 // crypto_paper_orders — P&L-ul portofoliului se calculează la preț live din istoric, nu se stochează.
 export const assetPaperOrders = pgTable('asset_paper_orders', {
+  ...tenantColumns,
   ...standardColumns,
   brokerId: uuid('broker_id')
     .notNull()

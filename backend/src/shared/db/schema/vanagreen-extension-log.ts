@@ -1,6 +1,7 @@
 import { index, integer, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { billingClients } from './billing-clients.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Istoricul acțiunilor "extinde abonament vanagreen" — atât dry-run (toggle OFF, implicit) cât
 // și live (toggle ON). Idempotency e ținută în recyclers_app (platform_extension_log), acest
@@ -8,6 +9,7 @@ import { billingClients } from './billing-clients.js'
 export const vanagreenExtensionLog = pgTable(
   'vanagreen_extension_log',
   {
+    ...tenantColumns,
     ...standardColumns,
     billingClientId: uuid('billing_client_id')
       .notNull()

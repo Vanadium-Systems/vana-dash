@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import { boolean, check, index, pgTable, text, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Ierarhie liberă de foldere pt. modulul Arhivă (înlocuire Google Drive).
 //
@@ -12,6 +13,7 @@ import { users } from './users.js'
 export const archiveFolders = pgTable(
   'archive_folders',
   {
+    ...tenantColumns,
     ...standardColumns,
     name: text('name').notNull(),
     // self-referință — callback cu tip explicit, pattern Drizzle pt. FK către propriul tabel

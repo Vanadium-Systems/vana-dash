@@ -48,6 +48,7 @@ import { reportsRoutes } from './modules/reports/routes.js'
 import { searchRoutes } from './modules/search/routes.js'
 import { teamRoutes } from './modules/team/routes.js'
 import { tendersRoutes } from './modules/tenders/routes.js'
+import { tenantsRoutes } from './modules/tenants/routes.js'
 import { wishlistRoutes } from './modules/wishlist/routes.js'
 import { config } from './shared/config.js'
 import { tr } from './shared/lib/i18n.js'
@@ -156,6 +157,7 @@ export async function buildServer() {
   await app.register(assetsRoutes)
   await app.register(settingsRoutes)
   await app.register(tendersRoutes)
+  await app.register(tenantsRoutes)
   await app.register(searchRoutes)
 
   return app

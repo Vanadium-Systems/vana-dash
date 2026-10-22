@@ -3,12 +3,14 @@ import { boolean, date, integer, pgTable, text, uniqueIndex, uuid } from 'drizzl
 import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { billingClients } from './billing-clients.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Contract addenda, as a structured history per client. `number` runs per client (1, 2, 3…),
 // not globally, and is computed on the server (MAX(number)+1 in a transaction).
 export const contractAddenda = pgTable(
   'contract_addenda',
   {
+    ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
     billingClientId: uuid('billing_client_id')

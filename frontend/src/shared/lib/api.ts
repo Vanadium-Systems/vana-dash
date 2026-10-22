@@ -5,6 +5,7 @@ import { getLocale, t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { blobToBase64, isNative } from '@/shared/lib/native'
 import type { MoneyMeta } from '@/shared/lib/types'
+import { getTenantOverride } from './tenant-override'
 
 export class ApiError extends Error {
   constructor(
@@ -88,11 +89,13 @@ async function requestEnvelope<T>(path: string, init?: RequestInit): Promise<Api
   // FormData (upload arhivă) — browserul setează singur Content-Type cu boundary-ul multipart,
   // nu-l suprascriem cu application/json.
   const isFormData = init?.body instanceof FormData
+  const tenantOverride = getTenantOverride()
   const res = await fetch(path, {
     credentials: 'include',
     headers: {
       // Before login the server has no profile to read the language from.
       'X-Locale': getLocale(),
+      ...(tenantOverride ? { 'X-Tenant-Id': tenantOverride.id } : {}),
       ...(init?.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
     },
     ...init,

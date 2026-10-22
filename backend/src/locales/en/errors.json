@@ -411,5 +411,15 @@
     "noValidRate": "No valid rate in the BNR feed: {{errors}}",
     "noRateAtDate": "No {{currency}} rate available on or before {{dateIso}}, not even after a live BNR fetch"
   },
-  "rateLimited": "Too many attempts. Try again in a few minutes."
+  "rateLimited": "Too many attempts. Try again in a few minutes.",
+  "tenants": {
+    "notFound": "The company does not exist.",
+    "rlsRequired": "A new company can only be created with isolation on (RLS_ENABLED=true). Otherwise its data would mix with yours.",
+    "slugTaken": "A company with this name already exists.",
+    "ownerLocked": "The platform company cannot be suspended or have features switched off.",
+    "featureOwnerOnly": "The feature {{feature}} is for the platform company only.",
+    "unknownFeature": "Unknown feature: {{feature}}.",
+    "headerForbidden": "Only the platform admin can open another company.",
+    "suspended": "The company account is suspended."
+  }
 }

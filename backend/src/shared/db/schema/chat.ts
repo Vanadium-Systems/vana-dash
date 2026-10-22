@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import { bigint, boolean, index, integer, pgTable, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Mesaje între oameni (PLAN.md C3). Fără `tenant_id` în Etapa 1 (singura firmă); intră în
 // inventarul retrofit-ului din Etapa 3.
@@ -9,6 +10,7 @@ import { users } from './users.js'
 export const conversations = pgTable(
   'conversations',
   {
+    ...tenantColumns,
     ...standardColumns,
     kind: text('kind', { enum: ['dm', 'group'] }).notNull(),
     // null la DM (titlul vine din celălalt om), obligatoriu la grup.
@@ -26,6 +28,7 @@ export const conversations = pgTable(
 export const conversationMembers = pgTable(
   'conversation_members',
   {
+    ...tenantColumns,
     ...standardColumns,
     conversationId: uuid('conversation_id')
       .notNull()
@@ -48,6 +51,7 @@ export const conversationMembers = pgTable(
 export const messages = pgTable(
   'messages',
   {
+    ...tenantColumns,
     ...standardColumns,
     conversationId: uuid('conversation_id')
       .notNull()
@@ -70,6 +74,7 @@ export const messages = pgTable(
 export const messageAttachments = pgTable(
   'message_attachments',
   {
+    ...tenantColumns,
     ...standardColumns,
     // null până la trimiterea mesajului; un upload netrimis în 24h se curăță (job).
     messageId: uuid('message_id').references(() => messages.id, { onDelete: 'cascade' }),

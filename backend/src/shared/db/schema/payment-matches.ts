@@ -3,12 +3,14 @@ import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { bankTransactions } from './bank-transactions.js'
 import { financialRecords } from './financial-records.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Legătura tranzacție bancară ↔ factură. Match-urile auto rămân vizibile și
 // reversibile în UI — nu marcăm nimic "paid" orb (vezi Risks în plan).
 export const paymentMatches = pgTable(
   'payment_matches',
   {
+    ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
     bankTransactionId: uuid('bank_transaction_id')

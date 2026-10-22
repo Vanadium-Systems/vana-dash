@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import { boolean, jsonb, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { platforms } from './platforms.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Template-uri de linii de factură per APLICAȚIE integrată (Sprint D, Track 3; re-scope
 // 2026-07-18) — ex. "Abonament lunar", "Taxă inițiere". Un template e comun tuturor clienților
@@ -12,6 +13,7 @@ import { platforms } from './platforms.js'
 export const invoiceTemplates = pgTable(
   'invoice_templates',
   {
+    ...tenantColumns,
     ...standardColumns,
     platformId: uuid('platform_id')
       .notNull()

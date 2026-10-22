@@ -1,10 +1,12 @@
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Credențialele OAuth2 pentru SPV/e-Factura. Un rând per CIF (în practică unul singur:
 // Vanadium Systems SRL). Token-urile sunt criptate AES-256-GCM (shared/lib/crypto.ts)
 // și nu ajung NICIODATĂ în vreun API response sau log.
 export const anafCredentials = pgTable('anaf_credentials', {
+  ...tenantColumns,
   ...standardColumns,
   cif: text('cif').notNull().unique(),
   // Alias-ul certificatului digital folosit la consimțire (informativ, pentru re-auth).

@@ -32,6 +32,7 @@ import { startUptimeMonitorJob } from './jobs/uptime-monitor.js'
 import { startVanagreenBillingJob } from './jobs/vanagreen-billing.js'
 import { startVanagreenTenantSyncJob } from './jobs/vanagreen-tenant-sync.js'
 import { config } from './shared/config.js'
+import { assertRlsRoleIsSafe } from './shared/db/client.js'
 import { closeBrowser } from './shared/lib/pdf.js'
 
 // Most cron jobs start with `void runXJob()`. A rejection there used to stop the whole process
@@ -39,6 +40,8 @@ import { closeBrowser } from './shared/lib/pdf.js'
 process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason)
 })
+
+await assertRlsRoleIsSafe()
 
 const app = await buildServer()
 await startSyncRunner()

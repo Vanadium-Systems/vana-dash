@@ -1,9 +1,11 @@
 import { integer, numeric, pgTable, text, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { financialRecords } from './financial-records.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Liniile facturilor emise (financial_records cu direction='out', source='generated').
 export const invoiceLineItems = pgTable('invoice_line_items', {
+  ...tenantColumns,
   ...standardColumns,
   invoiceId: uuid('invoice_id')
     .notNull()

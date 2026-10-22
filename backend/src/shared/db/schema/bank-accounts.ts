@@ -1,9 +1,11 @@
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Conturile bancare sincronizate pentru reconciliere (Revolut; interfața BankConnector
 // e generică — alt provider = alt folder în connectors/ + rând nou aici).
 export const bankAccounts = pgTable('bank_accounts', {
+  ...tenantColumns,
   ...standardColumns,
   // Cheia din bankConnectors registry (ex: 'revolut')
   provider: text('provider').notNull(),

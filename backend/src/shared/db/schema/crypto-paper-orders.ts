@@ -1,11 +1,13 @@
 import { numeric, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { cryptoExchanges } from './crypto-exchanges.js'
+import { tenantColumns } from './tenant-column.js'
 
 // Ordine simulate în paper mode (PLAN.md Contract D) — market se execută imediat la prețul
 // live, limit rămâne open până ce sync-ul o trece prin preț. P&L-ul portofoliului se calculează
 // la preț live din istoricul acestor ordine, nu se stochează.
 export const cryptoPaperOrders = pgTable('crypto_paper_orders', {
+  ...tenantColumns,
   ...standardColumns,
   exchangeId: uuid('exchange_id')
     .notNull()

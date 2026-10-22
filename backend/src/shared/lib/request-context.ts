@@ -18,6 +18,10 @@ export interface RequestActor {
   /** Display preferences of the person making the request; absent = the installation defaults. */
   locale?: Locale
   displayCurrency?: DisplayCurrency
+  /** The company the request works in; absent = the platform owner (jobs, machine routes). */
+  tenantId?: string
+  /** Only for lookups that must see every company (the session's own user row, the tenant list). */
+  bypassRls?: boolean
 }
 
 const storage = new AsyncLocalStorage<RequestActor>()

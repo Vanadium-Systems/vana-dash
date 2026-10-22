@@ -1,0 +1,53 @@
+{
+  "title": "Companies",
+  "description": "The companies on this installation. The platform company has the whole catalog.",
+  "newTenant": "New company",
+  "columns": {
+    "name": "Company",
+    "cif": "Tax ID",
+    "users": "People",
+    "features": "Features",
+    "status": "Status",
+    "created": "Created"
+  },
+  "status": {
+    "active": "Active",
+    "suspended": "Suspended"
+  },
+  "owner": "Platform company",
+  "allFeatures": "All",
+  "featureCount_one": "{{count}} feature",
+  "featureCount_other": "{{count}} features",
+  "actions": {
+    "open": "Open",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "features": "Features"
+  },
+  "empty": "Only the platform company, for now.",
+  "error": "The companies could not be loaded.",
+  "retry": "Try again",
+  "dialog": {
+    "title": "New company",
+    "name": "Company name",
+    "nameRequired": "Write the company name.",
+    "cif": "Tax ID (optional)",
+    "create": "Create the company",
+    "cancel": "Cancel"
+  },
+  "suspendConfirm": {
+    "title": "Suspend {{name}}?",
+    "body_one": "{{count}} person cannot log in until you reactivate it.",
+    "body_other": "{{count}} people cannot log in until you reactivate it.",
+    "action": "Suspend the company"
+  },
+  "featuresDialog": {
+    "title": "Features of {{name}}",
+    "hint": "A feature switched off here disappears for everyone in the company, whatever their role.",
+    "close": "Done"
+  },
+  "banner": {
+    "text": "You are in the account of {{name}}. Everything you see and change is theirs.",
+    "back": "Back to your company"
+  }
+}
