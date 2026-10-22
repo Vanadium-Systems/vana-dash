@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { and, eq, gte, isNull, lt, lte, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNull, lt, lte, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
-import { bookingBlocks, bookings, calendarEvents, dashboardConfig, users } from '../../shared/db/schema/index.js'
+import { bookingBlocks, bookings, calendarEvents, calls, dashboardConfig, users } from '../../shared/db/schema/index.js'
 import { listOccurrencesForOwner } from '../../shared/lib/calendar-occurrences.js'
 import { config } from '../../shared/config.js'
 import { sendEmail } from '../../shared/lib/email.js'
@@ -11,7 +11,10 @@ import { buildBookingIcs } from './ics.js'
 import { BookingSettingsSchema, DEFAULT_BOOKING_SETTINGS, type BookingSettings, type PublicBookingBodySchema } from './schema.js'
 import { allDayToInterval, computeSlots, type Interval, type Slot } from './slots.js'
 import type { z } from 'zod'
-import { tr, trFor } from '../../shared/lib/i18n.js'
+import { tl, tr, trFor } from '../../shared/lib/i18n.js'
+import { ensureAlertRule, raiseAlert } from '../../shared/lib/alerting.js'
+import { callPublicUrl, closeCallRoom, findBookingCall, openCallRoom } from '../../shared/lib/call-rooms.js'
+import { isDailyConfigured } from '../../shared/lib/daily.js'
 import { INTL_TAG, isLocale, type Locale } from '../../shared/lib/locale.js'
 
 const SETTINGS_KEY = 'booking.settings'
@@ -228,6 +231,41 @@ export async function createPublicBooking(input: PublicBookingInput, now = new D
   return { bookingId: booking.id, start: booking.startAt.toISOString(), end: booking.endAt.toISOString() }
 }
 
+/** The call room of a booking. Daily down = the booking stands and the email says the link comes later. */
+async function openBookingRoom(booking: typeof bookings.$inferSelect): Promise<string | null> {
+  if (!isDailyConfigured()) return null
+  try {
+    const call = await openCallRoom({
+      title: trFor(config.defaultLocale, 'errors.calls.bookingTitle', { name: [booking.name, booking.company].filter(Boolean).join(', ') }),
+      nbf: new Date(booking.startAt.getTime() - 15 * 60_000),
+      exp: new Date(booking.endAt.getTime() + 60 * 60_000),
+      scheduledAt: booking.startAt,
+      bookingId: booking.id,
+    })
+    const url = callPublicUrl(call.publicId)
+    if (booking.calendarEventId) {
+      await db
+        .update(calendarEvents)
+        .set({ description: [booking.topic, url].filter(Boolean).join('\n\n'), updatedAt: new Date() })
+        .where(eq(calendarEvents.id, booking.calendarEventId))
+    }
+    return url
+  } catch (err) {
+    console.error('[booking] call room not created:', err)
+    try {
+      const ruleId = await ensureAlertRule('calls.room_failed', tr('alerts.rules.callRoomFailed'), 'warning')
+      await raiseAlert(ruleId, tl('alerts.jobs.callRoomFailed', { label: formatSlotLabel(booking.startAt) }), {
+        severity: 'warning',
+        url: '/calls',
+        email: false,
+      })
+    } catch (alertErr) {
+      console.error('[booking] alert not raised:', alertErr)
+    }
+    return null
+  }
+}
+
 // După commit: eșecul emailului sau al push-ului se loghează, rezervarea rămâne.
 // The visitor has no profile: the language comes from the site page they booked on. A site
 // language the app has no texts for gets English, which they are more likely to read than the
@@ -245,6 +283,7 @@ async function notifyAfterBooking(booking: typeof bookings.$inferSelect, cancelT
   const visitor = visitorLocale(booking)
   const label = formatSlotLabel(booking.startAt, visitor)
   const cancelUrl = `${cancelPageUrl(booking)}?t=${encodeURIComponent(cancelToken)}`
+  const callUrl = await openBookingRoom(booking)
   await Promise.allSettled([
     sendEmail({
       from: config.emailFromContact,
@@ -254,14 +293,14 @@ async function notifyAfterBooking(booking: typeof bookings.$inferSelect, cancelT
         trFor(visitor, 'emails.booking.greeting', { name: booking.name }),
         '',
         trFor(visitor, 'emails.booking.scheduled', { label }),
-        trFor(visitor, 'emails.booking.linkLater'),
+        callUrl ? trFor(visitor, 'emails.booking.callLink', { url: callUrl }) : trFor(visitor, 'emails.booking.linkLater'),
         '',
         trFor(visitor, 'emails.booking.cancelHere', { cancelUrl }),
         '',
         'Stefan',
         'Vanadium Systems',
       ].join('\n'),
-      attachments: [{ filename: trFor(visitor, 'emails.booking.icsFilename'), content: Buffer.from(buildBookingIcs(booking)) }],
+      attachments: [{ filename: trFor(visitor, 'emails.booking.icsFilename'), content: Buffer.from(buildBookingIcs(booking, callUrl)) }],
     }),
     // Fără numele vizitatorului: notificarea nativă trece prin Firebase (docs/BOOKING.md, Legal).
     notifyPush('calendarReminder', (locale) => ({
@@ -282,6 +321,8 @@ async function cancelBooking(booking: typeof bookings.$inferSelect, by: 'visitor
       await tx.update(calendarEvents).set({ deletedAt: new Date() }).where(eq(calendarEvents.id, booking.calendarEventId))
     }
   })
+  const call = await findBookingCall(booking.id)
+  if (call) await closeCallRoom(call, 'cancelled').catch((err) => console.error('[booking] call room not closed:', err))
   const visitor = visitorLocale(booking)
   const label = formatSlotLabel(booking.startAt, visitor)
   await Promise.allSettled([
@@ -342,10 +383,16 @@ export async function purgeExpiredBookings(now = new Date()): Promise<number> {
       .update(bookings)
       .set({ name: null, email: null, company: null, topic: null, cancelTokenHash: null, personalDataPurgedAt: now, updatedAt: now })
       .where(and(lte(bookings.endAt, cutoff), isNull(bookings.personalDataPurgedAt)))
-      .returning({ calendarEventId: bookings.calendarEventId })
+      .returning({ id: bookings.id, calendarEventId: bookings.calendarEventId })
     for (const { calendarEventId } of purged) {
       if (!calendarEventId) continue
       await tx.update(calendarEvents).set({ title: 'Apel (anonimizat)', description: null, updatedAt: now }).where(eq(calendarEvents.id, calendarEventId))
+    }
+    if (purged.length > 0) {
+      await tx
+        .update(calls)
+        .set({ title: trFor(config.defaultLocale, 'errors.calls.anonymizedTitle'), updatedAt: now })
+        .where(inArray(calls.bookingId, purged.map((p) => p.id)))
     }
     return purged.length
   })

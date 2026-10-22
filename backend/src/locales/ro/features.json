@@ -14,6 +14,7 @@
     "investitii": "Investiții",
     "email": "Email",
     "calendar": "Calendar",
+    "apeluri": "Apeluri",
     "arhiva": "Arhivă",
     "notite": "Notițe",
     "mesaje": "Mesaje",
@@ -65,6 +66,10 @@
       "comune": "Evenimente comune cu participanți",
       "administrare": "Vede toate calendarele",
       "programari": "Programările publice de pe site"
+    },
+    "apeluri": {
+      "view": "Vede apelurile",
+      "manage": "Creează, intră și încheie apeluri"
     },
     "arhiva": {
       "view": "Vede fișierele",

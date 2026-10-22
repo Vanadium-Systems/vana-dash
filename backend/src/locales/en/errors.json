@@ -94,6 +94,14 @@
     "intervalEndsAfterStart": "The interval must end after it starts",
     "noOwnerAccount": "The account that public bookings belong to does not exist"
   },
+  "calls": {
+    "notFound": "The call does not exist.",
+    "closed": "The call has ended.",
+    "providerError": "The room could not be created. Daily does not answer, try again in a few seconds.",
+    "notConfigured": "Calls are not configured (DAILY_API_KEY is missing).",
+    "bookingTitle": "Call · {{name}}",
+    "anonymizedTitle": "Scheduled call"
+  },
   "support": {
     "ticketNotFound": "The ticket does not exist"
   },

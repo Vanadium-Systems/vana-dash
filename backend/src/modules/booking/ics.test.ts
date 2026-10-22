@@ -13,4 +13,12 @@ describe('ics', () => {
     expect(ics).toContain('DTSTART:20310303T080000Z')
     expect(lines.filter((l) => l === 'END:VEVENT')).toHaveLength(1)
   })
+
+  it('puts the call link in LOCATION, URL and DESCRIPTION when there is one', () => {
+    const booking = { id: 'x', startAt: new Date('2031-03-03T08:00:00.000Z'), endAt: new Date('2031-03-03T08:30:00.000Z'), topic: 'Demo' }
+    const ics = buildBookingIcs(booking, 'https://app.example.com/apel/abc')
+    expect(ics).toContain('LOCATION:https://app.example.com/apel/abc')
+    expect(ics).toContain('URL:https://app.example.com/apel/abc')
+    expect(buildBookingIcs(booking)).not.toContain('LOCATION:')
+  })
 })

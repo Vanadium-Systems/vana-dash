@@ -17,6 +17,7 @@ import { authRoutes, passwordRoutes, SESSION_COOKIE } from './modules/auth/route
 import { auditRoutes } from './modules/audit/routes.js'
 import { calendarRoutes } from './modules/calendar/routes.js'
 import { bookingRoutes } from './modules/booking/routes.js'
+import { callsRoutes } from './modules/calls/routes.js'
 import { chatRoutes } from './modules/chat/routes.js'
 import { contractsRoutes } from './modules/contracts/routes.js'
 import { supportRoutes } from './modules/support/routes.js'
@@ -140,6 +141,7 @@ export async function buildServer() {
   await app.register(archiveRoutes)
   await app.register(calendarRoutes)
   await app.register(bookingRoutes)
+  await app.register(callsRoutes)
   await app.register(contractsRoutes)
   await app.register(supportRoutes)
   await app.register(notesRoutes)

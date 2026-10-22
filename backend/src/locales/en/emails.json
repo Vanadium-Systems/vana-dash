@@ -66,7 +66,8 @@
     "cancelledSubject": "Booking canceled · {{label}}",
     "cancelledByVisitor": "The call of {{label}} is canceled. If you want another time, you can pick one again on vanadium.systems.",
     "cancelledByOwner": "Unfortunately I have to cancel the call of {{label}}. I will write to you separately to find another time.",
-    "icsFilename": "booking.ics"
+    "icsFilename": "booking.ics",
+    "callLink": "The call link: {{url}}"
   },
   "support": {
     "newTicket": "New ticket: {{subject}}",

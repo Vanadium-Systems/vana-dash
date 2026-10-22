@@ -6,6 +6,7 @@ import { startBackupJob } from './jobs/backup.js'
 import { startBillingCycleRolloverJob } from './jobs/billing-cycle-rollover.js'
 import { startBnrDailyFetchJob } from './jobs/bnr-daily-fetch.js'
 import { startBookingPurgeJob } from './jobs/booking-purge.js'
+import { startCallsCloseJob } from './jobs/calls-close.js'
 import { startCalendarRemindersJob } from './jobs/calendar-reminders.js'
 import { startChatCleanupJob } from './jobs/chat-cleanup.js'
 import { startCryptoPriceSyncJob } from './jobs/crypto-price-sync.js'
@@ -60,6 +61,7 @@ startRecurringExpensesJob()
 startBnrDailyFetchJob()
 startSystemMetricsPurgeJob()
 startBookingPurgeJob()
+startCallsCloseJob()
 startServer1AlertsJob()
 startBackupJob()
 startArchiveMonthlyFoldersJob()

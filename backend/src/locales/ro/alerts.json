@@ -21,7 +21,9 @@
     "siteDown": "{{name}} — site nu răspunde",
     "backendDegraded": "{{name}} — backend/DB degradat",
     "server1Signal": "server-1 — {{signal}} critic",
-    "assistantQuota": "Plafon de asistent — {{name}}"
+    "assistantQuota": "Plafon de asistent — {{name}}",
+    "callRoomFailed": "Camera de apel nu s-a creat",
+    "dailyRefused": "Daily refuză cererile"
   },
   "accounting": {
     "anafNeedsReauth": "ANAF necesită reautentificare manuală",
@@ -60,7 +62,9 @@
       "other": "{{count}} de oportunități IMPORTANTE de licitație: {{titles}}"
     },
     "andMore": "{{titles}} și încă {{count}}",
-    "assistantQuota": "{{name}} a consumat {{percent}}% din plafonul lunar de asistent ({{used}} din {{cap}} tokeni, luna {{month}})."
+    "assistantQuota": "{{name}} a consumat {{percent}}% din plafonul lunar de asistent ({{used}} din {{cap}} tokeni, luna {{month}}).",
+    "callRoomFailed": "Programarea din {{label}} nu are cameră de apel: Daily n-a răspuns. Creează un apel din Apeluri și trimite linkul.",
+    "dailyRefused": "Daily a răspuns {{status}} la închiderea apelurilor. Verifică cheia și plafonul contului."
   },
   "sentry": {
     "untitled": "Eroare Sentry fără titlu",

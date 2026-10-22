@@ -20,6 +20,7 @@ export const PAGE_KEYS = [
   'clienti',
   'email',
   'calendar',
+  'apeluri',
   'arhiva',
   'notite',
   'asistent',
@@ -275,6 +276,20 @@ export const FEATURES: FeatureDef[] = [
     routes: all('/api/booking'),
   },
 
+  // ── Apeluri ───────────────────────────────────────────────────────────────
+  {
+    key: 'apeluri.view',
+    page: 'apeluri',
+    available: () => config.daily.apiKey !== '',
+    routes: read('/api/calls'),
+  },
+  {
+    key: 'apeluri.manage',
+    page: 'apeluri',
+    available: () => config.daily.apiKey !== '',
+    routes: write('/api/calls'),
+  },
+
   // ── Arhivă ────────────────────────────────────────────────────────────────
   {
     key: 'arhiva.view',
@@ -512,6 +527,7 @@ export const PAGES: PageDef[] = [
   { key: 'investitii', group: 'money', viewFeature: 'investitii.view' },
   { key: 'email', group: 'work', viewFeature: 'email.view' },
   { key: 'calendar', group: 'work', viewFeature: 'calendar.view' },
+  { key: 'apeluri', group: 'work', viewFeature: 'apeluri.view' },
   { key: 'arhiva', group: 'work', viewFeature: 'arhiva.view' },
   { key: 'notite', group: 'work', viewFeature: 'notite.view' },
   { key: 'mesaje', group: 'work', viewFeature: 'mesaje.view' },
@@ -590,6 +606,8 @@ const KNOWN_PREFIXES: Array<{
   { prefix: '/api/platform/support', kind: 'self' },
   { prefix: '/api/email/unsubscribe', kind: 'public' },
   { prefix: '/api/email-images', kind: 'public' },
+  // The page a call guest opens: no account, rate limited, answers only the time window.
+  { prefix: '/api/public/calls', kind: 'public' },
   // The logo sits in an <img> of emails read by people with no session. Uploading it is not public.
   { prefix: '/api/email/settings/logo', kind: 'public', methods: 'read' },
   { prefix: '/api/webhooks', kind: 'machine' },

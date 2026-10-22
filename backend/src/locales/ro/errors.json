@@ -95,6 +95,14 @@
     "intervalEndsAfterStart": "Intervalul trebuie să se termine după ce începe",
     "noOwnerAccount": "Nu există contul căruia îi aparțin programările publice"
   },
+  "calls": {
+    "notFound": "Apelul nu există.",
+    "closed": "Apelul s-a încheiat.",
+    "providerError": "Nu am putut crea camera. Daily nu răspunde, încearcă din nou în câteva secunde.",
+    "notConfigured": "Apelurile nu sunt configurate (lipsește DAILY_API_KEY).",
+    "bookingTitle": "Apel · {{name}}",
+    "anonymizedTitle": "Apel programat"
+  },
   "support": {
     "ticketNotFound": "Tichet inexistent"
   },

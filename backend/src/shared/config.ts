@@ -157,6 +157,12 @@ export const config = {
   // Empty by default: the route then rejects every request, and the Bot tabs, their feature and
   // their alerts job stay off (see `available` in shared/lib/features.ts).
   jeffbotIngestToken: process.env.JEFFBOT_INGEST_TOKEN ?? '',
+  // Video calls (Daily Prebuilt). Empty key = the Calls feature does not exist and bookings
+  // are sent without a call link (see `available` in shared/lib/features.ts).
+  daily: {
+    apiKey: process.env.DAILY_API_KEY ?? '',
+    domain: process.env.DAILY_DOMAIN ?? '',
+  },
   // Programări publice (docs/BOOKING.md): secretul cu care Function-ul din vana-site cheamă
   // /api/v1/public/booking/*. Gol = rutele publice resping orice (fail-closed).
   bookingToken: process.env.BOOKING_TOKEN ?? '',

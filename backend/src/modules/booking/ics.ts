@@ -27,7 +27,10 @@ function foldLine(line: string): string {
   return parts.join('\r\n ')
 }
 
-export function buildBookingIcs(booking: Pick<typeof bookings.$inferSelect, 'id' | 'startAt' | 'endAt' | 'topic'>): string {
+export function buildBookingIcs(
+  booking: Pick<typeof bookings.$inferSelect, 'id' | 'startAt' | 'endAt' | 'topic'>,
+  callUrl: string | null = null,
+): string {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -39,7 +42,8 @@ export function buildBookingIcs(booking: Pick<typeof bookings.$inferSelect, 'id'
     `DTSTART:${icsDate(booking.startAt)}`,
     `DTEND:${icsDate(booking.endAt)}`,
     `SUMMARY:${escapeIcsText('Apel cu Vanadium Systems')}`,
-    `DESCRIPTION:${escapeIcsText(booking.topic ?? '')}`,
+    `DESCRIPTION:${escapeIcsText([booking.topic ?? '', callUrl ?? ''].filter(Boolean).join('\n\n'))}`,
+    ...(callUrl ? [`LOCATION:${escapeIcsText(callUrl)}`, `URL:${callUrl}`] : []),
     'ORGANIZER;CN=Vanadium Systems:mailto:contact@vanadium.systems',
     'END:VEVENT',
     'END:VCALENDAR',

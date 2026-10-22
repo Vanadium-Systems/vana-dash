@@ -21,7 +21,9 @@
     "siteDown": "{{name}}: the site does not respond",
     "backendDegraded": "{{name}}: backend/DB degraded",
     "server1Signal": "server-1: {{signal}} critical",
-    "assistantQuota": "Assistant cap: {{name}}"
+    "assistantQuota": "Assistant cap: {{name}}",
+    "callRoomFailed": "Call room not created",
+    "dailyRefused": "Daily refuses requests"
   },
   "accounting": {
     "anafNeedsReauth": "ANAF needs manual re-authorization",
@@ -58,7 +60,9 @@
       "other": "{{count}} IMPORTANT tender opportunities: {{titles}}"
     },
     "andMore": "{{titles}} and {{count}} more",
-    "assistantQuota": "{{name}} has used {{percent}}% of the monthly assistant cap ({{used}} of {{cap}} tokens, month {{month}})."
+    "assistantQuota": "{{name}} has used {{percent}}% of the monthly assistant cap ({{used}} of {{cap}} tokens, month {{month}}).",
+    "callRoomFailed": "The booking on {{label}} has no call room: Daily did not answer. Create a call from Calls and send the link.",
+    "dailyRefused": "Daily answered {{status}} while closing calls. Check the key and the account limit."
   },
   "sentry": {
     "untitled": "Sentry error without a title",
