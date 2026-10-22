@@ -233,6 +233,7 @@ describe('bootul cu o rută nerezolvată', () => {
         "GET /api/email-images/:filename",
         "GET /api/email/settings/logo",
         "GET /api/email/unsubscribe/:token",
+        "GET /api/public/calls/:publicId",
         "GET /api/v1/integrations/vanagreen/pricing/bundles",
         "GET /api/v1/public/booking/slots",
         "GET /health",

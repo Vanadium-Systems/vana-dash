@@ -63,6 +63,7 @@ These are all of them; a test snapshot (`feature-guard.test.ts`) keeps the list 
 | `GET`/`POST /api/email/unsubscribe/:token` | HMAC token |
 | `GET /api/email-images/:filename` | unguessable generated name |
 | `GET /api/email/settings/logo` | serves only the current logo |
+| `GET /api/public/calls/:publicId` | rate limit, 30 per minute per IP; an unguessable id; answers only the time window and, while open, the room |
 | `POST /api/webhooks/resend-inbound` | Svix signature |
 | `POST /api/webhooks/sentry` | HMAC signature |
 | `POST /api/webhooks/cloudflare-inbound`, `/api/webhooks/vanagreen-alert`, `/api/monitoring/host-metrics`, `/api/v1/integrations/…`, `/api/v1/public/booking…` | a secret in a header, one per caller |
@@ -636,7 +637,7 @@ The message, confirm and reject routes do not return JSON. They answer with
 | POST | `/api/assistant/conversations/:id/messages` | `{ text }`, sends a message. **SSE answer** |
 | POST | `/api/assistant/actions/:id/confirm` | Runs the pending action. **SSE answer** with the rest of the conversation. 400 if the action is missing, no longer `pending` or expired |
 | POST | `/api/assistant/actions/:id/reject` | Marks the action `rejected`. **SSE answer**; nothing is executed |
-| GET | `/api/assistant/providers` | The provider settings (`anthropic`, `openrouter`). `apiKeyPreview` is masked; the raw key is never returned |
+| GET | `/api/assistant/providers` | The provider settings (`anthropic`, `openrouter`, `local`). `apiKeyPreview` is masked; the raw key is never returned |
 | PUT | `/api/assistant/providers/:provider` | `{ apiKey?, baseUrl?, models?, defaultModel?, enabled? }`. The key is write-only, encrypted with AES-256-GCM |
 | GET | `/api/assistant/models` | The models available, from the active providers, with env as fallback |
 | GET | `/api/assistant/scheduled` | The active tasks scheduled from chat (reminders and reports) |
@@ -651,6 +652,30 @@ boot; older than 7 days → failed; recurrence once, daily or weekly, on Europe/
 **Never reachable through a tool:** sending an invoice to ANAF
 (`POST /api/invoicing/invoices/:id/send-anaf`). It stays manual from the UI, or automatic
 through the billing cron.
+
+**The `local` provider** is an OpenAI-compatible server (llama.cpp) on a private network
+(`LOCAL_AI_BASE_URL`, or `baseUrl` in its settings). Its models get a short system prompt and
+no tools: nothing from the app is sent to them.
+
+## Calls
+
+Video calls through Daily (Prebuilt). The routes exist only with `DAILY_API_KEY`; the feature is
+`apeluri.view` to read and `apeluri.manage` to change. Calls are company data, shared by everyone
+with the feature. A row never carries the Daily room name or a token: `publicUrl` is our own
+`/apel/<publicId>` link.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/calls` | Query: `status` (`open`, `ended`, `all`), `limit` (max 200) |
+| POST | `/api/calls` | `{ title, expiresInHours? (1-8, default 4), prospectId?, billingClientId? }` → 201. 503 without Daily, 502 when Daily fails |
+| PATCH | `/api/calls/:id` | `{ title?, prospectId?, billingClientId? }` |
+| POST | `/api/calls/:id/join` | `{ roomUrl, token }`, an owner token for the person. 410 once the call is closed |
+| POST | `/api/calls/:id/end` | Deletes the room (everyone is removed) and marks the call `ended` |
+| GET | `/api/public/calls/:publicId` | No session. `{ status, opensAt, closesAt, roomUrl }`; `roomUrl` is `null` once closed |
+
+A public booking gets a room from 15 minutes before to an hour after its slot; canceling the
+booking closes it. `jobs/calls-close.ts` closes expired rooms every 30 minutes (20 per run, one
+request at a time) and keeps the duration and the most people at once.
 
 ## Crypto
 

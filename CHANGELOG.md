@@ -4,6 +4,23 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-23: Local assistant provider and video calls (backend)
+
+### Added
+- A third assistant provider, `local`: any OpenAI-compatible server (llama.cpp's
+  `llama-server`) reached over a private network, set with `LOCAL_AI_BASE_URL` or from
+  Settings → Assistant. It is seeded switched off. Local models get a short system prompt and no
+  tools, so no app data is sent to them; a refused connection or a timeout reads as "server
+  offline" instead of "fetch failed".
+- Video calls through Daily, backend only for now: the `calls` table (migration 0071),
+  `/api/calls` for the team and `/api/public/calls/:publicId` for guests, which answers only the
+  time window and, while the call is open, the room. A public booking gets its own room and the
+  link in the confirmation email; a canceled booking closes it. A job closes expired rooms every
+  30 minutes and keeps the duration. Requests to Daily go one at a time with a 10 s timeout, and
+  a 401 or 429 stops the job and raises an alert. Without `DAILY_API_KEY` the feature does not
+  exist and bookings work as before.
+- The Android shell asks for camera and microphone, for the calls.
+
 ## 2026-10-19: Pull requests paused
 
 ### Changed

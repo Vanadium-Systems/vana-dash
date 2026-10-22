@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-23T02:00:00+03:00',
+    title: {
+      ro: 'Asistentul poate folosi și modelele de pe serverul nostru',
+      en: 'The assistant can also use the models on our own server',
+    },
+    body: {
+      ro: 'În Setări → Asistent apare „Local (llama.cpp)”, oprit implicit. Pornit și cu adresa serverului completată, modelele lui apar în lista din Asistent. Nu primesc tool-uri și nici datele din aplicație, deci sunt bune pentru texte: emailuri, rezumate, liste pe care le lipești în mesaj. Răspund încet; dacă serverul e oprit, mesajul îți spune asta.',
+      en: 'Settings → Assistant has a “Local (llama.cpp)” card, off by default. Switched on and given the server address, its models show up in the Assistant list. They get no tools and none of the app data, so they are good for text: emails, summaries, lists you paste into the message. They answer slowly; if the server is off, the message says so.',
+    },
+    features: ['setari.asistent'],
+  },
+  {
     publishedAt: '2026-10-19T11:40:00+03:00',
     title: {
       ro: 'Mesajele arată ca în WhatsApp',

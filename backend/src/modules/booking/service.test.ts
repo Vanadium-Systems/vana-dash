@@ -48,9 +48,14 @@ const [bookingOwner] = await db
   .where(eq(users.isPlatformAdmin, true))
   .limit(1)
 
+let savedDailyKey = ''
+
 beforeAll(async () => {
   const [row] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, 'booking.settings'))
   savedSettings = row?.value
+  // The call room is covered in calls/service.test.ts; here it would reach the real Daily API.
+  savedDailyKey = config.daily.apiKey
+  config.daily.apiKey = ''
 })
 
 beforeEach(async () => {
@@ -70,6 +75,7 @@ afterEach(async () => {
 })
 
 afterAll(async () => {
+  config.daily.apiKey = savedDailyKey
   if (savedSettings === undefined) await db.delete(dashboardConfig).where(eq(dashboardConfig.key, 'booking.settings'))
   else await service.saveSettings(savedSettings as BookingSettings)
 })
