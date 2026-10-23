@@ -5,7 +5,7 @@ import { currentActor, runWithFreshActor } from './request-context.js'
 // as before tenancy. shared/db/client.ts sends it to Postgres when RLS_ENABLED, which is why
 // this file must not import the database client.
 
-/** Fixed id, inserted by migration 0069; every row that existed before tenancy belongs to it. */
+/** Fixed id, inserted by migration 0072; every row that existed before tenancy belongs to it. */
 export const OWNER_TENANT_ID = '00000000-0000-4000-8000-000000000001'
 
 export function getOwnerTenantId(): string {

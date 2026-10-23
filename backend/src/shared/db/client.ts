@@ -6,7 +6,7 @@ import { currentTenantId, isRlsBypassed } from '../lib/tenancy.js'
 import * as schema from './schema/index.js'
 
 // With RLS_ENABLED every top-level query runs in a short transaction that first sets
-// app.tenant_id / app.bypass_rls, which the policies of migration 0071 read. The call sites stay
+// app.tenant_id / app.bypass_rls, which the policies of migration 0073 read. The call sites stay
 // as they are: `db` records the builder chain and replays it inside that transaction when awaited.
 // Without RLS_ENABLED, `db` is the plain client.
 
