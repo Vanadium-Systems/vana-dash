@@ -23,7 +23,8 @@
     "server1Signal": "server-1: {{signal}} critical",
     "assistantQuota": "Assistant cap: {{name}}",
     "callRoomFailed": "Call room not created",
-    "dailyRefused": "Daily refuses requests"
+    "dailyRefused": "Daily refuses requests",
+    "spvNotice": "Important SPV message"
   },
   "accounting": {
     "anafNeedsReauth": "ANAF needs manual re-authorization",
@@ -36,7 +37,10 @@
     "d301Due": "D301 for {{prevPeriod}} has {{count}} lines to file; the deadline is the 25th of this month",
     "d390Due": "D390 for {{prevPeriod}} has {{count}} lines to file; the deadline is the 25th of this month",
     "invoiceOverdue": "Invoice {{number}} to {{client}} is overdue ({{amount}} {{currency}})",
-    "draft": "(draft)"
+    "draft": "(draft)",
+    "spvNotice": "SPV, CIF {{cif}}: {{text}}",
+    "form150Rejected": "Form 150 no. {{number}} was rejected: {{text}}",
+    "form150Answered": "Answer to form 150 no. {{number}}: {{text}}"
   },
   "jobs": {
     "bnrFailed": "The daily update of the BNR rate failed: {{err}}",

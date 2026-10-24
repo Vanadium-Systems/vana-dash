@@ -60,6 +60,7 @@ const ACCOUNTING_RULES = [
   },
   { key: 'accounting.d301_deadline_approaching', name: tr('alerts.rules.d301Due'), severity: 'warning' as const },
   { key: 'accounting.d390_deadline_approaching', name: tr('alerts.rules.d390Due'), severity: 'warning' as const },
+  { key: 'accounting.spv_notice', name: tr('alerts.rules.spvNotice'), severity: 'warning' as const },
 ]
 
 export function startAccountingAlertsJob(): void {
@@ -121,6 +122,11 @@ async function raiseAlert(
   // Unificat cu metric-alerts.ts — același eventType 'alerts' pt. GET /api/alerts, indiferent
   // de sursă (threshold pe metrici sau event-based accounting).
   void notifyPush('alerts', (locale) => ({ title: trFor(locale, 'push.alert.title'), body: textFor(text, locale), url: '/alerts' }))
+}
+
+/** For events found outside the daily check, such as an SPV email (jobs/spv-notifications.ts). */
+export async function raiseAccountingAlert(ruleKey: string, text: LocalizedText): Promise<void> {
+  await raiseAlert(await ensureRules(), ruleKey, text)
 }
 
 export async function checkAccountingAlerts(): Promise<void> {

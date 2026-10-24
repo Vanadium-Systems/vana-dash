@@ -215,8 +215,9 @@
     "filing": {
       "label": "Index SPV",
       "saved": "Indexul a fost salvat",
-      "filedOn": "Depusă pe {{date}}",
-      "notFiled": "Nedepusă încă. Pune indexul primit în SPV după upload."
+      "notFiled": "Nedepusă încă. Pune indexul primit în SPV după upload.",
+      "confirmedOn": "Recipisă primită pe {{date}}",
+      "awaitingReceipt": "Încărcată pe {{date}}, fără recipisă încă"
     }
   },
   "labels": {

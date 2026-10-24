@@ -214,8 +214,9 @@
     "filing": {
       "label": "SPV index",
       "saved": "Index saved",
-      "filedOn": "Filed on {{date}}",
-      "notFiled": "Not filed yet. Enter the index SPV gives you after the upload."
+      "notFiled": "Not filed yet. Enter the index SPV gives you after the upload.",
+      "confirmedOn": "Receipt received on {{date}}",
+      "awaitingReceipt": "Uploaded on {{date}}, no receipt yet"
     }
   },
   "labels": {

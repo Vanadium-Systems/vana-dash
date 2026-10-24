@@ -4,6 +4,16 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-24: Sorting the ANAF SPV emails
+
+### Added
+- `jobs/spv-notifications.ts`, every 10 minutes: reads the "Documente noi SPV" emails and the
+  form 150 answers (there is no OAuth API for SPV messages; the SPV web service answers 403 to the
+  e-Factura token). Routine documents are archived, receipts get the "ANAF" label and a D301/D390
+  receipt sets `declaration_filings.confirmed_at`; anything else stays unread and raises the
+  `accounting.spv_notice` alert. Handled emails are recorded in `spv_email_notices` (migration
+  0075, with its RLS policy).
+
 ## 2026-10-24: SPV index on the declarations
 
 ### Added

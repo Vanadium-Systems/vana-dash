@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-24T20:00:00+03:00',
+    title: {
+      ro: 'Emailurile ANAF despre SPV se sortează singure',
+      en: 'ANAF emails about the SPV sort themselves',
+    },
+    body: {
+      ro: 'Emailurile „Documente noi SPV” care conțin doar fișa rol sau duplicate se arhivează singure. Recipisele primesc eticheta ANAF, iar o recipisă D301 sau D390 apare în Declarații ca „Recipisă primită”. Orice alt document din SPV (decizii, notificări, erori) și răspunsurile la formularul 150 rămân necitite, cu eticheta ANAF, și îți vin ca alertă.',
+      en: '“Documente noi SPV” emails that only carry the fiscal record or duplicates archive themselves. Receipts get the ANAF label, and a D301 or D390 receipt shows in Declarations as “Receipt received”. Any other SPV document (decisions, notices, errors) and the answers to form 150 stay unread, labelled ANAF, and reach you as an alert.',
+    },
+    features: ['facturi.declaratii'],
+  },
+  {
     publishedAt: '2026-10-24T18:00:00+03:00',
     title: {
       ro: 'Indexul din SPV se păstrează lângă declarație',
