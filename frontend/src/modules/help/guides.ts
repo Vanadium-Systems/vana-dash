@@ -245,6 +245,37 @@ const SOURCES: GuideSource[] = [
     ],
   },
   {
+    id: 'declaratii-spv',
+    route: '/accounting',
+    feature: 'facturi.declaratii',
+    title: {
+      ro: 'Depui D301 și D390 în SPV',
+      en: 'Filing D301 and D390 in SPV',
+    },
+    summary: {
+      ro: 'Tabul Declarații din Facturi face formularele ANAF din achizițiile cu taxare inversă ale lunii. PDF-ul e cel care merge în SPV; XML-ul și CSV-ul sunt pentru contabilă.',
+      en: 'The Declarations tab in Invoices builds the ANAF forms from the month’s reverse-charge purchases. The PDF is what goes to SPV; the XML and CSV are for the accountant.',
+    },
+    steps: [
+      {
+        ro: 'Alege luna și verifică liniile: D301 are toate serviciile, D390 doar furnizorii din UE, câte un rând pe furnizor.',
+        en: 'Pick the month and check the lines: D301 has every service, D390 only the EU suppliers, one row per supplier.',
+      },
+      {
+        ro: 'Apasă PDF și deschide fișierul în Adobe Acrobat Reader. Alte programe nu știu formularele ANAF.',
+        en: 'Press PDF and open the file in Adobe Acrobat Reader. Other viewers cannot handle ANAF forms.',
+      },
+      {
+        ro: 'Apasă Validare în formular. Dacă trece, formularul atașează singur XML-ul și apare câmpul de semnătură.',
+        en: 'Press Validare in the form. If it passes, the form attaches the XML itself and the signature field shows up.',
+      },
+      {
+        ro: 'Semnează cu certificatul calificat, salvează și încarcă PDF-ul în SPV, la Depunere declarații.',
+        en: 'Sign with the qualified certificate, save and upload the PDF in SPV, under declaration filing.',
+      },
+    ],
+  },
+  {
     id: 'profil-meu',
     route: '/me',
     title: {

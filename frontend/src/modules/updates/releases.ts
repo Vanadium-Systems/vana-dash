@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-24T12:00:00+03:00',
+    title: {
+      ro: 'D301 și D390 se descarcă acum ca PDF pentru SPV',
+      en: 'D301 and D390 now download as a PDF for SPV',
+    },
+    body: {
+      ro: 'În Facturi → Declarații, butonul PDF îți dă formularul ANAF deja completat. Îl deschizi în Adobe Acrobat Reader, apeși Validare, semnezi și îl încarci în SPV. Am corectat și XML-ul după declarațiile depuse de contabilă: la D301 serviciile din UE apar și la secțiunea 4, nu doar la 4.1, iar la D390 sumele sunt în lei întregi, câte un rând pe furnizor.',
+      en: 'In Invoices → Declarations, the PDF button gives you the ANAF form already filled in. Open it in Adobe Acrobat Reader, press Validare, sign and upload it to SPV. The XML is also fixed to match the returns the accountant filed: in D301 EU services now appear in section 4 as well, not only in 4.1, and D390 amounts are whole lei, one row per supplier.',
+    },
+    features: ['facturi.declaratii'],
+  },
+  {
     publishedAt: '2026-10-23T02:00:00+03:00',
     title: {
       ro: 'Asistentul poate folosi și modelele de pe serverul nostru',

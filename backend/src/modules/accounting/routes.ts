@@ -265,8 +265,8 @@ export async function accountingRoutes(app: FastifyInstance) {
   )
 
   // ── D301/D390 — taxare inversă TVA (Sprint D, Track A) ─────────────────────
-  // XML-ul rezultat e "gata de semnat" — depunerea prin SPV cere semnătură electronică
-  // calificată aplicată manual de Stefan (confirmat la research, niciun API de upload direct).
+  // SPV takes the ANAF PDF form, signed with a qualified certificate in Adobe Reader; there is no
+  // upload API. format=pdf is that form prefilled, xml and csv stay for the accountant.
 
   server.get(
     '/api/accounting/d301',
@@ -293,8 +293,18 @@ export async function accountingRoutes(app: FastifyInstance) {
           const preview = await d301.generateD301Preview(req.query.month)
           return reply.type('text/csv').send(d301.linesToCsv(preview.lines))
         }
+        if (req.query.format === 'pdf') {
+          const pdf = await d301.exportD301Pdf(req.query.month)
+          return reply
+            .type('application/pdf')
+            .header('content-disposition', `attachment; filename="${d301.declarationFileName('D301', req.query.month, 'pdf')}"`)
+            .send(pdf)
+        }
         const xml = await d301.exportD301Xml(req.query.month)
-        return reply.type('application/xml').send(xml)
+        return reply
+          .type('application/xml')
+          .header('content-disposition', `attachment; filename="${d301.declarationFileName('D301', req.query.month, 'xml')}"`)
+          .send(xml)
       } catch (err) {
         return reply.code(400).send({ success: false, error: String(err) })
       }
@@ -310,8 +320,18 @@ export async function accountingRoutes(app: FastifyInstance) {
           const preview = await d301.generateD390Preview(req.query.month)
           return reply.type('text/csv').send(d301.linesToCsv(preview.lines))
         }
+        if (req.query.format === 'pdf') {
+          const pdf = await d301.exportD390Pdf(req.query.month)
+          return reply
+            .type('application/pdf')
+            .header('content-disposition', `attachment; filename="${d301.declarationFileName('D390', req.query.month, 'pdf')}"`)
+            .send(pdf)
+        }
         const xml = await d301.exportD390Xml(req.query.month)
-        return reply.type('application/xml').send(xml)
+        return reply
+          .type('application/xml')
+          .header('content-disposition', `attachment; filename="${d301.declarationFileName('D390', req.query.month, 'xml')}"`)
+          .send(xml)
       } catch (err) {
         return reply.code(400).send({ success: false, error: String(err) })
       }

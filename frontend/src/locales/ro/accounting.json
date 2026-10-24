@@ -193,7 +193,7 @@
     "vatRon": "TVA RON",
     "totalBase": "Total bază: {{baseRon}}",
     "totalVat": "Total TVA: {{vatRon}}",
-    "signatureNote": "XML-ul exportat e conform structurii oficiale ANAF, dar depunerea prin SPV cere semnătură electronică calificată aplicată manual — nu există upload direct fără semnare.",
+    "signatureNote": "Pentru SPV descarcă PDF-ul: e formularul ANAF, deja completat. Îl deschizi în Adobe Acrobat Reader, apeși Validare, semnezi cu certificatul și îl încarci. XML-ul și CSV-ul rămân pentru contabilă.",
     "d301Title": "D301 — Decont special TVA",
     "d301Help": "Achiziții de servicii cu taxare inversă (UE și non-UE) din luna selectată, termen 25 luna următoare.",
     "d390Title": "D390 — Recapitulativă VIES",

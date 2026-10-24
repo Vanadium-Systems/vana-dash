@@ -4,6 +4,24 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-24: D301 and D390 as ANAF PDF forms
+
+### Added
+- `format=pdf` on `/api/accounting/d301/export` and `/api/accounting/d390/export`: the official
+  ANAF "soft A" forms (`D301_XML_2017_260320.pdf`, `D390_XML_2020_300424.pdf`, kept in
+  `connectors/anaf/declarations/templates/`) with the data written as an incremental update of
+  the XFA `datasets` stream, so the Reader usage rights survive. Open in Adobe Acrobat Reader,
+  press Validare, sign, upload to SPV.
+
+### Fixed
+- The D301 and D390 XML used child elements and no namespace, which ANAF does not accept. Both
+  now follow the format of returns that passed validation: attributes, namespaces
+  `mfp:anaf:dgti:d301:declaratie:v1` and `mfp:anaf:dgti:d390:declaratie:v3`.
+- D301: EU services were only in section 4.1; they now also count in section 4 (S4 = S4.1 +
+  S4.2). Reverse-charge VAT is computed from the unrounded RON base.
+- D390: amounts in whole lei, one `operatie` per supplier (the form rejects duplicates), and
+  `totalPlata_A` = number of suppliers + the bases.
+
 ## 2026-10-23: Local assistant provider and video calls (backend)
 
 ### Added

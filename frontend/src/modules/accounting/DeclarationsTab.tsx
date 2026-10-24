@@ -44,6 +44,12 @@ function DeclarationCard({
           </div>
           <div className="flex shrink-0 gap-2">
             <Button
+              disabled={!preview.data?.lines.length}
+              onClick={() => window.open(`/api/accounting/${endpoint}/export?month=${month}&format=pdf`, '_blank')}
+            >
+              <Download className="h-4 w-4" /> PDF
+            </Button>
+            <Button
               variant="outline"
               disabled={!preview.data?.lines.length}
               onClick={() => window.open(`/api/accounting/${endpoint}/export?month=${month}&format=xml`, '_blank')}
@@ -114,9 +120,8 @@ function DeclarationCard({
   )
 }
 
-// D301 (decont special TVA) + D390 (recapitulativă VIES) — Sprint D, Track A. XML-ul generat e
-// gata de semnat electronic — depunerea în SPV rămâne manuală (semnătură calificată), fără API
-// de upload direct confirmat la research.
+// D301 (special VAT return) and D390 (VIES recapitulative). The PDF is the ANAF form prefilled,
+// signed by hand in Adobe Reader before it goes to SPV.
 export function DeclarationsTab() {
   const [searchParams, setSearchParams] = useSearchParams()
   const month = searchParams.get('month') ?? currentMonth()

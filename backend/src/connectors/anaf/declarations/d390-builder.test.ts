@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildD390Xml } from './d390-builder.js'
+import { buildD390 } from './d390-builder.js'
 import type { CompanyIdentity, Declarant, DeclarationLine } from './types.js'
 
 const company: CompanyIdentity = {
@@ -41,32 +41,45 @@ const nonEuLine: DeclarationLine = {
   counterpartyName: 'Cloudflare Inc',
 }
 
-describe('buildD390Xml', () => {
-  it('excludes non_eu_services lines entirely — never appear in D390', () => {
-    const { xml } = buildD390Xml('2026-07', [euLine, nonEuLine], company, declarant)
-    expect(xml).not.toContain('Cloudflare')
-    expect(xml).not.toContain('<tara>US</tara>')
+describe('buildD390', () => {
+  it('excludes non_eu_services lines entirely', () => {
+    const { xml } = buildD390('2026-07', [euLine, nonEuLine], company, declarant)
+    expect(xml).not.toContain('CLOUDFLARE')
+    expect(xml).not.toContain('tara="US"')
   })
 
-  it('emits eu_services lines as tip=S with country/vat-id/base', () => {
-    const { xml, totalBaseRon } = buildD390Xml('2026-07', [euLine, nonEuLine], company, declarant)
-    expect(xml).toContain('<tip>S</tip>')
-    expect(xml).toContain('<tara>DE</tara>')
-    expect(xml).toContain('<codO>123456789</codO>')
-    expect(xml).toContain('<denO>Hetzner Online GmbH</denO>')
-    expect(xml).toContain('<baza>500.00</baza>')
-    expect(totalBaseRon).toBe(500)
+  it('emits one operatie per partner in whole lei, summing that partner\'s invoices', () => {
+    const second = { ...euLine, documentNumber: 'HTZ-002', baseRon: 98.07, counterpartyVatId: 'DE123456789' }
+    const { xml, partners, totalBaseRon } = buildD390('2026-07', [euLine, second, nonEuLine], company, declarant)
+    expect(partners).toHaveLength(1)
+    expect(xml).toContain('<operatie tip="S" tara="DE" codO="123456789" denO="HETZNER ONLINE GMBH" baza="598" />')
+    expect(totalBaseRon).toBe(598)
   })
 
-  it('strips the RO prefix from the VAT intra-community code for <cui>', () => {
-    const { xml } = buildD390Xml('2026-07', [euLine], company, declarant)
-    expect(xml).toContain('<cui>90000014</cui>')
+  it('control sum is the number of partners plus the bases', () => {
+    const { xml } = buildD390('2026-07', [euLine], company, declarant)
+    expect(xml).toContain('totalPlata_A="501"')
+    expect(xml).toContain('nrOPI="1" bazaL="0" bazaT="0" bazaA="0" bazaP="0" bazaS="500" bazaR="0" total_baza="500"')
   })
 
-  it('produces a valid empty declaration with zero eu_services lines', () => {
-    const { xml, totalBaseRon } = buildD390Xml('2026-07', [nonEuLine], company, declarant)
-    expect(xml).not.toContain('<operatie>')
-    expect(xml).toContain('<nrOPI>0</nrOPI>')
+  it('writes the v3 namespace, a two-digit month and the CUI without RO', () => {
+    const { xml } = buildD390('2026-07', [euLine], company, declarant)
+    expect(xml).toContain('xmlns="mfp:anaf:dgti:d390:declaratie:v3"')
+    expect(xml).toContain('luna="07" an="2026"')
+    expect(xml).toContain('cui="90000014"')
+  })
+
+  it('fills one OP2 row per partner in the datasets packet', () => {
+    const { datasets } = buildD390('2026-07', [euLine], company, declarant)
+    expect(datasets).toContain('<OP2><seq>1</seq><TIP_OP>S</TIP_OP><TARA>DE</TARA><COD_OP>123456789</COD_OP>')
+    expect(datasets).toContain('<SUMA_S>500</SUMA_S>')
+    expect(datasets).toContain('<luna_r>07</luna_r>')
+  })
+
+  it('produces an empty declaration with zero eu_services lines', () => {
+    const { xml, totalBaseRon } = buildD390('2026-07', [nonEuLine], company, declarant)
+    expect(xml).not.toContain('<operatie')
+    expect(xml).toContain('nrOPI="0"')
     expect(totalBaseRon).toBe(0)
   })
 })

@@ -192,7 +192,7 @@
     "vatRon": "VAT RON",
     "totalBase": "Total base: {{baseRon}}",
     "totalVat": "Total VAT: {{vatRon}}",
-    "signatureNote": "The exported XML follows the official ANAF structure, but filing through SPV needs a qualified electronic signature applied by hand; there is no direct upload without signing.",
+    "signatureNote": "For SPV, download the PDF: it is the ANAF form, already filled in. Open it in Adobe Acrobat Reader, press Validare, sign with your certificate and upload it. The XML and CSV are for the accountant.",
     "d301Title": "D301: special VAT return",
     "d301Help": "Purchases of services under reverse charge (EU and non-EU) in the selected month, due on the 25th of the next month.",
     "d390Title": "D390: VIES recapitulative statement",

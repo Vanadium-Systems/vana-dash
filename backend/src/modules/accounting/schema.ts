@@ -38,7 +38,7 @@ export const DeclarationMonthQuerySchema = z.object({
 })
 
 export const DeclarationExportQuerySchema = DeclarationMonthQuerySchema.extend({
-  format: z.enum(['xml', 'csv']).default('xml'),
+  format: z.enum(['pdf', 'xml', 'csv']).default('xml'),
 })
 
 // Pachet trimestrial (Sprint D, Track B) — 'YYYY-Qn'.

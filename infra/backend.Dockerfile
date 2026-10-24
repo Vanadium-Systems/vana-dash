@@ -24,5 +24,7 @@ RUN pnpm install --frozen-lockfile --prod --filter @vana-dash/backend
 COPY --from=build /app/backend/dist backend/dist
 # Migrations run at start, before the server
 COPY --from=build /app/backend/src/shared/db/migrations backend/dist/shared/db/migrations
+# ANAF declaration forms (D301/D390), filled in by connectors/anaf/declarations/xfa-pdf.ts
+COPY --from=build /app/backend/src/connectors/anaf/declarations/templates backend/dist/connectors/anaf/declarations/templates
 WORKDIR /app/backend
 CMD ["sh", "-c", "node dist/shared/db/migrate.js && node dist/index.js"]

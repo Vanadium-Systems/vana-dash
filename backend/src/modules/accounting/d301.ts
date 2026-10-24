@@ -1,7 +1,8 @@
 import { and, eq, gte, isNull, lt, ne } from 'drizzle-orm'
 import { config } from '../../shared/config.js'
-import { buildD301Xml } from '../../connectors/anaf/declarations/d301-builder.js'
-import { buildD390Xml } from '../../connectors/anaf/declarations/d390-builder.js'
+import { buildD301 } from '../../connectors/anaf/declarations/d301-builder.js'
+import { buildD390 } from '../../connectors/anaf/declarations/d390-builder.js'
+import { D301_TEMPLATE, D390_TEMPLATE, fillXfaDatasets } from '../../connectors/anaf/declarations/xfa-pdf.js'
 import type { DeclarationLine } from '../../connectors/anaf/declarations/types.js'
 import { db } from '../../shared/db/client.js'
 import { financialRecords } from '../../shared/db/schema/index.js'
@@ -50,8 +51,9 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
       }
     }
     const vatRate = row.reverseChargeVatRate ? Number(row.reverseChargeVatRate) : DEFAULT_VAT_RATE
+    // VAT from the unrounded base, as the accountant computes it: rounding the base first can move it by one ban.
     const baseRon = Math.round(amount * fxRate * 100) / 100
-    const vatRon = Math.round(((baseRon * vatRate) / 100) * 100) / 100
+    const vatRon = Math.round(((amount * fxRate * vatRate) / 100) * 100) / 100
 
     if (row.reverseChargeType === 'eu_services' && (!row.counterpartyCountry || !row.counterpartyCif)) {
       warnings.push(`${row.documentNumber ?? row.id}: lipsește țara sau codul TVA al furnizorului — obligatoriu pt. D390`)
@@ -118,19 +120,40 @@ function requireDeclarant() {
   return config.declarant
 }
 
-export async function exportD301Xml(period: string): Promise<string> {
+async function d301For(period: string) {
   const { lines } = await loadLines(period)
-  return buildD301Xml(period, lines, requireCompanyIdentity(), requireDeclarant()).xml
+  return buildD301(period, lines, requireCompanyIdentity(), requireDeclarant())
 }
 
-export async function exportD390Xml(period: string): Promise<string> {
+async function d390For(period: string) {
   const { lines } = await loadLines(period)
-  const euLines = lines.filter((l) => l.reverseChargeType === 'eu_services')
   const company = requireCompanyIdentity()
   if (!company.vatIntraCommunityCode) {
     throw new Error('COMPANY_VAT_INTRA_CODE nesetat — obligatoriu pt. D390')
   }
-  return buildD390Xml(period, euLines, company, requireDeclarant()).xml
+  return buildD390(period, lines, company, requireDeclarant())
+}
+
+export async function exportD301Xml(period: string): Promise<string> {
+  return (await d301For(period)).xml
+}
+
+export async function exportD390Xml(period: string): Promise<string> {
+  return (await d390For(period)).xml
+}
+
+/** The ANAF form, prefilled: open in Adobe Reader, press Validare, sign, upload to SPV. */
+export async function exportD301Pdf(period: string): Promise<Buffer> {
+  return fillXfaDatasets(D301_TEMPLATE, (await d301For(period)).datasets)
+}
+
+export async function exportD390Pdf(period: string): Promise<Buffer> {
+  return fillXfaDatasets(D390_TEMPLATE, (await d390For(period)).datasets)
+}
+
+export function declarationFileName(code: 'D301' | 'D390', period: string, ext: 'xml' | 'pdf'): string {
+  const [year, month] = period.split('-')
+  return `${code}_${config.company.cif}_${year}_${month}.${ext}`
 }
 
 function csvEscape(value: string): string {
