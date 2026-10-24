@@ -23,7 +23,8 @@
     "server1Signal": "server-1 — {{signal}} critic",
     "assistantQuota": "Plafon de asistent — {{name}}",
     "callRoomFailed": "Camera de apel nu s-a creat",
-    "dailyRefused": "Daily refuză cererile"
+    "dailyRefused": "Daily refuză cererile",
+    "spvNotice": "Mesaj important în SPV"
   },
   "accounting": {
     "anafNeedsReauth": "ANAF necesită reautentificare manuală",
@@ -36,7 +37,10 @@
     "d301Due": "D301 pentru {{prevPeriod}} are {{count}} linii de depus — termen 25 luna curentă",
     "d390Due": "D390 pentru {{prevPeriod}} are {{count}} linii de depus — termen 25 luna curentă",
     "invoiceOverdue": "Factura {{number}} către {{client}} e restantă ({{amount}} {{currency}})",
-    "draft": "(draft)"
+    "draft": "(draft)",
+    "spvNotice": "SPV, CIF {{cif}}: {{text}}",
+    "form150Rejected": "Formularul 150 nr. {{number}} a fost respins: {{text}}",
+    "form150Answered": "Răspuns la formularul 150 nr. {{number}}: {{text}}"
   },
   "jobs": {
     "bnrFailed": "Actualizarea zilnică a cursului BNR a eșuat: {{err}}",

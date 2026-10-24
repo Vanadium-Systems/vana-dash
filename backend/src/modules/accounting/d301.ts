@@ -97,6 +97,7 @@ export type DeclarationCode = 'D301' | 'D390'
 export interface DeclarationFiling {
   anafIndex: string
   filedAt: Date
+  confirmedAt: Date | null
 }
 
 export interface DeclarationPreview {
@@ -110,7 +111,7 @@ export interface DeclarationPreview {
 
 async function getFiling(code: DeclarationCode, period: string): Promise<DeclarationFiling | null> {
   const [row] = await db
-    .select({ anafIndex: declarationFilings.anafIndex, filedAt: declarationFilings.filedAt })
+    .select({ anafIndex: declarationFilings.anafIndex, filedAt: declarationFilings.filedAt, confirmedAt: declarationFilings.confirmedAt })
     .from(declarationFilings)
     .where(and(eq(declarationFilings.code, code), eq(declarationFilings.period, period), isNull(declarationFilings.deletedAt)))
   return row ?? null
@@ -123,10 +124,21 @@ export async function saveFiling(code: DeclarationCode, input: z.infer<typeof De
     .values({ code, period: input.month, anafIndex: input.anafIndex.trim(), filedAt })
     .onConflictDoUpdate({
       target: [declarationFilings.tenantId, declarationFilings.code, declarationFilings.period],
-      set: { anafIndex: input.anafIndex.trim(), filedAt, deletedAt: null, updatedAt: new Date() },
+      set: { anafIndex: input.anafIndex.trim(), filedAt, confirmedAt: null, deletedAt: null, updatedAt: new Date() },
     })
-    .returning({ anafIndex: declarationFilings.anafIndex, filedAt: declarationFilings.filedAt })
+    .returning({ anafIndex: declarationFilings.anafIndex, filedAt: declarationFilings.filedAt, confirmedAt: declarationFilings.confirmedAt })
   return row!
+}
+
+/** The SPV receipt is the proof the declaration was registered; its index wins over a typed one. */
+export async function confirmFilingFromReceipt(code: DeclarationCode, period: string, anafIndex: string, receivedAt: Date): Promise<void> {
+  await db
+    .insert(declarationFilings)
+    .values({ code, period, anafIndex, filedAt: receivedAt, confirmedAt: receivedAt })
+    .onConflictDoUpdate({
+      target: [declarationFilings.tenantId, declarationFilings.code, declarationFilings.period],
+      set: { anafIndex, confirmedAt: receivedAt, deletedAt: null, updatedAt: new Date() },
+    })
 }
 
 export async function generateD301Preview(period: string): Promise<DeclarationPreview> {

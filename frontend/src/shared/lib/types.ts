@@ -197,7 +197,7 @@ export interface DeclarationPreview {
   lines: DeclarationLine[]
   totals: { baseRon: number; vatRon: number }
   warnings: string[]
-  filing: { anafIndex: string; filedAt: string } | null
+  filing: { anafIndex: string; filedAt: string; confirmedAt: string | null } | null
 }
 
 export interface QuarterlyPackageSummary {

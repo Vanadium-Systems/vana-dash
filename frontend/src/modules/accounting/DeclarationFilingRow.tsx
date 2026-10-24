@@ -51,7 +51,11 @@ export function DeclarationFilingRow({
         {t('common:actions.save')}
       </Button>
       <span className="text-sm text-muted-foreground">
-        {filing ? t('accounting:declarations.filing.filedOn', { date: formatDate(filing.filedAt) }) : t('accounting:declarations.filing.notFiled')}
+        {!filing
+          ? t('accounting:declarations.filing.notFiled')
+          : filing.confirmedAt
+            ? t('accounting:declarations.filing.confirmedOn', { date: formatDate(filing.confirmedAt) })
+            : t('accounting:declarations.filing.awaitingReceipt', { date: formatDate(filing.filedAt) })}
       </span>
     </form>
   )

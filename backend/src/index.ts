@@ -27,6 +27,7 @@ import { startBankSyncJob } from './jobs/sync-bank.js'
 import { startSyncRunner } from './jobs/sync-runner.js'
 import { startSystemMetricsPurgeJob } from './jobs/system-metrics-purge.js'
 import { startServer1AlertsJob } from './jobs/server1-alerts.js'
+import { startSpvNotificationsJob } from './jobs/spv-notifications.js'
 import { startTenderWatchSyncJob } from './jobs/tender-watch-sync.js'
 import { startUptimeMonitorJob } from './jobs/uptime-monitor.js'
 import { startVanagreenBillingJob } from './jobs/vanagreen-billing.js'
@@ -51,6 +52,7 @@ startAnafUploadPollJob()
 startBankSyncJob()
 startRevolutTokenRefreshJob()
 startAccountingAlertsJob()
+startSpvNotificationsJob()
 startMetricAlertsJob()
 startPlatformOpsAlertsJob()
 startUptimeMonitorJob()

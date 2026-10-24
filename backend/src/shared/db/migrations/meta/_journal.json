@@ -526,6 +526,13 @@
       "when": 1792839439208,
       "tag": "0074_declaration_filings",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1792842061764,
+      "tag": "0075_spv_email_notices",
+      "breakpoints": true
     }
   ]
 }
