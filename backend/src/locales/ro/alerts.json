@@ -24,7 +24,8 @@
     "assistantQuota": "Plafon de asistent — {{name}}",
     "callRoomFailed": "Camera de apel nu s-a creat",
     "dailyRefused": "Daily refuză cererile",
-    "spvNotice": "Mesaj important în SPV"
+    "spvNotice": "Mesaj important în SPV",
+    "declarationNoReceipt": "Declarație fără recipisă"
   },
   "accounting": {
     "anafNeedsReauth": "ANAF necesită reautentificare manuală",
@@ -40,7 +41,8 @@
     "draft": "(draft)",
     "spvNotice": "SPV, CIF {{cif}}: {{text}}",
     "form150Rejected": "Formularul 150 nr. {{number}} a fost respins: {{text}}",
-    "form150Answered": "Răspuns la formularul 150 nr. {{number}}: {{text}}"
+    "form150Answered": "Răspuns la formularul 150 nr. {{number}}: {{text}}",
+    "declarationNoReceipt": "{{code}} pentru {{period}} (index {{anafIndex}}) nu are recipisă după 2 zile. Verifică indexul pe stare.anaf.ro/StareD112."
   },
   "jobs": {
     "bnrFailed": "Actualizarea zilnică a cursului BNR a eșuat: {{err}}",
