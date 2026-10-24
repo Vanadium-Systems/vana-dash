@@ -8,6 +8,7 @@ import {
   anafCredentials,
   bankAccounts,
   bankTransactions,
+  declarationFilings,
   financialRecords,
   paymentMatches,
   syncLog,
@@ -40,6 +41,9 @@ const ANAF_REFRESH_TOKEN_WARNING_DAYS = 30
 const REVOLUT_REFRESH_TOKEN_LIFETIME_DAYS = 90
 const REVOLUT_REFRESH_TOKEN_WARNING_DAYS = 7 // fereastră 4x mai mică decât ANAF → prag proporțional mai mic
 const D301_REMINDER_DAY = 20 // termen depunere D301/D390: 25 luna curentă, pt. luna precedentă
+// The receipt usually lands in SPV within hours; two days without one means the upload failed
+// somewhere (wrong channel, missing signature, no filing right) and needs a look.
+const RECEIPT_MISSING_DAYS = 2
 
 const ACCOUNTING_RULES = [
   { key: 'accounting.invoice_overdue', name: tr('alerts.rules.invoiceOverdue'), severity: 'warning' as const },
@@ -61,6 +65,7 @@ const ACCOUNTING_RULES = [
   { key: 'accounting.d301_deadline_approaching', name: tr('alerts.rules.d301Due'), severity: 'warning' as const },
   { key: 'accounting.d390_deadline_approaching', name: tr('alerts.rules.d390Due'), severity: 'warning' as const },
   { key: 'accounting.spv_notice', name: tr('alerts.rules.spvNotice'), severity: 'warning' as const },
+  { key: 'accounting.declaration_no_receipt', name: tr('alerts.rules.declarationNoReceipt'), severity: 'warning' as const },
 ]
 
 export function startAccountingAlertsJob(): void {
@@ -276,6 +281,22 @@ export async function checkAccountingAlerts(): Promise<void> {
         tl('alerts.accounting.revolutRefreshExpires', { name: account.name, value: estimatedExpiry.toISOString().slice(0, 10) }),
       )
     }
+  }
+
+  // 7b. declaration_no_receipt: an index was entered, no SPV receipt confirmed it. The message
+  // has no day count, so the alert is raised once per filing, not every morning.
+  const unconfirmed = await db
+    .select({ code: declarationFilings.code, period: declarationFilings.period, anafIndex: declarationFilings.anafIndex })
+    .from(declarationFilings)
+    .where(
+      and(
+        isNull(declarationFilings.deletedAt),
+        isNull(declarationFilings.confirmedAt),
+        lt(declarationFilings.filedAt, new Date(now.getTime() - RECEIPT_MISSING_DAYS * 24 * 60 * 60 * 1000)),
+      ),
+    )
+  for (const filing of unconfirmed) {
+    await raiseAlert(rules, 'accounting.declaration_no_receipt', tl('alerts.accounting.declarationNoReceipt', filing))
   }
 
   // 8. d301_deadline_approaching / d390_deadline_approaching — termen 25 luna curentă

@@ -19,6 +19,7 @@ import {
   anafCredentials,
   bankAccounts,
   bankTransactions,
+  declarationFilings,
   financialRecords,
 } from '../shared/db/schema/index.js'
 import { checkAccountingAlerts } from './accounting-alerts.js'
@@ -286,5 +287,27 @@ describe('checkAccountingAlerts — anaf_token_expiring', () => {
 
   it('raises the alert under 24h', async () => {
     expect(await alertsForExpiry(new Date(Date.now() + 12 * 60 * 60 * 1000))).toHaveLength(1)
+  })
+})
+
+describe('checkAccountingAlerts — declaration_no_receipt', () => {
+  afterAll(async () => {
+    await db.delete(declarationFilings).where(inArray(declarationFilings.period, ['2027-07', '2027-08']))
+    await db.delete(alerts).where(like(alerts.message, '%10000000%'))
+  })
+
+  it('alerts once for an index with no receipt after two days, never for a confirmed one', async () => {
+    const threeDaysAgo = new Date(Date.now() - 3 * DAY_MS)
+    await db.insert(declarationFilings).values([
+      { code: 'D301', period: '2027-07', anafIndex: '1000000071', filedAt: threeDaysAgo },
+      { code: 'D390', period: '2027-08', anafIndex: '1000000082', filedAt: threeDaysAgo, confirmedAt: new Date() },
+    ])
+
+    await checkAccountingAlerts()
+    await checkAccountingAlerts()
+
+    const raised = await alertsFor('accounting.declaration_no_receipt')
+    expect(raised.filter((r) => r.message.includes('1000000071'))).toHaveLength(1)
+    expect(raised.filter((r) => r.message.includes('1000000082'))).toHaveLength(0)
   })
 })

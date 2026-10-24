@@ -24,7 +24,8 @@
     "assistantQuota": "Assistant cap: {{name}}",
     "callRoomFailed": "Call room not created",
     "dailyRefused": "Daily refuses requests",
-    "spvNotice": "Important SPV message"
+    "spvNotice": "Important SPV message",
+    "declarationNoReceipt": "Declaration without a receipt"
   },
   "accounting": {
     "anafNeedsReauth": "ANAF needs manual re-authorization",
@@ -40,7 +41,8 @@
     "draft": "(draft)",
     "spvNotice": "SPV, CIF {{cif}}: {{text}}",
     "form150Rejected": "Form 150 no. {{number}} was rejected: {{text}}",
-    "form150Answered": "Answer to form 150 no. {{number}}: {{text}}"
+    "form150Answered": "Answer to form 150 no. {{number}}: {{text}}",
+    "declarationNoReceipt": "{{code}} for {{period}} (index {{anafIndex}}) has no receipt after 2 days. Check the index on stare.anaf.ro/StareD112."
   },
   "jobs": {
     "bnrFailed": "The daily update of the BNR rate failed: {{err}}",

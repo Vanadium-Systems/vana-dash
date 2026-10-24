@@ -4,6 +4,12 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-24: Alert for a declaration without a receipt
+
+### Added
+- `accounting.declaration_no_receipt`: a D301/D390 index entered more than 2 days ago with no SPV
+  receipt raises one alert, checked by the daily accounting alerts job.
+
 ## 2026-10-24: Sorting the ANAF SPV emails
 
 ### Added
