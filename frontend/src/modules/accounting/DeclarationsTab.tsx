@@ -9,6 +9,7 @@ import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { DeclarationLine, DeclarationPreview } from '@/shared/lib/types'
+import { DeclarationFilingRow } from './DeclarationFilingRow'
 import { DeclarationLineDialog } from './DeclarationLineDialog'
 import { formatDate, formatMoney } from './badges'
 import { t } from '@/shared/lib/i18n'
@@ -68,6 +69,10 @@ function DeclarationCard({
             </Button>
           </div>
         </div>
+
+        {preview.data && (preview.data.lines.length > 0 || preview.data.filing) ? (
+          <DeclarationFilingRow endpoint={endpoint} month={month} filing={preview.data.filing} />
+        ) : null}
 
         {preview.isPending ? (
           <Skeleton className="h-24 w-full" />

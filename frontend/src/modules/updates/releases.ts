@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-24T18:00:00+03:00',
+    title: {
+      ro: 'Indexul din SPV se păstrează lângă declarație',
+      en: 'The SPV index is kept next to the declaration',
+    },
+    body: {
+      ro: 'Sub D301 și D390 e un câmp „Index SPV”. Pui acolo indexul primit după upload și luna apare ca depusă; din acel moment nu mai primești memento-ul de termen pentru ea.',
+      en: 'D301 and D390 each have an “SPV index” field. Enter the index you get after the upload and the month shows as filed; the deadline reminder for it stops.',
+    },
+    features: ['facturi.declaratii'],
+  },
+  {
     publishedAt: '2026-10-24T16:00:00+03:00',
     title: {
       ro: 'Abonamentele nu mai intră singure în declarații',

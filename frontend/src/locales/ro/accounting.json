@@ -211,7 +211,13 @@
       "typeNonEu": "Servicii din afara UE (doar D301)",
       "typeNone": "Fără taxare inversă: furnizorul a facturat deja TVA"
     },
-    "unconfirmed": "fără factură, nu intră"
+    "unconfirmed": "fără factură, nu intră",
+    "filing": {
+      "label": "Index SPV",
+      "saved": "Indexul a fost salvat",
+      "filedOn": "Depusă pe {{date}}",
+      "notFiled": "Nedepusă încă. Pune indexul primit în SPV după upload."
+    }
   },
   "labels": {
     "supplier": "Furnizor",

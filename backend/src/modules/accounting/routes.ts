@@ -11,6 +11,7 @@ import * as quarterlyPackage from './quarterly-package.js'
 import {
   AnafExchangeCodeSchema,
   DeclarationExportQuerySchema,
+  DeclarationFilingBodySchema,
   DeclarationLineParamsSchema,
   DeclarationLineUpdateSchema,
   DeclarationMonthQuerySchema,
@@ -285,6 +286,16 @@ export async function accountingRoutes(app: FastifyInstance) {
       return { success: true, data: await d301.generateD390Preview(req.query.month) }
     },
   )
+
+  for (const code of ['D301', 'D390'] as const) {
+    server.put(
+      `/api/accounting/${code.toLowerCase()}/filing`,
+      { preHandler: [app.authenticate], schema: { body: DeclarationFilingBodySchema } },
+      async (req) => {
+        return { success: true, data: await d301.saveFiling(code, req.body) }
+      },
+    )
+  }
 
   server.patch(
     '/api/accounting/d301/lines/:id',

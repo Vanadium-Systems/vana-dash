@@ -41,6 +41,11 @@ export const DeclarationExportQuerySchema = DeclarationMonthQuerySchema.extend({
   format: z.enum(['pdf', 'xml', 'csv']).default('xml'),
 })
 
+export const DeclarationFilingBodySchema = DeclarationMonthQuerySchema.extend({
+  anafIndex: z.string().trim().min(1).max(30),
+  filedAt: z.coerce.date().optional(),
+})
+
 export const DeclarationLineParamsSchema = z.object({ id: z.string().uuid() })
 
 export const DeclarationLineUpdateSchema = z.object({

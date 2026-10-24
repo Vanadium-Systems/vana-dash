@@ -6,10 +6,10 @@ import { buildD390 } from '../../connectors/anaf/declarations/d390-builder.js'
 import { D301_TEMPLATE, D390_TEMPLATE, fillXfaDatasets } from '../../connectors/anaf/declarations/xfa-pdf.js'
 import type { DeclarationLine } from '../../connectors/anaf/declarations/types.js'
 import { db } from '../../shared/db/client.js'
-import { financialRecords } from '../../shared/db/schema/index.js'
+import { declarationFilings, financialRecords } from '../../shared/db/schema/index.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
 import { isoCodeToCountyName } from '../../shared/lib/ro-counties.js'
-import type { DeclarationLineUpdateSchema } from './schema.js'
+import type { DeclarationFilingBodySchema, DeclarationLineUpdateSchema } from './schema.js'
 
 const DEFAULT_VAT_RATE = 21
 
@@ -92,11 +92,41 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
   return { lines, warnings }
 }
 
+export type DeclarationCode = 'D301' | 'D390'
+
+export interface DeclarationFiling {
+  anafIndex: string
+  filedAt: Date
+}
+
 export interface DeclarationPreview {
   period: string
   lines: DeclarationLine[]
   totals: { baseRon: number; vatRon: number }
   warnings: string[]
+  /** Set once the index ANAF gave at upload has been typed in. */
+  filing: DeclarationFiling | null
+}
+
+async function getFiling(code: DeclarationCode, period: string): Promise<DeclarationFiling | null> {
+  const [row] = await db
+    .select({ anafIndex: declarationFilings.anafIndex, filedAt: declarationFilings.filedAt })
+    .from(declarationFilings)
+    .where(and(eq(declarationFilings.code, code), eq(declarationFilings.period, period), isNull(declarationFilings.deletedAt)))
+  return row ?? null
+}
+
+export async function saveFiling(code: DeclarationCode, input: z.infer<typeof DeclarationFilingBodySchema>): Promise<DeclarationFiling> {
+  const filedAt = input.filedAt ?? new Date()
+  const [row] = await db
+    .insert(declarationFilings)
+    .values({ code, period: input.month, anafIndex: input.anafIndex.trim(), filedAt })
+    .onConflictDoUpdate({
+      target: [declarationFilings.tenantId, declarationFilings.code, declarationFilings.period],
+      set: { anafIndex: input.anafIndex.trim(), filedAt, deletedAt: null, updatedAt: new Date() },
+    })
+    .returning({ anafIndex: declarationFilings.anafIndex, filedAt: declarationFilings.filedAt })
+  return row!
 }
 
 export async function generateD301Preview(period: string): Promise<DeclarationPreview> {
@@ -104,14 +134,14 @@ export async function generateD301Preview(period: string): Promise<DeclarationPr
   const declared = lines.filter((l) => l.confirmed)
   const baseRon = Math.round(declared.reduce((sum, l) => sum + l.baseRon, 0) * 100) / 100
   const vatRon = Math.round(declared.reduce((sum, l) => sum + l.vatRon, 0) * 100) / 100
-  return { period, lines, totals: { baseRon, vatRon }, warnings }
+  return { period, lines, totals: { baseRon, vatRon }, warnings, filing: await getFiling('D301', period) }
 }
 
 export async function generateD390Preview(period: string): Promise<DeclarationPreview> {
   const { lines, warnings } = await loadLines(period)
   const euLines = lines.filter((l) => l.reverseChargeType === 'eu_services')
   const baseRon = Math.round(euLines.filter((l) => l.confirmed).reduce((sum, l) => sum + l.baseRon, 0) * 100) / 100
-  return { period, lines: euLines, totals: { baseRon, vatRon: 0 }, warnings }
+  return { period, lines: euLines, totals: { baseRon, vatRon: 0 }, warnings, filing: await getFiling('D390', period) }
 }
 
 /**

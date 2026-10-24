@@ -210,7 +210,13 @@
       "typeNonEu": "Non-EU services (D301 only)",
       "typeNone": "No reverse charge: the supplier already charged VAT"
     },
-    "unconfirmed": "no invoice, left out"
+    "unconfirmed": "no invoice, left out",
+    "filing": {
+      "label": "SPV index",
+      "saved": "Index saved",
+      "filedOn": "Filed on {{date}}",
+      "notFiled": "Not filed yet. Enter the index SPV gives you after the upload."
+    }
   },
   "labels": {
     "supplier": "Supplier",

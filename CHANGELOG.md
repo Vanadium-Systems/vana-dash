@@ -4,6 +4,13 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-24: SPV index on the declarations
+
+### Added
+- `declaration_filings` (migration 0074, with its RLS policy): the index ANAF gives after a
+  D301/D390 upload, per month, set with `PUT /api/accounting/d301/filing` and `/d390/filing`.
+  A filed month no longer raises the deadline alert.
+
 ## 2026-10-24: Full address on the declarations
 
 ### Fixed

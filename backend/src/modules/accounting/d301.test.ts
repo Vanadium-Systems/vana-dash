@@ -7,7 +7,7 @@ import { inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { financialRecords } from '../../shared/db/schema/index.js'
-import { declarationAddress, generateD301Preview, generateD390Preview, linesToCsv, updateDeclarationLine } from './d301.js'
+import { declarationAddress, generateD301Preview, generateD390Preview, linesToCsv, saveFiling, updateDeclarationLine } from './d301.js'
 
 const recordIds: string[] = []
 
@@ -210,5 +210,16 @@ describe('declarationAddress', () => {
     expect(declarationAddress({ address: 'Str. Exemplu 1', city: 'Bucuresti Sector 1', countyCode: 'RO-B', postalCode: '' })).toBe(
       'Bucuresti Sector 1, Str. Exemplu 1',
     )
+  })
+})
+
+describe('saveFiling', () => {
+  it('keeps one SPV index per declaration and month, the latest one typed in', async () => {
+    expect((await generateD301Preview('2027-04')).filing).toBeNull()
+
+    await saveFiling('D301', { month: '2027-04', anafIndex: '1000000001' })
+    await saveFiling('D301', { month: '2027-04', anafIndex: '1000000002' })
+    expect((await generateD301Preview('2027-04')).filing?.anafIndex).toBe('1000000002')
+    expect((await generateD390Preview('2027-04')).filing).toBeNull()
   })
 })

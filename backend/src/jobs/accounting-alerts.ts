@@ -284,14 +284,15 @@ export async function checkAccountingAlerts(): Promise<void> {
       generateD301Preview(prevPeriod),
       generateD390Preview(prevPeriod),
     ])
-    if (d301Preview.lines.length > 0) {
+    // Once the SPV index is typed in, the month is filed and the reminder stops.
+    if (d301Preview.lines.length > 0 && !d301Preview.filing) {
       await raiseAlert(
         rules,
         'accounting.d301_deadline_approaching',
         tl('alerts.accounting.d301Due', { prevPeriod, count: d301Preview.lines.length }),
       )
     }
-    if (d390Preview.lines.length > 0) {
+    if (d390Preview.lines.length > 0 && !d390Preview.filing) {
       await raiseAlert(
         rules,
         'accounting.d390_deadline_approaching',
