@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-24T14:00:00+03:00',
+    title: {
+      ro: 'Liniile din declarații se pot corecta pe loc',
+      en: 'Declaration lines can be corrected in place',
+    },
+    body: {
+      ro: 'În Facturi → Declarații, creionul de pe fiecare rând îți lasă să pui numărul facturii, data și suma de pe factura reală, sau să scoți linia când furnizorul a facturat deja TVA. Formularele ies acum cu majuscule, iar la D390 câmpul Luna apare completat.',
+      en: 'In Invoices → Declarations, the pencil on each row lets you set the invoice number, date and amount from the real invoice, or take the line out when the supplier already charged VAT. The forms now come out in capitals, and the Month field in D390 is filled in.',
+    },
+    features: ['facturi.declaratii'],
+  },
+  {
     publishedAt: '2026-10-24T12:00:00+03:00',
     title: {
       ro: 'D301 și D390 se descarcă acum ca PDF pentru SPV',

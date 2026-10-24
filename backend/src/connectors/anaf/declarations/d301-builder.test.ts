@@ -14,6 +14,7 @@ const company: CompanyIdentity = {
 const declarant: Declarant = { firstName: 'Stefan', lastName: 'Popescu', role: 'Administrator' }
 
 const euLine: DeclarationLine = {
+  recordId: '00000000-0000-0000-0000-000000000001',
   reverseChargeType: 'eu_services',
   documentNumber: 'HTZ-001',
   issuedAt: new Date('2026-07-10T00:00:00Z'),
@@ -28,6 +29,7 @@ const euLine: DeclarationLine = {
 }
 
 const nonEuLine: DeclarationLine = {
+  recordId: '00000000-0000-0000-0000-000000000002',
   reverseChargeType: 'non_eu_services',
   documentNumber: 'CF-001',
   issuedAt: new Date('2026-07-15T00:00:00Z'),
@@ -81,8 +83,8 @@ describe('buildD301', () => {
 
   it('escapes XML special characters in free-text fields', () => {
     const { xml, datasets } = buildD301('2026-07', [], { ...company, address: 'Str. "A" & B' }, declarant)
-    expect(xml).toContain('Str. &quot;A&quot; &amp; B')
-    expect(datasets).toContain('Str. &quot;A&quot; &amp; B')
+    expect(xml).toContain('STR. &quot;A&quot; &amp; B')
+    expect(datasets).toContain('STR. &quot;A&quot; &amp; B')
   })
 
   it('emits zero totals for a month with no lines', () => {

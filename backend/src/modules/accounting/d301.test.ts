@@ -7,7 +7,7 @@ import { inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { financialRecords } from '../../shared/db/schema/index.js'
-import { generateD301Preview, generateD390Preview, linesToCsv } from './d301.js'
+import { generateD301Preview, generateD390Preview, linesToCsv, updateDeclarationLine } from './d301.js'
 
 const recordIds: string[] = []
 
@@ -147,5 +147,31 @@ describe('linesToCsv', () => {
     expect(rows).toHaveLength(2)
     expect(rows[0]).toBe('tip,document,data,suma_valuta,valuta,curs,baza_ron,tva_ron,tara,cod_tva_furnizor,furnizor')
     expect(rows[1]).toContain('HTZ-CSV-1')
+  })
+})
+
+describe('updateDeclarationLine', () => {
+  it('fills in the invoice number of a recurring expense and can take the line out', async () => {
+    const row = await insertExpense({
+      currency: 'RON',
+      amount: '50.00',
+      reverseChargeType: 'eu_services',
+      counterpartyCountry: 'IE',
+      counterpartyCif: 'IE1234567T',
+      counterpartyName: 'Acme Ireland Ltd',
+      issuedAt: new Date('2027-02-05T00:00:00Z'),
+    })
+
+    const before = await generateD301Preview('2027-02')
+    expect(before.lines[0]!.documentNumber).toBe('')
+    expect(before.warnings.some((w) => w.includes('lipsește numărul facturii'))).toBe(true)
+
+    await updateDeclarationLine(row.id, { documentNumber: 'INV-ACME-7', amount: 60 })
+    const fixed = await generateD301Preview('2027-02')
+    expect(fixed.lines[0]!.documentNumber).toBe('INV-ACME-7')
+    expect(fixed.totals.baseRon).toBeCloseTo(60)
+
+    await updateDeclarationLine(row.id, { reverseChargeType: 'none' })
+    expect((await generateD301Preview('2027-02')).lines).toHaveLength(0)
   })
 })

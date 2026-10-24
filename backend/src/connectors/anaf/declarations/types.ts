@@ -5,6 +5,8 @@
 export type ReverseChargeType = 'eu_services' | 'non_eu_services'
 
 export interface DeclarationLine {
+  /** financial_records.id, so a line can be corrected from the Declarations tab. */
+  recordId: string
   reverseChargeType: ReverseChargeType
   documentNumber: string
   issuedAt: Date

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Download } from 'lucide-react'
+import { Download, Pencil } from 'lucide-react'
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
@@ -7,7 +8,8 @@ import { Label } from '@/shared/components/ui/label'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
-import type { DeclarationPreview } from '@/shared/lib/types'
+import type { DeclarationLine, DeclarationPreview } from '@/shared/lib/types'
+import { DeclarationLineDialog } from './DeclarationLineDialog'
 import { formatDate, formatMoney } from './badges'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
@@ -29,6 +31,7 @@ function DeclarationCard({
   month: string
   showVat: boolean
 }) {
+  const [editing, setEditing] = useState<DeclarationLine | null>(null)
   const preview = useQuery({
     queryKey: ['accounting', endpoint, month],
     queryFn: () => api.get<DeclarationPreview>(`/api/accounting/${endpoint}?month=${month}`),
@@ -91,20 +94,32 @@ function DeclarationCard({
                   <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
                   <TableHead className="text-right">{t('accounting:declarations.baseRon')}</TableHead>
                   {showVat ? <TableHead className="text-right">{t('accounting:declarations.vatRon')}</TableHead> : null}
+                  <TableHead className="w-10"><span className="sr-only">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {preview.data.lines.map((l, i) => (
-                  <TableRow key={i}>
+                  <TableRow key={i} className="group">
                     <TableCell className="font-medium">{l.counterpartyName || '—'}</TableCell>
                     <TableCell>{l.counterpartyCountry ?? '—'}</TableCell>
-                    <TableCell>{l.documentNumber}</TableCell>
+                    <TableCell>{l.documentNumber || '—'}</TableCell>
                     <TableCell>{formatDate(l.issuedAt)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatMoney(l.amountForeign, l.currency)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatMoney(l.baseRon, BASE_CURRENCY)}</TableCell>
                     {showVat ? (
                       <TableCell className="text-right font-mono text-sm">{formatMoney(l.vatRon, BASE_CURRENCY)}</TableCell>
                     ) : null}
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t('accounting:declarations.edit.open')}
+                        className="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+                        onClick={() => setEditing(l)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -116,6 +131,7 @@ function DeclarationCard({
           </>
         )}
       </CardContent>
+      <DeclarationLineDialog line={editing} onOpenChange={(open) => !open && setEditing(null)} />
     </Card>
   )
 }

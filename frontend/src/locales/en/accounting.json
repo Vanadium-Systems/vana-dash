@@ -196,7 +196,20 @@
     "d301Title": "D301: special VAT return",
     "d301Help": "Purchases of services under reverse charge (EU and non-EU) in the selected month, due on the 25th of the next month.",
     "d390Title": "D390: VIES recapitulative statement",
-    "d390Help": "EU purchases only (Hetzner etc.); non-EU purchases (Cloudflare etc.) never appear here."
+    "d390Help": "EU purchases only (Hetzner etc.); non-EU purchases (Cloudflare etc.) never appear here.",
+    "edit": {
+      "open": "Correct the line",
+      "title": "Correct {{supplier}}",
+      "documentNumber": "Invoice number",
+      "documentNumberHint": "As it appears on the supplier’s invoice, for example “Invoice no.”.",
+      "issuedAt": "Invoice date",
+      "amount": "Amount in {{currency}}",
+      "amountInvalid": "Enter the amount on the invoice, greater than zero.",
+      "type": "Reverse charge",
+      "typeEu": "EU services (D301 + D390)",
+      "typeNonEu": "Non-EU services (D301 only)",
+      "typeNone": "No reverse charge: the supplier already charged VAT"
+    }
   },
   "labels": {
     "supplier": "Supplier",

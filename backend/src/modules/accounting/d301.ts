@@ -1,4 +1,5 @@
 import { and, eq, gte, isNull, lt, ne } from 'drizzle-orm'
+import type { z } from 'zod'
 import { config } from '../../shared/config.js'
 import { buildD301 } from '../../connectors/anaf/declarations/d301-builder.js'
 import { buildD390 } from '../../connectors/anaf/declarations/d390-builder.js'
@@ -7,6 +8,7 @@ import type { DeclarationLine } from '../../connectors/anaf/declarations/types.j
 import { db } from '../../shared/db/client.js'
 import { financialRecords } from '../../shared/db/schema/index.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
+import type { DeclarationLineUpdateSchema } from './schema.js'
 
 const DEFAULT_VAT_RATE = 21
 
@@ -55,6 +57,9 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
     const baseRon = Math.round(amount * fxRate * 100) / 100
     const vatRon = Math.round(((amount * fxRate * vatRate) / 100) * 100) / 100
 
+    if (!row.documentNumber) {
+      warnings.push(`${row.counterpartyName ?? row.id} din ${row.issuedAt.toISOString().slice(0, 10)}: lipsește numărul facturii — completează-l cu creionul de pe rând`)
+    }
     if (row.reverseChargeType === 'eu_services' && (!row.counterpartyCountry || !row.counterpartyCif)) {
       warnings.push(`${row.documentNumber ?? row.id}: lipsește țara sau codul TVA al furnizorului — obligatoriu pt. D390`)
     }
@@ -63,8 +68,9 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
     }
 
     lines.push({
+      recordId: row.id,
       reverseChargeType: row.reverseChargeType as 'eu_services' | 'non_eu_services',
-      documentNumber: row.documentNumber ?? row.id,
+      documentNumber: row.documentNumber ?? '',
       issuedAt: row.issuedAt,
       amountForeign: amount,
       currency,
@@ -154,6 +160,36 @@ export async function exportD390Pdf(period: string): Promise<Buffer> {
 export function declarationFileName(code: 'D301' | 'D390', period: string, ext: 'xml' | 'pdf'): string {
   const [year, month] = period.split('-')
   return `${code}_${config.company.cif}_${year}_${month}.${ext}`
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  const candidate = err as { code?: string; cause?: { code?: string } }
+  return candidate?.code === '23505' || candidate?.cause?.code === '23505'
+}
+
+/**
+ * Corrects a purchase as it goes into D301/D390. Recurring expenses are materialized with the
+ * subscription's amount and due date and no invoice number, so the real invoice is typed here.
+ * `reverseChargeType: 'none'` takes the line out of both declarations.
+ */
+export async function updateDeclarationLine(id: string, input: z.infer<typeof DeclarationLineUpdateSchema>) {
+  try {
+    const [row] = await db
+      .update(financialRecords)
+      .set({
+        ...(input.documentNumber !== undefined ? { documentNumber: input.documentNumber.trim() || null } : {}),
+        ...(input.issuedAt !== undefined ? { issuedAt: input.issuedAt } : {}),
+        ...(input.amount !== undefined ? { amount: String(input.amount) } : {}),
+        ...(input.reverseChargeType !== undefined ? { reverseChargeType: input.reverseChargeType } : {}),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(financialRecords.id, id), eq(financialRecords.direction, 'in'), isNull(financialRecords.deletedAt)))
+      .returning({ id: financialRecords.id })
+    return row ?? null
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new Error(`Factura ${input.documentNumber} există deja în aplicație`)
+    throw err
+  }
 }
 
 function csvEscape(value: string): string {

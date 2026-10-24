@@ -10,9 +10,12 @@ import { datasetsPacket, xmlText } from './xfa-pdf.js'
 
 const UNIVERSAL_CODE = 'D390_A1.0.11'
 
-/** The form turns diacritics into plain letters on exit from each field; prefilled data skips that. */
-function latin(value: string): string {
-  return value.normalize('NFD').replace(/[̀-ͯ]/g, '')
+/**
+ * Plain capitals, the way the accountant fills the forms. The form also strips diacritics on exit
+ * from each field, which prefilled data never triggers.
+ */
+function plain(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
 }
 
 function vatCodeWithoutCountry(vatId: string): string {
@@ -37,7 +40,9 @@ export interface D390BuildResult {
 /** `company.vatIntraCommunityCode` must be set; the service checks before calling. */
 export function buildD390(period: string, lines: DeclarationLine[], company: CompanyIdentity, declarant: Declarant): D390BuildResult {
   const [year, month] = period.split('-')
-  const luna = month!.padStart(2, '0')
+  // The month list shows 01-12 but saves 1-12; a padded value matches no item and the field
+  // shows up empty (it did on the accountant's August return too).
+  const luna = String(Number(month))
   const cui = company.vatIntraCommunityCode.toUpperCase().replace(/^RO/, '')
 
   const byPartner = new Map<string, { country: string; vatCode: string; name: string; base: number }>()
@@ -46,7 +51,7 @@ export function buildD390(period: string, lines: DeclarationLine[], company: Com
     const country = (line.counterpartyCountry ?? '').toUpperCase()
     const vatCode = vatCodeWithoutCountry(line.counterpartyVatId ?? '')
     const key = `${country}|${vatCode}`
-    const partner = byPartner.get(key) ?? { country, vatCode, name: latin(line.counterpartyName).toUpperCase(), base: 0 }
+    const partner = byPartner.get(key) ?? { country, vatCode, name: plain(line.counterpartyName), base: 0 }
     partner.base += line.baseRon
     byPartner.set(key, partner)
   }
@@ -59,8 +64,8 @@ export function buildD390(period: string, lines: DeclarationLine[], company: Com
 
   const bazaS = partners.reduce((sum, p) => sum + p.baseRon, 0)
   const totalPlataA = partners.length + bazaS
-  const name = latin(company.name)
-  const address = latin(company.address)
+  const name = plain(company.name)
+  const address = plain(company.address)
 
   const operatii = partners
     .map((p) => `\n\t<operatie tip="S" tara="${xmlText(p.country)}" codO="${xmlText(p.vatCode)}" denO="${xmlText(p.name)}" baza="${p.baseRon}" />`)
@@ -68,8 +73,8 @@ export function buildD390(period: string, lines: DeclarationLine[], company: Com
 
   const xml =
     `<?xml version="1.0"?>\n` +
-    `<declaratie390 luna="${luna}" an="${year}" d_rec="0" nume_declar="${xmlText(latin(declarant.lastName))}"` +
-    ` prenume_declar="${xmlText(latin(declarant.firstName))}" functie_declar="${xmlText(latin(declarant.role))}"` +
+    `<declaratie390 luna="${luna}" an="${year}" d_rec="0" nume_declar="${xmlText(plain(declarant.lastName))}"` +
+    ` prenume_declar="${xmlText(plain(declarant.firstName))}" functie_declar="${xmlText(plain(declarant.role))}"` +
     ` cui="${xmlText(cui)}" den="${xmlText(name)}" adresa="${xmlText(address)}" totalPlata_A="${totalPlataA}"` +
     ` xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="mfp:anaf:dgti:d390:declaratie:v3 D390.xsd"` +
     ` xmlns="mfp:anaf:dgti:d390:declaratie:v3">\n` +
@@ -90,8 +95,8 @@ export function buildD390(period: string, lines: DeclarationLine[], company: Com
       `<dd3><cif>${xmlText(cui)}</cif><denumire>${xmlText(name)}</denumire><adresa>${xmlText(address)}</adresa><telefon/><fax/><eMail/></dd3>` +
       `<dd4><totalPlata_A>${totalPlataA}</totalPlata_A><TOTAL_PAGINI/><TOTAL_OPERATORI>${partners.length}</TOTAL_OPERATORI>` +
       `<SUMA_L>0</SUMA_L><SUMA_T>0</SUMA_T><SUMA_A>0</SUMA_A><SUMA_P>0</SUMA_P><SUMA_S>${bazaS}</SUMA_S><SUMA_R>0</SUMA_R></dd4>` +
-      `<dd5><numeP>${xmlText(latin(declarant.lastName))}</numeP><prenP>${xmlText(latin(declarant.firstName))}</prenP>` +
-      `<functiaP>${xmlText(latin(declarant.role))}</functiaP></dd5><dd6><numeFisier/></dd6></body1>` +
+      `<dd5><numeP>${xmlText(plain(declarant.lastName))}</numeP><prenP>${xmlText(plain(declarant.firstName))}</prenP>` +
+      `<functiaP>${xmlText(plain(declarant.role))}</functiaP></dd5><dd6><numeFisier/></dd6></body1>` +
       `<body3><dd1 xfa:dataNode="dataGroup"/><dd2><seq>1.00000000</seq><TARA1/><COD_OP1/></dd2><dd4 xfa:dataNode="dataGroup"/></body3>` +
       `<body4><dd1 xfa:dataNode="dataGroup"/><dd2><seq/><TARA1/><COD_OP1/><TARA2/><COD_OP2/><motiv/></dd2></body4>` +
       `<body2><dd1><OP1>${rows}</OP1><TG><TOTAL_BAZA>${bazaS}</TOTAL_BAZA></TG><BUTOANE><unicitate/></BUTOANE></dd1></body2></form1>`,

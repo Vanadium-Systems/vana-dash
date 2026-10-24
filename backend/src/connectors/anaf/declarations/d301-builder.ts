@@ -23,8 +23,9 @@ function dateParts(date: Date): [string, string, string] {
   return [String(date.getUTCDate()).padStart(2, '0'), String(date.getUTCMonth() + 1).padStart(2, '0'), String(date.getUTCFullYear())]
 }
 
-function latin(value: string): string {
-  return value.normalize('NFD').replace(/[̀-ͯ]/g, '')
+/** Plain capitals, the way the accountant fills the forms. */
+function plain(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
 }
 
 export interface D301BuildResult {
@@ -49,8 +50,8 @@ export function buildD301(period: string, lines: DeclarationLine[], company: Com
   const tva5 = sum(section41, (l) => l.vatRon)
   const totalPlataA = Math.trunc(round2(baza4 + tva4 + baza5 + tva5))
 
-  const name = latin(company.name)
-  const address = latin(company.address)
+  const name = plain(company.name)
+  const address = plain(company.address)
 
   const sectiune = (tip: 4 | 5, l: DeclarationLine) => {
     const [d, m, y] = dateParts(l.issuedAt)
@@ -64,12 +65,12 @@ export function buildD301(period: string, lines: DeclarationLine[], company: Com
   const xml =
     `<?xml version="1.0"?>\n` +
     `<declaratie301 d_rec="0" an="${year}" luna="${luna}" mijl_trans="0" temei="0" cif="${xmlText(company.cif)}"` +
-    ` denumire="${xmlText(name)}" adresa="${xmlText(address)}" banca="${xmlText(latin(company.bank))}" cont="${xmlText(company.iban)}"` +
+    ` denumire="${xmlText(name)}" adresa="${xmlText(address)}" banca="${xmlText(plain(company.bank))}" cont="${xmlText(company.iban)}"` +
     ` pers_inreg="${persInreg}" nr_evid="${nrEvid}"\n` +
     ` baza1="0" tva1="0" baza2="0" tva2="0" baza3="0" tva3="0" baza4="${money(baza4)}" tva4="${money(tva4)}"` +
     ` baza5="${money(baza5)}" tva5="${money(tva5)}" totalPlata_A="${totalPlataA}"\n` +
-    ` nume_declarant="${xmlText(latin(declarant.lastName))}" prenume_declarant="${xmlText(latin(declarant.firstName))}"` +
-    ` functia_declarant="${xmlText(latin(declarant.role))}"\n` +
+    ` nume_declarant="${xmlText(plain(declarant.lastName))}" prenume_declarant="${xmlText(plain(declarant.firstName))}"` +
+    ` functia_declarant="${xmlText(plain(declarant.role))}"\n` +
     ` xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="mfp:anaf:dgti:d301:declaratie:v1 D301.xsd"` +
     ` xmlns="mfp:anaf:dgti:d301:declaratie:v1">` +
     section4.map((l) => sectiune(4, l)).join('') +
@@ -102,10 +103,10 @@ export function buildD301(period: string, lines: DeclarationLine[], company: Com
       `<header><an_r>${year}</an_r><luna_r>${luna}</luna_r><mtn>0</mtn><d_rec>0</d_rec></header>` +
       `<temeilegal><literab>0</literab><literaa>0</literaa></temeilegal>` +
       `<sub1><cif>${xmlText(company.cif)}</cif><text_denumire>${xmlText(name)}</text_denumire><text_adresa>${xmlText(address)}</text_adresa>` +
-      `<text_telefon/><text_fax/><text_email/><TIP_PERSOANA>${persInreg}</TIP_PERSOANA><banca>${xmlText(latin(company.bank))}</banca>` +
+      `<text_telefon/><text_fax/><text_email/><TIP_PERSOANA>${persInreg}</TIP_PERSOANA><banca>${xmlText(plain(company.bank))}</banca>` +
       `<cont>${xmlText(company.iban)}</cont><RO>RO</RO></sub1>` +
-      `<sub2><nume>${xmlText(latin(declarant.lastName))}</nume><prenume>${xmlText(latin(declarant.firstName))}</prenume>` +
-      `<functie>${xmlText(latin(declarant.role))}</functie></sub2>` +
+      `<sub2><nume>${xmlText(plain(declarant.lastName))}</nume><prenume>${xmlText(plain(declarant.firstName))}</prenume>` +
+      `<functie>${xmlText(plain(declarant.role))}</functie></sub2>` +
       `<rezumat><baza1>0.00</baza1><tva1>0.00</tva1><baza2>0.00</baza2><tva2>0.00</tva2><baza3>0.00</baza3><tva3>0.00</tva3>` +
       `<baza41>${money(baza4)}</baza41><tva41>${money(tva4)}</tva41><baza42>${money(baza5)}</baza42><tva42>${money(tva5)}</tva42>` +
       `<Tbaza>${money(baza4 + baza5)}</Tbaza><Ttva>${money(tva4 + tva5)}</Ttva><totalPlata_A>${totalPlataA}</totalPlata_A>` +

@@ -4,6 +4,17 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-24: Correcting declaration lines
+
+### Added
+- `PATCH /api/accounting/d301/lines/:id`: invoice number, date, amount and reverse-charge type of
+  a purchase, from the Declarations tab. Recurring expenses are materialized without an invoice
+  number; a missing one is now a warning instead of falling back to the record id.
+
+### Fixed
+- D390: the month went into the form padded (`08`), which matches no saved value of the month
+  list, so the field showed up empty. Names, addresses and the bank now go in plain capitals.
+
 ## 2026-10-24: D301 and D390 as ANAF PDF forms
 
 ### Added

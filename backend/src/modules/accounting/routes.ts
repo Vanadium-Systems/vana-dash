@@ -11,6 +11,8 @@ import * as quarterlyPackage from './quarterly-package.js'
 import {
   AnafExchangeCodeSchema,
   DeclarationExportQuerySchema,
+  DeclarationLineParamsSchema,
+  DeclarationLineUpdateSchema,
   DeclarationMonthQuerySchema,
   ManualRecordCreateSchema,
   PaymentUpdateSchema,
@@ -281,6 +283,20 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: DeclarationMonthQuerySchema } },
     async (req) => {
       return { success: true, data: await d301.generateD390Preview(req.query.month) }
+    },
+  )
+
+  server.patch(
+    '/api/accounting/d301/lines/:id',
+    { preHandler: [app.authenticate], schema: { params: DeclarationLineParamsSchema, body: DeclarationLineUpdateSchema } },
+    async (req, reply) => {
+      try {
+        const row = await d301.updateDeclarationLine(req.params.id, req.body)
+        if (!row) return reply.code(404).send({ success: false, error: 'Record not found' })
+        return { success: true, data: row }
+      } catch (err) {
+        return reply.code(400).send({ success: false, error: err instanceof Error ? err.message : String(err) })
+      }
     },
   )
 

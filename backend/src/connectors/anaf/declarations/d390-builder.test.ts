@@ -14,6 +14,7 @@ const company: CompanyIdentity = {
 const declarant: Declarant = { firstName: 'Stefan', lastName: 'Popescu', role: 'Administrator' }
 
 const euLine: DeclarationLine = {
+  recordId: '00000000-0000-0000-0000-000000000001',
   reverseChargeType: 'eu_services',
   documentNumber: 'HTZ-001',
   issuedAt: new Date('2026-07-10T00:00:00Z'),
@@ -28,6 +29,7 @@ const euLine: DeclarationLine = {
 }
 
 const nonEuLine: DeclarationLine = {
+  recordId: '00000000-0000-0000-0000-000000000002',
   reverseChargeType: 'non_eu_services',
   documentNumber: 'CF-001',
   issuedAt: new Date('2026-07-15T00:00:00Z'),
@@ -62,10 +64,10 @@ describe('buildD390', () => {
     expect(xml).toContain('nrOPI="1" bazaL="0" bazaT="0" bazaA="0" bazaP="0" bazaS="500" bazaR="0" total_baza="500"')
   })
 
-  it('writes the v3 namespace, a two-digit month and the CUI without RO', () => {
+  it('writes the v3 namespace, the month as the form saves it and the CUI without RO', () => {
     const { xml } = buildD390('2026-07', [euLine], company, declarant)
     expect(xml).toContain('xmlns="mfp:anaf:dgti:d390:declaratie:v3"')
-    expect(xml).toContain('luna="07" an="2026"')
+    expect(xml).toContain('luna="7" an="2026"')
     expect(xml).toContain('cui="90000014"')
   })
 
@@ -73,7 +75,14 @@ describe('buildD390', () => {
     const { datasets } = buildD390('2026-07', [euLine], company, declarant)
     expect(datasets).toContain('<OP2><seq>1</seq><TIP_OP>S</TIP_OP><TARA>DE</TARA><COD_OP>123456789</COD_OP>')
     expect(datasets).toContain('<SUMA_S>500</SUMA_S>')
-    expect(datasets).toContain('<luna_r>07</luna_r>')
+    expect(datasets).toContain('<luna_r>7</luna_r>')
+  })
+
+  it('writes names and addresses in plain capitals', () => {
+    const { xml } = buildD390('2026-07', [euLine], { ...company, address: 'Str. Școlii 1, Brașov' }, declarant)
+    expect(xml).toContain('adresa="STR. SCOLII 1, BRASOV"')
+    expect(xml).toContain('den="ACME RECYCLING SRL"')
+    expect(xml).toContain('prenume_declar="STEFAN"')
   })
 
   it('produces an empty declaration with zero eu_services lines', () => {

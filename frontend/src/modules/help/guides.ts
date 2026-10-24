@@ -262,6 +262,10 @@ const SOURCES: GuideSource[] = [
         en: 'Pick the month and check the lines: D301 has every service, D390 only the EU suppliers, one row per supplier.',
       },
       {
+        ro: 'Abonamentele intră cu suma și data abonamentului, fără număr de factură. Cu creionul de pe rând copiezi numărul, data și suma de pe factura reală. Dacă furnizorul ți-a pus deja TVA pe factură, alege „Fără taxare inversă” și linia iese din declarații.',
+        en: 'Subscriptions come in with the subscription’s amount and date and no invoice number. The pencil on the row lets you copy the number, date and amount from the real invoice. If the supplier already charged VAT on the invoice, pick “No reverse charge” and the line leaves the declarations.',
+      },
+      {
         ro: 'Apasă PDF și deschide fișierul în Adobe Acrobat Reader. Alte programe nu știu formularele ANAF.',
         en: 'Press PDF and open the file in Adobe Acrobat Reader. Other viewers cannot handle ANAF forms.',
       },

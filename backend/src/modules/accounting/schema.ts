@@ -41,6 +41,15 @@ export const DeclarationExportQuerySchema = DeclarationMonthQuerySchema.extend({
   format: z.enum(['pdf', 'xml', 'csv']).default('xml'),
 })
 
+export const DeclarationLineParamsSchema = z.object({ id: z.string().uuid() })
+
+export const DeclarationLineUpdateSchema = z.object({
+  documentNumber: z.string().max(50).optional(),
+  issuedAt: z.coerce.date().optional(),
+  amount: z.number().positive().optional(),
+  reverseChargeType: z.enum(['none', 'eu_services', 'non_eu_services']).optional(),
+})
+
 // Pachet trimestrial (Sprint D, Track B) — 'YYYY-Qn'.
 export const QuarterQuerySchema = z.object({
   quarter: z.string().regex(/^\d{4}-Q[1-4]$/, lazyTr('errors.accounting.expectedQuarterFormat')),

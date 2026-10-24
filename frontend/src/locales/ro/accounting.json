@@ -197,7 +197,20 @@
     "d301Title": "D301 — Decont special TVA",
     "d301Help": "Achiziții de servicii cu taxare inversă (UE și non-UE) din luna selectată, termen 25 luna următoare.",
     "d390Title": "D390 — Recapitulativă VIES",
-    "d390Help": "Doar achizițiile UE (Hetzner etc.) — achizițiile non-UE (Cloudflare etc.) nu apar niciodată aici."
+    "d390Help": "Doar achizițiile UE (Hetzner etc.) — achizițiile non-UE (Cloudflare etc.) nu apar niciodată aici.",
+    "edit": {
+      "open": "Corectează linia",
+      "title": "Corectează {{supplier}}",
+      "documentNumber": "Numărul facturii",
+      "documentNumberHint": "Cum apare pe factura furnizorului, de exemplu „Invoice no.”.",
+      "issuedAt": "Data facturii",
+      "amount": "Suma în {{currency}}",
+      "amountInvalid": "Scrie suma de pe factură, mai mare decât zero.",
+      "type": "Taxare inversă",
+      "typeEu": "Servicii din UE (D301 + D390)",
+      "typeNonEu": "Servicii din afara UE (doar D301)",
+      "typeNone": "Fără taxare inversă: furnizorul a facturat deja TVA"
+    }
   },
   "labels": {
     "supplier": "Furnizor",

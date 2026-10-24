@@ -176,6 +176,7 @@ export interface FinancialRecord {
 export type ReverseChargeType = 'none' | 'eu_services' | 'non_eu_services'
 
 export interface DeclarationLine {
+  recordId: string
   reverseChargeType: Exclude<ReverseChargeType, 'none'>
   documentNumber: string
   issuedAt: string
