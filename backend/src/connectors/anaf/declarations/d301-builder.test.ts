@@ -15,6 +15,7 @@ const declarant: Declarant = { firstName: 'Stefan', lastName: 'Popescu', role: '
 
 const euLine: DeclarationLine = {
   recordId: '00000000-0000-0000-0000-000000000001',
+  confirmed: true,
   reverseChargeType: 'eu_services',
   documentNumber: 'HTZ-001',
   issuedAt: new Date('2026-07-10T00:00:00Z'),
@@ -30,6 +31,7 @@ const euLine: DeclarationLine = {
 
 const nonEuLine: DeclarationLine = {
   recordId: '00000000-0000-0000-0000-000000000002',
+  confirmed: true,
   reverseChargeType: 'non_eu_services',
   documentNumber: 'CF-001',
   issuedAt: new Date('2026-07-15T00:00:00Z'),
@@ -64,6 +66,12 @@ describe('buildD301', () => {
     expect(xml).toContain('xmlns="mfp:anaf:dgti:d301:declaratie:v1"')
     expect(xml).toContain('an="2026" luna="7" mijl_trans="0" temei="0"')
     expect(xml).toContain('data_doc="10.07.2026"')
+  })
+
+  it('files on the art. 317 VAT code when there is one, on the CUI otherwise', () => {
+    expect(buildD301('2026-07', [euLine], company, declarant).xml).toContain('cif="90000014"')
+    const withoutCode = buildD301('2026-07', [nonEuLine], { ...company, vatIntraCommunityCode: '' }, declarant)
+    expect(withoutCode.xml).toContain('cif="12345674"')
   })
 
   it('sets pers_inreg=2 when the intra-community VAT code is configured, 1 otherwise', () => {

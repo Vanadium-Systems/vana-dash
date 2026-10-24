@@ -4,6 +4,16 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-24: Declarations count invoices, not subscriptions
+
+### Changed
+- A line materialized from a recurring expense stays out of D301/D390 (and their totals and CSV)
+  until it has an invoice number; it is listed as unconfirmed.
+
+### Fixed
+- D301 was filed on the company CUI; a person registered under art. 317 gets a separate VAT code
+  and D301 now uses it (`COMPANY_VAT_INTRA_CODE`), the CUI only when there is none.
+
 ## 2026-10-24: Correcting declaration lines
 
 ### Added

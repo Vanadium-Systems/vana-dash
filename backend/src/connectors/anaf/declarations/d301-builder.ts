@@ -39,6 +39,9 @@ export function buildD301(period: string, lines: DeclarationLine[], company: Com
   const [year, month] = period.split('-')
   const luna = String(Number(month))
   const persInreg = company.vatIntraCommunityCode ? 2 : 1
+  // A person registered under art. 317 gets a separate VAT code from ANAF, and D301 is filed on
+  // that code, not on the company's CUI (both are in the ANAF registry).
+  const cif = persInreg === 2 ? company.vatIntraCommunityCode.toUpperCase().replace(/^RO/, '') : company.cif
   const nrEvid = buildNrEvid(period, false)
 
   const section4 = lines
@@ -64,7 +67,7 @@ export function buildD301(period: string, lines: DeclarationLine[], company: Com
 
   const xml =
     `<?xml version="1.0"?>\n` +
-    `<declaratie301 d_rec="0" an="${year}" luna="${luna}" mijl_trans="0" temei="0" cif="${xmlText(company.cif)}"` +
+    `<declaratie301 d_rec="0" an="${year}" luna="${luna}" mijl_trans="0" temei="0" cif="${xmlText(cif)}"` +
     ` denumire="${xmlText(name)}" adresa="${xmlText(address)}" banca="${xmlText(plain(company.bank))}" cont="${xmlText(company.iban)}"` +
     ` pers_inreg="${persInreg}" nr_evid="${nrEvid}"\n` +
     ` baza1="0" tva1="0" baza2="0" tva2="0" baza3="0" tva3="0" baza4="${money(baza4)}" tva4="${money(tva4)}"` +
@@ -102,7 +105,7 @@ export function buildD301(period: string, lines: DeclarationLine[], company: Com
     `<form1><codF1><universalCode>${UNIVERSAL_CODE}</universalCode><codF2>301</codF2></codF1><body0>` +
       `<header><an_r>${year}</an_r><luna_r>${luna}</luna_r><mtn>0</mtn><d_rec>0</d_rec></header>` +
       `<temeilegal><literab>0</literab><literaa>0</literaa></temeilegal>` +
-      `<sub1><cif>${xmlText(company.cif)}</cif><text_denumire>${xmlText(name)}</text_denumire><text_adresa>${xmlText(address)}</text_adresa>` +
+      `<sub1><cif>${xmlText(cif)}</cif><text_denumire>${xmlText(name)}</text_denumire><text_adresa>${xmlText(address)}</text_adresa>` +
       `<text_telefon/><text_fax/><text_email/><TIP_PERSOANA>${persInreg}</TIP_PERSOANA><banca>${xmlText(plain(company.bank))}</banca>` +
       `<cont>${xmlText(company.iban)}</cont><RO>RO</RO></sub1>` +
       `<sub2><nume>${xmlText(plain(declarant.lastName))}</nume><prenume>${xmlText(plain(declarant.firstName))}</prenume>` +

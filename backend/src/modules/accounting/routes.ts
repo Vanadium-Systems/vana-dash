@@ -307,7 +307,7 @@ export async function accountingRoutes(app: FastifyInstance) {
       try {
         if (req.query.format === 'csv') {
           const preview = await d301.generateD301Preview(req.query.month)
-          return reply.type('text/csv').send(d301.linesToCsv(preview.lines))
+          return reply.type('text/csv').send(d301.linesToCsv(preview.lines.filter((l) => l.confirmed)))
         }
         if (req.query.format === 'pdf') {
           const pdf = await d301.exportD301Pdf(req.query.month)
@@ -334,7 +334,7 @@ export async function accountingRoutes(app: FastifyInstance) {
       try {
         if (req.query.format === 'csv') {
           const preview = await d301.generateD390Preview(req.query.month)
-          return reply.type('text/csv').send(d301.linesToCsv(preview.lines))
+          return reply.type('text/csv').send(d301.linesToCsv(preview.lines.filter((l) => l.confirmed)))
         }
         if (req.query.format === 'pdf') {
           const pdf = await d301.exportD390Pdf(req.query.month)

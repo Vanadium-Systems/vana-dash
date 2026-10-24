@@ -177,6 +177,8 @@ export type ReverseChargeType = 'none' | 'eu_services' | 'non_eu_services'
 
 export interface DeclarationLine {
   recordId: string
+  /** False = subscription without its real invoice yet; shown, but left out of the declaration. */
+  confirmed: boolean
   reverseChargeType: Exclude<ReverseChargeType, 'none'>
   documentNumber: string
   issuedAt: string

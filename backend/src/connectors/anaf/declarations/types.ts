@@ -7,6 +7,11 @@ export type ReverseChargeType = 'eu_services' | 'non_eu_services'
 export interface DeclarationLine {
   /** financial_records.id, so a line can be corrected from the Declarations tab. */
   recordId: string
+  /**
+   * False for a line materialized from a recurring expense that has no invoice number yet: the
+   * subscription is a reminder, only the real invoice goes into a declaration.
+   */
+  confirmed: boolean
   reverseChargeType: ReverseChargeType
   documentNumber: string
   issuedAt: Date

@@ -15,6 +15,7 @@ const declarant: Declarant = { firstName: 'Stefan', lastName: 'Popescu', role: '
 
 const euLine: DeclarationLine = {
   recordId: '00000000-0000-0000-0000-000000000001',
+  confirmed: true,
   reverseChargeType: 'eu_services',
   documentNumber: 'HTZ-001',
   issuedAt: new Date('2026-07-10T00:00:00Z'),
@@ -30,6 +31,7 @@ const euLine: DeclarationLine = {
 
 const nonEuLine: DeclarationLine = {
   recordId: '00000000-0000-0000-0000-000000000002',
+  confirmed: true,
   reverseChargeType: 'non_eu_services',
   documentNumber: 'CF-001',
   issuedAt: new Date('2026-07-15T00:00:00Z'),

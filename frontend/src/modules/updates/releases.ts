@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-24T16:00:00+03:00',
+    title: {
+      ro: 'Abonamentele nu mai intră singure în declarații',
+      en: 'Subscriptions no longer go into declarations on their own',
+    },
+    body: {
+      ro: 'Un abonament recurent apare în Declarații ca „fără factură” și nu intră în D301 sau D390 până nu îi pui cu creionul numărul, data și suma de pe factura reală. D301 se completează acum pe codul de TVA primit la înregistrarea pe art. 317, ca la contabilă.',
+      en: 'A recurring subscription shows up in Declarations as “no invoice” and stays out of D301 and D390 until you use the pencil to set the number, date and amount from the real invoice. D301 is now filled in on the VAT code issued for the art. 317 registration, as the accountant does.',
+    },
+    features: ['facturi.declaratii'],
+  },
+  {
     publishedAt: '2026-10-24T14:00:00+03:00',
     title: {
       ro: 'Liniile din declarații se pot corecta pe loc',

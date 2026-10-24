@@ -175,3 +175,27 @@ describe('updateDeclarationLine', () => {
     expect((await generateD301Preview('2027-02')).lines).toHaveLength(0)
   })
 })
+
+describe('recurring expenses in declarations', () => {
+  it('shows a recurring line without an invoice number but leaves it out until the invoice is set', async () => {
+    const row = await insertExpense({
+      currency: 'RON',
+      amount: '40.00',
+      reverseChargeType: 'non_eu_services',
+      counterpartyCountry: 'US',
+      counterpartyName: 'Acme Cloud Inc',
+      source: 'recurring_expense',
+      issuedAt: new Date('2027-03-05T00:00:00Z'),
+    })
+
+    const before = await generateD301Preview('2027-03')
+    expect(before.lines).toHaveLength(1)
+    expect(before.lines[0]!.confirmed).toBe(false)
+    expect(before.totals.baseRon).toBe(0)
+
+    await updateDeclarationLine(row.id, { documentNumber: 'INV-ACME-8' })
+    const after = await generateD301Preview('2027-03')
+    expect(after.lines[0]!.confirmed).toBe(true)
+    expect(after.totals.baseRon).toBeCloseTo(40)
+  })
+})

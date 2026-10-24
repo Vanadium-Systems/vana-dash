@@ -99,10 +99,16 @@ function DeclarationCard({
               </TableHeader>
               <TableBody>
                 {preview.data.lines.map((l, i) => (
-                  <TableRow key={i} className="group">
+                  <TableRow key={i} className={l.confirmed ? 'group' : 'group text-muted-foreground'}>
                     <TableCell className="font-medium">{l.counterpartyName || '—'}</TableCell>
                     <TableCell>{l.counterpartyCountry ?? '—'}</TableCell>
-                    <TableCell>{l.documentNumber || '—'}</TableCell>
+                    <TableCell>
+                      {l.confirmed ? (
+                        l.documentNumber || '—'
+                      ) : (
+                        <span className="rounded bg-warning/10 px-1.5 py-0.5 text-xs text-warning">{t('accounting:declarations.unconfirmed')}</span>
+                      )}
+                    </TableCell>
                     <TableCell>{formatDate(l.issuedAt)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatMoney(l.amountForeign, l.currency)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatMoney(l.baseRon, BASE_CURRENCY)}</TableCell>

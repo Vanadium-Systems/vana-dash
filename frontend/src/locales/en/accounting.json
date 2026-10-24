@@ -209,7 +209,8 @@
       "typeEu": "EU services (D301 + D390)",
       "typeNonEu": "Non-EU services (D301 only)",
       "typeNone": "No reverse charge: the supplier already charged VAT"
-    }
+    },
+    "unconfirmed": "no invoice, left out"
   },
   "labels": {
     "supplier": "Supplier",

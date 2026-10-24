@@ -210,7 +210,8 @@
       "typeEu": "Servicii din UE (D301 + D390)",
       "typeNonEu": "Servicii din afara UE (doar D301)",
       "typeNone": "Fără taxare inversă: furnizorul a facturat deja TVA"
-    }
+    },
+    "unconfirmed": "fără factură, nu intră"
   },
   "labels": {
     "supplier": "Furnizor",

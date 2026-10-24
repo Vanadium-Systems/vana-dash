@@ -57,8 +57,12 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
     const baseRon = Math.round(amount * fxRate * 100) / 100
     const vatRon = Math.round(((amount * fxRate * vatRate) / 100) * 100) / 100
 
-    if (!row.documentNumber) {
-      warnings.push(`${row.counterpartyName ?? row.id} din ${row.issuedAt.toISOString().slice(0, 10)}: lipsește numărul facturii — completează-l cu creionul de pe rând`)
+    const confirmed = row.source !== 'recurring_expense' || Boolean(row.documentNumber)
+    const label = `${row.counterpartyName ?? row.id} din ${row.issuedAt.toISOString().slice(0, 10)}`
+    if (!confirmed) {
+      warnings.push(`${label}: abonament recurent, fără factură — nu intră în declarație până nu pui numărul, data și suma de pe factura reală (creionul de pe rând)`)
+    } else if (!row.documentNumber) {
+      warnings.push(`${label}: lipsește numărul facturii — completează-l cu creionul de pe rând`)
     }
     if (row.reverseChargeType === 'eu_services' && (!row.counterpartyCountry || !row.counterpartyCif)) {
       warnings.push(`${row.documentNumber ?? row.id}: lipsește țara sau codul TVA al furnizorului — obligatoriu pt. D390`)
@@ -69,6 +73,7 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
 
     lines.push({
       recordId: row.id,
+      confirmed,
       reverseChargeType: row.reverseChargeType as 'eu_services' | 'non_eu_services',
       documentNumber: row.documentNumber ?? '',
       issuedAt: row.issuedAt,
@@ -95,15 +100,16 @@ export interface DeclarationPreview {
 
 export async function generateD301Preview(period: string): Promise<DeclarationPreview> {
   const { lines, warnings } = await loadLines(period)
-  const baseRon = Math.round(lines.reduce((sum, l) => sum + l.baseRon, 0) * 100) / 100
-  const vatRon = Math.round(lines.reduce((sum, l) => sum + l.vatRon, 0) * 100) / 100
+  const declared = lines.filter((l) => l.confirmed)
+  const baseRon = Math.round(declared.reduce((sum, l) => sum + l.baseRon, 0) * 100) / 100
+  const vatRon = Math.round(declared.reduce((sum, l) => sum + l.vatRon, 0) * 100) / 100
   return { period, lines, totals: { baseRon, vatRon }, warnings }
 }
 
 export async function generateD390Preview(period: string): Promise<DeclarationPreview> {
   const { lines, warnings } = await loadLines(period)
   const euLines = lines.filter((l) => l.reverseChargeType === 'eu_services')
-  const baseRon = Math.round(euLines.reduce((sum, l) => sum + l.baseRon, 0) * 100) / 100
+  const baseRon = Math.round(euLines.filter((l) => l.confirmed).reduce((sum, l) => sum + l.baseRon, 0) * 100) / 100
   return { period, lines: euLines, totals: { baseRon, vatRon: 0 }, warnings }
 }
 
@@ -126,13 +132,18 @@ function requireDeclarant() {
   return config.declarant
 }
 
-async function d301For(period: string) {
+async function confirmedLines(period: string): Promise<DeclarationLine[]> {
   const { lines } = await loadLines(period)
+  return lines.filter((l) => l.confirmed)
+}
+
+async function d301For(period: string) {
+  const lines = await confirmedLines(period)
   return buildD301(period, lines, requireCompanyIdentity(), requireDeclarant())
 }
 
 async function d390For(period: string) {
-  const { lines } = await loadLines(period)
+  const lines = await confirmedLines(period)
   const company = requireCompanyIdentity()
   if (!company.vatIntraCommunityCode) {
     throw new Error('COMPANY_VAT_INTRA_CODE nesetat — obligatoriu pt. D390')
