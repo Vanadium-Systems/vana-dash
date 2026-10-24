@@ -4,6 +4,13 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-24: Full address on the declarations
+
+### Fixed
+- D301/D390 asked for county, locality, street and postal code in one field and got only the
+  street. The address is now put together from `COMPANY_COUNTY_CODE`, `COMPANY_CITY`,
+  `COMPANY_ADDRESS` and the new `COMPANY_POSTAL_CODE`.
+
 ## 2026-10-24: Declarations count invoices, not subscriptions
 
 ### Changed

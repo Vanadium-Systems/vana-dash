@@ -8,6 +8,7 @@ import type { DeclarationLine } from '../../connectors/anaf/declarations/types.j
 import { db } from '../../shared/db/client.js'
 import { financialRecords } from '../../shared/db/schema/index.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
+import { isoCodeToCountyName } from '../../shared/lib/ro-counties.js'
 import type { DeclarationLineUpdateSchema } from './schema.js'
 
 const DEFAULT_VAT_RATE = 21
@@ -113,12 +114,30 @@ export async function generateD390Preview(period: string): Promise<DeclarationPr
   return { period, lines: euLines, totals: { baseRon, vatRon: 0 }, warnings }
 }
 
+/**
+ * The declarations ask for the full address in one field, in this order: county, locality,
+ * street and the rest, postal code. COMPANY_ADDRESS holds only the street part (the invoices
+ * take the city and county separately), so the address is put together here.
+ */
+export function declarationAddress(company: { address: string; city: string; countyCode: string; postalCode: string }): string {
+  const county = isoCodeToCountyName(company.countyCode)
+  return [
+    county && county !== 'BUCURESTI' ? `JUD. ${county}` : '',
+    company.city,
+    company.address,
+    company.postalCode ? `COD POSTAL ${company.postalCode}` : '',
+  ]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(', ')
+}
+
 function requireCompanyIdentity() {
   if (!config.company.cif) throw new Error('COMPANY_CIF nesetat')
   return {
     cif: config.company.cif,
     name: config.company.name,
-    address: config.company.address,
+    address: declarationAddress(config.company),
     bank: config.company.bank,
     iban: config.company.iban,
     vatIntraCommunityCode: config.company.vatIntraCommunityCode,

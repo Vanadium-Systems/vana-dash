@@ -72,6 +72,12 @@ export function countyNameToIsoCode(county: string | null | undefined): string |
   return undefined
 }
 
+/** 'RO-BV' → 'BRASOV', for addresses written out in full. Undefined for an unknown code. */
+export function isoCodeToCountyName(code: string | null | undefined): string | undefined {
+  const short = code?.toUpperCase().replace(/^RO-/, '')
+  return Object.entries(COUNTY_CODES).find(([, value]) => value === short)?.[0]
+}
+
 const SECTOR_RE = /sector(?:ul)?\s*(\d)/i
 
 /** Pulls the sector out of free text ("Sector 1", "SECTORUL2", "Sector 3 Mun. București") in

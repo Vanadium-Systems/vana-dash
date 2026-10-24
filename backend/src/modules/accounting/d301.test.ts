@@ -7,7 +7,7 @@ import { inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { financialRecords } from '../../shared/db/schema/index.js'
-import { generateD301Preview, generateD390Preview, linesToCsv, updateDeclarationLine } from './d301.js'
+import { declarationAddress, generateD301Preview, generateD390Preview, linesToCsv, updateDeclarationLine } from './d301.js'
 
 const recordIds: string[] = []
 
@@ -197,5 +197,18 @@ describe('recurring expenses in declarations', () => {
     const after = await generateD301Preview('2027-03')
     expect(after.lines[0]!.confirmed).toBe(true)
     expect(after.totals.baseRon).toBeCloseTo(40)
+  })
+})
+
+describe('declarationAddress', () => {
+  it('writes county, locality, street and postal code in the order the forms ask for', () => {
+    const address = declarationAddress({ address: 'Str. Exemplu 1, Bl. 2', city: 'Cluj-Napoca', countyCode: 'RO-CJ', postalCode: '400001' })
+    expect(address).toBe('JUD. CLUJ, Cluj-Napoca, Str. Exemplu 1, Bl. 2, COD POSTAL 400001')
+  })
+
+  it('skips the county for Bucharest and an empty postal code', () => {
+    expect(declarationAddress({ address: 'Str. Exemplu 1', city: 'Bucuresti Sector 1', countyCode: 'RO-B', postalCode: '' })).toBe(
+      'Bucuresti Sector 1, Str. Exemplu 1',
+    )
   })
 })

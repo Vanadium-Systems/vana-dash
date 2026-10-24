@@ -49,6 +49,7 @@ export const config = {
     city: process.env.COMPANY_CITY ?? 'Bucuresti',
     // Cod județ CIUS-RO (ex: RO-B, RO-CJ) — obligatoriu în XML.
     countyCode: process.env.COMPANY_COUNTY_CODE ?? 'RO-B',
+    postalCode: process.env.COMPANY_POSTAL_CODE ?? '',
     iban: process.env.COMPANY_IBAN ?? '',
     bank: process.env.COMPANY_BANK ?? '',
     email: process.env.COMPANY_EMAIL ?? '',
