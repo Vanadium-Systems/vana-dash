@@ -234,7 +234,8 @@
       "money": "Bani",
       "work": "Lucru",
       "system": "Sistem"
-    }
+    },
+    "calls": "Apeluri"
   },
   "history": {
     "fields": {

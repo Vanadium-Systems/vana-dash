@@ -20,6 +20,9 @@ const ForgotPasswordPage = lazy(() => import('@/modules/auth/ForgotPasswordPage'
 const LoginPage = lazy(() => import('@/modules/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
 const ResetPasswordPage = lazy(() => import('@/modules/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
 const CalendarPage = lazy(() => import('@/modules/calendar/CalendarPage').then((m) => ({ default: m.CalendarPage })))
+const CallsPage = lazy(() => import('@/modules/calls/CallsPage').then((m) => ({ default: m.CallsPage })))
+const CallRoomPage = lazy(() => import('@/modules/calls/CallRoomPage').then((m) => ({ default: m.CallRoomPage })))
+const PublicCallPage = lazy(() => import('@/modules/calls/PublicCallPage').then((m) => ({ default: m.PublicCallPage })))
 const CryptoPage = lazy(() => import('@/modules/crypto/CryptoPage').then((m) => ({ default: m.CryptoPage })))
 const CoinDetailPage = lazy(() => import('@/modules/crypto/CoinDetailPage').then((m) => ({ default: m.CoinDetailPage })))
 const EmailPage = lazy(() => import('@/modules/email/EmailPage').then((m) => ({ default: m.EmailPage })))
@@ -79,6 +82,7 @@ export function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/accept-invite" element={<AcceptInvitePage />} />
+        <Route path="/apel/:publicId" element={<PublicCallPage />} />
         <Route element={<RequireAuth />}>
           {/* Provider-ul de flux stă deasupra lui AppLayout, nu în el: AppLayout folosește
               badge-ul de mesaje necitite, iar un context nu ajunge la propria componentă — pus
@@ -115,6 +119,8 @@ export function App() {
             <Route path="/messages" element={<RequireFeature feature="mesaje.view" page={t('common:nav.messages')}><MessagesPage /></RequireFeature>} />
             <Route path="/messages/:id" element={<RequireFeature feature="mesaje.view" page={t('common:nav.messages')}><MessagesPage /></RequireFeature>} />
             <Route path="/calendar" element={<RequireFeature feature="calendar.view" page={t('common:nav.calendar')}><CalendarPage /></RequireFeature>} />
+            <Route path="/calls" element={<RequireFeature feature="apeluri.view" page={t('common:nav.calls')}><CallsPage /></RequireFeature>} />
+            <Route path="/calls/:id" element={<RequireFeature feature="apeluri.manage" page={t('common:nav.calls')}><CallRoomPage /></RequireFeature>} />
             <Route
               path="/notes"
               element={

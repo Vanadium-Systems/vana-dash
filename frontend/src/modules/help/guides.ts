@@ -36,6 +36,37 @@ export interface Guide {
 
 const SOURCES: GuideSource[] = [
   {
+    id: 'apeluri-nou',
+    route: '/calls',
+    feature: 'apeluri.manage',
+    title: {
+      ro: 'Faci un apel video',
+      en: 'Making a video call',
+    },
+    summary: {
+      ro: 'Un apel are un link pe care îl trimiți oricui. Invitatul nu are nevoie de cont, intră din browser.',
+      en: 'A call has a link you can send to anyone. The guest needs no account and joins from the browser.',
+    },
+    steps: [
+      {
+        ro: 'Apasă „Apel nou”, scrie un titlu și alege cât timp merge linkul.',
+        en: 'Press “New call”, write a title and pick how long the link works for.',
+      },
+      {
+        ro: '„Creează și copiază linkul” pune linkul în clipboard; trimite-l pe email sau pe chat.',
+        en: '“Create and copy the link” puts the link on your clipboard; send it by email or chat.',
+      },
+      {
+        ro: 'Intri și tu cu „Intră” din rândul apelului. Browserul îți cere camera și microfonul.',
+        en: 'You join with “Join” on the call’s row. The browser asks for your camera and microphone.',
+      },
+      {
+        ro: 'La final, „Încheie pentru toți” scoate pe toată lumea din apel, iar linkul nu mai merge.',
+        en: 'When you are done, “End for everyone” takes everyone out of the call and the link stops working.',
+      },
+    ],
+  },
+  {
     id: 'email-citire',
     route: '/email',
     feature: 'email.view',

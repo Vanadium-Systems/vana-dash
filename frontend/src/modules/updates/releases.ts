@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-26T20:00:00+02:00',
+    title: {
+      ro: 'Apeluri video din VanaDash',
+      en: 'Video calls from VanaDash',
+    },
+    body: {
+      ro: 'Pagina Apeluri creează un apel și îți copiază linkul. Cine primește linkul intră din browser, fără cont; tu intri din listă, cu „Intră”. Apelul se încheie pentru toți din pagina lui sau din rândul din listă.',
+      en: 'The Calls page creates a call and copies its link. Whoever gets the link joins from the browser, with no account; you join from the list, with “Join”. You end the call for everyone from its page or from its row in the list.',
+    },
+    features: ['apeluri.view'],
+  },
+  {
     publishedAt: '2026-10-24T20:00:00+03:00',
     title: {
       ro: 'Emailurile ANAF despre SPV se sortează singure',
