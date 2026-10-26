@@ -241,13 +241,36 @@ describe('confirmPendingAction / rejectPendingAction', () => {
       })
       .returning()
 
-    const result = await confirmPendingAction(admin, action!.id)
+    const manager = { ...admin, id: managerUserId, isPlatformAdmin: false, features: [] }
+    const result = await confirmPendingAction(manager, action!.id)
     expect(result.ok).toBe(false)
 
     const [reloaded] = await db.select().from(assistantPendingActions).where(eq(assistantPendingActions.id, action!.id))
     expect(reloaded!.status).toBe('expired')
     // Nimic nu s-a scris în conversație: tool-ul n-a fost apelat.
     expect(await listConversationMessages(row!.id)).toHaveLength(0)
+  })
+
+  it('leaves an action alone when someone other than the conversation owner confirms or rejects it', async () => {
+    const conv = await makeConversation()
+    const [action] = await db
+      .insert(assistantPendingActions)
+      .values({
+        conversationId: conv.id,
+        toolName: 'issue_invoice',
+        toolInput: {},
+        toolUseId: 'toolu_other_person',
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 60_000),
+      })
+      .returning()
+
+    const colleague = { ...admin, id: managerUserId }
+    expect((await confirmPendingAction(colleague, action!.id)).ok).toBe(false)
+    expect((await rejectPendingAction(colleague, action!.id)).ok).toBe(false)
+
+    const [reloaded] = await db.select().from(assistantPendingActions).where(eq(assistantPendingActions.id, action!.id))
+    expect(reloaded!.status).toBe('pending')
   })
 })
 
