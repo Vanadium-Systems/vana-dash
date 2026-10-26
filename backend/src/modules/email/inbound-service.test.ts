@@ -338,27 +338,27 @@ describe('getRecentAddresses (2026-08-11 — bug Stefan, dropdown gol la Compose
 
   it('includes an address a message was sent TO (direction=out)', async () => {
     await makeMessage({ subject: 'QA recent-1', direction: 'out', toAddress: 'qa-recent-out@example.com' })
-    const addresses = await getRecentAddresses(100)
+    const addresses = await getRecentAddresses(admin, 100)
     expect(addresses.map((a) => a.toLowerCase())).toContain('qa-recent-out@example.com')
   })
 
   it('includes an address a message was received FROM (direction=in)', async () => {
     await makeMessage({ subject: 'QA recent-2', direction: 'in', fromAddress: 'qa-recent-in@example.com', receivedAt: new Date() })
-    const addresses = await getRecentAddresses(100)
+    const addresses = await getRecentAddresses(admin, 100)
     expect(addresses.map((a) => a.toLowerCase())).toContain('qa-recent-in@example.com')
   })
 
   it('excludes a soft-deleted message', async () => {
     const msg = await makeMessage({ subject: 'QA recent-deleted', toAddress: 'qa-recent-deleted@example.com' })
     await db.update(emailMessages).set({ deletedAt: new Date() }).where(eq(emailMessages.id, msg.id))
-    const addresses = await getRecentAddresses(100)
+    const addresses = await getRecentAddresses(admin, 100)
     expect(addresses.map((a) => a.toLowerCase())).not.toContain('qa-recent-deleted@example.com')
   })
 
   it('deduplicates the same address seen in both sent and received messages (case-insensitive)', async () => {
     await makeMessage({ subject: 'QA recent-dup-1', direction: 'out', toAddress: 'QA-Dup@example.com' })
     await makeMessage({ subject: 'QA recent-dup-2', direction: 'in', fromAddress: 'qa-dup@example.com', receivedAt: new Date() })
-    const addresses = await getRecentAddresses(100)
+    const addresses = await getRecentAddresses(admin, 100)
     const matches = addresses.filter((a) => a.toLowerCase() === 'qa-dup@example.com')
     expect(matches).toHaveLength(1)
   })
@@ -367,8 +367,14 @@ describe('getRecentAddresses (2026-08-11 — bug Stefan, dropdown gol la Compose
     for (let i = 0; i < 5; i++) {
       await makeMessage({ subject: `QA recent-limit-${i}`, toAddress: `qa-recent-limit-${i}@example.com` })
     }
-    const addresses = await getRecentAddresses(2)
+    const addresses = await getRecentAddresses(admin, 2)
     expect(addresses.length).toBeLessThanOrEqual(2)
+  })
+
+  it('leaves out addresses from mailboxes the person does not have', async () => {
+    await makeMessage({ subject: 'QA recent-other-box', direction: 'out', toAddress: 'qa-recent-other@example.com' })
+    const addresses = await getRecentAddresses({ ...admin, mailboxes: [] }, 100)
+    expect(addresses).toEqual([])
   })
 })
 

@@ -126,7 +126,7 @@ describe('createConversation / listConversations / updateConversationModel', () 
 
 describe('confirmPendingAction / rejectPendingAction', () => {
   it('confirmPendingAction fails cleanly for a nonexistent action id', async () => {
-    const result = await confirmPendingAction('00000000-0000-0000-0000-000000000000')
+    const result = await confirmPendingAction(admin, '00000000-0000-0000-0000-000000000000')
     expect(result.ok).toBe(false)
   })
 
@@ -144,7 +144,7 @@ describe('confirmPendingAction / rejectPendingAction', () => {
       })
       .returning()
 
-    const result = await confirmPendingAction(action!.id)
+    const result = await confirmPendingAction(admin, action!.id)
     expect(result.ok).toBe(false)
 
     const [reloaded] = await db.select().from(assistantPendingActions).where(eq(assistantPendingActions.id, action!.id))
@@ -165,7 +165,7 @@ describe('confirmPendingAction / rejectPendingAction', () => {
       })
       .returning()
 
-    const result = await confirmPendingAction(action!.id)
+    const result = await confirmPendingAction(admin, action!.id)
     expect(result.ok).toBe(false)
   })
 
@@ -183,7 +183,7 @@ describe('confirmPendingAction / rejectPendingAction', () => {
       })
       .returning()
 
-    const result = await rejectPendingAction(action!.id)
+    const result = await rejectPendingAction(admin, action!.id)
     expect(result.ok).toBe(true)
 
     const [reloaded] = await db.select().from(assistantPendingActions).where(eq(assistantPendingActions.id, action!.id))
@@ -214,9 +214,9 @@ describe('confirmPendingAction / rejectPendingAction', () => {
       })
       .returning()
 
-    const first = await rejectPendingAction(action!.id)
+    const first = await rejectPendingAction(admin, action!.id)
     expect(first.ok).toBe(true)
-    const second = await rejectPendingAction(action!.id)
+    const second = await rejectPendingAction(admin, action!.id)
     expect(second.ok).toBe(false)
   })
 
@@ -241,7 +241,7 @@ describe('confirmPendingAction / rejectPendingAction', () => {
       })
       .returning()
 
-    const result = await confirmPendingAction(action!.id)
+    const result = await confirmPendingAction(admin, action!.id)
     expect(result.ok).toBe(false)
 
     const [reloaded] = await db.select().from(assistantPendingActions).where(eq(assistantPendingActions.id, action!.id))

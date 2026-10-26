@@ -52,7 +52,7 @@ export async function unsubscribe(me: SessionUser, endpoint: string) {
 
 export const getPreferences = getPushPreferences
 export const updatePreferences = (patch: UpdatePreferencesInput) => setPushPreferences(patch)
-export const sendTest = sendTestPush
+export const sendTest = (me: SessionUser) => sendTestPush(me.id)
 
 // Canalul nativ APK (FCM) — Contract C. Upsert pe token: reinstalare/relogin re-activează
 // rândul existent și reîmprospătează lastSeenAt.
