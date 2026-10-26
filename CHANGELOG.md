@@ -4,6 +4,22 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-26: Calls pages and per-person checks
+
+### Added
+- Calls pages on top of the `/api/calls` backend: `/calls` (list, status filter in the URL, new
+  call dialog that copies the link), `/calls/:id` (the room, in an iframe) and `/apel/:publicId`
+  (the guest page, no account). Creating, joining and ending need `apeluri.manage`.
+
+### Fixed
+- Assistant conversations, their pending actions and Plan reordering are checked against the
+  person asking; another person's id answers 404.
+- `GET /api/email/recent-addresses` only lists addresses from the person's own mailboxes.
+- `POST /api/push/test` only reaches the person's own browsers.
+- A device token registered again moves to the person who registered it.
+- Changing a member's role checks that a non-admin holds every feature of the new role, as the
+  invitation already did.
+
 ## 2026-10-24: Alert for a declaration without a receipt
 
 ### Added
