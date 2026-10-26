@@ -1,0 +1,75 @@
+{
+  "title": "Apeluri",
+  "description": "Apeluri video cu clienți și colaboratori. Cine are linkul intră din browser, fără cont.",
+  "newCall": "Apel nou",
+  "columns": {
+    "title": "Titlu",
+    "when": "Când",
+    "duration": "Durată",
+    "participants": "Participanți",
+    "linkedTo": "Legat de",
+    "status": "Stare"
+  },
+  "status": {
+    "open": "Deschis",
+    "ended": "Încheiat",
+    "cancelled": "Anulat"
+  },
+  "filter": {
+    "label": "Stare",
+    "all": "Toate",
+    "open": "Deschise",
+    "ended": "Încheiate"
+  },
+  "booking": "Programare de pe site",
+  "adHoc": "Fără oră",
+  "actions": {
+    "join": "Intră",
+    "copyLink": "Copiază linkul",
+    "end": "Încheie",
+    "endForAll": "Încheie pentru toți",
+    "back": "Înapoi la apeluri"
+  },
+  "copied": "Linkul e copiat",
+  "minutes_one": "{{count}} minut",
+  "minutes_few": "{{count}} minute",
+  "minutes_other": "{{count}} de minute",
+  "empty": {
+    "title": "Niciun apel încă",
+    "body": "Creează un apel și trimite linkul.",
+    "filtered": "Niciun apel în filtrul ăsta"
+  },
+  "error": "Nu am putut încărca apelurile.",
+  "retry": "Încearcă din nou",
+  "dialog": {
+    "title": "Apel nou",
+    "titleLabel": "Titlu",
+    "titlePlaceholder": "Apel cu Acme",
+    "titleRequired": "Scrie un titlu, ca să-l recunoști în listă.",
+    "durationLabel": "Linkul merge",
+    "hours_one": "{{count}} oră",
+    "hours_few": "{{count}} ore",
+    "hours_other": "{{count}} de ore",
+    "create": "Creează și copiază linkul",
+    "cancel": "Renunță"
+  },
+  "endConfirm": {
+    "title": "Închei apelul „{{title}}”?",
+    "body": "Toți participanții ies din apel, iar linkul nu mai merge.",
+    "action": "Încheie apelul"
+  },
+  "room": {
+    "loading": "Se deschide apelul…",
+    "closed": "Apelul s-a încheiat."
+  },
+  "public": {
+    "heading": "Apel video",
+    "join": "Intră în apel",
+    "notYet": "Apelul începe la {{time}}. Revino cu câteva minute înainte.",
+    "ended": "Apelul s-a încheiat.",
+    "notFound": "Linkul nu e valid. Verifică-l în emailul primit.",
+    "ready": "Apelul e deschis.",
+    "help": "Browserul îți cere acces la cameră și microfon: apasă „Permite”. Dacă nu merge, deschide linkul în Chrome sau pe alt dispozitiv.",
+    "uiLanguage": "Butoanele din apel sunt în engleză."
+  }
+}

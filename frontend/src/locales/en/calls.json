@@ -1,0 +1,73 @@
+{
+  "title": "Calls",
+  "description": "Video calls with clients and partners. Whoever has the link joins from a browser, with no account.",
+  "newCall": "New call",
+  "columns": {
+    "title": "Title",
+    "when": "When",
+    "duration": "Duration",
+    "participants": "Participants",
+    "linkedTo": "Linked to",
+    "status": "Status"
+  },
+  "status": {
+    "open": "Open",
+    "ended": "Ended",
+    "cancelled": "Cancelled"
+  },
+  "filter": {
+    "label": "Status",
+    "all": "All",
+    "open": "Open",
+    "ended": "Ended"
+  },
+  "booking": "Booking from the site",
+  "adHoc": "No set time",
+  "actions": {
+    "join": "Join",
+    "copyLink": "Copy link",
+    "end": "End",
+    "endForAll": "End for everyone",
+    "back": "Back to calls"
+  },
+  "copied": "Link copied",
+  "minutes_one": "{{count}} minute",
+  "minutes_other": "{{count}} minutes",
+  "empty": {
+    "title": "No calls yet",
+    "body": "Create a call and send the link.",
+    "filtered": "No calls in this filter"
+  },
+  "error": "The calls could not be loaded.",
+  "retry": "Try again",
+  "dialog": {
+    "title": "New call",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Call with Acme",
+    "titleRequired": "Write a title, so you can find it in the list.",
+    "durationLabel": "The link works for",
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours",
+    "create": "Create and copy the link",
+    "cancel": "Cancel"
+  },
+  "endConfirm": {
+    "title": "End the call “{{title}}”?",
+    "body": "Everyone leaves the call and the link stops working.",
+    "action": "End the call"
+  },
+  "room": {
+    "loading": "Opening the call…",
+    "closed": "The call has ended."
+  },
+  "public": {
+    "heading": "Video call",
+    "join": "Join the call",
+    "notYet": "The call starts at {{time}}. Come back a few minutes before.",
+    "ended": "The call has ended.",
+    "notFound": "The link is not valid. Check it in the email you got.",
+    "ready": "The call is open.",
+    "help": "Your browser asks for the camera and microphone: press “Allow”. If it does not work, open the link in Chrome or on another device.",
+    "uiLanguage": "The buttons inside the call are in English."
+  }
+}

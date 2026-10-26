@@ -234,7 +234,8 @@
       "money": "Money",
       "work": "Work",
       "system": "System"
-    }
+    },
+    "calls": "Calls"
   },
   "history": {
     "fields": {

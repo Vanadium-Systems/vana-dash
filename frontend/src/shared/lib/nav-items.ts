@@ -1,4 +1,4 @@
-import { Activity, Archive, Bell, CalendarDays, Gavel, History, Landmark, LayoutDashboard, LineChart, Mail, MessageSquare, Receipt, Server, SlidersHorizontal, Sparkles, StickyNote, Users, Wallet, Grid3x3 } from 'lucide-react'
+import { Activity, Archive, Bell, CalendarDays, Gavel, History, Landmark, LayoutDashboard, LineChart, Mail, MessageSquare, Receipt, Server, SlidersHorizontal, Sparkles, StickyNote, Users, Video, Wallet, Grid3x3 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { t } from './i18n'
 import type { FeatureKey } from './types'
@@ -53,6 +53,7 @@ export const NAV_ITEMS: NavItemDef[] = [
   { to: '/email', label: t('common:nav.email'), icon: Mail, group: 'work', feature: 'email.view', keywords: ['mail', 'inbox'] },
   { to: '/messages', label: t('common:nav.messages'), icon: MessageSquare, group: 'work', feature: 'mesaje.view', keywords: ['mesaje', 'messages', 'chat', 'scrie', 'grup', 'group', 'direct'] },
   { to: '/calendar', label: t('common:nav.calendar'), icon: CalendarDays, group: 'work', feature: 'calendar.view', keywords: ['programari', 'bookings', 'evenimente', 'events'] },
+  { to: '/calls', label: t('common:nav.calls'), icon: Video, group: 'work', feature: 'apeluri.view', keywords: ['apeluri', 'calls', 'video', 'meet', 'zoom'] },
   { to: '/archive', label: t('common:nav.archive'), icon: Archive, group: 'work', feature: 'arhiva.view', keywords: ['arhiva', 'archive', 'fisiere', 'files', 'documente', 'documents'] },
   { to: '/notes', label: t('common:nav.notes'), icon: StickyNote, group: 'work', feature: 'notite.view', keywords: ['notite', 'notes', 'plan', 'wishlist', 'obiective', 'goals'] },
 

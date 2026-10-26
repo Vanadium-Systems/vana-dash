@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { NAV_GROUP_ORDER, NAV_ITEMS, resolveNavLayout } from './nav-items'
 
 describe('NAV_ITEMS', () => {
-  it('are 20 destinații, fiecare într-un grup cunoscut', () => {
-    expect(NAV_ITEMS).toHaveLength(20)
+  it('are 21 destinații, fiecare într-un grup cunoscut', () => {
+    expect(NAV_ITEMS).toHaveLength(21)
     expect(NAV_ITEMS.every((item) => (NAV_GROUP_ORDER as readonly string[]).includes(item.group))).toBe(true)
   })
 
@@ -26,6 +26,6 @@ describe('NAV_ITEMS', () => {
     expect(resolved).not.toContain('/reports')
     expect(resolved).not.toContain('/plan')
     expect(resolved).not.toContain('/assets')
-    expect(resolved).toHaveLength(20)
+    expect(resolved).toHaveLength(21)
   })
 })

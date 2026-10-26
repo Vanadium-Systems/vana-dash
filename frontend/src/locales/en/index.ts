@@ -6,6 +6,7 @@ import assets from './assets.json'
 import assistant from './assistant.json'
 import auth from './auth.json'
 import calendar from './calendar.json'
+import calls from './calls.json'
 import common from './common.json'
 import crypto from './crypto.json'
 import email from './email.json'
@@ -28,4 +29,4 @@ import tenders from './tenders.json'
 import updates from './updates.json'
 import wishlist from './wishlist.json'
 
-export default { access, accounting, alerts, archive, assets, assistant, auth, calendar, common, crypto, email, financials, help, messages, monitoring, notes, overview, plan, platforms, pricing, reconciliation, reports, settings, support, team, tenants, tenders, updates, wishlist }
+export default { access, accounting, alerts, archive, assets, assistant, auth, calendar, calls, common, crypto, email, financials, help, messages, monitoring, notes, overview, plan, platforms, pricing, reconciliation, reports, settings, support, team, tenants, tenders, updates, wishlist }
