@@ -550,17 +550,18 @@ export interface EmailThreadListItem extends EmailThreadRow {
  * (regula #9 CLAUDE.md — agregarea rămâne în SQL), unite și dedupe-uite case-insensitive în JS,
  * dar pe seturi deja mici (adrese distincte, nu mesaje) — nu pe array-uri mari din DB.
  */
-export async function getRecentAddresses(limit = 20): Promise<string[]> {
+export async function getRecentAddresses(me: SessionUser, limit = 20): Promise<string[]> {
+  const visible = messageVisibleTo(await mailboxAddresses(me))
   const sent = await db
     .select({ addr: emailMessages.toAddress, lastUsed: sql<Date>`max(${emailMessages.createdAt})` })
     .from(emailMessages)
-    .where(and(eq(emailMessages.direction, 'out'), isNull(emailMessages.deletedAt)))
+    .where(and(eq(emailMessages.direction, 'out'), isNull(emailMessages.deletedAt), visible))
     .groupBy(emailMessages.toAddress)
 
   const received = await db
     .select({ addr: emailMessages.fromAddress, lastUsed: sql<Date>`max(${emailMessages.createdAt})` })
     .from(emailMessages)
-    .where(and(eq(emailMessages.direction, 'in'), isNull(emailMessages.deletedAt)))
+    .where(and(eq(emailMessages.direction, 'in'), isNull(emailMessages.deletedAt), visible))
     .groupBy(emailMessages.fromAddress)
 
   // 2026-08-11 (bug Stefan — dropdown-ul de "Către" gol la Compose, endpoint-ul arunca la

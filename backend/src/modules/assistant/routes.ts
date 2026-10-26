@@ -105,7 +105,10 @@ export async function assistantRoutes(app: FastifyInstance) {
   server.get(
     '/api/assistant/conversations/:id/messages',
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema } },
-    async (req) => {
+    async (req, reply) => {
+      if (!(await service.ownsConversation(req.me, req.params.id))) {
+        return reply.code(404).send({ success: false, error: tr('errors.chat.conversationNotFound') })
+      }
       const rows = await service.listConversationMessages(req.params.id)
       return { success: true, data: rows }
     },
@@ -115,6 +118,9 @@ export async function assistantRoutes(app: FastifyInstance) {
     '/api/assistant/conversations/:id/messages',
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, body: SendMessageSchema } },
     async (req, reply) => {
+      if (!(await service.ownsConversation(req.me, req.params.id))) {
+        return reply.code(404).send({ success: false, error: tr('errors.chat.conversationNotFound') })
+      }
       const check = await quota.checkQuota(req.me)
       if (!check.ok) return reply.code(429).send({ success: false, error: { code: check.code, message: check.message } })
       reply.hijack()
@@ -126,7 +132,7 @@ export async function assistantRoutes(app: FastifyInstance) {
     '/api/assistant/actions/:id/confirm',
     { preHandler: [app.authenticate], schema: { params: ActionIdParamsSchema } },
     async (req, reply) => {
-      const result = await service.confirmPendingAction(req.params.id)
+      const result = await service.confirmPendingAction(req.me, req.params.id)
       if (!result.ok) return reply.code(400).send({ success: false, error: result.error })
 
       // Confirmarea continuă conversația cu un tur nou de model — deci tot la plafon, tot 429,
@@ -143,7 +149,7 @@ export async function assistantRoutes(app: FastifyInstance) {
     '/api/assistant/actions/:id/reject',
     { preHandler: [app.authenticate], schema: { params: ActionIdParamsSchema } },
     async (req, reply) => {
-      const result = await service.rejectPendingAction(req.params.id)
+      const result = await service.rejectPendingAction(req.me, req.params.id)
       if (!result.ok) return reply.code(400).send({ success: false, error: result.error })
 
       reply.hijack()

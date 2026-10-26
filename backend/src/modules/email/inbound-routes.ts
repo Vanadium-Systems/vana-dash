@@ -204,8 +204,8 @@ export async function emailInboundRoutes(app: FastifyInstance) {
   })
 
   // Autocomplete la Compose — adrese cu care Stefan a corespondat recent (trimise + primite).
-  server.get('/api/email/recent-addresses', { preHandler: [app.authenticate] }, async () => {
-    return { success: true, data: await inboundService.getRecentAddresses() }
+  server.get('/api/email/recent-addresses', { preHandler: [app.authenticate] }, async (req) => {
+    return { success: true, data: await inboundService.getRecentAddresses(req.me) }
   })
 
   server.get(

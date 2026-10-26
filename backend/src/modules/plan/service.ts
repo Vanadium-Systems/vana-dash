@@ -161,7 +161,7 @@ export async function reorderGoals(me: SessionUser, scope: PlanScope, tier: numb
     const existing = await tx
       .select({ id: planGoals.id })
       .from(planGoals)
-      .where(and(eq(planGoals.scope, scope), eq(planGoals.tier, tier), isNull(planGoals.deletedAt)))
+      .where(and(eq(planGoals.scope, scope), eq(planGoals.tier, tier), isNull(planGoals.deletedAt), eq(planGoals.ownerUserId, me.id)))
     const existingIds = new Set(existing.map((r) => r.id))
     if (existingIds.size !== orderedIds.length || !orderedIds.every((id) => existingIds.has(id))) {
       throw new InvalidReorderError(tr('errors.plan.orderMismatch'))
@@ -170,12 +170,12 @@ export async function reorderGoals(me: SessionUser, scope: PlanScope, tier: numb
       await tx
         .update(planGoals)
         .set({ position: i + 1, updatedAt: new Date() })
-        .where(eq(planGoals.id, orderedIds[i]!))
+        .where(and(eq(planGoals.id, orderedIds[i]!), eq(planGoals.ownerUserId, me.id)))
     }
     return tx
       .select()
       .from(planGoals)
-      .where(and(eq(planGoals.scope, scope), eq(planGoals.tier, tier), isNull(planGoals.deletedAt)))
+      .where(and(eq(planGoals.scope, scope), eq(planGoals.tier, tier), isNull(planGoals.deletedAt), eq(planGoals.ownerUserId, me.id)))
       .orderBy(asc(planGoals.position))
   })
 }

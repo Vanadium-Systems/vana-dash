@@ -168,10 +168,13 @@ async function notifyWebPush(eventType: PushEventType, payload: PushContent, use
  * Trimite o notificare de test tuturor subscripțiilor active — ignoră preferințele
  * (buton explicit "Trimite test" în Settings, nu un eveniment real).
  */
-export async function sendTestPush(): Promise<{ sent: number; failed: number }> {
+export async function sendTestPush(ownerUserId: string): Promise<{ sent: number; failed: number }> {
   if (!ensureVapid()) throw new Error(tr('errors.push.vapidMissing'))
 
-  const subs = await db.select().from(pushSubscriptions).where(isNull(pushSubscriptions.deletedAt))
+  const subs = await db
+    .select()
+    .from(pushSubscriptions)
+    .where(and(isNull(pushSubscriptions.deletedAt), eq(pushSubscriptions.ownerUserId, ownerUserId)))
   const body = JSON.stringify({ title: tr('push.test.title'), body: tr('push.test.body') } satisfies PushPayload)
 
   let sent = 0
@@ -284,7 +287,8 @@ export async function registerDeviceToken(token: string, ownerUserId?: string | 
     .values({ token, ownerUserId: ownerUserId ?? null })
     .onConflictDoUpdate({
       target: deviceTokens.token,
-      set: { deletedAt: null, lastSeenAt: new Date(), updatedAt: new Date() },
+      // The phone now belongs to whoever logged in last on it.
+      set: { ownerUserId: ownerUserId ?? null, deletedAt: null, lastSeenAt: new Date(), updatedAt: new Date() },
     })
 }
 

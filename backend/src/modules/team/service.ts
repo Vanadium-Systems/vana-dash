@@ -127,6 +127,10 @@ export async function updateMember(actor: SessionUser, userId: string, input: { 
     if (newRole?.kind !== 'custom') {
       throw new AccessError('PERMISSION_ESCALATION', 403, tr('errors.team.giveOwnRolesOnly'))
     }
+    const beyond = effectiveFeatures(newRole.features, 'custom').filter((key) => !actor.features.includes(key))
+    if (beyond.length > 0) {
+      throw new AccessError('PERMISSION_ESCALATION', 403, tr('errors.access.featureNotYours', { feature: beyond[0] }))
+    }
   }
 
   // Dezactivarea crește session_version → sesiunile lui moare imediat (401), fără delogare

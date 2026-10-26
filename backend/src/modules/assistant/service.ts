@@ -127,6 +127,15 @@ export async function continueAfterAction(conversationId: string): Promise<Async
   return driveTurn(conversationId, conversation?.model as AssistantModelId | null, conversation?.provider, await loadHistoryForApi(conversationId))
 }
 
+/** Someone else's action answers like a missing one, so the id does not leak that it exists. */
+export async function ownsConversation(me: SessionUser, conversationId: string) {
+  const [row] = await db
+    .select({ id: assistantConversations.id })
+    .from(assistantConversations)
+    .where(and(eq(assistantConversations.id, conversationId), eq(assistantConversations.ownerUserId, me.id)))
+  return Boolean(row)
+}
+
 /** Autorul conversației, cu funcționalitățile lui recalculate acum (nule dacă n-are user). */
 async function conversationOwner(conversationId: string) {
   const [conversation] = await db
@@ -223,13 +232,16 @@ async function* driveTurn(
 }
 
 export async function confirmPendingAction(
+  me: SessionUser,
   actionId: string,
 ): Promise<{ ok: true; conversationId: string } | { ok: false; error: string }> {
   const [action] = await db
     .select()
     .from(assistantPendingActions)
     .where(and(eq(assistantPendingActions.id, actionId), eq(assistantPendingActions.status, 'pending')))
-  if (!action) return { ok: false, error: tr('errors.assistant.actionGone') }
+  if (!action || !(await ownsConversation(me, action.conversationId))) {
+    return { ok: false, error: tr('errors.assistant.actionGone') }
+  }
   if (action.expiresAt < new Date()) {
     await db.update(assistantPendingActions).set({ status: 'expired', updatedAt: new Date() }).where(eq(assistantPendingActions.id, action.id))
     return { ok: false, error: tr('errors.assistant.actionExpired') }
@@ -285,13 +297,16 @@ export async function confirmPendingAction(
 }
 
 export async function rejectPendingAction(
+  me: SessionUser,
   actionId: string,
 ): Promise<{ ok: true; conversationId: string } | { ok: false; error: string }> {
   const [action] = await db
     .select()
     .from(assistantPendingActions)
     .where(and(eq(assistantPendingActions.id, actionId), eq(assistantPendingActions.status, 'pending')))
-  if (!action) return { ok: false, error: tr('errors.assistant.actionGone') }
+  if (!action || !(await ownsConversation(me, action.conversationId))) {
+    return { ok: false, error: tr('errors.assistant.actionGone') }
+  }
 
   const author = await conversationOwner(action.conversationId)
 

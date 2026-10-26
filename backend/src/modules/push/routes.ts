@@ -45,9 +45,9 @@ export async function pushRoutes(app: FastifyInstance) {
     },
   )
 
-  server.post('/api/push/test', { preHandler: [app.authenticate] }, async (_req, reply) => {
+  server.post('/api/push/test', { preHandler: [app.authenticate] }, async (req, reply) => {
     try {
-      const result = await service.sendTest()
+      const result = await service.sendTest(req.me)
       return { success: true, data: result }
     } catch (err) {
       return reply.code(400).send({ success: false, error: String((err as Error).message ?? err) })
