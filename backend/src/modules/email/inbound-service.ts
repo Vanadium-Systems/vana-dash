@@ -1,4 +1,4 @@
-import { and, arrayOverlaps, asc, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import {
@@ -22,6 +22,7 @@ import { stopSequencesForReplyFrom } from './sequences-service.js'
 import { getEmailSettings, getIdentities } from './settings-service.js'
 import {
   assertCanSendFromAddress,
+  bareAddress,
   identityKeyForAddress,
   mailboxAddresses,
   markThreadRead,
@@ -34,7 +35,7 @@ import { buildSignature, escapeHtml, textToHtmlParagraph } from './signature.js'
 import { trFor, tr } from '../../shared/lib/i18n.js'
 
 // Ingest of mail received through Cloudflare Email Routing, plus the replies sent on an
-// existing thread. Threads are matched on the normalized subject and shared participants.
+// existing thread. Threads are matched on the normalized subject and a shared outside participant.
 // (The older ingest through the Resend `email.received` webhook was dropped for cost;
 // `fetchReceivedEmail` below is only used by replyToThread, for the Message-ID of old threads
 // that came in through Resend.)
@@ -60,6 +61,15 @@ export function normalizeSubject(subject: string): string {
 export async function findOrCreateThread(rawSubject: string, participants: string[]): Promise<EmailThreadRow> {
   const normalized = normalizeSubject(rawSubject)
 
+  // Our own mailboxes are on every thread, so they can't be what links two messages: two
+  // separate emails with the same subject to different people would land in one thread.
+  // Match on the outside party; only a message between our own mailboxes falls back to them.
+  const ownAddresses = new Set((await getIdentities()).map((identity) => bareAddress(identity.fromAddress)))
+  const bare = Array.from(new Set(participants.map(bareAddress).filter((a) => a.length > 0)))
+  const external = bare.filter((a) => !ownAddresses.has(a))
+  const matchOn = external.length > 0 ? external : bare
+  if (matchOn.length === 0) return createThread(normalized, participants)
+
   const [existing] = await db
     .select()
     .from(emailThreads)
@@ -67,14 +77,18 @@ export async function findOrCreateThread(rawSubject: string, participants: strin
       and(
         isNull(emailThreads.deletedAt),
         eq(emailThreads.subject, normalized),
-        arrayOverlaps(emailThreads.participants, participants),
+        sql`EXISTS (SELECT 1 FROM unnest(${emailThreads.participants}) p
+          WHERE lower(trim(coalesce(substring(p from '<([^<>]+)>'), p))) = ANY(ARRAY[${sql.join(matchOn.map((a) => sql`${a}`), sql`, `)}]::text[]))`,
       ),
     )
     .orderBy(desc(emailThreads.lastMessageAt))
     .limit(1)
 
   if (existing) return existing
+  return createThread(normalized, participants)
+}
 
+async function createThread(normalized: string, participants: string[]): Promise<EmailThreadRow> {
   const [created] = await db
     .insert(emailThreads)
     .values({ subject: normalized, participants, lastMessageAt: new Date() })

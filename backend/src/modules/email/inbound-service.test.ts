@@ -17,11 +17,13 @@ import {
   getRecentAddresses,
   ingestCloudflareInboundEmail,
   listThreads,
+  mirrorOutboundMessage,
   normalizeSubject,
   processCloudflareInboundWebhookEvent,
   type CloudflareInboundPayload,
 } from './inbound-service.js'
 import { createSequence, enrollRecipients } from './sequences-service.js'
+import { getIdentities } from './settings-service.js'
 import { effectiveFeatures } from '../../shared/lib/session.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 
@@ -82,6 +84,42 @@ describe('normalizeSubject', () => {
 
   it('does not strip Re: appearing mid-subject', () => {
     expect(normalizeSubject('Salut Re: tot')).toBe('Salut Re: tot')
+  })
+})
+
+describe('findOrCreateThread — same subject, different people', () => {
+  const subject = `QA same subject ${Math.random().toString(36).slice(2)}`
+
+  afterAll(async () => {
+    const threads = await db.select({ id: emailThreads.id }).from(emailThreads).where(eq(emailThreads.subject, subject))
+    const ids = threads.map((t) => t.id)
+    if (ids.length) {
+      await db.delete(emailMessages).where(inArray(emailMessages.threadId, ids))
+      await db.delete(emailThreads).where(inArray(emailThreads.id, ids))
+    }
+  })
+
+  it('keeps two sends with the same subject to different people in separate threads, and a reply in its own', async () => {
+    const [identity] = await getIdentities()
+    const own = identity!.fromAddress
+    await mirrorOutboundMessage({ fromAddress: own, toAddress: 'unu@example.com', subject, body: '<p>a</p>', resendEmailId: null })
+    await mirrorOutboundMessage({ fromAddress: own, toAddress: 'doi@example.com', subject, body: '<p>b</p>', resendEmailId: null })
+    await ingestCloudflareInboundEmail({
+      from: 'Unu <unu@example.com>',
+      to: own,
+      subject: `Re: ${subject}`,
+      text: 'raspuns',
+      html: null,
+      messageId: `<${Math.random().toString(36).slice(2)}@example.com>`,
+      attachments: [],
+    })
+
+    const threads = await db.select().from(emailThreads).where(eq(emailThreads.subject, subject))
+    expect(threads).toHaveLength(2)
+    const counts = await Promise.all(
+      threads.map(async (t) => (await db.select({ id: emailMessages.id }).from(emailMessages).where(eq(emailMessages.threadId, t.id))).length),
+    )
+    expect(counts.sort()).toEqual([1, 2])
   })
 })
 
