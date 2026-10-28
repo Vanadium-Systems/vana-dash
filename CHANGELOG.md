@@ -4,6 +4,13 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-28: Email threading
+
+### Fixed
+- Two emails sent with the same subject to different people no longer end up in one thread.
+  Threads are matched on the outside party, not on our own mailbox, which is on every thread.
+  Threads already merged stay as they are.
+
 ## 2026-10-26: Calls pages and per-person checks
 
 ### Added
