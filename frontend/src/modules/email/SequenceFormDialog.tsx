@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/compo
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
-import type { EmailSequence, EmailSettings, EmailTemplate } from '@/shared/lib/types'
+import type { EmailSequence, EmailSenderOptions, EmailTemplate } from '@/shared/lib/types'
 import { IdentityField, useIdentityKey } from './IdentityField'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
@@ -36,8 +36,8 @@ export function SequenceFormDialog({ open, onOpenChange, sequence }: SequenceFor
   })
 
   const settings = useQuery({
-    queryKey: ['email', 'settings'],
-    queryFn: () => api.get<EmailSettings>('/api/email/settings'),
+    queryKey: ['email', 'settings', 'sender-options'],
+    queryFn: () => api.get<EmailSenderOptions>('/api/email/sender-options'),
     enabled: open,
   })
   const [fromIdentity, setFromIdentity] = useIdentityKey('outreach', settings.data?.identities)

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { EmailSettingsUpdateSchema, LogoUploadSchema } from './settings-schema.js'
 import * as settings from './settings-service.js'
+import { selectableIdentities } from './mailboxes.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 export async function emailSettingsRoutes(app: FastifyInstance) {
@@ -9,6 +10,23 @@ export async function emailSettingsRoutes(app: FastifyInstance) {
 
   server.get('/api/email/settings', { preHandler: [app.authenticate] }, async () => {
     return { success: true, data: await settings.getEmailSettings() }
+  })
+
+  // What compose, bulk send and the inbox need, readable without `email.setari`: only the person's
+  // own mailboxes and their signatures, so a colleague can send without seeing the company settings.
+  server.get('/api/email/sender-options', { preHandler: [app.authenticate] }, async (req) => {
+    const all = await settings.getEmailSettings()
+    const identities = selectableIdentities(req.me, all.identities)
+    const keys = new Set(identities.map((identity) => identity.key))
+    return {
+      success: true,
+      data: {
+        identities,
+        signatures: Object.fromEntries(Object.entries(all.signatures).filter(([key]) => keys.has(key))),
+        logoUrl: all.logoUrl,
+        autoLoadImages: all.autoLoadImages,
+      },
+    }
   })
 
   server.put(

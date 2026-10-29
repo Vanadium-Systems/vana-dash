@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { readFileAsBase64, type PendingAttachment } from '@/shared/lib/attachments'
-import type { BulkSendResult, EmailSend, EmailSettings, EmailTemplate, Platform } from '@/shared/lib/types'
+import type { BulkSendResult, EmailSend, EmailSenderOptions, EmailTemplate, Platform } from '@/shared/lib/types'
 import { EngagementBadges } from './EngagementBadges'
 import { IdentityField, useIdentityKey } from './IdentityField'
 import { isFailureStatus, STATUS_LABEL, STATUS_TONE } from './send-status'
@@ -114,8 +114,8 @@ export function BulkSendTab() {
   })
 
   const settings = useQuery({
-    queryKey: ['email', 'settings'],
-    queryFn: () => api.get<EmailSettings>('/api/email/settings'),
+    queryKey: ['email', 'settings', 'sender-options'],
+    queryFn: () => api.get<EmailSenderOptions>('/api/email/sender-options'),
   })
   const [from, setFrom] = useIdentityKey('contact', settings.data?.identities)
 
