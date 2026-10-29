@@ -10,7 +10,7 @@ import { useDebounced } from '@/shared/hooks/use-debounced'
 import { api } from '@/shared/lib/api'
 import { dismissDeliveredNotificationsByTag } from '@/shared/lib/native-push'
 import { cn } from '@/shared/lib/utils'
-import type { EmailAttachmentMeta, EmailMessage, EmailSettings, EmailThread } from '@/shared/lib/types'
+import type { EmailAttachmentMeta, EmailMessage, EmailSenderOptions, EmailThread } from '@/shared/lib/types'
 import type { EmailView } from './EmailSidebar'
 import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { useMe } from '@/shared/hooks/use-me'
@@ -141,8 +141,8 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
 
   // Setarea "încarcă imaginile" — citită o dată pe sesiune, schimbată doar din Setări Email
   const settings = useQuery({
-    queryKey: ['email', 'settings'],
-    queryFn: () => api.get<EmailSettings>('/api/email/settings'),
+    queryKey: ['email', 'settings', 'sender-options'],
+    queryFn: () => api.get<EmailSenderOptions>('/api/email/sender-options'),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -329,8 +329,8 @@ export function MailboxView({
   // Adresele lui de recepție (stefan@, contact@, outreach@ etc.) — sursa filtrului „pe ce
   // adresă am primit" (Stefan are mai multe identități, vrea să separe fluxul).
   const settingsForFilter = useQuery({
-    queryKey: ['email', 'settings'],
-    queryFn: () => api.get<EmailSettings>('/api/email/settings'),
+    queryKey: ['email', 'settings', 'sender-options'],
+    queryFn: () => api.get<EmailSenderOptions>('/api/email/sender-options'),
     staleTime: 5 * 60 * 1000,
   })
   // Filtrele „pe ce adresă am primit" arată doar cutiile omului — un coleg nu are ce căuta

@@ -186,6 +186,7 @@ export const FEATURES: FeatureDef[] = [
     routes: [
       ...read('/api/email/threads'),
       ...all('/api/email/unread-counts'),
+      ...read('/api/email/sender-options'),
       ...read('/api/email/attachments'),
       ...read('/api/email/labels'),
       // Marcat citit, arhivat, etichetat, starred — acțiuni de inbox, nu trimitere.

@@ -11,7 +11,7 @@ import { Alert } from '@/shared/components/ui/alert'
 import { api, ApiError } from '@/shared/lib/api'
 import { readFileAsBase64, type PendingAttachment } from '@/shared/lib/attachments'
 import { formatRelativeTime } from '@/shared/lib/format'
-import type { EmailDraft, EmailFromKey, EmailIdentity, EmailSettings, EmailTemplate } from '@/shared/lib/types'
+import type { EmailDraft, EmailFromKey, EmailIdentity, EmailSenderOptions, EmailTemplate } from '@/shared/lib/types'
 import { ArchiveAttachPicker } from './ArchiveAttachPicker'
 import { IdentityField, useIdentityKey } from './IdentityField'
 import { Select } from '@/shared/components/ui/select'
@@ -82,8 +82,8 @@ export function ComposeDialog({ open, onOpenChange, mode }: ComposeDialogProps) 
   // din adresa pe care a venit mesajul original, nu dintr-o alegere) — deducem aceeași cheie
   // pe care o folosește backend-ul, nu presupunem 'stefan' implicit.
   const settings = useQuery({
-    queryKey: ['email', 'settings'],
-    queryFn: () => api.get<EmailSettings>('/api/email/settings'),
+    queryKey: ['email', 'settings', 'sender-options'],
+    queryFn: () => api.get<EmailSenderOptions>('/api/email/sender-options'),
     enabled: open,
   })
   // Cutia de trimitere: prima din cele ale omului, nu o valoare implicită care poate să nu fie a lui.

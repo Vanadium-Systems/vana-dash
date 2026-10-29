@@ -958,6 +958,14 @@ export interface EmailSettings {
   autoLoadImages?: boolean
 }
 
+/** `GET /api/email/sender-options`: only the person's own mailboxes and their signatures. */
+export interface EmailSenderOptions {
+  identities: EmailIdentity[]
+  signatures: Record<string, string>
+  logoUrl: string | null
+  autoLoadImages: boolean
+}
+
 export interface ArchiveFolder {
   id: string
   name: string

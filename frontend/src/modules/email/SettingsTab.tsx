@@ -43,6 +43,7 @@ function SignatureLogoCard() {
     mutationFn: () => api.put<EmailSettings>('/api/email/settings', { signatures: form }),
     onSuccess: (data) => {
       queryClient.setQueryData(['email', 'settings'], data)
+      void queryClient.invalidateQueries({ queryKey: ['email', 'settings', 'sender-options'] })
       setForm({ ...data.signatures })
       toast.success(t('email:settings.signaturesSaved'))
     },
@@ -537,6 +538,7 @@ function IdentitiesCard() {
     mutationFn: () => api.put<EmailSettings>('/api/email/settings', { identities: rows }),
     onSuccess: (data) => {
       queryClient.setQueryData(['email', 'settings'], data)
+      void queryClient.invalidateQueries({ queryKey: ['email', 'settings', 'sender-options'] })
       setRows(data.identities ?? [])
       toast.success(t('email:identities.saved'))
     },
@@ -623,6 +625,7 @@ function ReadingCard() {
     mutationFn: (next: boolean) => api.put<EmailSettings>('/api/email/settings', { autoLoadImages: next }),
     onSuccess: (data) => {
       queryClient.setQueryData(['email', 'settings'], data)
+      void queryClient.invalidateQueries({ queryKey: ['email', 'settings', 'sender-options'] })
       toast.success(data.autoLoadImages ? t('email:reading.imagesAuto') : t('email:reading.imagesConfirm'))
     },
     onError: (err) => toast.error(err.message),
