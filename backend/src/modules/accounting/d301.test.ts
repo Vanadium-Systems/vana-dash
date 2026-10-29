@@ -3,16 +3,19 @@
  * real (test/setup.ts). Verifică: filtrare pe reverse_charge_type != 'none', separarea eu/non-eu
  * la D390, luna goală, și warning-ul pt. curs BNR indisponibil (nu crapă — regula #7 CLAUDE.md).
  */
-import { inArray } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { financialRecords } from '../../shared/db/schema/index.js'
+import { declarationFilings, financialRecords } from '../../shared/db/schema/index.js'
 import { declarationAddress, generateD301Preview, generateD390Preview, linesToCsv, saveFiling, updateDeclarationLine } from './d301.js'
 
 const recordIds: string[] = []
+// The month saveFiling writes to; nothing else in the suite uses it.
+const FILING_PERIOD = '2027-04'
 
 afterAll(async () => {
   if (recordIds.length) await db.delete(financialRecords).where(inArray(financialRecords.id, recordIds))
+  await db.delete(declarationFilings).where(eq(declarationFilings.period, FILING_PERIOD))
 })
 
 async function insertExpense(overrides: Partial<typeof financialRecords.$inferInsert>) {
@@ -215,11 +218,13 @@ describe('declarationAddress', () => {
 
 describe('saveFiling', () => {
   it('keeps one SPV index per declaration and month, the latest one typed in', async () => {
-    expect((await generateD301Preview('2027-04')).filing).toBeNull()
+    // A run that stopped before afterAll leaves its filing behind.
+    await db.delete(declarationFilings).where(eq(declarationFilings.period, FILING_PERIOD))
+    expect((await generateD301Preview(FILING_PERIOD)).filing).toBeNull()
 
-    await saveFiling('D301', { month: '2027-04', anafIndex: '1000000001' })
-    await saveFiling('D301', { month: '2027-04', anafIndex: '1000000002' })
-    expect((await generateD301Preview('2027-04')).filing?.anafIndex).toBe('1000000002')
-    expect((await generateD390Preview('2027-04')).filing).toBeNull()
+    await saveFiling('D301', { month: FILING_PERIOD, anafIndex: '1000000001' })
+    await saveFiling('D301', { month: FILING_PERIOD, anafIndex: '1000000002' })
+    expect((await generateD301Preview(FILING_PERIOD)).filing?.anafIndex).toBe('1000000002')
+    expect((await generateD390Preview(FILING_PERIOD)).filing).toBeNull()
   })
 })

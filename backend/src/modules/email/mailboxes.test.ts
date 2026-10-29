@@ -15,13 +15,15 @@ import { saveDocument } from '../../shared/lib/storage.js'
 
 // Fără mock, reply-ul ar lovi Resend-ul real. Restul modulului rămâne cel adevărat.
 // `id` unic la fiecare trimitere: `email_messages.resend_email_id` are index unic, iar un
-// id constant ar lovi a doua trimitere din fișier.
+// id constant ar lovi a doua trimitere din fișier. The run prefix keeps it unique across runs
+// on the same database too.
+const RUN = Date.now()
 let sendCount = 0
 vi.mock('../../shared/lib/email.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../shared/lib/email.js')>()
   return {
     ...actual,
-    sendEmailWithResult: vi.fn(async () => ({ ok: true, id: `qa-mailbox-${(sendCount += 1)}` })),
+    sendEmailWithResult: vi.fn(async () => ({ ok: true, id: `qa-mailbox-${RUN}-${(sendCount += 1)}` })),
     fetchReceivedEmail: async () => null,
   }
 })
@@ -292,9 +294,11 @@ describe('trimiterea', () => {
     })
     expect(res.statusCode, res.body).toBe(201)
     const [trimis] = await db
-      .select({ sentByUserId: emailMessages.sentByUserId, fromAddress: emailMessages.fromAddress })
+      .select({ sentByUserId: emailMessages.sentByUserId, fromAddress: emailMessages.fromAddress, threadId: emailMessages.threadId })
       .from(emailMessages)
       .where(and(eq(emailMessages.forwardOfMessageId, fir.message.id), isNull(emailMessages.deletedAt)))
+    // The forward opens a thread of its own; afterAll removes it with the others.
+    if (trimis && !threadIds.includes(trimis.threadId)) threadIds.push(trimis.threadId)
     expect(trimis!.sentByUserId).toBe(salesUser.me.id)
     expect(trimis!.fromAddress).toBe('contact@vanadium.systems')
   })
