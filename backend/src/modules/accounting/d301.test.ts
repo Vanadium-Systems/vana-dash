@@ -88,6 +88,25 @@ describe('generateD301Preview', () => {
     expect(preview.warnings.some((w) => w.includes('curs BNR indisponibil'))).toBe(true)
   })
 
+  it('declares a reverse-charge adjustment in the credit note month, under its number, not in the invoice month', async () => {
+    await insertExpense({
+      documentNumber: 'ACME-ADJ-1',
+      currency: 'RON',
+      amount: '100.00',
+      reverseChargeType: 'non_eu_services',
+      counterpartyName: 'Acme Inc',
+      issuedAt: new Date('2027-05-25T00:00:00Z'),
+      meta: { reverseChargeAdjustment: { documentNumber: 'ACME-ADJ-1-CN', date: '2027-07-24' } },
+    })
+
+    expect((await generateD301Preview('2027-05')).lines).toHaveLength(0)
+    const creditNoteMonth = await generateD301Preview('2027-07')
+    expect(creditNoteMonth.lines).toHaveLength(1)
+    expect(creditNoteMonth.lines[0]!.documentNumber).toBe('ACME-ADJ-1-CN')
+    expect(creditNoteMonth.lines[0]!.issuedAt.toISOString().slice(0, 10)).toBe('2027-07-24')
+    expect(creditNoteMonth.totals.vatRon).toBeCloseTo(21)
+  })
+
   it('warns when an eu_services line lacks counterparty country/VAT id', async () => {
     await insertExpense({
       documentNumber: 'HTZ-D301-3',
