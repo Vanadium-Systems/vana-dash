@@ -104,5 +104,11 @@
     "title_one": "Save to the Archive ({{count}} file)",
     "title_other": "Save to the Archive ({{count}} files)",
     "here": "Save here ({{name}})"
+  },
+  "nameDialog": {
+    "renameTitle": "Rename “{{name}}”",
+    "newFolderTitle": "New folder",
+    "label": "Name",
+    "required": "Enter a name."
   }
 }

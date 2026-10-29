@@ -50,6 +50,7 @@ import type {
 } from '@/shared/lib/types'
 import { cn, formatBytes } from '@/shared/lib/utils'
 import { MoveDialog } from './MoveDialog'
+import { NameDialog } from './NameDialog'
 import { SaveShareDialog } from './SaveShareDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
@@ -432,6 +433,7 @@ export function ArchivePage() {
   })
 
   const [moveTarget, setMoveTarget] = useState<{ type: 'file' | 'folder'; id: string; name: string } | null>(null)
+  const [nameTarget, setNameTarget] = useState<{ type: 'file' | 'folder'; id: string; name: string } | { type: 'new-folder' } | null>(null)
 
   const moveFile = useMutation({
     mutationFn: ({ id, folderId }: { id: string; folderId: string | null }) =>
@@ -563,8 +565,7 @@ export function ArchivePage() {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
-                const name = window.prompt('Nume nou:', file.name)
-                if (name?.trim() && name !== file.name) renameFile.mutate({ id: file.id, name: name.trim() })
+                setNameTarget({ type: 'file', id: file.id, name: file.name })
               }}
             >
               <Pencil className="h-4 w-4" /> {t('common:actions.rename')}
@@ -606,8 +607,7 @@ export function ArchivePage() {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
-                const name = window.prompt('Nume nou:', f.name)
-                if (name?.trim() && name !== f.name) renameFolder.mutate({ id: f.id, name: name.trim() })
+                setNameTarget({ type: 'folder', id: f.id, name: f.name })
               }}
             >
               <Pencil className="h-4 w-4" /> {t('common:actions.rename')}
@@ -673,10 +673,7 @@ export function ArchivePage() {
               <>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    const name = window.prompt('Nume folder nou:')
-                    if (name?.trim()) createFolder.mutate(name.trim())
-                  }}
+                  onClick={() => setNameTarget({ type: 'new-folder' })}
                 >
                   <FolderPlus className="h-4 w-4" /> {t('archive:folders.new')}
                 </Button>
@@ -933,6 +930,21 @@ export function ArchivePage() {
               ? moveFile.mutate({ id: moveTarget.id, folderId: targetFolderId })
               : moveFolder.mutate({ id: moveTarget.id, parentId: targetFolderId })
           }
+        />
+      ) : null}
+      {nameTarget ? (
+        <NameDialog
+          title={nameTarget.type === 'new-folder' ? t('archive:nameDialog.newFolderTitle') : t('archive:nameDialog.renameTitle', { name: nameTarget.name })}
+          initialName={nameTarget.type === 'new-folder' ? '' : nameTarget.name}
+          submitLabel={nameTarget.type === 'new-folder' ? t('common:actions.create') : t('common:actions.rename')}
+          isPending={createFolder.isPending || renameFile.isPending || renameFolder.isPending}
+          onClose={() => setNameTarget(null)}
+          onSubmit={(name) => {
+            const done = { onSuccess: () => setNameTarget(null) }
+            if (nameTarget.type === 'new-folder') createFolder.mutate(name, done)
+            else if (nameTarget.type === 'file') renameFile.mutate({ id: nameTarget.id, name }, done)
+            else renameFolder.mutate({ id: nameTarget.id, name }, done)
+          }}
         />
       ) : null}
       <SaveShareDialog />
