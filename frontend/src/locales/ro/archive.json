@@ -109,5 +109,11 @@
     "title_few": "Salvează în Arhivă ({{count}} fișiere)",
     "title_other": "Salvează în Arhivă ({{count}} de fișiere)",
     "here": "Salvează aici ({{name}})"
+  },
+  "nameDialog": {
+    "renameTitle": "Redenumește „{{name}}”",
+    "newFolderTitle": "Folder nou",
+    "label": "Nume",
+    "required": "Scrie un nume."
   }
 }
