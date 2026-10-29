@@ -68,7 +68,7 @@ export function MessagesPage() {
       className="flex h-[calc(100dvh-6rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] min-h-0 flex-col md:h-[calc(100dvh-3rem)]"
       data-density="comfortable"
     >
-      <div className="flex min-h-0 flex-1 md:grid md:grid-cols-[300px_1fr]">
+      <div className="flex min-h-0 flex-1 md:grid md:grid-cols-[300px_minmax(0,1fr)]">
         <aside
           className={id ? 'hidden min-h-0 border-r md:block' : 'min-h-0 flex-1 overflow-hidden md:border-r'}
           aria-label={t('messages:list.title')}
@@ -82,8 +82,8 @@ export function MessagesPage() {
           // index.html micșorează ecranul, deci câmpul rămâne deasupra ei).
           className={
             id
-              ? 'safe-top safe-bottom fixed inset-0 z-50 flex flex-col bg-background md:static md:z-auto md:min-h-0 md:flex-1 md:p-0'
-              : 'hidden min-h-0 md:block'
+              ? 'safe-top safe-bottom fixed inset-0 z-50 flex flex-col bg-background md:static md:z-auto md:min-h-0 md:min-w-0 md:flex-1 md:p-0'
+              : 'hidden min-h-0 min-w-0 md:block'
           }
           aria-label={t('common:nav.messages')}
         >
