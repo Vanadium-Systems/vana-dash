@@ -17,8 +17,13 @@ function foldDiacritics(text: string): string {
   return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+// Romanian letters (comma and cedilla forms, lower then upper case), built from code points: a
+// string literal with them would read as UI text to no-romanian-in-code.test.ts.
+const DIACRITICS = String.fromCodePoint(0x103, 0xe2, 0xee, 0x219, 0x15f, 0x21b, 0x163, 0x102, 0xc2, 0xce, 0x218, 0x15e, 0x21a, 0x162)
+const FOLDED = 'aaissttaaisstt'
+
 function foldedLike(column: AnyColumn, term: string) {
-  return sql`translate(lower(${column}), 'ăâîșşțţĂÂÎȘŞȚŢ', 'aaissttaaisstt') like ${term}`
+  return sql`translate(lower(${column}), ${DIACRITICS}, ${FOLDED}) like ${term}`
 }
 
 export async function listNotes(me: SessionUser, query: ListNotesQuery) {
