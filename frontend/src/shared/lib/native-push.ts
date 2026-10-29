@@ -41,6 +41,18 @@ export async function registerNativeDeviceToken(): Promise<void> {
   })
 }
 
+/** Calls `open` with the in-app path of a tapped notification. Returns the cleanup. */
+export function onNativeNotificationTap(open: (path: string) => void): () => void {
+  if (!isPushNativeAvailable()) return () => {}
+  const listener = PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+    const url: unknown = action.notification.data?.url
+    if (typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')) open(url)
+  })
+  return () => {
+    void listener.then((handle) => handle.remove())
+  }
+}
+
 export async function unregisterNativeDeviceToken(): Promise<void> {
   const token = localStorage.getItem(TOKEN_KEY)
   localStorage.removeItem(TOKEN_KEY)

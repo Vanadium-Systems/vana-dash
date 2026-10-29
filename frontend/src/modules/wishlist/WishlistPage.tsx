@@ -223,11 +223,10 @@ export function WishlistPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {wishlist.data.items.map((item, i) => (
+                {wishlist.data.items.map((item) => (
                   <TableRow
                     key={item.id}
                     className={cn('animate-in fade-in-0 duration-200 ease-out', item.purchased ? 'opacity-60' : '')}
-                    style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                   >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-1.5">

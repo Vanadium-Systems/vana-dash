@@ -3,7 +3,7 @@ import { BookOpen, Building2, Download, Ellipsis, Inbox, LifeBuoy, LogOut, Megap
 import { guideRouteOf } from '@/modules/help/guides'
 import { useSupportUnread } from '@/modules/support/support-api'
 import { isUnseen, visibleReleases } from '@/modules/updates/releases'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { CommandPalette, PALETTE_SHORTCUT } from '@/shared/components/CommandPalette'
 import { OfflineBanner } from '@/shared/components/OfflineBanner'
@@ -23,7 +23,7 @@ import { useNavLayout } from '@/shared/hooks/use-nav-layout'
 import { useOfflinePrefetch } from '@/shared/hooks/use-offline-prefetch'
 import { useOnline } from '@/shared/hooks/use-online'
 import { isNative } from '@/shared/lib/native'
-import { registerNativeDeviceToken } from '@/shared/lib/native-push'
+import { onNativeNotificationTap, registerNativeDeviceToken } from '@/shared/lib/native-push'
 import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem, navGroupLabel } from '@/shared/lib/nav-items'
 import { BrandMark } from '@/shared/components/BrandMark'
 import { sessionUserName } from '@/shared/lib/types'
@@ -114,6 +114,7 @@ export function AppLayout() {
   const navigate = useNavigate()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const mainRef = useRef<HTMLElement>(null)
   const navItems = useNavLayout()
   const unreadCounts = useEmailUnreadCounts()
   const chatUnread = useChatUnreadTotal()
@@ -146,10 +147,18 @@ export function AppLayout() {
   // la fiecare revenire online.
   useOfflinePrefetch(online)
 
+  // <main> stays mounted across routes, so without this a new page keeps the old scroll position.
+  // scrollTop instead of scrollTo(): the same in every WebView, and jsdom (tests) has it too.
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0
+  }, [location.pathname])
+
   // Token FCM al APK-ului (Contract C) — doar în shell-ul nativ, doar autentificat.
   useEffect(() => {
     if (user) void registerNativeDeviceToken()
   }, [user])
+
+  useEffect(() => onNativeNotificationTap((path) => navigate(path)), [navigate])
 
   // Un 403 FEATURE_FORBIDDEN înseamnă că rolul i-a fost schimbat sub om: reîncărcăm `/me`
   // ca nav-ul, tab-urile și butoanale să dispară fără reîncărcarea paginii (PLAN.md C2).
@@ -290,7 +299,7 @@ export function AppLayout() {
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="safe-top flex-1 overflow-auto pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+        <main ref={mainRef} className="safe-top flex-1 overflow-auto pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
           {!online ? (
             <div className="px-4 pt-4 md:px-6 md:pt-6">
               <OfflineBanner visible={!online} />
