@@ -102,6 +102,19 @@ async function ensureRules(): Promise<Map<string, { id: string; severity: string
   return result
 }
 
+// Where a tap on the push lands: the page that fixes the problem, not the alert list.
+const ALERT_URLS: Record<string, string> = {
+  'accounting.invoice_overdue': '/accounting?tab=emise',
+  'accounting.anaf_upload_rejected': '/accounting?tab=emise',
+  'accounting.anaf_token_expiring': '/accounting?tab=setari',
+  'accounting.anaf_refresh_token_expiring': '/accounting?tab=setari',
+  'accounting.declaration_no_receipt': '/accounting?tab=declaratii',
+  'accounting.spv_notice': '/accounting?tab=mesaje',
+  'accounting.unmatched_transaction': '/reconciliation',
+  'accounting.bank_sync_failed': '/reconciliation',
+  'accounting.revolut_refresh_token_expiring': '/reconciliation',
+}
+
 // Respectă `alert_rules.enabled` (2026-09-21, vezi nota din shared/lib/alerting.ts — același
 // checkbox mort din Alerts → Reguli, fixat aici în paralel pt. namespace-ul accounting.*).
 async function raiseAlert(
@@ -126,7 +139,7 @@ async function raiseAlert(
   if (rule.email) await sendAlertEmail(message, `${message}\n\n${tr('emails.alert.accountingDetails')}`)
   // Unificat cu metric-alerts.ts — același eventType 'alerts' pt. GET /api/alerts, indiferent
   // de sursă (threshold pe metrici sau event-based accounting).
-  void notifyPush('alerts', (locale) => ({ title: trFor(locale, 'push.alert.title'), body: textFor(text, locale), url: '/alerts' }))
+  void notifyPush('alerts', (locale) => ({ title: trFor(locale, 'push.alert.title'), body: textFor(text, locale), url: ALERT_URLS[ruleKey] ?? '/alerts' }))
 }
 
 /** For events found outside the daily check, such as an SPV email (jobs/spv-notifications.ts). */
