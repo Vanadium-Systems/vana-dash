@@ -114,7 +114,8 @@ se șterg." / a button that says "Șterge clientul".
 
 **Language and formatting.** Texts come from `src/locales` through `t()`, never from a literal
 in a component. Numbers, money and dates go through `shared/lib/format.ts`, which formats in
-the language of the interface (`ro-RO` or `en-GB`) and always in `Europe/Bucharest` time. The
+the language of the interface (`ro-RO` or `en-GB`) and always in the company's time zone (from
+the company sheet, `companyTimeZone()`), wherever the reader is. The
 plural with "20 de …" comes from the plural forms in the Romanian files. An amount shows the
 currency the server sent; one converted to the person's display currency has "≈" in front and
 a line under the group saying so, not just a different color. Search ignores diacritics,

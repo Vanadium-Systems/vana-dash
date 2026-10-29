@@ -30,7 +30,16 @@ export function sessionPayload(me: SessionUser) {
       role: me.role ? { id: me.role.id, name: me.role.name, kind: me.role.kind } : null,
       status: me.status,
     },
-    tenant: me.tenant ? { id: me.tenant.id, name: me.tenant.name, isPlatformOwner: me.tenant.isPlatformOwner } : null,
+    tenant: me.tenant
+      ? {
+          id: me.tenant.id,
+          name: me.tenant.name,
+          isPlatformOwner: me.tenant.isPlatformOwner,
+          country: me.tenant.country,
+          timeZone: me.tenant.timeZone,
+          currency: me.tenant.currency,
+        }
+      : null,
     features: me.features,
     isPlatformAdmin: me.isPlatformAdmin,
     mailboxes: me.mailboxes,

@@ -132,7 +132,6 @@
   },
   "invoicing": {
     "clientGone": "Clientul facturii nu mai există",
-    "companyProfileIncomplete": "Profilul firmei incomplet: setează COMPANY_CIF (+ adresă/IBAN) în .env",
     "tenantCreateFailed": "Creare tenant în VanaGreen eșuată",
     "slugKebab": "slug trebuie kebab-case (litere mici, cifre, cratime)",
     "unitPriceRequired": "unitPrice e obligatoriu pentru linii cu preț fix",
@@ -423,5 +422,20 @@
     "unknownFeature": "Funcționalitate necunoscută: {{feature}}.",
     "headerForbidden": "Doar adminul platformei poate deschide altă firmă.",
     "suspended": "Contul firmei e suspendat."
+  },
+  "company": {
+    "incomplete": "Fișa firmei e incompletă (Setări → Date firmă). Lipsă: {{fields}}",
+    "fields": {
+      "name": "numele firmei",
+      "cui": "CUI",
+      "county": "județul sediului",
+      "city": "localitatea sediului",
+      "street": "strada sediului",
+      "declarant": "numele declarantului"
+    },
+    "countyUnknown": "Județul din fișa firmei nu e recunoscut: {{county}}",
+    "invalidTimeZone": "Fus orar necunoscut: {{timeZone}}",
+    "invalidCurrency": "Moneda se scrie ca un cod de trei litere (ex. RON, EUR)",
+    "countryUnsupported": "Țara {{country}} nu are încă pachet în aplicație"
   }
 }

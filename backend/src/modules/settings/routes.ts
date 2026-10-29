@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { CompanyProfileSchema, NavLayoutUpdateSchema, OpsJobTogglesUpdateSchema } from './schema.js'
+import { CompanySettingsUpdateSchema, NavLayoutUpdateSchema, OpsJobTogglesUpdateSchema } from './schema.js'
 import * as service from './service.js'
 
 export async function settingsRoutes(app: FastifyInstance) {
@@ -20,15 +20,14 @@ export async function settingsRoutes(app: FastifyInstance) {
   )
 
   server.get('/api/settings/company-profile', { preHandler: [app.authenticate] }, async () => {
-    return { success: true, data: { profile: await service.getCompanyProfile() } }
+    return { success: true, data: await service.getCompanySettings() }
   })
 
   server.put(
     '/api/settings/company-profile',
-    { preHandler: [app.authenticate], schema: { body: CompanyProfileSchema } },
+    { preHandler: [app.authenticate], schema: { body: CompanySettingsUpdateSchema } },
     async (req) => {
-      const profile = await service.setCompanyProfile(req.body)
-      return { success: true, data: { profile } }
+      return { success: true, data: await service.setCompanySettings(req.body) }
     },
   )
 

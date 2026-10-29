@@ -3,6 +3,7 @@ import { and, eq, isNull, lte } from 'drizzle-orm'
 import { db } from '../shared/db/client.js'
 import { assistantConversations, dashboardConfig, scheduledRuns, users } from '../shared/db/schema/index.js'
 import { sendEmail } from '../shared/lib/email.js'
+import { getCompanyTimeZone } from '../shared/lib/company.js'
 import { isStaleRun, nextRecurrenceRun } from '../shared/lib/schedule-recurrence.js'
 import { notifyPush } from '../shared/lib/push.js'
 import { tr, trFor } from '../shared/lib/i18n.js'
@@ -36,13 +37,14 @@ async function isReminderEmailFallbackEnabled(): Promise<boolean> {
 }
 
 export async function executeReminder(run: ScheduledRunRow): Promise<void> {
+  const timeZone = await getCompanyTimeZone()
   // Push-ul îl primește autorul task-ului, nu toți abonații (C2): un reminder programat de un
   // coleg nu trebuie să sune pe telefonul lui Stefan.
   void notifyPush(
     'calendarReminder',
     (locale) => ({
       title: run.text ?? trFor(locale, 'push.reminder.fallbackTitle'),
-      body: run.runAt.toLocaleString(INTL_TAG[locale], { timeZone: 'Europe/Bucharest', dateStyle: 'short', timeStyle: 'short' }),
+      body: run.runAt.toLocaleString(INTL_TAG[locale], { timeZone, dateStyle: 'short', timeStyle: 'short' }),
       url: '/calendar',
     }),
     run.ownerUserId ? [run.ownerUserId] : undefined,
@@ -90,13 +92,13 @@ export async function executeReport(run: ScheduledRunRow): Promise<string> {
   return preview.slice(0, REPORT_PREVIEW_CHARS)
 }
 
-function reprogramRecurring(run: ScheduledRunRow): Date | null {
+function reprogramRecurring(run: ScheduledRunRow, timeZone: string): Date | null {
   if (run.recurrence === 'once') return null
-  let next = nextRecurrenceRun(run.runAt, run.recurrence, run.weekday)
+  let next = nextRecurrenceRun(run.runAt, run.recurrence, run.weekday, timeZone)
   const now = new Date()
   // Downtime lung — sare peste ocurențele pierdute până prima viitoare; o singură execuție.
   while (next.getTime() <= now.getTime()) {
-    next = nextRecurrenceRun(next, run.recurrence, run.weekday)
+    next = nextRecurrenceRun(next, run.recurrence, run.weekday, timeZone)
   }
   return next
 }
@@ -107,6 +109,7 @@ export async function runScheduledTick(now = new Date()): Promise<void> {
     .from(scheduledRuns)
     .where(and(isNull(scheduledRuns.deletedAt), eq(scheduledRuns.status, 'pending'), lte(scheduledRuns.runAt, now)))
 
+  const timeZone = await getCompanyTimeZone()
   for (const row of due) {
     try {
       if (isStaleRun(row.runAt, now)) {
@@ -129,7 +132,7 @@ export async function runScheduledTick(now = new Date()): Promise<void> {
         console.error(`[scheduled-tick] ${row.kind} ${row.id} eșuat: ${lastError}`)
       }
 
-      const nextAt = reprogramRecurring(row)
+      const nextAt = reprogramRecurring(row, timeZone)
       if (nextAt) {
         // Recurentele nu se marchează done — își calculează următoarea rulare și rămân pending.
         await db

@@ -1,7 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { billingClients, financialRecords } from '../db/schema/index.js'
-import { config } from '../config.js'
+import { getCompany } from './company.js'
 import { renderPaymentConfirmationHtml } from './documents.js'
 import { sendEmail } from './email.js'
 import { htmlToPdf, isPdfAvailable } from './pdf.js'
@@ -31,6 +31,7 @@ export async function sendPaymentConfirmationEmail(financialRecordId: string): P
     return
   }
 
+  const { profile } = await getCompany()
   const documentNumber = record.documentNumber ?? record.id
   const amount = Number(record.amount)
   const html = renderPaymentConfirmationHtml({
@@ -39,7 +40,7 @@ export async function sendPaymentConfirmationEmail(financialRecordId: string): P
     currency: record.currency,
     paidAt: record.paidAt ?? new Date(),
     clientName: client.name,
-    company: { name: config.company.name, email: config.company.email },
+    company: { name: profile.name, email: profile.email },
   })
 
   let pdfBuffer: Buffer | null = null
@@ -58,7 +59,7 @@ export async function sendPaymentConfirmationEmail(financialRecordId: string): P
     text:
       `Bună,\n\nAm primit plata pentru factura ${documentNumber} ` +
       `(${amount.toFixed(2)} ${record.currency}). Mulțumim!\n\n` +
-      `Acesta este un mesaj automat, generat de ${config.company.name}.`,
+      `Acesta este un mesaj automat, generat de ${profile.name}.`,
     attachments: pdfBuffer ? [{ filename: `confirmare-${documentNumber}.pdf`, content: pdfBuffer }] : [],
   })
 }

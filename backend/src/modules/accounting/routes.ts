@@ -324,13 +324,13 @@ export async function accountingRoutes(app: FastifyInstance) {
           const pdf = await d301.exportD301Pdf(req.query.month)
           return reply
             .type('application/pdf')
-            .header('content-disposition', `attachment; filename="${d301.declarationFileName('D301', req.query.month, 'pdf')}"`)
+            .header('content-disposition', `attachment; filename="${await d301.declarationFileName('D301', req.query.month, 'pdf')}"`)
             .send(pdf)
         }
         const xml = await d301.exportD301Xml(req.query.month)
         return reply
           .type('application/xml')
-          .header('content-disposition', `attachment; filename="${d301.declarationFileName('D301', req.query.month, 'xml')}"`)
+          .header('content-disposition', `attachment; filename="${await d301.declarationFileName('D301', req.query.month, 'xml')}"`)
           .send(xml)
       } catch (err) {
         return reply.code(400).send({ success: false, error: String(err) })
@@ -351,13 +351,13 @@ export async function accountingRoutes(app: FastifyInstance) {
           const pdf = await d301.exportD390Pdf(req.query.month)
           return reply
             .type('application/pdf')
-            .header('content-disposition', `attachment; filename="${d301.declarationFileName('D390', req.query.month, 'pdf')}"`)
+            .header('content-disposition', `attachment; filename="${await d301.declarationFileName('D390', req.query.month, 'pdf')}"`)
             .send(pdf)
         }
         const xml = await d301.exportD390Xml(req.query.month)
         return reply
           .type('application/xml')
-          .header('content-disposition', `attachment; filename="${d301.declarationFileName('D390', req.query.month, 'xml')}"`)
+          .header('content-disposition', `attachment; filename="${await d301.declarationFileName('D390', req.query.month, 'xml')}"`)
           .send(xml)
       } catch (err) {
         return reply.code(400).send({ success: false, error: String(err) })

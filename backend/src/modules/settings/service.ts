@@ -2,7 +2,9 @@ import { eq, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { dashboardConfig } from '../../shared/db/schema/index.js'
 import type { z } from 'zod'
-import type { CompanyProfile, NavLayoutUpdateSchema, OpsJobToggles } from './schema.js'
+import { availableCountries } from '../../countries/index.js'
+import { getCompany, updateCompany } from '../../shared/lib/company.js'
+import type { CompanySettingsUpdateSchema, NavLayoutUpdateSchema, OpsJobToggles } from './schema.js'
 
 // Pattern identic cu overview-config (modules/metrics/service.ts): un singur rând jsonb în
 // dashboard_config; lipsa lui = default canonic din cod (comportamentul de azi).
@@ -27,19 +29,14 @@ export async function setNavLayout(input: z.infer<typeof NavLayoutUpdateSchema>)
   return input.items
 }
 
-const COMPANY_PROFILE_KEY = 'company.profile'
-
-export async function getCompanyProfile(): Promise<CompanyProfile | null> {
-  const [row] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, COMPANY_PROFILE_KEY))
-  return row ? (row.value as CompanyProfile) : null
+export async function getCompanySettings() {
+  const { country, timeZone, currency, profile } = await getCompany()
+  return { profile, country, timeZone, currency, countries: availableCountries() }
 }
 
-export async function setCompanyProfile(profile: CompanyProfile): Promise<CompanyProfile> {
-  await db
-    .insert(dashboardConfig)
-    .values({ key: COMPANY_PROFILE_KEY, value: profile })
-    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
-  return profile
+export async function setCompanySettings(input: z.infer<typeof CompanySettingsUpdateSchema>) {
+  await updateCompany(input)
+  return getCompanySettings()
 }
 
 const OPS_JOB_TOGGLES_KEY = 'ops_jobs.enabled'

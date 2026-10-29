@@ -16,8 +16,13 @@ export const tenants = pgTable(
     status: text('status', { enum: ['active', 'suspended'] }).notNull().default('active'),
     // What the company may use (feature keys). Ignored for the owner, who has the whole catalog.
     features: text('features').array().notNull().default([]),
-    // Company details for invoices and contracts; empty for the owner until they move out of env.
-    profile: jsonb('profile').$type<Record<string, string>>().notNull().default({}),
+    // The company sheet (shared/lib/company.ts parses it). Empty until it is first saved or
+    // imported from the old COMPANY_* env vars.
+    profile: jsonb('profile').$type<Record<string, unknown>>().notNull().default({}),
+    // No defaults on purpose: a new company takes them from its country pack (countries/).
+    country: text('country').notNull(),
+    timeZone: text('time_zone').notNull(),
+    currency: text('currency').notNull(),
   },
   (t) => [uniqueIndex('uq_tenants_slug').on(t.slug)],
 )

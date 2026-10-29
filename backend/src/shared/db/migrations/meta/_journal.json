@@ -533,6 +533,13 @@
       "when": 1792842061764,
       "tag": "0075_spv_email_notices",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1793265644806,
+      "tag": "0076_company_settings",
+      "breakpoints": true
     }
   ]
 }

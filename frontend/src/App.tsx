@@ -7,6 +7,7 @@ import { AppLayout } from '@/shared/components/layout/AppLayout'
 import { LinkedSection, RedirectToTab, TabbedSection } from '@/shared/components/layout/PageSection'
 import { useAuth } from '@/shared/hooks/use-auth'
 import { useShareIn } from '@/shared/lib/share-in'
+import { setCompanyTimeZone } from '@/shared/lib/format'
 import { syncLocaleWithProfile, t } from '@/shared/lib/i18n'
 
 const AccountingPage = lazy(() => import('@/modules/accounting/AccountingPage').then((m) => ({ default: m.AccountingPage })))
@@ -69,6 +70,9 @@ function RequireAuth() {
   useEffect(() => {
     if (session?.locale && session.enabledLocales) syncLocaleWithProfile(session.locale, session.enabledLocales)
   }, [session])
+  // Before the pages render, so their dates come out in the company's zone. Idempotent, hence safe
+  // in render; a /me cached before the field existed has no tenant zone and changes nothing.
+  if (session?.tenant?.timeZone) setCompanyTimeZone(session.tenant.timeZone)
   if (isPending) return null
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return <Outlet />

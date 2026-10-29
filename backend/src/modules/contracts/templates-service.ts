@@ -3,10 +3,12 @@ import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import { contractTemplates, dashboardConfig } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
+import { getCompany } from '../../shared/lib/company.js'
 import {
   CONTRACT_TEMPLATE_BODIES,
   CONTRACT_TEMPLATE_KEYS,
   CONTRACT_TEMPLATE_PLACEHOLDERS,
+  contractProvider,
   DEFAULT_CONTRACT_FRAGMENTS,
   DEFAULT_CONTRACT_TERMS,
   renderContractHtml,
@@ -148,17 +150,22 @@ export async function getContractFragments(): Promise<ContractFragments> {
 
 // ── Randarea documentelor prin corpul din DB ─────────────────────────────────────────────────
 
-export async function renderDocument(docType: 'contract' | 'anexa', data: ContractRenderData): Promise<string> {
-  const [bodyHtml, terms, fragments] = await Promise.all([getTemplateBody(docType === 'contract' ? 'contract-saas' : 'anexa-preturi'), getContractTerms(), getContractFragments()])
-  return docType === 'contract' ? renderContractHtml(data, terms, bodyHtml, fragments) : renderAnexaHtml(data, terms, bodyHtml, fragments)
+async function currentProvider() {
+  return contractProvider((await getCompany()).profile)
+}
+
+export async function renderDocument(docType: 'contract' | 'anexa', data: Omit<ContractRenderData, 'provider'>): Promise<string> {
+  const [bodyHtml, terms, fragments, provider] = await Promise.all([getTemplateBody(docType === 'contract' ? 'contract-saas' : 'anexa-preturi'), getContractTerms(), getContractFragments(), currentProvider()])
+  const withProvider = { ...data, provider }
+  return docType === 'contract' ? renderContractHtml(withProvider, terms, bodyHtml, fragments) : renderAnexaHtml(withProvider, terms, bodyHtml, fragments)
 }
 
 export async function renderAddendum(addendum: ContractAddendum, client: Parameters<typeof renderActAditionalHtml>[1], contractInfo: { nrContract: string; dataContract: string }): Promise<string> {
-  const [bodyHtml, terms, fragments] = await Promise.all([getTemplateBody('act-aditional'), getContractTerms(), getContractFragments()])
-  return renderActAditionalHtml(addendum, client, contractInfo, terms, bodyHtml, fragments)
+  const [bodyHtml, terms, fragments, provider] = await Promise.all([getTemplateBody('act-aditional'), getContractTerms(), getContractFragments(), currentProvider()])
+  return renderActAditionalHtml(addendum, client, contractInfo, provider, terms, bodyHtml, fragments)
 }
 
 export async function renderBlank(key: ContractTemplateKey): Promise<string> {
-  const [bodyHtml, terms, fragments] = await Promise.all([getTemplateBody(key), getContractTerms(), getContractFragments()])
-  return renderBlankHtml(key, terms, bodyHtml, fragments)
+  const [bodyHtml, terms, fragments, provider] = await Promise.all([getTemplateBody(key), getContractTerms(), getContractFragments(), currentProvider()])
+  return renderBlankHtml(key, provider, terms, bodyHtml, fragments)
 }

@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, isNull, lte, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { SpvMessage } from '../../connectors/types.js'
-import { config } from '../../shared/config.js'
+import { getCompany } from '../../shared/lib/company.js'
 import { db } from '../../shared/db/client.js'
 import {
   anafCredentials,
@@ -174,6 +174,7 @@ export async function generateConfirmationPdf(id: string) {
     if (client) clientName = client.name
   }
 
+  const { profile } = await getCompany()
   const documentNumber = record.documentNumber ?? record.id
   const html = renderPaymentConfirmationHtml({
     documentNumber,
@@ -181,7 +182,7 @@ export async function generateConfirmationPdf(id: string) {
     currency: record.currency,
     paidAt: record.paidAt,
     clientName,
-    company: { name: config.company.name, email: config.company.email },
+    company: { name: profile.name, email: profile.email },
   })
   const buffer = await htmlToPdf(html)
   return { buffer, documentNumber }
