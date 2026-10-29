@@ -13,7 +13,9 @@ minimumReleaseAgeExclude:
 overrides:
   # ajv (fastify's schema validator) pins fast-uri@^3.0.1 internally;
   # bump within that range to patch the host-confusion advisories.
-  'ajv>fast-uri': ^3.1.8
+  'ajv>fast-uri': ^3.1.9
+  '@fastify/ajv-compiler>fast-uri': ^4.2.3
+  'fast-json-stringify>fast-uri': ^4.2.3
   # node-cron hard-pins uuid@8.3.2 (pre-fix); only used for internal job IDs.
   'node-cron>uuid': ^11.1.1
   # same advisory through firebase-admin's Google client stack and Capacitor's
@@ -25,7 +27,7 @@ overrides:
   '@esbuild-kit/core-utils>esbuild': ^0.25.0
   # test-only vite instance pulled in via vitest's mocker peer dep — keep
   # separate from frontend's real build-time vite (pinned ^6.4.3 above).
-  '@vitest/mocker>vite': ^8.2.1
+  '@vitest/mocker>vite': ^8.2.4
   # jsdom (test-only) allows any undici@7.x; force the patched release.
   'jsdom>undici': ^7.29.1
   # css-tree (jsdom, test-only) locks the pre-fix source-map-js.
