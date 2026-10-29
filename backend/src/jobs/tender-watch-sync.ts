@@ -8,7 +8,8 @@ import {
   matchWatchRule,
   sicapBlockedStatus,
 } from '../modules/tenders/e-licitatie-client.js'
-import { getCompanyProfile, getOpsJobToggles, setOpsJobToggles } from '../modules/settings/service.js'
+import { getOpsJobToggles, setOpsJobToggles } from '../modules/settings/service.js'
+import { getCompany } from '../shared/lib/company.js'
 import { listActiveWatchRules, listEligibilityCheckedNoticeIds, upsertTenderOpportunities } from '../modules/tenders/service.js'
 import type { NormalizedTenderRow } from '../modules/tenders/types.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
@@ -20,8 +21,8 @@ import { type LocalizedText, tl, tr, trFor } from '../shared/lib/i18n.js'
  * o presupunere greșită ar ascunde oportunități reale doar pt. că nimeni n-a completat câmpul).
  */
 async function getMinTurnoverThreshold(): Promise<number | null> {
-  const profile = await getCompanyProfile()
-  const value = Number(profile?.annualTurnoverRon)
+  const { profile } = await getCompany()
+  const value = Number(profile.annualTurnoverRon)
   return Number.isFinite(value) && value > 0 ? value : null
 }
 

@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-29T20:00:00+02:00',
+    title: {
+      ro: 'Datele firmei se completează din Setări',
+      en: 'The company details are set in Settings',
+    },
+    body: {
+      ro: 'Facturile, declarațiile D301/D390 și contractele își iau acum datele firmei din Setări → Date firmă, nu din configurarea serverului. Fișa are câmpuri noi: plătitor de TVA, reprezentant, declarant, cod poștal, fus orar și monedă. Datele și orele din aplicație se arată în fusul firmei.',
+      en: 'Invoices, the D301/D390 declarations and contracts now take the company details from Settings → Company details, not from the server configuration. The sheet has new fields: VAT registered, representative, declarant, postal code, time zone and currency. Dates and times in the app are shown in the company’s time zone.',
+    },
+    features: ['setari.firma'],
+  },
+  {
     publishedAt: '2026-10-26T20:00:00+02:00',
     title: {
       ro: 'Apeluri video din VanaDash',

@@ -26,7 +26,7 @@ export interface SessionPayload {
   features: FeatureKey[]
   isPlatformAdmin: boolean
   /** The person's own company (not the one looked at with the override); absent in older test fixtures. */
-  tenant?: { id: string; name: string; isPlatformOwner: boolean } | null
+  tenant?: { id: string; name: string; isPlatformOwner: boolean; country: string; timeZone: string; currency: string } | null
   /** Cheile cutiilor de email; `null` = toate (adminul). */
   mailboxes: string[] | null
   notificationPrefs: NotificationPrefs

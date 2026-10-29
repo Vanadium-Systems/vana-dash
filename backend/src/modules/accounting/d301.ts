@@ -1,6 +1,5 @@
 import { and, eq, gte, isNull, lt, ne } from 'drizzle-orm'
 import type { z } from 'zod'
-import { config } from '../../shared/config.js'
 import { buildD301 } from '../../connectors/anaf/declarations/d301-builder.js'
 import { buildD390 } from '../../connectors/anaf/declarations/d390-builder.js'
 import { D301_TEMPLATE, D390_TEMPLATE, fillXfaDatasets } from '../../connectors/anaf/declarations/xfa-pdf.js'
@@ -8,6 +7,8 @@ import type { DeclarationLine } from '../../connectors/anaf/declarations/types.j
 import { db } from '../../shared/db/client.js'
 import { declarationFilings, financialRecords } from '../../shared/db/schema/index.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
+import { getCompany, requireSeller } from '../../shared/lib/company.js'
+import { CompanyProfileIncompleteError } from '../../countries/types.js'
 import { isoCodeToCountyName } from '../../shared/lib/ro-counties.js'
 import type { DeclarationFilingBodySchema, DeclarationLineUpdateSchema } from './schema.js'
 
@@ -37,6 +38,7 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
     )
     .orderBy(financialRecords.issuedAt)
 
+  const { profile } = await getCompany()
   const warnings: string[] = []
   const lines: DeclarationLine[] = []
 
@@ -68,8 +70,8 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
     if (row.reverseChargeType === 'eu_services' && (!row.counterpartyCountry || !row.counterpartyCif)) {
       warnings.push(`${row.documentNumber ?? row.id}: lipsește țara sau codul TVA al furnizorului — obligatoriu pt. D390`)
     }
-    if (row.reverseChargeType === 'eu_services' && !config.company.vatIntraCommunityCode) {
-      warnings.push(`${row.documentNumber ?? row.id}: COMPANY_VAT_INTRA_CODE nesetat — obligatoriu pt. achiziții eu_services`)
+    if (row.reverseChargeType === 'eu_services' && !profile.vatIntraCode) {
+      warnings.push(`${row.documentNumber ?? row.id}: lipsește codul de TVA special din fișa firmei (Setări → Date firmă) — obligatoriu pt. achiziții eu_services`)
     }
 
     lines.push({
@@ -158,8 +160,8 @@ export async function generateD390Preview(period: string): Promise<DeclarationPr
 
 /**
  * The declarations ask for the full address in one field, in this order: county, locality,
- * street and the rest, postal code. COMPANY_ADDRESS holds only the street part (the invoices
- * take the city and county separately), so the address is put together here.
+ * street and the rest, postal code. The seller address keeps them apart (the invoices need them
+ * so), so the line is put together here.
  */
 export function declarationAddress(company: { address: string; city: string; countyCode: string; postalCode: string }): string {
   const county = isoCodeToCountyName(company.countyCode)
@@ -174,23 +176,24 @@ export function declarationAddress(company: { address: string; city: string; cou
     .join(', ')
 }
 
-function requireCompanyIdentity() {
-  if (!config.company.cif) throw new Error('COMPANY_CIF nesetat')
+async function requireFiler() {
+  const company = await getCompany()
+  const seller = requireSeller(company)
+  const { profile } = company
+  if (!profile.declarant.firstName.trim() || !profile.declarant.lastName.trim()) {
+    throw new CompanyProfileIncompleteError(['declarant'])
+  }
   return {
-    cif: config.company.cif,
-    name: config.company.name,
-    address: declarationAddress(config.company),
-    bank: config.company.bank,
-    iban: config.company.iban,
-    vatIntraCommunityCode: config.company.vatIntraCommunityCode,
+    company: {
+      cif: seller.cui,
+      name: seller.name,
+      address: declarationAddress({ ...seller.address, address: seller.address.street }),
+      bank: profile.bank,
+      iban: profile.iban,
+      vatIntraCommunityCode: profile.vatIntraCode,
+    },
+    declarant: profile.declarant,
   }
-}
-
-function requireDeclarant() {
-  if (!config.declarant.firstName || !config.declarant.lastName) {
-    throw new Error('DECLARANT_FIRST_NAME/DECLARANT_LAST_NAME nesetate')
-  }
-  return config.declarant
 }
 
 async function confirmedLines(period: string): Promise<DeclarationLine[]> {
@@ -200,16 +203,17 @@ async function confirmedLines(period: string): Promise<DeclarationLine[]> {
 
 async function d301For(period: string) {
   const lines = await confirmedLines(period)
-  return buildD301(period, lines, requireCompanyIdentity(), requireDeclarant())
+  const { company, declarant } = await requireFiler()
+  return buildD301(period, lines, company, declarant)
 }
 
 async function d390For(period: string) {
   const lines = await confirmedLines(period)
-  const company = requireCompanyIdentity()
+  const { company, declarant } = await requireFiler()
   if (!company.vatIntraCommunityCode) {
-    throw new Error('COMPANY_VAT_INTRA_CODE nesetat — obligatoriu pt. D390')
+    throw new Error('Lipsește codul de TVA special din fișa firmei (Setări → Date firmă) — obligatoriu pt. D390')
   }
-  return buildD390(period, lines, company, requireDeclarant())
+  return buildD390(period, lines, company, declarant)
 }
 
 export async function exportD301Xml(period: string): Promise<string> {
@@ -229,9 +233,9 @@ export async function exportD390Pdf(period: string): Promise<Buffer> {
   return fillXfaDatasets(D390_TEMPLATE, (await d390For(period)).datasets)
 }
 
-export function declarationFileName(code: 'D301' | 'D390', period: string, ext: 'xml' | 'pdf'): string {
+export async function declarationFileName(code: 'D301' | 'D390', period: string, ext: 'xml' | 'pdf'): Promise<string> {
   const [year, month] = period.split('-')
-  return `${code}_${config.company.cif}_${year}_${month}.${ext}`
+  return `${code}_${(await getCompany()).profile.cui}_${year}_${month}.${ext}`
 }
 
 function isUniqueViolation(err: unknown): boolean {

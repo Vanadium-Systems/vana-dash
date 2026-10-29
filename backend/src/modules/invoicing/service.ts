@@ -1,9 +1,9 @@
 import { and, asc, desc, eq, gte, isNotNull, isNull, lte, ne } from 'drizzle-orm'
 import type { z } from 'zod'
 import { anafConnector } from '../../connectors/anaf/index.js'
+import { supplierParty } from '../../connectors/anaf/supplier.js'
 import { computeTotals } from '../../connectors/anaf/xml-builder.js'
 import type { UblInvoiceInput } from '../../connectors/anaf/types.js'
-import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
 import { createdByUserId, recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
 import {
@@ -14,6 +14,7 @@ import {
   invoiceTemplates,
 } from '../../shared/db/schema/index.js'
 import { getAnafSession } from '../../shared/lib/anaf.js'
+import { getCompany } from '../../shared/lib/company.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
 import { generateInvoiceDocuments } from '../../shared/lib/documents.js'
 import { countyNameToIsoCode, extractBucharestSectorCode } from '../../shared/lib/ro-counties.js'
@@ -469,9 +470,7 @@ async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): P
     .where(and(eq(invoiceLineItems.invoiceId, record.id), isNull(invoiceLineItems.deletedAt)))
     .orderBy(asc(invoiceLineItems.position))
 
-  if (!config.company.cif) {
-    throw new Error(tr('errors.invoicing.companyProfileIncomplete'))
-  }
+  const supplier = supplierParty(await getCompany())
 
   // BR-RO-110: for a buyer in Romania, CountrySubentity (the county) is mandatory in the UBL
   // XML. ANAF rejects the invoice without it.
@@ -504,18 +503,7 @@ async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): P
     dueAt: record.dueAt,
     currency: record.currency,
     note: record.description ?? undefined,
-    supplier: {
-      name: config.company.name,
-      cif: config.company.cif,
-      regCom: config.company.regCom || undefined,
-      address: config.company.address,
-      city: config.company.city,
-      countyCode: config.company.countyCode,
-      country: 'RO',
-      iban: config.company.iban || undefined,
-      bank: config.company.bank || undefined,
-      email: config.company.email || undefined,
-    },
+    supplier,
     customer: {
       name: client.name,
       cif: client.cif,

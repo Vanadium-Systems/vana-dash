@@ -34,6 +34,7 @@ import { startVanagreenBillingJob } from './jobs/vanagreen-billing.js'
 import { startVanagreenTenantSyncJob } from './jobs/vanagreen-tenant-sync.js'
 import { config } from './shared/config.js'
 import { assertRlsRoleIsSafe } from './shared/db/client.js'
+import { importCompanyProfileFromEnv } from './shared/lib/company-env-import.js'
 import { closeBrowser } from './shared/lib/pdf.js'
 
 // Most cron jobs start with `void runXJob()`. A rejection there used to stop the whole process
@@ -43,6 +44,7 @@ process.on('unhandledRejection', (reason) => {
 })
 
 await assertRlsRoleIsSafe()
+await importCompanyProfileFromEnv()
 
 const app = await buildServer()
 await startSyncRunner()

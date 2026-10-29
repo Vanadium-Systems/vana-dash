@@ -4,6 +4,25 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-29: Company sheet as the single source
+
+### Changed
+- Invoices (UBL supplier), the D301/D390 declarations, contracts and payment confirmations read
+  the company details from the company sheet (`tenants.profile`, Settings → Company details)
+  through `shared/lib/company.ts`. `config.company` and `config.declarant` are gone.
+- On the first start after the upgrade, the old `COMPANY_*` / `DECLARANT_*` variables are copied
+  into the sheet once, over the previous settings sheet; the boot log names any field where the
+  two differed. The variables are no longer in `.env.example`.
+- Companies have a country, a time zone and a currency (migration 0076). `/api/auth/me` returns
+  them; the frontend formats dates in the company's zone, and scheduled tasks and bookings keep
+  their hours on it.
+
+### Added
+- `backend/src/countries/`: the country pack contract and the Romanian pack (seller address for
+  e-invoices and declarations). A new company takes its time zone and currency from it.
+- The company sheet edits VAT registration, the representative, the declarant, the postal code,
+  the time zone and the currency.
+
 ## 2026-10-28: Email threading
 
 ### Fixed

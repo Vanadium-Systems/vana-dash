@@ -311,6 +311,33 @@ const SOURCES: GuideSource[] = [
     ],
   },
   {
+    id: 'date-firma',
+    route: '/settings',
+    feature: 'setari.firma',
+    title: {
+      ro: 'Completezi datele firmei',
+      en: 'Filling in the company details',
+    },
+    summary: {
+      ro: 'Fișa din Setări → Date firmă e singurul loc din care facturile trimise la ANAF, declarațiile D301/D390 și contractele își iau datele firmei. Ce schimbi aici apare pe următorul document emis, nu pe cele vechi.',
+      en: 'The sheet under Settings → Company details is the only place the invoices sent to ANAF, the D301/D390 declarations and the contracts take the company’s details from. A change shows on the next document issued, not on the old ones.',
+    },
+    steps: [
+      {
+        ro: 'Numele, CUI-ul și sediul (județ, localitate, stradă) sunt obligatorii pentru o factură. Fără ele, emiterea se oprește și îți spune ce lipsește.',
+        en: 'The name, tax ID and registered office (county, city, street) are required for an invoice. Without them, issuing stops and says what is missing.',
+      },
+      {
+        ro: 'La Facturi și declarații bifezi dacă firma e plătitoare de TVA și treci reprezentantul care semnează contractele și declarantul care semnează D301 și D390.',
+        en: 'Under Invoices and declarations you tick whether the company is VAT registered and fill in the representative who signs the contracts and the declarant who signs D301 and D390.',
+      },
+      {
+        ro: 'Fusul orar decide ora la care apar datele în toată aplicația, pentru toți colegii, și ora programărilor și a memento-urilor.',
+        en: 'The time zone decides the time dates are shown at across the app, for every colleague, and the time of bookings and reminders.',
+      },
+    ],
+  },
+  {
     id: 'profil-meu',
     route: '/me',
     title: {

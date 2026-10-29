@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
+import { Select } from '@/shared/components/ui/select'
+import { ME_QUERY_KEY } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
-import { t } from '@/shared/lib/i18n'
+import { getLocale, t } from '@/shared/lib/i18n'
 
 interface CompanyAddress {
   county: string
@@ -15,6 +18,7 @@ interface CompanyAddress {
   street: string
   number: string
   details: string
+  postalCode: string
 }
 
 interface CompanyLocation extends CompanyAddress {
@@ -34,11 +38,22 @@ interface CompanyProfile {
   phone: string
   email: string
   annualTurnoverRon: string
+  vatPayer: boolean
+  representative: string
+  declarant: { firstName: string; lastName: string; role: string }
   registeredOffice: CompanyAddress
   workLocations: CompanyLocation[]
 }
 
-const EMPTY_ADDRESS: CompanyAddress = { county: '', city: '', street: '', number: '', details: '' }
+interface CompanySettings {
+  profile: CompanyProfile
+  country: string
+  timeZone: string
+  currency: string
+  countries: string[]
+}
+
+const EMPTY_ADDRESS: CompanyAddress = { county: '', city: '', street: '', number: '', details: '', postalCode: '' }
 
 const EMPTY_PROFILE: CompanyProfile = {
   name: '',
@@ -52,12 +67,22 @@ const EMPTY_PROFILE: CompanyProfile = {
   phone: '',
   email: '',
   annualTurnoverRon: '',
+  vatPayer: false,
+  representative: '',
+  declarant: { firstName: '', lastName: '', role: '' },
   registeredOffice: EMPTY_ADDRESS,
   workLocations: [],
 }
 
+// Every zone the browser knows, so a typo cannot reach the server.
+const TIME_ZONES = Intl.supportedValuesOf('timeZone').map((zone) => ({ value: zone, label: zone.replace(/_/g, ' ') }))
+
+function countryName(code: string): string {
+  return new Intl.DisplayNames([getLocale()], { type: 'region' }).of(code) ?? code
+}
+
 function joinAddress(addr: CompanyAddress): string {
-  return [addr.county, addr.city, addr.street, addr.number, addr.details].filter(Boolean).join(', ')
+  return [addr.county, addr.city, addr.street, addr.number, addr.details, addr.postalCode].filter(Boolean).join(', ')
 }
 
 async function copy(value: string) {
@@ -147,13 +172,21 @@ function AddressFields({
           onChange={(number) => onChange({ ...address, number })}
         />
       </div>
-      <FieldRow
-        id={`${idPrefix}-details`}
-        label={t('settings:company.addressDetails')}
-        value={address.details}
-        placeholder={t('settings:company.addressDetailsPlaceholder')}
-        onChange={(details) => onChange({ ...address, details })}
-      />
+      <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
+        <FieldRow
+          id={`${idPrefix}-details`}
+          label={t('settings:company.addressDetails')}
+          value={address.details}
+          placeholder={t('settings:company.addressDetailsPlaceholder')}
+          onChange={(details) => onChange({ ...address, details })}
+        />
+        <FieldRow
+          id={`${idPrefix}-postal`}
+          label={t('settings:company.postalCode')}
+          value={address.postalCode}
+          onChange={(postalCode) => onChange({ ...address, postalCode })}
+        />
+      </div>
       <div className="space-y-1">
         <Label>{t('settings:company.fullAddress')}</Label>
         <div className="flex gap-1">
@@ -209,20 +242,27 @@ function WorkLocationBlock({
 export function CompanyProfileCard() {
   const queryClient = useQueryClient()
   const [profile, setProfile] = useState<CompanyProfile>(EMPTY_PROFILE)
+  const [timeZone, setTimeZone] = useState('')
+  const [currency, setCurrency] = useState('')
 
   const query = useQuery({
     queryKey: ['settings', 'company-profile'],
-    queryFn: () => api.get<{ profile: CompanyProfile | null }>('/api/settings/company-profile'),
+    queryFn: () => api.get<CompanySettings>('/api/settings/company-profile'),
   })
 
   useEffect(() => {
-    if (query.data?.profile) setProfile(query.data.profile)
+    if (!query.data) return
+    setProfile(query.data.profile)
+    setTimeZone(query.data.timeZone)
+    setCurrency(query.data.currency)
   }, [query.data])
 
   const save = useMutation({
-    mutationFn: (next: CompanyProfile) => api.put<{ profile: CompanyProfile }>('/api/settings/company-profile', next),
+    mutationFn: () => api.put<CompanySettings>('/api/settings/company-profile', { profile, timeZone, currency: currency.trim().toUpperCase() }),
     onSuccess: (data) => {
       queryClient.setQueryData(['settings', 'company-profile'], data)
+      // The time zone travels with /me; the dates on every page follow it.
+      void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY })
       toast.success(t('settings:company.saved'))
     },
     onError: (err) => toast.error(err.message),
@@ -291,6 +331,44 @@ export function CompanyProfileCard() {
         </div>
 
         <div className="space-y-3 border-t pt-4">
+          <p className="text-sm font-medium">{t('settings:company.invoicing')}</p>
+          <label htmlFor="company-vat-payer" className="flex items-center gap-2 text-sm">
+            <Checkbox id="company-vat-payer" checked={profile.vatPayer} onChange={(e) => set('vatPayer', e.target.checked)} />
+            {t('settings:company.vatPayer')}
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FieldRow
+              id="company-representative"
+              label={t('settings:company.representative')}
+              value={profile.representative}
+              onChange={(v) => set('representative', v)}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">{t('settings:company.declarantHint')}</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <FieldRow
+              id="company-declarant-last"
+              label={t('settings:company.declarantLastName')}
+              value={profile.declarant.lastName}
+              onChange={(lastName) => set('declarant', { ...profile.declarant, lastName })}
+            />
+            <FieldRow
+              id="company-declarant-first"
+              label={t('settings:company.declarantFirstName')}
+              value={profile.declarant.firstName}
+              onChange={(firstName) => set('declarant', { ...profile.declarant, firstName })}
+            />
+            <FieldRow
+              id="company-declarant-role"
+              label={t('settings:company.declarantRole')}
+              value={profile.declarant.role}
+              placeholder={t('settings:company.declarantRolePlaceholder')}
+              onChange={(role) => set('declarant', { ...profile.declarant, role })}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t pt-4">
           <p className="text-sm font-medium">{t('settings:company.registeredOffice')}</p>
           <AddressFields
             idPrefix="office"
@@ -327,8 +405,27 @@ export function CompanyProfileCard() {
           </Button>
         </div>
 
+        <div className="space-y-3 border-t pt-4">
+          <p className="text-sm font-medium">{t('settings:company.region')}</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label htmlFor="company-country">{t('settings:company.country')}</Label>
+              <Input id="company-country" value={query.data ? countryName(query.data.country) : ''} readOnly className="text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="company-time-zone">{t('settings:company.timeZone')}</Label>
+              <Select id="company-time-zone" value={timeZone} options={TIME_ZONES} onValueChange={setTimeZone} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="company-currency">{t('settings:company.currency')}</Label>
+              <Input id="company-currency" value={currency} maxLength={3} className="uppercase" onChange={(e) => setCurrency(e.target.value)} />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">{t('settings:company.regionHint')}</p>
+        </div>
+
         <div className="flex justify-end border-t pt-4">
-          <Button disabled={save.isPending} onClick={() => save.mutate(profile)}>
+          <Button disabled={save.isPending} onClick={() => save.mutate()}>
             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {t('common:actions.save')}
           </Button>

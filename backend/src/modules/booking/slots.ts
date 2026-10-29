@@ -1,9 +1,9 @@
-import { bucharestTimeToUtc, wallClock } from '../../shared/lib/schedule-recurrence.js'
+import { wallClock, zonedTimeToUtc } from '../../shared/lib/schedule-recurrence.js'
 import type { BookingSettings } from './schema.js'
 
 // Calculul de sloturi, fără DB: primește setările, momentul curent și intervalele ocupate, și
-// întoarce sloturile libere. Orele de programări sunt pe ceasul din București, deci un „10:00"
-// rămâne 10:00 local și după trecerea la ora de iarnă (25.10.2026).
+// întoarce sloturile libere. Orele de programări sunt pe ceasul firmei (fusul ei orar), deci un
+// „10:00" rămâne 10:00 local și după trecerea la ora de iarnă.
 
 export interface Interval {
   start: Date
@@ -23,9 +23,9 @@ function parseTime(hhmm: string): { h: number; min: number } {
   return { h: h ?? 0, min: min ?? 0 }
 }
 
-/** Ziua calendaristică din București decalată cu `offsetDays` față de `date` (y-m-d local). */
-function bucharestDate(date: Date, offsetDays: number): { y: number; m: number; d: number; weekday: number } {
-  const local = wallClock(date)
+/** Ziua calendaristică din fusul firmei, decalată cu `offsetDays` față de `date` (y-m-d local). */
+function zonedDate(date: Date, offsetDays: number, timeZone: string): { y: number; m: number; d: number; weekday: number } {
+  const local = wallClock(date, timeZone)
   // Prânzul UTC al zilei locale: departe de miezul nopții, deci adunarea de zile nu sare peste DST.
   const noon = new Date(Date.UTC(local.y, local.m - 1, local.d, 12) + offsetDays * DAY_MS)
   const jsWeekday = noon.getUTCDay()
@@ -33,19 +33,19 @@ function bucharestDate(date: Date, offsetDays: number): { y: number; m: number; 
 }
 
 /** Un eveniment de o zi întreagă ocupă zilele locale pe care le atinge, de la miezul nopții la miezul nopții. */
-export function allDayToInterval(start: Date, end: Date): Interval {
-  const first = wallClock(start)
-  const last = wallClock(end)
+export function allDayToInterval(start: Date, end: Date, timeZone: string): Interval {
+  const first = wallClock(start, timeZone)
+  const last = wallClock(end, timeZone)
   const endsAtMidnight = end > start && last.h === 0 && last.min === 0
-  const lastDay = endsAtMidnight ? bucharestDate(end, -1) : { y: last.y, m: last.m, d: last.d }
+  const lastDay = endsAtMidnight ? zonedDate(end, -1, timeZone) : { y: last.y, m: last.m, d: last.d }
   const next = new Date(Date.UTC(lastDay.y, lastDay.m - 1, lastDay.d, 12) + DAY_MS)
   return {
-    start: bucharestTimeToUtc(first.y, first.m, first.d, 0, 0),
-    end: bucharestTimeToUtc(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate(), 0, 0),
+    start: zonedTimeToUtc(first.y, first.m, first.d, 0, 0, timeZone),
+    end: zonedTimeToUtc(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate(), 0, 0, timeZone),
   }
 }
 
-export function computeSlots(settings: BookingSettings, now: Date, busy: Interval[], days: number): Slot[] {
+export function computeSlots(settings: BookingSettings, now: Date, busy: Interval[], days: number, timeZone: string): Slot[] {
   if (!settings.enabled) return []
   const durationMs = settings.durationMin * MINUTE_MS
   const bufferMs = settings.bufferMin * MINUTE_MS
@@ -55,12 +55,12 @@ export function computeSlots(settings: BookingSettings, now: Date, busy: Interva
 
   const slots: Slot[] = []
   for (let offset = 0; offset <= dayCount; offset++) {
-    const day = bucharestDate(now, offset)
+    const day = zonedDate(now, offset, timeZone)
     for (const window of settings.weekly.filter((w) => w.weekday === day.weekday)) {
       const from = parseTime(window.start)
       const to = parseTime(window.end)
-      const windowEnd = bucharestTimeToUtc(day.y, day.m, day.d, to.h, to.min).getTime()
-      let cursor = bucharestTimeToUtc(day.y, day.m, day.d, from.h, from.min).getTime()
+      const windowEnd = zonedTimeToUtc(day.y, day.m, day.d, to.h, to.min, timeZone).getTime()
+      let cursor = zonedTimeToUtc(day.y, day.m, day.d, from.h, from.min, timeZone).getTime()
       for (; cursor + durationMs <= windowEnd; cursor += durationMs) {
         if (cursor < earliest || cursor >= latest) continue
         const slotEnd = cursor + durationMs

@@ -3,8 +3,10 @@ import { and, asc, count, eq, isNull } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { roles, tenants, users } from '../../shared/db/schema/index.js'
 import { config } from '../../shared/config.js'
+import { getCountryPack } from '../../countries/index.js'
+import { getCompany } from '../../shared/lib/company.js'
 import { FEATURES } from '../../shared/lib/features.js'
-import { runAsTenant, withRlsBypass } from '../../shared/lib/tenancy.js'
+import { getOwnerTenantId, runAsTenant, withRlsBypass } from '../../shared/lib/tenancy.js'
 
 // The platform admin's list of companies. Every query here crosses companies on purpose, so it
 // runs inside withRlsBypass; the guard in the routes keeps it platform-admin only.
@@ -83,9 +85,21 @@ export async function createTenant(input: { name: string; cif?: string }): Promi
   if (!config.rlsEnabled) throw new TenantError('rls_required', 409)
 
   const id = randomUUID()
+  // Until the form asks for a country, a new company is in the owner's country.
+  const { country } = await getCompany(getOwnerTenantId())
+  const pack = getCountryPack(country)
   try {
     await withRlsBypass(() =>
-      db.insert(tenants).values({ id, name: input.name, slug: tenantSlug(input.name), cif: input.cif ?? null, features: [] }),
+      db.insert(tenants).values({
+        id,
+        name: input.name,
+        slug: tenantSlug(input.name),
+        cif: input.cif ?? null,
+        features: [],
+        country,
+        timeZone: pack.defaultTimeZone,
+        currency: pack.defaultCurrency,
+      }),
     )
   } catch (err) {
     if (isUniqueViolation(err)) throw new TenantError('slug_taken', 409)

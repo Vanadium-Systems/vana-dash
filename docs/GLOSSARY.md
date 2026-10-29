@@ -5,7 +5,7 @@ same thing has the same name on every screen. Check it before adding a string; a
 here if it is new.
 
 Formatting in English uses `en-GB` (day/month/year, 24-hour clock) with American spelling in
-the text. Dates are always shown in the `Europe/Bucharest` time zone.
+the text. Dates are always shown in the company's time zone, set on the company sheet.
 
 ## Navigation
 

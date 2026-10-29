@@ -21,6 +21,9 @@ export interface SessionTenant {
   status: 'active' | 'suspended'
   /** What the company may use; ignored for the platform owner, who has the whole catalog. */
   features: string[]
+  country: string
+  timeZone: string
+  currency: string
 }
 
 export interface SessionUser {
@@ -107,6 +110,9 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
       tenantIsPlatformOwner: tenants.isPlatformOwner,
       tenantStatus: tenants.status,
       tenantFeatures: tenants.features,
+      tenantCountry: tenants.country,
+      tenantTimeZone: tenants.timeZone,
+      tenantCurrency: tenants.currency,
     })
     .from(users)
     .leftJoin(roles, eq(roles.id, users.roleId))
@@ -126,6 +132,9 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
     isPlatformOwner: row.tenantIsPlatformOwner,
     status: row.tenantStatus,
     features: row.tenantFeatures,
+    country: row.tenantCountry,
+    timeZone: row.tenantTimeZone,
+    currency: row.tenantCurrency,
   }
 
   return {

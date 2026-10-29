@@ -6,7 +6,8 @@ import { listOccurrencesForOwner } from '../../shared/lib/calendar-occurrences.j
 import { config } from '../../shared/config.js'
 import { sendEmail } from '../../shared/lib/email.js'
 import { notifyPush } from '../../shared/lib/push.js'
-import { bucharestTimeToUtc, wallClock } from '../../shared/lib/schedule-recurrence.js'
+import { getCompanyTimeZone } from '../../shared/lib/company.js'
+import { wallClock, zonedTimeToUtc } from '../../shared/lib/schedule-recurrence.js'
 import { buildBookingIcs } from './ics.js'
 import { BookingSettingsSchema, DEFAULT_BOOKING_SETTINGS, type BookingSettings, type PublicBookingBodySchema } from './schema.js'
 import { allDayToInterval, computeSlots, type Interval, type Slot } from './slots.js'
@@ -112,7 +113,7 @@ export function listBookings(from: Date, to: Date) {
  * RRULE expandat și zilele întregi) și rezervările confirmate. Cheltuielile recurente apar în
  * calendar ca memento, nu ca timp ocupat, deci nu intră.
  */
-async function collectBusy(from: Date, to: Date): Promise<Interval[]> {
+async function collectBusy(from: Date, to: Date, timeZone: string): Promise<Interval[]> {
   // O ocurență începută înainte de `from` poate încă să se suprapună; RRULE.between vede doar
   // începuturile din fereastră, deci fereastra se lărgește cu o zi.
   const occurrences = await listOccurrencesForOwner(await bookingOwnerId(), new Date(from.getTime() - DAY_MS), to)
@@ -129,7 +130,7 @@ async function collectBusy(from: Date, to: Date): Promise<Interval[]> {
     if (occ.kind !== 'event') continue
     const start = new Date(occ.occurrenceStart)
     const end = new Date(occ.occurrenceEnd)
-    busy.push(occ.allDay ? allDayToInterval(start, end) : { start, end })
+    busy.push(occ.allDay ? allDayToInterval(start, end, timeZone) : { start, end })
   }
   for (const b of blocks) busy.push({ start: b.startAt, end: b.endAt })
   for (const b of confirmed) busy.push({ start: b.start, end: b.end })
@@ -137,11 +138,11 @@ async function collectBusy(from: Date, to: Date): Promise<Interval[]> {
 }
 
 export async function getAvailableSlots(days: number, now = new Date()) {
-  const settings = await getSettings()
+  const [settings, timeZone] = await Promise.all([getSettings(), getCompanyTimeZone()])
   const horizonEnd = new Date(now.getTime() + (Math.min(days, settings.horizonDays) + 1) * DAY_MS)
-  const slots = settings.enabled ? computeSlots(settings, now, await collectBusy(now, horizonEnd), days) : []
+  const slots = settings.enabled ? computeSlots(settings, now, await collectBusy(now, horizonEnd, timeZone), days, timeZone) : []
   return {
-    timezone: 'Europe/Bucharest',
+    timezone: timeZone,
     durationMin: settings.durationMin,
     slots: slots.map((s) => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
   }
@@ -156,31 +157,31 @@ function isUniqueViolation(err: unknown): boolean {
   return candidate?.code === '23505' || candidate?.cause?.code === '23505'
 }
 
-/** "Mar 29.09, 10:30" (or "Tue 29/09, 10:30") in Bucharest time, for email subjects and push. */
-export function formatSlotLabel(date: Date, locale: Locale = config.defaultLocale): string {
+/** "Mar 29.09, 10:30" (or "Tue 29/09, 10:30") on the company's clock, for email subjects and push. */
+export function formatSlotLabel(date: Date, timeZone: string, locale: Locale = config.defaultLocale): string {
   const tag = INTL_TAG[locale]
-  const weekday = new Intl.DateTimeFormat(tag, { weekday: 'short', timeZone: 'Europe/Bucharest' }).format(date).replace('.', '')
-  const day = new Intl.DateTimeFormat(tag, { day: '2-digit', month: '2-digit', timeZone: 'Europe/Bucharest' }).format(date)
-  const time = new Intl.DateTimeFormat(tag, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' }).format(date)
+  const weekday = new Intl.DateTimeFormat(tag, { weekday: 'short', timeZone }).format(date).replace('.', '')
+  const day = new Intl.DateTimeFormat(tag, { day: '2-digit', month: '2-digit', timeZone }).format(date)
+  const time = new Intl.DateTimeFormat(tag, { hour: '2-digit', minute: '2-digit', timeZone }).format(date)
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${day}, ${time}`
 }
 
-function startOfBucharestDay(now: Date): Date {
-  const local = wallClock(now)
-  return bucharestTimeToUtc(local.y, local.m, local.d, 0, 0)
+function startOfLocalDay(now: Date, timeZone: string): Date {
+  const local = wallClock(now, timeZone)
+  return zonedTimeToUtc(local.y, local.m, local.d, 0, 0, timeZone)
 }
 
 export async function createPublicBooking(input: PublicBookingInput, now = new Date()) {
-  const settings = await getSettings()
+  const [settings, timeZone] = await Promise.all([getSettings(), getCompanyTimeZone()])
   const [today] = await db
     .select({ count: sql<number>`COUNT(*)::int` })
     .from(bookings)
-    .where(gte(bookings.createdAt, startOfBucharestDay(now)))
+    .where(gte(bookings.createdAt, startOfLocalDay(now, timeZone)))
   if ((today?.count ?? 0) >= DAILY_BOOKING_CAP) throw new BookingError('daily_cap', 429)
 
   const requested = input.start.getTime()
   const horizonEnd = new Date(now.getTime() + (settings.horizonDays + 1) * DAY_MS)
-  const free = settings.enabled ? computeSlots(settings, now, await collectBusy(now, horizonEnd), settings.horizonDays) : []
+  const free = settings.enabled ? computeSlots(settings, now, await collectBusy(now, horizonEnd, timeZone), settings.horizonDays, timeZone) : []
   const slot: Slot | undefined = free.find((s) => s.start.getTime() === requested)
   if (!slot) throw new BookingError('slot_taken', 409)
 
@@ -254,7 +255,7 @@ async function openBookingRoom(booking: typeof bookings.$inferSelect): Promise<s
     console.error('[booking] call room not created:', err)
     try {
       const ruleId = await ensureAlertRule('calls.room_failed', tr('alerts.rules.callRoomFailed'), 'warning')
-      await raiseAlert(ruleId, tl('alerts.jobs.callRoomFailed', { label: formatSlotLabel(booking.startAt) }), {
+      await raiseAlert(ruleId, tl('alerts.jobs.callRoomFailed', { label: formatSlotLabel(booking.startAt, await getCompanyTimeZone()) }), {
         severity: 'warning',
         url: '/calls',
         email: false,
@@ -281,7 +282,8 @@ function cancelPageUrl(booking: typeof bookings.$inferSelect): string {
 
 async function notifyAfterBooking(booking: typeof bookings.$inferSelect, cancelToken: string) {
   const visitor = visitorLocale(booking)
-  const label = formatSlotLabel(booking.startAt, visitor)
+  const timeZone = await getCompanyTimeZone()
+  const label = formatSlotLabel(booking.startAt, timeZone, visitor)
   const cancelUrl = `${cancelPageUrl(booking)}?t=${encodeURIComponent(cancelToken)}`
   const callUrl = await openBookingRoom(booking)
   await Promise.allSettled([
@@ -305,7 +307,7 @@ async function notifyAfterBooking(booking: typeof bookings.$inferSelect, cancelT
     // Fără numele vizitatorului: notificarea nativă trece prin Firebase (docs/BOOKING.md, Legal).
     notifyPush('calendarReminder', (locale) => ({
       title: trFor(locale, 'push.booking.newTitle'),
-      body: formatSlotLabel(booking.startAt, locale),
+      body: formatSlotLabel(booking.startAt, timeZone, locale),
       url: '/calendar',
       tag: `booking-${booking.id}`,
     })),
@@ -324,7 +326,8 @@ async function cancelBooking(booking: typeof bookings.$inferSelect, by: 'visitor
   const call = await findBookingCall(booking.id)
   if (call) await closeCallRoom(call, 'cancelled').catch((err) => console.error('[booking] call room not closed:', err))
   const visitor = visitorLocale(booking)
-  const label = formatSlotLabel(booking.startAt, visitor)
+  const timeZone = await getCompanyTimeZone()
+  const label = formatSlotLabel(booking.startAt, timeZone, visitor)
   await Promise.allSettled([
     booking.email && notifyVisitor
       ? sendEmail({
@@ -344,7 +347,7 @@ async function cancelBooking(booking: typeof bookings.$inferSelect, by: 'visitor
     by === 'visitor'
       ? notifyPush('calendarReminder', (locale) => ({
           title: trFor(locale, 'push.booking.cancelledTitle'),
-          body: formatSlotLabel(booking.startAt, locale),
+          body: formatSlotLabel(booking.startAt, timeZone, locale),
           url: '/calendar',
         }))
       : Promise.resolve(),

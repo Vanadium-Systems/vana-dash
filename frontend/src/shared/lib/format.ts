@@ -2,9 +2,37 @@ import { getLocale, t } from './i18n'
 import { INTL_TAG } from './locale'
 
 // All number, money and date formatting, in the language of the interface. Dates are shown in
-// Bucharest time whatever the language: the company's day does not move with the reader.
+// the company's time zone (its sheet, via /api/auth/me) whatever the language and wherever the
+// reader is: the company's day does not move with the reader.
 
-export const TIME_ZONE = 'Europe/Bucharest'
+const TIME_ZONE_KEY = 'vana.companyTimeZone'
+
+function rememberedTimeZone(): string {
+  try {
+    const saved = localStorage.getItem(TIME_ZONE_KEY)
+    if (saved) return saved
+  } catch {
+    // No storage (private mode): the browser's zone until /me answers.
+  }
+  return Intl.DateTimeFormat().resolvedOptions().timeZone
+}
+
+let companyZone = rememberedTimeZone()
+
+/** Read at the moment of formatting, never into a module constant: /me may change it after load. */
+export function companyTimeZone(): string {
+  return companyZone
+}
+
+export function setCompanyTimeZone(timeZone: string): void {
+  if (timeZone === companyZone) return
+  companyZone = timeZone
+  try {
+    localStorage.setItem(TIME_ZONE_KEY, timeZone)
+  } catch {
+    // Kept for this tab only.
+  }
+}
 
 /** The BCP 47 tag of the current language, for the one-off `Intl` call a helper here does not cover. */
 export function intlTag(): string {
@@ -36,7 +64,7 @@ export function formatMoney(amount: number | string, currency: string, options?:
 }
 
 export function formatDate(value: DateInput, options: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }): string {
-  return new Intl.DateTimeFormat(intlTag(), { timeZone: TIME_ZONE, ...options }).format(toDate(value))
+  return new Intl.DateTimeFormat(intlTag(), { timeZone: companyZone, ...options }).format(toDate(value))
 }
 
 export function formatDateTime(value: DateInput): string {

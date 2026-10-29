@@ -130,6 +130,15 @@ describe('formatMonthlyPrice', () => {
 })
 
 const PRICE = '100 EUR/lună'
+const PROVIDER = {
+  nume: 'Acme Software SRL',
+  cui: 'RO12345678',
+  nrRegCom: 'J40/1/2020',
+  adresa: 'Bucuresti, Str. Exemplu 1',
+  reprezentant: 'Ion Popescu',
+  email: 'contact@example.com',
+  telefon: '0700000000',
+}
 
 function makeAddendum(overrides: Partial<ContractAddendum> = {}): ContractAddendum {
   return {
@@ -162,7 +171,7 @@ const MARKED_FRAGMENTS: ContractFragments = {
 }
 
 function renderMarked(details: ContractDetails) {
-  const data = { client: makeClient(), details, monthlyPriceFormatted: PRICE }
+  const data = { client: makeClient(), details, monthlyPriceFormatted: PRICE, provider: PROVIDER }
   return {
     contract: renderContractHtml(data, DEFAULT_CONTRACT_TERMS, CONTRACT_TEMPLATE_BODIES['contract-saas'], MARKED_FRAGMENTS),
     anexa: renderAnexaHtml(data, DEFAULT_CONTRACT_TERMS, CONTRACT_TEMPLATE_BODIES['anexa-preturi'], MARKED_FRAGMENTS),
@@ -181,13 +190,13 @@ describe('the sample templates', () => {
   it('render in every variant without an unknown token', () => {
     for (const areLunaGratuita of [true, false]) {
       for (const moduleAddon of ['VanaGreen AI', 'Tratări']) {
-        const data = { client: makeClient(), details: { ...completeDetails, areLunaGratuita, moduleAddon }, monthlyPriceFormatted: PRICE }
+        const data = { client: makeClient(), details: { ...completeDetails, areLunaGratuita, moduleAddon }, monthlyPriceFormatted: PRICE, provider: PROVIDER }
         expect(() => renderContractHtml(data)).not.toThrow()
         expect(() => renderAnexaHtml(data)).not.toThrow()
       }
     }
     for (const temporary of [true, false]) {
-      expect(() => renderActAditionalHtml(makeAddendum({ temporary }), makeClient(), { nrContract: '001', dataContract: '4 iunie 2026' })).not.toThrow()
+      expect(() => renderActAditionalHtml(makeAddendum({ temporary }), makeClient(), { nrContract: '001', dataContract: '4 iunie 2026' }, PROVIDER)).not.toThrow()
     }
   })
 
@@ -196,13 +205,13 @@ describe('the sample templates', () => {
   })
 
   it('keep the data processing agreement in the same document as the contract', () => {
-    const html = renderContractHtml({ client: makeClient(), details: completeDetails, monthlyPriceFormatted: PRICE })
+    const html = renderContractHtml({ client: makeClient(), details: completeDetails, monthlyPriceFormatted: PRICE, provider: PROVIDER })
     expect(html).toContain('CONTRACT DE SERVICII')
     expect(html).toContain('ACORD DE PRELUCRARE A DATELOR')
   })
 
   it('fall back to informative defaults for missing configuration fields', () => {
-    const anexa = renderAnexaHtml({ client: makeClient(), details: completeDetails, monthlyPriceFormatted: PRICE })
+    const anexa = renderAnexaHtml({ client: makeClient(), details: completeDetails, monthlyPriceFormatted: PRICE, provider: PROVIDER })
     expect(anexa).toContain('<td>150</td>')
     expect(anexa).toContain('<td>Niciunul</td>')
   })
@@ -256,7 +265,7 @@ describe('areLunaGratuita', () => {
       cuLunaGratuita: { ...MARKED_FRAGMENTS.cuLunaGratuita, clauza43: '{{nrZileOnboarding}} | {{lunaGratuitaDurata}} | {{termenConfirmareContinuare}}' },
     }
     const html = renderContractHtml(
-      { client: makeClient(), details: { ...completeDetails, nrZileOnboarding: '5' }, monthlyPriceFormatted: PRICE },
+      { client: makeClient(), details: { ...completeDetails, nrZileOnboarding: '5' }, monthlyPriceFormatted: PRICE, provider: PROVIDER },
       DEFAULT_CONTRACT_TERMS,
       CONTRACT_TEMPLATE_BODIES['contract-saas'],
       fragments,
@@ -270,7 +279,7 @@ describe('areLunaGratuita', () => {
       cuLunaGratuita: { ...MARKED_FRAGMENTS.cuLunaGratuita, clauza43: '{{monthlyPrice}}' },
     }
     expect(() =>
-      renderContractHtml({ client: makeClient(), details: completeDetails, monthlyPriceFormatted: PRICE }, DEFAULT_CONTRACT_TERMS, CONTRACT_TEMPLATE_BODIES['contract-saas'], fragments),
+      renderContractHtml({ client: makeClient(), details: completeDetails, monthlyPriceFormatted: PRICE, provider: PROVIDER }, DEFAULT_CONTRACT_TERMS, CONTRACT_TEMPLATE_BODIES['contract-saas'], fragments),
     ).toThrow(/Tokeni necunoscuți în șablon: monthlyPrice/)
   })
 })
@@ -281,21 +290,21 @@ describe('renderActAditionalHtml', () => {
   const body = CONTRACT_TEMPLATE_BODIES['act-aditional']
 
   it('closes with Art. 3 and leaves the temporary section out when the change is permanent', () => {
-    const html = renderActAditionalHtml(makeAddendum({ temporary: false }), client, contractInfo, DEFAULT_CONTRACT_TERMS, body, MARKED_FRAGMENTS)
+    const html = renderActAditionalHtml(makeAddendum({ temporary: false }), client, contractInfo, PROVIDER, DEFAULT_CONTRACT_TERMS, body, MARKED_FRAGMENTS)
     expect(html).toContain('Art. 3. DISPOZIȚII FINALE')
     expect(html).not.toContain('[temporar')
   })
 
   it('inserts the temporary section, with the reversion note, and moves the closing article to Art. 4', () => {
     const addendum = makeAddendum({ number: 2, temporary: true, reversionNote: 'Revine la tariful vechi după 3 luni.' })
-    const html = renderActAditionalHtml(addendum, client, contractInfo, DEFAULT_CONTRACT_TERMS, body, MARKED_FRAGMENTS)
+    const html = renderActAditionalHtml(addendum, client, contractInfo, PROVIDER, DEFAULT_CONTRACT_TERMS, body, MARKED_FRAGMENTS)
     expect(html).toContain('ACT ADIȚIONAL NR. 2')
     expect(html).toContain('[temporar: Revine la tariful vechi după 3 luni.]')
     expect(html).toContain('Art. 4. DISPOZIȚII FINALE')
   })
 
   it('HTML-escapes the notes typed into the addendum', () => {
-    const html = renderActAditionalHtml(makeAddendum({ reason: '<b>motiv</b>' }), client, contractInfo)
+    const html = renderActAditionalHtml(makeAddendum({ reason: '<b>motiv</b>' }), client, contractInfo, PROVIDER)
     expect(html).not.toContain('<b>motiv</b>')
     expect(html).toContain('&lt;b&gt;motiv&lt;/b&gt;')
   })
@@ -306,6 +315,7 @@ describe('the template engine', () => {
     client: makeClient(),
     details: { ...completeDetails, moduleAddon: 'VanaGreen AI' },
     monthlyPriceFormatted: PRICE,
+    provider: PROVIDER,
   }
 
   it('renders the same HTML whether the default body is implied or passed in', () => {
@@ -329,7 +339,7 @@ describe('the template engine', () => {
   })
 
   it('HTML-escapes client-supplied values', () => {
-    const hostile = { client: makeClient({ name: '<script>alert(1)</script> SRL' }), details: completeDetails, monthlyPriceFormatted: PRICE }
+    const hostile = { client: makeClient({ name: '<script>alert(1)</script> SRL' }), details: completeDetails, monthlyPriceFormatted: PRICE, provider: PROVIDER }
     for (const html of [renderContractHtml(hostile), renderAnexaHtml(hostile)]) {
       expect(html).not.toContain('<script>alert(1)</script>')
       expect(html).toContain('&lt;script&gt;')
@@ -356,14 +366,14 @@ describe('no em dash in the sample texts', () => {
 
   it('contract and annex, with and without the free month', () => {
     for (const areLunaGratuita of [true, false]) {
-      const data = { client: makeClient(), details: { ...details, areLunaGratuita }, monthlyPriceFormatted: PRICE }
+      const data = { client: makeClient(), details: { ...details, areLunaGratuita }, monthlyPriceFormatted: PRICE, provider: PROVIDER }
       expect(withoutEmptyValueCells(renderContractHtml(data))).not.toContain('—')
       expect(withoutEmptyValueCells(renderAnexaHtml(data))).not.toContain('—')
     }
   })
 
   it('addendum', () => {
-    const html = renderActAditionalHtml(makeAddendum({ temporary: true, reversionNote: 'Revine după 2 luni.' }), makeClient(), { nrContract: '010', dataContract: '1 august 2026' })
+    const html = renderActAditionalHtml(makeAddendum({ temporary: true, reversionNote: 'Revine după 2 luni.' }), makeClient(), { nrContract: '010', dataContract: '1 august 2026' }, PROVIDER)
     expect(withoutEmptyValueCells(html)).not.toContain('—')
   })
 })
@@ -371,7 +381,7 @@ describe('no em dash in the sample texts', () => {
 describe('renderBlankHtml', () => {
   it('renders every template with dotted lines and no client data', () => {
     for (const key of CONTRACT_TEMPLATE_KEYS) {
-      const html = renderBlankHtml(key, DEFAULT_CONTRACT_TERMS, CONTRACT_TEMPLATE_BODIES[key], DEFAULT_CONTRACT_FRAGMENTS)
+      const html = renderBlankHtml(key, PROVIDER, DEFAULT_CONTRACT_TERMS, CONTRACT_TEMPLATE_BODIES[key], DEFAULT_CONTRACT_FRAGMENTS)
       expect(html).toContain('……………………')
       expect(html).not.toContain('{{')
       expect(html).not.toMatch(/undefined|null|NaN/)

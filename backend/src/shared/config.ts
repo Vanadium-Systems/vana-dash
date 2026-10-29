@@ -40,38 +40,6 @@ export const config = {
   anafClientSecret: process.env.ANAF_CLIENT_SECRET ?? '',
   anafRedirectUri: process.env.ANAF_REDIRECT_URI ?? 'http://localhost:3001/api/accounting/anaf/callback',
 
-  // Profilul firmei — apare pe facturile emise (PDF + XML UBL).
-  company: {
-    name: process.env.COMPANY_NAME ?? '',
-    cif: process.env.COMPANY_CIF ?? '',
-    regCom: process.env.COMPANY_REG_COM ?? '',
-    address: process.env.COMPANY_ADDRESS ?? '',
-    city: process.env.COMPANY_CITY ?? 'Bucuresti',
-    // Cod județ CIUS-RO (ex: RO-B, RO-CJ) — obligatoriu în XML.
-    countyCode: process.env.COMPANY_COUNTY_CODE ?? 'RO-B',
-    postalCode: process.env.COMPANY_POSTAL_CODE ?? '',
-    iban: process.env.COMPANY_IBAN ?? '',
-    bank: process.env.COMPANY_BANK ?? '',
-    email: process.env.COMPANY_EMAIL ?? '',
-    vatPayer: process.env.COMPANY_VAT_PAYER === 'true',
-    // The special VAT code under art. 317 of the Fiscal Code (RO + digits). Used only on the
-    // D301/D390 declarations for services bought in the EU
-    // (reverse_charge_type='eu_services'), not on e-Factura. Public information, not a secret.
-    vatIntraCommunityCode: process.env.COMPANY_VAT_INTRA_CODE ?? '',
-    // The administrator who signs the contracts, and the support phone printed on the contract
-    // and its annex. Both are on every generated PDF, so they are not secrets.
-    representative: process.env.COMPANY_REPRESENTATIVE ?? '',
-    phone: process.env.COMPANY_PHONE ?? '',
-  },
-
-  // Declarant persoană fizică (Stefan, administrator) — câmpuri obligatorii pe D301/D390
-  // (nume_declarant/prenume_declarant/functia_declarant), distincte de profilul firmei.
-  declarant: {
-    firstName: process.env.DECLARANT_FIRST_NAME ?? '',
-    lastName: process.env.DECLARANT_LAST_NAME ?? '',
-    role: process.env.DECLARANT_ROLE ?? 'Administrator',
-  },
-
   // Revolut Business API (sandbox: https://sandbox-b2b.revolut.com/api/1.0)
   revolutApiUrl: process.env.REVOLUT_API_URL ?? 'https://b2b.revolut.com/api/1.0',
   // Callback OAuth Revolut. `client_id` NU e global (spre deosebire de ANAF, care

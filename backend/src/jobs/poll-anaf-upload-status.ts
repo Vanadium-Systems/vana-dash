@@ -1,11 +1,12 @@
 import cron from 'node-cron'
 import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm'
 import { anafConnector } from '../connectors/anaf/index.js'
+import { supplierParty } from '../connectors/anaf/supplier.js'
 import type { UblInvoiceInput } from '../connectors/anaf/types.js'
-import { config } from '../shared/config.js'
 import { db } from '../shared/db/client.js'
 import { billingClients, financialRecords, invoiceLineItems } from '../shared/db/schema/index.js'
 import { getAnafSession } from '../shared/lib/anaf.js'
+import { getCompany } from '../shared/lib/company.js'
 import { generateInvoiceDocuments } from '../shared/lib/documents.js'
 import { sendAlertEmail, sendEmail } from '../shared/lib/email.js'
 import { archiveInvoiceDocuments } from '../shared/lib/financial-archive.js'
@@ -211,7 +212,7 @@ async function sendValidatedInvoiceEmail(record: PendingRecord): Promise<void> {
       to: client.email,
       subject: `Factura ${documentNumber}`,
       text:
-        `Bună,\n\nAtașat factura ${documentNumber}, emisă de ${config.company.name}.\n\n` +
+        `Bună,\n\nAtașat factura ${documentNumber}, emisă de ${(await getCompany()).profile.name}.\n\n` +
         'Acesta este un mesaj automat.',
       attachments: [{ filename: `${documentNumber}.pdf`, content: pdfBuffer }],
     })
@@ -226,9 +227,7 @@ async function buildInvoiceInputForEmail(
   client: typeof billingClients.$inferSelect | null,
 ): Promise<UblInvoiceInput> {
   if (!client) throw new Error(tr('errors.invoicing.clientGone'))
-  if (!config.company.cif) {
-    throw new Error(tr('errors.invoicing.companyProfileIncomplete'))
-  }
+  const supplier = supplierParty(await getCompany())
 
   const lines = await db
     .select()
@@ -242,18 +241,7 @@ async function buildInvoiceInputForEmail(
     dueAt: record.dueAt,
     currency: record.currency,
     note: record.description ?? undefined,
-    supplier: {
-      name: config.company.name,
-      cif: config.company.cif,
-      regCom: config.company.regCom || undefined,
-      address: config.company.address,
-      city: config.company.city,
-      countyCode: config.company.countyCode,
-      country: 'RO',
-      iban: config.company.iban || undefined,
-      bank: config.company.bank || undefined,
-      email: config.company.email || undefined,
-    },
+    supplier,
     customer: {
       name: client.name,
       cif: client.cif,

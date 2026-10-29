@@ -1,7 +1,7 @@
 import type { billingClients } from '../db/schema/billing-clients.js'
 import type { ContractAddendum } from '../db/schema/contract-addenda.js'
 import type { ContractDetails } from '../../modules/contracts/schema.js'
-import { config } from '../config.js'
+import type { CompanyProfile } from './company.js'
 import {
   CONTRACT_TEMPLATE_BODIES,
   CONTRACT_TEMPLATE_KEYS,
@@ -18,21 +18,36 @@ import {
 type BillingClientRow = typeof billingClients.$inferSelect
 
 export interface ContractRenderData {
+  provider: ContractProvider
   client: ClientTokensInput['client']
   details: ContractDetails
   monthlyPriceFormatted: string
 }
 
-const VANADIUM = {
-  nume: config.company.name,
-  cui: config.company.cif,
-  nrRegCom: config.company.regCom,
-  // config.company keeps the city and the address apart (the UBL XML needs them so); a
-  // contract writes them as one line, city first.
-  adresa: `${config.company.city}, ${config.company.address}`,
-  reprezentant: config.company.representative,
-  email: config.company.email,
-  telefon: config.company.phone,
+/** The company issuing the contract, from the company sheet (contractProvider). */
+export interface ContractProvider {
+  nume: string
+  cui: string
+  nrRegCom: string
+  adresa: string
+  reprezentant: string
+  email: string
+  telefon: string
+}
+
+export function contractProvider(profile: CompanyProfile): ContractProvider {
+  const office = profile.registeredOffice
+  return {
+    nume: profile.name,
+    cui: profile.cui,
+    nrRegCom: profile.regCom,
+    // The sheet keeps the city and the street apart (the e-invoice needs them so); a contract
+    // writes them as one line, city first.
+    adresa: [office.city, office.street, office.number, office.details].map((part) => part.trim()).filter(Boolean).join(', '),
+    reprezentant: profile.representative,
+    email: profile.email,
+    telefon: profile.phone,
+  }
 }
 
 // Commercial terms shared by every contract. These are the defaults; an installation
@@ -188,19 +203,20 @@ export function renderTemplateBody(bodyHtml: string, tokens: Record<string, stri
 }
 
 interface ClientTokensInput {
+  provider: ContractProvider
   client: Pick<BillingClientRow, 'name' | 'address' | 'regCom' | 'cif' | 'contactName' | 'contactTitle'>
   terms: ContractTerms
 }
 
-function baseTokens({ client, terms }: ClientTokensInput): Record<string, string> {
+function baseTokens({ provider, client, terms }: ClientTokensInput): Record<string, string> {
   return {
-    'prestator.nume': esc(VANADIUM.nume),
-    'prestator.cui': esc(VANADIUM.cui),
-    'prestator.nrRegCom': esc(VANADIUM.nrRegCom),
-    'prestator.adresa': esc(VANADIUM.adresa),
-    'prestator.reprezentant': esc(VANADIUM.reprezentant),
-    'prestator.email': esc(VANADIUM.email),
-    'prestator.telefon': esc(VANADIUM.telefon),
+    'prestator.nume': esc(provider.nume),
+    'prestator.cui': esc(provider.cui),
+    'prestator.nrRegCom': esc(provider.nrRegCom),
+    'prestator.adresa': esc(provider.adresa),
+    'prestator.reprezentant': esc(provider.reprezentant),
+    'prestator.email': esc(provider.email),
+    'prestator.telefon': esc(provider.telefon),
     'client.nume': esc(client.name),
     'client.adresa': esc(client.address),
     'client.regCom': esc(client.regCom ?? '—'),
@@ -244,7 +260,7 @@ function saasTokens(data: ContractRenderData, terms: ContractTerms, fragments: C
   const d = withDefaults(data.details)
   const aiActive = hasAiAssistant(d.moduleAddon)
   return {
-    ...baseTokens({ client: data.client, terms }),
+    ...baseTokens({ provider: data.provider, client: data.client, terms }),
     nrContract: esc(d.nrContract),
     dataContract: esc(d.dataContract),
     monthlyPrice: esc(data.monthlyPriceFormatted),
@@ -260,7 +276,7 @@ function saasTokens(data: ContractRenderData, terms: ContractTerms, fragments: C
 function anexaTokens(data: ContractRenderData, terms: ContractTerms, fragments: ContractFragments): Record<string, string> {
   const d = withDefaults(data.details)
   return {
-    ...baseTokens({ client: data.client, terms }),
+    ...baseTokens({ provider: data.provider, client: data.client, terms }),
     nrContract: esc(d.nrContract),
     dataContract: esc(d.dataContract),
     monthlyPrice: esc(data.monthlyPriceFormatted),
@@ -286,12 +302,13 @@ function actTokens(
   addendum: AddendumFields,
   client: ClientTokensInput['client'],
   contractInfo: { nrContract: string; dataContract: string },
+  provider: ContractProvider,
   terms: ContractTerms,
   fragments: ContractFragments,
 ): Record<string, string> {
   const temporary = addendum.temporary === true
   const tokens: Record<string, string> = {
-    ...baseTokens({ client, terms }),
+    ...baseTokens({ provider, client, terms }),
     nrContract: esc(contractInfo.nrContract),
     dataContract: esc(contractInfo.dataContract),
     actNumar: esc(String(addendum.number)),
@@ -332,11 +349,12 @@ export function renderActAditionalHtml(
   addendum: AddendumFields,
   client: ClientTokensInput['client'],
   contractInfo: { nrContract: string; dataContract: string },
+  provider: ContractProvider,
   terms: ContractTerms = DEFAULT_CONTRACT_TERMS,
   bodyHtml: string = CONTRACT_TEMPLATE_BODIES['act-aditional'],
   fragments: ContractFragments = DEFAULT_CONTRACT_FRAGMENTS,
 ): string {
-  return renderTemplateBody(bodyHtml, actTokens(addendum, client, contractInfo, terms, fragments))
+  return renderTemplateBody(bodyHtml, actTokens(addendum, client, contractInfo, provider, terms, fragments))
 }
 
 // A blank copy of a document, to read or fill in by hand before the client exists in the app.
@@ -345,6 +363,7 @@ const BLANK = '……………………'
 
 export function renderBlankHtml(
   key: ContractTemplateKey,
+  provider: ContractProvider,
   terms: ContractTerms,
   bodyHtml: string,
   fragments: ContractFragments,
@@ -361,7 +380,7 @@ export function renderBlankHtml(
       reversionNote: null,
       temporary: false,
     }
-    const tokens = { ...actTokens(addendum, client, { nrContract: BLANK, dataContract: BLANK }, terms, fragments), actNumar: BLANK }
+    const tokens = { ...actTokens(addendum, client, { nrContract: BLANK, dataContract: BLANK }, provider, terms, fragments), actNumar: BLANK }
     return renderTemplateBody(bodyHtml, tokens)
   }
   const details: ContractDetails = {
@@ -376,7 +395,7 @@ export function renderBlankHtml(
     moduleAddon: BLANK,
     conditiiSpeciale: BLANK,
   }
-  const data = { client, details, monthlyPriceFormatted: BLANK }
+  const data = { provider, client, details, monthlyPriceFormatted: BLANK }
   return key === 'contract-saas'
     ? renderTemplateBody(bodyHtml, saasTokens(data, terms, fragments))
     : renderTemplateBody(bodyHtml, anexaTokens(data, terms, fragments))

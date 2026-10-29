@@ -131,7 +131,6 @@
   },
   "invoicing": {
     "clientGone": "The client of the invoice no longer exists",
-    "companyProfileIncomplete": "The company profile is incomplete: set COMPANY_CIF (+ address/IBAN) in .env",
     "tenantCreateFailed": "Creating the tenant in VanaGreen failed",
     "slugKebab": "slug must be kebab-case (lowercase letters, digits, hyphens)",
     "unitPriceRequired": "unitPrice is required for lines with a fixed price",
@@ -421,5 +420,20 @@
     "unknownFeature": "Unknown feature: {{feature}}.",
     "headerForbidden": "Only the platform admin can open another company.",
     "suspended": "The company account is suspended."
+  },
+  "company": {
+    "incomplete": "The company sheet is incomplete (Settings → Company details). Missing: {{fields}}",
+    "fields": {
+      "name": "company name",
+      "cui": "tax ID",
+      "county": "registered office county",
+      "city": "registered office city",
+      "street": "registered office street",
+      "declarant": "declarant's name"
+    },
+    "countyUnknown": "The county on the company sheet is not recognised: {{county}}",
+    "invalidTimeZone": "Unknown time zone: {{timeZone}}",
+    "invalidCurrency": "The currency is a three-letter code (e.g. RON, EUR)",
+    "countryUnsupported": "Country {{country}} has no pack in the app yet"
   }
 }

@@ -38,8 +38,11 @@ vi.mock('../modules/tenders/service.js', () => ({
   listEligibilityCheckedNoticeIds: (...args: unknown[]) => listCheckedMock(...args),
 }))
 
+vi.mock('../shared/lib/company.js', () => ({
+  getCompany: async () => ({ profile: await getCompanyProfileMock() }),
+}))
+
 vi.mock('../modules/settings/service.js', () => ({
-  getCompanyProfile: (...args: unknown[]) => getCompanyProfileMock(...args),
   getOpsJobToggles: (...args: unknown[]) => getOpsJobTogglesMock(...args),
   setOpsJobToggles: (...args: unknown[]) => setOpsJobTogglesMock(...args),
 }))
