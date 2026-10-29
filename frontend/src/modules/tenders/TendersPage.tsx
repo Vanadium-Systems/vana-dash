@@ -189,7 +189,7 @@ export function TendersPage() {
                     <TableCell>
                       <Badge variant="outline">{SOURCE_LABEL[tender.source]}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
+                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
                       {tender.estimatedValueRon ? formatNumber(Number(tender.estimatedValueRon), BASE_CURRENCY) : '—'}
                     </TableCell>
                     <TableCell>

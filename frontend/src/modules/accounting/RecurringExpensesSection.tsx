@@ -164,11 +164,10 @@ export function RecurringExpensesSection() {
         <p className="text-xs text-muted-foreground">{t('common:states.loading')}</p>
       ) : expenses.data && expenses.data.length > 0 ? (
         <div className="space-y-2">
-          {expenses.data.map((e, i) => (
+          {expenses.data.map((e) => (
             <div
               key={e.id}
               className="flex animate-in items-center justify-between rounded-md border px-3 py-2 text-sm fade-in-0 duration-200 ease-out"
-              style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
             >
               <div>
                 <span className={e.active ? 'font-medium' : 'font-medium text-muted-foreground line-through'}>{e.description}</span>{' '}

@@ -157,7 +157,7 @@ export function EmiseTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(pageRecords ?? []).map((r, i) => {
+                {(pageRecords ?? []).map((r) => {
                   const isDraft = r.source === 'generated' && !r.documentNumber
                   const isIssued = r.source === 'generated' && Boolean(r.documentNumber)
                   const canSend = canAnaf && isIssued && (r.anafStatus === 'draft' || r.anafStatus === 'rejected')
@@ -167,13 +167,12 @@ export function EmiseTab() {
                     <TableRow
                       key={r.id}
                       className="animate-in fade-in-0 duration-200 ease-out"
-                      style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                     >
                       <TableCell className="font-medium">{r.documentNumber ?? t('accounting:issued.draftMarker')}</TableCell>
                       <TableCell>{r.counterpartyName ?? '—'}</TableCell>
                       <TableCell>{formatDate(r.issuedAt)}</TableCell>
                       <TableCell>{formatDate(r.dueAt)}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{formatMoney(r.amount, r.currency)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(r.amount, r.currency)}</TableCell>
                       <TableCell>
                         <AnafStatusBadge status={r.anafStatus} />
                         {r.anafUploadId && (

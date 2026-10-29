@@ -83,18 +83,17 @@ export function PrimiteTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(pageRecords ?? []).map((r, i) => (
+                {(pageRecords ?? []).map((r) => (
                   <TableRow
                     key={r.id}
                     className="animate-in fade-in-0 duration-200 ease-out"
-                    style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                   >
                     <TableCell className="font-medium">{r.counterpartyName ?? '—'}</TableCell>
                     <TableCell className="font-mono text-xs">{r.counterpartyCif ?? '—'}</TableCell>
                     <TableCell>{r.description ?? '—'}</TableCell>
                     <TableCell>{formatDate(r.issuedAt)}</TableCell>
                     <TableCell>{formatDate(r.dueAt)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatMoney(r.amount, r.currency)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(r.amount, r.currency)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {r.source === 'anaf_efactura' ? 'e-Factura' : r.source}
                     </TableCell>

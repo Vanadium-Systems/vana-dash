@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, isNull, or } from 'drizzle-orm'
+import { and, desc, eq, isNull, or, sql, type AnyColumn } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { notes } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
@@ -12,12 +12,21 @@ type ListNotesQuery = z.infer<typeof ListNotesQuerySchema>
 // Notițele sunt ale fiecărui om (PLAN.md C2) — filtrul pe owner e aici, nu într-un hook
 // comun, ca să fie vizibil lângă fiecare interogare.
 
+// No unaccent extension in the database: fold Romanian letters (both comma and cedilla forms) on both sides.
+function foldDiacritics(text: string): string {
+  return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function foldedLike(column: AnyColumn, term: string) {
+  return sql`translate(lower(${column}), 'ăâîșşțţĂÂÎȘŞȚŢ', 'aaissttaaisstt') like ${term}`
+}
+
 export async function listNotes(me: SessionUser, query: ListNotesQuery) {
   const filters = [isNull(notes.deletedAt), eq(notes.ownerUserId, me.id)]
   if (query.pinned !== undefined) filters.push(eq(notes.pinned, query.pinned))
   if (query.search) {
-    const term = `%${query.search}%`
-    filters.push(or(ilike(notes.title, term), ilike(notes.body, term))!)
+    const term = `%${foldDiacritics(query.search)}%`
+    filters.push(or(foldedLike(notes.title, term), foldedLike(notes.body, term))!)
   }
 
   return db

@@ -527,14 +527,13 @@ export function MailboxView({
               )
             ) : (
               <div className="space-y-1">
-                {items.map((thread, i) => (
+                {items.map((thread) => (
                   <div
                     key={thread.id}
                     className={cn(
                       'flex animate-in items-start gap-2 rounded-md p-2 text-sm transition-colors fade-in-0 duration-200 ease-out hover:bg-muted',
                       selectedId === thread.id && 'bg-muted',
                     )}
-                    style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                   >
                     <input
                       type="checkbox"

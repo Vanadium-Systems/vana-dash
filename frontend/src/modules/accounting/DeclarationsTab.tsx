@@ -115,10 +115,10 @@ function DeclarationCard({
                       )}
                     </TableCell>
                     <TableCell>{formatDate(l.issuedAt)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatMoney(l.amountForeign, l.currency)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatMoney(l.baseRon, BASE_CURRENCY)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.amountForeign, l.currency)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.baseRon, BASE_CURRENCY)}</TableCell>
                     {showVat ? (
-                      <TableCell className="text-right font-mono text-sm">{formatMoney(l.vatRon, BASE_CURRENCY)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.vatRon, BASE_CURRENCY)}</TableCell>
                     ) : null}
                     <TableCell className="text-right">
                       <Button

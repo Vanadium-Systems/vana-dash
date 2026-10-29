@@ -195,11 +195,10 @@ export function ConturiTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.data.map((txn, i) => (
+                {transactions.data.map((txn) => (
                   <TableRow
                     key={txn.id}
                     className="animate-in fade-in-0 duration-200 ease-out"
-                    style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                   >
                     <TableCell>{formatDate(txn.valueDate)}</TableCell>
                     <TableCell className="font-medium">{txn.counterpartyName ?? '—'}</TableCell>

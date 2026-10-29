@@ -17,8 +17,11 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     React.useEffect(() => {
       const el = inner.current
       if (!auto || !el) return
+      const maxHeight = 24 * AUTO_MAX_ROWS + 20
       el.style.height = 'auto'
-      el.style.height = `${Math.min(el.scrollHeight, 24 * AUTO_MAX_ROWS + 20)}px`
+      el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
+      // An empty one-row textarea otherwise shows a scrollbar with arrows.
+      el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden'
     }, [auto, props.value])
 
     return (

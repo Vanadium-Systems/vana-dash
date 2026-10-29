@@ -75,12 +75,11 @@ export function NotesPage() {
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {notes.data.map((note, i) => (
+          {notes.data.map((note) => (
             <Card
               key={note.id}
               interactive
               className="animate-in cursor-pointer fade-in-0 duration-200 ease-out"
-              style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
               onClick={() => openEdit(note)}
             >
               <CardContent className="space-y-2 pt-6">

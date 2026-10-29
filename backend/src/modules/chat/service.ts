@@ -224,7 +224,7 @@ export async function listConversations(me: SessionUser): Promise<ChatConversati
       body: messages.body,
       authorId: messages.authorUserId,
       createdAt: messages.createdAt,
-      position: sql<number>`row_number() OVER (PARTITION BY ${messages.conversationId} ORDER BY ${messages.createdAt} DESC, ${messages.id} DESC)`,
+      position: sql<number>`row_number() OVER (PARTITION BY ${messages.conversationId} ORDER BY ${messages.createdAt} DESC, ${messages.id} DESC)::int`,
     })
     .from(messages)
     .where(and(inArray(messages.conversationId, conversationIds), isNull(messages.deletedAt)))

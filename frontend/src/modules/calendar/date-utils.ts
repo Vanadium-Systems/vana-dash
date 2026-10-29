@@ -4,10 +4,9 @@ import { t } from '@/shared/lib/i18n'
 // suficient pt. o vedere săptămână/lună, nu justifică date-fns/dayjs (regula #10 no bloat).
 
 export const WEEKDAY_LABELS = [t('common:weekdays.short.mon'), t('common:weekdays.short.tue'), t('common:weekdays.short.wed'), t('common:weekdays.short.thu'), t('common:weekdays.short.fri'), t('common:weekdays.short.sat'), t('common:weekdays.short.sun')]
-export const MONTH_LABELS = [
-  'ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie',
-  'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie',
-]
+export const MONTH_LABELS = Array.from({ length: 12 }, (_, month) =>
+  new Intl.DateTimeFormat(intlTag(), { month: 'long' }).format(new Date(2026, month, 1)),
+)
 
 export function startOfDay(date: Date): Date {
   const d = new Date(date)
