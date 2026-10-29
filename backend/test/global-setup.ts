@@ -5,6 +5,12 @@ export default async function setup(): Promise<void> {
   await import('./setup.js')
   const { importCompanyProfileFromEnv } = await import('../src/shared/lib/company-env-import.js')
   const { sql } = await import('../src/shared/db/client.js')
-  await importCompanyProfileFromEnv()
-  await sql.end()
+  try {
+    await importCompanyProfileFromEnv()
+  } catch (err) {
+    // Unit tests run without a database too; only the tests that need one will fail.
+    console.warn(`[global-setup] company sheet not imported, no database? ${String(err)}`)
+  } finally {
+    await sql.end()
+  }
 }
