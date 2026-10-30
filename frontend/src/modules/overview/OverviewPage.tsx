@@ -15,7 +15,7 @@ import { eventLabel } from '@/shared/lib/event-label'
 import { api } from '@/shared/lib/api'
 import { sumByDirection } from '@/shared/lib/financial-utils'
 import { cn } from '@/shared/lib/utils'
-import { formatDate, formatMoney, formatNumber, intlTag } from '@/shared/lib/format'
+import { companyTimeZone, formatDate, formatMoney, formatNumber, intlTag } from '@/shared/lib/format'
 import type { AlertInstance, AlertSeverity, BookingSummary, CalendarOccurrence, EmailThread, MetricSummary, Note, OverviewConfig, Platform, PnlResponse, MoneyMeta } from '@/shared/lib/types'
 import { extractEmailAddress } from '@/modules/email/identity'
 import { conversationTitle } from '@/modules/messages/ConversationList'
@@ -27,7 +27,6 @@ import { BASE_CURRENCY, type DisplayCurrency } from '@/shared/lib/locale'
 // „Azi" (sprint Remake v2, DESIGN.md): un singur număr primar, apoi ce trebuie rezolvat și ce
 // e în calendar. Propoziția de 2 secunde: cât am încasat luna asta, ce arde azi, ce am în calendar.
 
-const TZ = 'Europe/Bucharest'
 
 // Etichete pt. cheile standard din METRIC_KEYS.md + `mrr` (built-in, nu vine din platform_metrics).
 // O cheie custom (`<platformă>.<metrică>`) fără etichetă arată partea de după punct.
@@ -50,9 +49,9 @@ function amount(value: number, money: MoneyMeta | undefined): string {
   return approx(formatMoney(value, t(`common:money.units.${currency}`)), money)
 }
 
-const time = (iso: string) => new Intl.DateTimeFormat(intlTag(), { hour: '2-digit', minute: '2-digit', timeZone: TZ }).format(new Date(iso))
+const time = (iso: string) => new Intl.DateTimeFormat(intlTag(), { hour: '2-digit', minute: '2-digit', timeZone: companyTimeZone() }).format(new Date(iso))
 const dayLabel = (iso: string) =>
-  new Intl.DateTimeFormat(intlTag(), { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: TZ }).format(new Date(iso))
+  new Intl.DateTimeFormat(intlTag(), { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: companyTimeZone() }).format(new Date(iso))
 
 function todayRange(): { from: string; to: string } {
   const start = new Date()
@@ -68,8 +67,8 @@ const SEVERITY_ORDER: Record<AlertSeverity, number> = { critical: 0, warning: 1,
 
 export function OverviewPage() {
   const { can } = useMe()
-  const monthName = new Intl.DateTimeFormat(intlTag(), { month: 'long', timeZone: TZ }).format(new Date())
-  const todayTitle = new Intl.DateTimeFormat(intlTag(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ }).format(new Date())
+  const monthName = new Intl.DateTimeFormat(intlTag(), { month: 'long', timeZone: companyTimeZone() }).format(new Date())
+  const todayTitle = new Intl.DateTimeFormat(intlTag(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: companyTimeZone() }).format(new Date())
 
   // Widget-urile se aleg pe funcționalități, nu pe `grid` cu locuri rezervate: un om cu o
   // singură funcționalitate primește o coloană, nu un widget pierdut pe o grilă de trei
