@@ -26,6 +26,7 @@ import type {
   TemplateCreateSchema,
   TemplateUpdateSchema,
 } from './schema.js'
+import { getCompany } from '../../shared/lib/company.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 type EmailSendRow = typeof emailSends.$inferSelect
@@ -264,7 +265,7 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
   // derivat din el (htmlToPlainText), nu invers.
   const renderedBodyHtml = renderBody(template.body, nume)
   const text = appendUnsubscribeFooter(htmlToPlainText(renderedBodyHtml), to) + sig.text
-  const html = wrapBulkCampaignHtml(`${renderedBodyHtml}${sig.html}`, unsubscribeFooterHtml(to))
+  const html = wrapBulkCampaignHtml(`${renderedBodyHtml}${sig.html}`, unsubscribeFooterHtml(to), (await getCompany()).profile.name)
   const { html: sendHtml, attachments: inlineImageAttachments } = await inlineStoredImages(html)
   const result = await sendEmailWithResult({
     to,
