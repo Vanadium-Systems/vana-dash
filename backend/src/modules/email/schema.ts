@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { updateSchema } from '../../shared/lib/update-schema.js'
 
 // ── Templates ────────────────────────────────────────────────────────────────
 
@@ -9,7 +10,7 @@ export const TemplateCreateSchema = z.object({
   body: z.string().min(1),
 })
 
-export const TemplateUpdateSchema = TemplateCreateSchema.partial()
+export const TemplateUpdateSchema = updateSchema(TemplateCreateSchema)
 
 export const TemplateIdParamsSchema = z.object({ id: z.string().uuid() })
 export const UnsubscribeTokenParamsSchema = z.object({ token: z.string().min(1) })

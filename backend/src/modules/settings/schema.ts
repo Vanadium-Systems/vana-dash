@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CompanyProfileSchema } from '../../shared/lib/company.js'
+import { updateSchema } from '../../shared/lib/update-schema.js'
 
 // Ordine + vizibilitate iteme de navigare (sprint de-hardcodare 2026-08-25) — stocat în
 // dashboard_config['nav.layout']. Definiția canonică a itemelor (to/label/icon/grup) rămâne
@@ -38,6 +39,6 @@ export const OpsJobTogglesSchema = z.object({
   bnrFeed: z.boolean(),
 })
 
-export const OpsJobTogglesUpdateSchema = OpsJobTogglesSchema.partial()
+export const OpsJobTogglesUpdateSchema = updateSchema(OpsJobTogglesSchema)
 
 export type OpsJobToggles = z.infer<typeof OpsJobTogglesSchema>

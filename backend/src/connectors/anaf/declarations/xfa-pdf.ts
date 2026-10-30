@@ -57,7 +57,8 @@ export function fillXfaDatasets(template: XfaTemplate, datasets: string, origina
     return row
   }
   const xrefData = Buffer.concat([entry(datasetsOffset), entry(xrefOffset)])
-  const newId = createHash('md5').update(datasets).digest('hex').toUpperCase()
+  // The second /ID only has to change with the content; 16 bytes, the length Reader writes itself.
+  const newId = createHash('sha256').update(datasets).digest('hex').slice(0, 32).toUpperCase()
   const xrefDict =
     `<< /Type /XRef /Size ${xrefObject + 1} /Index [${template.datasetsObject} 1 ${xrefObject} 1] /W [1 4 1]` +
     ` /Root ${trailer.root}${trailer.info ? ` /Info ${trailer.info}` : ''} /ID [<${trailer.id0}> <${newId}>]` +

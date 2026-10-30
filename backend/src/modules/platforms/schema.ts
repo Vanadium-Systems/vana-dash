@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { validatePlatformUrl } from '../../shared/lib/ssrf-guard.js'
 import { lazyTr, tr } from '../../shared/lib/i18n.js'
+import { updateSchema } from '../../shared/lib/update-schema.js'
 
 // SSRF protection (security.agent.md) — respinge hostname loopback/private/link-local la
 // creare/editare, înainte ca sync jobs să apuce vreodată să facă fetch pe URL-ul salvat.
@@ -70,7 +71,7 @@ export const PlatformCreateSchema = PlatformBaseSchema.superRefine((input, ctx) 
   }
 })
 
-export const PlatformUpdateSchema = PlatformBaseSchema.partial().superRefine((input, ctx) => {
+export const PlatformUpdateSchema = updateSchema(PlatformBaseSchema).superRefine((input, ctx) => {
   // La update fără `type` în payload, gardul e aplicat în service (contra tipului curent din DB).
   if (input.type !== undefined && input.type !== 'generic' && (input.metricMappings || input.healthPath)) {
     ctx.addIssue({

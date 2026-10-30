@@ -116,7 +116,7 @@ export async function bookingRoutes(app: FastifyInstance) {
 
   server.post(
     '/api/booking/bookings/:id/cancel',
-    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: z.object({ notifyVisitor: z.boolean().default(true) }).default({}) } },
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: z.object({ notifyVisitor: z.boolean().default(true) }).prefault({}) } },
     async (req, reply) => {
       if (!(await service.cancelById(req.params.id, req.body.notifyVisitor))) {
         return reply.code(404).send({ success: false, error: tr('errors.booking.notFoundOrCancelled') })

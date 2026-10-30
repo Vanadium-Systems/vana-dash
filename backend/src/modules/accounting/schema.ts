@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { lazyTr } from '../../shared/lib/i18n.js'
+import { updateSchema } from '../../shared/lib/update-schema.js'
 
 export const RecordsQuerySchema = z.object({
   direction: z.enum(['in', 'out']).optional(),
@@ -95,7 +96,7 @@ export const RecurringExpenseCreateSchema = RecurringExpenseBaseSchema.extend({
   path: ['cycleMonth'],
 })
 
-export const RecurringExpenseUpdateSchema = RecurringExpenseBaseSchema.partial()
+export const RecurringExpenseUpdateSchema = updateSchema(RecurringExpenseBaseSchema)
   .extend({ active: z.boolean().optional() })
   .refine((v) => v.cycle !== 'annual' || v.cycleMonth !== undefined, {
     message: lazyTr('errors.accounting.cycleMonthRequired'),

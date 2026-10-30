@@ -5,7 +5,7 @@ import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
 import sensible from '@fastify/sensible'
 import Fastify, { type FastifyError } from 'fastify'
-import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
+import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { accessRoutes } from './modules/access/routes.js'
 import { accountingRoutes } from './modules/accounting/routes.js'
 import { alertsRoutes } from './modules/alerts/routes.js'
@@ -52,7 +52,7 @@ import { tenantsRoutes } from './modules/tenants/routes.js'
 import { wishlistRoutes } from './modules/wishlist/routes.js'
 import { config } from './shared/config.js'
 import { tr } from './shared/lib/i18n.js'
-import { validationMessage, type ValidationIssue } from './shared/lib/validation-messages.js'
+import { validationMessage } from './shared/lib/validation-messages.js'
 import { authPlugin } from './shared/middleware/auth.js'
 import { featureGuardPlugin } from './shared/middleware/feature-guard.js'
 
@@ -82,8 +82,16 @@ export async function buildServer() {
   // modifica" bandă, deși salvarea era doar respinsă silențios cu motivul ascuns.
   app.setErrorHandler<FastifyError>((error, request, reply) => {
     if (error.code === 'FST_ERR_VALIDATION' && error.validation?.length) {
-      const zodError = error.validation[0]?.params?.zodError as { issues: ValidationIssue[] } | undefined
-      const message = zodError ? validationMessage(zodError.issues) : error.message
+      const message = hasZodFastifySchemaValidationErrors(error)
+        ? validationMessage(
+            error.validation.map(({ keyword, instancePath, message: text, params }) => ({
+              ...params,
+              code: keyword,
+              path: instancePath.split('/').slice(1).filter(Boolean),
+              message: text ?? '',
+            })),
+          )
+        : error.message
       return reply.code(400).send({ success: false, error: message })
     }
     const statusCode = error.statusCode ?? 500

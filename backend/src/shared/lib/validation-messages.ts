@@ -6,38 +6,38 @@ import { resolveLazy, tr } from './i18n.js'
 
 export interface ValidationIssue {
   code: string
-  path: (string | number)[]
+  path: PropertyKey[]
   message: string
-  received?: unknown
-  type?: string
-  validation?: unknown
+  expected?: string
+  format?: string
+  origin?: string
   minimum?: number | bigint
   maximum?: number | bigint
-  options?: unknown[]
+  values?: unknown[]
 }
 
 function describe(issue: ValidationIssue): string {
   switch (issue.code) {
     case 'invalid_type':
-      return issue.received === 'undefined' || issue.received === 'null' ? tr('validation.required') : tr('validation.invalidType')
-    case 'invalid_string':
-      if (issue.validation === 'email') return tr('validation.invalidEmail')
-      if (issue.validation === 'url') return tr('validation.invalidUrl')
-      if (issue.validation === 'uuid') return tr('validation.invalidUuid')
-      if (issue.validation === 'datetime' || issue.validation === 'date') return tr('validation.invalidDate')
+      // Zod 4 leaves the input out of the issue; only its default message says what arrived.
+      if (/received (undefined|null)$/.test(issue.message)) return tr('validation.required')
+      return issue.expected === 'date' ? tr('validation.invalidDate') : tr('validation.invalidType')
+    case 'invalid_format':
+      if (issue.format === 'email') return tr('validation.invalidEmail')
+      if (issue.format === 'url') return tr('validation.invalidUrl')
+      if (issue.format === 'uuid') return tr('validation.invalidUuid')
+      if (issue.format === 'datetime' || issue.format === 'date') return tr('validation.invalidDate')
       return tr('validation.invalidValue')
-    case 'invalid_date':
-      return tr('validation.invalidDate')
     case 'too_small':
-      if (issue.type === 'string') return Number(issue.minimum) === 1 ? tr('validation.required') : tr('validation.stringTooShort', { count: Number(issue.minimum) })
-      if (issue.type === 'array') return tr('validation.arrayTooShort', { count: Number(issue.minimum) })
+      if (issue.origin === 'string') return Number(issue.minimum) === 1 ? tr('validation.required') : tr('validation.stringTooShort', { count: Number(issue.minimum) })
+      if (issue.origin === 'array') return tr('validation.arrayTooShort', { count: Number(issue.minimum) })
       return tr('validation.numberTooSmall', { min: Number(issue.minimum) })
     case 'too_big':
-      if (issue.type === 'string') return tr('validation.stringTooLong', { count: Number(issue.maximum) })
-      if (issue.type === 'array') return tr('validation.arrayTooLong', { count: Number(issue.maximum) })
+      if (issue.origin === 'string') return tr('validation.stringTooLong', { count: Number(issue.maximum) })
+      if (issue.origin === 'array') return tr('validation.arrayTooLong', { count: Number(issue.maximum) })
       return tr('validation.numberTooBig', { max: Number(issue.maximum) })
-    case 'invalid_enum_value':
-      return tr('validation.invalidOption', { options: (issue.options ?? []).join(', ') })
+    case 'invalid_value':
+      return tr('validation.invalidOption', { options: (issue.values ?? []).join(', ') })
     default:
       return issue.message
   }
@@ -48,9 +48,9 @@ export function validationMessage(issues: ValidationIssue[]): string {
   return issues
     .map((issue) => {
       // `custom` is a schema's own refine; a regex message is also written by the schema.
-      const own = issue.code === 'custom' || (issue.code === 'invalid_string' && issue.validation === 'regex')
+      const own = issue.code === 'custom' || (issue.code === 'invalid_format' && issue.format === 'regex')
       const text = own || issue.message.startsWith('tr:') ? resolveLazy(issue.message) : describe(issue)
-      return issue.path.length ? `${issue.path.join('.')}: ${text}` : text
+      return issue.path.length ? `${issue.path.map(String).join('.')}: ${text}` : text
     })
     .join('; ')
 }

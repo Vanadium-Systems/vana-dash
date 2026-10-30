@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { lazyTr } from '../../shared/lib/i18n.js'
+import { updateSchema } from '../../shared/lib/update-schema.js'
 
 // ── Etichete/reguli/blocklist — organizare mailbox (PLAN.md, Email Gmail-parity) ─────────────
 // Fișier propriu (nu routes.ts/schema.ts) — concern distinct de send/bulk/templates, la fel cum
@@ -16,7 +17,7 @@ export const LabelCreateSchema = z.object({
   // mesajele primite cu acest label nu mai declanșează notifyPush('email', ...).
   notificationsEnabled: z.boolean().default(true),
 })
-export const LabelUpdateSchema = LabelCreateSchema.partial()
+export const LabelUpdateSchema = updateSchema(LabelCreateSchema)
 
 // ── Rules ────────────────────────────────────────────────────────────────────
 
