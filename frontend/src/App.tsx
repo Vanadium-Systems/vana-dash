@@ -74,7 +74,7 @@ function RequireAuth() {
   // Before the pages render, so their dates come out in the company's zone. Idempotent, hence safe
   // in render; a /me cached before the field existed has no tenant zone and changes nothing.
   if (session?.tenant?.timeZone) setCompanyTimeZone(session.tenant.timeZone)
-  if (isPending) return null
+  if (isPending) return <PageFallback />
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return <Outlet />
 }
