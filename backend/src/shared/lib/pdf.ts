@@ -1,5 +1,6 @@
 import puppeteer, { type Browser } from 'puppeteer-core'
 import { tr } from './i18n.js'
+import { addSignatureFields, MARK_SIGNATURE_AREAS } from './pdf-signature-fields.js'
 
 // Browser singleton pentru generarea PDF — pattern identic cu vanagreen.
 // puppeteer-core (fără Chromium bundled): executabilul vine din PUPPETEER_EXECUTABLE_PATH
@@ -51,17 +52,18 @@ export async function closeBrowser(): Promise<void> {
   }
 }
 
-export async function htmlToPdf(html: string): Promise<Buffer> {
+export async function htmlToPdf(html: string, options: { signatureFields?: boolean } = {}): Promise<Buffer> {
   const browser = await getBrowser()
   const page = await browser.newPage()
   try {
     await page.setContent(html, { waitUntil: 'load' })
+    if (options.signatureFields) await page.evaluate(MARK_SIGNATURE_AREAS)
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '15mm', bottom: '15mm', left: '12mm', right: '12mm' },
     })
-    return Buffer.from(pdf)
+    return Buffer.from(options.signatureFields ? await addSignatureFields(pdf) : pdf)
   } finally {
     await page.close()
   }

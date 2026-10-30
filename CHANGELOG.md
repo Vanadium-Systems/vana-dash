@@ -4,6 +4,14 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-30: Signature fields on generated contracts
+
+### Added
+- Contracts, annexes and addenda are generated with an empty digital signature field above every
+  line that starts with "Semnătură", for signing in Adobe Reader with a qualified certificate.
+  The lines are found in the rendered page, so templates edited from the UI get them too
+  (`shared/lib/pdf-signature-fields.ts`, new dependency `pdf-lib`).
+
 ## 2026-10-30: Price calculator — bundles by percentage, setup by the hour
 
 ### Changed

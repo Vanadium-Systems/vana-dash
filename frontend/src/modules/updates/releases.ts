@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-30T17:00:00+02:00',
+    title: {
+      ro: 'Contractele vin cu câmpuri de semnătură',
+      en: 'Contracts come with signature fields',
+    },
+    body: {
+      ro: 'Contractele, anexele și actele adiționale generate au deja câte un câmp gol de semnătură digitală deasupra fiecărei linii de semnătură. Deschizi PDF-ul în Adobe Reader, dai click pe câmp și alegi certificatul; cealaltă parte semnează la fel în câmpul ei.',
+      en: 'Generated contracts, annexes and addenda now have an empty digital signature field above every signature line. Open the PDF in Adobe Reader, click the field and pick your certificate; the other party signs the same way in theirs.',
+    },
+    features: ['facturi.contracte'],
+  },
+  {
     publishedAt: '2026-10-30T15:00:00+02:00',
     title: {
       ro: 'Taxa de inițiere se calculează pe ore',
