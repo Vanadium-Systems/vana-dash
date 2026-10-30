@@ -83,8 +83,8 @@ afterAll(async () => {
 describe('currentMonth', () => {
   it('bucket pe luna calendaristică din București, nu pe UTC', () => {
     // 31 decembrie 23:30 UTC = 1 ianuarie 00:30 în România.
-    expect(currentMonth(new Date('2026-12-31T23:30:00Z'))).toBe('2027-01')
-    expect(currentMonth(new Date('2026-09-30T21:30:00Z'))).toBe('2026-10')
+    expect(currentMonth(new Date('2026-12-31T23:30:00Z'), 'Europe/Bucharest')).toBe('2027-01')
+    expect(currentMonth(new Date('2026-09-30T21:30:00Z'), 'Europe/Bucharest')).toBe('2026-10')
   })
 })
 
