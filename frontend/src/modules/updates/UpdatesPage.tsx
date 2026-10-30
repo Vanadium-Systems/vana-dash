@@ -7,10 +7,11 @@ import { ME_QUERY_KEY, useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import type { SessionPayload } from '@/shared/lib/types'
 import { isUnseen, visibleReleases } from './releases'
-import { intlTag } from '@/shared/lib/format'
+import { companyTimeZone, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 
-const DATE = new Intl.DateTimeFormat(intlTag(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Bucharest' })
+const releaseDate = (iso: string) =>
+  new Intl.DateTimeFormat(intlTag(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: companyTimeZone() }).format(new Date(iso))
 
 export function UpdatesPage() {
   const { can, session } = useMe()
@@ -46,7 +47,7 @@ export function UpdatesPage() {
                 {seenBefore.current !== undefined && isUnseen(release, seenBefore.current) ? <Badge variant="secondary">{t('updates:new')}</Badge> : null}
               </div>
               <time dateTime={release.publishedAt} className="block text-xs text-muted-foreground">
-                {DATE.format(new Date(release.publishedAt))}
+                {releaseDate(release.publishedAt)}
               </time>
               <p className="text-sm">{release.body}</p>
             </li>
