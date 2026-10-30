@@ -15,6 +15,7 @@ import { parseRoDecimal } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { openExternal } from '@/shared/lib/open-file'
 
 function currentQuarter(): string {
   const now = new Date()
@@ -52,7 +53,7 @@ function QuarterlyPackageCard() {
         `/api/accounting/quarterly-package/generate?quarter=${quarter}`,
       ),
     onSuccess: ({ downloadUrl }) => {
-      window.open(downloadUrl, '_blank')
+      openExternal(downloadUrl)
       // regenerarea schimbă starea pachetului afișată pe card
       void queryClient.invalidateQueries({ queryKey: ['accounting', 'quarterly-package', quarter] })
       toast.success(t('accounting:quarterly.generated'))
@@ -117,7 +118,7 @@ function AnafConnectionCard() {
 
   const openAuthorize = useMutation({
     mutationFn: () => api.get<{ url: string }>('/api/accounting/anaf/authorize-url'),
-    onSuccess: ({ url }) => window.open(url, '_blank'),
+    onSuccess: ({ url }) => openExternal(url),
     onError: (err) => toast.error(err.message),
   })
 

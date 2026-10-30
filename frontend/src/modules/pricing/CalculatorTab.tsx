@@ -17,6 +17,7 @@ import { calculatePrice } from './calc'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { openFile } from '@/shared/lib/open-file'
 
 function exportCalculatorCsv(result: PricingResult, platformName: string) {
   downloadCsv(`calculator-pret-${new Date().toISOString().slice(0, 10)}.csv`, [
@@ -160,7 +161,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
           <Button
             type="button"
             variant="outline"
-            onClick={() => window.open(`/api/pricing/price-sheet?platformId=${platformId}`, '_blank')}
+            onClick={() => openFile(`/api/pricing/price-sheet?platformId=${platformId}`, 'document.pdf')}
           >
             <Download className="h-4 w-4" /> {t('pricing:calc.priceSheet')}
           </Button>

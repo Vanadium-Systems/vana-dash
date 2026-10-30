@@ -29,6 +29,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { t } from '@/shared/lib/i18n'
+import { openFile } from '@/shared/lib/open-file'
 
 const PAGE_SIZE = 10
 
@@ -249,25 +250,25 @@ export function EmiseTab() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent>
                                 {r.hasPdf ? (
-                                  <DropdownMenuItem onClick={() => window.open(`/api/accounting/records/${r.id}/pdf`, '_blank')}>
+                                  <DropdownMenuItem onClick={() => openFile(`/api/accounting/records/${r.id}/pdf`, 'document.pdf')}>
                                     <Download className="h-4 w-4" /> {t('common:actions.downloadPdf')}
                                   </DropdownMenuItem>
                                 ) : null}
                                 {r.hasXml ? (
-                                  <DropdownMenuItem onClick={() => window.open(`/api/accounting/records/${r.id}/xml`, '_blank')}>
+                                  <DropdownMenuItem onClick={() => openFile(`/api/accounting/records/${r.id}/xml`, 'document.xml')}>
                                     <Download className="h-4 w-4" /> {t('accounting:actions.downloadXml')}
                                   </DropdownMenuItem>
                                 ) : null}
                                 {canAnaf && r.hasAnafPdf ? (
                                   <DropdownMenuItem
-                                    onClick={() => window.open(`/api/accounting/records/${r.id}/anaf-pdf`, '_blank')}
+                                    onClick={() => openFile(`/api/accounting/records/${r.id}/anaf-pdf`, 'document.pdf')}
                                   >
                                     <Download className="h-4 w-4" /> {t('accounting:issued.downloadEfacturaPdf')}
                                   </DropdownMenuItem>
                                 ) : null}
                                 {r.paymentStatus === 'paid' ? (
                                   <DropdownMenuItem
-                                    onClick={() => window.open(`/api/accounting/records/${r.id}/confirmation-pdf`, '_blank')}
+                                    onClick={() => openFile(`/api/accounting/records/${r.id}/confirmation-pdf`, 'document.pdf')}
                                   >
                                     <Download className="h-4 w-4" /> {t('accounting:issued.downloadConfirmation')}
                                   </DropdownMenuItem>

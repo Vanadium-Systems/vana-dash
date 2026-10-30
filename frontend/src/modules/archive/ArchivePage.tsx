@@ -55,6 +55,7 @@ import { SaveShareDialog } from './SaveShareDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { openExternal } from '@/shared/lib/open-file'
 
 const VIEW_MODE_KEY = 'archive-view-mode'
 type ViewMode = 'list' | 'grid'
@@ -486,7 +487,7 @@ export function ArchivePage() {
   // Click pe rând/card — doar previzualizare (tab nou pe URL-ul presemnat R2, nesupus CORS).
   const previewFile = useMutation({
     mutationFn: (id: string) => api.get<ArchiveDownloadUrl>(`/api/archive/files/${id}/download-url`),
-    onSuccess: (data) => window.open(data.url, '_blank'),
+    onSuccess: (data) => openExternal(data.url),
     onError: (err) => toast.error(err.message),
   })
 

@@ -14,6 +14,7 @@ import { DeclarationLineDialog } from './DeclarationLineDialog'
 import { formatDate, formatMoney } from './badges'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { openFile } from '@/shared/lib/open-file'
 
 function currentMonth(): string {
   return new Date().toISOString().slice(0, 7)
@@ -49,21 +50,21 @@ function DeclarationCard({
           <div className="flex shrink-0 gap-2">
             <Button
               disabled={!preview.data?.lines.length}
-              onClick={() => window.open(`/api/accounting/${endpoint}/export?month=${month}&format=pdf`, '_blank')}
+              onClick={() => openFile(`/api/accounting/${endpoint}/export?month=${month}&format=pdf`, 'document.pdf')}
             >
               <Download className="h-4 w-4" /> PDF
             </Button>
             <Button
               variant="outline"
               disabled={!preview.data?.lines.length}
-              onClick={() => window.open(`/api/accounting/${endpoint}/export?month=${month}&format=xml`, '_blank')}
+              onClick={() => openFile(`/api/accounting/${endpoint}/export?month=${month}&format=xml`, 'document.xml')}
             >
               <Download className="h-4 w-4" /> XML
             </Button>
             <Button
               variant="outline"
               disabled={!preview.data?.lines.length}
-              onClick={() => window.open(`/api/accounting/${endpoint}/export?month=${month}&format=csv`, '_blank')}
+              onClick={() => openFile(`/api/accounting/${endpoint}/export?month=${month}&format=csv`, 'export.csv')}
             >
               <Download className="h-4 w-4" /> CSV
             </Button>
