@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countyNameToIsoCode, extractBucharestSectorCode } from './ro-counties.js'
+import { countyNameToIsoCode, extractBucharestSectorCode } from './counties.js'
 
 describe('countyNameToIsoCode', () => {
   it('mapează nume uzuale, fără diacritice', () => {

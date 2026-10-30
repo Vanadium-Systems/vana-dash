@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { dashboardConfig, tenants } from '../db/schema/index.js'
 import { EMPTY_COMPANY_PROFILE, normalizeProfile, type CompanyProfile } from './company.js'
-import { isoCodeToCountyName } from './ro-counties.js'
+import { isoCodeToCountyName } from '../../countries/ro/counties.js'
 import { getOwnerTenantId } from './tenancy.js'
 
 // One-off move of the owner's details from the COMPANY_* / DECLARANT_* env vars (what invoices
