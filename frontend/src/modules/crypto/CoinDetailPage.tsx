@@ -271,7 +271,7 @@ export function CoinDetailPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="kpi-grid gap-2">
         <Stat label={t('crypto:stats.marketCap')} value={formatCompact(coin.marketCapUsd)} />
         <Stat label={t('crypto:stats.volume24h')} value={formatCompact(coin.volume24hUsd)} />
         <Stat label={t('crypto:stats.circulatingSupply')} value={coin.circulatingSupply?.toLocaleString(intlTag(), { maximumFractionDigits: 0 }) ?? '—'} sub={coin.maxSupply ? `max ${coin.maxSupply.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}` : coin.totalSupply ? `total ${coin.totalSupply.toLocaleString(intlTag(), { maximumFractionDigits: 0 })}` : null} />

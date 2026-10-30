@@ -478,5 +478,10 @@
       "EUR": "EUR",
       "USD": "USD"
     }
+  },
+  "pagination": {
+    "perPage": "{{size}} / pagină",
+    "range": "{{from}}–{{to}} din {{total}}",
+    "rowsPerPage": "Rânduri pe pagină"
   }
 }

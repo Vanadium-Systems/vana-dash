@@ -1,4 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTableFit } from '@/shared/components/ui/table'
 import { Ellipsis, Mail, MessageSquare, UserPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -114,6 +115,7 @@ function MailboxPicker({
 }
 
 export function TeamPage() {
+  const tableFit = useTableFit<HTMLDivElement>()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { can, session } = useMe()
@@ -271,7 +273,7 @@ export function TeamPage() {
               onReset={() => setSearch('')}
             />
           ) : (
-            <div className="tbl-container relative">
+            <div ref={tableFit} className="tbl-container relative">
               <table className="w-full border-collapse text-sm">
                 <caption className="sr-only">{t('team:members.tableCaption')}</caption>
                 <thead>

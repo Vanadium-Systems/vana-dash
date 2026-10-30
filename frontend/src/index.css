@@ -283,8 +283,37 @@
   }
 }
 @container (min-width: 40rem) {
-  .tbl-details,
-  .tbl-narrow-only {
+  .tbl-container:not([data-fit='no-md']) .tbl-details,
+  .tbl-container:not([data-fit='no-md']) .tbl-narrow-only {
     display: none;
   }
+}
+/* Set by useTableFit when the table still doesn't fit: same effect as the narrow container rules. */
+.tbl-container[data-fit='no-lg'] .tbl-lg,
+.tbl-container[data-fit='no-md'] .tbl-lg,
+.tbl-container[data-fit='no-md'] .tbl-md,
+.tbl-container[data-fit='no-md'] .tbl-inline {
+  display: none;
+}
+.tbl-container[data-fit='no-md'] .tbl-fill {
+  width: 100%;
+  max-width: 0;
+}
+.tbl-container[data-fit='no-md'] .tbl-narrow-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* KPI cards: as many per row as fit at a readable width, whatever the page leaves them (Email sits
+   beside two sidebars). A screen-width grid squeezed seven cards into "S… 96.4" at 150% zoom. */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 }

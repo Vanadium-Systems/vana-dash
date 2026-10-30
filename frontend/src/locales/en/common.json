@@ -472,5 +472,10 @@
       "EUR": "EUR",
       "USD": "USD"
     }
+  },
+  "pagination": {
+    "perPage": "{{size}} / page",
+    "range": "{{from}}–{{to}} of {{total}}",
+    "rowsPerPage": "Rows per page"
   }
 }

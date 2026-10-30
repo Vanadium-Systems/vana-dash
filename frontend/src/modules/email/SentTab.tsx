@@ -43,7 +43,7 @@ function ReportPanel({ report, isPending }: { report: EmailSendsReport | undefin
   const totals = report?.totals
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+      <div className="kpi-grid gap-3">
         <KPICard label={t('email:folders.sent')} value={totals?.sent ?? null} isPending={isPending} />
         <KPICard
           label={t('email:sent.openRate')}
@@ -313,7 +313,7 @@ export function SentTab() {
                   <TableCell priority="md" className="whitespace-nowrap text-sm text-muted-foreground">{formatDate(s.createdAt)}</TableCell>
                   <TableCell priority="lg" className="max-w-[14rem] truncate text-sm">{s.fromAddress ?? '—'}</TableCell>
                   <TableCell priority="md" className="max-w-[14rem] truncate text-sm">{s.recipient}</TableCell>
-                  <TableCell className="w-full max-w-0 text-sm">
+                  <TableCell className="tbl-truncate w-full max-w-0 text-sm">
                     <div className="truncate">{s.subject}</div>
                     <TableDetails items={[s.recipient, formatDate(s.createdAt)]} />
                   </TableCell>

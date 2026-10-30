@@ -1,12 +1,47 @@
 import * as React from 'react'
 import { cn } from '@/shared/lib/utils'
 
+type TableFit = 'full' | 'no-lg' | 'no-md'
+
+// Width breakpoints can't promise a fit: long addresses, IBANs or a 150% zoom make a table wider
+// than any fixed threshold expects. So the wrapper measures itself and drops the `lg` columns, then
+// the `md` ones, until the table fits (`data-fit` in index.css). Starting from `full` every time
+// makes the result depend only on the current width and content, so a resize can't make it flap.
+// A callback ref, so it also works where the table appears only after loading.
+export function useTableFit<T extends HTMLElement>() {
+  const observer = React.useRef<ResizeObserver | null>(null)
+  return React.useCallback((wrapper: T | null) => {
+    observer.current?.disconnect()
+    observer.current = null
+    if (!wrapper) return
+    // A title column cut to a few letters counts as not fitting too (the subject in Sent at 1280px).
+    const titleTooNarrow = () => {
+      const cell = wrapper.querySelector<HTMLElement>('tbody td.tbl-truncate, tbody td.tbl-fill')
+      return Boolean(cell && cell.offsetParent && cell.clientWidth < 128)
+    }
+    const fit = () => {
+      for (const level of ['full', 'no-lg', 'no-md'] as TableFit[]) {
+        wrapper.dataset.fit = level
+        if (wrapper.scrollWidth <= wrapper.clientWidth + 1 && !titleTooNarrow()) return
+      }
+    }
+    fit()
+    observer.current = new ResizeObserver(fit)
+    observer.current.observe(wrapper)
+    const table = wrapper.querySelector('table')
+    if (table) observer.current.observe(table)
+  }, [])
+}
+
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="tbl-container relative w-full overflow-auto">
-      <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
-    </div>
-  ),
+  ({ className, ...props }, ref) => {
+    const wrapperRef = useTableFit<HTMLDivElement>()
+    return (
+      <div ref={wrapperRef} className="tbl-container relative w-full overflow-auto">
+        <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
+      </div>
+    )
+  },
 )
 Table.displayName = 'Table'
 
@@ -63,7 +98,7 @@ interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
 
 const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
   ({ className, priority, truncate = false, children, ...props }, ref) => (
-    <td ref={ref} className={cn('p-2 align-middle', priority && PRIORITY_CLASS[priority], truncate && 'w-full max-w-0', className)} {...props}>
+    <td ref={ref} className={cn('p-2 align-middle', priority && PRIORITY_CLASS[priority], truncate && 'tbl-truncate w-full max-w-0', className)} {...props}>
       {truncate ? <div className="truncate">{children}</div> : children}
     </td>
   ),

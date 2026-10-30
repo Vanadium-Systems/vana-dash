@@ -279,7 +279,7 @@ function MonthlySnapshotSection() {
         ) : snapshot.isError ? (
           <ChartError message={t('reports:monthly.loadFailed')} />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="kpi-grid gap-4">
             <KPICard label={t('reports:monthly.revenue')} value={snapshot.data?.revenue ?? null} unit={currency} converted={converted} />
             <KPICard label={t('reports:monthly.expenses')} value={snapshot.data?.expense ?? null} unit={currency} converted={converted} />
             <KPICard label={t('reports:monthly.net')} value={snapshot.data?.net ?? null} unit={currency} converted={converted} />

@@ -12,6 +12,7 @@ import { useTeamMembers, memberName } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/format'
 import { actionLabel, type AuditListItem } from '@/shared/lib/audit'
+import { useTableFit } from '@/shared/components/ui/table'
 import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
 
@@ -32,6 +33,7 @@ const ENTITY_LABEL: Record<string, string> = {
 }
 
 export function TeamHistoryPage() {
+  const tableFit = useTableFit<HTMLDivElement>()
   const [params, setParams] = useSearchParams()
   const members = useTeamMembers()
   const [nextCursor, setNextCursor] = useState<string | null>(null)
@@ -149,7 +151,7 @@ export function TeamHistoryPage() {
         )
       ) : (
         <>
-          <div className="tbl-container">
+          <div ref={tableFit} className="tbl-container">
           <table className="w-full border-collapse text-sm">
             <caption className="sr-only">{t('team:history.tableCaption')}</caption>
             <thead>
