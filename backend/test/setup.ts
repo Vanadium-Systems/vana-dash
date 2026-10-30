@@ -39,15 +39,8 @@ process.env.BOOKING_TOKEN ??= 'test-booking-token'
 // Calls exist only with a Daily key; the tests never reach Daily (fetch is stubbed).
 process.env.DAILY_API_KEY ??= 'test-daily-key'
 process.env.DAILY_DOMAIN ??= 'acme'
-// A clean checkout (CI, a new contributor) has no .env. The values below are the ones a few
-// tests need from a developer's .env: a complete company profile for invoice PDFs and the HMAC
-// key of the unsubscribe link. All invented.
-process.env.COMPANY_NAME ??= 'Test Company SRL'
-process.env.COMPANY_CIF ??= 'RO12345678'
-process.env.COMPANY_REG_COM ??= 'J40/1/2020'
-process.env.COMPANY_ADDRESS ??= 'Str. Test nr. 1'
-process.env.COMPANY_IBAN ??= 'RO49AAAA1B31007593840000'
-process.env.COMPANY_BANK ??= 'Test Bank'
+// A clean checkout (CI, a new contributor) has no .env. The HMAC key of the unsubscribe link
+// is the one value a few tests need from a developer's .env. Invented.
 process.env.EMAIL_UNSUBSCRIBE_SECRET ??= 'test-unsubscribe-secret-not-for-production-use'
 
 // The sending identities and the other addresses have no default in config.ts. The email
@@ -59,6 +52,5 @@ process.env.EMAIL_SIGNATURE_STEFAN_TEXT ??= 'Stefan\nVanadium Systems'
 process.env.EMAIL_SIGNATURE_CONTACT_TEXT ??= 'Vanadium Systems'
 process.env.ALERT_EMAIL_FROM ??= 'alerts@example.com'
 process.env.ALERT_EMAIL_TO ??= 'admin@example.com'
-process.env.COMPANY_EMAIL ??= 'office@example.com'
 process.env.BOOKING_CANCEL_URL ??= 'https://example.com/booking/cancel'
 

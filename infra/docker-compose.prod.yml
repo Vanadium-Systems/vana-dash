@@ -26,7 +26,7 @@ services:
       context: ..
       dockerfile: infra/backend.Dockerfile
     restart: unless-stopped
-    # Every variable in .env (RESEND_API_KEY, REVOLUT_*, ANAF_*, COMPANY_*, …) reaches the
+    # Every variable in .env (RESEND_API_KEY, REVOLUT_*, ANAF_*, …) reaches the
     # container. Without env_file, each new key in config.ts would also have to be listed
     # here, and a forgotten one would be silently empty. `environment:` below wins over
     # env_file on the same keys; it holds only the values that have to be computed or fixed

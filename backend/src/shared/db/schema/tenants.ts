@@ -16,8 +16,7 @@ export const tenants = pgTable(
     status: text('status', { enum: ['active', 'suspended'] }).notNull().default('active'),
     // What the company may use (feature keys). Ignored for the owner, who has the whole catalog.
     features: text('features').array().notNull().default([]),
-    // The company sheet (shared/lib/company.ts parses it). Empty until it is first saved or
-    // imported from the old COMPANY_* env vars.
+    // The company sheet (shared/lib/company.ts parses it). Empty until it is first saved.
     profile: jsonb('profile').$type<Record<string, unknown>>().notNull().default({}),
     // No defaults on purpose: a new company takes them from its country pack (countries/).
     country: text('country').notNull(),
