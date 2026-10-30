@@ -4,10 +4,11 @@ import { getOutreachCapStatus, sendCampaignEmail } from '../modules/email/servic
 import { getEmailSettings } from '../modules/email/settings-service.js'
 import { getSuppressedEmails } from '../modules/email/unsubscribe-service.js'
 import { db } from '../shared/db/client.js'
+import { getCompanyTimeZone } from '../shared/lib/company.js'
 import { emailSequenceEnrollments, emailSequences, emailSequenceSteps, syncLog } from '../shared/db/schema/index.js'
 
 // Cron orar — la fiecare oră verifică dacă suntem în fereastra de trimitere configurată din
-// Setări Email (oră + doar zile lucrătoare, implicit 10:00 L-V, Europe/Bucharest — serverul
+// Setări Email (oră + doar zile lucrătoare, implicit 10:00 L-V, în fusul firmei — serverul
 // rulează în UTC, vezi isSendWindowNow). Avansează secvențele de follow-up automate (drip
 // outreach) doar în fereastră. Pattern identic celorlalte cron-uri din jobs/: log în sync_log,
 // failure izolat per enrollment, nu aruncă niciodată mai departe (regula #7 CLAUDE.md).
@@ -15,9 +16,9 @@ import { emailSequenceEnrollments, emailSequences, emailSequenceSteps, syncLog }
 const CRON_EXPR = '0 * * * *' // în fiecare oră, la minutul 0 — gating pe fereastră e intern, nu în expresia cron
 const MAX_CONSECUTIVE_FAILURES = 3
 
-function isSendWindowNow(hour: number, weekdaysOnly: boolean): boolean {
+function isSendWindowNow(hour: number, weekdaysOnly: boolean, timeZone: string): boolean {
   const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Bucharest',
+    timeZone,
     hour: 'numeric',
     hourCycle: 'h23',
     weekday: 'short',
@@ -33,7 +34,7 @@ export function startEmailSequenceRunnerJob(): void {
   cron.schedule(CRON_EXPR, () => {
     void (async () => {
       const { outreachSendHour, outreachSendWeekdaysOnly } = await getEmailSettings()
-      if (!isSendWindowNow(outreachSendHour, outreachSendWeekdaysOnly)) return
+      if (!isSendWindowNow(outreachSendHour, outreachSendWeekdaysOnly, await getCompanyTimeZone())) return
       await runEmailSequences()
     })().catch((err) => {
       console.error(`[email-sequence-runner] ${String(err)}`)
