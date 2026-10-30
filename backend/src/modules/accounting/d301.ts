@@ -9,7 +9,7 @@ import { declarationFilings, financialRecords } from '../../shared/db/schema/ind
 import { getRateForDate } from '../../shared/lib/bnr.js'
 import { getCompany, requireSeller } from '../../shared/lib/company.js'
 import { CompanyProfileIncompleteError } from '../../countries/types.js'
-import { isoCodeToCountyName } from '../../shared/lib/ro-counties.js'
+import { isoCodeToCountyName } from '../../countries/ro/counties.js'
 import type { DeclarationFilingBodySchema, DeclarationLineUpdateSchema } from './schema.js'
 
 const DEFAULT_VAT_RATE = 21

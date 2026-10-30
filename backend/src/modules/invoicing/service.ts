@@ -17,7 +17,7 @@ import { getAnafSession } from '../../shared/lib/anaf.js'
 import { getCompany } from '../../shared/lib/company.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
 import { generateInvoiceDocuments } from '../../shared/lib/documents.js'
-import { countyNameToIsoCode, extractBucharestSectorCode } from '../../shared/lib/ro-counties.js'
+import { countyNameToIsoCode, extractBucharestSectorCode } from '../../countries/ro/counties.js'
 import { nextInvoiceNumber, type DrizzleTx } from '../../shared/lib/sequences.js'
 import { readDocument } from '../../shared/lib/storage.js'
 import type {

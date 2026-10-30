@@ -3,7 +3,7 @@
 // online. It fills in a billing client (name, address, county), because ANAF rejects an
 // invoice whose buyer data is wrong or incomplete.
 import { normalizeCui } from './cui-validator.js'
-import { countyNameToIsoCode, extractBucharestSectorCode } from './ro-counties.js'
+import { countyNameToIsoCode, extractBucharestSectorCode } from '../../countries/ro/counties.js'
 import { tr } from './i18n.js'
 
 const ANAF_TVA_URL = 'https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva'

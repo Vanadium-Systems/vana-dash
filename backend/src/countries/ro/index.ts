@@ -1,5 +1,5 @@
 import { tr } from '../../shared/lib/i18n.js'
-import { countyNameToIsoCode } from '../../shared/lib/ro-counties.js'
+import { countyNameToIsoCode } from './counties.js'
 import { CompanyProfileIncompleteError, type CompanyField, type CountryPack } from '../types.js'
 
 export const ro: CountryPack = {
