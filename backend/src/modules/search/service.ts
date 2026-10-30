@@ -1,6 +1,7 @@
 import { and, desc, ilike, isNull, or, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { emailThreads, financialRecords, prospects } from '../../shared/db/schema/index.js'
+import { getCompanyTimeZone } from '../../shared/lib/company.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { searchFiles } from '../archive/service.js'
 import { searchEvents } from '../calendar/service.js'
@@ -98,10 +99,16 @@ async function searchProspects(term: string, limit: number): Promise<SearchGroup
   }
 }
 
+// A session built without its company is the platform owner's (see SessionUser.tenant).
+async function companyZone(me: SessionUser): Promise<string> {
+  return me.tenant?.timeZone ?? (await getCompanyTimeZone())
+}
+
 async function searchThreads(me: SessionUser, term: string, limit: number): Promise<SearchGroup | null> {
   // Adresele cutiilor se calculează o dată și se folosesc drept condiție pe fir, la fel ca în
   // lista de emailuri (BE-4) — un fir din cutia altcuia nu apare nici aici.
   const visible = threadVisibleTo(await mailboxAddresses(me))
+  const timeZone = await companyZone(me)
   const like = `%${term}%`
   const rows = await db
     .select({ id: emailThreads.id, subject: emailThreads.subject, lastMessageAt: emailThreads.lastMessageAt })
@@ -122,7 +129,7 @@ async function searchThreads(me: SessionUser, term: string, limit: number): Prom
     items: rows.map((r) => ({
       id: r.id,
       label: r.subject,
-      sublabel: r.lastMessageAt.toLocaleString('ro-RO', { timeZone: me.tenant?.timeZone, dateStyle: 'short', timeStyle: 'short' }),
+      sublabel: r.lastMessageAt.toLocaleString('ro-RO', { timeZone, dateStyle: 'short', timeStyle: 'short' }),
       to: `/email?thread=${r.id}`,
     })),
   }
@@ -148,6 +155,7 @@ async function searchArchive(me: SessionUser, term: string, limit: number): Prom
 async function searchCalendar(me: SessionUser, term: string, limit: number): Promise<SearchGroup | null> {
   const rows = await searchEvents(me, term, limit)
   if (rows.length === 0) return null
+  const timeZone = await companyZone(me)
   return {
     group: tr('search.groups.calendar'),
     feature: 'calendar.view',
@@ -156,8 +164,8 @@ async function searchCalendar(me: SessionUser, term: string, limit: number): Pro
       const when = start.toLocaleString(
         'ro-RO',
         r.allDay
-          ? { timeZone: me.tenant?.timeZone, dateStyle: 'medium' }
-          : { timeZone: me.tenant?.timeZone, dateStyle: 'medium', timeStyle: 'short' },
+          ? { timeZone, dateStyle: 'medium' }
+          : { timeZone, dateStyle: 'medium', timeStyle: 'short' },
       )
       return {
         id: r.id,
@@ -165,7 +173,7 @@ async function searchCalendar(me: SessionUser, term: string, limit: number): Pro
         // Numele proprietarului doar când nu e calendarul omului — altfel ar fi zgomot.
         sublabel: r.ownerUserId === me.id ? when : `${when} · ${r.ownerName}`,
         // The day in the company's zone, not in UTC: an event at 00:30 would otherwise land on the day before.
-        to: `/calendar?date=${start.toLocaleDateString('sv-SE', { timeZone: me.tenant?.timeZone })}`,
+        to: `/calendar?date=${start.toLocaleDateString('sv-SE', { timeZone })}`,
       }
     }),
   }
