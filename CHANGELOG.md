@@ -4,6 +4,23 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-30: Company settings instead of fixed values, Zod 4
+
+### Changed
+- Times, the outreach send window, the assistant's monthly quota and the calendar reminders use
+  the company's time zone from the company sheet instead of a fixed `Europe/Bucharest`.
+- Booking emails, the `.ics` invite (organizer, summary), the campaign email header, call names
+  and the assistant's prompt take the company's name from the company sheet. The `.ics` has no
+  `ORGANIZER` line when the company has no email.
+- The Romanian county codes moved into the Romanian country pack (`countries/ro/counties.ts`).
+- Zod 4.6.7 (security fix for memory exhaustion on oversized collections), with
+  `fastify-type-provider-zod` 7 and `puppeteer-core` 25.16. PATCH bodies no longer fill in the
+  create defaults for fields left out (`shared/lib/update-schema.ts`).
+- The second `/ID` of the filled D301/D390 PDF is a truncated SHA-256 instead of an MD5.
+
+### Removed
+- The unused `SMTP_*` settings. Email goes through Resend only.
+
 ## 2026-10-30: Signature fields on generated contracts
 
 ### Added
