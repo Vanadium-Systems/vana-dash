@@ -4,6 +4,7 @@ import { db } from '../shared/db/client.js'
 import { calendarEventAttendees, calendarEvents } from '../shared/db/schema/index.js'
 import { notifyPush } from '../shared/lib/push.js'
 import { expandOccurrence } from '../shared/lib/calendar-occurrences.js'
+import { getCompanyTimeZone } from '../shared/lib/company.js'
 import { trFor } from '../shared/lib/i18n.js'
 import { INTL_TAG } from '../shared/lib/locale.js'
 
@@ -25,6 +26,7 @@ export function startCalendarRemindersJob(): void {
 }
 
 export async function runCalendarReminders(): Promise<void> {
+  const timeZone = await getCompanyTimeZone()
   const now = new Date()
   const windowEnd = new Date(now.getTime() + MAX_LOOKAHEAD_MINUTES * 60_000)
 
@@ -58,7 +60,7 @@ export async function runCalendarReminders(): Promise<void> {
           'calendarReminder',
           (locale) => ({
             title: trFor(locale, 'push.reminder.eventTitle', { title: row.title }),
-            body: startAt.toLocaleString(INTL_TAG[locale], { timeZone: 'Europe/Bucharest', dateStyle: 'short', timeStyle: 'short' }),
+            body: startAt.toLocaleString(INTL_TAG[locale], { timeZone, dateStyle: 'short', timeStyle: 'short' }),
             url: '/calendar',
           }),
           recipients,
