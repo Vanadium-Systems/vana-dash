@@ -17,10 +17,10 @@ const CAP_KEY = 'assistant.monthly_token_cap'
 /** Când se ridică alerta: la 80% din plafon. */
 const ALERT_RATIO = 0.8
 
-/** `YYYY-MM` pe luna calendaristică din București — bucket-ul de consum. */
-export function currentMonth(at: Date = new Date()): string {
+/** `YYYY-MM` of the calendar month on the company's clock: the usage bucket. */
+export function currentMonth(at: Date = new Date(), timeZone?: string): string {
   const parts = new Intl.DateTimeFormat('ro-RO', {
-    timeZone: 'Europe/Bucharest',
+    timeZone,
     year: 'numeric',
     month: '2-digit',
   }).formatToParts(at)
@@ -50,7 +50,7 @@ export interface QuotaState {
 
 export async function quotaState(user: SessionUser, at: Date = new Date()): Promise<QuotaState> {
   const cap = isExempt(user) ? null : await getMonthlyCap()
-  const month = currentMonth(at)
+  const month = currentMonth(at, user.tenant?.timeZone)
   const [row] = await db
     .select({ used: sql<number>`COALESCE(SUM(${assistantUsage.inputTokens} + ${assistantUsage.outputTokens}), 0)` })
     .from(assistantUsage)
@@ -71,7 +71,7 @@ export async function checkQuota(user: SessionUser, at: Date = new Date()): Prom
   return {
     ok: false,
     code: 'ASSISTANT_QUOTA',
-    message: `Ai atins plafonul de asistent pentru luna ${currentMonth(at)} (${used.toLocaleString('ro-RO')} din ${cap.toLocaleString('ro-RO')} tokeni). Se reia luna viitoare.`,
+    message: `Ai atins plafonul de asistent pentru luna ${currentMonth(at, user.tenant?.timeZone)} (${used.toLocaleString('ro-RO')} din ${cap.toLocaleString('ro-RO')} tokeni). Se reia luna viitoare.`,
   }
 }
 
@@ -82,7 +82,7 @@ export async function checkQuota(user: SessionUser, at: Date = new Date()): Prom
  */
 export async function recordUsage(user: SessionUser, inputTokens: number, outputTokens: number, at: Date = new Date()): Promise<void> {
   if (inputTokens <= 0 && outputTokens <= 0) return
-  const month = currentMonth(at)
+  const month = currentMonth(at, user.tenant?.timeZone)
   const { cap, used } = await quotaState(user, at)
   await db
     .insert(assistantUsage)
