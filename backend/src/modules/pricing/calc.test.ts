@@ -363,9 +363,9 @@ describe('calculatePrice — reducere de campanie', () => {
     const config: PricingConfig = {
       ...CONFIG,
       discountPercent: 10,
-      equipmentItems: [{ id: '11111111-1111-1111-1111-111111111111', name: 'Pad', purchasePrice: 800, integrationPrice: 200, monthlyFee: 0 }],
+      equipmentItems: [{ id: '11111111-1111-4111-8111-111111111111', name: 'Pad', purchasePrice: 800, integrationPrice: 200, monthlyFee: 0 }],
     }
-    const result = calculatePrice(config, { ...BASE_INPUT, selectedEquipmentIds: ['11111111-1111-1111-1111-111111111111'] })
+    const result = calculatePrice(config, { ...BASE_INPUT, selectedEquipmentIds: ['11111111-1111-4111-8111-111111111111'] })
     expect(result.onboardingTotal).toBe((150 + 200) * 0.9 + 800)
   })
 
@@ -392,8 +392,8 @@ describe('calculatePrice — Sprint 4: echipamente fizice', () => {
   const CONFIG_WITH_EQUIPMENT: PricingConfig = {
     ...CONFIG,
     equipmentItems: [
-      { id: '11111111-1111-1111-1111-111111111111', name: 'Signature pad STU-430', purchasePrice: 800, integrationPrice: 200, monthlyFee: 15 },
-      { id: '22222222-2222-2222-2222-222222222222', name: 'Scanner ID QS2000', purchasePrice: 1200, integrationPrice: 300, monthlyFee: 25 },
+      { id: '11111111-1111-4111-8111-111111111111', name: 'Signature pad STU-430', purchasePrice: 800, integrationPrice: 200, monthlyFee: 15 },
+      { id: '22222222-2222-4222-8222-222222222222', name: 'Scanner ID QS2000', purchasePrice: 1200, integrationPrice: 300, monthlyFee: 25 },
     ],
   }
 
@@ -406,7 +406,7 @@ describe('calculatePrice — Sprint 4: echipamente fizice', () => {
   it('un echipament selectat — abonament lunar intră în totalMonthly, achiziție+integrare în onboarding', () => {
     const result = calculatePrice(CONFIG_WITH_EQUIPMENT, {
       ...BASE_INPUT,
-      selectedEquipmentIds: ['11111111-1111-1111-1111-111111111111'],
+      selectedEquipmentIds: ['11111111-1111-4111-8111-111111111111'],
     })
     expect(result.totalMonthly).toBe(90 + 15) // basePrice + monthlyFee
     expect(result.onboardingTotal).toBe(150 + 800 + 200) // hours + purchase + integration
@@ -416,8 +416,8 @@ describe('calculatePrice — Sprint 4: echipamente fizice', () => {
     const result = calculatePrice(CONFIG_WITH_EQUIPMENT, {
       ...BASE_INPUT,
       selectedEquipmentIds: [
-        '11111111-1111-1111-1111-111111111111',
-        '22222222-2222-2222-2222-222222222222',
+        '11111111-1111-4111-8111-111111111111',
+        '22222222-2222-4222-8222-222222222222',
       ],
     })
     expect(result.totalMonthly).toBe(90 + 15 + 25)

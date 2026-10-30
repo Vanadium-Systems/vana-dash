@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { updateSchema } from '../../shared/lib/update-schema.js'
 
 export const BankAccountCreateSchema = z.object({
   provider: z.string().min(1),
@@ -14,7 +15,7 @@ export const BankAccountCreateSchema = z.object({
 
 // clientId e plain (nu secret) — alocat de Revolut la înregistrarea aplicației,
 // setat separat de generarea certificatului / consimțirea OAuth.
-export const BankAccountUpdateSchema = BankAccountCreateSchema.partial().extend({
+export const BankAccountUpdateSchema = updateSchema(BankAccountCreateSchema).extend({
   clientId: z.string().min(1).optional(),
 })
 

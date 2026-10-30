@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { EmailFromSchema } from './schema.js'
+import { updateSchema } from '../../shared/lib/update-schema.js'
 
 export const IdParamsSchema = z.object({ id: z.string().uuid() })
 
@@ -22,4 +23,4 @@ export const DraftUpsertSchema = z.object({
   attachments: z.array(DraftAttachmentSchema).max(5).optional(),
 })
 
-export const DraftUpdateSchema = DraftUpsertSchema.partial()
+export const DraftUpdateSchema = updateSchema(DraftUpsertSchema)

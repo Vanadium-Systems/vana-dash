@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { lazyTr, tr } from '../../shared/lib/i18n.js'
+import { updateSchema } from '../../shared/lib/update-schema.js'
 
 // Sprint C, Track D — slug: identificator uman-lizibil comun cu vanagreen (tenants.slug
 // acolo). kebab-case, generat din name dacă lipsește la creare (vezi routes.ts).
@@ -56,7 +57,7 @@ export const ClientCreateSchema = z.object({
   contractDetails: z.record(z.string(), z.unknown()).nullable().optional(),
 })
 
-export const ClientUpdateSchema = ClientCreateSchema.partial()
+export const ClientUpdateSchema = updateSchema(ClientCreateSchema)
 
 // Doar pt. POST /api/invoicing/clients — flag tranzitoriu, NU o coloană pe billing_clients.
 // Dacă bifat, ruta creează mai întâi tenant-ul în vanagreen (POST /tenants), apoi salvează
@@ -94,7 +95,7 @@ export const InvoiceCreateSchema = z.object({
 })
 
 // Doar draft-urile se pot edita (înainte de alocarea numărului).
-export const InvoiceUpdateSchema = InvoiceCreateSchema.partial()
+export const InvoiceUpdateSchema = updateSchema(InvoiceCreateSchema)
 
 export const SequenceUpdateSchema = z.object({
   prefix: z.string().max(10).optional(),
@@ -140,7 +141,7 @@ export const InvoiceTemplateCreateSchema = z.object({
   isDefaultForAutoInvoice: z.boolean().optional(),
 })
 
-export const InvoiceTemplateUpdateSchema = InvoiceTemplateCreateSchema.partial()
+export const InvoiceTemplateUpdateSchema = updateSchema(InvoiceTemplateCreateSchema)
 
 export const ClientIdParamsSchema = z.object({ clientId: z.string().uuid() })
 export const CifParamsSchema = z.object({ cif: z.string().min(2).max(15) })

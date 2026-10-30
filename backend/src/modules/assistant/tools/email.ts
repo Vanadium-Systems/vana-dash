@@ -94,7 +94,8 @@ export async function buildEmailTools(ctx: ToolBuildContext) {
         to: z.string(),
         subject: z.string().min(1),
         body: z.string().min(1),
-        from: fromKey.optional().describe('Identitatea de pe care se trimite'),
+        // describe() before optional(): zod 4 emits optional().describe() as a $ref and the model loses the enum.
+        from: fromKey.describe('Identitatea de pe care se trimite').optional(),
         templateId: z.string().optional(),
       }),
       description: `Trimite un email nou (1:1). Ireversibil — ajunge la un terț, nu poate fi retras. ${mailboxNote}`,

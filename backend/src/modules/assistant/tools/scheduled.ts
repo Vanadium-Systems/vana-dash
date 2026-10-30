@@ -19,7 +19,7 @@ export function buildScheduledTools(ctx: ToolBuildContext) {
       inputSchema: z.object({
         when: isoDatetime.describe('Momentul reminder-ului (ISO datetime)'),
         text: z.string().min(1).max(500).describe('Ce să-ți reamintească'),
-        linkTo: z.string().max(200).optional().describe('Referință opțională la o entitate ([[type:id]])'),
+        linkTo: z.string().max(200).describe('Referință opțională la o entitate ([[type:id]])').optional(),
       }),
       description: 'Creează un reminder cu notificare push la momentul cerut (+ eveniment în Calendar).',
       summarize: (a) => {
@@ -33,7 +33,7 @@ export function buildScheduledTools(ctx: ToolBuildContext) {
         when: isoDatetime.describe('Când rulezi raportul (ISO datetime)'),
         prompt: z.string().min(1).max(4000).describe('Promptul de rulat ca și cum l-ar trimite Stefan'),
         recurrence: z.enum(['once', 'daily', 'weekly']).default('once'),
-        weekday: z.number().int().min(0).max(6).optional().describe('Doar weekly — ziua (0=duminică..6=sâmbătă)'),
+        weekday: z.number().int().min(0).max(6).describe('Doar weekly — ziua (0=duminică..6=sâmbătă)').optional(),
       }),
       description: 'Programază rularea unui prompt de asistent la data/ora cerută; rezultatul ajunge prin push și în conversație.',
       summarize: (a) => {

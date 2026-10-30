@@ -216,7 +216,7 @@ export const PricingCalculateSchema = z.object({
   // Cantități pt. add-on-urile cu benzi (sprint de-hardcodare 2026-08-25) — cheie = `key`-ul
   // add-on-ului; lipsa = 1 (add-on-urile fără benzi ignoră cantitatea). FE vechi care nu trimite
   // câmpul calculează identic ca înainte.
-  addonQuantities: z.record(z.number().int().positive()).default({}),
+  addonQuantities: z.record(z.string(), z.number().int().positive()).default({}),
   // null = the bundle's hours, else the config default. Self-serve never sends these.
   onboardingHours: z.number().nonnegative().nullable().default(null),
   onboardingMarginPercent: z.number().min(0).nullable().default(null),

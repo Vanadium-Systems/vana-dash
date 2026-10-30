@@ -63,7 +63,7 @@ export const SelfServePricingCalculateSchema = z
     // Cantități pe add-on (sprint de-hardcodare 2026-08-25) — aditiv cu default gol: recyclers_app
     // încă nu le trimite, deci lipsa = 1 pt. fiecare add-on bifat (contractul self-serve rămâne
     // neschimbat). Când wizard-ul va expune input-uri de cantitate, le va trimite aici.
-    addonQuantities: z.record(z.number().int().positive()).default({}),
+    addonQuantities: z.record(z.string(), z.number().int().positive()).default({}),
     includeOnboarding: z.boolean(),
   })
   .strict()

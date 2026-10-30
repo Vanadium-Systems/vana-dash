@@ -106,8 +106,8 @@ describe('PricingConfigSchema — Sprint 4: echipamente opționale', () => {
     const cfg = {
       ...validConfig(),
       equipmentItems: [
-        { id: '11111111-1111-1111-1111-111111111111', name: 'Signature pad', purchasePrice: 800, integrationPrice: 200, monthlyFee: 15 },
-        { id: '22222222-2222-2222-2222-222222222222', name: 'Scanner ID', purchasePrice: 0, integrationPrice: 0, monthlyFee: 0 }, // 0 permis (nonnegative, nu positive)
+        { id: '11111111-1111-4111-8111-111111111111', name: 'Signature pad', purchasePrice: 800, integrationPrice: 200, monthlyFee: 15 },
+        { id: '22222222-2222-4222-8222-222222222222', name: 'Scanner ID', purchasePrice: 0, integrationPrice: 0, monthlyFee: 0 }, // 0 permis (nonnegative, nu positive)
       ],
     }
     expect(PricingConfigSchema.safeParse(cfg).success).toBe(true)
@@ -121,7 +121,7 @@ describe('PricingConfigSchema — Sprint 4: echipamente opționale', () => {
   it('respinge un echipament cu preț negativ', () => {
     const cfg = {
       ...validConfig(),
-      equipmentItems: [{ id: '11111111-1111-1111-1111-111111111111', name: 'X', purchasePrice: -1, integrationPrice: 0, monthlyFee: 0 }],
+      equipmentItems: [{ id: '11111111-1111-4111-8111-111111111111', name: 'X', purchasePrice: -1, integrationPrice: 0, monthlyFee: 0 }],
     }
     expect(PricingConfigSchema.safeParse(cfg).success).toBe(false)
   })
@@ -129,7 +129,7 @@ describe('PricingConfigSchema — Sprint 4: echipamente opționale', () => {
   it('respinge un echipament cu nume gol', () => {
     const cfg = {
       ...validConfig(),
-      equipmentItems: [{ id: '11111111-1111-1111-1111-111111111111', name: '', purchasePrice: 1, integrationPrice: 1, monthlyFee: 1 }],
+      equipmentItems: [{ id: '11111111-1111-4111-8111-111111111111', name: '', purchasePrice: 1, integrationPrice: 1, monthlyFee: 1 }],
     }
     expect(PricingConfigSchema.safeParse(cfg).success).toBe(false)
   })
