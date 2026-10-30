@@ -4,6 +4,24 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-10-30: Price calculator — bundles by percentage, setup by the hour
+
+### Changed
+- A bundle costs the sum of its add-ons minus its `discountPercent`, instead of a fixed `price`.
+  Bundles saved with a fixed price read as 0% until edited.
+- The setup fee is hours × `onboardingHourlyRate`, with `onboardingMarginPercent` on top. The
+  calculator takes the estimated hours and margin; without them it uses the bundle's
+  `onboardingHours` or `onboardingDefaultHours`. The per-component setup fees
+  (`onboardingBase`, `onboardingOpRate`, `onboardingDeeeDelta`, `onboardingSiatdSetup`,
+  `cantarSetupPrice`) are gone.
+- Picking a bundle in the client form fills in its full monthly price in EUR.
+
+### Added
+- `discountPercent` on the price config: a campaign discount on the monthly price and the setup
+  fee, not on equipment bought at cost.
+- `GET /api/v1/integrations/vanagreen/pricing/bundles` keeps returning `price` and
+  `onboardingPrice`, now computed per request.
+
 ## 2026-10-29: Company sheet as the single source
 
 ### Changed

@@ -19,35 +19,34 @@ const CONFIG: PricingConfig = {
     { key: 'pickup', label: 'Programări', price: 30 },
   ],
   // bundle FĂRĂ operatori/puncte presetate (folosesc default-urile din bundleMonthlyInput: 1
-  // operator desktop, 1 punct) — bundleTotal (55) e doar suprataxa; totalul real include și
+  // operator desktop, 1 punct) — bundleTotal (56) e doar prețul modulelor; totalul real include și
   // basePrice (90) — exact bug-ul semnalat de Stefan (2026-09-21): rândul din Pachete NU
-  // trebuie să arate 55, ci basePrice + bundleTotal.
-  bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], price: 55, onboardingPrice: 80 }],
+  // trebuie să arate 56, ci basePrice + bundleTotal.
+  bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], discountPercent: 20, onboardingHours: 8 }],
   cantarRate: 50,
-  cantarSetupPrice: 50,
   siatdFloorPrice: 65,
   siatdFloorUnits: 40,
   siatdUnitPrice: 1.5,
   lunileAnuale: 10,
   puncteBands: [{ max: null, mult: 1.0, label: '1 punct' }],
-  onboardingBase: 150,
-  onboardingOpRate: 15,
-  onboardingDeeeDelta: 50,
-  onboardingSiatdSetup: 40,
+  onboardingHourlyRate: 30,
+  onboardingDefaultHours: 5,
+  onboardingMarginPercent: 0,
+  discountPercent: 0,
   equipmentItems: [],
 }
 
 describe('renderPriceSheetHtml', () => {
-  it('arată tariful TOTAL calculat pt. pachet, nu doar suprataxa fixă (bundle.price)', () => {
+  it('arată tariful TOTAL calculat pt. pachet, nu doar prețul modulelor din pachet', () => {
     const html = renderPriceSheetHtml(CONFIG, 'VanaGreen')
-    // basePrice(90) × mult(1.0) + bundleTotal(55) = 145 — NU 55 (bundle.price brut)
-    expect(html).toContain('145 EUR/lună')
-    expect(html).not.toMatch(/>55 EUR\/lună</)
+    // basePrice(90) × mult(1.0) + bundleTotal(70 − 20% = 56) = 146
+    expect(html).toContain('146 EUR/lună')
+    expect(html).not.toMatch(/>56 EUR\/lună</)
   })
 
-  it('taxa de inițiere a pachetului rămâne bundle.onboardingPrice (deja corect prin calc.ts)', () => {
+  it('taxa de inițiere a pachetului vine din orele lui (8 h × 30)', () => {
     const html = renderPriceSheetHtml(CONFIG, 'VanaGreen')
-    expect(html).toContain('80 EUR')
+    expect(html).toContain('240 EUR')
   })
 
   it('include rândul "Personalizat" cu notă de configurare manuală', () => {

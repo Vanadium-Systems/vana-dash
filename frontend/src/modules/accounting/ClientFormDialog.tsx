@@ -11,6 +11,7 @@ import type { AnafCompanyInfo, BillingClient, ContractDetails, Platform, Pricing
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { bundleMonthlyTotal } from '@/modules/pricing/calc'
 
 interface ClientFormDialogProps {
   open: boolean
@@ -174,8 +175,8 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
     const bundle = bundles.find((b) => b.label === planLabel)
     if (!bundle) return
     setModuleAddonSelected(bundle.addonKeys.map((k) => addonLabelByKey.get(k)).filter((l): l is string => Boolean(l)))
-    setSubscriptionPriceCurrency('lei')
-    setSubscriptionPriceAmount(String(bundle.price))
+    setSubscriptionPriceCurrency('eur')
+    setSubscriptionPriceAmount(String(bundleMonthlyTotal(pricingConfig.data!.config, bundle)))
   }
 
   useEffect(() => {

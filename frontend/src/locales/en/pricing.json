@@ -22,7 +22,8 @@
       "setupFee": "Setup fee, one-time (EUR)",
       "component": "Component",
       "value": "Value (EUR)",
-      "appliedPrice": "Price applied to the client (EUR)"
+      "appliedPrice": "Price applied to the client (EUR)",
+      "setupHours": "Setup hours billed"
     },
     "configureFirst": "First set up the price in the “Price config” tab for this platform.",
     "priceSheet": "Price sheet (PDF)",
@@ -33,7 +34,7 @@
     "purchasesPerMonth": "Purchases/month",
     "connectedScales": "Connected smart scales",
     "scalesCount": "No. of scales",
-    "bundle": "Bundle (fixed price, can be combined with add-ons outside it)",
+    "bundle": "Bundle (its modules at a discount, combinable with add-ons outside it)",
     "noBundle": "No bundle",
     "includedIn": "Already included in “{{label}}”",
     "equipment": "Equipment",
@@ -47,7 +48,11 @@
     "offlineCannotApply": "Result computed locally (offline). It cannot be applied until the server confirms it",
     "applyTitle": "Apply the computed price to the client",
     "applyBody": "The client's current subscription price is replaced with the value above.",
-    "applyConfirm": "Apply the price"
+    "applyConfirm": "Apply the price",
+    "setupHours": "Estimated setup hours",
+    "setupMargin": "Error margin (%)",
+    "setupRate": "Rate: {{rate}} / hour",
+    "setupHoursBilled": "{{hours}} h billed"
   },
   "noPlatform": "No platform connected yet. Add one from the Platforms page.",
   "tabs": {
@@ -73,18 +78,16 @@
       "documentsIncluded": "Documents included in the base",
       "deeeDelta": "DEEE/DBA flow delta",
       "scaleRate": "Smart scale: price per connected scale (EUR/month)",
-      "scaleSetup": "Smart scale: setup (EUR, one-time)",
       "siatdMin": "SIATD: minimum threshold price",
       "siatdIncluded": "SIATD: units included in the threshold",
       "siatdPerUnit": "SIATD: price per unit over the threshold",
       "yearlyPaidMonths": "Months paid on yearly billing",
-      "onboardingBase": "Onboarding: base",
-      "onboardingExtraOperator": "Onboarding: extra operator",
-      "onboardingDeeeDelta": "Onboarding: DEEE/DBA delta",
-      "onboardingSiatd": "Onboarding: SIATD setup"
+      "onboardingHourlyRate": "Setup: hourly rate (EUR)",
+      "onboardingDefaultHours": "Setup: default hours",
+      "onboardingMarginPercent": "Setup: error margin (%)",
+      "campaignDiscount": "Campaign discount (%, on everything)"
     },
     "pricePerMonth": "Price (EUR/month)",
-    "setupOneTime": "Setup (EUR, one-time)",
     "includedAddons": "Included add-ons",
     "csv": {
       "documentBands": "Document bands",
@@ -110,7 +113,6 @@
     "bundlesTitle": "Bundles (sets of add-ons at a fixed price)",
     "bundleKeyPlaceholder": "e.g. starter",
     "bundleLabelPlaceholder": "e.g. Starter bundle",
-    "fixedPricePerMonth": "Fixed price (EUR/month)",
     "presetHint": "Calculator preset (optional: prefills, stays editable; empty = unchanged)",
     "addAddonsFirst": "Add add-ons above first.",
     "addBundle": "Add a bundle",
@@ -140,7 +142,9 @@
     "multiplierNote": "The multiplier of the band below applies to {{both}}: the monthly base price AND the setup fee (onboarding).",
     "both": "both",
     "key": "Key",
-    "multiplier": "Multiplier"
+    "multiplier": "Multiplier",
+    "bundleDiscount": "Discount on modules (%)",
+    "setupHours": "Setup hours"
   },
   "templates": {
     "saved": "Template saved",
@@ -260,11 +264,12 @@
     "noBundle": "No bundle picked",
     "siatd": "SIATD robot ({{siatd}} entries)",
     "scales": "Connected smart scales ({{cantare}} × {{cantarRate}})",
-    "scalesSetup": "Smart scales setup (one-time)",
     "equipmentPurchase": "Equipment: purchase (one-time)",
     "equipmentIntegration": "Equipment: integration (one-time)",
     "equipmentSubscription": "Equipment: monthly subscription",
-    "setupFeeBundle": "Setup fee: fixed bundle price “{{label}}” (one-time)",
-    "setupFee": "Setup fee (onboarding, one-time)"
+    "setupFee": "Setup fee: {{hours}} h + {{margin}}% margin = {{billedHours}} h × {{rate}}",
+    "bundle": "Bundle: {{label}} ({{modules}} in modules, −{{discount}}%)",
+    "campaignDiscount": "Campaign discount (−{{percent}}%)",
+    "setupDiscount": "Campaign discount on setup (−{{percent}}%)"
   }
 }

@@ -26,10 +26,10 @@ function validConfig() {
       { max: 3, mult: 1.0, label: '1-3 puncte' },
       { max: null, mult: 1.65, label: 'peste 3 puncte' },
     ],
-    onboardingBase: 150,
-    onboardingOpRate: 15,
-    onboardingDeeeDelta: 50,
-    onboardingSiatdSetup: 40,
+    onboardingHourlyRate: 30,
+    onboardingDefaultHours: 5,
+    onboardingMarginPercent: 0,
+    discountPercent: 0,
   }
 }
 
@@ -134,9 +134,8 @@ describe('PricingConfigSchema — Sprint 4: echipamente opționale', () => {
     expect(PricingConfigSchema.safeParse(cfg).success).toBe(false)
   })
 
-  it('rejects cantarRate/cantarSetupPrice negative', () => {
+  it('rejects cantarRate negativ', () => {
     expect(PricingConfigSchema.safeParse({ ...validConfig(), cantarRate: -1 }).success).toBe(false)
-    expect(PricingConfigSchema.safeParse({ ...validConfig(), cantarSetupPrice: -1 }).success).toBe(false)
   })
 })
 
@@ -164,11 +163,11 @@ describe('PricingConfigSchema — catalog generic addons (Wave 0/1, sprint de-ha
   })
 })
 
-describe('PricingConfigSchema — bundle-uri (2026-08-20, cerere Stefan)', () => {
-  it('acceptă un array de bundle-uri {key, label, addonKeys, price}', () => {
+describe('PricingConfigSchema — bundle-uri', () => {
+  it('acceptă un array de bundle-uri {key, label, addonKeys, discountPercent}', () => {
     const parsed = PricingConfigSchema.safeParse({
       ...validConfig(),
-      bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], price: 55 }],
+      bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], discountPercent: 15 }],
     })
     expect(parsed.success).toBe(true)
     if (parsed.success) expect(parsed.data.bundles).toHaveLength(1)
@@ -180,32 +179,34 @@ describe('PricingConfigSchema — bundle-uri (2026-08-20, cerere Stefan)', () =>
     if (parsed.success) expect(parsed.data.bundles).toEqual([])
   })
 
-  it('rejects un bundle cu preț negativ', () => {
-    const parsed = PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: 'X', addonKeys: ['a'], price: -1 }] })
-    expect(parsed.success).toBe(false)
+  it('bundle salvat cu prețul fix vechi: discountPercent 0, price și onboardingPrice scoase', () => {
+    const parsed = PricingConfigSchema.safeParse({
+      ...validConfig(),
+      bundles: [{ key: 'x', label: 'X', addonKeys: ['a'], price: 15, onboardingPrice: 140 }],
+    })
+    expect(parsed.success).toBe(true)
+    if (parsed.success) expect(parsed.data.bundles[0]).toEqual({ key: 'x', label: 'X', addonKeys: ['a'], discountPercent: 0 })
+  })
+
+  it('rejects discountPercent în afara 0–100', () => {
+    for (const discountPercent of [-1, 101]) {
+      expect(
+        PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: 'X', addonKeys: ['a'], discountPercent }] }).success,
+      ).toBe(false)
+    }
   })
 
   it('rejects un bundle cu addonKeys gol (min 1)', () => {
-    const parsed = PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: 'X', addonKeys: [], price: 1 }] })
+    const parsed = PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: 'X', addonKeys: [] }] })
     expect(parsed.success).toBe(false)
   })
 
   it('rejects un bundle cu key sau label gol', () => {
-    expect(
-      PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: '', label: 'X', addonKeys: ['a'], price: 1 }] }).success,
-    ).toBe(false)
-    expect(
-      PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: '', addonKeys: ['a'], price: 1 }] }).success,
-    ).toBe(false)
+    expect(PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: '', label: 'X', addonKeys: ['a'] }] }).success).toBe(false)
+    expect(PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: '', addonKeys: ['a'] }] }).success).toBe(false)
   })
 
-  it('onboardingPrice implicit 0 dacă lipsește (bundle-uri create înainte de acest câmp)', () => {
-    const parsed = PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: 'X', addonKeys: ['a'], price: 1 }] })
-    expect(parsed.success).toBe(true)
-    if (parsed.success) expect(parsed.data.bundles[0]!.onboardingPrice).toBe(0)
-  })
-
-  it('acceptă preset-urile opționale (puncteLucru/operatoriDesktop/operatoriMobil/documente/cantare) + onboardingPrice explicit', () => {
+  it('acceptă preset-urile opționale (puncteLucru/operatoriDesktop/operatoriMobil/documente/cantare) + onboardingHours', () => {
     const parsed = PricingConfigSchema.safeParse({
       ...validConfig(),
       bundles: [
@@ -213,13 +214,13 @@ describe('PricingConfigSchema — bundle-uri (2026-08-20, cerere Stefan)', () =>
           key: 'business',
           label: 'Pachet Business',
           addonKeys: ['a'],
-          price: 100,
+          discountPercent: 10,
           puncteLucru: 3,
           operatoriDesktop: 2,
           operatoriMobil: 1,
           documente: 300,
           cantare: 2,
-          onboardingPrice: 150,
+          onboardingHours: 12,
         },
       ],
     })
@@ -231,18 +232,30 @@ describe('PricingConfigSchema — bundle-uri (2026-08-20, cerere Stefan)', () =>
       expect(bundle.operatoriMobil).toBe(1)
       expect(bundle.documente).toBe(300)
       expect(bundle.cantare).toBe(2)
-      expect(bundle.onboardingPrice).toBe(150)
+      expect(bundle.onboardingHours).toBe(12)
     }
   })
 
-  it('rejects onboardingPrice sau preset-uri negative', () => {
-    expect(
-      PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: 'X', addonKeys: ['a'], price: 1, onboardingPrice: -1 }] })
-        .success,
-    ).toBe(false)
-    expect(
-      PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: 'X', addonKeys: ['a'], price: 1, puncteLucru: -1 }] })
-        .success,
-    ).toBe(false)
+  it('rejects onboardingHours sau preset-uri negative', () => {
+    expect(PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: 'X', addonKeys: ['a'], onboardingHours: -1 }] }).success).toBe(false)
+    expect(PricingConfigSchema.safeParse({ ...validConfig(), bundles: [{ key: 'x', label: 'X', addonKeys: ['a'], puncteLucru: -1 }] }).success).toBe(false)
+  })
+})
+
+describe('PricingConfigSchema — inițiere pe ore și reducere de campanie', () => {
+  it('config vechi (fără câmpurile noi) primește tarif 40, 5 ore, marjă 20%, reducere 0', () => {
+    const { onboardingHourlyRate, onboardingDefaultHours, onboardingMarginPercent, discountPercent, ...old } = validConfig()
+    void [onboardingHourlyRate, onboardingDefaultHours, onboardingMarginPercent, discountPercent]
+    const parsed = PricingConfigSchema.safeParse({ ...old, onboardingBase: 210, cantarSetupPrice: 70 })
+    expect(parsed.success).toBe(true)
+    if (parsed.success) {
+      expect(parsed.data).toMatchObject({ onboardingHourlyRate: 40, onboardingDefaultHours: 5, onboardingMarginPercent: 20, discountPercent: 0 })
+      expect(parsed.data).not.toHaveProperty('onboardingBase')
+      expect(parsed.data).not.toHaveProperty('cantarSetupPrice')
+    }
+  })
+
+  it('rejects reducere de campanie peste 100%', () => {
+    expect(PricingConfigSchema.safeParse({ ...validConfig(), discountPercent: 120 }).success).toBe(false)
   })
 })

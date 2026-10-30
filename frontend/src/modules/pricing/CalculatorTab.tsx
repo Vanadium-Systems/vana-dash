@@ -26,6 +26,7 @@ function exportCalculatorCsv(result: PricingResult, platformName: string) {
     [t('pricing:calc.csv.monthlyTotal'), String(result.totalMonthly)],
     [t('pricing:calc.csv.yearlyTotal'), String(result.totalAnnual)],
     [t('pricing:calc.csv.setupFee'), String(result.onboardingTotal)],
+    [t('pricing:calc.csv.setupHours'), String(result.onboardingHours)],
     [],
     [t('pricing:calc.csv.component'), t('pricing:calc.csv.value')],
     ...result.breakdown.map((row) => [row.label, String(row.value)]),
@@ -43,6 +44,8 @@ const CALC_DEFAULTS: Omit<PricingCalculateInput, 'platformId'> = {
   selectedAddonKeys: [],
   selectedBundleKey: null,
   cantare: 0,
+  onboardingHours: null,
+  onboardingMarginPercent: null,
 }
 
 interface CalculatorTabProps {
@@ -63,6 +66,9 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
   const [mobilEnabled, setMobilEnabled] = useState(false)
   const [siatdEnabled, setSiatdEnabled] = useState(false)
   const [cantareEnabled, setCantareEnabled] = useState(false)
+  // Text, nu număr: „12,5" trebuie să se poată tasta. Gol = orele pachetului / cele implicite.
+  const [hoursText, setHoursText] = useState('')
+  const [marginText, setMarginText] = useState('')
 
   const config = useQuery({
     queryKey: ['pricing', 'config', platformId],
@@ -97,11 +103,17 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
     })
   }, [prospect.data])
 
+  const calcInput = () => ({
+    ...input,
+    onboardingHours: hoursText.trim() === '' ? null : parseRoDecimal(hoursText) || 0,
+    onboardingMarginPercent: marginText.trim() === '' ? null : parseRoDecimal(marginText) || 0,
+  })
+
   const calc = useMutation({
-    mutationFn: () => api.post<PricingResult>('/api/pricing/calculate', { platformId, ...input }),
+    mutationFn: () => api.post<PricingResult>('/api/pricing/calculate', { platformId, ...calcInput() }),
     onMutate: () => setLocalResult(null),
     onError: (err) => {
-      if (config.data?.config) setLocalResult(calculatePrice(config.data.config, { platformId, ...input }))
+      if (config.data?.config) setLocalResult(calculatePrice(config.data.config, { platformId, ...calcInput() }))
       toast.error(err.message)
     },
   })
@@ -135,6 +147,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
 
   const activeBundle = config.data.config.bundles.find((b) => b.key === input.selectedBundleKey)
   const activeBundleAddonKeys = new Set(activeBundle?.addonKeys ?? [])
+  const defaultHours = activeBundle?.onboardingHours ?? config.data.config.onboardingDefaultHours
 
   return (
     <div className="space-y-6">
@@ -373,6 +386,36 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
             </div>
           ) : null}
 
+          <div className="flex flex-wrap items-end gap-4 border-t pt-3">
+            <div className="w-40 space-y-1">
+              <Label htmlFor="calc-onboarding-hours" className="text-xs">
+                {t('pricing:calc.setupHours')}
+              </Label>
+              <Input
+                id="calc-onboarding-hours"
+                inputMode="decimal"
+                placeholder={String(defaultHours)}
+                value={hoursText}
+                onChange={(e) => setHoursText(e.target.value)}
+              />
+            </div>
+            <div className="w-40 space-y-1">
+              <Label htmlFor="calc-onboarding-margin" className="text-xs">
+                {t('pricing:calc.setupMargin')}
+              </Label>
+              <Input
+                id="calc-onboarding-margin"
+                inputMode="decimal"
+                placeholder={String(config.data.config.onboardingMarginPercent)}
+                value={marginText}
+                onChange={(e) => setMarginText(e.target.value)}
+              />
+            </div>
+            <p className="pb-2 text-xs text-muted-foreground">
+              {t('pricing:calc.setupRate', { rate: formatNumber(config.data.config.onboardingHourlyRate, 'EUR') })}
+            </p>
+          </div>
+
           <Button onClick={() => calc.mutate()} disabled={calc.isPending}>
             {calc.isPending ? t('common:states.calculating') : t('pricing:calc.calculate')}
           </Button>
@@ -417,6 +460,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                 <div>
                   <div className="text-xs text-muted-foreground">{t('pricing:calc.setupFee')}</div>
                   <div className="text-xl font-bold">{formatNumber(result.onboardingTotal, 'EUR')}</div>
+                  <div className="text-xs text-muted-foreground">{t('pricing:calc.setupHoursBilled', { hours: formatNumber(result.onboardingHours) })}</div>
                 </div>
               </div>
               <div className="space-y-1 text-xs text-muted-foreground">

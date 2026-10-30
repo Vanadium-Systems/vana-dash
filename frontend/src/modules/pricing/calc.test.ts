@@ -32,9 +32,8 @@ const config: PricingConfig = {
     { key: 'hr', label: 'Modul HR', price: 30 },
     { key: 'ai_assistant', label: 'VanaGreen AI', price: 25 },
   ],
-  bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], price: 45, onboardingPrice: 70 }],
+  bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], discountPercent: 15, onboardingHours: 8 }],
   cantarRate: 50,
-  cantarSetupPrice: 50,
   siatdFloorPrice: 100,
   siatdFloorUnits: 50,
   siatdUnitPrice: 1.5,
@@ -44,10 +43,10 @@ const config: PricingConfig = {
     { max: 6, mult: 1.5, label: '3-6 puncte' },
     { max: null, mult: 2, label: 'peste 6 puncte' },
   ],
-  onboardingBase: 200,
-  onboardingOpRate: 10,
-  onboardingDeeeDelta: 20,
-  onboardingSiatdSetup: 50,
+  onboardingHourlyRate: 40,
+  onboardingDefaultHours: 5,
+  onboardingMarginPercent: 20,
+  discountPercent: 0,
   equipmentItems: [
     { id: '11111111-1111-1111-1111-111111111111', name: 'Signature pad', purchasePrice: 800, integrationPrice: 200, monthlyFee: 15 },
     { id: '22222222-2222-2222-2222-222222222222', name: 'Scanner ID', purchasePrice: 1200, integrationPrice: 300, monthlyFee: 25 },
@@ -65,6 +64,8 @@ const baseInput: Omit<PricingCalculateInput, 'platformId'> = {
   selectedAddonKeys: [],
   selectedBundleKey: null,
   cantare: 0,
+  onboardingHours: null,
+  onboardingMarginPercent: null,
 }
 
 const cases: Array<Partial<typeof baseInput>> = [
@@ -96,6 +97,9 @@ const cases: Array<Partial<typeof baseInput>> = [
   { selectedBundleKey: 'starter', selectedAddonKeys: ['treatment', 'pickup'] },
   { selectedBundleKey: 'starter', selectedAddonKeys: ['crm'], puncte: 3 },
   { selectedBundleKey: 'does_not_exist' },
+  { onboardingHours: 20 },
+  { onboardingHours: 20, onboardingMarginPercent: 25, selectedBundleKey: 'starter' },
+  { onboardingHours: 0 },
 ]
 
 describe('calculatePrice — paritate frontend/backend', () => {
@@ -105,5 +109,15 @@ describe('calculatePrice — paritate frontend/backend', () => {
     // backend-ul primește input post-Zod: addonQuantities mereu prezent prin .default({})
     const beResult = calculatePriceBackend(config, { ...input, addonQuantities: input.addonQuantities ?? {} })
     expect(feResult).toEqual(beResult)
+  })
+})
+
+describe('calculatePrice — paritate cu reducere de campanie', () => {
+  it.each(cases)('produce rezultate identice pentru input %#', (partial) => {
+    const discounted = { ...config, discountPercent: 15 }
+    const input: PricingCalculateInput = { platformId: 'test-platform', ...baseInput, ...partial }
+    expect(calculatePriceFrontend(discounted, input)).toEqual(
+      calculatePriceBackend(discounted, { ...input, addonQuantities: input.addonQuantities ?? {} }),
+    )
   })
 })

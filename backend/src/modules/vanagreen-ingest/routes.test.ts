@@ -39,16 +39,15 @@ const MINIMAL_CONFIG = {
   ],
   bundles: [],
   cantarRate: 50,
-  cantarSetupPrice: 50,
   siatdFloorPrice: 65,
   siatdFloorUnits: 40,
   siatdUnitPrice: 1.5,
   lunileAnuale: 10,
   puncteBands: [{ max: null, mult: 1, label: 'orice nr. de puncte' }],
-  onboardingBase: 150,
-  onboardingOpRate: 15,
-  onboardingDeeeDelta: 50,
-  onboardingSiatdSetup: 40,
+  onboardingHourlyRate: 30,
+  onboardingDefaultHours: 5,
+  onboardingMarginPercent: 0,
+  discountPercent: 0,
   equipmentItems: [],
 }
 
@@ -181,7 +180,7 @@ describe('POST /api/v1/integrations/vanagreen/pricing/calculate', () => {
 
   it("acceptă 'bundle' — NU 400 pe .strict() (2026-08-20, catalog dinamic, nu enum fix)", async () => {
     const platform = await makeVanagreenPlatform()
-    await upsertConfig(platform.id, { ...MINIMAL_CONFIG, bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment'], price: 35, onboardingPrice: 50 }] })
+    await upsertConfig(platform.id, { ...MINIMAL_CONFIG, bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment'], discountPercent: 25 }] })
 
     const res = await app.inject({
       method: 'POST',
@@ -190,8 +189,8 @@ describe('POST /api/v1/integrations/vanagreen/pricing/calculate', () => {
       payload: { ...samplePricingPayload(), addons: [], bundle: 'starter' },
     })
     expect(res.statusCode).toBe(200)
-    // 135 (bază — ca testul "acceptă 'signature_pad'.../id_scanner'" de mai sus) + 35 (pachet fix)
-    expect(res.json().totalMonthly).toBe(135 + 35)
+    // 135 (bază — ca testul "acceptă 'signature_pad'.../id_scanner'" de mai sus) + treatment 40 − 25%
+    expect(res.json().totalMonthly).toBe(135 + 30)
   })
 })
 
@@ -201,9 +200,9 @@ describe('GET /api/v1/integrations/vanagreen/pricing/bundles', () => {
     expect(res.statusCode).toBe(401)
   })
 
-  it('întoarce catalogul de pachete al platformei configurate', async () => {
+  it('întoarce catalogul de pachete cu price și onboardingPrice calculate', async () => {
     const platform = await makeVanagreenPlatform()
-    const bundles = [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment'], price: 35, onboardingPrice: 50 }]
+    const bundles = [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment'], discountPercent: 25, onboardingHours: 4 }]
     await upsertConfig(platform.id, { ...MINIMAL_CONFIG, bundles })
 
     const res = await app.inject({
@@ -212,7 +211,8 @@ describe('GET /api/v1/integrations/vanagreen/pricing/bundles', () => {
       headers: { 'x-ingest-token': PRICING_TOKEN },
     })
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ success: true, data: bundles })
+    // treatment 40 − 25% = 30; 4 h × 30 = 120
+    expect(res.json()).toEqual({ success: true, data: [{ ...bundles[0], price: 30, onboardingPrice: 120 }] })
   })
 
   it('array gol dacă platforma vanagreen nu e configurată', async () => {

@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-30T15:00:00+02:00',
+    title: {
+      ro: 'Taxa de inițiere se calculează pe ore',
+      en: 'The setup fee is worked out in hours',
+    },
+    body: {
+      ro: 'În Calculator scrii câte ore estimezi pentru inițiere și o marjă de eroare; taxa e ore × tariful pe oră din Config preț. Un pachet costă acum suma modulelor lui minus un procent, iar în Config preț poți porni o reducere de campanie care se aplică la tot.',
+      en: 'In the Calculator you enter the hours you expect setup to take and an error margin; the fee is hours × the hourly rate in Price config. A bundle now costs the sum of its modules minus a percentage, and Price config has a campaign discount that applies to everything.',
+    },
+    features: ['clienti.calculator', 'clienti.config-pret'],
+  },
+  {
     publishedAt: '2026-10-30T12:00:00+02:00',
     title: {
       ro: 'Niciun tabel nu mai iese din ecran',

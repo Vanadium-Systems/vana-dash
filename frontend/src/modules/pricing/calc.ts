@@ -9,6 +9,12 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
+function addonLine(addon: PricingConfig['addons'][number], quantity: number): { total: number; label: string } {
+  if (!addon.bands?.length) return { total: addon.price, label: `Add-on: ${addon.label}` }
+  const band = addon.bands.find((b) => b.upTo === null || quantity <= b.upTo) ?? addon.bands[addon.bands.length - 1]!
+  return { total: quantity * band.unitPrice, label: t('pricing:breakdown.addonWithQuantity', { label: addon.label, quantity, unitPrice: band.unitPrice }) }
+}
+
 function puncteMultiplier(puncte: number, bands: PricingPuncteBand[]): PricingPuncteBand {
   for (const band of bands) {
     if (band.max === null || puncte <= band.max) return band
@@ -51,30 +57,25 @@ export function calculatePrice(config: PricingConfig, input: PricingCalculateInp
 
   const bundle = input.selectedBundleKey ? config.bundles.find((b) => b.key === input.selectedBundleKey) : undefined
   const bundleAddonKeys = new Set(bundle?.addonKeys ?? [])
-  const bundleTotal = bundle?.price ?? 0
+  const bundleModulesTotal = config.addons
+    .filter((a) => bundleAddonKeys.has(a.key))
+    .reduce((sum, a) => sum + addonLine(a, input.addonQuantities?.[a.key] ?? 1).total, 0)
+  const bundleTotal = bundleModulesTotal * (1 - (bundle?.discountPercent ?? 0) / 100)
 
   const selectedAddonKeys = new Set(input.selectedAddonKeys)
   const selectedAddons = config.addons.filter((a) => selectedAddonKeys.has(a.key) && !bundleAddonKeys.has(a.key))
   let addonsTotal = 0
   const addonBreakdownRows: PricingBreakdownRow[] = []
   for (const addon of selectedAddons) {
-    if (!addon.bands?.length) {
-      addonsTotal += addon.price
-      addonBreakdownRows.push({ label: `Add-on: ${addon.label}`, value: round2(addon.price) })
-      continue
-    }
-    const quantity = input.addonQuantities?.[addon.key] ?? 1
-    const band = addon.bands.find((b) => b.upTo === null || quantity <= b.upTo) ?? addon.bands[addon.bands.length - 1]!
-    const lineTotal = quantity * band.unitPrice
-    addonsTotal += lineTotal
-    addonBreakdownRows.push({ label: t('pricing:breakdown.addonWithQuantity', { label: addon.label, quantity, unitPrice: band.unitPrice }), value: round2(lineTotal) })
+    const line = addonLine(addon, input.addonQuantities?.[addon.key] ?? 1)
+    addonsTotal += line.total
+    addonBreakdownRows.push({ label: line.label, value: round2(line.total) })
   }
 
   const siatdTotal =
     input.siatd > 0 ? config.siatdFloorPrice + Math.max(0, input.siatd - config.siatdFloorUnits) * config.siatdUnitPrice : 0
 
   const cantarTotal = input.cantare * config.cantarRate
-  const cantarSetupCost = input.cantare > 0 ? config.cantarSetupPrice : 0
 
   // Sprint 4 — echipamente fizice selectate pt. clientul ăsta.
   const selectedEquipment = config.equipmentItems.filter((e) => input.selectedEquipmentIds.includes(e.id))
@@ -82,25 +83,18 @@ export function calculatePrice(config: PricingConfig, input: PricingCalculateInp
   const equipmentIntegrationTotal = selectedEquipment.reduce((s, e) => s + e.integrationPrice, 0)
   const equipmentMonthlyTotal = selectedEquipment.reduce((s, e) => s + e.monthlyFee, 0)
 
-  const totalMonthly =
+  const monthlySubtotal =
     base + extraOpDesktop + extraOpMobil + extraDoc + fluxDelta + bundleTotal + addonsTotal + siatdTotal + cantarTotal + equipmentMonthlyTotal
+  const monthlyDiscount = monthlySubtotal * (config.discountPercent / 100)
+  const totalMonthly = monthlySubtotal - monthlyDiscount
   const totalAnnual = totalMonthly * config.lunileAnuale
 
-  const onboardingBaseCost = config.onboardingBase * band.mult
-  const onboardingOpCost = Math.max(0, opDesktop - 1) * config.onboardingOpRate
-  const onboardingDeeeCost = input.flux === 'deee' ? config.onboardingDeeeDelta : 0
-  const onboardingSiatdCost = input.siatd > 0 ? config.onboardingSiatdSetup : 0
-  // Bundle selectat → ÎNLOCUIEȘTE COMPLET formula normală de onboarding cu taxa fixă a
-  // pachetului (nu se adună cu ea) — decizie explicită Stefan, 2026-08-20.
-  const onboardingTotal = bundle
-    ? bundle.onboardingPrice
-    : onboardingBaseCost +
-      onboardingOpCost +
-      onboardingDeeeCost +
-      onboardingSiatdCost +
-      cantarSetupCost +
-      equipmentPurchaseTotal +
-      equipmentIntegrationTotal
+  const hours = input.onboardingHours ?? bundle?.onboardingHours ?? config.onboardingDefaultHours
+  const marginPercent = input.onboardingMarginPercent ?? config.onboardingMarginPercent
+  const billedHours = hours * (1 + marginPercent / 100)
+  const onboardingLabor = billedHours * config.onboardingHourlyRate + equipmentIntegrationTotal
+  const onboardingDiscount = onboardingLabor * (config.discountPercent / 100)
+  const onboardingTotal = onboardingLabor - onboardingDiscount + equipmentPurchaseTotal
 
   const breakdown: PricingBreakdownRow[] = [
     { label: t('pricing:breakdown.base', { label: band.label, mult: band.mult }), value: round2(base) },
@@ -108,26 +102,52 @@ export function calculatePrice(config: PricingConfig, input: PricingCalculateInp
     { label: t('pricing:breakdown.mobile', { opMobil: input.opMobil, operatorMobilRate: config.operatorMobilRate }), value: round2(extraOpMobil) },
     { label: t('pricing:breakdown.extraDocuments', { count: Math.max(0, input.documente - config.documenteIncluse) }), value: round2(extraDoc) },
     { label: t('pricing:breakdown.deeeFlow'), value: round2(fluxDelta) },
-    { label: bundle ? `Pachet: ${bundle.label}` : t('pricing:breakdown.noBundle'), value: round2(bundleTotal) },
+    {
+      label: bundle
+        ? t('pricing:breakdown.bundle', { label: bundle.label, modules: round2(bundleModulesTotal), discount: bundle.discountPercent })
+        : t('pricing:breakdown.noBundle'),
+      value: round2(bundleTotal),
+    },
     ...addonBreakdownRows,
     { label: t('pricing:breakdown.siatd', { siatd: input.siatd }), value: round2(siatdTotal) },
     { label: t('pricing:breakdown.scales', { cantare: input.cantare, cantarRate: config.cantarRate }), value: round2(cantarTotal) },
-    { label: t('pricing:breakdown.scalesSetup'), value: round2(cantarSetupCost) },
     { label: t('pricing:breakdown.equipmentPurchase'), value: round2(equipmentPurchaseTotal) },
     { label: t('pricing:breakdown.equipmentIntegration'), value: round2(equipmentIntegrationTotal) },
     { label: t('pricing:breakdown.equipmentSubscription'), value: round2(equipmentMonthlyTotal) },
+    ...(monthlyDiscount ? [{ label: t('pricing:breakdown.campaignDiscount', { percent: config.discountPercent }), value: -round2(monthlyDiscount) }] : []),
     {
-      label: bundle ? t('pricing:breakdown.setupFeeBundle', { label: bundle.label }) : t('pricing:breakdown.setupFee'),
-      value: round2(onboardingTotal),
+      label: t('pricing:breakdown.setupFee', { hours, margin: marginPercent, billedHours: round2(billedHours), rate: config.onboardingHourlyRate }),
+      value: round2(billedHours * config.onboardingHourlyRate),
     },
+    ...(onboardingDiscount ? [{ label: t('pricing:breakdown.setupDiscount', { percent: config.discountPercent }), value: -round2(onboardingDiscount) }] : []),
   ]
 
   return {
     totalMonthly: round2(totalMonthly),
     totalAnnual: round2(totalAnnual),
     onboardingTotal: round2(onboardingTotal),
+    onboardingHours: round2(billedHours),
     manualReviewNeeded: docManual,
     planName: band.planName ?? null,
     breakdown,
   }
+}
+
+/** Monthly price of a bundle at its preset configuration, the same figure the price sheet shows. */
+export function bundleMonthlyTotal(config: PricingConfig, bundle: PricingConfig['bundles'][number]): number {
+  return calculatePrice(config, {
+    platformId: '',
+    flux: 'standard',
+    opDesktop: bundle.operatoriDesktop ?? 1,
+    opMobil: bundle.operatoriMobil ?? 0,
+    puncte: bundle.puncteLucru ?? 1,
+    documente: bundle.documente ?? config.documenteIncluse,
+    siatd: 0,
+    selectedEquipmentIds: [],
+    selectedAddonKeys: [],
+    selectedBundleKey: bundle.key,
+    cantare: bundle.cantare ?? 0,
+    onboardingHours: null,
+    onboardingMarginPercent: null,
+  }).totalMonthly
 }

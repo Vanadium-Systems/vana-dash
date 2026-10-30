@@ -47,13 +47,13 @@ interface BundleDraft {
   key: string
   label: string
   addonKeys: string[]
-  price: string
+  discountPercent: string
   puncteLucru: string // gol = fără preset
   operatoriDesktop: string
   operatoriMobil: string
   documente: string
   cantare: string
-  onboardingPrice: string
+  onboardingHours: string // gol = orele implicite din config
 }
 
 interface ConfigForm {
@@ -65,15 +65,14 @@ interface ConfigForm {
   addons: AddonDraft[]
   bundles: BundleDraft[]
   cantarRate: string
-  cantarSetupPrice: string
   siatdFloorPrice: string
   siatdFloorUnits: string
   siatdUnitPrice: string
   lunileAnuale: string
-  onboardingBase: string
-  onboardingOpRate: string
-  onboardingDeeeDelta: string
-  onboardingSiatdSetup: string
+  onboardingHourlyRate: string
+  onboardingDefaultHours: string
+  onboardingMarginPercent: string
+  discountPercent: string
   documentBands: DocBandDraft[]
   puncteBands: PuncteBandDraft[]
   equipmentItems: EquipmentDraft[]
@@ -92,15 +91,14 @@ function emptyConfigForm(): ConfigForm {
     addons: [],
     bundles: [],
     cantarRate: '',
-    cantarSetupPrice: '',
     siatdFloorPrice: '',
     siatdFloorUnits: '',
     siatdUnitPrice: '',
     lunileAnuale: '',
-    onboardingBase: '',
-    onboardingOpRate: '',
-    onboardingDeeeDelta: '',
-    onboardingSiatdSetup: '',
+    onboardingHourlyRate: '',
+    onboardingDefaultHours: '',
+    onboardingMarginPercent: '',
+    discountPercent: '',
     documentBands: [{ upTo: '', rate: '' }],
     puncteBands: [{ max: '', mult: '', label: '', planName: '' }],
     equipmentItems: [],
@@ -124,24 +122,23 @@ function configToForm(c: PricingConfig): ConfigForm {
       key: b.key,
       label: b.label,
       addonKeys: b.addonKeys,
-      price: String(b.price),
+      discountPercent: String(b.discountPercent),
       puncteLucru: b.puncteLucru === undefined ? '' : String(b.puncteLucru),
       operatoriDesktop: b.operatoriDesktop === undefined ? '' : String(b.operatoriDesktop),
       operatoriMobil: b.operatoriMobil === undefined ? '' : String(b.operatoriMobil),
       documente: b.documente === undefined ? '' : String(b.documente),
       cantare: b.cantare === undefined ? '' : String(b.cantare),
-      onboardingPrice: String(b.onboardingPrice),
+      onboardingHours: b.onboardingHours === undefined ? '' : String(b.onboardingHours),
     })),
     cantarRate: String(c.cantarRate),
-    cantarSetupPrice: String(c.cantarSetupPrice),
     siatdFloorPrice: String(c.siatdFloorPrice),
     siatdFloorUnits: String(c.siatdFloorUnits),
     siatdUnitPrice: String(c.siatdUnitPrice),
     lunileAnuale: String(c.lunileAnuale),
-    onboardingBase: String(c.onboardingBase),
-    onboardingOpRate: String(c.onboardingOpRate),
-    onboardingDeeeDelta: String(c.onboardingDeeeDelta),
-    onboardingSiatdSetup: String(c.onboardingSiatdSetup),
+    onboardingHourlyRate: String(c.onboardingHourlyRate),
+    onboardingDefaultHours: String(c.onboardingDefaultHours),
+    onboardingMarginPercent: String(c.onboardingMarginPercent),
+    discountPercent: String(c.discountPercent),
     documentBands: c.documentBands.map((b) => ({ upTo: b.upTo === null ? '' : String(b.upTo), rate: b.rate === null ? '' : String(b.rate) })),
     puncteBands: c.puncteBands.map((b) => ({ max: b.max === null ? '' : String(b.max), mult: String(b.mult), label: b.label, planName: b.planName ?? '' })),
     equipmentItems: c.equipmentItems.map((e) => ({
@@ -175,24 +172,23 @@ function formToConfig(f: ConfigForm): PricingConfig {
       key: b.key,
       label: b.label,
       addonKeys: b.addonKeys,
-      price: parseRoDecimal(b.price) || 0,
+      discountPercent: parseRoDecimal(b.discountPercent) || 0,
       puncteLucru: b.puncteLucru === '' ? undefined : parseRoDecimal(b.puncteLucru) || 0,
       operatoriDesktop: b.operatoriDesktop === '' ? undefined : parseRoDecimal(b.operatoriDesktop) || 0,
       operatoriMobil: b.operatoriMobil === '' ? undefined : parseRoDecimal(b.operatoriMobil) || 0,
       documente: b.documente === '' ? undefined : parseRoDecimal(b.documente) || 0,
       cantare: b.cantare === '' ? undefined : parseRoDecimal(b.cantare) || 0,
-      onboardingPrice: parseRoDecimal(b.onboardingPrice) || 0,
+      onboardingHours: b.onboardingHours === '' ? undefined : parseRoDecimal(b.onboardingHours) || 0,
     })),
     cantarRate: parseRoDecimal(f.cantarRate) || 0,
-    cantarSetupPrice: parseRoDecimal(f.cantarSetupPrice) || 0,
     siatdFloorPrice: parseRoDecimal(f.siatdFloorPrice) || 0,
     siatdFloorUnits: parseRoDecimal(f.siatdFloorUnits) || 0,
     siatdUnitPrice: parseRoDecimal(f.siatdUnitPrice) || 0,
     lunileAnuale: parseRoDecimal(f.lunileAnuale) || 0,
-    onboardingBase: parseRoDecimal(f.onboardingBase) || 0,
-    onboardingOpRate: parseRoDecimal(f.onboardingOpRate) || 0,
-    onboardingDeeeDelta: parseRoDecimal(f.onboardingDeeeDelta) || 0,
-    onboardingSiatdSetup: parseRoDecimal(f.onboardingSiatdSetup) || 0,
+    onboardingHourlyRate: parseRoDecimal(f.onboardingHourlyRate) || 0,
+    onboardingDefaultHours: parseRoDecimal(f.onboardingDefaultHours) || 0,
+    onboardingMarginPercent: parseRoDecimal(f.onboardingMarginPercent) || 0,
+    discountPercent: parseRoDecimal(f.discountPercent) || 0,
     documentBands: f.documentBands.map((b) => ({ upTo: b.upTo === '' ? null : parseRoDecimal(b.upTo), rate: b.rate === '' ? null : parseRoDecimal(b.rate) })),
     puncteBands: f.puncteBands.map((b) => ({
       max: b.max === '' ? null : parseRoDecimal(b.max),
@@ -217,15 +213,14 @@ const NUMERIC_FIELDS: Array<[keyof ConfigForm, string]> = [
   ['documenteIncluse', t('pricing:config.fields.documentsIncluded')],
   ['fluxDeeeDelta', t('pricing:config.fields.deeeDelta')],
   ['cantarRate', t('pricing:config.fields.scaleRate')],
-  ['cantarSetupPrice', t('pricing:config.fields.scaleSetup')],
   ['siatdFloorPrice', t('pricing:config.fields.siatdMin')],
   ['siatdFloorUnits', t('pricing:config.fields.siatdIncluded')],
   ['siatdUnitPrice', t('pricing:config.fields.siatdPerUnit')],
   ['lunileAnuale', t('pricing:config.fields.yearlyPaidMonths')],
-  ['onboardingBase', t('pricing:config.fields.onboardingBase')],
-  ['onboardingOpRate', t('pricing:config.fields.onboardingExtraOperator')],
-  ['onboardingDeeeDelta', t('pricing:config.fields.onboardingDeeeDelta')],
-  ['onboardingSiatdSetup', t('pricing:config.fields.onboardingSiatd')],
+  ['onboardingHourlyRate', t('pricing:config.fields.onboardingHourlyRate')],
+  ['onboardingDefaultHours', t('pricing:config.fields.onboardingDefaultHours')],
+  ['onboardingMarginPercent', t('pricing:config.fields.onboardingMarginPercent')],
+  ['discountPercent', t('pricing:config.fields.campaignDiscount')],
 ]
 
 function exportConfigCsv(config: PricingConfig, platformName: string) {
@@ -243,8 +238,8 @@ function exportConfigCsv(config: PricingConfig, platformName: string) {
     [
       t('pricing:config.key'),
       t('common:labels.label'),
-      t('pricing:config.pricePerMonth'),
-      t('pricing:config.setupOneTime'),
+      t('pricing:config.bundleDiscount'),
+      t('pricing:config.setupHours'),
       t('pricing:fields.workSites'),
       t('pricing:fields.desktopOperators'),
       t('pricing:fields.mobileOperators'),
@@ -255,8 +250,8 @@ function exportConfigCsv(config: PricingConfig, platformName: string) {
     ...config.bundles.map((b) => [
       b.key,
       b.label,
-      String(b.price),
-      String(b.onboardingPrice),
+      String(b.discountPercent),
+      b.onboardingHours !== undefined ? String(b.onboardingHours) : '',
       b.puncteLucru !== undefined ? String(b.puncteLucru) : '',
       b.operatoriDesktop !== undefined ? String(b.operatoriDesktop) : '',
       b.operatoriMobil !== undefined ? String(b.operatoriMobil) : '',
@@ -514,25 +509,26 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                       />
                     </div>
                     <div className="w-28 space-y-1">
-                      <Label htmlFor={`bundle-price-${i}`} className="text-xs">
-                        {t('pricing:config.fixedPricePerMonth')}
+                      <Label htmlFor={`bundle-discount-${i}`} className="text-xs">
+                        {t('pricing:config.bundleDiscount')}
                       </Label>
                       <Input
-                        id={`bundle-price-${i}`}
+                        id={`bundle-discount-${i}`}
                         inputMode="decimal"
-                        value={row.price}
-                        onChange={(e) => update({ ...row, price: e.target.value })}
+                        value={row.discountPercent}
+                        onChange={(e) => update({ ...row, discountPercent: e.target.value })}
                       />
                     </div>
                     <div className="w-28 space-y-1">
                       <Label htmlFor={`bundle-onboarding-${i}`} className="text-xs">
-                        {t('pricing:config.setupOneTime')}
+                        {t('pricing:config.setupHours')}
                       </Label>
                       <Input
                         id={`bundle-onboarding-${i}`}
                         inputMode="decimal"
-                        value={row.onboardingPrice}
-                        onChange={(e) => update({ ...row, onboardingPrice: e.target.value })}
+                        placeholder={form.onboardingDefaultHours}
+                        value={row.onboardingHours}
+                        onChange={(e) => update({ ...row, onboardingHours: e.target.value })}
                       />
                     </div>
                     <div className="w-full space-y-1 border-t pt-2">
@@ -635,13 +631,13 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                         key: '',
                         label: '',
                         addonKeys: [],
-                        price: '',
+                        discountPercent: '',
                         puncteLucru: '',
                         operatoriDesktop: '',
                         operatoriMobil: '',
                         documente: '',
                         cantare: '',
-                        onboardingPrice: '',
+                        onboardingHours: '',
                       },
                     ],
                   }))
