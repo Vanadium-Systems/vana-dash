@@ -10,7 +10,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Switch } from '@/shared/components/ui/switch'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import { formatDate } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
@@ -108,11 +108,11 @@ function TenantTable({
       <TableHeader>
         <TableRow>
           <TableHead>{t('tenants:columns.name')}</TableHead>
-          <TableHead>{t('tenants:columns.cif')}</TableHead>
-          <TableHead className="text-right">{t('tenants:columns.users')}</TableHead>
-          <TableHead>{t('tenants:columns.features')}</TableHead>
+          <TableHead priority="lg">{t('tenants:columns.cif')}</TableHead>
+          <TableHead priority="md" className="text-right">{t('tenants:columns.users')}</TableHead>
+          <TableHead priority="md">{t('tenants:columns.features')}</TableHead>
           <TableHead>{t('tenants:columns.status')}</TableHead>
-          <TableHead>{t('tenants:columns.created')}</TableHead>
+          <TableHead priority="lg">{t('tenants:columns.created')}</TableHead>
           <TableHead>
             <span className="sr-only">{t('common:labels.actions')}</span>
           </TableHead>
@@ -121,19 +121,20 @@ function TenantTable({
       <TableBody>
         {rows.map((row) => (
           <TableRow key={row.id} className="group">
-            <TableCell className="min-w-[12rem]">
-              <span className="block font-medium">{row.name}</span>
+            <TableCell className="w-full max-w-0">
+              <span className="block truncate font-medium">{row.name}</span>
               {row.isPlatformOwner ? <span className="block text-xs text-muted-foreground">{t('tenants:owner')}</span> : null}
+              <TableDetails items={[row.cif, t('tenants:columns.users') + ': ' + row.userCount]} />
             </TableCell>
-            <TableCell className="text-muted-foreground">{row.cif || '–'}</TableCell>
-            <TableCell className="text-right tabular-nums">{row.userCount}</TableCell>
-            <TableCell className="text-muted-foreground">
+            <TableCell priority="lg" className="whitespace-nowrap text-muted-foreground">{row.cif || '–'}</TableCell>
+            <TableCell priority="md" className="text-right tabular-nums">{row.userCount}</TableCell>
+            <TableCell priority="md" className="whitespace-nowrap text-muted-foreground">
               {row.isPlatformOwner ? t('tenants:allFeatures') : t('tenants:featureCount', { count: row.features.length })}
             </TableCell>
             <TableCell>
               <StatePill tone={row.status === 'active' ? 'success' : 'warning'}>{t(`tenants:status.${row.status}`)}</StatePill>
             </TableCell>
-            <TableCell className="text-muted-foreground">{formatDate(row.createdAt)}</TableCell>
+            <TableCell priority="lg" className="whitespace-nowrap text-muted-foreground">{formatDate(row.createdAt)}</TableCell>
             <TableCell className="min-w-[10rem]">
               {row.isPlatformOwner ? null : (
                 <div className="flex flex-wrap gap-1">

@@ -58,6 +58,9 @@ function LastSeen({ at }: { at: string | null }) {
   )
 }
 
+// Name, email, role, mailboxes, state, last activity, actions: what drops first on a narrow screen.
+const COLUMN_VISIBILITY = ['', 'hidden md:table-cell', '', 'hidden lg:table-cell', '', 'hidden lg:table-cell', '']
+
 /** Identitățile de trimitere existente, ca omul să aleagă din ce îi e permis. */
 function useIdentities(enabled: boolean) {
   return useQuery({
@@ -273,11 +276,11 @@ export function TeamPage() {
                 <caption className="sr-only">{t('team:members.tableCaption')}</caption>
                 <thead>
                   <tr>
-                    {[t('common:labels.name'), t('common:labels.email'), t('common:labels.role'), t('team:members.mailboxesShort'), t('common:labels.state'), t('team:members.lastActivity'), ''].map((heading) => (
+                    {[t('common:labels.name'), t('common:labels.email'), t('common:labels.role'), t('team:members.mailboxesShort'), t('common:labels.state'), t('team:members.lastActivity'), ''].map((heading, index) => (
                       <th
                         key={heading || 'actions'}
                         scope="col"
-                        className={cn('border-b pb-2 text-left text-xs font-normal text-muted-foreground', heading === 'Nume' && 'w-1/4')}
+                        className={cn('whitespace-nowrap border-b pb-2 pr-3 text-left text-xs font-normal text-muted-foreground', COLUMN_VISIBILITY[index])}
                       >
                         {heading ? heading : <span className="sr-only">{t('common:labels.actions')}</span>}
                       </th>
@@ -290,11 +293,14 @@ export function TeamPage() {
                     const isAdmin = member.role?.kind === 'admin'
                     return (
                       <tr key={member.id} className="border-t">
-                        <td className="py-2 pr-3">
-                          {memberName(member)}
-                          {member.id === session?.user.id ? <span className="ml-2 text-xs text-muted-foreground">{t('team:members.you')}</span> : null}
+                        <td className="w-full max-w-0 py-2 pr-3">
+                          <div className="truncate">
+                            {memberName(member)}
+                            {member.id === session?.user.id ? <span className="ml-2 text-xs text-muted-foreground">{t('team:members.you')}</span> : null}
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground md:hidden">{member.email}</div>
                         </td>
-                        <td className="py-2 pr-3 text-muted-foreground">{member.email}</td>
+                        <td className="hidden max-w-[16rem] truncate py-2 pr-3 text-muted-foreground md:table-cell">{member.email}</td>
                         <td className="py-2 pr-3">
                           {canManage && !isAdmin && member.role ? (
                             <Link to="/modules" className="underline underline-offset-2 hover:text-foreground">
@@ -304,11 +310,11 @@ export function TeamPage() {
                             (member.role?.name ?? '—')
                           )}
                         </td>
-                        <td className="py-2 pr-3 text-muted-foreground">{isAdmin ? t('common:labels.all') : boxes.length > 0 ? boxes.join(', ') : t('team:members.none')}</td>
+                        <td className="hidden py-2 pr-3 text-muted-foreground lg:table-cell">{isAdmin ? t('common:labels.all') : boxes.length > 0 ? boxes.join(', ') : t('team:members.none')}</td>
                         <td className="py-2 pr-3">
                           <StatePill tone={STATUS[member.status].tone}>{STATUS[member.status].label}</StatePill>
                         </td>
-                        <td className="py-2 pr-3">
+                        <td className="hidden py-2 pr-3 lg:table-cell">
                           {sentReset?.id === member.id ? (
                             <span className="text-sm text-muted-foreground">{t('team:members.resetLinkSent', { email: sentReset.email })}</span>
                           ) : (

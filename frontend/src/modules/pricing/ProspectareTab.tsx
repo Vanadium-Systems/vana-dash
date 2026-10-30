@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { downloadCsv } from '@/shared/lib/csv'
@@ -378,15 +378,15 @@ export function ProspectareTab() {
                         }
                       />
                     </TableHead>
-                    <TableHead>{t('common:labels.priority')}</TableHead>
-                    <TableHead>{t('pricing:prospects.score')}</TableHead>
+                    <TableHead priority="md">{t('common:labels.priority')}</TableHead>
+                    <TableHead priority="lg">{t('pricing:prospects.score')}</TableHead>
                     <TableHead>{t('common:labels.company')}</TableHead>
-                    <TableHead>{t('pricing:prospects.contact')}</TableHead>
+                    <TableHead priority="md">{t('pricing:prospects.contact')}</TableHead>
                     <TableHead>{t('common:labels.status')}</TableHead>
-                    <TableHead>{t('pricing:prospects.owner')}</TableHead>
-                    <TableHead>{t('common:nav.notes')}</TableHead>
-                    <TableHead>{t('pricing:prospects.employees')}</TableHead>
-                    <TableHead>{t('pricing:prospects.turnoverShort')}</TableHead>
+                    <TableHead priority="lg">{t('pricing:prospects.owner')}</TableHead>
+                    <TableHead priority="lg">{t('common:nav.notes')}</TableHead>
+                    <TableHead priority="lg">{t('pricing:prospects.employees')}</TableHead>
+                    <TableHead priority="lg">{t('pricing:prospects.turnoverShort')}</TableHead>
                     <TableHead>{t('common:labels.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -407,15 +407,16 @@ export function ProspectareTab() {
                           }
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell priority="md">
                         <Badge variant={PRIORITY_VARIANT[p.priority]}>{p.priority}</Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{p.score ?? '—'}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-muted-foreground">{p.cif ?? t('pricing:prospects.noCif')}</div>
+                      <TableCell priority="lg" className="font-mono text-xs">{p.score ?? '—'}</TableCell>
+                      <TableCell className="max-w-[16rem]">
+                        <div className="truncate font-medium">{p.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">{p.cif ?? t('pricing:prospects.noCif')}</div>
+                        <TableDetails items={[p.priority, p.phone ? splitMultiValue(p.phone)[0] : null]} />
                       </TableCell>
-                      <TableCell className="min-w-[11rem] space-y-1 text-xs">
+                      <TableCell priority="md" className="min-w-[11rem] space-y-1 text-xs">
                         {editingContactId === p.id ? (
                           <>
                             <Input
@@ -518,7 +519,7 @@ export function ProspectareTab() {
                           </Select>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell priority="lg">
                         <Select
                           size="sm"
                           aria-label={t('pricing:prospects.ownerOf', { name: p.name })}
@@ -534,7 +535,7 @@ export function ProspectareTab() {
                           ))}
                         </Select>
                       </TableCell>
-                      <TableCell className="min-w-[12rem]">
+                      <TableCell priority="lg" className="min-w-[12rem]">
                         <Textarea
                           className="min-h-9"
                           defaultValue={p.notes ?? ''}
@@ -543,8 +544,8 @@ export function ProspectareTab() {
                           }}
                         />
                       </TableCell>
-                      <TableCell>{p.employeeCount ?? '—'}</TableCell>
-                      <TableCell>{p.revenue ? formatNumber(Number(p.revenue), BASE_CURRENCY) : '—'}</TableCell>
+                      <TableCell priority="lg">{p.employeeCount ?? '—'}</TableCell>
+                      <TableCell priority="lg" className="whitespace-nowrap tabular-nums">{p.revenue ? formatNumber(Number(p.revenue), BASE_CURRENCY) : '—'}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           <Button type="button" variant="outline" onClick={() => navigate(`/pricing?tab=calculator&prospectId=${p.id}`)}>

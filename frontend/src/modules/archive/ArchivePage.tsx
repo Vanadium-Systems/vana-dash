@@ -27,7 +27,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { AccessShareDialog } from '@/shared/components/AccessShareDialog'
 import { EmptyState } from '@/shared/components/ui/empty-state'
@@ -88,15 +88,18 @@ function StorageUsageIndicator() {
 // Miniatura reală (PDF: prima pagină randată la upload; imagini: fișierul propriu, scalat de
 // browser) când previewUrl există, altfel o iconiță generică — evită să tragem thumbnail-uri
 // pt. tipuri fără preview (xml, zip etc.).
-function FileNameCell({ name, previewUrl }: { name: string; previewUrl: string | null }) {
+function FileNameCell({ name, previewUrl, details = [] }: { name: string; previewUrl: string | null; details?: ReactNode[] }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       {previewUrl ? (
         <img src={previewUrl} alt="" className="h-10 w-10 shrink-0 rounded border object-cover" />
       ) : (
         <FileIcon className="h-10 w-10 shrink-0 rounded border p-2 text-muted-foreground" />
       )}
-      <span className="font-medium">{name}</span>
+      <div className="min-w-0">
+        <span className="block truncate font-medium">{name}</span>
+        <TableDetails items={details} />
+      </div>
     </div>
   )
 }
@@ -824,8 +827,8 @@ export function ArchivePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common:labels.name')}</TableHead>
-                  <TableHead>{isSearching ? t('archive:labels.location') : t('common:labels.details')}</TableHead>
-                  <TableHead className="hidden sm:table-cell">{t('archive:labels.tags')}</TableHead>
+                  <TableHead priority="md">{isSearching ? t('archive:labels.location') : t('common:labels.details')}</TableHead>
+                  <TableHead priority="lg">{t('archive:labels.tags')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -833,10 +836,14 @@ export function ArchivePage() {
                 {isSearching &&
                   search.data?.map((r) => (
                     <TableRow key={r.id} className="cursor-pointer" onClick={() => previewFile.mutate(r.id)}>
-                      <TableCell>
-                        <FileNameCell name={r.name} previewUrl={r.previewUrl} />
+                      <TableCell className="w-full max-w-0">
+                        <FileNameCell
+                          name={r.name}
+                          previewUrl={r.previewUrl}
+                          details={[r.folderPath.length ? r.folderPath.map((p) => p.name).join(' / ') : t('archive:folders.root'), formatBytes(r.sizeBytes)]}
+                        />
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell priority="md" className="text-muted-foreground">
                         <button
                           type="button"
                           className="flex items-center gap-1 hover:underline"
@@ -853,7 +860,7 @@ export function ArchivePage() {
                           {r.mimeType} · {formatBytes(r.sizeBytes)}
                         </div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">
+                      <TableCell priority="lg">
                         <div className="flex flex-wrap gap-1">
                           {r.tags.map((tag) => (
                             <Badge key={tag} variant="secondary">
@@ -874,15 +881,15 @@ export function ArchivePage() {
                       className="cursor-pointer"
                       onClick={() => openFolder(f.id)}
                     >
-                      <TableCell className="font-medium">
-                        <span className="flex items-center gap-2">
-                          <Folder className="h-4 w-4 shrink-0 text-muted-foreground" /> {f.name}
+                      <TableCell className="w-full max-w-0 font-medium">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <Folder className="h-4 w-4 shrink-0 text-muted-foreground" /> <span className="truncate">{f.name}</span>
                         </span>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell priority="md" className="whitespace-nowrap text-muted-foreground">
                         {t('common:count.files', { count: f.fileCount })} · {t('common:count.folders', { count: f.subfolderCount })}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell" />
+                      <TableCell priority="lg" />
                       <TableCell className="text-right">
                         <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
                           {folderActionsMenu(f)}
@@ -893,13 +900,13 @@ export function ArchivePage() {
                 {!isSearching &&
                   files.data?.map((file) => (
                   <TableRow key={file.id} className="cursor-pointer" onClick={() => previewFile.mutate(file.id)}>
-                    <TableCell>
-                      <FileNameCell name={file.name} previewUrl={file.previewUrl} />
+                    <TableCell className="w-full max-w-0">
+                      <FileNameCell name={file.name} previewUrl={file.previewUrl} details={[`${file.mimeType} · ${formatBytes(file.sizeBytes)}`]} />
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell priority="md" className="whitespace-nowrap text-muted-foreground">
                       {file.mimeType} · {formatBytes(file.sizeBytes)}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell priority="lg">
                       <div className="flex flex-wrap gap-1">
                         {file.tags.map((tag) => (
                           <Badge key={tag} variant="secondary">
