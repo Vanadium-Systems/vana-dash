@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { buildBookingIcs, escapeIcsText } from './ics.js'
 
+const ORGANIZER = { name: 'Acme SRL', email: 'office@example.com' }
+
 describe('ics', () => {
   it('escapează textul vizitatorului, ca să nu poată adăuga proprietăți noi', () => {
     expect(escapeIcsText('a;b,c\\d\nEND:VEVENT')).toBe('a\\;b\\,c\\\\d\\nEND:VEVENT')
   })
 
   it('pliază rândurile lungi la 75 de octeți și folosește CRLF', () => {
-    const ics = buildBookingIcs({ id: 'x', startAt: new Date('2031-03-03T08:00:00.000Z'), endAt: new Date('2031-03-03T08:30:00.000Z'), topic: 'ă'.repeat(200) })
+    const ics = buildBookingIcs({ id: 'x', startAt: new Date('2031-03-03T08:00:00.000Z'), endAt: new Date('2031-03-03T08:30:00.000Z'), topic: 'ă'.repeat(200) }, ORGANIZER)
     const lines = ics.split('\r\n')
     expect(lines.every((l) => Buffer.byteLength(l) <= 75)).toBe(true)
     expect(ics).toContain('DTSTART:20310303T080000Z')
@@ -16,9 +18,10 @@ describe('ics', () => {
 
   it('puts the call link in LOCATION, URL and DESCRIPTION when there is one', () => {
     const booking = { id: 'x', startAt: new Date('2031-03-03T08:00:00.000Z'), endAt: new Date('2031-03-03T08:30:00.000Z'), topic: 'Demo' }
-    const ics = buildBookingIcs(booking, 'https://app.example.com/apel/abc')
+    const ics = buildBookingIcs(booking, ORGANIZER, 'https://app.example.com/apel/abc')
     expect(ics).toContain('LOCATION:https://app.example.com/apel/abc')
     expect(ics).toContain('URL:https://app.example.com/apel/abc')
-    expect(buildBookingIcs(booking)).not.toContain('LOCATION:')
+    expect(buildBookingIcs(booking, ORGANIZER)).not.toContain('LOCATION:')
+    expect(buildBookingIcs(booking, { ...ORGANIZER, email: '' })).not.toContain('ORGANIZER')
   })
 })
