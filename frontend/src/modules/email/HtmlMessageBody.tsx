@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/shared/components/ui/button'
 import type { EmailAttachmentMeta } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
@@ -120,6 +120,30 @@ interface HtmlMessageBodyProps {
   autoLoadImages?: boolean
 }
 
+// Fixed-width emails (600-700px tables) are shrunk like Gmail does, instead of being cut on the right.
+function useFitToWidth(renderedHtml: string) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const box = ref.current
+    if (!box) return
+    const content = box.firstElementChild as HTMLElement | null
+    if (!content) return
+    // The outer box keeps its width whatever the zoom, so measuring it never loops.
+    const measure = () => {
+      content.style.zoom = '1'
+      const style = getComputedStyle(box)
+      const available = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+      const ratio = available / content.scrollWidth
+      content.style.zoom = ratio < 1 ? String(Math.max(ratio, 0.4)) : '1'
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(box)
+    return () => observer.disconnect()
+  }, [renderedHtml])
+  return ref
+}
+
 export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImages }: HtmlMessageBodyProps) {
   const [showExternalImages, setShowExternalImages] = useState(autoLoadImages ?? false)
   const [forceRender, setForceRender] = useState(false)
@@ -131,6 +155,7 @@ export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImage
     if (!shouldRender) return null
     return renderMessageHtml(html, attachments, showExternalImages)
   }, [shouldRender, html, attachments, showExternalImages])
+  const fitRef = useFitToWidth(rendered?.html ?? '')
 
   if (shouldRender && !rendered) {
     return (
@@ -161,9 +186,11 @@ export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImage
       {/* dangerouslySetInnerHTML DOAR pe output-ul deja sanitizat de DOMPurify mai sus.
           Canvas alb forțat (Contract E): emailul HTML e proiectat pe alb indiferent de temă. */}
       <div
+        ref={fitRef}
         className="email-canvas email-html-body max-w-full overflow-x-auto rounded-sm border p-4 text-sm [&_img]:max-w-full [&_table]:max-w-full"
-        dangerouslySetInnerHTML={{ __html: renderedHtml }}
-      />
+      >
+        <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+      </div>
     </div>
   )
 }

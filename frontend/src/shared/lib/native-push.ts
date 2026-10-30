@@ -78,4 +78,19 @@ export async function dismissDeliveredNotificationsByTag(tag: string): Promise<v
   }
 }
 
+/** Clears the notifications of email threads read meanwhile on another device. */
+export async function clearReadEmailNotifications(): Promise<void> {
+  if (!isPushNativeAvailable()) return
+  try {
+    const { notifications } = await PushNotifications.getDeliveredNotifications()
+    const threadIds = [...new Set(notifications.map((n) => /^thread-([0-9a-f-]{36})$/.exec(n.tag ?? '')?.[1]).filter((id): id is string => Boolean(id)))]
+    if (threadIds.length === 0) return
+    const { readIds } = await api.get<{ readIds: string[] }>(`/api/email/threads/read-state?ids=${threadIds.slice(0, 100).join(',')}`)
+    const toRemove = notifications.filter((n) => readIds.some((id) => n.tag === `thread-${id}`))
+    if (toRemove.length > 0) await PushNotifications.removeDeliveredNotifications({ notifications: toRemove })
+  } catch {
+    // Best effort: a notification left in the shade must not break opening the app.
+  }
+}
+
 export { PushNotifications }

@@ -23,7 +23,7 @@ import { useNavLayout } from '@/shared/hooks/use-nav-layout'
 import { useOfflinePrefetch } from '@/shared/hooks/use-offline-prefetch'
 import { useOnline } from '@/shared/hooks/use-online'
 import { isNative } from '@/shared/lib/native'
-import { onNativeNotificationTap, registerNativeDeviceToken } from '@/shared/lib/native-push'
+import { clearReadEmailNotifications, onNativeNotificationTap, registerNativeDeviceToken } from '@/shared/lib/native-push'
 import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem, navGroupLabel } from '@/shared/lib/nav-items'
 import { BrandMark } from '@/shared/components/BrandMark'
 import { sessionUserName } from '@/shared/lib/types'
@@ -159,6 +159,17 @@ export function AppLayout() {
   }, [user])
 
   useEffect(() => onNativeNotificationTap((path) => navigate(path)), [navigate])
+
+  // Emails read on another device: their notifications go when the app comes back to the front.
+  useEffect(() => {
+    if (!user) return
+    void clearReadEmailNotifications()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void clearReadEmailNotifications()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [user])
 
   // Un 403 FEATURE_FORBIDDEN înseamnă că rolul i-a fost schimbat sub om: reîncărcăm `/me`
   // ca nav-ul, tab-urile și butoanale să dispară fără reîncărcarea paginii (PLAN.md C2).
@@ -298,6 +309,10 @@ export function AppLayout() {
         </div>
       ) : null}
 
+      {isNative ? (
+        // The status bar is transparent over the WebView; this keeps scrolled content from showing under it.
+        <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top,0px)] bg-background" />
+      ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
         <main ref={mainRef} className="safe-top flex-1 overflow-auto pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
           {!online ? (

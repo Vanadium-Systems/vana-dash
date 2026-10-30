@@ -17,6 +17,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { extractEmailAddress } from './identity'
 import { identitiesFor } from './IdentityField'
 import { HtmlMessageBody } from './HtmlMessageBody'
+import { SnoozeMenu } from './SnoozeMenu'
 import { useConsumeParam } from '@/shared/hooks/use-consume-param'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Input } from '@/shared/components/ui/input'
@@ -184,6 +185,19 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
     onError: (err) => toast.error(err.message),
   })
 
+  const snooze = useMutation({
+    mutationFn: (until: string) => {
+      const ids = (detail.data?.messages ?? []).filter((m) => m.direction === 'in').map((m) => m.id)
+      return api.post('/api/email/messages/bulk-update', { ids, patch: { snoozedUntil: until } })
+    },
+    onSuccess: (_, until) => {
+      onChanged()
+      onBack()
+      toast.success(t('email:snooze.done', { when: formatDateTime(until) }))
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
   const toggleStar = useMutation({
     mutationFn: (messageId: string) => api.patch(`/api/email/messages/${messageId}`, { isStarred: true }),
     onSuccess: () => {
@@ -211,6 +225,7 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
             <h2 className="min-w-0 truncate text-lg font-semibold">{thread.subject}</h2>
           </div>
           <div className="flex gap-1">
+            <SnoozeMenu onSnooze={(until) => snooze.mutate(until)} disabled={snooze.isPending} />
             <Button variant="outline" title={t('common:actions.archive')} onClick={() => applyFolder.mutate('archive')}>
               <Archive className="h-4 w-4" />
             </Button>
@@ -385,7 +400,7 @@ export function MailboxView({
   }
 
   const bulkUpdate = useMutation({
-    mutationFn: (patch: { folder?: string; isRead?: boolean }) => {
+    mutationFn: (patch: { folder?: string; isRead?: boolean; snoozedUntil?: string }) => {
       const ids = items.filter((thread) => selected.has(thread.id) && thread.latestMessageId).map((thread) => thread.latestMessageId as string)
       return api.post('/api/email/messages/bulk-update', { ids, patch })
     },
@@ -487,6 +502,7 @@ export function MailboxView({
             <Button variant="outline" onClick={() => bulkUpdate.mutate({ folder: 'archive' })}>
               <Archive className="h-3.5 w-3.5" />
             </Button>
+            <SnoozeMenu onSnooze={(until) => bulkUpdate.mutate({ snoozedUntil: until })} disabled={bulkUpdate.isPending} />
             <Button variant="outline" onClick={() => bulkUpdate.mutate({ folder: 'spam' })}>
               <ShieldAlert className="h-3.5 w-3.5" />
             </Button>
