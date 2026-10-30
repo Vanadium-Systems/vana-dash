@@ -42,18 +42,17 @@ const MINIMAL_CONFIG = {
     { key: 'hr', label: 'Modul HR', price: 30 },
     { key: 'ai_assistant', label: 'VanaGreen AI', price: 25 },
   ],
-  bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], price: 55, onboardingPrice: 80 }],
+  bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], discountPercent: 20, onboardingHours: 8 }],
   cantarRate: 50,
-  cantarSetupPrice: 50,
   siatdFloorPrice: 65,
   siatdFloorUnits: 40,
   siatdUnitPrice: 1.5,
   lunileAnuale: 10,
   puncteBands: [{ max: null, mult: 1, label: 'orice nr. de puncte' }],
-  onboardingBase: 150,
-  onboardingOpRate: 15,
-  onboardingDeeeDelta: 50,
-  onboardingSiatdSetup: 40,
+  onboardingHourlyRate: 30,
+  onboardingDefaultHours: 5,
+  onboardingMarginPercent: 0,
+  discountPercent: 0,
   equipmentItems: [],
 }
 
@@ -235,8 +234,8 @@ describe('calculateSelfServeQuote', () => {
 
     const withoutBundle = await calculateSelfServeQuote({ ...baseInput, addons: [], bundle: null })
     const withBundle = await calculateSelfServeQuote({ ...baseInput, addons: [], bundle: 'starter' })
-    // MINIMAL_CONFIG.bundles[0] = 'starter': treatment+pickup la preț fix 55.
-    expect(withBundle!.totalMonthly - withoutBundle!.totalMonthly).toBe(55)
+    // MINIMAL_CONFIG.bundles[0] = 'starter': (treatment 40 + pickup 30) − 20% = 56.
+    expect(withBundle!.totalMonthly - withoutBundle!.totalMonthly).toBe(56)
   })
 
   it('bundle necunoscut e ignorat silențios, nu aruncă', async () => {
@@ -247,13 +246,13 @@ describe('calculateSelfServeQuote', () => {
     expect(quote).not.toBeNull()
   })
 
-  it('bundle selectat — onboardingPrice fix ÎNLOCUIEȘTE formula normală de onboarding (2026-08-20)', async () => {
+  it('bundle selectat — inițierea folosește orele pachetului', async () => {
     const platform = await makeVanagreenPlatform()
     await upsertConfig(platform.id, MINIMAL_CONFIG)
 
     const quote = await calculateSelfServeQuote({ ...baseInput, addons: [], bundle: 'starter', includeOnboarding: true })
-    // MINIMAL_CONFIG.bundles[0].onboardingPrice = 80.
-    expect(quote?.onboardingTotal).toBe(80)
+    // MINIMAL_CONFIG.bundles[0].onboardingHours = 8, × 30.
+    expect(quote?.onboardingTotal).toBe(240)
   })
 })
 
@@ -267,10 +266,10 @@ describe('listSelfServeBundles', () => {
     expect(await listSelfServeBundles()).toEqual([])
   })
 
-  it('întoarce catalogul de pachete al platformei configurate', async () => {
+  it('întoarce pachetele cu price și onboardingPrice calculate, forma pe care o citește recyclers_app', async () => {
     const platform = await makeVanagreenPlatform()
     await upsertConfig(platform.id, MINIMAL_CONFIG)
-    expect(await listSelfServeBundles()).toEqual(MINIMAL_CONFIG.bundles)
+    expect(await listSelfServeBundles()).toEqual([{ ...MINIMAL_CONFIG.bundles[0], price: 56, onboardingPrice: 240 }])
   })
 })
 

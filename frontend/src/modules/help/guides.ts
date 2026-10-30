@@ -274,8 +274,12 @@ const SOURCES: GuideSource[] = [
         en: 'Fill in the operators, the documents per month and tick the modules.',
       },
       {
-        ro: 'Prețul se recalculează la fiecare schimbare și apare atât lunar, cât și anual.',
-        en: 'The price is recomputed on every change and is shown both monthly and yearly.',
+        ro: 'Pentru taxa de inițiere, scrie câte ore estimezi la client și, dacă vrei, altă marjă de eroare decât cea din Config preț. Gol înseamnă orele pachetului sau cele implicite.',
+        en: 'For the setup fee, enter the hours you expect the client to take and, if you like, a different error margin from the one in Price config. Empty means the bundle’s hours or the default ones.',
+      },
+      {
+        ro: 'Apasă Calculează: vezi prețul lunar, anual și taxa de inițiere, cu reducerea de campanie scăzută dacă e activă.',
+        en: 'Press Calculate: you see the monthly and yearly price and the setup fee, with the campaign discount taken off if one is active.',
       },
     ],
   },

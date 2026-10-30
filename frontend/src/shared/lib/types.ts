@@ -611,20 +611,20 @@ export interface PricingAddon {
   bands?: PricingAddonBand[]
 }
 
-// Bundle-uri de add-on-uri la preț fix (2026-08-20) — `addonKeys` referă `key`-uri din
-// `PricingConfig['addons']`.
+// Bundle-uri de add-on-uri — `addonKeys` referă `key`-uri din `PricingConfig['addons']`; prețul
+// e suma modulelor minus `discountPercent`.
 export interface PricingBundle {
   key: string
   label: string
   addonKeys: string[]
-  price: number
+  discountPercent: number
   // Preset opțional pt. calculatorul manual (2026-08-20) — vezi PricingBundleSchema (backend).
   puncteLucru?: number
   operatoriDesktop?: number
   operatoriMobil?: number
   documente?: number
   cantare?: number
-  onboardingPrice: number
+  onboardingHours?: number
 }
 
 export interface PricingConfig {
@@ -637,16 +637,15 @@ export interface PricingConfig {
   addons: PricingAddon[]
   bundles: PricingBundle[]
   cantarRate: number
-  cantarSetupPrice: number
   siatdFloorPrice: number
   siatdFloorUnits: number
   siatdUnitPrice: number
   lunileAnuale: number
   puncteBands: PricingPuncteBand[]
-  onboardingBase: number
-  onboardingOpRate: number
-  onboardingDeeeDelta: number
-  onboardingSiatdSetup: number
+  onboardingHourlyRate: number
+  onboardingDefaultHours: number
+  onboardingMarginPercent: number
+  discountPercent: number
   equipmentItems: PricingEquipmentItem[]
 }
 
@@ -669,6 +668,9 @@ export interface PricingCalculateInput {
   // Cantități pt. add-on-urile cu benzi (2026-08-25); lipsa = 1. Add-on-urile fără benzi o ignoră.
   addonQuantities?: Record<string, number>
   cantare: number
+  // null = orele pachetului, altfel cele implicite din config
+  onboardingHours: number | null
+  onboardingMarginPercent: number | null
 }
 
 export interface PricingBreakdownRow {
@@ -680,6 +682,7 @@ export interface PricingResult {
   totalMonthly: number
   totalAnnual: number
   onboardingTotal: number
+  onboardingHours: number
   manualReviewNeeded: boolean
   planName: string | null
   breakdown: PricingBreakdownRow[]

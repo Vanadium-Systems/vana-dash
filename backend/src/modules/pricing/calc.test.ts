@@ -4,7 +4,7 @@
  * default din HTML-ul original, calculate manual din aceleași formule.
  */
 import { describe, expect, it } from 'vitest'
-import { calculatePrice } from './calc.js'
+import { bundleQuote, calculatePrice } from './calc.js'
 import type { PricingCalculateInput, PricingConfig } from './schema.js'
 
 // 1:1 cu CONFIG din vanagreen-price-calculator.html.
@@ -34,9 +34,8 @@ const CONFIG: PricingConfig = {
     { key: 'hr', label: 'Modul HR', price: 30 },
     { key: 'ai_assistant', label: 'VanaGreen AI', price: 25 },
   ],
-  bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], price: 55, onboardingPrice: 80 }],
+  bundles: [{ key: 'starter', label: 'Pachet Starter', addonKeys: ['treatment', 'pickup'], discountPercent: 20, onboardingHours: 8 }],
   cantarRate: 50,
-  cantarSetupPrice: 50,
   siatdFloorPrice: 65,
   siatdFloorUnits: 40,
   siatdUnitPrice: 1.5,
@@ -48,10 +47,11 @@ const CONFIG: PricingConfig = {
     { max: 25, mult: 1.45, label: '9-25 puncte' },
     { max: null, mult: 1.65, label: 'peste 25 puncte' },
   ],
-  onboardingBase: 150,
-  onboardingOpRate: 15,
-  onboardingDeeeDelta: 50,
-  onboardingSiatdSetup: 40,
+  // 5 h × 30 with no margin = 150, the setup fee most cases below expect.
+  onboardingHourlyRate: 30,
+  onboardingDefaultHours: 5,
+  onboardingMarginPercent: 0,
+  discountPercent: 0,
   equipmentItems: [],
 }
 
@@ -68,6 +68,8 @@ const BASE_INPUT: PricingCalculateInput = {
   selectedBundleKey: null,
   addonQuantities: {},
   cantare: 0,
+  onboardingHours: null,
+  onboardingMarginPercent: null,
 }
 
 describe('calculatePrice — default profile (matches HTML default state)', () => {
@@ -75,7 +77,7 @@ describe('calculatePrice — default profile (matches HTML default state)', () =
     const result = calculatePrice(CONFIG, BASE_INPUT)
     expect(result.totalMonthly).toBe(90)
     expect(result.totalAnnual).toBe(900) // 90 * 10 luni
-    expect(result.onboardingTotal).toBe(150) // onboardingBase * mult(1.0)
+    expect(result.onboardingTotal).toBe(150) // 5 h × 30
     expect(result.manualReviewNeeded).toBe(false)
   })
 })
@@ -154,23 +156,29 @@ describe('calculatePrice — benzi documente (peste cota inclusă)', () => {
 })
 
 describe('calculatePrice — flux DEEE/DBA', () => {
-  it('adaugă fluxDeeeDelta la total și onboardingDeeeDelta la onboarding', () => {
+  it('adaugă fluxDeeeDelta la total, fără să schimbe orele de inițiere', () => {
     const result = calculatePrice(CONFIG, { ...BASE_INPUT, flux: 'deee' })
     expect(result.totalMonthly).toBe(90 + 30)
-    expect(result.onboardingTotal).toBe(150 + 50)
+    expect(result.onboardingTotal).toBe(150)
   })
 })
 
-describe('calculatePrice — bundle-uri (preț fix, combinabil cu add-on-uri individuale)', () => {
-  it('selectedBundleKey=null — zero impact (backward-compatible)', () => {
+describe('calculatePrice — bundle-uri (suma modulelor minus procentul pachetului)', () => {
+  it('selectedBundleKey=null — zero impact', () => {
     const result = calculatePrice(CONFIG, BASE_INPUT)
     expect(result.totalMonthly).toBe(90)
   })
 
-  it('bundle selectat — adaugă prețul FIX al pachetului (nu suma add-on-urilor incluse)', () => {
-    // CONFIG.bundles[0] = 'starter': treatment(40) + pickup(30) la preț fix 55, nu 70.
+  it('bundle selectat — suma modulelor incluse minus discountPercent', () => {
+    // 'starter': treatment(40) + pickup(30) = 70, −20% = 56.
     const result = calculatePrice(CONFIG, { ...BASE_INPUT, selectedBundleKey: 'starter' })
-    expect(result.totalMonthly).toBe(90 + 55)
+    expect(result.totalMonthly).toBe(90 + 56)
+  })
+
+  it('prețul pachetului urmează prețul modulelor când se schimbă un modul', () => {
+    const config = { ...CONFIG, addons: CONFIG.addons.map((a) => (a.key === 'treatment' ? { ...a, price: 50 } : a)) }
+    const result = calculatePrice(config, { ...BASE_INPUT, selectedBundleKey: 'starter' })
+    expect(result.totalMonthly).toBe(90 + 64) // (50 + 30) × 0.8
   })
 
   it('add-on-urile incluse în bundle NU se taxează a doua oară dacă sunt și în selectedAddonKeys', () => {
@@ -179,44 +187,38 @@ describe('calculatePrice — bundle-uri (preț fix, combinabil cu add-on-uri ind
       selectedBundleKey: 'starter',
       selectedAddonKeys: ['treatment', 'pickup'],
     })
-    expect(result.totalMonthly).toBe(90 + 55) // NU 90 + 55 + 40 + 30
+    expect(result.totalMonthly).toBe(90 + 56)
   })
 
-  it('bundle + add-on individual din AFARA pachetului — se adună', () => {
+  it('bundle + add-on individual din AFARA pachetului — se adună la preț întreg', () => {
     const result = calculatePrice(CONFIG, { ...BASE_INPUT, selectedBundleKey: 'starter', selectedAddonKeys: ['crm'] })
-    expect(result.totalMonthly).toBe(90 + 55 + 20)
+    expect(result.totalMonthly).toBe(90 + 56 + 20)
   })
 
   it('key de bundle necunoscut e ignorat silențios (nu aruncă, nu adaugă cost)', () => {
     const result = calculatePrice(CONFIG, { ...BASE_INPUT, selectedBundleKey: 'does_not_exist' })
     expect(result.totalMonthly).toBe(90)
-  })
-
-  it('bundle selectat — onboardingPrice fix ÎNLOCUIEȘTE complet formula normală de onboarding (nu se adună)', () => {
-    // Formula normală ar da 150 (onboardingBase*mult 1.0) — bundle-ul o înlocuiește cu 80.
-    const result = calculatePrice(CONFIG, { ...BASE_INPUT, selectedBundleKey: 'starter', opDesktop: 3, flux: 'deee', siatd: 50 })
-    expect(result.onboardingTotal).toBe(80)
-  })
-
-  it('fără bundle — onboarding rămâne formula normală (backward-compatible)', () => {
-    const result = calculatePrice(CONFIG, BASE_INPUT)
     expect(result.onboardingTotal).toBe(150)
   })
 
-  it('bundle necunoscut — onboarding rămâne formula normală (nu se aplică override)', () => {
-    const result = calculatePrice(CONFIG, { ...BASE_INPUT, selectedBundleKey: 'does_not_exist' })
-    expect(result.onboardingTotal).toBe(150)
+  it('bundle cu onboardingHours — orele pachetului înlocuiesc orele implicite', () => {
+    const result = calculatePrice(CONFIG, { ...BASE_INPUT, selectedBundleKey: 'starter' })
+    expect(result.onboardingTotal).toBe(8 * 30)
+  })
+
+  it('orele introduse în calculator bat orele pachetului', () => {
+    const result = calculatePrice(CONFIG, { ...BASE_INPUT, selectedBundleKey: 'starter', onboardingHours: 20 })
+    expect(result.onboardingTotal).toBe(20 * 30)
   })
 })
 
-describe('calculatePrice — preset-uri bundle (puncteLucru/operatoriDesktop/operatoriMobil/documente)', () => {
-  it('câmpurile de preset NU afectează calculul — doar UI-ul (CalculatorTab) le citește la selectare', () => {
-    // CONFIG.bundles[0] nu are preset-uri setate (opționale, absente) — calc.ts nici nu le atinge.
-    const withBundle = calculatePrice(CONFIG, { ...BASE_INPUT, selectedBundleKey: 'starter' })
-    const withoutBundle = calculatePrice(CONFIG, { ...BASE_INPUT, selectedAddonKeys: ['treatment', 'pickup'] })
-    // Diferența e doar bundleTotal(55) vs suma addon-urilor(40+30=70) — preset-urile nu intră în joc.
-    expect(withBundle.totalMonthly).toBe(90 + 55)
-    expect(withoutBundle.totalMonthly).toBe(90 + 70)
+describe('bundleQuote — pachetul văzut din self-serve', () => {
+  it('prețul modulelor după reducerea pachetului și taxa de inițiere la orele pachetului', () => {
+    expect(bundleQuote(CONFIG, CONFIG.bundles[0]!)).toEqual({ price: 56, onboardingPrice: 240 })
+  })
+
+  it('reducerea de campanie se aplică și aici', () => {
+    expect(bundleQuote({ ...CONFIG, discountPercent: 10 }, CONFIG.bundles[0]!)).toEqual({ price: 50.4, onboardingPrice: 216 })
   })
 })
 
@@ -307,28 +309,17 @@ describe('calculatePrice — cântare smart (preț per cântar conectat)', () =>
     expect(result.totalMonthly).toBe(90 + 3 * 50)
   })
 
-  it('cantare>0 => taxă de configurare one-time (cantarSetupPrice), o singură dată indiferent de numărul de cântare (2026-08-19)', () => {
-    const result = calculatePrice(CONFIG, { ...BASE_INPUT, cantare: 3 })
-    expect(result.onboardingTotal).toBe(150 + 50)
-  })
-
-  it('cantare=0 => zero taxă de configurare', () => {
-    const result = calculatePrice(CONFIG, BASE_INPUT)
-    expect(result.onboardingTotal).toBe(150)
-  })
 })
 
 describe('calculatePrice — Robot SIATD', () => {
   it('siatd=0 => zero cost (nu se activează robotul)', () => {
     const result = calculatePrice(CONFIG, { ...BASE_INPUT, siatd: 0 })
     expect(result.totalMonthly).toBe(90)
-    expect(result.onboardingTotal).toBe(150) // fără onboardingSiatdSetup
   })
 
   it('siatd sub floorUnits => doar floorPrice, fără cost per unitate', () => {
     const result = calculatePrice(CONFIG, { ...BASE_INPUT, siatd: 10 })
     expect(result.totalMonthly).toBe(90 + 65) // floorPrice, fără extra (10 < 40)
-    expect(result.onboardingTotal).toBe(150 + 40) // + onboardingSiatdSetup, robotul e activ
   })
 
   it('siatd peste floorUnits => floorPrice + (siatd - floorUnits) * unitPrice', () => {
@@ -337,17 +328,52 @@ describe('calculatePrice — Robot SIATD', () => {
   })
 })
 
-describe('calculatePrice — onboarding (taxă de inițiere, one-time)', () => {
-  it('crește cu operatori extra, flux DEEE, și setup SIATD, scalat de multiplierul benzii de puncte (fără rată separată per punct — eliminată 2026-08-05, dubla multiplierul benzii)', () => {
-    const result = calculatePrice(CONFIG, {
-      ...BASE_INPUT,
-      opDesktop: 3,
-      puncte: 2, // banda 2-3 puncte => mult 1.10, scalează onboardingBase
-      flux: 'deee',
-      siatd: 20,
-    })
-    // 150*1.10 + (3-1)*15 + 50 + 40 = 165 + 30 + 50 + 40 = 285
-    expect(result.onboardingTotal).toBe(285)
+describe('calculatePrice — inițiere pe ore', () => {
+  it('ore × tarif, fără să depindă de operatori, puncte, DEEE sau SIATD', () => {
+    const result = calculatePrice(CONFIG, { ...BASE_INPUT, opDesktop: 3, puncte: 2, flux: 'deee', siatd: 20, cantare: 2 })
+    expect(result.onboardingTotal).toBe(150)
+    expect(result.onboardingHours).toBe(5)
+  })
+
+  it('marja se adaugă peste orele estimate', () => {
+    const result = calculatePrice(CONFIG, { ...BASE_INPUT, onboardingHours: 20, onboardingMarginPercent: 25 })
+    expect(result.onboardingHours).toBe(25)
+    expect(result.onboardingTotal).toBe(25 * 30)
+  })
+
+  it('fără marjă în calculator se folosește marja din config', () => {
+    const result = calculatePrice({ ...CONFIG, onboardingMarginPercent: 10 }, { ...BASE_INPUT, onboardingHours: 20 })
+    expect(result.onboardingTotal).toBe(22 * 30)
+  })
+
+  it('0 ore = fără taxă de inițiere', () => {
+    const result = calculatePrice(CONFIG, { ...BASE_INPUT, onboardingHours: 0 })
+    expect(result.onboardingTotal).toBe(0)
+  })
+})
+
+describe('calculatePrice — reducere de campanie', () => {
+  it('se aplică pe tot abonamentul lunar, deci și pe cel anual', () => {
+    const result = calculatePrice({ ...CONFIG, discountPercent: 15 }, { ...BASE_INPUT, selectedAddonKeys: ['crm'], cantare: 1 })
+    expect(result.totalMonthly).toBe(136) // (90 + 20 + 50) × 0.85
+    expect(result.totalAnnual).toBe(1360)
+  })
+
+  it('se aplică pe inițiere, dar nu pe echipamentele cumpărate la cost', () => {
+    const config: PricingConfig = {
+      ...CONFIG,
+      discountPercent: 10,
+      equipmentItems: [{ id: '11111111-1111-1111-1111-111111111111', name: 'Pad', purchasePrice: 800, integrationPrice: 200, monthlyFee: 0 }],
+    }
+    const result = calculatePrice(config, { ...BASE_INPUT, selectedEquipmentIds: ['11111111-1111-1111-1111-111111111111'] })
+    expect(result.onboardingTotal).toBe((150 + 200) * 0.9 + 800)
+  })
+
+  it('apare ca rând negativ în detaliere, doar când există', () => {
+    const without = calculatePrice(CONFIG, BASE_INPUT)
+    expect(without.breakdown.some((r) => r.value < 0)).toBe(false)
+    const withDiscount = calculatePrice({ ...CONFIG, discountPercent: 10 }, BASE_INPUT)
+    expect(withDiscount.breakdown.filter((r) => r.value < 0).map((r) => r.value)).toEqual([-9, -15])
   })
 })
 
@@ -383,7 +409,7 @@ describe('calculatePrice — Sprint 4: echipamente fizice', () => {
       selectedEquipmentIds: ['11111111-1111-1111-1111-111111111111'],
     })
     expect(result.totalMonthly).toBe(90 + 15) // basePrice + monthlyFee
-    expect(result.onboardingTotal).toBe(150 + 800 + 200) // onboardingBase*mult + purchase + integration
+    expect(result.onboardingTotal).toBe(150 + 800 + 200) // hours + purchase + integration
   })
 
   it('mai multe echipamente selectate — toate se însumează', () => {

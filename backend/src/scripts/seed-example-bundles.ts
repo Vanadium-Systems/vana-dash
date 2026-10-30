@@ -12,45 +12,45 @@ const EXAMPLE_BUNDLES = [
     key: 'start',
     label: 'Pachet Start',
     addonKeys: ['accounting', 'id_scanner'],
-    price: 25,
+    discountPercent: 15,
     puncteLucru: 1,
     operatoriDesktop: 1,
     operatoriMobil: 0,
     documente: 100,
-    onboardingPrice: 100,
+    onboardingHours: 3,
   },
   {
     key: 'teren',
     label: 'Pachet Teren',
     addonKeys: ['pickup', 'market_prices', 'signature_pad'],
-    price: 50,
+    discountPercent: 15,
     puncteLucru: 1,
     operatoriDesktop: 1,
     operatoriMobil: 1,
     documente: 150,
-    onboardingPrice: 130,
+    onboardingHours: 4,
   },
   {
     key: 'business',
     label: 'Pachet Business',
     addonKeys: ['crm', 'analytics', 'partner_portal', 'nexus'],
-    price: 50,
+    discountPercent: 15,
     puncteLucru: 3,
     operatoriDesktop: 2,
     operatoriMobil: 1,
     documente: 300,
-    onboardingPrice: 220,
+    onboardingHours: 6,
   },
   {
     key: 'hr_ai',
     label: 'Pachet HR & AI',
     addonKeys: ['hr', 'ai_assistant'],
-    price: 30,
+    discountPercent: 15,
     puncteLucru: 3,
     operatoriDesktop: 2,
     operatoriMobil: 1,
     documente: 200,
-    onboardingPrice: 200,
+    onboardingHours: 5,
   },
   {
     key: 'enterprise',
@@ -69,12 +69,12 @@ const EXAMPLE_BUNDLES = [
       'hr',
       'ai_assistant',
     ],
-    price: 175,
+    discountPercent: 15,
     puncteLucru: 8,
     operatoriDesktop: 3,
     operatoriMobil: 2,
     documente: 1000,
-    onboardingPrice: 350,
+    onboardingHours: 9,
   },
 ]
 
@@ -104,7 +104,7 @@ async function main() {
   console.log(
     `[seed-example-bundles] platformId=${platform.id} — ${dryRun ? 'AR SCRIE' : 'scriu'} ${EXAMPLE_BUNDLES.length} bundle-uri (total după: ${nextBundles.length})`,
   )
-  for (const b of EXAMPLE_BUNDLES) console.log(`  - ${b.key}: "${b.label}" — ${b.price} EUR/lună + ${b.onboardingPrice} EUR one-time`)
+  for (const b of EXAMPLE_BUNDLES) console.log(`  - ${b.key}: "${b.label}" — module −${b.discountPercent}%, inițiere ${b.onboardingHours} h`)
 
   if (!dryRun) {
     await db

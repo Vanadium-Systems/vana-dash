@@ -1,7 +1,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { billingClients, dashboardConfig } from '../../shared/db/schema/index.js'
-import { calculatePrice } from '../pricing/calc.js'
+import { bundleQuote, calculatePrice } from '../pricing/calc.js'
 import type { PricingCalculateInput, PricingConfig } from '../pricing/schema.js'
 import * as pricingService from '../pricing/service.js'
 import { getVanagreenPlatformConfig } from '../reconciliation/vanagreen-extension.js'
@@ -51,6 +51,8 @@ function toCalcInput(body: SelfServePricingCalculateInput): PricingCalculateInpu
     selectedBundleKey: body.bundle,
     addonQuantities: body.addonQuantities,
     cantare: body.cantare,
+    onboardingHours: null,
+    onboardingMarginPercent: null,
   }
 }
 
@@ -59,12 +61,17 @@ function toCalcInput(body: SelfServePricingCalculateInput): PricingCalculateInpu
  * recyclers_app să poată popula wizard-ul dinamic (pachetele sunt definite liber de Stefan din
  * Config preț, NU un enum fix ca `addons`). Array gol dacă platforma nu e configurată încă sau
  * n-are niciun pachet definit — nu 404/503, wizard-ul pur și simplu nu arată opțiunea.
+ *
+ * Bundles no longer store a price (it's the modules minus a percentage, setup is in hours), so
+ * `price` and `onboardingPrice` are computed here to keep the shape recyclers_app reads.
  */
 export async function listSelfServeBundles() {
   const platform = await getVanagreenPlatformConfig()
   if (!platform) return []
   const configRow = await pricingService.getConfig(platform.id)
-  return configRow?.config.bundles ?? []
+  if (!configRow) return []
+  const { config } = configRow
+  return config.bundles.map((bundle) => ({ ...bundle, ...bundleQuote(config, bundle) }))
 }
 
 export interface SelfServeQuote {

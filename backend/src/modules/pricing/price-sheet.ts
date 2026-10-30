@@ -10,8 +10,8 @@ export const PRICE_SHEET_PLATFORM_FALLBACK = 'Platformă'
 // identice), dar NU trece prin motorul de șabloane legale (date publice de preț, nu contract
 // per-client), fișier separat, propriul stylesheet mic.
 //
-// Tariful pachetelor NU e `bundle.price` direct (doar suprataxa fixă a pachetului, vezi
-// calc.ts: bundleTotal se adună peste bază+operatori+documente), e prețul TOTAL calculat pentru
+// Tariful pachetelor NU e doar prețul modulelor din pachet (calc.ts: bundleTotal se adună
+// peste bază+operatori+documente), e prețul TOTAL calculat pentru
 // configurația implicită a fiecărui pachet (bundleMonthlyInput mai jos), la fel cum vede
 // clientul rezultatul din Calculator.
 
@@ -62,6 +62,8 @@ function bundleMonthlyInput(config: PricingConfig, bundleKey: string): PricingCa
     selectedBundleKey: bundle.key,
     cantare: bundle.cantare ?? 0,
     addonQuantities: {},
+    onboardingHours: null,
+    onboardingMarginPercent: null,
   }
 }
 

@@ -8,11 +8,12 @@
     "noBundle": "No bundle picked",
     "siatd": "SIATD robot ({{siatd}} entries)",
     "scales": "Connected smart scales ({{cantare}} × {{cantarRate}})",
-    "scalesSetup": "Smart scales setup (one-time)",
     "equipmentPurchase": "Equipment: purchase (one-time)",
     "equipmentSubscription": "Equipment: monthly subscription",
-    "setupFeeBundle": "Setup fee: fixed bundle price “{{label}}” (one-time)",
-    "setupFee": "Setup fee (onboarding, one-time)",
-    "needsSetup": "Needs setup"
+    "setupFee": "Setup fee: {{hours}} h + {{margin}}% margin = {{billedHours}} h × {{rate}}",
+    "needsSetup": "Needs setup",
+    "bundle": "Bundle: {{label}} ({{modules}} in modules, −{{discount}}%)",
+    "campaignDiscount": "Campaign discount (−{{percent}}%)",
+    "setupDiscount": "Campaign discount on setup (−{{percent}}%)"
   }
 }

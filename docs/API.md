@@ -535,17 +535,24 @@ Settings per platform (`pricing_configs`, free jsonb validated strictly at the A
 |---|---|---|
 | GET | `/api/pricing/config` | Query: `platformId` → `PricingConfigRow \| null` |
 | PUT | `/api/pricing/config` | `{ platformId, config: PricingConfig }`, upsert (unique on `platformId`) |
-| POST | `/api/pricing/calculate` | `{ platformId, flux, opDesktop, opMobil, puncte, documente, siatd, selectedEquipmentIds?, selectedAddonKeys?, selectedBundleKey?, cantare? }` → `PricingResult` (`totalMonthly`, `totalAnnual`, `onboardingTotal`, `manualReviewNeeded`, `breakdown[]`). 404 if the platform has no saved config |
+| POST | `/api/pricing/calculate` | `{ platformId, flux, opDesktop, opMobil, puncte, documente, siatd, selectedEquipmentIds?, selectedAddonKeys?, selectedBundleKey?, cantare?, onboardingHours?, onboardingMarginPercent? }` → `PricingResult` (`totalMonthly`, `totalAnnual`, `onboardingTotal`, `onboardingHours`, `manualReviewNeeded`, `breakdown[]`). 404 if the platform has no saved config |
 | GET/PUT | `/api/pricing/self-serve-toggle` | Kill switch, `{ enabled }`, `true` by default. Off → the self-serve ingest below answers 503 |
 
 **Add-ons and bundles.** `PricingConfig.addons: [{key, label, price}]` is a generic catalog;
 `selectedAddonKeys` sums on `key`, so a new add-on needs no new code. `PricingConfig.bundles:
-[{key, label, addonKeys, price, puncteLucru?, operatoriDesktop?, operatoriMobil?, documente?,
-onboardingPrice}]` are packages at a fixed price, combinable with add-ons outside the package
-(`selectedBundleKey`); add-ons already in the package are left out of the individual sum, so
-nothing is charged twice. `puncteLucru`, `operatoriDesktop`, `operatoriMobil` and `documente`
-are presets for the UI and do not enter the formula. `onboardingPrice` replaces the normal
-onboarding formula while the package is selected.
+[{key, label, addonKeys, discountPercent, puncteLucru?, operatoriDesktop?, operatoriMobil?,
+documente?, onboardingHours?}]` are packages priced at the sum of their add-ons minus
+`discountPercent`, combinable with add-ons outside the package (`selectedBundleKey`); add-ons
+already in the package are left out of the individual sum, so nothing is charged twice.
+`puncteLucru`, `operatoriDesktop`, `operatoriMobil` and `documente` are presets for the UI and
+do not enter the formula.
+
+**Setup fee and campaign discount.** The setup fee is hours × `onboardingHourlyRate`, plus
+`onboardingMarginPercent` on top of the hours. The hours come from the request
+(`onboardingHours`), else the selected package's `onboardingHours`, else
+`onboardingDefaultHours`; the margin from `onboardingMarginPercent` in the request, else the
+config. `PricingConfig.discountPercent` is a campaign discount on the monthly total and on the
+setup fee, not on equipment bought at cost.
 
 **Equipment.** `PricingConfig.equipmentItems` is an array of `{ id, name, purchasePrice,
 integrationPrice, monthlyFee }`: purchase and integration are one-time and go into
@@ -561,7 +568,7 @@ shared with `VANAGREEN_ALERT_INGEST_TOKEN`.
 | Method | Route | Description |
 |---|---|---|
 | POST | `/api/v1/integrations/vanagreen/pricing/calculate` | `{ workPoints, desktopOperators, mobileSeats, documentsPerMonth, siatdPurchasesPerMonth, flavor: 'simple'\|'deee_dba', addons: Array<'treatment'\|'pickup'\|'market_prices'\|'nexus'\|'crm'\|'accounting'\|'signature_pad'\|'id_scanner'\|'analytics'\|'partner_portal'\|'hr'\|'ai_assistant'>, bundle?, cantare?, includeOnboarding }` → `{ totalMonthly, totalAnnual, onboardingTotal, currency: 'RON' }`, with no `{success,data}` wrapper and no breakdown. 503 if the kill switch is off, the platform is not configured, there is no saved config, or the volume needs a manual quote. The caller treats any non-2xx as "price unavailable" |
-| GET | `/api/v1/integrations/vanagreen/pricing/bundles` | `[{key, label, addonKeys, price}]`, the current package catalog. Empty if the platform is not configured |
+| GET | `/api/v1/integrations/vanagreen/pricing/bundles` | `[{key, label, addonKeys, discountPercent, …presets, price, onboardingPrice}]`, the current package catalog. `price` (modules after both discounts) and `onboardingPrice` (default hours × rate) are computed on each request. Empty if the platform is not configured |
 | POST | `/api/v1/integrations/vanagreen/billing-clients` | `{ vanagreenTenantId, companyName, contactEmail, quotedMonthlyTotal, quotedAnnualTotal, needsBillingInfo: true, autoInvoiceEnabled: false }`, creates a skeleton `billing_client` (tax id and address left empty, to be filled in by hand). Idempotent on `vanagreenTenantId` |
 
 `POST /api/webhooks/vanagreen-alert` (header `X-Ingest-Token`, secret

@@ -8,11 +8,12 @@
     "noBundle": "Niciun pachet ales",
     "siatd": "Robot SIATD ({{siatd}} intrări)",
     "scales": "Cântare smart conectate ({{cantare}} × {{cantarRate}})",
-    "scalesSetup": "Configurare cântare smart (one-time)",
     "equipmentPurchase": "Echipamente — achiziție (one-time)",
     "equipmentSubscription": "Echipamente — abonament lunar",
-    "setupFeeBundle": "Taxă de inițiere — preț fix pachet „{{label}}\" (one-time)",
-    "setupFee": "Taxă de inițiere (onboarding, one-time)",
-    "needsSetup": "Necesită configurare"
+    "setupFee": "Taxă de inițiere: {{hours}} h + {{margin}}% marjă = {{billedHours}} h × {{rate}}",
+    "needsSetup": "Necesită configurare",
+    "bundle": "Pachet: {{label}} ({{modules}} în module, −{{discount}}%)",
+    "campaignDiscount": "Reducere campanie (−{{percent}}%)",
+    "setupDiscount": "Reducere campanie la inițiere (−{{percent}}%)"
   }
 }

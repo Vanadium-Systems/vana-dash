@@ -64,11 +64,8 @@ const PricingAddonBaseSchema = z.object({
   bands: z.array(AddonBandSchema).min(1).optional(),
 })
 
-// Wave bundle-uri (2026-08-20, cerut de Stefan) — pachete de add-on-uri la preț FIX (nu %
-// discount față de suma individuală — decizie explicită: pachetul rămâne o cifră stabilă,
-// citabilă direct clientului, indiferent dacă Stefan modifică ulterior prețul unui add-on
-// individual din pachet). `addonKeys` referă `key`-uri din `PricingConfig['addons']` — nu se
-// validează încrucișat aici (Zod n-are context între câmpuri fără .superRefine pe tot obiectul;
+// Bundles of add-ons. `addonKeys` reference `key`s in `PricingConfig['addons']` and are not
+// cross-validated here (Zod n-are context între câmpuri fără .superRefine pe tot obiectul;
 // un `key` orfan e tratat ca preț 0 la calcul, la fel ca un add-on individual necunoscut).
 export const PricingAddonSchema = PricingAddonBaseSchema
 
@@ -76,7 +73,11 @@ export const PricingBundleSchema = z.object({
   key: z.string().trim().min(1),
   label: z.string().trim().min(1),
   addonKeys: z.array(z.string().min(1)).min(1),
-  price: z.number().nonnegative(),
+  // The bundle costs the sum of its modules minus this percentage (Stefan, 2026-10-30), so a
+  // module price change carries into every bundle that contains it. Replaces the old fixed
+  // `price`, which drifted away from the modules it was supposed to discount. Bundles saved
+  // before this have no value and price at the full sum until it's set.
+  discountPercent: z.number().min(0).max(100).default(0),
   // Preset opțional pt. calculatorul manual (cerut de Stefan, 2026-08-20) — NU intră în formula
   // de calcul, doar precompletează puncte/opDesktop/opMobil/documente/cantare la selectarea
   // bundle-ului în CalculatorTab.tsx; rămân editabile după. Self-serve (recyclers_app) trimite
@@ -86,11 +87,8 @@ export const PricingBundleSchema = z.object({
   operatoriMobil: z.number().int().nonnegative().optional(),
   documente: z.number().int().nonnegative().optional(),
   cantare: z.number().int().nonnegative().optional(),
-  // Taxă de inițiere FIXĂ a pachetului — cât timp bundle-ul e selectat, ÎNLOCUIEȘTE COMPLET
-  // formula normală de onboarding (bază×multiplier + operatori + DEEE + SIATD + cântare +
-  // echipamente), nu se adună cu ea — decizie explicită Stefan, 2026-08-20. `.default(0)`:
-  // bundle-uri create înainte de acest câmp nu au valoare, onboarding devine 0 pt. ele.
-  onboardingPrice: z.number().nonnegative().default(0),
+  // Estimated setup hours for this bundle; missing = the config's `onboardingDefaultHours`.
+  onboardingHours: z.number().nonnegative().optional(),
 })
 
 /**
@@ -150,11 +148,6 @@ export const PricingConfigSchema = z
     // Legătură cântar smart — preț PER CÂNTAR conectat (nu boolean, ca operatorMobilRate),
     // un tenant poate conecta mai multe cântare. NU influențează onboarding.
     cantarRate: z.number().nonnegative().default(10),
-    // Configurare cântare smart — taxă one-time, se aplică o singură dată per client
-    // (nu per cântar), la fel ca onboardingSiatdSetup: gate pe `cantare > 0` în calc.ts,
-    // nu pe un boolean separat (checkbox-ul din UI e local, doar arată/ascunde câmpul de
-    // cantitate — Stefan, 2026-08-19).
-    cantarSetupPrice: z.number().nonnegative().default(50),
     siatdFloorPrice: z.number().nonnegative(),
     siatdFloorUnits: z.number().nonnegative(),
     siatdUnitPrice: z.number().nonnegative(),
@@ -166,15 +159,17 @@ export const PricingConfigSchema = z
     // repetat aici). Default = o singură bandă neutră (mult 1) — NU o ghicire a pragurilor
     // reale, doar deblochează citirea; Stefan completează benzile reale din Config preț.
     puncteBands: z.array(PuncteBandSchema).min(1).default([{ max: null, mult: 1, label: tr('pricing.breakdown.needsSetup') }]),
-    onboardingBase: z.number().nonnegative(),
-    onboardingOpRate: z.number().nonnegative(),
-    // onboardingPunctRate eliminat 2026-08-05 (Stefan) — dubla multiplierul benzii de puncte
-    // (care deja scalează onboardingBase, vezi puncteBands mai sus): două căi separate care
-    // taxau "puncte extra" pe onboarding, confuz. Config-urile EXISTENTE în DB încă au
-    // câmpul în jsonb — parse-ul Zod îl ignoră silențios (obiect non-strict), nicio migrare
-    // necesară, la fel ca redenumirea caBands→puncteBands de mai sus.
-    onboardingDeeeDelta: z.number().nonnegative(),
-    onboardingSiatdSetup: z.number().nonnegative(),
+    // Setup is priced by the hour (Stefan, 2026-10-30): the same product can take 5 hours at
+    // one client and 25 at another, which the old per-component fees (onboardingBase ×
+    // multiplier, per-operator, DEEE, SIATD, scale setup) couldn't express. Those fields are
+    // still in the stored jsonb and are dropped silently on parse.
+    onboardingHourlyRate: z.number().nonnegative().default(40),
+    // Used when nobody estimated the hours: self-serve quotes and the calculator's prefill.
+    onboardingDefaultHours: z.number().nonnegative().default(5),
+    // Buffer on top of the estimate, for the client who ends up taking 25 hours instead of 20.
+    onboardingMarginPercent: z.number().min(0).default(20),
+    // Campaign discount on everything except equipment bought at cost (Stefan, 2026-10-30).
+    discountPercent: z.number().min(0).max(100).default(0),
     // Sprint 4 — .default([])/.default(0) obligatoriu: config-urile EXISTENTE în DB (jsonb liber,
     // fără migrare) nu au aceste câmpuri, trebuie să parseze în continuare fără eroare.
     equipmentItems: z.array(EquipmentItemSchema).default([]),
@@ -212,7 +207,7 @@ export const PricingCalculateSchema = z.object({
   // `PricingConfig['addons']`. `.default([])`: clienți FE vechi (cache offline, PWA
   // neactualizat) care nu trimit deloc câmpul tot trebuie să calculeze corect (fără add-on-uri).
   selectedAddonKeys: z.array(z.string()).default([]),
-  // Bundle-uri (2026-08-20) — un singur pachet selectat, la preț fix (`PricingConfig['bundles']`),
+  // Bundle-uri (2026-08-20) — un singur pachet selectat (`PricingConfig['bundles']`),
   // combinabil cu add-on-uri individuale în afara pachetului (calc.ts exclude din
   // selectedAddonKeys orice key deja inclus în pachet, ca să nu se taxeze de două ori).
   // `.default(null)`: clienți FE vechi tot trebuie să calculeze corect fără bundle-uri.
@@ -222,6 +217,9 @@ export const PricingCalculateSchema = z.object({
   // add-on-ului; lipsa = 1 (add-on-urile fără benzi ignoră cantitatea). FE vechi care nu trimite
   // câmpul calculează identic ca înainte.
   addonQuantities: z.record(z.number().int().positive()).default({}),
+  // null = the bundle's hours, else the config default. Self-serve never sends these.
+  onboardingHours: z.number().nonnegative().nullable().default(null),
+  onboardingMarginPercent: z.number().min(0).nullable().default(null),
 })
 export type PricingCalculateInput = z.infer<typeof PricingCalculateSchema>
 
