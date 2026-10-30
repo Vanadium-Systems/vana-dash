@@ -101,7 +101,13 @@
     "deleteRecurringBody": "All its repetitions are deleted.",
     "deleteConfirm": "Delete the event",
     "blockOnlyHint": "Take the time slot out of the times on the site, without creating an event",
-    "blockOnly": "Only block for bookings"
+    "blockOnly": "Only block for bookings",
+    "interval": "Repeat every",
+    "intervalDays_one": "day",
+    "intervalDays_other": "days",
+    "intervalWeeks_one": "week",
+    "intervalWeeks_other": "weeks",
+    "customRecurrence": "Other rule (kept as is)"
   },
   "nav": {
     "previousWeek": "Previous week",
@@ -129,5 +135,10 @@
     "allDay": "all day",
     "blocked": "Blocked",
     "blockedWithReason": "Blocked · {{reason}}"
+  },
+  "move": {
+    "seriesTitle": "Move the whole series “{{title}}”?",
+    "seriesBody": "Every occurrence moves by the same amount. A single occurrence cannot be moved on its own.",
+    "seriesConfirm": "Move series"
   }
 }

@@ -14,13 +14,13 @@ import type { CalendarEvent, CalendarLayer, CalendarOccurrence } from '@/shared/
 import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { useMe } from '@/shared/hooks/use-me'
 import { toDatetimeLocalValue, WEEKDAY_LABELS } from './date-utils'
+import { BYDAY_CODES, buildRecurrence, parseRecurrence, recurrenceEndInputValue, recurrenceEndIso, type RecurrenceType } from './recurrence'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 
 const COLORS: string[] = [...CHART_COLORS]
 const DEFAULT_COLOR = COLORS[0] ?? '#2a78d6'
-const BYDAY_CODES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
 
 // startAt/endAt rămân un singur string "YYYY-MM-DDTHH:mm" (toDatetimeLocalValue) — doar UI-ul
 // le arată ca 2 input-uri separate (dată + oră), mai ușor de folosit decât un <input
@@ -38,8 +38,6 @@ function withTimePart(value: string, time: string): string {
   return `${datePart(value)}T${time}`
 }
 
-type Recurrence = 'none' | 'daily' | 'weekly'
-
 interface EventFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -51,13 +49,6 @@ interface EventFormDialogProps {
   meta?: Pick<CalendarOccurrence, 'access' | 'ownerUserId' | 'ownerName' | 'attendees' | 'isCommon'> | null
   /** Calendarele în care omul poate crea: al lui și cele primite cu „editează". */
   writableCalendars?: CalendarLayer[]
-}
-
-function parseRecurrence(rule: string | null): { type: Recurrence; days: Set<string> } {
-  if (!rule) return { type: 'none', days: new Set() }
-  if (rule.startsWith('FREQ=DAILY')) return { type: 'daily', days: new Set() }
-  const match = /BYDAY=([A-Z,]+)/.exec(rule)
-  return { type: 'weekly', days: new Set(match?.[1] ? match[1].split(',') : []) }
 }
 
 export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writableCalendars = [] }: EventFormDialogProps) {
@@ -76,8 +67,11 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
   const [location, setLocation] = useState('')
   const [startAt, setStartAt] = useState('')
   const [endAt, setEndAt] = useState('')
-  const [recurrence, setRecurrence] = useState<Recurrence>('none')
+  const [recurrence, setRecurrence] = useState<RecurrenceType>('none')
   const [byDays, setByDays] = useState<Set<string>>(new Set())
+  const [recurrenceInterval, setRecurrenceInterval] = useState('1')
+  // The parts of the rule the form does not show, saved back as they were.
+  const [recurrenceKept, setRecurrenceKept] = useState<{ rest: string[]; raw: string | null }>({ rest: [], raw: null })
   const [recurrenceEndAt, setRecurrenceEndAt] = useState('')
   const [color, setColor] = useState<string>(DEFAULT_COLOR)
   // '' = fără reminder (select), altfel minute ca string — convertit la number/null la salvare.
@@ -93,8 +87,10 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
       setEndAt(toDatetimeLocalValue(new Date(event.endAt)))
       const parsed = parseRecurrence(event.recurrenceRule)
       setRecurrence(parsed.type)
-      setByDays(parsed.days)
-      setRecurrenceEndAt(event.recurrenceEndAt ? event.recurrenceEndAt.slice(0, 10) : '')
+      setByDays(new Set(parsed.days))
+      setRecurrenceInterval(String(parsed.interval))
+      setRecurrenceKept({ rest: parsed.rest, raw: parsed.raw })
+      setRecurrenceEndAt(recurrenceEndInputValue(event.recurrenceEndAt))
       setColor(event.color ?? DEFAULT_COLOR)
       setReminderMinutesBefore(event.reminderMinutesBefore ? String(event.reminderMinutesBefore) : '')
       setAttendeeIds(new Set((meta?.attendees ?? []).map((a) => a.id)))
@@ -109,6 +105,8 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
       setEndAt(toDatetimeLocalValue(end))
       setRecurrence('none')
       setByDays(new Set())
+      setRecurrenceInterval('1')
+      setRecurrenceKept({ rest: [], raw: null })
       setRecurrenceEndAt('')
       setColor(DEFAULT_COLOR)
       setReminderMinutesBefore('')
@@ -125,11 +123,10 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
     mutationFn: () => {
       const startDate = new Date(startAt)
       const recurrenceRule =
-        recurrence === 'daily'
-          ? 'FREQ=DAILY'
-          : recurrence === 'weekly'
-            ? `FREQ=WEEKLY;BYDAY=${(byDays.size > 0 ? [...byDays] : [BYDAY_CODES[startDate.getDay() === 0 ? 6 : startDate.getDay() - 1] ?? 'MO']).join(',')}`
-            : undefined
+        buildRecurrence(
+          { type: recurrence, interval: Number(recurrenceInterval) || 1, days: [...byDays], rest: recurrenceKept.rest, raw: recurrenceKept.raw },
+          startDate,
+        ) ?? undefined
       const body = {
         title,
         description: description || undefined,
@@ -137,7 +134,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
         startAt: startDate.toISOString(),
         endAt: new Date(endAt).toISOString(),
         recurrenceRule,
-        recurrenceEndAt: recurrenceRule && recurrenceEndAt ? new Date(recurrenceEndAt).toISOString() : undefined,
+        recurrenceEndAt: recurrenceRule && recurrenceEndAt ? recurrenceEndIso(recurrenceEndAt) : undefined,
         color,
         reminderMinutesBefore: reminderMinutesBefore ? Number(reminderMinutesBefore) : undefined,
         // Fără `calendar.comune` câmpul nu se trimite deloc: serverul l-ar refuza, chiar gol.
@@ -286,11 +283,12 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
               <Select
                 id="ev-recurrence"
                 value={recurrence}
-                onChange={(e) => setRecurrence(e.target.value as Recurrence)}
+                onChange={(e) => setRecurrence(e.target.value as RecurrenceType)}
               >
                 <option value="none">{t('calendar:event.noRecurrence')}</option>
                 <option value="daily">{t('calendar:event.daily')}</option>
                 <option value="weekly">{t('calendar:event.weekly')}</option>
+                {recurrence === 'custom' ? <option value="custom">{t('calendar:event.customRecurrence')}</option> : null}
               </Select>
             </div>
             {recurrence === 'weekly' ? (
@@ -318,6 +316,23 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                       </button>
                     )
                   })}
+                </div>
+              </div>
+            ) : null}
+            {recurrence === 'daily' || recurrence === 'weekly' ? (
+              <div className="space-y-2">
+                <Label htmlFor="ev-recurrence-interval">{t('calendar:event.interval')}</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="ev-recurrence-interval"
+                    inputMode="numeric"
+                    className="w-20"
+                    value={recurrenceInterval}
+                    onChange={(e) => setRecurrenceInterval(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {t(recurrence === 'daily' ? 'calendar:event.intervalDays' : 'calendar:event.intervalWeeks', { count: Number(recurrenceInterval) || 1 })}
+                  </span>
                 </div>
               </div>
             ) : null}

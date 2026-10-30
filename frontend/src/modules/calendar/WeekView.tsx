@@ -1,15 +1,17 @@
 import { PhoneCall } from 'lucide-react'
-import { useEffect, useState, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { chartColor } from '@/shared/lib/chart-colors'
 import type { BookingBlock, CalendarOccurrence } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
-import { addDays, formatTime, isSameDay, isToday, WEEKDAY_LABELS } from './date-utils'
+import { addDays, formatTime, isToday, WEEKDAY_LABELS } from './date-utils'
+import { allDayOn, layoutDay, placedStyle } from './week-layout'
 import { canEditOccurrence, eventLabel } from '@/shared/lib/event-label'
 import { t } from '@/shared/lib/i18n'
 
-const VIEW_START_HOUR = 6
-const VIEW_END_HOUR = 22
+const VIEW_START_HOUR = 0
+const VIEW_END_HOUR = 24
 const HOUR_HEIGHT = 48 // px
+const DAY_GRID = { startHour: VIEW_START_HOUR, endHour: VIEW_END_HOUR, hourHeight: HOUR_HEIGHT }
 
 export interface TimeRange {
   start: Date
@@ -127,8 +129,16 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
     setMobileDayIndex(todayIndex >= 0 ? todayIndex : 0)
   }, [weekStart])
   const mobileDay = days[mobileDayIndex]!
-  const mobileDayEvents = occurrences.filter((o) => !o.allDay && isSameDay(new Date(o.occurrenceStart), mobileDay))
-  const mobileAllDayEvents = occurrences.filter((o) => o.allDay && isSameDay(new Date(o.occurrenceStart), mobileDay))
+  const mobileScrollRef = useRef<HTMLDivElement>(null)
+  const desktopScrollRef = useRef<HTMLDivElement>(null)
+  const hasOccurrences = occurrences.length > 0
+  // The grid covers the whole day: it opens at 07:00, or at the first earlier event of the week.
+  useEffect(() => {
+    const firstHour = occurrences.filter((o) => !o.allDay).reduce((hour, o) => Math.min(hour, new Date(o.occurrenceStart).getHours()), 7)
+    for (const box of [mobileScrollRef.current, desktopScrollRef.current]) if (box) box.scrollTop = firstHour * HOUR_HEIGHT
+  }, [weekStart, hasOccurrences])
+  const mobileDayEvents = layoutDay(occurrences, mobileDay, DAY_GRID)
+  const mobileAllDayEvents = allDayOn(occurrences, mobileDay)
 
   return (
     <div className="rounded-lg border">
@@ -167,6 +177,7 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
             ))}
           </div>
         ) : null}
+        <div ref={mobileScrollRef} className="max-h-[calc(100dvh-16rem)] overflow-y-auto">
         <div className="grid grid-cols-[48px_1fr]">
           <div>
             {hours.map((h) => (
@@ -190,21 +201,16 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
               />
             ))}
             <BookingLayers day={mobileDay} windows={bookingWindows} blocks={bookingBlocks} onBlockClick={onBlockClick} />
-            {mobileDayEvents.map((occ) => {
+            {mobileDayEvents.map((placed) => {
+              const { occ } = placed
               const start = new Date(occ.occurrenceStart)
               const end = new Date(occ.occurrenceEnd)
-              const startOffset = start.getHours() + start.getMinutes() / 60 - VIEW_START_HOUR
-              const durationHours = Math.max((end.getTime() - start.getTime()) / (60 * 60 * 1000), 0.5)
               return (
                 <button
                   key={`${occ.eventId}-${occ.occurrenceStart}`}
                   type="button"
-                  className="absolute left-1 right-1 z-[2] overflow-hidden rounded-md px-1.5 py-1 text-left text-xs text-white"
-                  style={{
-                    top: Math.max(startOffset, 0) * HOUR_HEIGHT,
-                    height: durationHours * HOUR_HEIGHT - 2,
-                    backgroundColor: occ.color ?? chartColor(0),
-                  }}
+                  className="absolute z-[2] overflow-hidden rounded-md px-1.5 py-1 text-left text-xs text-white ring-1 ring-background"
+                  style={{ ...placedStyle(placed), backgroundColor: occ.color ?? chartColor(0) }}
                   onClick={(e) => {
                     e.stopPropagation()
                     onEventClick(occ)
@@ -224,10 +230,11 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
             ) : null}
           </div>
         </div>
+        </div>
       </div>
 
-      <div className="hidden overflow-x-auto sm:block">
-      <div className="grid min-w-[560px] grid-cols-[48px_repeat(7,minmax(64px,1fr))] border-b">
+      <div className="hidden sm:block">
+      <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b">
         <div />
         {days.map((day) => {
           const today = isToday(day)
@@ -252,10 +259,10 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
         })}
       </div>
 
-      <div className="grid min-w-[560px] grid-cols-[48px_repeat(7,minmax(64px,1fr))] border-b">
+      <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b">
         <div className="px-2 py-1 text-right text-xs text-muted-foreground">{t('calendar:week.allDay')}</div>
         {days.map((day) => {
-          const allDayEvents = occurrences.filter((o) => o.allDay && isSameDay(new Date(o.occurrenceStart), day))
+          const allDayEvents = allDayOn(occurrences, day)
           return (
             <div
               key={day.toISOString()}
@@ -277,7 +284,8 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
         })}
       </div>
 
-      <div className="grid min-w-[560px] grid-cols-[48px_repeat(7,minmax(64px,1fr))]">
+      <div ref={desktopScrollRef} className="max-h-[calc(100dvh-18rem)] overflow-y-auto">
+      <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))]">
         <div>
           {hours.map((h) => (
             <div key={h} className="border-t px-2 text-right text-xs text-muted-foreground" style={{ height: HOUR_HEIGHT }}>
@@ -286,7 +294,7 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
           ))}
         </div>
         {days.map((day) => {
-          const dayEvents = occurrences.filter((o) => !o.allDay && isSameDay(new Date(o.occurrenceStart), day))
+          const dayEvents = layoutDay(occurrences, day, DAY_GRID)
           const today = isToday(day)
           return (
             <div
@@ -328,11 +336,10 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
                 />
               ))}
               <BookingLayers day={day} windows={bookingWindows} blocks={bookingBlocks} onBlockClick={onBlockClick} />
-              {dayEvents.map((occ) => {
+              {dayEvents.map((placed) => {
+                const { occ } = placed
                 const start = new Date(occ.occurrenceStart)
                 const end = new Date(occ.occurrenceEnd)
-                const startOffset = start.getHours() + start.getMinutes() / 60 - VIEW_START_HOUR
-                const durationHours = Math.max((end.getTime() - start.getTime()) / (60 * 60 * 1000), 0.5)
                 const isDragging = draggedOcc?.eventId === occ.eventId && draggedOcc.occurrenceStart === occ.occurrenceStart
                 // O programare de pe site nu se mută prin tragere: ora e promisă vizitatorului prin email.
                 const movable = canEditOccurrence(occ) && occ.source !== 'booking'
@@ -342,15 +349,11 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
                     type="button"
                     draggable={movable}
                     className={cn(
-                      'absolute left-1 right-1 z-[2] overflow-hidden rounded-md px-1.5 py-1 text-left text-xs text-white',
+                      'absolute z-[2] overflow-hidden rounded-md px-1.5 py-1 text-left text-xs text-white ring-1 ring-background',
                       movable && 'cursor-grab active:cursor-grabbing',
                       isDragging && 'opacity-40',
                     )}
-                    style={{
-                      top: Math.max(startOffset, 0) * HOUR_HEIGHT,
-                      height: durationHours * HOUR_HEIGHT - 2,
-                      backgroundColor: occ.color ?? chartColor(0),
-                    }}
+                    style={{ ...placedStyle(placed), backgroundColor: occ.color ?? chartColor(0) }}
                     onClick={(e) => {
                       e.stopPropagation()
                       onEventClick(occ)
@@ -382,6 +385,7 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
             </div>
           )
         })}
+      </div>
       </div>
       </div>
     </div>
