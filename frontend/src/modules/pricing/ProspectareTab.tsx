@@ -473,8 +473,8 @@ export function ProspectareTab() {
                             </Button>
                           </>
                         ) : (
-                          <div className="flex items-start justify-between gap-1">
-                            <div className="space-y-0 leading-tight">
+                          <div className="flex max-w-[14rem] items-start justify-between gap-1">
+                            <div className="min-w-0 space-y-0 leading-tight">
                               {p.phone && (
                                 <div className="flex flex-wrap gap-1">
                                   {splitMultiValue(p.phone).map((num) => (
@@ -490,7 +490,8 @@ export function ProspectareTab() {
                                     <a
                                       key={addr}
                                       href={`/email?to=${encodeURIComponent(addr)}`}
-                                      className="text-primary underline"
+                                      title={addr}
+                                      className="max-w-full truncate text-primary underline"
                                       onClick={(e) => {
                                         e.preventDefault()
                                         navigate(`/email?to=${encodeURIComponent(addr)}`)
@@ -503,7 +504,7 @@ export function ProspectareTab() {
                               )}
                               {p.contactName && <div className="text-muted-foreground">{p.contactName}</div>}
                               {p.website && (
-                                <a href={withProtocol(p.website)} target="_blank" rel="noreferrer" className="text-primary underline">
+                                <a href={withProtocol(p.website)} target="_blank" rel="noreferrer" title={p.website} className="block max-w-full truncate text-primary underline">
                                   {p.website}
                                 </a>
                               )}
@@ -557,6 +558,8 @@ export function ProspectareTab() {
                           actions={[
                             { key: 'price', icon: Calculator, label: t('pricing:prospects.calculatePrice'), onClick: () => navigate(`/pricing?tab=calculator&prospectId=${p.id}`) },
                             ...(!p.billingClientId ? [{ key: 'promote', icon: UserPlus, label: t('pricing:prospects.promote'), onClick: () => setPromoteTarget(p) }] : []),
+                          ]}
+                          menu={[
                             showArchived
                               ? { key: 'unarchive', icon: ArchiveRestore, label: t('pricing:prospects.unarchive'), onClick: () => unarchiveProspect.mutate(p.id) }
                               : { key: 'archive', icon: Archive, label: t('common:actions.archive'), onClick: () => archiveProspect.mutate(p.id) },

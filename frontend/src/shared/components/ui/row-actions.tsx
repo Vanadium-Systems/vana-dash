@@ -28,7 +28,7 @@ export function RowActions({ actions, menu = [] }: { actions: RowAction[]; menu?
   const [compact, setCompact] = useState(false)
   if (actions.length === 0 && menu.length === 0) return null
   return (
-    <div className="flex flex-wrap justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+    <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
       {actions.map((action, index) => (
         <Button
           key={action.key}

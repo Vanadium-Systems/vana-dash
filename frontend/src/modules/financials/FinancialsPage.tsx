@@ -71,7 +71,7 @@ export function FinancialsPage() {
     <div className="space-y-6">
       <PageHeader title={t('common:nav.financials')} actions={<PeriodSelector />} />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="kpi-grid gap-4">
         <KPICard label={t('financials:labels.revenueCollected')} value={revenue} unit={currency} converted={converted} isPending={pnl.isPending} />
         <KPICard label={t('financials:kpi.invoicedPending')} value={pendingRevenue} unit={currency} converted={converted} isPending={pnl.isPending} />
         <KPICard label={t('financials:labels.expenses')} value={expense} unit={currency} converted={converted} isPending={pnl.isPending} />

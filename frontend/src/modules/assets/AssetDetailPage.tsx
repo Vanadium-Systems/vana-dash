@@ -242,7 +242,7 @@ export function AssetDetailPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="kpi-grid gap-2">
         <Stat label={t('assets:stats.open')} value={formatUsd(a.open)} />
         <Stat label={t('assets:stats.high')} value={formatUsd(a.high)} />
         <Stat label={t('assets:stats.low')} value={formatUsd(a.low)} />

@@ -139,7 +139,8 @@ export function AppLayout() {
   // real) — constrângerea de lățime lăsa reading pane-ul îngust pe orice monitor. Mesaje au
   // nevoie de altfel: coloană de conversații + fir, deci ocupă lățimea tot. Restul modulelor
   // rămân pe max-w-6xl.
-  const isFullWidthPage = location.pathname.startsWith('/email') || location.pathname.startsWith('/messages')
+  // Wide working tables get the whole width, so a desktop shows their secondary columns too.
+  const isFullWidthPage = ['/email', '/messages', '/pricing', '/tenders'].some((path) => location.pathname.startsWith(path))
   // Într-o conversație, pe telefon, firul ocupă tot ecranul; bara de jos ar acoperi câmpul de scris.
   const inConversation = /^\/messages\/[^/]+/.test(location.pathname)
 
