@@ -9,7 +9,7 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { cn, formatBytes } from '@/shared/lib/utils'
-import { formatDateTime, intlTag } from '@/shared/lib/format'
+import { companyTimeZone, formatDateTime, intlTag } from '@/shared/lib/format'
 import type { ChatAttachment, ChatConversation, ChatReceipt } from '@/shared/lib/types'
 import { useChatStream } from '@/shared/components/chat/ChatStreamProvider'
 import { Composer } from './Composer'
@@ -502,6 +502,6 @@ function time(iso: string): string {
   return new Intl.DateTimeFormat(intlTag(), {
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'Europe/Bucharest',
+    timeZone: companyTimeZone(),
   }).format(new Date(iso))
 }
