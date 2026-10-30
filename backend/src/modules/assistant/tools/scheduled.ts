@@ -23,7 +23,7 @@ export function buildScheduledTools(ctx: ToolBuildContext) {
       }),
       description: 'Creează un reminder cu notificare push la momentul cerut (+ eveniment în Calendar).',
       summarize: (a) => {
-        const when = new Date(a.when).toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'medium', timeStyle: 'short' })
+        const when = new Date(a.when).toLocaleString('ro-RO', { timeZone: ctx.user.tenant?.timeZone, dateStyle: 'medium', timeStyle: 'short' })
         return `Reminder „${a.text}" pe ${when}`
       },
     }),
@@ -37,7 +37,7 @@ export function buildScheduledTools(ctx: ToolBuildContext) {
       }),
       description: 'Programază rularea unui prompt de asistent la data/ora cerută; rezultatul ajunge prin push și în conversație.',
       summarize: (a) => {
-        const when = new Date(a.when).toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'medium', timeStyle: 'short' })
+        const when = new Date(a.when).toLocaleString('ro-RO', { timeZone: ctx.user.tenant?.timeZone, dateStyle: 'medium', timeStyle: 'short' })
         const rec = a.recurrence === 'once' ? '' : `, repetând ${a.recurrence === 'daily' ? 'zilnic' : `săptămânal (${['duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă'][a.weekday ?? 0]})`}`
         return `Raport programat pe ${when}${rec}: „${a.prompt.slice(0, 80)}"`
       },
