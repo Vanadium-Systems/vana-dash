@@ -9,6 +9,7 @@ import type { AssistantModelId } from './models.js'
 import { localSystemPrompt, systemPrompt } from './system-prompt.js'
 import { repairHistory } from './history.js'
 import { toNeutralTools, buildActiveProvider, resolveModel, type AssistantProviderId } from './providers/index.js'
+import { getCompany } from '../../shared/lib/company.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 export type { AssistantModelId } from './models.js'
@@ -172,6 +173,7 @@ async function* driveTurn(
   const effectiveModel = await resolveModel(model ?? null, providerId)
   // Local models only see what the person types: no tools, so no company data leaves for them.
   const isLocal = providerId === 'local'
+  const companyName = (await getCompany()).profile.name
   const tools = isLocal
     ? []
     : toNeutralTools(await buildAssistantTools({ onConfirmRequired: (p) => pending.push(p), conversationId, user }))
@@ -183,7 +185,7 @@ async function* driveTurn(
   try {
     for await (const event of provider.streamTurn({
       model: effectiveModel,
-      system: isLocal ? localSystemPrompt(user) : systemPrompt(user),
+      system: isLocal ? localSystemPrompt(user, companyName) : systemPrompt(user, companyName),
       tools,
       messages,
       shouldStopAfterTurn: () => pending.length > 0,
