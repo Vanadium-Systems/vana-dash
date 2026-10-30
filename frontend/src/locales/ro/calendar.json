@@ -102,7 +102,15 @@
     "deleteRecurringBody": "Se șterg toate repetările lui.",
     "deleteConfirm": "Șterge evenimentul",
     "blockOnlyHint": "Scoate intervalul din orele de pe site, fără să creezi un eveniment",
-    "blockOnly": "Doar blochează pentru programări"
+    "blockOnly": "Doar blochează pentru programări",
+    "interval": "Repetă la fiecare",
+    "intervalDays_one": "zi",
+    "intervalDays_few": "zile",
+    "intervalDays_other": "de zile",
+    "intervalWeeks_one": "săptămână",
+    "intervalWeeks_few": "săptămâni",
+    "intervalWeeks_other": "de săptămâni",
+    "customRecurrence": "Altă regulă (păstrată așa cum e)"
   },
   "nav": {
     "previousWeek": "Săptămâna anterioară",
@@ -130,5 +138,10 @@
     "allDay": "toată ziua",
     "blocked": "Blocat",
     "blockedWithReason": "Blocat · {{reason}}"
+  },
+  "move": {
+    "seriesTitle": "Muți toată seria „{{title}}”?",
+    "seriesBody": "Toate aparițiile se mută la fel. O singură apariție nu se poate muta separat.",
+    "seriesConfirm": "Mută seria"
   }
 }

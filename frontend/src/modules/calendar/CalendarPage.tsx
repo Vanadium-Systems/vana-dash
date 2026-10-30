@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { AccessShareDialog } from '@/shared/components/AccessShareDialog'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Checkbox } from '@/shared/components/ui/checkbox'
+import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Skeleton } from '@/shared/components/ui/skeleton'
@@ -44,8 +45,8 @@ function occurrenceToEvent(occ: CalendarOccurrence): CalendarEvent {
     title: occ.title,
     description: occ.description,
     location: occ.location,
-    startAt: occ.occurrenceStart,
-    endAt: occ.occurrenceEnd,
+    startAt: occ.seriesStart,
+    endAt: occ.seriesEnd,
     allDay: occ.allDay,
     recurrenceRule: occ.recurrenceRule,
     recurrenceEndAt: occ.recurrenceEndAt,
@@ -160,12 +161,16 @@ export function CalendarPage() {
     onError: (err) => toast.error(err.message),
   })
 
+  const confirm = useConfirm()
   const moveEvent = useMutation({
-    mutationFn: ({ occ, start, end }: { occ: CalendarOccurrence; start: Date; end: Date }) =>
-      api.patch<CalendarEvent>(`/api/calendar/events/${occ.eventId}`, {
-        startAt: start.toISOString(),
-        endAt: end.toISOString(),
-      }),
+    mutationFn: ({ occ, start }: { occ: CalendarOccurrence; start: Date; end: Date }) => {
+      // The series row moves by as much as the dragged occurrence did.
+      const shift = start.getTime() - new Date(occ.occurrenceStart).getTime()
+      return api.patch<CalendarEvent>(`/api/calendar/events/${occ.eventId}`, {
+        startAt: new Date(new Date(occ.seriesStart).getTime() + shift).toISOString(),
+        endAt: new Date(new Date(occ.seriesEnd).getTime() + shift).toISOString(),
+      })
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['calendar'] })
       toast.success(t('calendar:toasts.eventMoved'))
@@ -340,7 +345,12 @@ export function CalendarPage() {
               onBlockClick={(block) => deleteBlock.mutate(block)}
               onSlotClick={openCreate}
               onEventClick={openEdit}
-              onEventDrop={(occ, start, end) => moveEvent.mutate({ occ, start, end })}
+              onEventDrop={(occ, start, end) => {
+                if (!occ.isRecurring) return moveEvent.mutate({ occ, start, end })
+                void confirm({ title: t('calendar:move.seriesTitle', { title: occ.title }), consequence: t('calendar:move.seriesBody'), confirmLabel: t('calendar:move.seriesConfirm') }).then(
+                  (ok) => ok && moveEvent.mutate({ occ, start, end }),
+                )
+              }}
             />
           ) : (
             <MonthView
