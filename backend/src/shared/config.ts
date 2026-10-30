@@ -90,13 +90,6 @@ export const config = {
   // vezi PLAN.md) — fără el, ruta respinge orice payload (fail-closed, nu skip).
   resendWebhookSecret: process.env.RESEND_WEBHOOK_SECRET ?? '',
 
-  // Deprecated: SMTP nu mai e folosit de shared/lib/email.ts (înlocuit cu Resend).
-  // Păstrate nesterse — OPS le poate marca opțional în .env.example într-un wave viitor.
-  smtpHost: process.env.SMTP_HOST ?? '',
-  smtpPort: Number(process.env.SMTP_PORT ?? 587),
-  smtpUser: process.env.SMTP_USER ?? '',
-  smtpPass: process.env.SMTP_PASS ?? '',
-
   // Track A (monitorizare server) — secretul dedicat pt. POST /api/monitoring/host-metrics
   // (apelant: script cron pe host-ul VPS, nu o sesiune de browser). Gol implicit = ruta
   // respinge orice request (fail-closed, nu skip silențios — vezi monitoring/routes.ts).
