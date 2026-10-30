@@ -122,7 +122,7 @@ async function searchThreads(me: SessionUser, term: string, limit: number): Prom
     items: rows.map((r) => ({
       id: r.id,
       label: r.subject,
-      sublabel: r.lastMessageAt.toLocaleString('ro-RO', { timeZone: 'Europe/Bucharest', dateStyle: 'short', timeStyle: 'short' }),
+      sublabel: r.lastMessageAt.toLocaleString('ro-RO', { timeZone: me.tenant?.timeZone, dateStyle: 'short', timeStyle: 'short' }),
       to: `/email?thread=${r.id}`,
     })),
   }
@@ -156,16 +156,16 @@ async function searchCalendar(me: SessionUser, term: string, limit: number): Pro
       const when = start.toLocaleString(
         'ro-RO',
         r.allDay
-          ? { timeZone: 'Europe/Bucharest', dateStyle: 'medium' }
-          : { timeZone: 'Europe/Bucharest', dateStyle: 'medium', timeStyle: 'short' },
+          ? { timeZone: me.tenant?.timeZone, dateStyle: 'medium' }
+          : { timeZone: me.tenant?.timeZone, dateStyle: 'medium', timeStyle: 'short' },
       )
       return {
         id: r.id,
         label: r.title,
         // Numele proprietarului doar când nu e calendarul omului — altfel ar fi zgomot.
         sublabel: r.ownerUserId === me.id ? when : `${when} · ${r.ownerName}`,
-        // Ziua din București, nu din UTC: un eveniment la 00:30 ar cădea altfel în ziua de dinainte.
-        to: `/calendar?date=${start.toLocaleDateString('sv-SE', { timeZone: 'Europe/Bucharest' })}`,
+        // The day in the company's zone, not in UTC: an event at 00:30 would otherwise land on the day before.
+        to: `/calendar?date=${start.toLocaleDateString('sv-SE', { timeZone: me.tenant?.timeZone })}`,
       }
     }),
   }
