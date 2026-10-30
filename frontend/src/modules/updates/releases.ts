@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-30T10:00:00+02:00',
+    title: {
+      ro: 'Calendar, email și tabele mai bune pe telefon',
+      en: 'Calendar, email and tables that work better on a phone',
+    },
+    body: {
+      ro: 'Un eveniment care se repetă își păstrează regula când îl editezi, iar formularul are „Repetă la fiecare” (de exemplu, din 2 în 2 săptămâni). Când tragi o apariție, aplicația întreabă dacă muți toată seria. Vederea pe săptămână arată toate cele 24 de ore și pune evenimentele suprapuse unul lângă altul. Un email se poate amâna din fir sau din selecție, iar emailurile late se micșorează pe telefon. Tabelele încap pe ecran îngust: coloanele mai puțin importante se ascund, iar valorile lor apar pe un rând mic sub titlu. Pe Android, butonul Înapoi închide întâi dialogul, apoi revine la pagina anterioară (cere aplicația reinstalată), iar notificările pentru emailuri citite pe alt dispozitiv dispar când deschizi aplicația.',
+      en: 'A repeating event keeps its rule when you edit it, and the form has “Repeat every” (for example, every 2 weeks). When you drag an occurrence, the app asks whether to move the whole series. The week view shows all 24 hours and puts overlapping events side by side. An email can be snoozed from the thread or from a selection, and wide emails shrink to fit a phone. Tables fit a narrow screen: the less important columns hide and their values show on a small line under the title. On Android, Back first closes the dialog, then goes to the previous page (needs the app reinstalled), and notifications for emails you read on another device go away when you open the app.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-10-29T20:00:00+02:00',
     title: {
       ro: 'Datele firmei se completează din Setări',
