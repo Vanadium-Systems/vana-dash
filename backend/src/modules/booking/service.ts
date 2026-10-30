@@ -6,7 +6,7 @@ import { listOccurrencesForOwner } from '../../shared/lib/calendar-occurrences.j
 import { config } from '../../shared/config.js'
 import { sendEmail } from '../../shared/lib/email.js'
 import { notifyPush } from '../../shared/lib/push.js'
-import { getCompanyTimeZone } from '../../shared/lib/company.js'
+import { getCompany, getCompanyTimeZone } from '../../shared/lib/company.js'
 import { wallClock, zonedTimeToUtc } from '../../shared/lib/schedule-recurrence.js'
 import { buildBookingIcs } from './ics.js'
 import { BookingSettingsSchema, DEFAULT_BOOKING_SETTINGS, type BookingSettings, type PublicBookingBodySchema } from './schema.js'
@@ -284,6 +284,7 @@ async function notifyAfterBooking(booking: typeof bookings.$inferSelect, cancelT
   const visitor = visitorLocale(booking)
   const timeZone = await getCompanyTimeZone()
   const label = formatSlotLabel(booking.startAt, timeZone, visitor)
+  const { profile: company } = await getCompany()
   const cancelUrl = `${cancelPageUrl(booking)}?t=${encodeURIComponent(cancelToken)}`
   const callUrl = await openBookingRoom(booking)
   await Promise.allSettled([
@@ -299,8 +300,7 @@ async function notifyAfterBooking(booking: typeof bookings.$inferSelect, cancelT
         '',
         trFor(visitor, 'emails.booking.cancelHere', { cancelUrl }),
         '',
-        'Stefan',
-        'Vanadium Systems',
+        company.name,
       ].join('\n'),
       attachments: [{ filename: trFor(visitor, 'emails.booking.icsFilename'), content: Buffer.from(buildBookingIcs(booking, callUrl)) }],
     }),
@@ -328,6 +328,7 @@ async function cancelBooking(booking: typeof bookings.$inferSelect, by: 'visitor
   const visitor = visitorLocale(booking)
   const timeZone = await getCompanyTimeZone()
   const label = formatSlotLabel(booking.startAt, timeZone, visitor)
+  const { profile: company } = await getCompany()
   await Promise.allSettled([
     booking.email && notifyVisitor
       ? sendEmail({
@@ -339,8 +340,7 @@ async function cancelBooking(booking: typeof bookings.$inferSelect, by: 'visitor
             '',
             trFor(visitor, by === 'visitor' ? 'emails.booking.cancelledByVisitor' : 'emails.booking.cancelledByOwner', { label }),
             '',
-            'Stefan',
-            'Vanadium Systems',
+            company.name,
           ].join('\n'),
         })
       : Promise.resolve(),
