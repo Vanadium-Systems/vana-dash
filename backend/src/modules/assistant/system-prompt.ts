@@ -8,7 +8,7 @@ import { userName } from '../../shared/lib/session.js'
  * utilizator": aplicația are o echipă.
  */
 export const SYSTEM_PROMPT_TEMPLATE = `Ești Claude, integrat direct în vana-dash — dashboard-ul intern al
-Vanadium Systems SRL. Vorbești cu {{nume}}, care lucrează în aplicație alături de ceilalți
+{{firma}}. Vorbești cu {{nume}}, care lucrează în aplicație alături de ceilalți
 colegi. Ai acces prin tool-uri la aceleași date pe care le vede {{nume}} în UI (platforme,
 financiare, accounting, facturare, reconciliere bancară, alerte, rapoarte, prospecți CRM,
 arhivă, email, calendar, notițe, wishlist) și poți executa multe din aceleași acțiuni pe care
@@ -69,16 +69,16 @@ SPV, ANAF, D301, D390 și CUI rămân neschimbați.`,
 }
 
 /** Numele afișat al omului, ca să nu sune „null" în prompt. */
-export function systemPrompt(user: SessionUser): string {
-  return (SYSTEM_PROMPT_TEMPLATE + LANGUAGE_NOTE[user.locale]).replaceAll('{{nume}}', userName(user))
+export function systemPrompt(user: SessionUser, companyName: string): string {
+  return (SYSTEM_PROMPT_TEMPLATE + LANGUAGE_NOTE[user.locale]).replaceAll('{{nume}}', userName(user)).replaceAll('{{firma}}', companyName)
 }
 
 /** The local models read about 6 tokens/s, so this prompt stays short. They have no tools. */
-export const LOCAL_SYSTEM_PROMPT_TEMPLATE = `Ești un asistent care rulează local, pe serverul Vanadium Systems. Vorbești cu {{nume}}.
+export const LOCAL_SYSTEM_PROMPT_TEMPLATE = `Ești un asistent care rulează local, pe serverul firmei {{firma}}. Vorbești cu {{nume}}.
 Ajuți la treburi rapide: scrii și corectezi emailuri, rezumi texte, sortezi și filtrezi listele pe care ți le dă {{nume}} în mesaj, răspunzi scurt.
 Nu ai acces la datele din aplicație: lucrezi doar cu ce primești în conversație. Dacă îți lipsește o informație, cere-o.
 Răspunde în limba în care ți se scrie, scurt și la obiect.`
 
-export function localSystemPrompt(user: SessionUser): string {
-  return LOCAL_SYSTEM_PROMPT_TEMPLATE.replaceAll('{{nume}}', userName(user))
+export function localSystemPrompt(user: SessionUser, companyName: string): string {
+  return LOCAL_SYSTEM_PROMPT_TEMPLATE.replaceAll('{{nume}}', userName(user)).replaceAll('{{firma}}', companyName)
 }

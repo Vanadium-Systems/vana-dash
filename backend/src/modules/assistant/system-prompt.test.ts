@@ -6,11 +6,11 @@ const person = (locale: 'ro' | 'en') => ({ displayName: 'Ana', email: 'ana@examp
 
 describe('systemPrompt', () => {
   it('is unchanged for a person who uses the app in Romanian', () => {
-    expect(systemPrompt(person('ro'))).toBe(SYSTEM_PROMPT_TEMPLATE.replaceAll('{{nume}}', 'Ana'))
+    expect(systemPrompt(person('ro'), 'Acme SRL')).toBe(SYSTEM_PROMPT_TEMPLATE.replaceAll('{{nume}}', 'Ana').replaceAll('{{firma}}', 'Acme SRL'))
   })
 
   it('tells the model to answer in English for a person who uses the app in English', () => {
-    const prompt = systemPrompt(person('en'))
+    const prompt = systemPrompt(person('en'), 'Acme SRL')
     expect(prompt).toContain('Răspunde-i în engleză')
     expect(prompt).toContain('Invoices')
     expect(prompt).not.toContain('{{nume}}')
@@ -19,7 +19,7 @@ describe('systemPrompt', () => {
 
 describe('localSystemPrompt', () => {
   it('names the person and says there is no access to the app data', () => {
-    const prompt = localSystemPrompt(person('ro'))
+    const prompt = localSystemPrompt(person('ro'), 'Acme SRL')
     expect(prompt).toContain('Ana')
     expect(prompt).not.toContain('{{nume}}')
     expect(prompt).toContain('Nu ai acces la datele din aplicație')
