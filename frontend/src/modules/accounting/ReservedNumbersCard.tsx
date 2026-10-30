@@ -11,11 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api } from '@/shared/lib/api'
 import type { ReservedContractNumber } from '@/shared/lib/types'
 import { formatContractDate } from './ClientFormDialog'
+import { companyTimeZone } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 
 const RESERVED_NUMBERS_QUERY_KEY = ['contract-reserved-numbers']
 
-const todayIso = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(new Date())
+const todayIso = () => new Intl.DateTimeFormat('en-CA', { timeZone: companyTimeZone() }).format(new Date())
 
 export function ReservedNumbersCard() {
   const queryClient = useQueryClient()
