@@ -290,7 +290,7 @@ export function AssetsPage() {
                       className="cursor-pointer py-2.5 transition-colors hover:bg-accent/40"
                       onClick={() => void navigate(`/assets/${entry.category}/${encodeURIComponent(entry.symbol)}`)}
                     >
-                      <CardContent className="space-y-1 px-3 pt-0">
+                      <CardContent className="space-y-1 px-3 pt-0 max-sm:px-3">
                         <div className="flex items-center justify-between gap-1">
                           <p className="min-w-0 truncate text-sm font-medium" title={entry.name}>
                             {entry.symbol}
@@ -466,7 +466,7 @@ export function AssetsPage() {
                           <TableHead>{t('common:labels.symbol')}</TableHead>
                           <TableHead className="text-right">{t('common:labels.price')}</TableHead>
                           <TableHead className="text-right">{t('assets:index.change')}</TableHead>
-                          <TableHead className="text-right">{t('common:labels.order')}</TableHead>
+                          <TableHead priority="md" className="text-right">{t('common:labels.order')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -494,13 +494,13 @@ export function AssetsPage() {
                               </TableCell>
                               <TableCell>
                                 <span className="font-medium">{row.symbol}</span>
-                                <span className="ml-2 truncate text-xs text-muted-foreground">{row.name}</span>
+                                <span className="ml-2 truncate text-xs text-muted-foreground tbl-md">{row.name}</span>
                               </TableCell>
                               <TableCell className="tnum text-right font-mono text-xs">{formatUsd(row.priceUsd)}</TableCell>
                               <TableCell className="text-right">
                                 <ChangeCell change={row.changePct} />
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell priority="md" className="text-right">
                                 <Button
                                   variant="outline"
                                   onClick={(e) => {

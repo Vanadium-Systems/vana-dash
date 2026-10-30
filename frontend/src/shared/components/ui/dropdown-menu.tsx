@@ -144,19 +144,25 @@ export function DropdownMenuItem({
   children,
   onClick,
   destructive,
+  disabled,
+  className,
 }: {
   children: ReactNode
   onClick: () => void
   destructive?: boolean
+  disabled?: boolean
+  className?: string
 }) {
   const { setOpen } = useDropdownMenuContext('DropdownMenuItem')
   return (
     <button
       type="button"
       role="menuitem"
+      disabled={disabled}
       className={cn(
-        'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent',
+        'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent disabled:pointer-events-none disabled:opacity-50',
         destructive && 'text-destructive hover:bg-destructive/10 focus:text-destructive',
+        className,
       )}
       onClick={(e) => {
         e.stopPropagation()

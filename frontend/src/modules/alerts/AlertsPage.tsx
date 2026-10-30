@@ -264,8 +264,8 @@ function HistorySection({ ruleFilter }: { ruleFilter: string | null }) {
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24">{t('common:labels.severity')}</TableHead>
-                  <TableHead className="w-40 lg:w-56">{t('alerts:labels.rule')}</TableHead>
+                  <TableHead className="w-20 md:w-24">{t('common:labels.severity')}</TableHead>
+                  <TableHead className="md:w-40 lg:w-56">{t('alerts:labels.rule')}</TableHead>
                   <TableHead className="hidden md:table-cell">{t('common:labels.message')}</TableHead>
                   <TableHead className="w-28">{t('alerts:labels.triggered')}</TableHead>
                   <TableHead className="hidden w-28 sm:table-cell">{t('common:labels.status')}</TableHead>

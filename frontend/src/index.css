@@ -249,3 +249,42 @@
     pointer-events: none;
   }
 }
+
+/* Tables follow the width they get, not the screen width: a table can sit next to a sidebar or
+   two (Email), so a 768px screen may leave it 200px. Plain CSS after the utilities on purpose,
+   so these win over a utility on the same element. No table scrolls sideways (CLAUDE.md). */
+.tbl-container {
+  container-type: inline-size;
+}
+@container (max-width: 39.99rem) {
+  .tbl-md,
+  .tbl-inline {
+    display: none;
+  }
+  .tbl-fill {
+    width: 100%;
+    max-width: 0;
+  }
+  .tbl-narrow-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+@container (max-width: 55.99rem) {
+  .tbl-lg {
+    display: none;
+  }
+}
+@container (min-width: 40rem) {
+  .tbl-details,
+  .tbl-narrow-only {
+    display: none;
+  }
+}

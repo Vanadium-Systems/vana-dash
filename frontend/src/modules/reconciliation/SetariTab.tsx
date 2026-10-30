@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { ChartError } from '@/shared/components/charts/chart-states'
 import { api } from '@/shared/lib/api'
 import type { BankAccount, VanagreenExtensionLogEntry, VanagreenSettings } from '@/shared/lib/types'
@@ -264,28 +264,31 @@ function VanagreenExtensionCard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common:labels.when')}</TableHead>
-                  <TableHead>{t('common:labels.source')}</TableHead>
-                  <TableHead>{t('reconciliation:extension.mode')}</TableHead>
-                  <TableHead>{t('reconciliation:extension.months')}</TableHead>
+                  <TableHead priority="lg">{t('common:labels.source')}</TableHead>
+                  <TableHead priority="md">{t('reconciliation:extension.mode')}</TableHead>
+                  <TableHead priority="md">{t('reconciliation:extension.months')}</TableHead>
                   <TableHead>{t('common:labels.status')}</TableHead>
-                  <TableHead>{t('common:labels.details')}</TableHead>
+                  <TableHead priority="md">{t('common:labels.details')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {log.data.map((entry) => (
                   <TableRow key={entry.id}>
-                    <TableCell className="text-xs">{new Date(entry.createdAt).toLocaleString(intlTag())}</TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="text-xs tbl-fill">
+                      <div className="whitespace-nowrap">{new Date(entry.createdAt).toLocaleString(intlTag())}</div>
+                      <TableDetails items={[formatMonths(entry.months), entry.mode === 'live' ? 'live' : 'dry-run', entry.responseMessage]} />
+                    </TableCell>
+                    <TableCell priority="lg" className="text-xs">
                       {entry.source === 'auto_match' ? t('reconciliation:extension.sourceBankMatch') : t('reconciliation:extension.sourceManual')}
                     </TableCell>
-                    <TableCell>
+                    <TableCell priority="md">
                       {entry.mode === 'live' ? (
                         <StatePill tone="neutral">live</StatePill>
                       ) : (
                         <StatePill>dry-run</StatePill>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs">{formatMonths(entry.months)}</TableCell>
+                    <TableCell priority="md" className="text-xs">{formatMonths(entry.months)}</TableCell>
                     <TableCell>
                       {entry.status === 'success' ? (
                         <StatePill tone="success">{t('reconciliation:extension.success')}</StatePill>
@@ -293,7 +296,7 @@ function VanagreenExtensionCard() {
                         <StatePill tone="critical">{t('reconciliation:extension.failed')}</StatePill>
                       )}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
+                    <TableCell priority="md" className="max-w-xs truncate text-xs text-muted-foreground">
                       {entry.responseMessage ?? '—'}
                     </TableCell>
                   </TableRow>

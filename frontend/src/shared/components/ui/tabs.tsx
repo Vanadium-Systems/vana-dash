@@ -8,7 +8,8 @@ const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.List ref={ref} className={cn('flex gap-1 overflow-x-auto border-b', className)} {...props} />
+  // Wraps onto a second row instead of scrolling sideways when the tabs don't fit a phone.
+  <TabsPrimitive.List ref={ref} className={cn('flex flex-wrap gap-x-1 border-b', className)} {...props} />
 ))
 TabsList.displayName = TabsPrimitive.List.displayName
 
@@ -19,7 +20,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'whitespace-nowrap border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
+      'whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm sm:px-4 font-medium text-muted-foreground transition-colors hover:text-foreground',
       'data-[state=active]:border-primary data-[state=active]:text-foreground',
       className,
     )}

@@ -6,7 +6,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Label } from '@/shared/components/ui/label'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { DeclarationLine, DeclarationPreview } from '@/shared/lib/types'
 import { DeclarationFilingRow } from './DeclarationFilingRow'
@@ -94,39 +94,42 @@ function DeclarationCard({
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('accounting:labels.supplier')}</TableHead>
-                  <TableHead>{t('common:labels.country')}</TableHead>
-                  <TableHead>{t('common:labels.document')}</TableHead>
-                  <TableHead>{t('common:labels.date')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
+                  <TableHead priority="lg">{t('common:labels.country')}</TableHead>
+                  <TableHead priority="md">{t('common:labels.document')}</TableHead>
+                  <TableHead priority="md">{t('common:labels.date')}</TableHead>
+                  <TableHead priority="md" className="text-right">{t('common:labels.amount')}</TableHead>
                   <TableHead className="text-right">{t('accounting:declarations.baseRon')}</TableHead>
-                  {showVat ? <TableHead className="text-right">{t('accounting:declarations.vatRon')}</TableHead> : null}
+                  {showVat ? <TableHead priority="lg" className="text-right">{t('accounting:declarations.vatRon')}</TableHead> : null}
                   <TableHead className="w-10"><span className="sr-only">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {preview.data.lines.map((l, i) => (
                   <TableRow key={i} className={l.confirmed ? 'group' : 'group text-muted-foreground'}>
-                    <TableCell className="font-medium">{l.counterpartyName || '—'}</TableCell>
-                    <TableCell>{l.counterpartyCountry ?? '—'}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium tbl-fill">
+                      <div className="truncate">{l.counterpartyName || '—'}</div>
+                      <TableDetails items={[l.confirmed ? l.documentNumber : t('accounting:declarations.unconfirmed'), formatDate(l.issuedAt), formatMoney(l.amountForeign, l.currency)]} />
+                    </TableCell>
+                    <TableCell priority="lg">{l.counterpartyCountry ?? '—'}</TableCell>
+                    <TableCell priority="md">
                       {l.confirmed ? (
                         l.documentNumber || '—'
                       ) : (
                         <span className="rounded bg-warning/10 px-1.5 py-0.5 text-xs text-warning">{t('accounting:declarations.unconfirmed')}</span>
                       )}
                     </TableCell>
-                    <TableCell>{formatDate(l.issuedAt)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.amountForeign, l.currency)}</TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap">{formatDate(l.issuedAt)}</TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.amountForeign, l.currency)}</TableCell>
                     <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.baseRon, BASE_CURRENCY)}</TableCell>
                     {showVat ? (
-                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.vatRon, BASE_CURRENCY)}</TableCell>
+                      <TableCell priority="lg" className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.vatRon, BASE_CURRENCY)}</TableCell>
                     ) : null}
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="sm"
                         aria-label={t('accounting:declarations.edit.open')}
-                        className="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+                        className="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 max-md:opacity-100"
                         onClick={() => setEditing(l)}
                       >
                         <Pencil className="h-4 w-4" />

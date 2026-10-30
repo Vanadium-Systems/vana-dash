@@ -6,6 +6,7 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
+import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PlatformStatusBadge } from '@/shared/components/PlatformStatusBadge'
 import { api } from '@/shared/lib/api'
@@ -86,7 +87,7 @@ export function PlatformsPage() {
                   <TableHead>{t('common:labels.status')}</TableHead>
                   <TableHead priority="lg">{t('platforms:labels.syncCron')}</TableHead>
                   <TableHead priority="md">{t('platforms:labels.lastSync')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -107,38 +108,30 @@ export function PlatformsPage() {
                     <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs">{p.syncCron}</TableCell>
                     <TableCell priority="md" className="whitespace-nowrap">{p.lastSyncAt ? formatDateTime(p.lastSyncAt) : '—'}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="outline"
-                          disabled={syncNow.isPending}
-                          onClick={() => syncNow.mutate(p.id)}
-                          title={t('platforms:syncNow')}
-                        >
-                          <RefreshCw className={syncNow.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-                        </Button>
-                        <Button variant="outline" onClick={() => setOpsSignalsPlatform(p)} title={t('platforms:health')}>
-                          <Activity className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setEditing(p)
-                            setDialogOpen(true)
-                          }}
-                          title={t('common:actions.edit')}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            void confirm({ title: t('platforms:deleteTitle', { name: p.name }), consequence: t('platforms:deleteBody'), confirmLabel: t('platforms:deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(p.id))
-                          }}
-                          title={t('common:actions.delete')}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <RowActions
+                        actions={[
+                          { key: 'sync', icon: RefreshCw, label: t('platforms:syncNow'), disabled: syncNow.isPending, spinning: syncNow.isPending, onClick: () => syncNow.mutate(p.id) },
+                          { key: 'health', icon: Activity, label: t('platforms:health'), onClick: () => setOpsSignalsPlatform(p) },
+                          {
+                            key: 'edit',
+                            icon: Pencil,
+                            label: t('common:actions.edit'),
+                            onClick: () => {
+                              setEditing(p)
+                              setDialogOpen(true)
+                            },
+                          },
+                          {
+                            key: 'delete',
+                            icon: Trash2,
+                            label: t('common:actions.delete'),
+                            destructive: true,
+                            onClick: () => {
+                              void confirm({ title: t('platforms:deleteTitle', { name: p.name }), consequence: t('platforms:deleteBody'), confirmLabel: t('platforms:deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(p.id))
+                            },
+                          },
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -163,10 +156,10 @@ export function PlatformsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('common:labels.status')}</TableHead>
-                    <TableHead>{t('platforms:log.records')}</TableHead>
+                    <TableHead priority="md">{t('platforms:log.records')}</TableHead>
                     <TableHead>{t('platforms:log.started')}</TableHead>
-                    <TableHead>{t('platforms:log.finished')}</TableHead>
-                    <TableHead>{t('platforms:log.error')}</TableHead>
+                    <TableHead priority="lg">{t('platforms:log.finished')}</TableHead>
+                    <TableHead priority="md">{t('platforms:log.error')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -184,11 +177,12 @@ export function PlatformsPage() {
                         >
                           {entry.status}
                         </span>
+                        <TableDetails items={[String(entry.recordsSync)]} />
                       </TableCell>
-                      <TableCell>{entry.recordsSync}</TableCell>
-                      <TableCell>{new Date(entry.startedAt).toLocaleString(intlTag())}</TableCell>
-                      <TableCell>{entry.finishedAt ? new Date(entry.finishedAt).toLocaleString(intlTag()) : '—'}</TableCell>
-                      <TableCell className="max-w-md truncate text-xs text-muted-foreground" title={entry.errorMessage ?? ''}>
+                      <TableCell priority="md">{entry.recordsSync}</TableCell>
+                      <TableCell className="whitespace-nowrap">{new Date(entry.startedAt).toLocaleString(intlTag())}</TableCell>
+                      <TableCell priority="lg" className="whitespace-nowrap">{entry.finishedAt ? new Date(entry.finishedAt).toLocaleString(intlTag()) : '—'}</TableCell>
+                      <TableCell priority="md" className="max-w-md truncate text-xs text-muted-foreground" title={entry.errorMessage ?? ''}>
                         {entry.errorMessage ?? '—'}
                       </TableCell>
                     </TableRow>

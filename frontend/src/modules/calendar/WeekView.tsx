@@ -143,7 +143,7 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
   return (
     <div className="rounded-lg border">
       <div className="sm:hidden">
-        <div className="flex gap-1 overflow-x-auto border-b p-2">
+        <div className="grid grid-cols-7 gap-1 border-b p-2">
           {days.map((day, i) => {
             const today = isToday(day)
             return (
@@ -151,7 +151,7 @@ export function WeekView({ weekStart, occurrences, bookingWindows = [], bookingB
                 key={day.toISOString()}
                 type="button"
                 className={cn(
-                  'flex shrink-0 flex-col items-center rounded-md px-2.5 py-1 text-xs',
+                  'flex flex-col items-center rounded-md py-1 text-xs',
                   i === mobileDayIndex ? 'bg-primary text-primary-foreground' : today ? 'bg-primary/10 text-primary' : 'text-muted-foreground',
                 )}
                 onClick={() => setMobileDayIndex(i)}

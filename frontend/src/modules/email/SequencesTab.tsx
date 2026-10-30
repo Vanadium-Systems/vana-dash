@@ -6,6 +6,7 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
+import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { EmailSequence } from '@/shared/lib/types'
@@ -72,22 +73,22 @@ export function SequencesTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common:labels.name')}</TableHead>
-                  <TableHead>{t('common:labels.from')}</TableHead>
-                  <TableHead>{t('email:sequences.steps')}</TableHead>
+                  <TableHead priority="lg">{t('common:labels.from')}</TableHead>
+                  <TableHead priority="md">{t('email:sequences.steps')}</TableHead>
                   <TableHead>{t('common:labels.state')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sequences.data.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell className="font-medium">
-                      <button type="button" className="underline decoration-dotted underline-offset-2" onClick={() => setViewingEnrollments(s)}>
+                    <TableCell className="font-medium tbl-fill">
+                      <button type="button" className="max-w-full truncate underline decoration-dotted underline-offset-2" onClick={() => setViewingEnrollments(s)}>
                         {s.name}
                       </button>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{FROM_LABEL[s.fromIdentity] ?? s.fromIdentity}</TableCell>
-                    <TableCell>{s.steps.length}</TableCell>
+                    <TableCell priority="lg" className="text-sm text-muted-foreground">{FROM_LABEL[s.fromIdentity] ?? s.fromIdentity}</TableCell>
+                    <TableCell priority="md">{s.steps.length}</TableCell>
                     <TableCell>
                       <button type="button" onClick={() => toggleActive.mutate({ id: s.id, active: !s.active })}>
                         <StatePill tone={s.active ? 'success' : 'neutral'}>
@@ -96,25 +97,28 @@ export function SequencesTab() {
                       </button>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setEditing(s)
-                            setDialogOpen(true)
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            void confirm({ title: t('email:sequences.deleteTitle', { name: s.name }), consequence: t('email:sequences.deleteBody'), confirmLabel: t('email:sequences.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(s.id))
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <RowActions
+                        actions={[
+                          {
+                            key: 'edit',
+                            icon: Pencil,
+                            label: t('common:actions.edit'),
+                            onClick: () => {
+                              setEditing(s)
+                              setDialogOpen(true)
+                            },
+                          },
+                          {
+                            key: 'delete',
+                            icon: Trash2,
+                            label: t('common:actions.delete'),
+                            destructive: true,
+                            onClick: () => {
+                              void confirm({ title: t('email:sequences.deleteTitle', { name: s.name }), consequence: t('email:sequences.deleteBody'), confirmLabel: t('email:sequences.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(s.id))
+                            },
+                          },
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

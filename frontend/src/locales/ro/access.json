@@ -2,7 +2,6 @@
   "description": "Ce poate face fiecare rol, pe fiecare pagină.",
   "roles": {
     "new": "Rol nou",
-    "all": "Toate rolurile",
     "fullAccess": "· acces complet",
     "actionsFor": "Ce se poate face cu rolul {{name}}",
     "delete": "Șterge rolul",

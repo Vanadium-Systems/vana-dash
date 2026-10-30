@@ -5,7 +5,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Input } from '@/shared/components/ui/input'
 import { KPICard } from '@/shared/components/KPICard'
 import { PeriodSelector, usePeriod } from '@/shared/components/PeriodSelector'
@@ -75,18 +75,18 @@ function ReportPanel({ report, isPending }: { report: EmailSendsReport | undefin
                     <TableHead>{t('email:labels.sequence')}</TableHead>
                     <TableHead className="text-right">{t('email:folders.sent')}</TableHead>
                     <TableHead className="text-right">{t('email:sent.open')}</TableHead>
-                    <TableHead className="text-right">{t('email:sent.click')}</TableHead>
-                    <TableHead className="text-right">{t('email:sent.reply')}</TableHead>
+                    <TableHead priority="md" className="text-right">{t('email:sent.click')}</TableHead>
+                    <TableHead priority="md" className="text-right">{t('email:sent.reply')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {report.bySequence.map((row) => (
                     <TableRow key={row.sequenceId}>
-                      <TableCell className="text-sm">{row.sequenceName}</TableCell>
+                      <TableCell truncate className="text-sm">{row.sequenceName}</TableCell>
                       <TableCell className="text-right text-sm">{row.sent}</TableCell>
                       <TableCell className="text-right text-sm">{pct(row.openRate)}%</TableCell>
-                      <TableCell className="text-right text-sm">{pct(row.clickRate)}%</TableCell>
-                      <TableCell className="text-right text-sm">
+                      <TableCell priority="md" className="text-right text-sm">{pct(row.clickRate)}%</TableCell>
+                      <TableCell priority="md" className="whitespace-nowrap text-right text-sm">
                         {row.replied} ({pct(row.replyRate)}%)
                       </TableCell>
                     </TableRow>
@@ -103,16 +103,16 @@ function ReportPanel({ report, isPending }: { report: EmailSendsReport | undefin
                     <TableHead>{t('email:labels.template')}</TableHead>
                     <TableHead className="text-right">{t('email:folders.sent')}</TableHead>
                     <TableHead className="text-right">{t('email:sent.open')}</TableHead>
-                    <TableHead className="text-right">{t('email:sent.click')}</TableHead>
+                    <TableHead priority="md" className="text-right">{t('email:sent.click')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {report.byTemplate.map((row) => (
                     <TableRow key={row.templateId}>
-                      <TableCell className="text-sm">{row.templateName}</TableCell>
+                      <TableCell truncate className="text-sm">{row.templateName}</TableCell>
                       <TableCell className="text-right text-sm">{row.sent}</TableCell>
                       <TableCell className="text-right text-sm">{pct(row.openRate)}%</TableCell>
-                      <TableCell className="text-right text-sm">{pct(row.clickRate)}%</TableCell>
+                      <TableCell priority="md" className="text-right text-sm">{pct(row.clickRate)}%</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -298,29 +298,32 @@ export function SentTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t('common:labels.when')}</TableHead>
-                <TableHead>{t('common:labels.from')}</TableHead>
-                <TableHead>{t('common:labels.to')}</TableHead>
+                <TableHead priority="md">{t('common:labels.when')}</TableHead>
+                <TableHead priority="lg">{t('common:labels.from')}</TableHead>
+                <TableHead priority="md">{t('common:labels.to')}</TableHead>
                 <TableHead>{t('common:labels.subject')}</TableHead>
                 <TableHead>{t('common:labels.state')}</TableHead>
-                <TableHead>{t('email:labels.engagement')}</TableHead>
-                <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                <TableHead priority="md">{t('email:labels.engagement')}</TableHead>
+                <TableHead priority="md" className="text-right">{t('common:labels.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((s) => (
                 <TableRow key={s.id} className="cursor-pointer" onClick={() => setViewing(s)}>
-                  <TableCell className="whitespace-nowrap text-sm text-muted-foreground">{formatDate(s.createdAt)}</TableCell>
-                  <TableCell className="text-sm">{s.fromAddress ?? '—'}</TableCell>
-                  <TableCell className="text-sm">{s.recipient}</TableCell>
-                  <TableCell className="text-sm">{s.subject}</TableCell>
+                  <TableCell priority="md" className="whitespace-nowrap text-sm text-muted-foreground">{formatDate(s.createdAt)}</TableCell>
+                  <TableCell priority="lg" className="max-w-[14rem] truncate text-sm">{s.fromAddress ?? '—'}</TableCell>
+                  <TableCell priority="md" className="max-w-[14rem] truncate text-sm">{s.recipient}</TableCell>
+                  <TableCell className="w-full max-w-0 text-sm">
+                    <div className="truncate">{s.subject}</div>
+                    <TableDetails items={[s.recipient, formatDate(s.createdAt)]} />
+                  </TableCell>
                   <TableCell>
                     <StatePill tone={STATUS_TONE[s.status]}>{STATUS_LABEL[s.status]}</StatePill>
                   </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TableCell priority="md" onClick={(e) => e.stopPropagation()}>
                     <EngagementBadges send={s} />
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell priority="md" className="text-right">
                     <Button variant="outline" title={t('email:sent.viewContent')} onClick={(e) => { e.stopPropagation(); setViewing(s) }}>
                       <Eye className="h-4 w-4" />
                     </Button>

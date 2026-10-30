@@ -9,7 +9,8 @@ import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { RowActions } from '@/shared/components/ui/row-actions'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { readFileAsBase64 } from '@/shared/lib/attachments'
@@ -720,19 +721,20 @@ function SuppressionsCard() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t('common:labels.email')}</TableHead>
-                <TableHead>{t('email:suppressions.unsubscribedAt')}</TableHead>
-                <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                <TableHead priority="md">{t('email:suppressions.unsubscribedAt')}</TableHead>
+                <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.unsubscribed.map((r) => (
                 <TableRow key={r.email}>
-                  <TableCell className="text-sm">{r.email}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{formatDate(r.unsubscribedAt)}</TableCell>
+                  <TableCell className="w-full max-w-0 text-sm">
+                    <div className="truncate">{r.email}</div>
+                    <TableDetails items={[formatDate(r.unsubscribedAt)]} />
+                  </TableCell>
+                  <TableCell priority="md" className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(r.unsubscribedAt)}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" disabled={remove.isPending} onClick={() => remove.mutate(r.email)}>
-                      <Trash2 className="h-3.5 w-3.5" /> {t('common:actions.remove')}
-                    </Button>
+                    <RowActions actions={[{ key: 'remove', icon: Trash2, label: t('common:actions.remove'), disabled: remove.isPending, onClick: () => remove.mutate(r.email) }]} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -746,24 +748,25 @@ function SuppressionsCard() {
               <TableRow>
                 <TableHead>{t('common:labels.email')}</TableHead>
                 <TableHead>{t('common:labels.reason')}</TableHead>
-                <TableHead>{t('email:suppressions.at')}</TableHead>
-                <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                <TableHead priority="md">{t('email:suppressions.at')}</TableHead>
+                <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.autoUnsubscribed.map((r) => (
                 <TableRow key={r.email}>
-                  <TableCell className="text-sm">{r.email}</TableCell>
+                  <TableCell className="w-full max-w-0 text-sm">
+                    <div className="truncate">{r.email}</div>
+                    <TableDetails items={[formatDate(r.unsubscribedAt)]} />
+                  </TableCell>
                   <TableCell>
                     <StatePill tone={r.source === 'complaint' ? 'critical' : 'warning'}>
                       {r.source === 'complaint' ? t('email:folders.spam') : t('email:status.bounceShort')}
                     </StatePill>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{formatDate(r.unsubscribedAt)}</TableCell>
+                  <TableCell priority="md" className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(r.unsubscribedAt)}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" disabled={remove.isPending} onClick={() => remove.mutate(r.email)}>
-                      <Trash2 className="h-3.5 w-3.5" /> {t('common:actions.remove')}
-                    </Button>
+                    <RowActions actions={[{ key: 'remove', icon: Trash2, label: t('common:actions.remove'), disabled: remove.isPending, onClick: () => remove.mutate(r.email) }]} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -777,15 +780,18 @@ function SuppressionsCard() {
               <TableRow>
                 <TableHead>{t('common:labels.recipient')}</TableHead>
                 <TableHead className="text-right">{t('email:suppressions.howManyTimes')}</TableHead>
-                <TableHead className="text-right">{t('email:suppressions.lastBounce')}</TableHead>
+                <TableHead priority="md" className="text-right">{t('email:suppressions.lastBounce')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.bounced.map((r) => (
                 <TableRow key={r.recipient}>
-                  <TableCell className="text-sm">{r.recipient}</TableCell>
+                  <TableCell className="w-full max-w-0 text-sm">
+                    <div className="truncate">{r.recipient}</div>
+                    <TableDetails items={[formatDate(r.lastBouncedAt)]} />
+                  </TableCell>
                   <TableCell className="text-right text-sm">{r.count}</TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground">{formatDate(r.lastBouncedAt)}</TableCell>
+                  <TableCell priority="md" className="whitespace-nowrap text-right text-xs text-muted-foreground">{formatDate(r.lastBouncedAt)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

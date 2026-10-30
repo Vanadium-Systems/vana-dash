@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
+import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { FinancialRecord } from '@/shared/lib/types'
@@ -51,7 +52,7 @@ export function PrimiteTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button variant="outline" onClick={() => setPastDialogOpen(true)}>
           <Plus className="h-4 w-4" /> {t('accounting:received.addExpense')}
         </Button>
@@ -78,8 +79,8 @@ export function PrimiteTab() {
                   <TableHead priority="md">{t('accounting:labels.due')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
                   <TableHead priority="lg">{t('common:labels.source')}</TableHead>
-                  <TableHead>{t('accounting:labels.payment')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                  <TableHead priority="md">{t('accounting:labels.payment')}</TableHead>
+                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -90,7 +91,7 @@ export function PrimiteTab() {
                   >
                     <TableCell truncate className="font-medium">
                       {r.counterpartyName ?? '—'}
-                      <TableDetails items={[r.description, formatDate(r.dueAt)]} />
+                      <TableDetails items={[r.description, formatDate(r.dueAt), <PaymentStatusBadge key="payment" status={r.paymentStatus} />]} />
                     </TableCell>
                     <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs">{r.counterpartyCif ?? '—'}</TableCell>
                     <TableCell priority="md" truncate>{r.description ?? '—'}</TableCell>
@@ -100,40 +101,17 @@ export function PrimiteTab() {
                     <TableCell priority="lg" className="whitespace-nowrap text-xs text-muted-foreground">
                       {r.source === 'anaf_efactura' ? 'e-Factura' : r.source}
                     </TableCell>
-                    <TableCell>
+                    <TableCell priority="md">
                       <PaymentStatusBadge status={r.paymentStatus} />
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        {r.paymentStatus !== 'paid' ? (
-                          <Button
-                            variant="outline"
-                            title={t('accounting:received.markPaid')}
-                            disabled={markPaid.isPending}
-                            onClick={() => markPaid.mutate(r.id)}
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        ) : null}
-                        {r.hasXml ? (
-                          <Button
-                            variant="outline"
-                            title={t('accounting:actions.downloadXml')}
-                            onClick={() => void api.download(`/api/accounting/records/${r.id}/xml`, `${r.id}.xml`)}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        ) : null}
-                        {r.hasPdf ? (
-                          <Button
-                            variant="outline"
-                            title={t('common:actions.downloadPdf')}
-                            onClick={() => void api.download(`/api/accounting/records/${r.id}/pdf`, `${r.id}.pdf`)}
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                        ) : null}
-                      </div>
+                      <RowActions
+                        actions={r.paymentStatus !== 'paid' ? [{ key: 'paid', icon: Check, label: t('accounting:received.markPaid'), disabled: markPaid.isPending, onClick: () => markPaid.mutate(r.id) }] : []}
+                        menu={[
+                          ...(r.hasXml ? [{ key: 'xml', icon: Download, label: t('accounting:actions.downloadXml'), onClick: () => void api.download(`/api/accounting/records/${r.id}/xml`, `${r.id}.xml`) }] : []),
+                          ...(r.hasPdf ? [{ key: 'pdf', icon: FileText, label: t('common:actions.downloadPdf'), onClick: () => void api.download(`/api/accounting/records/${r.id}/pdf`, `${r.id}.pdf`) }] : []),
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

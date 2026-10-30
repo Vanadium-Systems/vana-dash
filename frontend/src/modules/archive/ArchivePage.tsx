@@ -191,19 +191,20 @@ function SpacesTable({ entries, onOpen }: { entries: ArchiveSpaceEntry[]; onOpen
       <TableHeader>
         <TableRow>
           <TableHead>{t('archive:labels.folder')}</TableHead>
-          <TableHead>{t('archive:labels.owner')}</TableHead>
+          <TableHead priority="md">{t('archive:labels.owner')}</TableHead>
           <TableHead className="text-right">{t('archive:labels.access')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {entries.map((entry) => (
           <TableRow key={entry.id} className="cursor-pointer" onClick={() => onOpen(entry.id)}>
-            <TableCell className="font-medium">
-              <span className="flex items-center gap-2">
-                <Folder className="h-4 w-4 shrink-0 text-muted-foreground" /> {entry.name}
+            <TableCell className="w-full max-w-0 font-medium">
+              <span className="flex min-w-0 items-center gap-2">
+                <Folder className="h-4 w-4 shrink-0 text-muted-foreground" /> <span className="truncate">{entry.name}</span>
               </span>
+              <TableDetails items={[entry.ownerName]} />
             </TableCell>
-            <TableCell className="text-muted-foreground">{entry.ownerName}</TableCell>
+            <TableCell priority="md" className="whitespace-nowrap text-muted-foreground">{entry.ownerName}</TableCell>
             <TableCell className="text-right">
               <Badge variant="secondary">{LEVEL_LABEL[entry.level]}</Badge>
             </TableCell>
@@ -789,7 +790,7 @@ export function ArchivePage() {
             </p>
           </div>
         ) : null}
-        <CardContent className="px-2 pt-6 sm:px-6">
+        <CardContent className="px-2 pt-6 max-sm:px-2 sm:px-6">
           {listingSpaces && !isSearching ? (
             spaces.isPending ? (
               <Skeleton className="h-32 w-full" />
@@ -829,7 +830,7 @@ export function ArchivePage() {
                   <TableHead>{t('common:labels.name')}</TableHead>
                   <TableHead priority="md">{isSearching ? t('archive:labels.location') : t('common:labels.details')}</TableHead>
                   <TableHead priority="lg">{t('archive:labels.tags')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -2,7 +2,6 @@
   "description": "What each role can do, on each page.",
   "roles": {
     "new": "New role",
-    "all": "All roles",
     "fullAccess": "· full access",
     "actionsFor": "What can be done with the role {{name}}",
     "delete": "Delete the role",

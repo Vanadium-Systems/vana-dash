@@ -6,7 +6,8 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { RowActions } from '@/shared/components/ui/row-actions'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { BillingClient } from '@/shared/lib/types'
 import { ClientFormDialog } from './ClientFormDialog'
@@ -37,28 +38,37 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
       <TableHeader>
         <TableRow>
           <TableHead>{t('accounting:clientForm.name')}</TableHead>
-          <TableHead>{t('common:labels.cif')}</TableHead>
-          <TableHead>{t('common:labels.address')}</TableHead>
-          <TableHead>IBAN</TableHead>
-          <TableHead>{t('common:labels.email')}</TableHead>
-          <TableHead>Vanagreen</TableHead>
-          {showDemoEndsAt && <TableHead>{t('accounting:clients.demoUntil')}</TableHead>}
-          {showPendingDeletion && <TableHead>{t('accounting:clients.deletedIn')}</TableHead>}
-          <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+          <TableHead priority="md">{t('common:labels.cif')}</TableHead>
+          <TableHead priority="lg">{t('common:labels.address')}</TableHead>
+          <TableHead priority="lg">IBAN</TableHead>
+          <TableHead priority="md">{t('common:labels.email')}</TableHead>
+          <TableHead priority="lg">Vanagreen</TableHead>
+          {showDemoEndsAt && <TableHead priority="lg">{t('accounting:clients.demoUntil')}</TableHead>}
+          {showPendingDeletion && <TableHead priority="md">{t('accounting:clients.deletedIn')}</TableHead>}
+          <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {clients.map((c) => (
           <TableRow key={c.id}>
-            <TableCell className="font-medium">
-              {c.name}
-              {c.needsBillingInfo && <StatePill tone="warning" className="ml-2">{t('accounting:clients.incomplete')}</StatePill>}
+            <TableCell className="font-medium tbl-fill">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="truncate">{c.name}</span>
+                {c.needsBillingInfo && <StatePill tone="warning" className="shrink-0">{t('accounting:clients.incomplete')}</StatePill>}
+              </div>
+              <TableDetails
+                items={[
+                  c.cif,
+                  c.email,
+                  showPendingDeletion && c.pendingDeletionAt ? <StatePill key="purge" tone="critical">{t('common:count.days', { count: daysUntilPurge(c.pendingDeletionAt) })}</StatePill> : null,
+                ]}
+              />
             </TableCell>
-            <TableCell className="font-mono text-xs">{c.cif}</TableCell>
-            <TableCell className="max-w-xs truncate">{c.address}</TableCell>
-            <TableCell className="font-mono text-xs">{c.iban ?? '—'}</TableCell>
-            <TableCell>{c.email ?? '—'}</TableCell>
-            <TableCell>
+            <TableCell priority="md" className="whitespace-nowrap font-mono text-xs">{c.cif}</TableCell>
+            <TableCell priority="lg" className="max-w-xs truncate">{c.address}</TableCell>
+            <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs">{c.iban ?? '—'}</TableCell>
+            <TableCell priority="md" className="max-w-[14rem] truncate">{c.email ?? '—'}</TableCell>
+            <TableCell priority="lg">
               {c.vanagreenTenantId ? (
                 <StatePill tone="success">{t('accounting:clients.mapped')}{c.autoInvoiceEnabled ? t('accounting:clients.plusAuto') : ''}</StatePill>
               ) : (
@@ -66,10 +76,10 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
               )}
             </TableCell>
             {showDemoEndsAt && (
-              <TableCell className="text-xs text-muted-foreground">{c.demoEndsAt ?? '—'}</TableCell>
+              <TableCell priority="lg" className="text-xs text-muted-foreground">{c.demoEndsAt ?? '—'}</TableCell>
             )}
             {showPendingDeletion && (
-              <TableCell>
+              <TableCell priority="md">
                 {c.pendingDeletionAt ? (
                   <StatePill tone="critical">{t('common:count.days', { count: daysUntilPurge(c.pendingDeletionAt) })}</StatePill>
                 ) : (
@@ -78,14 +88,12 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
               </TableCell>
             )}
             <TableCell className="text-right">
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => onEdit(c)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" onClick={() => onDelete(c)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              <RowActions
+                actions={[
+                  { key: 'edit', icon: Pencil, label: t('common:actions.edit'), onClick: () => onEdit(c) },
+                  { key: 'delete', icon: Trash2, label: t('common:actions.delete'), destructive: true, onClick: () => onDelete(c) },
+                ]}
+              />
             </TableCell>
           </TableRow>
         ))}
@@ -154,7 +162,7 @@ export function ClientsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button variant="outline" disabled={syncVanagreen.isPending} onClick={() => syncVanagreen.mutate()}>
           <RefreshCw className={syncVanagreen.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
           {t('accounting:clients.syncWithVanagreen')}

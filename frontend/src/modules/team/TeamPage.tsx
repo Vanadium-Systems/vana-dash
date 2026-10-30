@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ellipsis, Mail, UserPlus } from 'lucide-react'
+import { Ellipsis, Mail, MessageSquare, UserPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -59,7 +59,7 @@ function LastSeen({ at }: { at: string | null }) {
 }
 
 // Name, email, role, mailboxes, state, last activity, actions: what drops first on a narrow screen.
-const COLUMN_VISIBILITY = ['', 'hidden md:table-cell', '', 'hidden lg:table-cell', '', 'hidden lg:table-cell', '']
+const COLUMN_VISIBILITY = ['', 'tbl-md', '', 'tbl-lg', 'tbl-md', 'tbl-lg', '']
 
 /** Identitățile de trimitere existente, ca omul să aleagă din ce îi e permis. */
 function useIdentities(enabled: boolean) {
@@ -271,7 +271,7 @@ export function TeamPage() {
               onReset={() => setSearch('')}
             />
           ) : (
-            <div className="relative overflow-x-auto">
+            <div className="tbl-container relative">
               <table className="w-full border-collapse text-sm">
                 <caption className="sr-only">{t('team:members.tableCaption')}</caption>
                 <thead>
@@ -298,10 +298,13 @@ export function TeamPage() {
                             {memberName(member)}
                             {member.id === session?.user.id ? <span className="ml-2 text-xs text-muted-foreground">{t('team:members.you')}</span> : null}
                           </div>
-                          <div className="truncate text-xs text-muted-foreground md:hidden">{member.email}</div>
+                          <div className="tbl-narrow-only truncate text-xs text-muted-foreground">{member.email}</div>
+                          <div className="tbl-narrow-only mt-1">
+                            <StatePill tone={STATUS[member.status].tone}>{STATUS[member.status].label}</StatePill>
+                          </div>
                         </td>
-                        <td className="hidden max-w-[16rem] truncate py-2 pr-3 text-muted-foreground md:table-cell">{member.email}</td>
-                        <td className="py-2 pr-3">
+                        <td className="tbl-md max-w-[16rem] truncate py-2 pr-3 text-muted-foreground">{member.email}</td>
+                        <td className="max-w-[7rem] truncate py-2 pr-3 md:max-w-none">
                           {canManage && !isAdmin && member.role ? (
                             <Link to="/modules" className="underline underline-offset-2 hover:text-foreground">
                               {member.role.name}
@@ -310,11 +313,11 @@ export function TeamPage() {
                             (member.role?.name ?? '—')
                           )}
                         </td>
-                        <td className="hidden py-2 pr-3 text-muted-foreground lg:table-cell">{isAdmin ? t('common:labels.all') : boxes.length > 0 ? boxes.join(', ') : t('team:members.none')}</td>
-                        <td className="py-2 pr-3">
+                        <td className="tbl-lg py-2 pr-3 text-muted-foreground">{isAdmin ? t('common:labels.all') : boxes.length > 0 ? boxes.join(', ') : t('team:members.none')}</td>
+                        <td className="tbl-md py-2 pr-3">
                           <StatePill tone={STATUS[member.status].tone}>{STATUS[member.status].label}</StatePill>
                         </td>
-                        <td className="hidden py-2 pr-3 lg:table-cell">
+                        <td className="tbl-lg py-2 pr-3">
                           {sentReset?.id === member.id ? (
                             <span className="text-sm text-muted-foreground">{t('team:members.resetLinkSent', { email: sentReset.email })}</span>
                           ) : (
@@ -330,7 +333,8 @@ export function TeamPage() {
                                 disabled={openDm.isPending}
                                 onClick={() => openDm.mutate(member.id)}
                               >
-                                {t('team:members.write')}
+                                <MessageSquare className="tbl-narrow-only h-4 w-4" aria-hidden="true" />
+                                <span className="tbl-narrow-sr">{t('team:members.write')}</span>
                               </Button>
                             ) : null}
                           </span>

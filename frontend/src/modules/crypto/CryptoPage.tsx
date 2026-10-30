@@ -340,7 +340,7 @@ export function CryptoPage() {
                         onClick={entry.kind === 'cex' ? () => void navigate(`/crypto/coin/${entry.id}`) : undefined}
                       >
                         {/* două rânduri fixe — sparkline-ul nu poate suprapune textul pe coloane înguste */}
-                        <CardContent className="space-y-1 px-3 pt-0">
+                        <CardContent className="space-y-1 px-3 pt-0 max-sm:px-3">
                           <div className="flex items-center justify-between gap-1">
                             <p className="min-w-0 truncate text-sm font-medium" title={entry.name}>
                               {entry.symbol}
@@ -521,7 +521,7 @@ export function CryptoPage() {
                             <TableHead className="text-right">24h</TableHead>
                             <TableHead className="hidden text-right lg:table-cell">{t('crypto:stats.marketCap')}</TableHead>
                             <TableHead className="hidden md:table-cell">{t('common:labels.days7')}</TableHead>
-                            <TableHead className="text-right">{t('common:labels.order')}</TableHead>
+                            <TableHead priority="md" className="text-right">{t('common:labels.order')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -547,7 +547,7 @@ export function CryptoPage() {
                               </TableCell>
                               <TableCell>
                                 <span className="font-medium uppercase">{coin.symbol}</span>
-                                <span className="ml-2 text-xs text-muted-foreground">{coin.name}</span>
+                                <span className="ml-2 text-xs text-muted-foreground tbl-md">{coin.name}</span>
                               </TableCell>
                               <TableCell className="tnum text-right font-mono text-xs">{formatUsd(coin.priceUsd)}</TableCell>
                               <TableCell className="text-right">
@@ -559,7 +559,7 @@ export function CryptoPage() {
                               <TableCell className="hidden md:table-cell">
                                 <MiniSparkline values={coin.sparkline} width={80} height={22} />
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell priority="md" className="text-right">
                                 <Button
                                   variant="outline"
                                   onClick={(e) => {
