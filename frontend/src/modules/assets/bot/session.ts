@@ -1,16 +1,15 @@
-import { intlTag } from '@/shared/lib/format'
-const TZ = 'Europe/Bucharest'
+import { companyTimeZone, intlTag } from '@/shared/lib/format'
 
-function dayInBucharest(date: Date): string {
-  return date.toLocaleDateString('en-CA', { timeZone: TZ })
+function dayInCompanyZone(date: Date): string {
+  return date.toLocaleDateString('en-CA', { timeZone: companyTimeZone() })
 }
 
-// Ora României; ziua săptămânii apare doar când momentul nu e azi (weekend, sărbători).
+// The company's time; the weekday shows only when the moment is not today (weekends, holidays).
 export function formatSessionTime(iso: string, now = new Date()): string {
   const at = new Date(iso)
-  const time = at.toLocaleTimeString(intlTag(), { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
-  if (dayInBucharest(at) === dayInBucharest(now)) return time
-  const day = at.toLocaleDateString(intlTag(), { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'short' })
+  const time = at.toLocaleTimeString(intlTag(), { timeZone: companyTimeZone(), hour: '2-digit', minute: '2-digit' })
+  if (dayInCompanyZone(at) === dayInCompanyZone(now)) return time
+  const day = at.toLocaleDateString(intlTag(), { timeZone: companyTimeZone(), weekday: 'long', day: 'numeric', month: 'short' })
   return `${day}, ${time}`
 }
 
