@@ -31,7 +31,7 @@ const KEYS = {
 // conservator, Stefan îl urcă singur pe măsură ce vede cum merge livrarea.
 export const DEFAULT_OUTREACH_DAILY_CAP = 50
 
-// Fereastra de trimitere (2026-08-17, cerere Stefan) — oră Europe/Bucharest + doar zile
+// Fereastra de trimitere (2026-08-17, cerere Stefan) — ora din fusul firmei + doar zile
 // lucrătoare, verificate de jobs/email-sequence-runner.ts (server-ul rulează în UTC).
 export const DEFAULT_OUTREACH_SEND_HOUR = 10
 export const DEFAULT_OUTREACH_SEND_WEEKDAYS_ONLY = true
