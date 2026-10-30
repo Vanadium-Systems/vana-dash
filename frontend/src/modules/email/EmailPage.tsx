@@ -107,11 +107,12 @@ export function EmailPage() {
       />
 
       <div className="flex gap-6">
-        <div className={sidebarOpen ? 'block' : 'hidden md:block'}>
+        <div className={sidebarOpen ? 'w-full md:w-auto' : 'hidden md:block'}>
           <EmailSidebar current={view} onNavigate={navigate} onCompose={() => openCompose({ kind: 'compose' })} />
         </div>
 
-        <div className="min-w-0 flex-1">
+        {/* On a phone the open folder list replaces the content instead of squeezing it sideways. */}
+        <div className={sidebarOpen ? 'hidden min-w-0 flex-1 md:block' : 'min-w-0 flex-1'}>
           {view.kind === 'mailbox' ? <MailboxView view={view} onReply={handleReply} onForward={handleForward} /> : null}
           {view.kind === 'drafts' ? <DraftsList onOpen={handleOpenDraft} /> : null}
           {view.kind === 'sent' ? <SentTab /> : null}
