@@ -42,6 +42,7 @@
     "firebase-admin": "^14.3.0",
     "html-to-text": "^10.0.1",
     "node-cron": "^3.0.3",
+    "pdf-lib": "^1.17.1",
     "pino": "^9.14.0",
     "pino-pretty": "^11.3.0",
     "postal-mime": "^2.7.6",

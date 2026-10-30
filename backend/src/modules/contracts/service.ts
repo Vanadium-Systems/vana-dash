@@ -54,7 +54,8 @@ export async function generateDocument(clientId: string, docType: 'contract' | '
   const html = await renderDocument(docType, { client, details, monthlyPriceFormatted })
 
   if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
-  const pdf = await htmlToPdf(html)
+  // Empty signature fields, ready to sign in Adobe Reader with a qualified certificate.
+  const pdf = await htmlToPdf(html, { signatureFields: true })
 
   const safeName = client.name.replace(/[^A-Za-z0-9_-]/g, '_')
   const stamp = Date.now()
@@ -174,7 +175,7 @@ export async function generateAddendumDocument(addendumId: string) {
   const html = await renderAddendum(addendum, client, { nrContract: details.nrContract, dataContract: details.dataContract })
 
   if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
-  const pdf = await htmlToPdf(html)
+  const pdf = await htmlToPdf(html, { signatureFields: true })
 
   const safeName = client.name.replace(/[^A-Za-z0-9_-]/g, '_')
   const stamp = Date.now()
