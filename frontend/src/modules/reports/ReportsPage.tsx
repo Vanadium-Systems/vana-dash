@@ -23,6 +23,7 @@ import { t } from '@/shared/lib/i18n'
 import { approx, MoneyNote } from '@/shared/components/MoneyNote'
 import { useMoneyQuery } from '@/shared/hooks/use-money-query'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { openFile } from '@/shared/lib/open-file'
 
 // Convertește ?period= (7d|30d|90d|mtd|ytd) în {from,to} ISO — mirror al
 // shared/lib/period.ts din backend (resolvePeriod), dar rutele /api/reports/* cer
@@ -146,10 +147,7 @@ function PeriodComparisonSection() {
         <Button
           variant="outline"
           onClick={() =>
-            window.open(
-              `/api/reports/period-comparison/csv?fromA=${fromA}&toA=${toA}&fromB=${fromB}&toB=${toB}`,
-              '_blank',
-            )
+            openFile(`/api/reports/period-comparison/csv?fromA=${fromA}&toA=${toA}&fromB=${fromB}&toB=${toB}`, 'export.csv')
           }
         >
           <Download className="h-4 w-4" /> CSV

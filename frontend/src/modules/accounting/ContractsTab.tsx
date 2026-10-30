@@ -15,6 +15,7 @@ import { ReservedNumbersCard } from './ReservedNumbersCard'
 import { SignDocumentDialog } from './SignDocumentDialog'
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { openFile } from '@/shared/lib/open-file'
 
 const DOC_TYPE_LABEL: Record<ContractDocument['docType'], string> = {
   contract: t('accounting:docTypes.contract'),
@@ -83,7 +84,7 @@ export function ContractsTab() {
     onSuccess: (doc) => {
       void queryClient.invalidateQueries({ queryKey: ['contract-documents', clientId] })
       toast.success(`${DOC_TYPE_LABEL[doc.docType]} generat`)
-      window.open(`/api/contracts/documents/${doc.id}/pdf`, '_blank')
+      openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf')
     },
     onError: (err) => toast.error(err.message),
   })
@@ -100,7 +101,7 @@ export function ContractsTab() {
     onSuccess: (doc) => {
       void queryClient.invalidateQueries({ queryKey: ['contract-documents', clientId] })
       toast.success(t('accounting:contracts.addendumPdfGenerated'))
-      window.open(`/api/contracts/documents/${doc.id}/pdf`, '_blank')
+      openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf')
     },
     onError: (err) => toast.error(err.message),
   })
@@ -173,14 +174,14 @@ export function ContractsTab() {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => window.open(`/api/contracts/clients/${clientId}/preview?docType=contract`, '_blank')}
+                  onClick={() => openFile(`/api/contracts/clients/${clientId}/preview?docType=contract`, 'document.pdf')}
                 >
                   {t('accounting:contracts.simulateContract')}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => window.open(`/api/contracts/clients/${clientId}/preview?docType=anexa`, '_blank')}
+                  onClick={() => openFile(`/api/contracts/clients/${clientId}/preview?docType=anexa`, 'document.pdf')}
                 >
                   {t('accounting:contracts.simulateAnnex')}
                 </Button>
@@ -224,7 +225,7 @@ export function ContractsTab() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => window.open(`/api/contracts/documents/${d.id}/pdf`, '_blank')}>
+                            <Button variant="outline" onClick={() => openFile(`/api/contracts/documents/${d.id}/pdf`, 'document.pdf')}>
                               PDF
                             </Button>
                             {!d.isSigned ? (
@@ -282,7 +283,7 @@ export function ContractsTab() {
                           <TableCell className="max-w-xs truncate">{a.reason}</TableCell>
                           <TableCell className="text-right">
                             {doc ? (
-                              <Button variant="outline" onClick={() => window.open(`/api/contracts/documents/${doc.id}/pdf`, '_blank')}>
+                              <Button variant="outline" onClick={() => openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf')}>
                                 PDF
                               </Button>
                             ) : (

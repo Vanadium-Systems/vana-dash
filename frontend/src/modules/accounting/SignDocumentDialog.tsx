@@ -9,6 +9,7 @@ import { api } from '@/shared/lib/api'
 import type { ContractDocument, SignatureRect } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
+import { openFile } from '@/shared/lib/open-file'
 
 interface SignDocumentDialogProps {
   doc: ContractDocument | null
@@ -120,7 +121,7 @@ export function SignDocumentDialog({ doc, onOpenChange }: SignDocumentDialogProp
             {t('accounting:sign.hint')}
           </p>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" onClick={() => window.open(`/api/contracts/documents/${doc.id}/pdf`, '_blank')}>
+            <Button type="button" variant="outline" onClick={() => openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf')}>
               {t('accounting:sign.openPdf')}
             </Button>
             <Label htmlFor="sign-page" className="text-xs text-muted-foreground">

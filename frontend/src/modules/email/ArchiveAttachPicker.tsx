@@ -9,6 +9,7 @@ import { api } from '@/shared/lib/api'
 import { fileFromUrl, type PendingAttachment } from '@/shared/lib/attachments'
 import type { ArchiveDownloadUrl, ArchiveSearchResult } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
+import { openExternal } from '@/shared/lib/open-file'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -57,7 +58,7 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
     setPreviewingId(file.id)
     try {
       const { url } = await api.get<ArchiveDownloadUrl>(`/api/archive/files/${file.id}/download-url`)
-      window.open(url, '_blank', 'noopener,noreferrer')
+      openExternal(url)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('email:attach.previewFailed'))
     } finally {
