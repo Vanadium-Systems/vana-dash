@@ -95,6 +95,10 @@ const SOURCES: GuideSource[] = [
         ro: 'Selectează unul sau mai multe mesaje ca să le arhivezi sau să le marchezi necitite.',
         en: 'Select one or more messages to archive them or mark them as unread.',
       },
+      {
+        ro: '„Amână” ascunde firul până la momentul ales; îl găsești între timp la „Amânate”.',
+        en: '“Snooze” hides the thread until the time you pick; meanwhile it is under “Snoozed”.',
+      },
     ],
   },
   {
@@ -177,12 +181,12 @@ const SOURCES: GuideSource[] = [
         en: 'Press “New event” and fill in the title, the start and the end.',
       },
       {
-        ro: 'Alege un reminder dacă vrei notificare înainte, și o recurență dacă se repetă.',
-        en: 'Pick a reminder if you want a notification beforehand, and a recurrence if it repeats.',
+        ro: 'Alege un reminder dacă vrei notificare înainte, și o recurență dacă se repetă; „Repetă la fiecare” dă intervalul (din 2 în 2 săptămâni).',
+        en: 'Pick a reminder if you want a notification beforehand, and a recurrence if it repeats; “Repeat every” sets the interval (every 2 weeks).',
       },
       {
-        ro: 'Ca să muți un eveniment, trage-l pe altă zi în vederea pe săptămână, sau deschide-l și schimbă ora.',
-        en: 'To move an event, drag it to another day in the week view, or open it and change the time.',
+        ro: 'Ca să muți un eveniment, trage-l pe altă zi în vederea pe săptămână, sau deschide-l și schimbă ora. La un eveniment care se repetă se mută toată seria.',
+        en: 'To move an event, drag it to another day in the week view, or open it and change the time. For a repeating event the whole series moves.',
       },
       {
         ro: 'Comută între „Lună” și „Săptămână”; „Astăzi” te aduce înapoi la ziua curentă.',
