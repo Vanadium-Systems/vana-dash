@@ -59,6 +59,10 @@ export interface Occurrence {
   recurrenceEndAt: string | null
   occurrenceStart: string
   occurrenceEnd: string
+  /** Start and end of the event row itself (the first occurrence of a series), so editing an
+   *  occurrence saves the series without moving it to the clicked day. */
+  seriesStart: string
+  seriesEnd: string
   // Doar pt. kind='event' — necesar ca EventFormDialog.tsx (FE) să prefill-uiască reminder-ul
   // existent la editare din click pe ocurență (singura cale de edit, nu există GET /events/:id).
   // null pt. ocurențele 'expense' (recurring_expenses nu au reminder).
@@ -95,6 +99,8 @@ function toOccurrence(
     recurrenceEndAt: row.recurrenceEndAt ? row.recurrenceEndAt.toISOString() : null,
     occurrenceStart: occurrenceStart.toISOString(),
     occurrenceEnd: occurrenceEnd.toISOString(),
+    seriesStart: row.startAt.toISOString(),
+    seriesEnd: row.endAt.toISOString(),
     reminderMinutesBefore: row.reminderMinutesBefore,
     ownerUserId: row.ownerUserId ?? null,
     ownerName: row.ownerName ?? null,
@@ -177,6 +183,8 @@ async function listRecurringExpenseOccurrences(from: Date, to: Date) {
           recurrenceEndAt: null,
           occurrenceStart: dueDate.toISOString(),
           occurrenceEnd: dueDate.toISOString(),
+          seriesStart: dueDate.toISOString(),
+          seriesEnd: dueDate.toISOString(),
           reminderMinutesBefore: null,
           // Cheltuialele recurente n-au calendar: sunt ale firmei, nu ale unui om, deci nu
           // poartă nume de proprietar și nu sunt editabile din Calendar (vezi CalendarPage.tsx).

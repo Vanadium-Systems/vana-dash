@@ -712,6 +712,27 @@ export async function patchMessage(
 }
 
 /** Multi-select — UN singur UPDATE (WHERE id = ANY(...)), nu buclă JS (regula #9 CLAUDE.md). */
+/**
+ * Of the given threads, the ones this person has read since their last incoming message. The app
+ * asks this when it opens, to clear the notifications of emails read meanwhile on another device.
+ */
+export async function readThreadIds(me: SessionUser, threadIds: string[]): Promise<string[]> {
+  if (threadIds.length === 0) return []
+  const rows = await db
+    .select({ threadId: emailThreadReads.threadId })
+    .from(emailThreadReads)
+    .innerJoin(emailThreads, eq(emailThreads.id, emailThreadReads.threadId))
+    .where(
+      and(
+        inArray(emailThreadReads.threadId, threadIds),
+        eq(emailThreadReads.userId, me.id),
+        isNull(emailThreadReads.deletedAt),
+        sql`${emailThreadReads.lastReadAt} >= ${emailThreads.lastMessageAt}`,
+      ),
+    )
+  return rows.map((row) => row.threadId)
+}
+
 export async function bulkUpdateMessages(
   me: SessionUser,
   ids: string[],
@@ -720,6 +741,7 @@ export async function bulkUpdateMessages(
   const changes: Record<string, unknown> = { updatedAt: new Date() }
   if (patch.isRead !== undefined) changes.isRead = patch.isRead
   if (patch.folder !== undefined) changes.folder = patch.folder
+  if (patch.snoozedUntil !== undefined) changes.snoozedUntil = patch.snoozedUntil ? new Date(patch.snoozedUntil) : null
   if (patch.labelId !== undefined) changes.labelId = patch.labelId
 
   const rows = await db

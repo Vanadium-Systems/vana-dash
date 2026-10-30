@@ -302,5 +302,16 @@
     "bounced": "Bounced",
     "howManyTimes": "How many times",
     "lastBounce": "Last bounce"
+  },
+  "snooze": {
+    "title": "Snooze",
+    "laterToday": "Later today",
+    "tomorrow": "Tomorrow",
+    "nextWeek": "Next week",
+    "pick": "Pick date and time",
+    "until": "Until",
+    "confirm": "Snooze",
+    "future": "Pick a time in the future.",
+    "done": "Snoozed until {{when}}"
   }
 }
