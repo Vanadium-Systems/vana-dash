@@ -383,51 +383,51 @@ export function BulkSendTab() {
                   <TableRow>
                     <TableHead>{t('common:labels.recipient')}</TableHead>
                     <TableHead>{t('common:labels.state')}</TableHead>
-                    <TableHead>{t('email:labels.engagement')}</TableHead>
-                    <TableHead>{t('common:labels.details')}</TableHead>
+                    <TableHead priority="md">{t('email:labels.engagement')}</TableHead>
+                    <TableHead priority="md">{t('common:labels.details')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {persistedRows.map((r) => (
                     <TableRow key={r.id}>
-                      <TableCell>{r.recipient}</TableCell>
+                      <TableCell truncate>{r.recipient}</TableCell>
                       <TableCell>
                         <StatePill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</StatePill>
                       </TableCell>
-                      <TableCell>
+                      <TableCell priority="md">
                         <EngagementBadges send={r} />
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{r.errorMessage ?? '—'}</TableCell>
+                      <TableCell priority="md" className="text-xs text-muted-foreground">{r.errorMessage ?? '—'}</TableCell>
                     </TableRow>
                   ))}
                   {skippedRows.map(({ email, key }) => (
                     <TableRow key={key}>
-                      <TableCell>{email}</TableCell>
+                      <TableCell truncate>{email}</TableCell>
                       <TableCell>
                         <StatePill>{t('email:bulk.skipped')}</StatePill>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{t('email:bulk.skippedHint')}</TableCell>
+                      <TableCell priority="md" className="text-xs text-muted-foreground">—</TableCell>
+                      <TableCell priority="md" className="text-xs text-muted-foreground">{t('email:bulk.skippedHint')}</TableCell>
                     </TableRow>
                   ))}
                   {suppressedRows.map(({ email, key }) => (
                     <TableRow key={key}>
-                      <TableCell>{email}</TableCell>
+                      <TableCell truncate>{email}</TableCell>
                       <TableCell>
                         <StatePill tone="warning">{t('email:labels.unsubscribed')}</StatePill>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{t('email:bulk.unsubscribedHint')}</TableCell>
+                      <TableCell priority="md" className="text-xs text-muted-foreground">—</TableCell>
+                      <TableCell priority="md" className="text-xs text-muted-foreground">{t('email:bulk.unsubscribedHint')}</TableCell>
                     </TableRow>
                   ))}
                   {capBlockedRows.map(({ email, key }) => (
                     <TableRow key={key}>
-                      <TableCell>{email}</TableCell>
+                      <TableCell truncate>{email}</TableCell>
                       <TableCell>
                         <StatePill tone="warning">{t('email:bulk.postponed')}</StatePill>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">—</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{t('email:bulk.postponedHint')}</TableCell>
+                      <TableCell priority="md" className="text-xs text-muted-foreground">—</TableCell>
+                      <TableCell priority="md" className="text-xs text-muted-foreground">{t('email:bulk.postponedHint')}</TableCell>
                     </TableRow>
                   ))}
                   {persistedRows.length === 0 && freshResults.length === 0 ? (

@@ -44,14 +44,15 @@ export function AssistantText({ text }: { text: string }) {
                 </a>
               ),
               table: ({ children }) => (
-                <div className="my-2 overflow-x-auto rounded-md border">
-                  <table className="w-full border-collapse text-xs">{children}</table>
+                // Fixed layout with wrapping cells: a table in an answer never scrolls sideways on a phone.
+                <div className="my-2 rounded-md border">
+                  <table className="w-full table-fixed border-collapse text-xs">{children}</table>
                 </div>
               ),
               th: ({ children }) => (
-                <th className="border-b bg-muted/50 px-2 py-1 text-left font-medium">{children}</th>
+                <th className="break-words border-b bg-muted/50 px-2 py-1 text-left font-medium">{children}</th>
               ),
-              td: ({ children }) => <td className="border-b px-2 py-1 align-top">{children}</td>,
+              td: ({ children }) => <td className="break-words border-b px-2 py-1 align-top">{children}</td>,
               code: ({ children, ...rest }) =>
                 // bloc de cod (multi-linie) vs inline
                 typeof children === 'string' && !children.includes('\n') ? (
@@ -59,7 +60,7 @@ export function AssistantText({ text }: { text: string }) {
                     {children}
                   </code>
                 ) : (
-                  <code className="block overflow-x-auto rounded-md bg-muted p-2 font-mono text-xs" {...rest}>
+                  <code className="block whitespace-pre-wrap break-words rounded-md bg-muted p-2 font-mono text-xs" {...rest}>
                     {children}
                   </code>
                 ),

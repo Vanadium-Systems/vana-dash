@@ -81,7 +81,7 @@ export function DeclarationLineDialog({ line, onOpenChange }: { line: Declaratio
               <option value="none">{t('accounting:declarations.edit.typeNone')}</option>
             </Select>
           </Field>
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('common:actions.cancel')}
             </Button>

@@ -5,7 +5,8 @@ import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { RowActions } from '@/shared/components/ui/row-actions'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PlatformStatusBadge } from '@/shared/components/PlatformStatusBadge'
 import { api } from '@/shared/lib/api'
 import type { BankAccount, BankTransactionRow } from '@/shared/lib/types'
@@ -101,55 +102,52 @@ export function ConturiTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common:labels.name')}</TableHead>
-                  <TableHead>{t('reconciliation:labels.provider')}</TableHead>
-                  <TableHead>{t('common:labels.currency')}</TableHead>
+                  <TableHead priority="md">{t('reconciliation:labels.provider')}</TableHead>
+                  <TableHead priority="lg">{t('common:labels.currency')}</TableHead>
                   <TableHead>{t('common:labels.status')}</TableHead>
-                  <TableHead>{t('reconciliation:accounts.lastSync')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                  <TableHead priority="md">{t('reconciliation:accounts.lastSync')}</TableHead>
+                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {accounts.data.map((account) => (
                   <TableRow key={account.id}>
-                    <TableCell className="font-medium">{account.name}</TableCell>
-                    <TableCell>{account.provider}</TableCell>
-                    <TableCell>{account.currency}</TableCell>
+                    <TableCell className="font-medium tbl-fill">
+                      <div className="truncate">{account.name}</div>
+                      <TableDetails items={[account.provider, account.currency]} />
+                    </TableCell>
+                    <TableCell priority="md">{account.provider}</TableCell>
+                    <TableCell priority="lg">{account.currency}</TableCell>
                     <TableCell>
                       <PlatformStatusBadge status={account.healthStatus} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap">
                       {account.lastSyncAt ? new Date(account.lastSyncAt).toLocaleString(intlTag()) : '—'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          title={t('reconciliation:accounts.syncNow')}
-                          disabled={syncNow.isPending}
-                          onClick={() => syncNow.mutate(account.id)}
-                        >
-                          <RefreshCw className={syncNow.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          title={t('common:actions.edit')}
-                          onClick={() => {
-                            setEditingAccount(account)
-                            setAccountDialogOpen(true)
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          title={t('common:actions.delete')}
-                          onClick={() => {
-                            void confirm({ title: t('reconciliation:accounts.deleteTitle', { name: account.name }), consequence: t('reconciliation:accounts.deleteBody'), confirmLabel: t('reconciliation:accounts.deleteConfirm'), destructive: true }).then((ok) => ok && removeAccount.mutate(account.id))
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <RowActions
+                        actions={[
+                          { key: 'sync', icon: RefreshCw, label: t('reconciliation:accounts.syncNow'), disabled: syncNow.isPending, spinning: syncNow.isPending, onClick: () => syncNow.mutate(account.id) },
+                          {
+                            key: 'edit',
+                            icon: Pencil,
+                            label: t('common:actions.edit'),
+                            onClick: () => {
+                              setEditingAccount(account)
+                              setAccountDialogOpen(true)
+                            },
+                          },
+                          {
+                            key: 'delete',
+                            icon: Trash2,
+                            label: t('common:actions.delete'),
+                            destructive: true,
+                            onClick: () => {
+                              void confirm({ title: t('reconciliation:accounts.deleteTitle', { name: account.name }), consequence: t('reconciliation:accounts.deleteBody'), confirmLabel: t('reconciliation:accounts.deleteConfirm'), destructive: true }).then((ok) => ok && removeAccount.mutate(account.id))
+                            },
+                          },
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -186,12 +184,12 @@ export function ConturiTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('common:labels.date')}</TableHead>
+                  <TableHead priority="md">{t('common:labels.date')}</TableHead>
                   <TableHead>{t('reconciliation:transactions.counterparty')}</TableHead>
-                  <TableHead>{t('reconciliation:transactions.reference')}</TableHead>
+                  <TableHead priority="lg">{t('reconciliation:transactions.reference')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
-                  <TableHead>{t('reconciliation:transactions.match')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                  <TableHead priority="md">{t('reconciliation:transactions.match')}</TableHead>
+                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -200,22 +198,25 @@ export function ConturiTab() {
                     key={txn.id}
                     className="animate-in fade-in-0 duration-200 ease-out"
                   >
-                    <TableCell>{formatDate(txn.valueDate)}</TableCell>
-                    <TableCell className="font-medium">{txn.counterpartyName ?? '—'}</TableCell>
-                    <TableCell className="max-w-xs truncate text-xs text-muted-foreground" title={txn.reference ?? ''}>
+                    <TableCell priority="md" className="whitespace-nowrap">{formatDate(txn.valueDate)}</TableCell>
+                    <TableCell className="font-medium tbl-fill">
+                      <div className="truncate">{txn.counterpartyName ?? '—'}</div>
+                      <TableDetails items={[formatDate(txn.valueDate), txn.match?.id ? (txn.match.documentNumber ?? txn.match.financialRecordId) : null]} />
+                    </TableCell>
+                    <TableCell priority="lg" className="max-w-xs truncate text-xs text-muted-foreground" title={txn.reference ?? ''}>
                       {txn.reference ?? '—'}
                     </TableCell>
                     <TableCell
                       className={
                         txn.direction === 'in'
-                          ? 'text-right font-mono text-sm tnum text-success'
-                          : 'text-right font-mono text-sm tnum text-muted-foreground'
+                          ? 'whitespace-nowrap text-right font-mono text-sm tnum text-success'
+                          : 'whitespace-nowrap text-right font-mono text-sm tnum text-muted-foreground'
                       }
                     >
                       {txn.direction === 'in' ? '+' : '−'}
                       {formatMoney(txn.amount, txn.currency)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell priority="md">
                       {txn.match?.id ? (
                         <span className="text-xs">
                           {txn.match.documentNumber ?? txn.match.financialRecordId}
@@ -242,7 +243,7 @@ export function ConturiTab() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-wrap justify-end gap-2">
                         {/* Potrivirea manuală e cu tot alta funcționalitate decât citirea
                             tranzacțiilor: cine vede bankul nu o poate face automat. */}
                         {canMatch && txn.match?.id ? (

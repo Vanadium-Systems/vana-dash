@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { ChartError } from '@/shared/components/charts/chart-states'
 import { api } from '@/shared/lib/api'
 import type { SpvMessage } from '@/shared/lib/types'
@@ -50,20 +50,23 @@ export function MesajeTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t('common:labels.date')}</TableHead>
-                <TableHead>{t('common:labels.type')}</TableHead>
+                <TableHead priority="md">{t('common:labels.date')}</TableHead>
+                <TableHead priority="lg">{t('common:labels.type')}</TableHead>
                 <TableHead>{t('common:labels.details')}</TableHead>
-                <TableHead>{t('common:labels.cif')}</TableHead>
+                <TableHead priority="lg">{t('common:labels.cif')}</TableHead>
                 <TableHead className="text-right">{t('accounting:spv.saving')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {messages.data.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell className="whitespace-nowrap">{formatDate(m.createdAt)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{m.type}</TableCell>
-                  <TableCell>{m.detail}</TableCell>
-                  <TableCell className="font-mono text-xs">{m.cif}</TableCell>
+                  <TableCell priority="md" className="whitespace-nowrap">{formatDate(m.createdAt)}</TableCell>
+                  <TableCell priority="lg" className="text-xs text-muted-foreground">{m.type}</TableCell>
+                  <TableCell className="break-words tbl-fill">
+                    {m.detail}
+                    <TableDetails items={[formatDate(m.createdAt), m.type]} />
+                  </TableCell>
+                  <TableCell priority="lg" className="font-mono text-xs">{m.cif}</TableCell>
                   <TableCell className="text-right">
                     {m.saved ? (
                       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

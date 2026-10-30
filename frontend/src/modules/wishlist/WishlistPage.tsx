@@ -219,7 +219,7 @@ export function WishlistPage() {
                   <TableHead priority="lg">{t('common:labels.priority')}</TableHead>
                   <TableHead priority="md" className="text-right">{t('wishlist:labels.estimatedPrice')}</TableHead>
                   <TableHead priority="lg">{t('common:labels.status')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

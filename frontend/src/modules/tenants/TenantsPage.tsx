@@ -1,3 +1,4 @@
+import { Pause, Play, SlidersHorizontal } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -10,6 +11,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Switch } from '@/shared/components/ui/switch'
+import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import { formatDate } from '@/shared/lib/format'
@@ -135,28 +137,24 @@ function TenantTable({
               <StatePill tone={row.status === 'active' ? 'success' : 'warning'}>{t(`tenants:status.${row.status}`)}</StatePill>
             </TableCell>
             <TableCell priority="lg" className="whitespace-nowrap text-muted-foreground">{formatDate(row.createdAt)}</TableCell>
-            <TableCell className="min-w-[10rem]">
+            <TableCell>
               {row.isPlatformOwner ? null : (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex items-center justify-end gap-1">
                   {/* `Deschide` stă tot timpul: mutarea în contul altei firme trebuie să se vadă
                       și pe ecran fără mouse. Restul apare la hover sau la focus, ca să nu
                       încrăcăm rândul. */}
                   <Button size="sm" variant="outline" onClick={() => setTenantOverride({ id: row.id, name: row.name })}>
                     {t('tenants:actions.open')}
                   </Button>
-                  <div className="flex flex-wrap gap-1 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
-                    <Button size="sm" variant="outline" onClick={() => onFeatures(row)}>
-                      {t('tenants:actions.features')}
-                    </Button>
-                    {row.status === 'active' ? (
-                      <Button size="sm" variant="outline" onClick={() => onSuspend(row)}>
-                        {t('tenants:actions.suspend')}
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => onReactivate(row)}>
-                        {t('tenants:actions.reactivate')}
-                      </Button>
-                    )}
+                  <div className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
+                    <RowActions
+                      actions={[
+                        { key: 'features', icon: SlidersHorizontal, label: t('tenants:actions.features'), onClick: () => onFeatures(row) },
+                        row.status === 'active'
+                          ? { key: 'suspend', icon: Pause, label: t('tenants:actions.suspend'), onClick: () => onSuspend(row) }
+                          : { key: 'reactivate', icon: Play, label: t('tenants:actions.reactivate'), onClick: () => onReactivate(row) },
+                      ]}
+                    />
                   </div>
                 </div>
               )}

@@ -276,7 +276,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className }: 
             onChange={(e) => setHtmlDraft(e.target.value)}
             placeholder={t('common:editor.importHtmlPlaceholder')}
           />
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <button type="button" className="rounded-md border px-2 py-1 text-xs hover:bg-muted" onClick={() => setHtmlImportOpen(false)}>
               {t('common:actions.cancel')}
             </button>

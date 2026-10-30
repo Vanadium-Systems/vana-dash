@@ -3,7 +3,7 @@ import { cn } from '@/shared/lib/utils'
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
+    <div className="tbl-container relative w-full overflow-auto">
       <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   ),
@@ -29,14 +29,16 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
 )
 TableRow.displayName = 'TableRow'
 
-// Narrow screens (T1-T3 in UX_RESEARCH, the GitHub pattern): no sideways scroll. A column with
-// `priority="md"` hides below md and its value moves to the <TableDetails> line under the row title;
-// `priority="lg"` only hides below lg. `truncate` cuts long text with "…" instead of wrapping it.
+// No table scrolls sideways (the GitHub pattern). The breakpoints are the table's own width, not
+// the screen's (`.tbl-*` container queries in index.css): `priority="md"` hides under 40rem and its
+// value moves to the <TableDetails> line under the row title, `priority="lg"` hides under 56rem.
+// `truncate` cuts long text with "…" instead of wrapping it; `tbl-fill` on the title cell gives it
+// the room left over.
 type ColumnPriority = 'md' | 'lg'
 
 const PRIORITY_CLASS: Record<ColumnPriority, string> = {
-  md: 'hidden md:table-cell',
-  lg: 'hidden lg:table-cell',
+  md: 'tbl-md',
+  lg: 'tbl-lg',
 }
 
 interface TableHeadProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
@@ -68,17 +70,17 @@ const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
 )
 TableCell.displayName = 'TableCell'
 
-/** The second line of a row title on narrow screens: the values of the `priority="md"` columns. */
+/** The second line of a row title in a narrow table: the values of the `priority="md"` columns. */
 function TableDetails({ items }: { items: React.ReactNode[] }) {
   const shown = items.filter((item) => item !== null && item !== undefined && item !== false && item !== '')
   if (shown.length === 0) return null
   return (
-    <div className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-xs font-normal text-muted-foreground md:hidden">
+    // Wraps instead of cutting every value to a few letters when the title column is narrow.
+    <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs font-normal text-muted-foreground tbl-details">
       {shown.map((item, i) => (
-        <React.Fragment key={i}>
-          {i > 0 ? <span aria-hidden="true">·</span> : null}
-          <span className="truncate">{item}</span>
-        </React.Fragment>
+        <span key={i} className="max-w-full truncate">
+          {item}
+        </span>
       ))}
     </div>
   )

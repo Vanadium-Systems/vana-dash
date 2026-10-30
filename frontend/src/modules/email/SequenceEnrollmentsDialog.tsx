@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Button } from '@/shared/components/ui/button'
+import { CircleStop, Play, Reply } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { RowActions } from '@/shared/components/ui/row-actions'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { EmailSequence, EmailSequenceEnrollment, EmailSequenceEnrollmentStatus, SequenceStats } from '@/shared/lib/types'
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
@@ -137,42 +138,41 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
                 <TableRow>
                   <TableHead>{t('common:labels.recipient')}</TableHead>
                   <TableHead>{t('common:labels.status')}</TableHead>
-                  <TableHead>{t('email:enrollments.step')}</TableHead>
-                  <TableHead>{t('email:enrollments.nextSend')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                  <TableHead priority="md">{t('email:enrollments.step')}</TableHead>
+                  <TableHead priority="md">{t('email:enrollments.nextSend')}</TableHead>
+                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {enrollments.data.map((e) => (
                   <TableRow key={e.id}>
-                    <TableCell>
-                      <div>{e.recipientEmail}</div>
-                      {e.recipientName ? <div className="text-xs text-muted-foreground">{e.recipientName}</div> : null}
+                    <TableCell className="w-full max-w-0">
+                      <div className="truncate">{e.recipientEmail}</div>
+                      {e.recipientName ? <div className="truncate text-xs text-muted-foreground">{e.recipientName}</div> : null}
+                      <TableDetails items={[`${e.currentStep} / ${sequence.steps.length}`, e.status === 'active' ? new Date(e.nextSendAt).toLocaleDateString(intlTag()) : null]} />
                     </TableCell>
                     <TableCell>
                       <StatePill tone={STATUS_TONE[e.status]}>{STATUS_LABEL[e.status]}</StatePill>
                     </TableCell>
-                    <TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap">
                       {e.currentStep} / {sequence.steps.length}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell priority="md" className="whitespace-nowrap text-xs text-muted-foreground">
                       {e.status === 'active' ? new Date(e.nextSendAt).toLocaleDateString(intlTag()) : '—'}
                     </TableCell>
                     <TableCell className="text-right">
-                      {e.status === 'active' ? (
-                        <div className="flex justify-end gap-1.5">
-                          <Button variant="outline" disabled={markReplied.isPending} onClick={() => markReplied.mutate(e.id)}>
-                            {t('email:enrollments.replied')}
-                          </Button>
-                          <Button variant="outline" disabled={stop.isPending} onClick={() => stop.mutate(e.id)}>
-                            {t('common:actions.stop')}
-                          </Button>
-                        </div>
-                      ) : e.status === 'replied' || e.status === 'unsubscribed' ? (
-                        <Button variant="outline" disabled={reactivate.isPending} onClick={() => reactivate.mutate(e.id)}>
-                          {t('email:enrollments.resume')}
-                        </Button>
-                      ) : null}
+                      <RowActions
+                        actions={
+                          e.status === 'active'
+                            ? [
+                                { key: 'replied', icon: Reply, label: t('email:enrollments.replied'), disabled: markReplied.isPending, onClick: () => markReplied.mutate(e.id) },
+                                { key: 'stop', icon: CircleStop, label: t('common:actions.stop'), disabled: stop.isPending, onClick: () => stop.mutate(e.id) },
+                              ]
+                            : e.status === 'replied' || e.status === 'unsubscribed'
+                              ? [{ key: 'resume', icon: Play, label: t('email:enrollments.resume'), disabled: reactivate.isPending, onClick: () => reactivate.mutate(e.id) }]
+                              : []
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

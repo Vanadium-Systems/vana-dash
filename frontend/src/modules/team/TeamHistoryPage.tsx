@@ -12,6 +12,7 @@ import { useTeamMembers, memberName } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/format'
 import { actionLabel, type AuditListItem } from '@/shared/lib/audit'
+import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
 
 // „Cine a făcut ce" (PLAN.md C2, fișa „Istoric"). Filtrele stau în URL, ca un link să poată
@@ -148,12 +149,13 @@ export function TeamHistoryPage() {
         )
       ) : (
         <>
+          <div className="tbl-container">
           <table className="w-full border-collapse text-sm">
             <caption className="sr-only">{t('team:history.tableCaption')}</caption>
             <thead>
               <tr>
-                {[t('common:labels.when'), t('team:history.who'), t('team:history.what'), t('team:labels.object')].map((heading) => (
-                  <th key={heading} scope="col" className="border-b pb-2 text-left text-xs font-normal text-muted-foreground">
+                {[t('common:labels.when'), t('team:history.who'), t('team:history.what'), t('team:labels.object')].map((heading, i) => (
+                  <th key={heading} scope="col" className={cn('border-b pb-2 text-left text-xs font-normal text-muted-foreground', i === 3 && 'tbl-md')}>
                     {heading}
                   </th>
                 ))}
@@ -162,12 +164,16 @@ export function TeamHistoryPage() {
             <tbody>
               {items.map((item) => (
                 <tr key={item.id} className="border-t">
-                  <td className="py-2 pr-3 text-muted-foreground" title={formatDateTime(item.createdAt)}>
+                  <td className="whitespace-nowrap py-2 pr-3 text-muted-foreground" title={formatDateTime(item.createdAt)}>
                     {formatRelativeTime(item.createdAt)}
                   </td>
-                  <td className="py-2 pr-3">{actorName(item)}</td>
-                  <td className="py-2 pr-3">{actionLabel(item.action)}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">
+                  <td className="max-w-[8rem] truncate py-2 pr-3">{actorName(item)}</td>
+                  <td className="py-2 pr-3">
+                    {actionLabel(item.action)}
+                    {/* The object column is hidden on a phone, so its name moves under the action. */}
+                    <div className="tbl-narrow-only truncate text-xs text-muted-foreground">{item.entityType}</div>
+                  </td>
+                  <td className="tbl-md py-2 pr-3 text-muted-foreground">
                     {item.entityType}
                     {item.entityId ? <span className="font-mono text-xs"> {item.entityId.slice(0, 8)}</span> : null}
                   </td>
@@ -175,6 +181,7 @@ export function TeamHistoryPage() {
               ))}
             </tbody>
           </table>
+          </div>
           {query.data && query.data.length === 50 ? (
             <Button variant="outline" onClick={loadMore}>
               <Plus className="h-4 w-4" />

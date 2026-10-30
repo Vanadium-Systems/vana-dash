@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArchiveRestore, Check, Download, Pencil, Trash2, Upload } from 'lucide-react'
+import { Archive, ArchiveRestore, Calculator, Check, Download, Pencil, Trash2, Upload, UserPlus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
 import { Skeleton } from '@/shared/components/ui/skeleton'
+import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
@@ -111,6 +112,26 @@ export function ProspectareTab() {
     staleTime: 5 * 60 * 1000,
   })
   const statusCatalog = statuses.data ?? []
+  // Rendered in its own column from md up, and under the company name on a phone.
+  const renderStatus = (p: Prospect, fill: boolean) => (
+    <div className="flex items-center gap-2">
+      {statusToken(p.status) ? <StatusDot token={statusToken(p.status)!} /> : <span className="w-2" />}
+      <Select
+        size="sm"
+        aria-label={`Status ${p.name}`}
+        className={fill ? 'w-full min-w-0' : 'w-40'}
+        value={p.status}
+        onValueChange={(status) => updateProspect.mutate({ id: p.id, body: { status } })}
+      >
+        {statusCatalog.some((s) => s.key === p.status) ? null : <option value={p.status}>{p.status}</option>}
+        {statusCatalog.map((s) => (
+          <option key={s.id} value={s.key}>
+            {s.label}
+          </option>
+        ))}
+      </Select>
+    </div>
+  )
   const statusToken = (status: string) => statusCatalog.find((s) => s.key === status)?.colorToken
 
   // Filtrare pe status/prioritate client-side (nu server) — multi-select, volum mic (~164 rânduri),
@@ -365,7 +386,7 @@ export function ProspectareTab() {
           ) : !visibleProspects.length ? (
             <p className="text-sm text-muted-foreground">{t('pricing:prospects.noneMatchFiltersHint')}</p>
           ) : (
-            <div className="overflow-x-auto">
+            <div>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -382,12 +403,12 @@ export function ProspectareTab() {
                     <TableHead priority="lg">{t('pricing:prospects.score')}</TableHead>
                     <TableHead>{t('common:labels.company')}</TableHead>
                     <TableHead priority="md">{t('pricing:prospects.contact')}</TableHead>
-                    <TableHead>{t('common:labels.status')}</TableHead>
+                    <TableHead priority="md">{t('common:labels.status')}</TableHead>
                     <TableHead priority="lg">{t('pricing:prospects.owner')}</TableHead>
                     <TableHead priority="lg">{t('common:nav.notes')}</TableHead>
                     <TableHead priority="lg">{t('pricing:prospects.employees')}</TableHead>
                     <TableHead priority="lg">{t('pricing:prospects.turnoverShort')}</TableHead>
-                    <TableHead>{t('common:labels.actions')}</TableHead>
+                    <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -411,10 +432,11 @@ export function ProspectareTab() {
                         <Badge variant={PRIORITY_VARIANT[p.priority]}>{p.priority}</Badge>
                       </TableCell>
                       <TableCell priority="lg" className="font-mono text-xs">{p.score ?? '—'}</TableCell>
-                      <TableCell className="max-w-[16rem]">
+                      <TableCell className="tbl-fill md:max-w-[16rem]">
                         <div className="truncate font-medium">{p.name}</div>
                         <div className="truncate text-xs text-muted-foreground">{p.cif ?? t('pricing:prospects.noCif')}</div>
                         <TableDetails items={[p.priority, p.phone ? splitMultiValue(p.phone)[0] : null]} />
+                        <div className="tbl-narrow-only mt-1">{renderStatus(p, true)}</div>
                       </TableCell>
                       <TableCell priority="md" className="min-w-[11rem] space-y-1 text-xs">
                         {editingContactId === p.id ? (
@@ -500,24 +522,8 @@ export function ProspectareTab() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {statusToken(p.status) ? <StatusDot token={statusToken(p.status)!} /> : <span className="w-2" />}
-                          <Select
-                            size="sm"
-                            aria-label={`Status ${p.name}`}
-                            className="w-auto w-40"
-                            value={p.status}
-                            onValueChange={(status) => updateProspect.mutate({ id: p.id, body: { status } })}
-                          >
-                            {statusCatalog.some((s) => s.key === p.status) ? null : <option value={p.status}>{p.status}</option>}
-                            {statusCatalog.map((s) => (
-                              <option key={s.id} value={s.key}>
-                                {s.label}
-                              </option>
-                            ))}
-                          </Select>
-                        </div>
+                      <TableCell priority="md">
+                        {renderStatus(p, false)}
                       </TableCell>
                       <TableCell priority="lg">
                         <Select
@@ -547,34 +553,24 @@ export function ProspectareTab() {
                       <TableCell priority="lg">{p.employeeCount ?? '—'}</TableCell>
                       <TableCell priority="lg" className="whitespace-nowrap tabular-nums">{p.revenue ? formatNumber(Number(p.revenue), BASE_CURRENCY) : '—'}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          <Button type="button" variant="outline" onClick={() => navigate(`/pricing?tab=calculator&prospectId=${p.id}`)}>
-                            {t('pricing:prospects.calculatePrice')}
-                          </Button>
-                          {!p.billingClientId && (
-                            <Button type="button" variant="outline" onClick={() => setPromoteTarget(p)}>
-                              {t('pricing:prospects.promote')}
-                            </Button>
-                          )}
-                          {showArchived ? (
-                            <Button type="button" variant="outline" onClick={() => unarchiveProspect.mutate(p.id)}>
-                              <ArchiveRestore className="h-4 w-4" /> {t('pricing:prospects.unarchive')}
-                            </Button>
-                          ) : (
-                            <Button type="button" variant="ghost" title={t('common:actions.archive')} onClick={() => archiveProspect.mutate(p.id)}>
-                              <Archive className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => {
-                              void confirm({ title: t('pricing:prospects.deleteTitle', { name: p.name }), consequence: t('pricing:prospects.deleteBody'), confirmLabel: t('pricing:prospects.deleteConfirm'), destructive: true }).then((ok) => ok && removeProspect.mutate(p.id))
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <RowActions
+                          actions={[
+                            { key: 'price', icon: Calculator, label: t('pricing:prospects.calculatePrice'), onClick: () => navigate(`/pricing?tab=calculator&prospectId=${p.id}`) },
+                            ...(!p.billingClientId ? [{ key: 'promote', icon: UserPlus, label: t('pricing:prospects.promote'), onClick: () => setPromoteTarget(p) }] : []),
+                            showArchived
+                              ? { key: 'unarchive', icon: ArchiveRestore, label: t('pricing:prospects.unarchive'), onClick: () => unarchiveProspect.mutate(p.id) }
+                              : { key: 'archive', icon: Archive, label: t('common:actions.archive'), onClick: () => archiveProspect.mutate(p.id) },
+                            {
+                              key: 'delete',
+                              icon: Trash2,
+                              label: t('common:actions.delete'),
+                              destructive: true,
+                              onClick: () => {
+                                void confirm({ title: t('pricing:prospects.deleteTitle', { name: p.name }), consequence: t('pricing:prospects.deleteBody'), confirmLabel: t('pricing:prospects.deleteConfirm'), destructive: true }).then((ok) => ok && removeProspect.mutate(p.id))
+                              },
+                            },
+                          ]}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}

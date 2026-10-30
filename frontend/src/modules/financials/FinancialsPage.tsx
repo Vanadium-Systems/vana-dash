@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { KPICard } from '@/shared/components/KPICard'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { PeriodSelector, usePeriod } from '@/shared/components/PeriodSelector'
@@ -135,18 +135,21 @@ export function FinancialsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common:labels.category')}</TableHead>
-                  <TableHead className="text-right">{t('financials:labels.revenueCollected')}</TableHead>
-                  <TableHead className="text-right">{t('financials:labels.expenses')}</TableHead>
+                  <TableHead priority="md" className="text-right">{t('financials:labels.revenueCollected')}</TableHead>
+                  <TableHead priority="md" className="text-right">{t('financials:labels.expenses')}</TableHead>
                   <TableHead className="text-right">{t('financials:labels.net')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {categoryRows.map((row) => (
                   <TableRow key={row.category}>
-                    <TableCell className="font-medium capitalize">{row.category}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{approx(formatNumber(row.out, currency), money)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{approx(formatNumber(row.in, currency), money)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm tnum">
+                    <TableCell className="font-medium tbl-fill">
+                      <div className="truncate capitalize">{row.category}</div>
+                      <TableDetails items={[`+${approx(formatNumber(row.out, currency), money)}`, `−${approx(formatNumber(row.in, currency), money)}`]} />
+                    </TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap text-right font-mono text-sm">{approx(formatNumber(row.out, currency), money)}</TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap text-right font-mono text-sm">{approx(formatNumber(row.in, currency), money)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right font-mono text-sm tnum">
                       <span className={row.out - row.in < 0 ? 'text-destructive' : undefined}>
                         {approx(formatNumber(row.out - row.in, currency), money)}
                       </span>

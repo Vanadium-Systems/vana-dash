@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, ExternalLink, Star } from 'lucide-react'
+import { Download, ExternalLink, EyeOff, Star, Undo2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
@@ -8,6 +8,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
+import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import { downloadCsv } from '@/shared/lib/csv'
@@ -161,15 +162,15 @@ export function TendersPage() {
                   <TableHead priority="md">{t('tenders:labels.authority')}</TableHead>
                   <TableHead priority="lg">CPV</TableHead>
                   <TableHead priority="lg">{t('common:labels.source')}</TableHead>
-                  <TableHead className="text-right">{t('tenders:labels.estimatedValue')}</TableHead>
+                  <TableHead priority="md" className="text-right">{t('tenders:labels.estimatedValue')}</TableHead>
                   <TableHead>{t('tenders:labels.deadline')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((tender) => (
                   <TableRow key={tender.id} className={cn(tender.dismissedAt ? 'opacity-60' : undefined, tender.isPriority ? 'bg-warning/10' : undefined)}>
-                    <TableCell className="min-w-[12rem] max-w-xs font-medium">
+                    <TableCell className="font-medium tbl-fill md:min-w-[12rem] md:max-w-xs">
                       <a href={tender.detailUrl} target="_blank" rel="noreferrer" className="flex items-start gap-1 hover:underline">
                         {tender.isPriority ? <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-warning text-warning" /> : null}
                         <span className="line-clamp-2">{tender.title}</span>
@@ -183,28 +184,31 @@ export function TendersPage() {
                           {t('tenders:minTurnover', { value: formatNumber(Number(tender.minTurnoverRon), BASE_CURRENCY) })}
                         </span>
                       ) : null}
-                      <TableDetails items={[tender.contractingAuthority]} />
+                      <TableDetails items={[tender.contractingAuthority, tender.estimatedValueRon ? formatNumber(Number(tender.estimatedValueRon), BASE_CURRENCY) : null]} />
                     </TableCell>
                     <TableCell priority="md" className="max-w-[14rem] truncate">{tender.contractingAuthority ?? '—'}</TableCell>
                     <TableCell priority="lg" className="whitespace-nowrap text-sm text-muted-foreground">{tender.cpvCode ?? '—'}</TableCell>
                     <TableCell priority="lg">
                       <Badge variant="outline">{SOURCE_LABEL[tender.source]}</Badge>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
+                    <TableCell priority="md" className="whitespace-nowrap text-right text-sm tabular-nums">
                       {tender.estimatedValueRon ? formatNumber(Number(tender.estimatedValueRon), BASE_CURRENCY) : '—'}
                     </TableCell>
                     <TableCell>
                       <DeadlineCell deadlineAt={tender.deadlineAt} isOpen={tender.isOpen} />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={setDismissed.isPending}
-                        onClick={() => setDismissed.mutate({ id: tender.id, dismissed: !tender.dismissedAt })}
-                      >
-                        {tender.dismissedAt ? t('common:actions.restore') : t('tenders:notInterested')}
-                      </Button>
+                      <RowActions
+                        actions={[
+                          {
+                            key: 'dismiss',
+                            icon: tender.dismissedAt ? Undo2 : EyeOff,
+                            label: tender.dismissedAt ? t('common:actions.restore') : t('tenders:notInterested'),
+                            disabled: setDismissed.isPending,
+                            onClick: () => setDismissed.mutate({ id: tender.id, dismissed: !tender.dismissedAt }),
+                          },
+                        ]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

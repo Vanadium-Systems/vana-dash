@@ -1,3 +1,4 @@
+import { Check, Download, FilePlus, PenLine, X } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -6,7 +7,8 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { RowActions } from '@/shared/components/ui/row-actions'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { BillingClient, ContractAddendum, ContractDocument } from '@/shared/lib/types'
 import { AddendumFormDialog } from './AddendumFormDialog'
@@ -204,16 +206,19 @@ export function ContractsTab() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('common:labels.type')}</TableHead>
-                      <TableHead>{t('accounting:contracts.generated')}</TableHead>
+                      <TableHead priority="md">{t('accounting:contracts.generated')}</TableHead>
                       <TableHead>{t('common:labels.status')}</TableHead>
-                      <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                      <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {documents.data.map((d) => (
                       <TableRow key={d.id}>
-                        <TableCell>{DOC_TYPE_LABEL[d.docType]}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="tbl-fill">
+                          <div className="truncate">{DOC_TYPE_LABEL[d.docType]}</div>
+                          <TableDetails items={[new Date(d.createdAt).toLocaleString(intlTag())]} />
+                        </TableCell>
+                        <TableCell priority="md" className="text-xs text-muted-foreground">
                           {new Date(d.createdAt).toLocaleString(intlTag())}
                         </TableCell>
                         <TableCell>
@@ -224,22 +229,18 @@ export function ContractsTab() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => openFile(`/api/contracts/documents/${d.id}/pdf`, 'document.pdf')}>
-                              PDF
-                            </Button>
-                            {!d.isSigned ? (
-                              <Button variant="outline" onClick={() => setSigningDoc(d)}>
-                                {t('accounting:contracts.sign')}
-                              </Button>
-                            ) : null}
-                            <Button
-                              variant="outline"
-                              onClick={() => toggleSigned.mutate({ id: d.id, isSigned: !d.isSigned })}
-                            >
-                              {d.isSigned ? t('accounting:contracts.markUnsigned') : t('accounting:contracts.markSigned')}
-                            </Button>
-                          </div>
+                          <RowActions
+                            actions={[
+                              { key: 'pdf', icon: Download, label: t('common:actions.downloadPdf'), onClick: () => openFile(`/api/contracts/documents/${d.id}/pdf`, 'document.pdf') },
+                              ...(!d.isSigned ? [{ key: 'sign', icon: PenLine, label: t('accounting:contracts.sign'), onClick: () => setSigningDoc(d) }] : []),
+                              {
+                                key: 'signed',
+                                icon: d.isSigned ? X : Check,
+                                label: d.isSigned ? t('accounting:contracts.markUnsigned') : t('accounting:contracts.markSigned'),
+                                onClick: () => toggleSigned.mutate({ id: d.id, isSigned: !d.isSigned }),
+                              },
+                            ]}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -266,10 +267,10 @@ export function ContractsTab() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('common:labels.number')}</TableHead>
-                      <TableHead>{t('common:labels.date')}</TableHead>
+                      <TableHead priority="md">{t('common:labels.date')}</TableHead>
                       <TableHead>{t('accounting:addendum.newRate')}</TableHead>
-                      <TableHead>{t('common:labels.reason')}</TableHead>
-                      <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
+                      <TableHead priority="lg">{t('common:labels.reason')}</TableHead>
+                      <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -277,24 +278,21 @@ export function ContractsTab() {
                       const doc = documents.data?.find((d) => d.addendumId === a.id)
                       return (
                         <TableRow key={a.id}>
-                          <TableCell>{a.number}</TableCell>
-                          <TableCell>{a.issuedAt}</TableCell>
-                          <TableCell>{a.newPriceNote}</TableCell>
-                          <TableCell className="max-w-xs truncate">{a.reason}</TableCell>
+                          <TableCell className="tbl-fill">
+                            <div className="whitespace-nowrap">{a.number}</div>
+                            <TableDetails items={[a.issuedAt]} />
+                          </TableCell>
+                          <TableCell priority="md" className="whitespace-nowrap">{a.issuedAt}</TableCell>
+                          <TableCell truncate>{a.newPriceNote}</TableCell>
+                          <TableCell priority="lg" className="max-w-xs truncate">{a.reason}</TableCell>
                           <TableCell className="text-right">
-                            {doc ? (
-                              <Button variant="outline" onClick={() => openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf')}>
-                                PDF
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                disabled={generateAddendumDoc.isPending}
-                                onClick={() => generateAddendumDoc.mutate(a.id)}
-                              >
-                                {t('accounting:contracts.generatePdf')}
-                              </Button>
-                            )}
+                            <RowActions
+                              actions={[
+                                doc
+                                  ? { key: 'pdf', icon: Download, label: t('common:actions.downloadPdf'), onClick: () => openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf') }
+                                  : { key: 'generate', icon: FilePlus, label: t('accounting:contracts.generatePdf'), disabled: generateAddendumDoc.isPending, onClick: () => generateAddendumDoc.mutate(a.id) },
+                              ]}
+                            />
                           </TableCell>
                         </TableRow>
                       )

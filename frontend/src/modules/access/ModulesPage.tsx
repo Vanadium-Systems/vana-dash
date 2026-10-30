@@ -112,7 +112,9 @@ export function ModulesPage() {
 
   const roles = matrix.data?.roles ?? []
   // Sub `lg` matricea nu încape: o singură coloană, rolul ales de sus.
-  const visibleRoles = roleFilter ? roles.filter((role) => role.id === roleFilter) : roles
+  // A phone shows one role column at a time (the matrix never scrolls sideways); from sm up all of them.
+  const phoneRoleId = roleFilter ?? roles.find((role) => role.kind !== 'admin')?.id ?? roles[0]?.id
+  const visibleRoles = roles
   const onlyAdmin = roles.length === 1 && roles[0]?.kind === 'admin'
 
   // Grupul se scrie o singură dată, pe prima lui pagină — antetul de grup, nu o coloană.
@@ -174,15 +176,15 @@ export function ModulesPage() {
             <div className="sm:hidden">
               <Field label={t('common:labels.role')}>
                 <Select
-                  value={roleFilter ?? ''}
+                  value={phoneRoleId ?? ''}
                   onValueChange={(value) => setRoleFilter(value || null)}
-                  options={[{ value: '', label: t('access:roles.all') }, ...roles.map((role) => ({ value: role.id, label: role.name }))]}
+                  options={roles.map((role) => ({ value: role.id, label: role.name }))}
                 />
               </Field>
             </div>
           ) : null}
 
-          <div className="relative overflow-x-auto">
+          <div className="relative">
             <table className="w-full border-collapse">
               <caption className="sr-only">{t('access:tableCaption')}</caption>
               <thead>
@@ -191,7 +193,7 @@ export function ModulesPage() {
                     {t('access:labels.page')}
                   </th>
                   {visibleRoles.map((role) => (
-                    <th key={role.id} scope="col" className="pb-2 text-left text-xs font-normal text-muted-foreground">
+                    <th key={role.id} scope="col" className={cn('pb-2 text-left text-xs font-normal text-muted-foreground', role.id !== phoneRoleId && 'max-sm:hidden')}>
                       <div className="flex items-center gap-1">
                         <span>{role.name}</span>
                         {role.kind === 'admin' ? <span className="text-muted-foreground/70">{t('access:roles.fullAccess')}</span> : null}
@@ -223,6 +225,7 @@ export function ModulesPage() {
                     key={page.page}
                     page={page}
                     roles={visibleRoles}
+                    phoneRoleId={phoneRoleId}
                     showGroup={showGroup}
                     group={page.group}
                     onPage={(roleId, enabled) => setPage.mutate({ roleId, page: page.page, enabled })}
@@ -268,6 +271,7 @@ export function ModulesPage() {
 function PageRows({
   page,
   roles,
+  phoneRoleId,
   showGroup,
   group,
   onPage,
@@ -276,6 +280,7 @@ function PageRows({
 }: {
   page: CatalogPage
   roles: MatrixRole[]
+  phoneRoleId: string | undefined
   showGroup: boolean
   group: string
   onPage: (roleId: string, enabled: boolean) => void
@@ -295,7 +300,7 @@ function PageRows({
         const isView = feature.key === page.viewFeature
         return (
           <tr key={feature.key} className="border-t">
-            <th scope="row" className={cn('sticky left-0 z-[1] min-w-[11rem] bg-background py-1 pr-3 text-left text-sm font-normal', index === 0 && 'pt-2')}>
+            <th scope="row" className={cn('sticky left-0 z-[1] bg-background py-1 pr-3 text-left text-sm font-normal sm:min-w-[11rem]', index === 0 && 'pt-2')}>
               {isView ? <span>{page.label}</span> : <span className="pl-6 text-muted-foreground">{feature.label}</span>}
             </th>
             {roles.map((role) => {
@@ -330,7 +335,7 @@ function PageRows({
                 />
               )
               return (
-                <td key={role.id} className={cn('py-1 pr-3 align-top', index === 0 && 'pt-2')}>
+                <td key={role.id} className={cn('py-1 pr-3 align-top', index === 0 && 'pt-2', role.id !== phoneRoleId && 'max-sm:hidden')}>
                   <div className="flex min-h-8 items-center gap-2">
                     {/* Coloana Admin spune deja „acces complet" în header, deci nu repetăm
                         motivul pe fiecare rând — doar pe cel care chiar trebuie explicat. */}

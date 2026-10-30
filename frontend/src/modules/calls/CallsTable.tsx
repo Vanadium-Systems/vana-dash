@@ -9,11 +9,11 @@ export function CallsTable({ calls }: { calls: CallRow[] }) {
       <TableHeader>
         <TableRow>
           <TableHead>{t('calls:columns.title')}</TableHead>
-          <TableHead>{t('calls:columns.when')}</TableHead>
-          <TableHead className="text-right">{t('calls:columns.duration')}</TableHead>
-          <TableHead className="text-right">{t('calls:columns.participants')}</TableHead>
-          <TableHead>{t('calls:columns.linkedTo')}</TableHead>
-          <TableHead>{t('calls:columns.status')}</TableHead>
+          <TableHead priority="md">{t('calls:columns.when')}</TableHead>
+          <TableHead priority="lg" className="text-right">{t('calls:columns.duration')}</TableHead>
+          <TableHead priority="lg" className="text-right">{t('calls:columns.participants')}</TableHead>
+          <TableHead priority="md">{t('calls:columns.linkedTo')}</TableHead>
+          <TableHead priority="md">{t('calls:columns.status')}</TableHead>
           <TableHead>
             <span className="sr-only">{t('calls:actions.join')}</span>
           </TableHead>

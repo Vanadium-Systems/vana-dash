@@ -50,7 +50,7 @@ export function Leaderboard({
               <TableHead className="hidden text-right font-normal md:table-cell">{t('common:bot.leaderboard.maxDrawdown')}</TableHead>
               <TableHead className="hidden text-right font-normal lg:table-cell">{t('common:bot.leaderboard.trades')}</TableHead>
               <TableHead className="hidden text-right font-normal lg:table-cell">{t('common:bot.leaderboard.fees')}</TableHead>
-              <TableHead className="font-normal">{t('common:bot.leaderboard.holds')}</TableHead>
+              <TableHead className="hidden font-normal md:table-cell">{t('common:bot.leaderboard.holds')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -82,7 +82,7 @@ export function Leaderboard({
                   <TableCell className="tnum hidden text-right font-mono text-xs text-muted-foreground lg:table-cell">
                     {s.feesUsdt.toFixed(2)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Holdings strategy={s} />
                   </TableCell>
                 </TableRow>

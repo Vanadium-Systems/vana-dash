@@ -106,16 +106,13 @@ function ReviewDialog({ id, onClose }: { id: string | null; onClose: () => void 
                     <span>{children}</span>
                   )
                 },
-                table: ({ children }) => (
-                  <div className="overflow-x-auto">
-                    <table className="text-xs">{children}</table>
-                  </div>
-                ),
-                th: ({ children }) => <th className="py-1 pr-4 text-left font-normal text-muted-foreground">{children}</th>,
-                td: ({ children }) => <td className="tnum py-1 pr-4">{children}</td>,
+                // Fixed layout with wrapping cells: a review table never scrolls sideways on a phone.
+                table: ({ children }) => <table className="w-full table-fixed text-xs">{children}</table>,
+                th: ({ children }) => <th className="break-words py-1 pr-2 text-left font-normal text-muted-foreground sm:pr-4">{children}</th>,
+                td: ({ children }) => <td className="tnum break-words py-1 pr-2 sm:pr-4">{children}</td>,
                 code: ({ children }) => <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">{children}</code>,
                 pre: ({ children }) => (
-                  <pre className="overflow-x-auto rounded-md bg-muted p-2 [&_code]:bg-transparent [&_code]:p-0">{children}</pre>
+                  <pre className="whitespace-pre-wrap break-words rounded-md bg-muted p-2 [&_code]:bg-transparent [&_code]:p-0">{children}</pre>
                 ),
               }}
             >

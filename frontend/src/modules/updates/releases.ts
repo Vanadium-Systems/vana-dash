@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-30T12:00:00+02:00',
+    title: {
+      ro: 'Niciun tabel nu mai iese din ecran',
+      en: 'No table runs off the screen any more',
+    },
+    body: {
+      ro: 'Toate tabelele încap pe telefon și pe tabletă, fără derulare în lateral: coloanele mai puțin importante se ascund, iar valorile lor apar sub titlul rândului. Pe ecran îngust, butoanele unui rând stau în meniul ⋯. Tab-urile trec pe al doilea rând, zilele din Calendar încap toate, pagina Module arată câte un rol pe telefon, iar în Email lista de foldere se deschide în locul listei de mesaje, nu lângă ea.',
+      en: 'Every table fits a phone and a tablet with no sideways scrolling: the less important columns hide and their values show under the row title. On a narrow screen a row’s buttons sit in the ⋯ menu. Tabs wrap onto a second row, all the days in Calendar fit, the Modules page shows one role at a time on a phone, and in Email the folder list opens in place of the message list, not next to it.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-10-30T10:00:00+02:00',
     title: {
       ro: 'Calendar, email și tabele mai bune pe telefon',
