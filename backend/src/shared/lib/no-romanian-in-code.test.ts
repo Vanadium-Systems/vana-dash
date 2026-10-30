@@ -18,6 +18,7 @@ const KEPT_IN_ROMANIAN: Array<[path: string, why: string]> = [
   ['shared/db/seed-demo.ts', 'demo rows, written in both languages'],
   ['shared/lib/contract-template-bodies.ts', 'contracts are Romanian legal documents'],
   ['shared/lib/contract-templates.ts', 'contracts are Romanian legal documents'],
+  ['shared/lib/pdf-signature-fields.ts', 'finds the signature lines of the Romanian contracts'],
   ['shared/lib/documents.ts', 'the invoice PDF is a Romanian fiscal document'],
   ['shared/lib/financial-archive.ts', 'folder names of the fiscal archive'],
   ['shared/lib/payment-confirmation.ts', 'email to a client'],
