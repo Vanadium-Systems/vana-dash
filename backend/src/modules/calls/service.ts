@@ -3,6 +3,7 @@ import { db } from '../../shared/db/client.js'
 import { billingClients, calls, prospects } from '../../shared/db/schema/index.js'
 import { callPublicUrl, closeCallRoom, openCallRoom, type CallRecord } from '../../shared/lib/call-rooms.js'
 import { createOwnerToken, DailyError, isDailyConfigured } from '../../shared/lib/daily.js'
+import { getCompany } from '../../shared/lib/company.js'
 import { userName, type SessionUser } from '../../shared/lib/session.js'
 import type { z } from 'zod'
 import { CreateCallSchema, UpdateCallSchema } from './schema.js'
@@ -121,7 +122,7 @@ export async function joinCall(id: string, me: SessionUser): Promise<{ roomUrl: 
   let token: string
   try {
     // The owner token lets the dashboard user remove people and end the call for everyone.
-    token = await createOwnerToken(call.roomName, call.expiresAt, `${userName(me)} \u00b7 Vanadium`)
+    token = await createOwnerToken(call.roomName, call.expiresAt, `${userName(me)} \u00b7 ${(await getCompany()).profile.name}`)
   } catch (err) {
     if (err instanceof DailyError) throw new CallError('provider', 502)
     throw err
