@@ -78,6 +78,13 @@ export const ThreadsQuerySchema = z.object({
 
 // ── Mesaje individuale — acțiuni de mailbox (Wave 1 BE) ───────────────────────
 
+export const ThreadReadStateQuerySchema = z.object({
+  ids: z
+    .string()
+    .transform((value) => value.split(',').filter(Boolean))
+    .pipe(z.array(z.string().uuid()).max(100)),
+})
+
 export const MessageIdParamsSchema = z.object({ id: z.string().uuid() })
 export const AttachmentIdParamsSchema = z.object({ id: z.string().uuid() })
 
@@ -94,6 +101,7 @@ export const BulkUpdateSchema = z.object({
   patch: z.object({
     isRead: z.boolean().optional(),
     folder: z.enum(['inbox', 'archive', 'trash', 'spam']).optional(),
+    snoozedUntil: z.string().datetime().nullable().optional(),
     labelId: z.string().uuid().nullable().optional(),
   }),
 })

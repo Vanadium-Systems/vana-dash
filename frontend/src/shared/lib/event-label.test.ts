@@ -16,6 +16,8 @@ const base: CalendarOccurrence = {
   recurrenceEndAt: null,
   occurrenceStart: '2026-10-01T09:00:00.000Z',
   occurrenceEnd: '2026-10-01T10:00:00.000Z',
+  seriesStart: '2026-10-01T09:00:00.000Z',
+  seriesEnd: '2026-10-01T10:00:00.000Z',
   reminderMinutesBefore: null,
   ownerUserId: 'stefan',
   ownerName: 'Stefan',

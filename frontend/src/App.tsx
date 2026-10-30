@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
+import { listenNativeBack } from '@/shared/lib/native-back'
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { RequireFeature } from '@/shared/components/AccessDenied'
@@ -79,6 +80,7 @@ function RequireAuth() {
 }
 
 export function App() {
+  useEffect(() => listenNativeBack(), [])
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>

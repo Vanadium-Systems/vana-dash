@@ -1084,6 +1084,9 @@ export interface CalendarOccurrence {
   recurrenceEndAt: string | null
   occurrenceStart: string
   occurrenceEnd: string
+  /** Start and end of the event row (the first occurrence of a series). */
+  seriesStart: string
+  seriesEnd: string
   reminderMinutesBefore: number | null
   /** Null pe cheltuielile recurente: sunt ale firmei, nu au calendar. */
   ownerUserId: string | null

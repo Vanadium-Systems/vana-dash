@@ -13,6 +13,7 @@ import {
   MessageIdParamsSchema,
   MessagePatchSchema,
   ThreadIdParamsSchema,
+  ThreadReadStateQuerySchema,
   ThreadReplySchema,
   ThreadsQuerySchema,
 } from './inbound-schema.js'
@@ -207,6 +208,14 @@ export async function emailInboundRoutes(app: FastifyInstance) {
   server.get('/api/email/recent-addresses', { preHandler: [app.authenticate] }, async (req) => {
     return { success: true, data: await inboundService.getRecentAddresses(req.me) }
   })
+
+  server.get(
+    '/api/email/threads/read-state',
+    { preHandler: [app.authenticate], schema: { querystring: ThreadReadStateQuerySchema } },
+    async (req) => {
+      return { success: true, data: { readIds: await inboundService.readThreadIds(req.me, req.query.ids) } }
+    },
+  )
 
   server.get(
     '/api/email/threads/:id',

@@ -6,14 +6,14 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PlatformStatusBadge } from '@/shared/components/PlatformStatusBadge'
 import { api } from '@/shared/lib/api'
 import type { Platform, SyncLogEntry } from '@/shared/lib/types'
 import { PlatformFormDialog } from './PlatformFormDialog'
 import { PlatformOpsSignalsDialog } from './PlatformOpsSignalsDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
-import { intlTag } from '@/shared/lib/format'
+import { formatDateTime, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 
 export function PlatformsPage() {
@@ -82,10 +82,10 @@ export function PlatformsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common:labels.name')}</TableHead>
-                  <TableHead>{t('common:labels.type')}</TableHead>
+                  <TableHead priority="md">{t('common:labels.type')}</TableHead>
                   <TableHead>{t('common:labels.status')}</TableHead>
-                  <TableHead>{t('platforms:labels.syncCron')}</TableHead>
-                  <TableHead>{t('platforms:labels.lastSync')}</TableHead>
+                  <TableHead priority="lg">{t('platforms:labels.syncCron')}</TableHead>
+                  <TableHead priority="md">{t('platforms:labels.lastSync')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -96,13 +96,16 @@ export function PlatformsPage() {
                     className={selectedId === p.id ? 'bg-muted/50' : 'cursor-pointer'}
                     onClick={() => setSelectedId(p.id)}
                   >
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell>{p.type}</TableCell>
+                    <TableCell truncate className="font-medium">
+                      {p.name}
+                      <TableDetails items={[p.type, p.lastSyncAt ? formatDateTime(p.lastSyncAt) : null]} />
+                    </TableCell>
+                    <TableCell priority="md">{p.type}</TableCell>
                     <TableCell>
                       <PlatformStatusBadge status={p.healthStatus} />
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{p.syncCron}</TableCell>
-                    <TableCell>{p.lastSyncAt ? new Date(p.lastSyncAt).toLocaleString(intlTag()) : '—'}</TableCell>
+                    <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs">{p.syncCron}</TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap">{p.lastSyncAt ? formatDateTime(p.lastSyncAt) : '—'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button

@@ -306,5 +306,16 @@
     "bounced": "Bounced",
     "howManyTimes": "De câte ori",
     "lastBounce": "Ultimul bounce"
+  },
+  "snooze": {
+    "title": "Amână",
+    "laterToday": "Mai târziu azi",
+    "tomorrow": "Mâine",
+    "nextWeek": "Săptămâna viitoare",
+    "pick": "Alege data și ora",
+    "until": "Până la",
+    "confirm": "Amână",
+    "future": "Alege un moment din viitor.",
+    "done": "Amânat până {{when}}"
   }
 }
