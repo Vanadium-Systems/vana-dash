@@ -18,7 +18,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { FinancialRecord } from '@/shared/lib/types'
 import { AnafStatusBadge, PaymentStatusBadge, formatDate, formatMoney } from './badges'
@@ -148,11 +148,11 @@ export function EmiseTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('accounting:labels.number')}</TableHead>
-                  <TableHead>{t('common:labels.client')}</TableHead>
-                  <TableHead>{t('accounting:labels.issued')}</TableHead>
-                  <TableHead>{t('accounting:labels.due')}</TableHead>
+                  <TableHead priority="md">{t('common:labels.client')}</TableHead>
+                  <TableHead priority="lg">{t('accounting:labels.issued')}</TableHead>
+                  <TableHead priority="md">{t('accounting:labels.due')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
-                  {canAnaf ? <TableHead>ANAF</TableHead> : null}
+                  {canAnaf ? <TableHead priority="lg">ANAF</TableHead> : null}
                   <TableHead>{t('accounting:labels.payment')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
@@ -169,12 +169,16 @@ export function EmiseTab() {
                       key={r.id}
                       className="animate-in fade-in-0 duration-200 ease-out"
                     >
-                      <TableCell className="font-medium">{r.documentNumber ?? t('accounting:issued.draftMarker')}</TableCell>
-                      <TableCell>{r.counterpartyName ?? '—'}</TableCell>
-                      <TableCell>{formatDate(r.issuedAt)}</TableCell>
-                      <TableCell>{formatDate(r.dueAt)}</TableCell>
+                      <TableCell className="whitespace-nowrap font-medium">
+                        {r.documentNumber ?? t('accounting:issued.draftMarker')}
+                        <TableDetails items={[r.counterpartyName, formatDate(r.dueAt)]} />
+                      </TableCell>
+                      <TableCell priority="md" truncate>{r.counterpartyName ?? '—'}</TableCell>
+                      <TableCell priority="lg" className="whitespace-nowrap">{formatDate(r.issuedAt)}</TableCell>
+                      <TableCell priority="md" className="whitespace-nowrap">{formatDate(r.dueAt)}</TableCell>
                       <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(r.amount, r.currency)}</TableCell>
-                      <TableCell>
+                      {canAnaf ? (
+                      <TableCell priority="lg">
                         <AnafStatusBadge status={r.anafStatus} />
                         {r.anafUploadId && (
                           <div
@@ -185,6 +189,7 @@ export function EmiseTab() {
                           </div>
                         )}
                       </TableCell>
+                      ) : null}
                       <TableCell>
                         <PaymentStatusBadge status={r.paymentStatus} />
                       </TableCell>

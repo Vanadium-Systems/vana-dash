@@ -8,7 +8,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import { downloadCsv } from '@/shared/lib/csv'
 import type { TenderOpportunity, TenderSource } from '@/shared/lib/types'
@@ -158,9 +158,9 @@ export function TendersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common:labels.title')}</TableHead>
-                  <TableHead>{t('tenders:labels.authority')}</TableHead>
-                  <TableHead>CPV</TableHead>
-                  <TableHead>{t('common:labels.source')}</TableHead>
+                  <TableHead priority="md">{t('tenders:labels.authority')}</TableHead>
+                  <TableHead priority="lg">CPV</TableHead>
+                  <TableHead priority="lg">{t('common:labels.source')}</TableHead>
                   <TableHead className="text-right">{t('tenders:labels.estimatedValue')}</TableHead>
                   <TableHead>{t('tenders:labels.deadline')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
@@ -169,7 +169,7 @@ export function TendersPage() {
               <TableBody>
                 {rows.map((tender) => (
                   <TableRow key={tender.id} className={cn(tender.dismissedAt ? 'opacity-60' : undefined, tender.isPriority ? 'bg-warning/10' : undefined)}>
-                    <TableCell className="max-w-xs font-medium">
+                    <TableCell className="min-w-[12rem] max-w-xs font-medium">
                       <a href={tender.detailUrl} target="_blank" rel="noreferrer" className="flex items-start gap-1 hover:underline">
                         {tender.isPriority ? <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-warning text-warning" /> : null}
                         <span className="line-clamp-2">{tender.title}</span>
@@ -183,10 +183,11 @@ export function TendersPage() {
                           {t('tenders:minTurnover', { value: formatNumber(Number(tender.minTurnoverRon), BASE_CURRENCY) })}
                         </span>
                       ) : null}
+                      <TableDetails items={[tender.contractingAuthority]} />
                     </TableCell>
-                    <TableCell className="max-w-[14rem] truncate">{tender.contractingAuthority ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{tender.cpvCode ?? '—'}</TableCell>
-                    <TableCell>
+                    <TableCell priority="md" className="max-w-[14rem] truncate">{tender.contractingAuthority ?? '—'}</TableCell>
+                    <TableCell priority="lg" className="whitespace-nowrap text-sm text-muted-foreground">{tender.cpvCode ?? '—'}</TableCell>
+                    <TableCell priority="lg">
                       <Badge variant="outline">{SOURCE_LABEL[tender.source]}</Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">

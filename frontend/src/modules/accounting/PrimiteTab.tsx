@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { FinancialRecord } from '@/shared/lib/types'
 import { PaymentStatusBadge, formatDate, formatMoney } from './badges'
@@ -72,12 +72,12 @@ export function PrimiteTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('accounting:labels.supplier')}</TableHead>
-                  <TableHead>{t('common:labels.cif')}</TableHead>
-                  <TableHead>{t('common:labels.document')}</TableHead>
-                  <TableHead>{t('accounting:labels.issued')}</TableHead>
-                  <TableHead>{t('accounting:labels.due')}</TableHead>
+                  <TableHead priority="lg">{t('common:labels.cif')}</TableHead>
+                  <TableHead priority="md">{t('common:labels.document')}</TableHead>
+                  <TableHead priority="lg">{t('accounting:labels.issued')}</TableHead>
+                  <TableHead priority="md">{t('accounting:labels.due')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
-                  <TableHead>{t('common:labels.source')}</TableHead>
+                  <TableHead priority="lg">{t('common:labels.source')}</TableHead>
                   <TableHead>{t('accounting:labels.payment')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
@@ -88,13 +88,16 @@ export function PrimiteTab() {
                     key={r.id}
                     className="animate-in fade-in-0 duration-200 ease-out"
                   >
-                    <TableCell className="font-medium">{r.counterpartyName ?? '—'}</TableCell>
-                    <TableCell className="font-mono text-xs">{r.counterpartyCif ?? '—'}</TableCell>
-                    <TableCell>{r.description ?? '—'}</TableCell>
-                    <TableCell>{formatDate(r.issuedAt)}</TableCell>
-                    <TableCell>{formatDate(r.dueAt)}</TableCell>
+                    <TableCell truncate className="font-medium">
+                      {r.counterpartyName ?? '—'}
+                      <TableDetails items={[r.description, formatDate(r.dueAt)]} />
+                    </TableCell>
+                    <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs">{r.counterpartyCif ?? '—'}</TableCell>
+                    <TableCell priority="md" truncate>{r.description ?? '—'}</TableCell>
+                    <TableCell priority="lg" className="whitespace-nowrap">{formatDate(r.issuedAt)}</TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap">{formatDate(r.dueAt)}</TableCell>
                     <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(r.amount, r.currency)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell priority="lg" className="whitespace-nowrap text-xs text-muted-foreground">
                       {r.source === 'anaf_efactura' ? 'e-Factura' : r.source}
                     </TableCell>
                     <TableCell>

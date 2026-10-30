@@ -187,7 +187,7 @@ export function ModulesPage() {
               <caption className="sr-only">{t('access:tableCaption')}</caption>
               <thead>
                 <tr>
-                  <th scope="col" className="w-2/5 pb-2 text-left text-xs font-normal text-muted-foreground">
+                  <th scope="col" className="sticky left-0 z-[1] w-2/5 bg-background pb-2 text-left text-xs font-normal text-muted-foreground">
                     {t('access:labels.page')}
                   </th>
                   {visibleRoles.map((role) => (
@@ -295,7 +295,7 @@ function PageRows({
         const isView = feature.key === page.viewFeature
         return (
           <tr key={feature.key} className="border-t">
-            <th scope="row" className={cn('py-1 pr-3 text-left text-sm font-normal', index === 0 && 'pt-2')}>
+            <th scope="row" className={cn('sticky left-0 z-[1] min-w-[11rem] bg-background py-1 pr-3 text-left text-sm font-normal', index === 0 && 'pt-2')}>
               {isView ? <span>{page.label}</span> : <span className="pl-6 text-muted-foreground">{feature.label}</span>}
             </th>
             {roles.map((role) => {

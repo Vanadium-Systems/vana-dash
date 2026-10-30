@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Alert } from '@/shared/components/ui/alert'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { api } from '@/shared/lib/api'
 import { useMe } from '@/shared/hooks/use-me'
@@ -352,7 +352,7 @@ export function AssetsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>{t('common:labels.symbol')}</TableHead>
-                        <TableHead>{t('common:labels.quantity')}</TableHead>
+                        <TableHead priority="md">{t('common:labels.quantity')}</TableHead>
                         <TableHead className="text-right">{t('common:labels.value')}</TableHead>
                         <TableHead className="text-right">P&L</TableHead>
                       </TableRow>
@@ -362,9 +362,10 @@ export function AssetsPage() {
                         <TableRow key={`${pos.source}-${pos.symbol}`}>
                           <TableCell className="font-medium">
                             {pos.symbol} <Badge variant="outline" className="ml-1">{pos.source}</Badge>
+                            <TableDetails items={[String(Number(pos.qty.toPrecision(6)))]} />
                           </TableCell>
-                          <TableCell className="tnum font-mono text-xs">{Number(pos.qty.toPrecision(6))}</TableCell>
-                          <TableCell className="tnum font-mono text-xs">{formatUsd(pos.valueUsd)}</TableCell>
+                          <TableCell priority="md" className="whitespace-nowrap text-xs tabular-nums">{Number(pos.qty.toPrecision(6))}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right text-xs tabular-nums">{formatUsd(pos.valueUsd)}</TableCell>
                           <TableCell className="text-right">
                             {pos.unrealizedPnlUsd != null ? (
                               <span className={cn('tnum font-mono text-xs', pos.unrealizedPnlUsd >= 0 ? 'text-success-text' : 'text-destructive-text')}>

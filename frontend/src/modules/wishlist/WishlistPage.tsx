@@ -9,7 +9,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { cn } from '@/shared/lib/utils'
 import { api } from '@/shared/lib/api'
@@ -214,11 +214,11 @@ export function WishlistPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('common:labels.title')}</TableHead>
-                  {scopeTab === 'all' ? <TableHead>{t('wishlist:labels.personalOrCompanyShort')}</TableHead> : null}
-                  <TableHead>{t('common:labels.category')}</TableHead>
-                  <TableHead>{t('common:labels.priority')}</TableHead>
-                  <TableHead className="text-right">{t('wishlist:labels.estimatedPrice')}</TableHead>
-                  <TableHead>{t('common:labels.status')}</TableHead>
+                  {scopeTab === 'all' ? <TableHead priority="md">{t('wishlist:labels.personalOrCompanyShort')}</TableHead> : null}
+                  <TableHead priority="md">{t('common:labels.category')}</TableHead>
+                  <TableHead priority="lg">{t('common:labels.priority')}</TableHead>
+                  <TableHead priority="md" className="text-right">{t('wishlist:labels.estimatedPrice')}</TableHead>
+                  <TableHead priority="lg">{t('common:labels.status')}</TableHead>
                   <TableHead className="text-right">{t('common:labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -228,29 +228,30 @@ export function WishlistPage() {
                     key={item.id}
                     className={cn('animate-in fade-in-0 duration-200 ease-out', item.purchased ? 'opacity-60' : '')}
                   >
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-1.5">
-                        {item.title}
+                    <TableCell className="w-full max-w-0 font-medium">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate">{item.title}</span>
                         {item.link ? (
                           <a href={item.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
                             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                           </a>
                         ) : null}
                       </div>
+                      <TableDetails items={[categoryLabel(item.category), item.estimatedPrice ? `${Number(item.estimatedPrice).toLocaleString(intlTag())} ${item.currency}` : null]} />
                     </TableCell>
                     {scopeTab === 'all' ? (
-                      <TableCell>
+                      <TableCell priority="md">
                         <Badge variant="outline">{scopeLabel(item.scope)}</Badge>
                       </TableCell>
                     ) : null}
-                    <TableCell className="capitalize">{categoryLabel(item.category)}</TableCell>
-                    <TableCell>
+                    <TableCell priority="md" className="capitalize">{categoryLabel(item.category)}</TableCell>
+                    <TableCell priority="lg">
                       <Badge className={PRIORITY_STYLES[item.priority]}>{priorityLabel(item.priority)}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
+                    <TableCell priority="md" className="whitespace-nowrap text-right text-sm tabular-nums">
                       {item.estimatedPrice ? `${Number(item.estimatedPrice).toLocaleString(intlTag())} ${item.currency}` : '—'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell priority="lg">
                       {item.purchased ? <Badge variant="success">{t('wishlist:status.bought')}</Badge> : <Badge variant="outline">{t('wishlist:status.inList')}</Badge>}
                     </TableCell>
                     <TableCell className="text-right">
