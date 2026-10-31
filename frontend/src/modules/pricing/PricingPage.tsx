@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
+import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import type { Platform } from '@/shared/lib/types'
 import { CalculatorTab } from './CalculatorTab'
@@ -22,7 +23,9 @@ export function PricingPage() {
 
   const tab = searchParams.get('tab') ?? 'prospectare'
 
-  const platforms = useQuery({ queryKey: ['platforms'], queryFn: () => api.get<Platform[]>('/api/platforms') })
+  const { can } = useMe()
+  // Sales colleagues work here without `platforme.view`; asking anyway was a 403 on every visit.
+  const platforms = useQuery({ queryKey: ['platforms'], queryFn: () => api.get<Platform[]>('/api/platforms'), enabled: can('platforme.view') })
 
   useEffect(() => {
     if (!platformId && platforms.data && platforms.data.length > 0) setPlatformId(platforms.data[0]!.id)

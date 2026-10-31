@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Building2, Download, Ellipsis, Inbox, LifeBuoy, LogOut, Megaphone, PanelLeftClose, PanelLeftOpen, Search, User, X } from 'lucide-react'
+import { BookOpen, Building2, Download, Ellipsis, Inbox, LifeBuoy, LogOut, Megaphone, PanelLeftClose, PanelLeftOpen, Search, User } from 'lucide-react'
 import { guideRouteOf } from '@/modules/help/guides'
 import { useSupportUnread } from '@/modules/support/support-api'
 import { isUnseen, visibleReleases } from '@/modules/updates/releases'
@@ -256,19 +256,13 @@ export function AppLayout() {
 
   const renderSidebarContent = (onClose?: () => void, compact = false) => (
     <>
-      <div className={cn('flex h-14 items-center gap-2.5 border-b px-3', compact && 'justify-center px-0')}>
-        <BrandMark className="h-7 w-7" />
-        {compact ? null : <span className="font-semibold">VanaDash</span>}
-        {onClose ? (
-          <button
-            className="touch-target -mr-1 ml-auto flex items-center justify-center rounded-sm p-1 hover:bg-accent"
-            onClick={onClose}
-          >
-            <span className="sr-only">{t('common:shell.closeMenu')}</span>
-            <X className="h-5 w-5" />
-          </button>
-        ) : null}
-      </div>
+      {/* In the bottom sheet the sheet's own title and handle take this place. */}
+      {onClose ? null : (
+        <div className={cn('flex h-14 items-center gap-2.5 border-b px-3', compact && 'justify-center px-0')}>
+          <BrandMark className="h-7 w-7" />
+          {compact ? null : <span className="font-semibold">VanaDash</span>}
+        </div>
+      )}
       <div className="px-2 pt-2">
         <button
           type="button"
