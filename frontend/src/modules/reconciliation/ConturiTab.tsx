@@ -1,16 +1,17 @@
+import { Money } from '@/shared/components/Money'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link2, Link2Off, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PlatformStatusBadge } from '@/shared/components/PlatformStatusBadge'
 import { api } from '@/shared/lib/api'
 import type { BankAccount, BankTransactionRow } from '@/shared/lib/types'
-import { formatDate, formatMoney } from '../accounting/badges'
+import { formatDate } from '../accounting/badges'
 import { BankAccountFormDialog } from './BankAccountFormDialog'
 import { useMe } from '@/shared/hooks/use-me'
 import { MatchDialog } from './MatchDialog'
@@ -173,7 +174,7 @@ export function ConturiTab() {
         </CardHeader>
         <CardContent>
           {transactions.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : !transactions.data?.length ? (
             unmatchedOnly ? (
               <EmptyState kind="filtered" title={t('reconciliation:transactions.allMatchedTitle')} description={t('reconciliation:transactions.allMatchedHint')} onReset={() => setUnmatchedOnly(false)} />
@@ -213,7 +214,7 @@ export function ConturiTab() {
                       }
                     >
                       {txn.direction === 'in' ? '+' : '−'}
-                      {formatMoney(txn.amount, txn.currency)}
+                      <Money amount={txn.amount} currency={txn.currency} />
                     </TableCell>
                     <TableCell priority="md">
                       {txn.match?.id ? (

@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PlatformStatusBadge } from '@/shared/components/PlatformStatusBadge'
@@ -75,7 +75,7 @@ export function PlatformsPage() {
       <Card>
         <CardContent className="pt-6">
           {platforms.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : !platforms.data?.length ? (
             <p className="text-sm text-muted-foreground">{t('platforms:empty')}</p>
           ) : (
@@ -148,7 +148,7 @@ export function PlatformsPage() {
           </CardHeader>
           <CardContent>
             {syncLog.isPending ? (
-              <Skeleton className="h-24 w-full" />
+              <ListSkeleton rows={3} />
             ) : !syncLog.data?.length ? (
               <p className="text-sm text-muted-foreground">{t('platforms:log.empty')}</p>
             ) : (

@@ -1,3 +1,4 @@
+import { Money } from '@/shared/components/Money'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -393,7 +394,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDi
 
           <div className="flex items-center justify-between border-template pt-4">
             <div className="text-sm text-muted-foreground">
-              {t('accounting:invoiceForm.totalWithVat')} <span className="font-semibold text-foreground">{formatMoney(total, currency)}</span>
+              {t('accounting:invoiceForm.totalWithVat')} <span className="font-semibold text-foreground"><Money amount={total} currency={currency} /></span>
               {totalPending ? <span className="ml-1 text-xs">{t('accounting:invoiceForm.rateLoadingInline')}</span> : null}
             </div>
             <Button type="submit" disabled={save.isPending}>

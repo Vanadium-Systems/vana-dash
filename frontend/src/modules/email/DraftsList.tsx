@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { api } from '@/shared/lib/api'
 import type { EmailDraft } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
@@ -28,7 +28,7 @@ export function DraftsList({ onOpen }: { onOpen: (draft: EmailDraft) => void }) 
     <Card>
       <CardContent className="pt-6">
         {drafts.isPending ? (
-          <Skeleton className="h-32 w-full" />
+          <ListSkeleton rows={4} />
         ) : drafts.isError ? (
           <p className="text-sm text-destructive">{t('email:drafts.loadFailed')}</p>
         ) : !drafts.data?.length ? (

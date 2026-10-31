@@ -1,3 +1,4 @@
+import { Money } from '@/shared/components/Money'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -6,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/compo
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { BankTransactionRow, OpenInvoice } from '@/shared/lib/types'
-import { formatDate, formatMoney } from '../accounting/badges'
+import { formatDate } from '../accounting/badges'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 
@@ -52,7 +53,7 @@ export function MatchDialog({ open, onOpenChange, transaction }: MatchDialogProp
         </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-md border p-3 text-sm">
-            <div className="font-medium">{formatMoney(transaction.amount, transaction.currency)}</div>
+            <div className="font-medium"><Money amount={transaction.amount} currency={transaction.currency} /></div>
             <div className="text-muted-foreground">
               {transaction.counterpartyName ?? '—'} · {formatDate(transaction.valueDate)}
             </div>
@@ -79,7 +80,7 @@ export function MatchDialog({ open, onOpenChange, transaction }: MatchDialogProp
                 {(invoices.data ?? []).map((invoice) => (
                   <option key={invoice.id} value={invoice.id}>
                     {invoice.documentNumber ?? t('reconciliation:match.draftMarker')} · {invoice.counterpartyName ?? '?'} ·{' '}
-                    {formatMoney(invoice.amount, invoice.currency)}
+                    <Money amount={invoice.amount} currency={invoice.currency} />
                   </option>
                 ))}
               </Select>

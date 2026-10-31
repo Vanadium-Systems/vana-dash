@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
@@ -184,7 +184,7 @@ export function ClientsTab() {
       <Card>
         <CardContent className="pt-6">
           {clients.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : !clients.data?.length ? (
             <p className="text-sm text-muted-foreground">{t('accounting:clients.empty')}</p>
           ) : (
@@ -206,7 +206,7 @@ export function ClientsTab() {
               {t('accounting:clients.demoHint')}
             </p>
             {demoClients.isPending ? (
-              <Skeleton className="h-24 w-full" />
+              <ListSkeleton rows={3} />
             ) : (
               <ClientsTable clients={demoClients.data ?? []} showDemoEndsAt onEdit={openEdit} onDelete={askDelete} />
             )}
@@ -227,7 +227,7 @@ export function ClientsTab() {
               {t('accounting:clients.pendingDeletionHint')}
             </p>
             {pendingDeletionClients.isPending ? (
-              <Skeleton className="h-24 w-full" />
+              <ListSkeleton rows={3} />
             ) : (
               <ClientsTable clients={pendingDeletionClients.data ?? []} showPendingDeletion onEdit={openEdit} onDelete={askDelete} />
             )}

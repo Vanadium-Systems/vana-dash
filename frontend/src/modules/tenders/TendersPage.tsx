@@ -7,7 +7,7 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { TablePagination } from '@/shared/components/ui/table-pagination'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
@@ -155,7 +155,7 @@ export function TendersPage() {
       <Card>
         <CardContent className="pt-6">
           {tenders.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : tenders.isError ? (
             <p className="text-sm text-destructive">{t('tenders:loadFailed')}</p>
           ) : rows.length === 0 ? (

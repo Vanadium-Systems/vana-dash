@@ -1,3 +1,4 @@
+import { Money } from '@/shared/components/Money'
 import { useQuery } from '@tanstack/react-query'
 import { Download, Pencil } from 'lucide-react'
 import { useState } from 'react'
@@ -119,10 +120,10 @@ function DeclarationCard({
                       )}
                     </TableCell>
                     <TableCell priority="md" className="whitespace-nowrap">{formatDate(l.issuedAt)}</TableCell>
-                    <TableCell priority="md" className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.amountForeign, l.currency)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.baseRon, BASE_CURRENCY)}</TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap text-right text-sm tabular-nums"><Money amount={l.amountForeign} currency={l.currency} /></TableCell>
+                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums"><Money amount={l.baseRon} currency={BASE_CURRENCY} /></TableCell>
                     {showVat ? (
-                      <TableCell priority="lg" className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(l.vatRon, BASE_CURRENCY)}</TableCell>
+                      <TableCell priority="lg" className="whitespace-nowrap text-right text-sm tabular-nums"><Money amount={l.vatRon} currency={BASE_CURRENCY} /></TableCell>
                     ) : null}
                     <TableCell className="text-right">
                       <Button

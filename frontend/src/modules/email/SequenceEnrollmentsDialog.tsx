@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { CircleStop, Play, Reply } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
@@ -128,7 +128,7 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
         </DialogHeader>
         <StatsPanel sequenceId={sequence.id} />
         {enrollments.isPending ? (
-          <Skeleton className="h-32 w-full" />
+          <ListSkeleton rows={4} />
         ) : !enrollments.data?.length ? (
           <p className="text-sm text-muted-foreground">{t('email:enrollments.empty')}</p>
         ) : (

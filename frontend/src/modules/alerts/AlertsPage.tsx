@@ -7,7 +7,7 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
@@ -255,7 +255,7 @@ function HistorySection({ ruleFilter }: { ruleFilter: string | null }) {
       <Card>
         <CardContent className="pt-6">
           {history.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : !filtered?.length ? (
             <p className="text-sm text-muted-foreground">{t('alerts:historyEmpty')}</p>
           ) : (
@@ -332,7 +332,7 @@ function RulesSection() {
       <Card>
         <CardContent className="pt-6">
           {rules.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : !rules.data?.length ? (
             <p className="text-sm text-muted-foreground">{t('alerts:rule.none')}</p>
           ) : (

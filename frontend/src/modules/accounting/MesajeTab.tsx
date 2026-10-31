@@ -3,7 +3,7 @@ import { Check, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { ChartError } from '@/shared/components/charts/chart-states'
 import { api } from '@/shared/lib/api'
@@ -39,7 +39,7 @@ export function MesajeTab() {
     <Card>
       <CardContent className="pt-6">
         {messages.isPending ? (
-          <Skeleton className="h-32 w-full" />
+          <ListSkeleton rows={4} />
         ) : messages.isError ? (
           <ChartError message={t('accounting:spv.loadFailed')} />
         ) : !messages.data?.length ? (

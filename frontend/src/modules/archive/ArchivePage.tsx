@@ -26,7 +26,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { Input } from '@/shared/components/ui/input'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { AccessShareDialog } from '@/shared/components/AccessShareDialog'
@@ -793,7 +793,7 @@ export function ArchivePage() {
         <CardContent className="px-2 pt-6 max-sm:px-2 sm:px-6">
           {listingSpaces && !isSearching ? (
             spaces.isPending ? (
-              <Skeleton className="h-32 w-full" />
+              <ListSkeleton rows={4} />
             ) : spaceEntries.length ? (
               <SpacesTable entries={spaceEntries} onOpen={openFolder} />
             ) : (
@@ -804,7 +804,7 @@ export function ArchivePage() {
               />
             )
           ) : (isSearching ? search.isPending : folders.isPending || files.isPending) ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : isEmpty ? (
             <p className="text-sm text-muted-foreground">
               {isSearching ? t('archive:empty.noFileFound') : canWrite ? t('archive:empty.folderWithActions') : t('archive:empty.folder')}
