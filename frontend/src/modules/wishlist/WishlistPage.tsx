@@ -226,7 +226,7 @@ export function WishlistPage() {
                 {wishlist.data.items.map((item) => (
                   <TableRow
                     key={item.id}
-                    className={cn('animate-in fade-in-0 duration-200 ease-out', item.purchased ? 'opacity-60' : '')}
+                    className={cn(item.purchased && 'opacity-60')}
                   >
                     <TableCell className="w-full max-w-0 font-medium">
                       <div className="flex min-w-0 items-center gap-1.5">

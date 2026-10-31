@@ -167,7 +167,7 @@ export function RecurringExpensesSection() {
           {expenses.data.map((e) => (
             <div
               key={e.id}
-              className="flex animate-in items-center justify-between rounded-md border px-3 py-2 text-sm fade-in-0 duration-200 ease-out"
+              className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
             >
               <div>
                 <span className={e.active ? 'font-medium' : 'font-medium text-muted-foreground line-through'}>{e.description}</span>{' '}

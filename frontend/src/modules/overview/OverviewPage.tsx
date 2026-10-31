@@ -20,7 +20,8 @@ import type { AlertInstance, AlertSeverity, BookingSummary, CalendarOccurrence, 
 import { extractEmailAddress } from '@/modules/email/identity'
 import { conversationTitle } from '@/modules/messages/ConversationList'
 import { t } from '@/shared/lib/i18n'
-import { approx, MoneyNote } from '@/shared/components/MoneyNote'
+import { Money } from '@/shared/components/Money'
+import { APPROX, approx, MoneyNote } from '@/shared/components/MoneyNote'
 import { useMoneyQuery } from '@/shared/hooks/use-money-query'
 import { BASE_CURRENCY, type DisplayCurrency } from '@/shared/lib/locale'
 
@@ -323,7 +324,10 @@ function PrimaryNumber({ monthName }: { monthName: string }) {
           </button>
         </p>
       ) : (
-        <p className="mt-1 font-mono text-3xl font-semibold tnum">{amount(collected ?? 0, pnl.money)}</p>
+        <p className="mt-1 font-mono text-3xl font-semibold">
+          {pnl.money?.converted ? `${APPROX} ` : null}
+          <Money amount={collected ?? 0} currency={t(`common:money.units.${pnl.money?.currency ?? BASE_CURRENCY}`)} />
+        </p>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
         {invoiced !== null ? <span>{t('overview:money.invoiced', { invoiced: amount(invoiced, pnl.money) })}</span> : null}

@@ -1,4 +1,6 @@
-import { Menu } from 'lucide-react'
+import { Menu, PenLine } from 'lucide-react'
+import { Fab } from '@/shared/components/ui/fab'
+import { useMe } from '@/shared/hooks/use-me'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BulkSendTab } from './BulkSendTab'
@@ -47,6 +49,7 @@ function paramsFromView(view: EmailView): URLSearchParams {
 export function EmailPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { can } = useMe()
   const [compose, setCompose] = useState<{ open: boolean; mode: ComposeMode }>({ open: false, mode: { kind: 'compose' } })
 
   const view = viewFromParams(searchParams)
@@ -123,6 +126,10 @@ export function EmailPage() {
         </div>
       </div>
 
+      {/* On a phone the sidebar with "Compose" is a tap away behind the menu; the thumb gets it here. */}
+      {can('email.trimitere') && view.kind === 'mailbox' ? (
+        <Fab icon={<PenLine className="h-5 w-5" />} label={t('email:compose.title')} onClick={() => openCompose({ kind: 'compose' })} />
+      ) : null}
       <ComposeDialog open={compose.open} onOpenChange={(open) => setCompose((c) => ({ ...c, open }))} mode={compose.mode} />
     </div>
   )

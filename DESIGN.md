@@ -130,9 +130,25 @@ layout. Two kinds of empty (`EmptyState`). An error says what comes next and, wh
 sense, "Încearcă din nou". Synced areas show "actualizat acum X".
 
 **Motion.** What starts from the keyboard is not animated (Ctrl K, moving through lists). Hover
-is instant on enter. Dialogs and popovers use `--ease-out`, under 300ms, from `scale(.96)`. Only
-`transform` and `opacity`, with named properties, never `transition-all`.
-`prefers-reduced-motion` keeps the fades and drops the movement.
+is instant on enter. Only `transform` and `opacity`, with named properties, never `transition-all`.
+Three durations, as tokens (`duration-fast` / `-standard` / `-screen` in Tailwind):
+
+| Level | Token | For |
+|---|---|---|
+| fast | `--duration-fast` 150ms, `--ease-out` | menus (`.menu-pop`, from `scale(.96)` at the trigger's corner), tooltips, presses, the checkbox tick (from `.9`, never `scale(0)`), side peek |
+| standard | `--duration-standard` 200ms, `--ease-in-out` | the line under the active tab (slides), toasts |
+| screen | `--duration-screen` 300ms, `--ease-drawer` | bottom sheet, the "Mai mult" drawer, page cross-fade, progress bars (`scaleX`) |
+
+The first tooltip waits ~400ms; the next ones open at once. Rows of a list never fade in, one by
+one or all together: data appears where it belongs. `prefers-reduced-motion` zeroes
+`--enter-scale` / `--enter-shift` and the tailwindcss-animate distances, so the fades stay and
+the movement goes.
+
+**Glass and light.** What floats over content (menus, toasts, Ctrl K, the selection bar, the
+bottom sheet) is `.glass`: `--surface-overlay` at `--glass-alpha` with a 16px blur, solid where
+`backdrop-filter` is missing. Light is a signal: `--glow` (warm orange, `.glow-attention`,
+`shadow-glow`) only on what asks for attention (a critical alert, a server down), never as
+decoration and never in brand blue.
 
 **Mobile (the Android app).** Hover only under `(hover: hover) and (pointer: fine)`; `:active`
 for feedback; inputs at 16px on `pointer: coarse` so they do not zoom; `100dvh`; safe areas on

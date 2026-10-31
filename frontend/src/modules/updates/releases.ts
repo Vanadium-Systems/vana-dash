@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-10-31T20:00:00+02:00',
+    title: {
+      ro: 'Meniuri, selecție și scurtături ca într-o aplicație de pe calculator',
+      en: 'Menus, selection and shortcuts like a desktop app',
+    },
+    body: {
+      ro: 'În Email selectezi cu Shift + click un interval, iar acțiunile apar într-o bară plutitoare jos. Click dreapta pe un mesaj deschide meniul lui, iar după arhivare sau ștergere poți apăsa „Anulează”. Atașamentele se deschid peste pagină, cu ← → între ele. Apasă ? oriunde ca să vezi scurtăturile. Pe telefon, meniul ⋯ al unui rând urcă de jos, „Mai mult” la fel, mesajele de confirmare stau jos, lângă deget, și glisezi un mesaj spre stânga ca să-l ștergi. Paginile se deschid fără ecran gol: bara rămâne pe loc și conținutul apare când e gata. Pe un ecran îngust bara laterală arată doar iconițe, iar „Restrânge” de jos o strânge și pe monitor mare.',
+      en: 'In Email, Shift + click selects a range and the actions show in a floating bar at the bottom. Right-click a message for its menu, and after archiving or deleting you can press “Undo”. Attachments open over the page, with ← → between them. Press ? anywhere to see the shortcuts. On a phone a row’s ⋯ menu rises from the bottom, so does “More”, confirmations sit at the bottom by your thumb, and you swipe a message left to delete it. Pages open with no blank screen: the bar stays put and the content shows when it is ready. On a narrow screen the sidebar shows icons only, and “Collapse” at its bottom folds it on a large monitor too.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-10-30T17:00:00+02:00',
     title: {
       ro: 'Contractele vin cu câmpuri de semnătură',

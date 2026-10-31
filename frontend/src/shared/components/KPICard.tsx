@@ -1,3 +1,4 @@
+import { NumberRoll } from '@/shared/components/NumberRoll'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { cn } from '@/shared/lib/utils'
@@ -75,13 +76,7 @@ export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, d
           {isPending ? (
             <Skeleton className="h-8 w-28" />
           ) : (
-            <div
-              key={value ?? 'empty'}
-              className={cn(
-                'tnum min-w-0 animate-in whitespace-nowrap font-mono text-2xl font-semibold fade-in-0 duration-150',
-                tone && TONE_CLASS[tone],
-              )}
-            >
+            <div className={cn('tnum min-w-0 whitespace-nowrap font-mono text-2xl font-semibold', tone && TONE_CLASS[tone])}>
               {value === null || value === undefined ? (
                 '—'
               ) : (
@@ -91,7 +86,7 @@ export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, d
                       {APPROX}{' '}
                     </span>
                   ) : null}
-                  {formatNumber(value, unit)}
+                  <NumberRoll value={value} format={(n) => formatNumber(n, unit)} />
                 </>
               )}
             </div>

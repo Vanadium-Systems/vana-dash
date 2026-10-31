@@ -66,7 +66,7 @@ export function MonthView({ monthDate, occurrences, onDayClick, onEventClick }: 
                 <button
                   key={`${occ.eventId}-${occ.occurrenceStart}`}
                   type="button"
-                  className="block w-full animate-in truncate rounded px-1 py-0.5 text-left text-xs text-white fade-in-0 duration-200 ease-out"
+                  className="block w-full truncate rounded px-1 py-0.5 text-left text-xs text-white"
                   style={{ backgroundColor: occ.color ?? chartColor(0) }}
                   onClick={(e) => {
                     e.stopPropagation()

@@ -41,12 +41,11 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
           )}
           {...props}
         />
-        {/* Bifă sau liniuță, după starea cunoscută în React (marcajul e decor, deci nu
-            trebuie să depindă de o pseudo-clasă). Apare peste input, pe centrul lui. */}
+        {/* Tick or dash over the input. Grows from .9, never from nothing (MA8). */}
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
-          className="pointer-events-none relative -ml-4 size-4 scale-0 stroke-primary-foreground transition-transform duration-150 ease-out peer-checked:scale-100"
+          className="pointer-events-none relative -ml-4 size-4 scale-90 stroke-primary-foreground opacity-0 transition-[transform,opacity] duration-fast ease-out-strong peer-checked:scale-100 peer-checked:opacity-100 peer-indeterminate:scale-100 peer-indeterminate:opacity-100"
         >
           {indeterminate ? (
             <path d="M4 8h8" fill="none" strokeWidth="2" strokeLinecap="round" />

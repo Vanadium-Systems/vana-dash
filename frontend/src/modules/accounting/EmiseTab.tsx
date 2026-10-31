@@ -166,7 +166,6 @@ export function EmiseTab() {
                   return (
                     <TableRow
                       key={r.id}
-                      className="animate-in fade-in-0 duration-200 ease-out"
                     >
                       <TableCell className="tbl-fill font-medium">
                         <div className="whitespace-nowrap">{r.documentNumber ?? t('accounting:issued.draftMarker')}</div>

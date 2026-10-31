@@ -10,12 +10,14 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { SidePeek, usePeek } from '@/shared/components/ui/side-peek'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { api } from '@/shared/lib/api'
+import { haptic } from '@/shared/lib/haptics'
 import { cn } from '@/shared/lib/utils'
 import type { PlanGoal, PlanResponse, PlanScope } from '@/shared/lib/types'
-import { PlanGoalFormDialog } from './PlanGoalFormDialog'
+import { PlanGoalForm, PlanGoalFormDialog } from './PlanGoalFormDialog'
 import { tierLabel } from './tiers'
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
@@ -53,7 +55,10 @@ function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onE
 
   const toggleComplete = useMutation({
     mutationFn: (completed: boolean) => api.patch<PlanGoal>(`/api/plan/${goal.id}/complete`, { completed }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['plan'] }),
+    onSuccess: (_goal, completed) => {
+      if (completed) void haptic('success')
+      void queryClient.invalidateQueries({ queryKey: ['plan'] })
+    },
     onError: (err) => toast.error(err.message),
   })
 
@@ -105,7 +110,7 @@ function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onE
         {progressPct !== null ? (
           <div className="space-y-1 pt-1">
             <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progressPct}%` }} />
+              <div className="h-full origin-left bg-primary transition-transform duration-screen ease-out-strong" style={{ transform: `scaleX(${progressPct / 100})` }} />
             </div>
             <p className="text-xs text-muted-foreground">
               {t('plan:mrrProgress', { current: formatRon(mrrRon), target: `${formatRon(thresholdValue!)} ${BASE_CURRENCY}` })}
@@ -263,7 +268,7 @@ export function PlanPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const scope = (searchParams.get('scope') as PlanScope) ?? 'personal'
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingGoal, setEditingGoal] = useState<PlanGoal | null>(null)
+  const [peekId, openPeek, closePeek] = usePeek()
 
   const plan = useQuery({
     queryKey: ['plan'],
@@ -279,14 +284,8 @@ export function PlanPage() {
     setSearchParams(next)
   }
 
-  const openCreate = () => {
-    setEditingGoal(null)
-    setDialogOpen(true)
-  }
-  const openEdit = (goal: PlanGoal) => {
-    setEditingGoal(goal)
-    setDialogOpen(true)
-  }
+  const openEdit = (goal: PlanGoal) => openPeek(goal.id)
+  const peekedGoal = peekId ? [...(plan.data?.personal ?? []), ...(plan.data?.firma ?? [])].find((g) => g.id === peekId) : undefined
 
   return (
     <div className="space-y-6">
@@ -294,7 +293,7 @@ export function PlanPage() {
         title={t('common:nav.plan')}
         description={t('plan:description')}
         actions={
-          <Button onClick={openCreate}>
+          <Button onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4" /> {t('plan:step.new')}
           </Button>
         }
@@ -324,7 +323,10 @@ export function PlanPage() {
         </TabsContent>
       </Tabs>
 
-      <PlanGoalFormDialog open={dialogOpen} onOpenChange={setDialogOpen} goal={editingGoal} scope={scope} />
+      <PlanGoalFormDialog open={dialogOpen} onOpenChange={setDialogOpen} scope={scope} />
+      <SidePeek open={Boolean(peekedGoal)} onClose={closePeek} title={t('plan:step.editTitle')}>
+        {peekedGoal ? <PlanGoalForm key={peekedGoal.id} goal={peekedGoal} scope={peekedGoal.scope} onDone={closePeek} /> : null}
+      </SidePeek>
     </div>
   )
 }

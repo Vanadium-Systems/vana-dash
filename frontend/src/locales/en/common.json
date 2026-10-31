@@ -198,6 +198,15 @@
     "searchFailed": "The search did not work. Try again.",
     "nothingFor": "Nothing for “{{term}}”."
   },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "help": "Show shortcuts",
+    "search": "Search the app"
+  },
+  "viewer": {
+    "previous": "Previous file",
+    "next": "Next file"
+  },
   "nav": {
     "reports": "Reports",
     "plan": "Plan",
@@ -293,6 +302,7 @@
     "forThisPage": "Guides for this page"
   },
   "period": {
+    "label": "Period",
     "currentMonth": "This month",
     "currentYear": "This year"
   },
@@ -388,7 +398,9 @@
     "new": "new",
     "logout": "Sign out",
     "apkDownloaded": "APK downloaded. Open it from the notification to install",
-    "savedToDocuments": "Saved to Documents: {{name}}"
+    "savedToDocuments": "Saved to Documents: {{name}}",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse"
   },
   "emptyState": {
     "resetFilters": "Reset the filters"
@@ -466,6 +478,7 @@
   "money": {
     "converted": "≈ Amounts in {{currency}}, converted from lei at the BNR rate of each record's day. The books stay in lei.",
     "noRate": "There is no BNR rate for {{currency}} yet, so the amounts are in lei.",
+    "hidden": "Amount hidden",
     "convertedHint": "converted at the BNR rate",
     "units": {
       "RON": "RON",
@@ -477,5 +490,19 @@
     "perPage": "{{size}} / page",
     "range": "{{from}}–{{to}} of {{total}}",
     "rowsPerPage": "Rows per page"
+  },
+  "undo": {
+    "action": "Undo",
+    "done": "Undone",
+    "failed": "Could not undo"
+  },
+  "selection": {
+    "toolbar": "Selection actions",
+    "clear": "Clear selection",
+    "all": "Select all",
+    "count": "{{count}} selected"
+  },
+  "keys": {
+    "shift": "Shift"
   }
 }

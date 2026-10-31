@@ -139,7 +139,15 @@
     "externalImageBlocked": "External image blocked"
   },
   "toasts": {
-    "archived": "Archived"
+    "archived": "Archived",
+    "moved": {
+      "archive_one": "Conversation archived",
+      "archive_other": "{{count}} conversations archived",
+      "spam_one": "Conversation moved to Spam",
+      "spam_other": "{{count}} conversations moved to Spam",
+      "trash_one": "Conversation moved to Trash",
+      "trash_other": "{{count}} conversations moved to Trash"
+    }
   },
   "thread": {
     "hideQuoted": "▾ Hide the quoted message",

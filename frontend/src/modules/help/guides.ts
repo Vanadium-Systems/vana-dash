@@ -92,8 +92,20 @@ const SOURCES: GuideSource[] = [
         en: 'Type in the search field to search the subject and the content.',
       },
       {
-        ro: 'Selectează unul sau mai multe mesaje ca să le arhivezi sau să le marchezi necitite.',
-        en: 'Select one or more messages to archive them or mark them as unread.',
+        ro: 'Selectează mesaje cu bifa, cu Ctrl + click sau cu Shift + click pentru un interval; acțiunile apar în bara de jos. Esc golește selecția.',
+        en: 'Select messages with the checkbox, Ctrl + click, or Shift + click for a range; the actions show in the bar at the bottom. Esc clears the selection.',
+      },
+      {
+        ro: 'Click dreapta pe un mesaj deschide același meniu: arhivează, citit / necitit, spam, șterge. Pe telefon, glisează spre stânga ca să-l ștergi.',
+        en: 'Right-click a message for the same menu: archive, read / unread, spam, delete. On a phone, swipe left to delete it.',
+      },
+      {
+        ro: 'După arhivare, spam sau ștergere, „Anulează” din mesajul de jos pune firul înapoi unde era.',
+        en: 'After archiving, spam or delete, “Undo” in the message at the bottom puts the thread back where it was.',
+      },
+      {
+        ro: 'Atașamentele se deschid peste pagină; treci la următorul cu ← →, închizi cu Esc. Apasă ? ca să vezi toate scurtăturile.',
+        en: 'Attachments open over the page; move to the next with ← →, close with Esc. Press ? to see every shortcut.',
       },
       {
         ro: '„Amână” ascunde firul până la momentul ales; îl găsești între timp la „Amânate”.',

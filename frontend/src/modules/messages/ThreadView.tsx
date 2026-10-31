@@ -11,9 +11,9 @@ import { api } from '@/shared/lib/api'
 import { cn, formatBytes } from '@/shared/lib/utils'
 import { companyTimeZone, formatDateTime, intlTag } from '@/shared/lib/format'
 import type { ChatAttachment, ChatConversation, ChatReceipt } from '@/shared/lib/types'
+import { FileViewer } from '@/shared/components/FileViewer'
 import { useChatStream } from '@/shared/components/chat/ChatStreamProvider'
 import { Composer } from './Composer'
-import { MediaViewer } from './MediaViewer'
 import { conversationTitle, presenceLabel } from './ConversationList'
 import { useThreadMessages } from './useThreadMessages'
 import { t } from '@/shared/lib/i18n'
@@ -255,7 +255,15 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
       ) : null}
 
       <Composer conversationId={conversation.id} onSend={(input) => void thread.send(input)} />
-      {viewing ? <MediaViewer attachment={viewing} onClose={() => setViewing(null)} /> : null}
+      {viewing ? (
+        <FileViewer
+          files={[{ id: viewing.id, name: viewing.filename, url: `/api/chat/attachments/${viewing.id}`, mimeType: viewing.contentType }]}
+          index={0}
+          onIndexChange={() => {}}
+          onClose={() => setViewing(null)}
+          onDownload={(file) => void api.download(`${file.url}?download=1`, file.name).catch((err: Error) => toast.error(err.message))}
+        />
+      ) : null}
     </div>
   )
 }

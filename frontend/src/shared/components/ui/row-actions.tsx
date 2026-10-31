@@ -2,7 +2,8 @@ import type { LucideIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { MoreVertical } from 'lucide-react'
 import { Button } from './button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './dropdown-menu'
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger } from './dropdown-menu'
+import { ResponsiveMenuContent } from './responsive-menu'
 import { t } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
 
@@ -19,8 +20,9 @@ export interface RowAction {
 // The last cell of a table row. In a wide table `actions` are icon buttons and `menu` sits behind ⋯;
 // in a narrow one (`.tbl-inline` hidden by the table's container query) everything goes behind one
 // ⋯, because a row of four buttons is what pushed tables wider than a phone. A single action with
-// no menu stays a button at every width.
-export function RowActions({ actions, menu = [] }: { actions: RowAction[]; menu?: RowAction[] }) {
+// no menu stays a button at every width. On a phone the ⋯ opens a bottom sheet titled with `title`,
+// the row's name, so the thumb knows which row it is acting on.
+export function RowActions({ actions, menu = [], title }: { actions: RowAction[]; menu?: RowAction[]; title?: string }) {
   const single = actions.length === 1 && menu.length === 0
   const firstInline = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
@@ -61,7 +63,7 @@ export function RowActions({ actions, menu = [] }: { actions: RowAction[]; menu?
             <MoreVertical className="h-4 w-4" />
             <span className="sr-only">{t('common:labels.actions')}</span>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
+          <ResponsiveMenuContent title={title ?? t('common:labels.actions')}>
             {(compact ? actions : []).map((action) => (
               <DropdownMenuItem key={action.key} disabled={action.disabled} destructive={action.destructive} onClick={action.onClick}>
                 <action.icon className="h-4 w-4" /> {action.label}
@@ -72,7 +74,7 @@ export function RowActions({ actions, menu = [] }: { actions: RowAction[]; menu?
                 <action.icon className="h-4 w-4" /> {action.label}
               </DropdownMenuItem>
             ))}
-          </DropdownMenuContent>
+          </ResponsiveMenuContent>
         </DropdownMenu>
       )}
     </div>

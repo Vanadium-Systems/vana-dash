@@ -1,12 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Building2, Download, Ellipsis, Inbox, LifeBuoy, LogOut, Megaphone, Search, User, X } from 'lucide-react'
+import { BookOpen, Building2, Download, Ellipsis, Inbox, LifeBuoy, LogOut, Megaphone, PanelLeftClose, PanelLeftOpen, Search, User, X } from 'lucide-react'
 import { guideRouteOf } from '@/modules/help/guides'
 import { useSupportUnread } from '@/modules/support/support-api'
 import { isUnseen, visibleReleases } from '@/modules/updates/releases'
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { CommandPalette, PALETTE_SHORTCUT } from '@/shared/components/CommandPalette'
 import { OfflineBanner } from '@/shared/components/OfflineBanner'
+import { ShortcutsHelp } from '@/shared/components/ShortcutsHelp'
 import { PullToRefresh } from '@/shared/components/PullToRefresh'
 import { ThemeToggle } from '@/shared/components/ThemeToggle'
 import { Button } from '@/shared/components/ui/button'
@@ -18,6 +19,7 @@ import { useChatUnreadTotal } from '@/shared/hooks/use-chat'
 import { useAuth, useLogout } from '@/shared/hooks/use-auth'
 import { ME_QUERY_KEY, useMe } from '@/shared/hooks/use-me'
 import { useEmailUnreadCounts } from '@/shared/hooks/use-email-unread-counts'
+import { useHotkeys } from '@/shared/hooks/use-hotkeys'
 import { useInstallPrompt } from '@/shared/hooks/use-install-prompt'
 import { useNavLayout } from '@/shared/hooks/use-nav-layout'
 import { useOfflinePrefetch } from '@/shared/hooks/use-offline-prefetch'
@@ -26,6 +28,10 @@ import { isNative } from '@/shared/lib/native'
 import { clearReadEmailNotifications, onNativeNotificationTap, registerNativeDeviceToken } from '@/shared/lib/native-push'
 import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem, navGroupLabel } from '@/shared/lib/nav-items'
 import { BrandMark } from '@/shared/components/BrandMark'
+import { ContentSkeleton } from '@/shared/components/layout/ShellSkeleton'
+import { BottomSheet } from '@/shared/components/ui/responsive-menu'
+import { prefetchPage } from '@/shared/lib/prefetch'
+import { isPlainClick, markRouteCommitted, navigateWithTransition } from '@/shared/lib/view-transition'
 import { sessionUserName } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
@@ -36,7 +42,8 @@ import { getTenantOverride, setTenantOverride } from '@/shared/lib/tenant-overri
 // user/temă/logout. Mobil (Contractul H): bottom nav fix cu 4 shortcut-uri + "Mai mult" care
 // deschide drawer-ul complet — o singură sursă NAV (nav-items.ts + config din Setări).
 
-function NavBadge({ count }: { count: number }) {
+function NavBadge({ count, compact }: { count: number; compact?: boolean }) {
+  if (compact) return <span aria-hidden="true" className="absolute right-1.5 top-1 size-2 rounded-full bg-destructive" />
   return (
     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 tnum text-xs font-semibold text-white">
       {count > 99 ? '99+' : count}
@@ -50,14 +57,17 @@ function SidebarNav({
   chatUnread,
   activeAlerts,
   onNavigate,
+  compact,
 }: {
   items: ReturnType<typeof useNavLayout>['items']
   unreadTotal: number | undefined
   chatUnread: number | undefined
   activeAlerts: number | undefined
   onNavigate?: () => void
+  compact: boolean
 }) {
   const location = useLocation()
+  const navLink = useNavLinkProps()
   const groups = NAV_GROUP_ORDER.map((group) => [group, items.filter((i) => i.group === group)] as const)
 
   return (
@@ -66,33 +76,81 @@ function SidebarNav({
         .filter(([, groupItems]) => groupItems.length > 0)
         .map(([group, groupItems], sectionIndex) => (
           <div key={group} className={cn(sectionIndex > 0 && 'mt-4')}>
-            <div className="px-2 pb-1 text-xs font-medium text-muted-foreground">{navGroupLabel(group)}</div>
+            {compact ? null : <div className="px-2 pb-1 text-xs font-medium text-muted-foreground">{navGroupLabel(group)}</div>}
             {groupItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === '/'}
-                onClick={onNavigate}
+                title={compact ? item.label : undefined}
+                {...navLink(item.to, onNavigate)}
                 className={({ isActive }) =>
                   cn(
-                    'flex h-control-md items-center gap-2.5 rounded-sm px-2 text-sm',
+                    'relative flex h-control-md items-center gap-2.5 rounded-sm px-2 text-sm',
+                    compact && 'justify-center',
                     isActive || item.activeOn?.some((prefix) => location.pathname.startsWith(prefix))
                       ? 'bg-accent font-medium text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground',
                   )
                 }
               >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-                {item.to === '/email' && unreadTotal ? <NavBadge count={unreadTotal} /> : null}
-                {item.to === '/messages' && chatUnread ? <NavBadge count={chatUnread} /> : null}
-                {item.to === '/alerts' && activeAlerts ? <NavBadge count={activeAlerts} /> : null}
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span className={compact ? 'sr-only' : 'truncate'}>{item.label}</span>
+                {item.to === '/email' && unreadTotal ? <NavBadge count={unreadTotal} compact={compact} /> : null}
+                {item.to === '/messages' && chatUnread ? <NavBadge count={chatUnread} compact={compact} /> : null}
+                {item.to === '/alerts' && activeAlerts ? <NavBadge count={activeAlerts} compact={compact} /> : null}
               </NavLink>
             ))}
           </div>
         ))}
     </nav>
   )
+}
+
+/**
+ * Hover or focus loads the page ahead of the click; a plain click cross-fades into it. Ctrl / middle
+ * click keep the browser's own behaviour (new tab).
+ */
+function useNavLinkProps() {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { can } = useMe()
+  return (to: string, onNavigate?: () => void) => {
+    const prefetch = () => prefetchPage(to, queryClient, can)
+    return {
+      onMouseEnter: prefetch,
+      onFocus: prefetch,
+      onTouchStart: prefetch,
+      onClick: (e: React.MouseEvent) => {
+        onNavigate?.()
+        if (!isPlainClick(e)) return
+        e.preventDefault()
+        navigateWithTransition(() => navigate(to))
+      },
+    }
+  }
+}
+
+// Narrower than this, the sidebar shows icons only (T6): a 768-1023px screen keeps its width for content.
+const wideQuery = window.matchMedia?.('(min-width: 1024px)')
+const COLLAPSED_KEY = 'vana-dash-sidebar-collapsed'
+
+function useSidebarCompact() {
+  const wide = useSyncExternalStore(
+    (onChange) => {
+      wideQuery?.addEventListener('change', onChange)
+      return () => wideQuery?.removeEventListener('change', onChange)
+    },
+    () => wideQuery?.matches ?? true,
+  )
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1')
+  const toggle = () => {
+    setCollapsed((current) => {
+      localStorage.setItem(COLLAPSED_KEY, current ? '0' : '1')
+      return !current
+    })
+  }
+  return { compact: !wide || collapsed, canToggle: wide, collapsed, toggle }
 }
 
 /** Numărul din dreapta unui item de meniu; textul pentru cititorul de ecran spune ce numără. */
@@ -113,6 +171,8 @@ export function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const sidebar = useSidebarCompact()
+  const navLink = useNavLinkProps()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
   const navItems = useNavLayout()
@@ -154,6 +214,8 @@ export function AppLayout() {
     if (mainRef.current) mainRef.current.scrollTop = 0
   }, [location.pathname])
 
+  useLayoutEffect(() => markRouteCommitted(), [location.pathname])
+
   // Token FCM al APK-ului (Contract C) — doar în shell-ul nativ, doar autentificat.
   useEffect(() => {
     if (user) void registerNativeDeviceToken()
@@ -180,22 +242,23 @@ export function AppLayout() {
     })
   }, [queryClient])
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+  useHotkeys([
+    {
+      keys: 'mod+k',
+      label: t('common:shortcuts.search'),
+      allowInInputs: true,
+      onKey: (e) => {
         e.preventDefault()
         setPaletteOpen((open) => !open)
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+      },
+    },
+  ])
 
-  const renderSidebarContent = (onClose?: () => void) => (
+  const renderSidebarContent = (onClose?: () => void, compact = false) => (
     <>
-      <div className="flex h-14 items-center gap-2.5 border-b px-3">
+      <div className={cn('flex h-14 items-center gap-2.5 border-b px-3', compact && 'justify-center px-0')}>
         <BrandMark className="h-7 w-7" />
-        <span className="font-semibold">VanaDash</span>
+        {compact ? null : <span className="font-semibold">VanaDash</span>}
         {onClose ? (
           <button
             className="touch-target -mr-1 ml-auto flex items-center justify-center rounded-sm p-1 hover:bg-accent"
@@ -213,11 +276,15 @@ export function AppLayout() {
             onClose?.()
             setPaletteOpen(true)
           }}
-          className="flex h-control-md w-full items-center gap-2 rounded-md border border-border px-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          title={compact ? `${t('common:actions.search')} (${PALETTE_SHORTCUT})` : undefined}
+          className={cn(
+            'flex h-control-md w-full items-center gap-2 rounded-md border border-border px-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            compact && 'justify-center',
+          )}
         >
-          <Search className="h-4 w-4" aria-hidden="true" />
-          {t('common:actions.search')}
-          <kbd className="ml-auto hidden font-sans text-xs md:inline">{PALETTE_SHORTCUT}</kbd>
+          <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className={compact ? 'sr-only' : undefined}>{t('common:actions.search')}</span>
+          {compact ? null : <kbd className="ml-auto hidden font-sans text-xs md:inline">{PALETTE_SHORTCUT}</kbd>}
         </button>
       </div>
       <SidebarNav
@@ -226,29 +293,30 @@ export function AppLayout() {
         chatUnread={chatUnread || undefined}
         activeAlerts={activeAlertsCount.data?.count}
         onNavigate={onClose}
+        compact={compact}
       />
-      <div className="border-t p-3">
-        {canInstall ? (
+      <div className={cn('border-t p-3', compact && 'flex flex-col items-center gap-2 px-1')}>
+        {canInstall && !compact ? (
           <Button variant="outline" className="mb-2 w-full" onClick={promptInstall}>
             <Download className="h-4 w-4" />
             {t('common:shell.installApp')}
           </Button>
         ) : null}
-        <div className="mb-2">
-          <ThemeToggle />
+        <div className={compact ? undefined : 'mb-2'}>
+          <ThemeToggle compact={compact} />
         </div>
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-accent">
+          <DropdownMenuTrigger className={cn('flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-accent', compact && 'justify-center px-1')}>
             <span className="relative flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
               {initials}
               {helpUnread > 0 ? <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-destructive" aria-hidden="true" /> : null}
             </span>
-            <span className="min-w-0 flex-1">
+            <span className={compact ? 'sr-only' : 'min-w-0 flex-1'}>
               <span className="block truncate text-sm">{name}</span>
               <span className="block truncate text-xs text-muted-foreground">{user?.email}</span>
             </span>
             {helpUnread > 0 ? <span className="sr-only">{t('common:shell.unreadInHelp')}</span> : null}
-            <Ellipsis className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            {compact ? null : <Ellipsis className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => navigate('/me')}>
@@ -289,6 +357,20 @@ export function AppLayout() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        {!onClose && sidebar.canToggle ? (
+          <button
+            type="button"
+            onClick={sidebar.toggle}
+            title={compact ? t('common:shell.expandSidebar') : undefined}
+            className={cn(
+              'mt-1 flex h-control-md w-full items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground',
+              compact && 'justify-center',
+            )}
+          >
+            {compact ? <PanelLeftOpen className="h-4 w-4" aria-hidden="true" /> : <PanelLeftClose className="h-4 w-4" aria-hidden="true" />}
+            <span className={compact ? 'sr-only' : undefined}>{compact ? t('common:shell.expandSidebar') : t('common:shell.collapseSidebar')}</span>
+          </button>
+        ) : null}
       </div>
     </>
   )
@@ -298,17 +380,18 @@ export function AppLayout() {
     <div className="flex min-h-screen">
       {isNative ? <PullToRefresh /> : null}
       {/* Desktop: sidebar lipit pe înălțimea ecranului, cu scroll propriu; documentul rămâne containerul de scroll. */}
-      <aside className="sticky top-0 hidden h-dvh w-[232px] shrink-0 flex-col border-r bg-card md:flex">{renderSidebarContent()}</aside>
+      <aside className={cn('sticky top-0 hidden h-dvh shrink-0 flex-col border-r bg-card md:flex', sidebar.compact ? 'w-14' : 'w-[232px]')}>
+        {renderSidebarContent(undefined, sidebar.compact)}
+      </aside>
 
       {/* Mobil: drawer deschis din "Mai mult" (bottom nav) — al doilea apăsare îl închide.
           safe-top = sub bara de notificări (S24+); padding jos = bottom nav (h-16) + safe area,
           altfel footer-ul cu temă/logout stă sub el. */}
-      {drawerOpen ? (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setDrawerOpen(false)} />
-          <aside className="safe-top relative flex h-full w-64 flex-col border-r bg-card pb-[calc(4rem+env(safe-area-inset-bottom,0px))]">{renderSidebarContent(() => setDrawerOpen(false))}</aside>
-        </div>
-      ) : null}
+      {/* "Mai mult" rises from the bottom bar, within reach of the thumb, and closes with a swipe
+          down, a tap outside or Back (MA3, D43). */}
+      <BottomSheet open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t('common:actions.more')}>
+        <div className="flex flex-col md:hidden">{renderSidebarContent(() => setDrawerOpen(false))}</div>
+      </BottomSheet>
 
       {isNative ? (
         // The status bar is transparent over the WebView; this keeps scrolled content from showing under it.
@@ -329,8 +412,11 @@ export function AppLayout() {
               </Button>
             </div>
           ) : null}
-          <div className={cn('p-4 md:p-6', isFullWidthPage ? '' : 'mx-auto max-w-6xl')}>
-            <Outlet />
+          {/* Only the content waits for a page's code; the bar and the nav stay (MA10). */}
+          <div className={cn('p-4 md:p-6', isFullWidthPage ? '' : 'mx-auto max-w-6xl')} style={{ viewTransitionName: 'page' }}>
+            <Suspense fallback={<ContentSkeleton />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
 
@@ -353,6 +439,7 @@ export function AppLayout() {
                 key={to}
                 to={to}
                 end={to === '/'}
+                {...navLink(to)}
                 className={({ isActive }) =>
                   cn('relative flex h-16 w-full flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-foreground' : 'text-muted-foreground')
                 }
@@ -388,6 +475,7 @@ export function AppLayout() {
         </nav>
       </div>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <ShortcutsHelp />
     </div>
     </ConfirmProvider>
   )

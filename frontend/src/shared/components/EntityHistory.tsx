@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Timeline } from '@/shared/components/Timeline'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { useMe } from '@/shared/hooks/use-me'
 import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
@@ -92,26 +93,25 @@ export function EntityHistory({ entityType, entityId }: { entityType: string; en
           <DialogHeader>
             <DialogTitle className="text-base">{t('common:nav.history')}</DialogTitle>
           </DialogHeader>
-          <ul className="space-y-3 text-sm">
-            {items.map((item) => (
-              <li key={item.id} className="border-t pt-3 first:border-0 first:pt-0">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span>{actionLabel(item.action)}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground" title={formatDateTime(item.createdAt)}>
-                    {formatRelativeTime(item.createdAt)}
-                  </span>
-                </div>
-                <div className="text-xs text-muted-foreground">{actorName(item, members.data)}</div>
-                {item.changes
-                  ? Object.entries(item.changes).map(([field, [before, after]]) => (
-                      <div key={field} className="mt-0.5 text-xs text-muted-foreground">
-                        {CHANGE_LABEL[field] ?? field}: <span className="line-through">{changeText(before)}</span> → {changeText(after)}
-                      </div>
-                    ))
-                  : null}
-              </li>
-            ))}
-          </ul>
+          <Timeline
+            entries={items.map((item) => ({
+              id: item.id,
+              author: actorName(item, members.data),
+              at: item.createdAt,
+              text: (
+                <>
+                  {actionLabel(item.action)}
+                  {item.changes
+                    ? Object.entries(item.changes).map(([field, [before, after]]) => (
+                        <span key={field} className="mt-0.5 block text-xs text-muted-foreground">
+                          {CHANGE_LABEL[field] ?? field}: <span className="line-through">{changeText(before)}</span> → {changeText(after)}
+                        </span>
+                      ))
+                    : null}
+                </>
+              ),
+            }))}
+          />
         </DialogContent>
       </Dialog>
     </>
