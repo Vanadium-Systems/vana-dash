@@ -25,7 +25,7 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
-    publishedAt: '2026-10-31T20:00:00+02:00',
+    publishedAt: '2026-10-31T12:05:00+02:00',
     title: {
       ro: 'Meniuri, selecție și scurtături ca într-o aplicație de pe calculator',
       en: 'Menus, selection and shortcuts like a desktop app',
