@@ -39,7 +39,7 @@ export function Money({ amount, currency, secondary, hide, sign, className }: Mo
   }
   const value = Number(amount)
   return (
-    <span className={cn('tnum', sign && value > 0 && 'text-success-text', sign && value < 0 && 'text-destructive-text', className)}>
+    <span className={cn('tnum whitespace-nowrap', sign && value > 0 && 'text-success-text', sign && value < 0 && 'text-destructive-text', className)}>
       <Figure amount={amount} currency={currency} plus={sign && value > 0} />
       {secondary ? (
         <span className="block text-xs text-muted-foreground">
