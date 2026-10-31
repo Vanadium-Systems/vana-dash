@@ -1,3 +1,4 @@
+import { Money } from '@/shared/components/Money'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Archive,
@@ -15,11 +16,11 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
 import type { FinancialRecord } from '@/shared/lib/types'
-import { AnafStatusBadge, PaymentStatusBadge, formatDate, formatMoney } from './badges'
+import { AnafStatusBadge, PaymentStatusBadge, formatDate } from './badges'
 import { InvoiceFormDialog } from './InvoiceFormDialog'
 import { PastRecordFormDialog } from './PastRecordFormDialog'
 import { useConsumeParam } from '@/shared/hooks/use-consume-param'
@@ -124,7 +125,7 @@ export function EmiseTab() {
       <Card>
         <CardContent className="pt-6">
           {records.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : !records.data?.length ? (
             <EmptyState
               kind="new"
@@ -174,7 +175,7 @@ export function EmiseTab() {
                       <TableCell priority="md" truncate>{r.counterpartyName ?? '—'}</TableCell>
                       <TableCell priority="lg" className="whitespace-nowrap">{formatDate(r.issuedAt)}</TableCell>
                       <TableCell priority="md" className="whitespace-nowrap">{formatDate(r.dueAt)}</TableCell>
-                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">{formatMoney(r.amount, r.currency)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums"><Money amount={r.amount} currency={r.currency} /></TableCell>
                       {canAnaf ? (
                       <TableCell priority="lg">
                         <AnafStatusBadge status={r.anafStatus} />

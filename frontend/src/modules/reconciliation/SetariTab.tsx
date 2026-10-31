@@ -8,7 +8,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { ChartError } from '@/shared/components/charts/chart-states'
 import { api } from '@/shared/lib/api'
@@ -256,7 +256,7 @@ function VanagreenExtensionCard() {
         <div className="border-t pt-4">
           <p className="mb-2 text-sm font-medium">{t('reconciliation:extension.history')}</p>
           {log.isPending ? (
-            <Skeleton className="h-24 w-full" />
+            <ListSkeleton rows={3} />
           ) : !log.data?.length ? (
             <p className="text-sm text-muted-foreground">{t('reconciliation:extension.none')}</p>
           ) : (

@@ -9,7 +9,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Alert } from '@/shared/components/ui/alert'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { api } from '@/shared/lib/api'
@@ -275,7 +275,7 @@ export function AssetsPage() {
             <section className="space-y-2" data-testid="assets-watchlist">
               <h2 className="text-sm font-semibold">{t('crypto:favorites.title')}</h2>
               {watchPrices.isPending ? (
-                <Skeleton className="h-24 w-full" />
+                <ListSkeleton rows={3} />
               ) : !filteredWatch.length ? (
                 <Card>
                   <CardContent className="pt-6 text-sm text-muted-foreground">
@@ -342,7 +342,7 @@ export function AssetsPage() {
                   <span className="tnum font-mono text-sm">{formatUsd(totalValueUsd)}</span>
                 </div>
                 {portfolio.isPending ? (
-                  <Skeleton className="h-32 w-full" />
+                  <ListSkeleton rows={4} />
                 ) : !portfolio.data?.positions.length ? (
                   <p className="text-sm text-muted-foreground">
                     {t('assets:portfolio.empty')}
@@ -452,7 +452,7 @@ export function AssetsPage() {
             <Card>
               <CardContent className="pt-0">
                 {indexList.isPending ? (
-                  <Skeleton className="h-72 w-full" />
+                  <ListSkeleton rows={8} />
                 ) : indexList.isError ? (
                   <p className="pt-6 text-sm text-destructive">{(indexList.error as Error).message}</p>
                 ) : !indexList.data?.items.length ? (

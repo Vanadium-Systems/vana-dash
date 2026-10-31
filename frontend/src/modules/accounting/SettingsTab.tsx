@@ -1,3 +1,4 @@
+import { Money } from '@/shared/components/Money'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, ExternalLink, Package, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
@@ -10,7 +11,7 @@ import { Label } from '@/shared/components/ui/label'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { api } from '@/shared/lib/api'
 import type { AnafStatusInfo, InvoiceSequence, QuarterlyPackageSummary } from '@/shared/lib/types'
-import { formatDate, formatMoney } from './badges'
+import { formatDate } from './badges'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
@@ -95,8 +96,8 @@ function QuarterlyPackageCard() {
           <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
             <div><dt className="text-muted-foreground">{t('accounting:quarterly.issuedInvoices')}</dt><dd className="font-medium">{summary.data.invoicesIssued}</dd></div>
             <div><dt className="text-muted-foreground">{t('accounting:quarterly.receivedInvoices')}</dt><dd className="font-medium">{summary.data.invoicesReceived}</dd></div>
-            <div><dt className="text-muted-foreground">{t('accounting:quarterly.revenue')}</dt><dd className="font-medium">{formatMoney(summary.data.revenueRon, BASE_CURRENCY)}</dd></div>
-            <div><dt className="text-muted-foreground">{t('accounting:quarterly.expenses')}</dt><dd className="font-medium">{formatMoney(summary.data.expensesRon, BASE_CURRENCY)}</dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.revenue')}</dt><dd className="font-medium"><Money amount={summary.data.revenueRon} currency={BASE_CURRENCY} /></dd></div>
+            <div><dt className="text-muted-foreground">{t('accounting:quarterly.expenses')}</dt><dd className="font-medium"><Money amount={summary.data.expensesRon} currency={BASE_CURRENCY} /></dd></div>
             <div><dt className="text-muted-foreground">{t('accounting:quarterly.unreconciled')}</dt><dd className="font-medium">{summary.data.unmatchedBankTransactions}</dd></div>
             <div><dt className="text-muted-foreground">{t('accounting:quarterly.reverseChargeLines')}</dt><dd className="font-medium">{summary.data.reverseChargeLines}</dd></div>
           </dl>

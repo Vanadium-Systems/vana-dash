@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { KPICard } from '@/shared/components/KPICard'
 import { PageHeader } from '@/shared/components/PageHeader'
@@ -125,7 +125,7 @@ export function FinancialsPage() {
         </CardHeader>
         <CardContent>
           {pnl.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : pnl.isError ? (
             <ChartError message={t('common:states.loadFailed')} />
           ) : !categoryRows.length ? (

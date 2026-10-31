@@ -7,7 +7,7 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Label } from '@/shared/components/ui/label'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
@@ -376,7 +376,7 @@ export function BulkSendTab() {
               </Button>
             </div>
             {sendsByBatch.isPending && batchIds.length > 0 ? (
-              <Skeleton className="h-32 w-full" />
+              <ListSkeleton rows={4} />
             ) : (
               <Table>
                 <TableHeader>

@@ -11,7 +11,7 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { SidePeek, usePeek } from '@/shared/components/ui/side-peek'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { api } from '@/shared/lib/api'
 import { haptic } from '@/shared/lib/haptics'
@@ -309,7 +309,7 @@ export function PlanPage() {
         </TabsList>
         <TabsContent value="personal">
           {plan.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : (
             <Card>
               <CardContent className="space-y-3 pt-6">
@@ -319,7 +319,7 @@ export function PlanPage() {
           )}
         </TabsContent>
         <TabsContent value="firma">
-          {plan.isPending ? <Skeleton className="h-32 w-full" /> : <TieredGoals goals={plan.data?.firma ?? []} mrrRon={mrrRon} onEdit={openEdit} />}
+          {plan.isPending ? <ListSkeleton rows={4} /> : <TieredGoals goals={plan.data?.firma ?? []} mrrRon={mrrRon} onEdit={openEdit} />}
         </TabsContent>
       </Tabs>
 

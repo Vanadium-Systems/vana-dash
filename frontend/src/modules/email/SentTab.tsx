@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Input } from '@/shared/components/ui/input'
 import { KPICard } from '@/shared/components/KPICard'
@@ -289,7 +289,7 @@ export function SentTab() {
         </div>
 
         {sends.isPending ? (
-          <Skeleton className="h-32 w-full" />
+          <ListSkeleton rows={4} />
         ) : sends.isError ? (
           <p className="text-sm text-destructive">{t('email:sent.loadFailed')}</p>
         ) : !items.length ? (

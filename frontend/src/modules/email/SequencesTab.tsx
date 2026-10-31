@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
@@ -63,7 +63,7 @@ export function SequencesTab() {
       <Card>
         <CardContent className="pt-6">
           {sequences.isPending ? (
-            <Skeleton className="h-32 w-full" />
+            <ListSkeleton rows={4} />
           ) : sequences.isError ? (
             <p className="text-sm text-destructive">{t('email:sequences.loadFailed')}</p>
           ) : !sequences.data?.length ? (

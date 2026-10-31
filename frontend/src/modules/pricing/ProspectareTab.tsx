@@ -8,7 +8,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Textarea } from '@/shared/components/ui/textarea'
@@ -380,7 +380,7 @@ export function ProspectareTab() {
       <Card>
         <CardContent className="pt-6">
           {prospects.isPending ? (
-            <Skeleton className="h-64 w-full" />
+            <ListSkeleton rows={8} />
           ) : !prospects.data?.length ? (
             <p className="text-sm text-muted-foreground">{t('pricing:prospects.empty')}</p>
           ) : !visibleProspects.length ? (

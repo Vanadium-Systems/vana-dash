@@ -6,7 +6,7 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
@@ -198,7 +198,7 @@ export function ContractsTab() {
               })}
 
               {documents.isPending ? (
-                <Skeleton className="h-24 w-full" />
+                <ListSkeleton rows={3} />
               ) : !documents.data?.length ? (
                 <p className="text-sm text-muted-foreground">{t('accounting:contracts.noDocuments')}</p>
               ) : (
@@ -259,7 +259,7 @@ export function ContractsTab() {
             </CardHeader>
             <CardContent>
               {addenda.isPending ? (
-                <Skeleton className="h-24 w-full" />
+                <ListSkeleton rows={3} />
               ) : !addenda.data?.length ? (
                 <p className="text-sm text-muted-foreground">{t('accounting:contracts.noAddenda')}</p>
               ) : (
