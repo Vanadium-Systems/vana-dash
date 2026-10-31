@@ -19,6 +19,7 @@ import { EventFormDialog } from './EventFormDialog'
 import { MonthView } from './MonthView'
 import { WeekView, type TimeRange } from './WeekView'
 import { useConsumeParam } from '@/shared/hooks/use-consume-param'
+import { useSwipeNav } from '@/shared/hooks/use-swipe-nav'
 import { t } from '@/shared/lib/i18n'
 
 type ViewMode = 'week' | 'month'
@@ -240,6 +241,9 @@ export function CalendarPage() {
       })
     : []
 
+  const stepPeriod = (direction: 1 | -1) => setAnchor(view === 'week' ? addDays(anchor, 7 * direction) : addMonths(anchor, direction))
+  const swipeNav = useSwipeNav({ onPrev: () => stepPeriod(-1), onNext: () => stepPeriod(1) })
+
   const panel = <BookingPanel focusBlockForm={focusBlockForm} onBookingClick={setBookingDetail} />
 
   return (
@@ -282,14 +286,14 @@ export function CalendarPage() {
       />
 
       <div className={canBookings ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]' : undefined}>
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-4" style={swipeNav.style} {...swipeNav.handlers}>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="icon"
                 aria-label={view === 'week' ? t('calendar:nav.previousWeek') : t('calendar:nav.previousMonth')}
-                onClick={() => setAnchor(view === 'week' ? addDays(anchor, -7) : addMonths(anchor, -1))}
+                onClick={() => stepPeriod(-1)}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -300,7 +304,7 @@ export function CalendarPage() {
                 variant="outline"
                 size="icon"
                 aria-label={view === 'week' ? t('calendar:nav.nextWeek') : t('calendar:nav.nextMonth')}
-                onClick={() => setAnchor(view === 'week' ? addDays(anchor, 7) : addMonths(anchor, 1))}
+                onClick={() => stepPeriod(1)}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>

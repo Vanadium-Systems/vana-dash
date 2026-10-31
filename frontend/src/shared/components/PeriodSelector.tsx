@@ -1,5 +1,5 @@
 import { useSearchParams } from 'react-router-dom'
-import { Button } from '@/shared/components/ui/button'
+import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 
 const PERIODS = [
@@ -8,7 +8,7 @@ const PERIODS = [
   { value: '90d', label: t('common:labels.days90') },
   { value: 'mtd', label: t('common:period.currentMonth') },
   { value: 'ytd', label: t('common:period.currentYear') },
-] as const
+]
 
 // Perioada trăiește în URL (?period=), nu în useState — regula din CLAUDE.md.
 export function usePeriod(): string {
@@ -21,21 +21,16 @@ export function PeriodSelector() {
   const current = searchParams.get('period') ?? '30d'
 
   return (
-    <div className="flex min-w-0 flex-wrap gap-1">
-      {PERIODS.map((p) => (
-        <Button
-          key={p.value}
-          variant={current === p.value ? 'default' : 'outline'}
-          className="shrink-0"
-          onClick={() => {
-            const next = new URLSearchParams(searchParams)
-            next.set('period', p.value)
-            setSearchParams(next)
-          }}
-        >
-          {p.label}
-        </Button>
-      ))}
-    </div>
+    <Select
+      className="w-auto"
+      aria-label={t('common:period.label')}
+      options={PERIODS}
+      value={current}
+      onValueChange={(period) => {
+        const next = new URLSearchParams(searchParams)
+        next.set('period', period)
+        setSearchParams(next)
+      }}
+    />
   )
 }

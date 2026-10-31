@@ -91,17 +91,44 @@
     --control-lg: 2.5rem;
   }
 
+  /* Motion on three levels (DESIGN.md "Motion"): fast = menus, tooltips, presses; standard =
+     tab line, toasts, popovers; screen = drawers, sheets, side peek, page cross-fade. */
   :root {
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --duration-fast: 150ms;
+    --duration-standard: 200ms;
+    --duration-screen: 300ms;
+    /* How far things travel when they enter. Zeroed under reduced motion, so the fades stay. */
+    --enter-scale: 0.96;
+    --enter-shift: 0.5rem;
+    /* Glass for what floats over content (menus, toasts, palette, selection bar, bottom nav). */
+    --glass-alpha: 0.78;
+    --glass-blur: 16px;
+    /* Light is a signal: only what needs attention glows, warm, never the brand blue. */
+    --glow: 28 95% 55%;
+  }
+  .dark {
+    --glass-alpha: 0.72;
+    --glow: 30 100% 58%;
   }
 
+  /* Reduced motion drops movement and keeps the fades that explain what appeared (MA9). */
   @media (prefers-reduced-motion: reduce) {
+    :root {
+      --enter-scale: 1;
+      --enter-shift: 0px;
+    }
     *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
+      --tw-enter-translate-x: 0 !important;
+      --tw-enter-translate-y: 0 !important;
+      --tw-enter-scale: 1 !important;
+      --tw-enter-rotate: 0 !important;
+      --tw-exit-translate-x: 0 !important;
+      --tw-exit-translate-y: 0 !important;
+      --tw-exit-scale: 1 !important;
+      --tw-exit-rotate: 0 !important;
       scroll-behavior: auto !important;
     }
   }
@@ -177,6 +204,121 @@
     color: #0369a1;
   }
 
+  /* Menus grow out of what opened them (MA2). Entry only: closing is instant, which is what a
+     menu opened dozens of times a day should do. Without @starting-style it just appears. */
+  .menu-pop {
+    transform-origin: var(--menu-origin, top right);
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      transform var(--duration-fast) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+      transform: scale(var(--enter-scale));
+    }
+  }
+
+  /* Floating bars (selection bar, FAB menu) rise a little into place. */
+  .float-in {
+    transition:
+      opacity var(--duration-standard) var(--ease-out),
+      translate var(--duration-standard) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+      translate: 0 var(--enter-shift);
+    }
+  }
+
+  .glass {
+    background: hsl(var(--surface-overlay) / var(--glass-alpha));
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+    border-color: hsl(var(--border) / 0.7);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+      background: hsl(var(--surface-overlay));
+    }
+  }
+
+  .glow-attention {
+    box-shadow:
+      0 0 0 1px hsl(var(--glow) / 0.45),
+      0 0 24px -4px hsl(var(--glow) / 0.45);
+  }
+
+  /* Bottom sheet and side drawer: the panel slides on --ease-drawer, the backdrop only fades.
+     `data-state="closing"` keeps them mounted for the way out; a drag sets the transform inline. */
+  .sheet-backdrop {
+    transition: opacity var(--duration-screen) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+    }
+  }
+  .sheet-backdrop[data-state='closing'] {
+    opacity: 0;
+  }
+  .sheet-panel {
+    transition: transform var(--duration-screen) var(--ease-drawer);
+    @starting-style {
+      transform: translateY(100%);
+    }
+  }
+  .sheet-panel[data-state='closing'] {
+    transform: translateY(100%);
+  }
+  .drawer-panel {
+    transition: transform var(--duration-screen) var(--ease-drawer);
+    @starting-style {
+      transform: translateX(-100%);
+    }
+  }
+  .drawer-panel[data-state='closing'] {
+    transform: translateX(-100%);
+  }
+  .peek-panel {
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      transform var(--duration-fast) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+      transform: translateX(var(--enter-shift));
+    }
+  }
+  [data-dragging] {
+    transition: none !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sheet-panel,
+    .drawer-panel {
+      transition: opacity var(--duration-screen) var(--ease-out);
+      @starting-style {
+        transform: none;
+        opacity: 0;
+      }
+    }
+    .sheet-panel[data-state='closing'],
+    .drawer-panel[data-state='closing'] {
+      transform: none;
+      opacity: 0;
+    }
+  }
+
+  /* The line under the active tab slides between tabs instead of jumping (MA5). Positioned by
+     `ui/tabs.tsx` through translate + scaleX on a 1px-wide bar, so only transform animates. */
+  .tab-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 2px;
+    width: 1px;
+    transform-origin: left;
+    background: hsl(var(--primary));
+    pointer-events: none;
+  }
+  .tab-indicator[data-ready] {
+    transition: transform var(--duration-standard) var(--ease-in-out);
+  }
+
   /* Tooltip (componenta `ui/tooltip.tsx`): balonul apare la hover și la focus pe dispozitive
      cu pointer fin. Pe touch nu există hover, deci același text stă static sub control —
      o singură copie în DOM, comutată aici, nu în componentă. */
@@ -187,7 +329,17 @@
   .tooltip-bubble {
     display: none;
   }
+  /* The first tooltip waits ~400ms, so passing over a toolbar shows nothing; once one is open
+     (`data-tooltip-warm`, set by ui/tooltip.tsx) the neighbours open at once (MA4). Keyboard
+     focus is never delayed. */
   @media (hover: hover) and (pointer: fine) {
+    .tooltip-anchor:hover .tooltip-bubble {
+      animation: tooltip-in var(--duration-fast) var(--ease-out) 400ms both;
+    }
+    :root[data-tooltip-warm] .tooltip-anchor:hover .tooltip-bubble,
+    .tooltip-anchor:focus-within .tooltip-bubble {
+      animation: none;
+    }
     .tooltip-anchor:hover .tooltip-bubble,
     .tooltip-anchor:focus-within .tooltip-bubble {
       display: block;
@@ -247,6 +399,17 @@
     height: 0;
     color: hsl(var(--muted-foreground));
     pointer-events: none;
+  }
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
   }
 }
 
@@ -316,4 +479,16 @@
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+/* Page cross-fade (shared/lib/view-transition.ts): only the content area changes, the shell stays. */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(page),
+::view-transition-new(page) {
+  animation-duration: var(--duration-standard);
+  animation-timing-function: var(--ease-out);
 }

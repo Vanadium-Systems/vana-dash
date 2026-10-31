@@ -63,6 +63,30 @@ export function formatMoney(amount: number | string, currency: string, options?:
   return `${formatted} ${currency}`
 }
 
+/**
+ * The same text as `formatMoney`, split so a screen can set the decimals apart: `whole` is the
+ * sign and integer digits, `fraction` the decimal separator and decimals, `suffix` the
+ * currency (with its leading space).
+ */
+export function formatMoneyParts(
+  amount: number | string,
+  currency: string,
+  options?: { decimals?: number },
+): { whole: string; fraction: string; suffix: string } {
+  const decimals = options?.decimals ?? 2
+  const parts = new Intl.NumberFormat(intlTag(), {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).formatToParts(Number(amount))
+  let whole = ''
+  let fraction = ''
+  for (const part of parts) {
+    if (part.type === 'decimal' || part.type === 'fraction') fraction += part.value
+    else whole += part.value
+  }
+  return { whole, fraction, suffix: ` ${currency}` }
+}
+
 export function formatDate(value: DateInput, options: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }): string {
   return new Intl.DateTimeFormat(intlTag(), { timeZone: companyZone, ...options }).format(toDate(value))
 }

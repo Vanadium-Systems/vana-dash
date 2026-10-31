@@ -85,6 +85,15 @@ export default {
       transitionTimingFunction: {
         'out-strong': 'cubic-bezier(0.23, 1, 0.32, 1)',
         'in-out-strong': 'cubic-bezier(0.77, 0, 0.175, 1)',
+        drawer: 'var(--ease-drawer)',
+      },
+      transitionDuration: {
+        fast: 'var(--duration-fast)',
+        standard: 'var(--duration-standard)',
+        screen: 'var(--duration-screen)',
+      },
+      boxShadow: {
+        glow: '0 0 0 1px hsl(var(--glow) / 0.45), 0 0 24px -4px hsl(var(--glow) / 0.45)',
       },
     },
   },

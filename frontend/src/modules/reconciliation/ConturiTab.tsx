@@ -196,7 +196,6 @@ export function ConturiTab() {
                 {transactions.data.map((txn) => (
                   <TableRow
                     key={txn.id}
-                    className="animate-in fade-in-0 duration-200 ease-out"
                   >
                     <TableCell priority="md" className="whitespace-nowrap">{formatDate(txn.valueDate)}</TableCell>
                     <TableCell className="font-medium tbl-fill">

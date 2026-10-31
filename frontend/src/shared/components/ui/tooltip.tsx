@@ -16,12 +16,35 @@ export interface TooltipProps {
   className?: string
 }
 
+// After one tooltip has shown, the next ones skip the intent delay until the pointer has been
+// away from all of them for a moment (index.css, MA4).
+let coolDown: ReturnType<typeof setTimeout> | undefined
+let warmUp: ReturnType<typeof setTimeout> | undefined
+const INTENT_MS = 400
+const COOL_DOWN_MS = 500
+
+function onEnter() {
+  clearTimeout(coolDown)
+  warmUp = setTimeout(() => document.documentElement.setAttribute('data-tooltip-warm', ''), INTENT_MS)
+}
+
+function onLeave() {
+  clearTimeout(warmUp)
+  coolDown = setTimeout(() => document.documentElement.removeAttribute('data-tooltip-warm'), COOL_DOWN_MS)
+}
+
 export function Tooltip({ content, children, className }: TooltipProps) {
   const id = React.useId()
   const isDisabled = children.props.disabled === true
 
   return (
-    <span className={cn('tooltip-anchor', className)} tabIndex={isDisabled ? 0 : -1} aria-describedby={id}>
+    <span
+      className={cn('tooltip-anchor', className)}
+      tabIndex={isDisabled ? 0 : -1}
+      aria-describedby={id}
+      onPointerEnter={onEnter}
+      onPointerLeave={onLeave}
+    >
       {children}
       <span id={id} role="tooltip" className="tooltip-bubble">
         {content}

@@ -5,6 +5,7 @@ import { BarChart3, CalendarOff, CalendarPlus, FilePlus2, Gift, LineChart, Mail,
 import type { LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Highlight } from '@/shared/components/Highlight'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
@@ -168,7 +169,9 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
                     <Command.Group key={group.group} heading={group.group} className={GROUP_CLASS}>
                       {group.items.map((item) => (
                         <Command.Item key={item.id} value={`${group.group} ${item.label} ${item.sublabel ?? ''}`} onSelect={() => go(item.to)} className={ITEM_CLASS}>
-                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                          <span className="min-w-0 flex-1 truncate">
+                            <Highlight text={item.label} query={term} />
+                          </span>
                           {item.sublabel ? <span className="max-w-[45%] shrink-0 truncate text-xs text-muted-foreground">{item.sublabel}</span> : null}
                         </Command.Item>
                       ))}

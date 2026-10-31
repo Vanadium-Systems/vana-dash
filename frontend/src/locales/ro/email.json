@@ -143,7 +143,18 @@
     "externalImageBlocked": "Imagine externă blocată"
   },
   "toasts": {
-    "archived": "Arhivat"
+    "archived": "Arhivat",
+    "moved": {
+      "archive_one": "Conversație arhivată",
+      "archive_few": "{{count}} conversații arhivate",
+      "archive_other": "{{count}} de conversații arhivate",
+      "spam_one": "Conversație mutată în Spam",
+      "spam_few": "{{count}} conversații mutate în Spam",
+      "spam_other": "{{count}} de conversații mutate în Spam",
+      "trash_one": "Conversație mutată în Coș",
+      "trash_few": "{{count}} conversații mutate în Coș",
+      "trash_other": "{{count}} de conversații mutate în Coș"
+    }
   },
   "thread": {
     "hideQuoted": "▾ Ascunde mesajul citat",

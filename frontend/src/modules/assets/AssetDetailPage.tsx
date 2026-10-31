@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, CandlestickChart, Star } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { toast } from 'sonner'
@@ -8,6 +8,7 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
+import { useCollapsingTitle } from '@/shared/hooks/use-collapsing-title'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { CandleChart } from '@/modules/crypto/CandleChart'
@@ -66,6 +67,8 @@ export function AssetDetailPage() {
   const [days, setDays] = useState<1 | 7 | 30 | 90 | 365>(30)
   const [chartMode, setChartMode] = useState<'line' | 'candles'>('line')
   const [orderOpen, setOrderOpen] = useState(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const titleCollapsed = useCollapsingTitle(titleRef)
 
   const detail = useQuery({
     queryKey: ['assets', 'detail', category, symbol],
@@ -138,6 +141,19 @@ export function AssetDetailPage() {
   const rangeUp = first != null && last != null ? last >= first : true
 
   return (
+    <>
+      {/* Zero-height sticky anchor, so the bar adds no layout space while it is faded out. */}
+      <div className="sticky top-0 z-30 h-0">
+        <div
+          aria-hidden={!titleCollapsed}
+          className={cn(
+            'glass safe-top absolute inset-x-0 top-0 truncate border-b px-4 py-2 text-sm font-medium transition-opacity duration-fast',
+            titleCollapsed ? 'opacity-100' : 'pointer-events-none opacity-0',
+          )}
+        >
+          {a.name} <span className="font-mono text-xs uppercase text-muted-foreground">{a.symbol}</span>
+        </div>
+      </div>
     <div className="space-y-6">
       <PageHeader
         title=""
@@ -160,7 +176,7 @@ export function AssetDetailPage() {
         </Button>
         {a.logoUrl ? <img src={a.logoUrl} alt="" className="h-8 w-8 rounded-full" /> : null}
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold">
+          <h1 ref={titleRef} className="flex items-center gap-2 text-xl font-semibold">
             {a.name}
             <span className="font-mono text-sm uppercase text-muted-foreground">{a.symbol}</span>
           </h1>
@@ -279,5 +295,6 @@ export function AssetDetailPage() {
 
       <OrderDialog open={orderOpen} onOpenChange={setOrderOpen} defaultSymbol={symbol} liveMode={t212Mode === 'live'} />
     </div>
+    </>
   )
 }

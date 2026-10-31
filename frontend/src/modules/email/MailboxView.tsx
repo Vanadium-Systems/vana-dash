@@ -1,11 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Forward, Paperclip, RefreshCw, Reply, ShieldAlert, Star, Trash2, X } from 'lucide-react'
+import { Archive, ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Forward, Mail, MailOpen, Paperclip, RefreshCw, Reply, ShieldAlert, Star, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
-import { Skeleton } from '@/shared/components/ui/skeleton'
+import { Checkbox } from '@/shared/components/ui/checkbox'
+import { ContextMenu, useContextMenu } from '@/shared/components/ui/context-menu'
+import { DropdownMenuItem, MenuShortcut } from '@/shared/components/ui/dropdown-menu'
+import { SelectionBar } from '@/shared/components/ui/selection-bar'
+import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
+import { useHotkeys } from '@/shared/hooks/use-hotkeys'
+import { useSelection } from '@/shared/hooks/use-selection'
+import { useUrlState } from '@/shared/hooks/use-url-state'
+import { undoToast } from '@/shared/lib/undo-toast'
+import { FileViewer, type ViewerFile } from '@/shared/components/FileViewer'
+import { usePageRefresh } from '@/shared/hooks/use-pull-to-refresh'
+import { useSwipeRow } from '@/shared/hooks/use-swipe-row'
+import { haptic } from '@/shared/lib/haptics'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { api } from '@/shared/lib/api'
 import { dismissDeliveredNotificationsByTag } from '@/shared/lib/native-push'
@@ -18,7 +30,6 @@ import { extractEmailAddress } from './identity'
 import { identitiesFor } from './IdentityField'
 import { HtmlMessageBody } from './HtmlMessageBody'
 import { SnoozeMenu } from './SnoozeMenu'
-import { useConsumeParam } from '@/shared/hooks/use-consume-param'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
@@ -95,25 +106,29 @@ function MessageBody({ text }: { text: string }) {
   )
 }
 
-function AttachmentRow({ attachment }: { attachment: EmailAttachmentMeta }) {
+const attachmentUrl = (attachment: EmailAttachmentMeta) => `/api/email/attachments/${attachment.id}/download`
+
+// Opens over the page with the thread's other files a ← → away (E12), instead of a new tab or a download.
+function AttachmentRow({ attachment, onOpen }: { attachment: EmailAttachmentMeta; onOpen: () => void }) {
   const isImage = attachment.contentType?.startsWith('image/')
   const isPdf = attachment.contentType === 'application/pdf'
-  const url = `/api/email/attachments/${attachment.id}/download`
   if (isImage) {
     return (
-      <a href={url} target="_blank" rel="noreferrer" className="block w-fit max-w-full">
-        <img src={url} alt={attachment.filename} loading="lazy" className="max-h-40 rounded-md border" />
+      <button type="button" onClick={onOpen} className="block w-fit max-w-full text-left">
+        <img src={attachmentUrl(attachment)} alt={attachment.filename} loading="lazy" className="max-h-40 rounded-md border" />
         <p className="mt-1 max-w-40 truncate text-xs text-muted-foreground">{attachment.filename}</p>
-      </a>
+      </button>
     )
   }
   return (
-    <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted">
+    <button type="button" onClick={onOpen} className="flex max-w-full items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted">
       {isPdf ? <FileText className="h-4 w-4 shrink-0 text-destructive" /> : <Download className="h-4 w-4 shrink-0" />}
       <span className="truncate">{attachment.filename}</span>
-    </a>
+    </button>
   )
 }
+
+const isListedAttachment = (attachment: EmailAttachmentMeta) => attachment.disposition !== 'inline'
 
 interface ThreadDetailProps {
   threadId: string
@@ -135,6 +150,7 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
     return member ? memberName(member) : 'altcineva'
   }
 
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const detail = useQuery({
     queryKey: ['email', 'threads', threadId],
     queryFn: () => api.get<{ thread: EmailThread; messages: EmailMessage[] }>(`/api/email/threads/${threadId}`),
@@ -172,18 +188,18 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
       })
   }, [detail.data, onChanged, queryClient, threadId])
 
-  const applyFolder = useMutation({
-    mutationFn: (folder: 'archive' | 'trash' | 'spam') => {
+  const applyFolder = {
+    mutate: (folder: MoveFolder) => {
       const ids = (detail.data?.messages ?? []).filter((m) => m.direction === 'in').map((m) => m.id)
-      return api.post('/api/email/messages/bulk-update', { ids, patch: { folder } })
-    },
-    onSuccess: () => {
-      onChanged()
+      const origin = detail.data?.thread.folder ?? 'inbox'
       onBack()
-      toast.success(t('common:states.updated'))
+      void undoToast(
+        t(`email:toasts.moved.${folder}`, { count: 1 }),
+        () => api.post('/api/email/messages/bulk-update', { ids, patch: { folder } }).then(onChanged),
+        () => api.post('/api/email/messages/bulk-update', { ids, patch: { folder: origin } }).then(onChanged),
+      )
     },
-    onError: (err) => toast.error(err.message),
-  })
+  }
 
   const snooze = useMutation({
     mutationFn: (until: string) => {
@@ -210,6 +226,10 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
   if (detail.isError || !detail.data) return <p className="text-sm text-destructive">{t('email:thread.loadFailed')}</p>
 
   const { thread, messages } = detail.data
+  const threadFiles: ViewerFile[] = messages.flatMap((m) =>
+    m.attachments.filter(isListedAttachment).map((a) => ({ id: a.id, name: a.filename, url: attachmentUrl(a), mimeType: a.contentType ?? '' })),
+  )
+  const openFile = (attachmentId: string) => setViewerIndex(threadFiles.findIndex((file) => file.id === attachmentId))
   // messages vine sortat descrescător de la backend (cel mai recent primul) — primul inbound
   // găsit AICI e deja cel mai recent, fără reverse.
   const lastInbound = messages.find((m) => m.direction === 'in')
@@ -290,7 +310,7 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
                   {m.attachments
                     .filter((a) => a.disposition !== 'inline')
                     .map((a) => (
-                      <AttachmentRow key={a.id} attachment={a} />
+                      <AttachmentRow key={a.id} attachment={a} onOpen={() => openFile(a.id)} />
                     ))}
                 </div>
               ) : null}
@@ -305,7 +325,151 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
           ))}
         </div>
       </CardContent>
+      {viewerIndex !== null && viewerIndex >= 0 ? (
+        <FileViewer
+          files={threadFiles}
+          index={viewerIndex}
+          onIndexChange={setViewerIndex}
+          onClose={() => setViewerIndex(null)}
+          onDownload={(file) => void api.download(file.url, file.name).catch((err: Error) => toast.error(err.message))}
+        />
+      ) : null}
     </Card>
+  )
+}
+
+// Archive, spam and trash say what they did and can be undone (E8); undo puts each thread back in
+// the folder it came from. Sequential on purpose: the bulk route shares the global rate limit.
+async function moveThreads(threads: EmailThread[], folder: MoveFolder, onDone: () => void) {
+  const withMessage = threads.filter((thread) => thread.latestMessageId)
+  if (withMessage.length === 0) return
+  const ids = withMessage.map((thread) => thread.latestMessageId as string)
+  const byOrigin = new Map<string, string[]>()
+  for (const thread of withMessage) {
+    const origin = thread.folder ?? 'inbox'
+    byOrigin.set(origin, [...(byOrigin.get(origin) ?? []), thread.latestMessageId as string])
+  }
+  await undoToast(
+    t(`email:toasts.moved.${folder}`, { count: ids.length }),
+    () => api.post('/api/email/messages/bulk-update', { ids, patch: { folder } }).then(onDone),
+    async () => {
+      for (const [origin, originIds] of byOrigin) await api.post('/api/email/messages/bulk-update', { ids: originIds, patch: { folder: origin } })
+      onDone()
+    },
+  )
+}
+
+type MoveFolder = 'archive' | 'spam' | 'trash'
+
+function ThreadRow({
+  thread,
+  opened,
+  selected,
+  showFolderBadge,
+  onActivate,
+  onToggle,
+  onLongPress,
+  onMove,
+  onMarkRead,
+}: {
+  thread: EmailThread
+  opened: boolean
+  selected: boolean
+  showFolderBadge: boolean
+  onActivate: (e: MouseEvent) => void
+  onToggle: () => void
+  onLongPress: { start: () => void; cancel: () => void }
+  onMove: (folder: MoveFolder) => void
+  onMarkRead: (isRead: boolean) => void
+}) {
+  const contextMenu = useContextMenu()
+  // Swipe left on a phone moves the thread to Trash, with the same undo as the menu (E31).
+  const swipe = useSwipeRow({
+    onSwipeLeft: () => {
+      void haptic('tap')
+      onMove('trash')
+    },
+  })
+  return (
+    <div className="relative overflow-hidden rounded-md">
+      {swipe.offset < 0 ? (
+        <div aria-hidden="true" className="absolute inset-0 flex items-center justify-end bg-destructive px-4 text-destructive-foreground">
+          <Trash2 className="h-5 w-5" />
+        </div>
+      ) : null}
+      <div
+        className={cn('relative flex items-start gap-2 rounded-md bg-card p-2 text-sm transition-colors hover:bg-muted', (opened || selected) && 'bg-muted')}
+        onContextMenu={contextMenu.onContextMenu}
+        style={swipe.style}
+        {...swipe.handlers}
+      >
+        <Checkbox className="mt-0.5" checked={selected} onChange={onToggle} onClick={(e) => e.stopPropagation()} aria-label={thread.subject || t('email:labels.noSubject')} />
+        <button
+          className="flex min-w-0 flex-1 select-none items-start gap-1.5 text-left"
+          onClick={onActivate}
+          onTouchStart={onLongPress.start}
+          onTouchEnd={onLongPress.cancel}
+          onTouchMove={onLongPress.cancel}
+        >
+          {!thread.isRead ? (
+            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive" title={t('common:states.unread')} />
+          ) : (
+            <span className="mt-1.5 h-2 w-2 shrink-0" />
+          )}
+          <span className="min-w-0 flex-1">
+            <p className={cn('flex items-center gap-1', !thread.isRead && 'font-semibold')}>
+              <span className="min-w-0 truncate">
+                {thread.isStarred ? <Star className="mr-1 inline h-3 w-3 fill-warning text-warning" /> : null}
+                {thread.subject || t('email:labels.noSubject')}
+              </span>
+              {thread.attachmentNames.length > 0 ? (
+                <span
+                  className="ml-auto flex shrink-0 items-center gap-0.5 text-xs font-normal text-muted-foreground"
+                  title={thread.attachmentNames.join(', ')}
+                >
+                  <Paperclip className="h-3 w-3 shrink-0" />
+                  {thread.attachmentNames.length > 1 ? <span className="shrink-0">{thread.attachmentNames.length}·</span> : null}
+                  <span className="max-w-[110px] truncate">{thread.attachmentNames.join(', ')}</span>
+                </span>
+              ) : null}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">{thread.fromAddress ?? thread.participants.join(', ')}</p>
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="shrink-0">{formatDateTime(thread.lastMessageAt)}</span>
+              <span className="ml-auto flex min-w-0 items-center gap-1">
+                {thread.toAddress ? (
+                  <span className="truncate rounded bg-muted px-1 py-0.5" title={t('email:list.receivedOn', { toAddress: thread.toAddress })}>
+                    → {thread.toAddress}
+                  </span>
+                ) : null}
+                {showFolderBadge && thread.folder && FOLDER_BADGE_LABEL[thread.folder] ? (
+                  <span className="shrink-0 rounded bg-muted px-1 py-0.5">{FOLDER_BADGE_LABEL[thread.folder]}</span>
+                ) : null}
+              </span>
+            </p>
+          </span>
+        </button>
+        <ContextMenu state={contextMenu}>
+          <DropdownMenuItem onClick={() => onMove('archive')}>
+            <Archive className="h-4 w-4" /> {t('common:actions.archive')}
+            <MenuShortcut>E</MenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onMarkRead(!thread.isRead)}>
+            {thread.isRead ? <MailOpen className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
+            {thread.isRead ? t('common:states.unread') : t('email:list.read')}
+            <MenuShortcut>{thread.isRead ? `${t('common:keys.shift')} U` : `${t('common:keys.shift')} I`}</MenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onMove('spam')}>
+            <ShieldAlert className="h-4 w-4" /> {t('email:folders.spam')}
+            <MenuShortcut>!</MenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem destructive onClick={() => onMove('trash')}>
+            <Trash2 className="h-4 w-4" /> {t('common:actions.delete')}
+            <MenuShortcut>#</MenuShortcut>
+          </DropdownMenuItem>
+        </ContextMenu>
+      </div>
+    </div>
   )
 }
 
@@ -333,10 +497,9 @@ export function MailboxView({
       return next
     })
   }
-  const [search, setSearch] = useState('')
-  useConsumeParam('q', setSearch)
+  // In the URL, so a search survives reload and Back and can be linked to (E25).
+  const [search, setSearch] = useUrlState('q')
   const [toAddress, setToAddress] = useState('')
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [pageSize, setPageSize] = useState(50)
   const [page, setPage] = useState(0)
   const debouncedSearch = useDebounced(search, 300)
@@ -367,7 +530,7 @@ export function MailboxView({
       return
     }
     setSelectedId(null)
-    setSelected(new Set())
+    selection.clear()
     setPage(0)
   }, [view.folder, view.starred, view.snoozed, view.labelId, debouncedSearch, toAddress, pageSize])
 
@@ -391,8 +554,12 @@ export function MailboxView({
     // (websocket ar fi bloat pt. un singur utilizator) frontend-ul nu știe altfel. 30s.
     refetchInterval: 30_000,
   })
-  const items = threads.data?.items ?? []
+  usePageRefresh(() => threads.refetch())
+  const items = useMemo(() => threads.data?.items ?? [], [threads.data])
   const total = threads.data?.total ?? 0
+  const threadIds = useMemo(() => items.map((thread) => thread.id), [items])
+  const selection = useSelection(threadIds)
+  const selectedThreads = items.filter((thread) => selection.selected.has(thread.id))
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['email', 'threads'] })
@@ -400,26 +567,35 @@ export function MailboxView({
   }
 
   const bulkUpdate = useMutation({
-    mutationFn: (patch: { folder?: string; isRead?: boolean; snoozedUntil?: string }) => {
-      const ids = items.filter((thread) => selected.has(thread.id) && thread.latestMessageId).map((thread) => thread.latestMessageId as string)
+    mutationFn: ({ targets, patch }: { targets: EmailThread[]; patch: { isRead?: boolean; snoozedUntil?: string } }) => {
+      const ids = targets.filter((thread) => thread.latestMessageId).map((thread) => thread.latestMessageId as string)
       return api.post('/api/email/messages/bulk-update', { ids, patch })
     },
     onSuccess: () => {
       invalidate()
-      setSelected(new Set())
-      toast.success(t('common:states.updated'))
+      selection.clear()
     },
     onError: (err) => toast.error(err.message),
   })
 
-  const toggleSelected = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+  const move = (targets: EmailThread[], folder: MoveFolder) => {
+    selection.clear()
+    void moveThreads(targets, folder, invalidate)
   }
+
+  // A right click on a selected row acts on the whole selection, as in a file manager.
+  const targetsFor = (thread: EmailThread) => (selection.selected.has(thread.id) ? selectedThreads : [thread])
+
+  useHotkeys(
+    [
+      { keys: 'e', label: t('common:actions.archive'), onKey: () => move(selectedThreads, 'archive') },
+      { keys: 'shift+#', label: t('common:actions.delete'), onKey: () => move(selectedThreads, 'trash') },
+      { keys: 'shift+!', label: t('email:folders.spam'), onKey: () => move(selectedThreads, 'spam') },
+      { keys: 'shift+i', label: t('email:list.read'), onKey: () => bulkUpdate.mutate({ targets: selectedThreads, patch: { isRead: true } }) },
+      { keys: 'shift+u', label: t('common:states.unread'), onKey: () => bulkUpdate.mutate({ targets: selectedThreads, patch: { isRead: false } }) },
+    ],
+    { enabled: selection.count > 0 && !selectedId },
+  )
 
   // Selecție tip file-manager (Stefan, 2026-09-03): desktop — Ctrl/Cmd+click pe rând = toggle
   // checkbox, ca în Explorer/Finder. Mobil — apăsare lungă (fără click dreapta) intră în "mod
@@ -434,7 +610,7 @@ export function MailboxView({
     longPressFired.current = false
     longPressTimer.current = setTimeout(() => {
       longPressFired.current = true
-      toggleSelected(id)
+      selection.toggle(id)
     }, LONG_PRESS_MS)
   }
   function cancelLongPress() {
@@ -446,10 +622,7 @@ export function MailboxView({
       longPressFired.current = false
       return
     }
-    if (e.ctrlKey || e.metaKey || selected.size > 0) {
-      toggleSelected(id)
-      return
-    }
+    if (selection.onRowClick(e, id)) return
     setSelectedId(id)
   }
 
@@ -493,34 +666,10 @@ export function MailboxView({
             <RefreshCw className={cn('h-4 w-4', threads.isFetching && 'animate-spin')} />
           </Button>
         </div>
-        {selected.size > 0 ? (
-          <div className="flex flex-wrap items-center gap-1 rounded-md border bg-muted/50 p-1.5">
-            <Button variant="ghost" size="icon-sm" title={t('email:list.clearSelection')} onClick={() => setSelected(new Set())}>
-              <X className="h-3.5 w-3.5" />
-            </Button>
-            <span className="px-1 text-xs text-muted-foreground">{t('email:list.selected', { size: selected.size })}</span>
-            <Button variant="outline" onClick={() => bulkUpdate.mutate({ folder: 'archive' })}>
-              <Archive className="h-3.5 w-3.5" />
-            </Button>
-            <SnoozeMenu onSnooze={(until) => bulkUpdate.mutate({ snoozedUntil: until })} disabled={bulkUpdate.isPending} />
-            <Button variant="outline" onClick={() => bulkUpdate.mutate({ folder: 'spam' })}>
-              <ShieldAlert className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="outline" onClick={() => bulkUpdate.mutate({ folder: 'trash' })}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="outline" onClick={() => bulkUpdate.mutate({ isRead: true })}>
-              {t('email:list.read')}
-            </Button>
-            <Button variant="outline" onClick={() => bulkUpdate.mutate({ isRead: false })}>
-              {t('common:states.unread')}
-            </Button>
-          </div>
-        ) : null}
         <Card>
           <CardContent className="pt-6">
             {threads.isPending ? (
-              <Skeleton className="h-64 w-full" />
+              <ListSkeleton rows={8} lines={3} />
             ) : threads.isError ? (
               <p className="text-sm">
                 {t('email:list.loadFailed')}{' '}
@@ -544,67 +693,18 @@ export function MailboxView({
             ) : (
               <div className="space-y-1">
                 {items.map((thread) => (
-                  <div
+                  <ThreadRow
                     key={thread.id}
-                    className={cn(
-                      'flex animate-in items-start gap-2 rounded-md p-2 text-sm transition-colors fade-in-0 duration-200 ease-out hover:bg-muted',
-                      selectedId === thread.id && 'bg-muted',
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={selected.has(thread.id)}
-                      onChange={() => toggleSelected(thread.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <button
-                      className="flex min-w-0 flex-1 select-none items-start gap-1.5 text-left"
-                      onClick={(e) => handleRowActivate(e, thread.id)}
-                      onContextMenu={(e) => e.preventDefault()}
-                      onTouchStart={() => startLongPress(thread.id)}
-                      onTouchEnd={cancelLongPress}
-                      onTouchMove={cancelLongPress}
-                    >
-                      {!thread.isRead ? (
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive" title={t('common:states.unread')} />
-                      ) : (
-                        <span className="mt-1.5 h-2 w-2 shrink-0" />
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <p className={cn('flex items-center gap-1', !thread.isRead && 'font-semibold')}>
-                          <span className="min-w-0 truncate">
-                            {thread.isStarred ? <Star className="mr-1 inline h-3 w-3 fill-warning text-warning" /> : null}
-                            {thread.subject || t('email:labels.noSubject')}
-                          </span>
-                          {thread.attachmentNames.length > 0 ? (
-                            <span
-                              className="ml-auto flex shrink-0 items-center gap-0.5 text-xs font-normal text-muted-foreground"
-                              title={thread.attachmentNames.join(', ')}
-                            >
-                              <Paperclip className="h-3 w-3 shrink-0" />
-                              {thread.attachmentNames.length > 1 ? <span className="shrink-0">{thread.attachmentNames.length}·</span> : null}
-                              <span className="max-w-[110px] truncate">{thread.attachmentNames.join(', ')}</span>
-                            </span>
-                          ) : null}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">{thread.fromAddress ?? thread.participants.join(', ')}</p>
-                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <span className="shrink-0">{formatDateTime(thread.lastMessageAt)}</span>
-                          <span className="ml-auto flex min-w-0 items-center gap-1">
-                            {thread.toAddress ? (
-                              <span className="truncate rounded bg-muted px-1 py-0.5" title={t('email:list.receivedOn', { toAddress: thread.toAddress })}>
-                                → {thread.toAddress}
-                              </span>
-                            ) : null}
-                            {showFolderBadge && thread.folder && FOLDER_BADGE_LABEL[thread.folder] ? (
-                              <span className="shrink-0 rounded bg-muted px-1 py-0.5">{FOLDER_BADGE_LABEL[thread.folder]}</span>
-                            ) : null}
-                          </span>
-                        </p>
-                      </span>
-                    </button>
-                  </div>
+                    thread={thread}
+                    opened={selectedId === thread.id}
+                    selected={selection.selected.has(thread.id)}
+                    showFolderBadge={showFolderBadge}
+                    onActivate={(e) => handleRowActivate(e, thread.id)}
+                    onToggle={() => selection.toggle(thread.id)}
+                    onLongPress={{ start: () => startLongPress(thread.id), cancel: cancelLongPress }}
+                    onMove={(folder) => move(targetsFor(thread), folder)}
+                    onMarkRead={(isRead) => bulkUpdate.mutate({ targets: targetsFor(thread), patch: { isRead } })}
+                  />
                 ))}
               </div>
             )}
@@ -653,6 +753,26 @@ export function MailboxView({
           </div>
         ) : null}
       </div>
+      {selectedId ? null : (
+        <SelectionBar count={selection.count} allSelected={selection.allSelected} onSelectAll={selection.selectAll} onClear={selection.clear}>
+          <Button variant="ghost" size="icon-sm" title={t('common:actions.archive')} aria-label={t('common:actions.archive')} onClick={() => move(selectedThreads, 'archive')}>
+            <Archive className="h-4 w-4" />
+          </Button>
+          <SnoozeMenu onSnooze={(until) => bulkUpdate.mutate({ targets: selectedThreads, patch: { snoozedUntil: until } })} disabled={bulkUpdate.isPending} />
+          <Button variant="ghost" size="icon-sm" title={t('email:folders.spam')} aria-label={t('email:folders.spam')} onClick={() => move(selectedThreads, 'spam')}>
+            <ShieldAlert className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title={t('common:actions.delete')} aria-label={t('common:actions.delete')} onClick={() => move(selectedThreads, 'trash')}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => bulkUpdate.mutate({ targets: selectedThreads, patch: { isRead: true } })}>
+            {t('email:list.read')}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => bulkUpdate.mutate({ targets: selectedThreads, patch: { isRead: false } })}>
+            {t('common:states.unread')}
+          </Button>
+        </SelectionBar>
+      )}
       {selectedId ? (
         <ThreadDetail
           threadId={selectedId}

@@ -79,7 +79,7 @@ export function NotesPage() {
             <Card
               key={note.id}
               interactive
-              className="animate-in cursor-pointer fade-in-0 duration-200 ease-out"
+              className="cursor-pointer"
               onClick={() => openEdit(note)}
             >
               <CardContent className="space-y-2 pt-6">

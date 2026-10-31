@@ -198,6 +198,15 @@
     "searchFailed": "Nu am putut căuta. Încearcă din nou.",
     "nothingFor": "Nimic pentru „{{term}}”."
   },
+  "shortcuts": {
+    "title": "Scurtături de tastatură",
+    "help": "Arată scurtăturile",
+    "search": "Caută în aplicație"
+  },
+  "viewer": {
+    "previous": "Fișierul anterior",
+    "next": "Fișierul următor"
+  },
   "nav": {
     "reports": "Rapoarte",
     "plan": "Plan",
@@ -293,6 +302,7 @@
     "forThisPage": "Ghidurile acestei pagini"
   },
   "period": {
+    "label": "Perioadă",
     "currentMonth": "Luna curentă",
     "currentYear": "Anul curent"
   },
@@ -388,7 +398,9 @@
     "new": "noi",
     "logout": "Logout",
     "apkDownloaded": "APK descărcat — deschide-l din notificare pt. instalare",
-    "savedToDocuments": "Salvat în Documente: {{name}}"
+    "savedToDocuments": "Salvat în Documente: {{name}}",
+    "expandSidebar": "Extinde bara laterală",
+    "collapseSidebar": "Restrânge"
   },
   "emptyState": {
     "resetFilters": "Resetează filtrele"
@@ -472,6 +484,7 @@
   "money": {
     "converted": "≈ Sume în {{currency}}, convertite din lei la cursul BNR din ziua fiecărei înregistrări. Evidența rămâne în lei.",
     "noRate": "Nu există încă un curs BNR pentru {{currency}}, deci sumele sunt în lei.",
+    "hidden": "Sumă ascunsă",
     "convertedHint": "convertit la cursul BNR",
     "units": {
       "RON": "lei",
@@ -483,5 +496,19 @@
     "perPage": "{{size}} / pagină",
     "range": "{{from}}–{{to}} din {{total}}",
     "rowsPerPage": "Rânduri pe pagină"
+  },
+  "undo": {
+    "action": "Anulează",
+    "done": "Am anulat",
+    "failed": "Nu am putut anula"
+  },
+  "selection": {
+    "toolbar": "Acțiuni pe selecție",
+    "clear": "Golește selecția",
+    "all": "Selectează tot",
+    "count": "{{count}} selectate"
+  },
+  "keys": {
+    "shift": "Shift"
   }
 }

@@ -87,7 +87,6 @@ export function PrimiteTab() {
                 {(pageRecords ?? []).map((r) => (
                   <TableRow
                     key={r.id}
-                    className="animate-in fade-in-0 duration-200 ease-out"
                   >
                     <TableCell truncate className="font-medium">
                       {r.counterpartyName ?? '—'}
