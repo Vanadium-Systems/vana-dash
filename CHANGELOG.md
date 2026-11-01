@@ -4,6 +4,38 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-01: UX foundation
+
+### Added
+- Motion tokens on three levels (fast, standard, screen) plus glass and glow tokens in
+  `index.css` / `tailwind.config.js`, described in `DESIGN.md`. With reduced motion the fades
+  stay and the movement goes.
+- Shared pieces used by the module work that follows: `useSelection` with `SelectionBar`,
+  `undoToast`, `useHotkeys` with a `?` overlay, `useUrlState`, `SidePeek`, `Timeline`,
+  `FileViewer` (replaces the Messages-only `MediaViewer`), `Highlight`, `Money`, `NumberRoll`,
+  `ListSkeleton`, `PeriodSelect`, `Fab`, `ContextMenu`, `ResponsiveMenu` (bottom sheet on a
+  phone), the touch hooks (swipe row, pull to refresh, swipe navigation) and haptics in the
+  Android shell (new dependency `@capacitor/haptics`, so the APK needs a native rebuild to use it).
+- Email uses them first: range selection with a floating bar, right-click menu, undo after
+  archive / spam / delete, search kept in the URL, swipe to delete, attachments in the viewer.
+- Nav items prefetch a page's code and its first query on hover or focus, gated by the feature
+  the query needs (`shared/lib/prefetch.ts`, every page with a GET behind a feature).
+
+### Changed
+- The shell renders while the session loads and only the content waits for a page's code;
+  pages cross-fade where View Transitions exist. The sidebar shows icons only on narrow screens
+  and can be collapsed; "More" opens as a bottom sheet.
+- Lists load as row skeletons instead of one grey block, and amounts render through `Money`.
+- Empty lists use `EmptyState`, with a reset button when a filter hides everything (Notes,
+  Tenders, the Alerts history filtered by a rule, the Investments market).
+- The confirmation toast has a "View" action where the new object can land off screen: a new
+  Archive folder, a new Calendar event, a prospect turned into a client.
+- No cascading fades on list rows; toasts sit at the bottom on a phone.
+
+### Fixed
+- The Clients tab asked for the platform list without `platforme.view`, which logged a 403 for
+  colleagues without it.
+
 ## 2026-10-30: Company settings instead of fixed values, Zod 4
 
 ### Changed
