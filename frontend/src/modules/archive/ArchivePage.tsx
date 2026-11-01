@@ -393,9 +393,11 @@ export function ArchivePage() {
   const createFolder = useMutation({
     mutationFn: (name: string) =>
       api.post<ArchiveFolder>('/api/archive/folders', { name, parentId: currentFolderId ?? undefined }),
-    onSuccess: () => {
+    onSuccess: (folder) => {
       invalidate()
-      toast.success(t('archive:toasts.folderCreated'))
+      toast.success(t('archive:toasts.folderCreated'), {
+        action: { label: t('common:actions.view'), onClick: () => openFolder(folder.id) },
+      })
     },
     onError: (err) => toast.error(err.message),
   })
