@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
@@ -509,7 +510,11 @@ export function CryptoPage() {
                   ) : markets.isError ? (
                     <p className="pt-6 text-sm text-destructive">{(markets.error as Error).message}</p>
                   ) : !markets.data?.coins.length ? (
-                    <p className="pt-6 text-sm text-muted-foreground">{t('crypto:market.emptyCategory')}</p>
+                    <EmptyState
+                      kind={category === 'all' ? 'new' : 'filtered'}
+                      title={t('crypto:market.emptyCategory')}
+                      onReset={() => setPageParams({ page: 1, category: 'all' })}
+                    />
                   ) : (
                     <>
                       <Table>

@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
+import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import type { Prospect } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
@@ -17,6 +19,8 @@ interface PromoteProspectDialogProps {
 // Adresa e cerută explicit aici (billing_clients.address e NOT NULL) — nu punem placeholder fals.
 export function PromoteProspectDialog({ prospect, onOpenChange }: PromoteProspectDialogProps) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { can } = useMe()
   const [address, setAddress] = useState('')
   const [city, setCity] = useState('')
   const [county, setCounty] = useState('')
@@ -42,7 +46,12 @@ export function PromoteProspectDialog({ prospect, onOpenChange }: PromoteProspec
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
-      toast.success(t('pricing:promote.done'))
+      // The new client lives on another page; without `facturi.clienti` that page would be a 403.
+      toast.success(t('pricing:promote.done'), {
+        action: can('facturi.clienti')
+          ? { label: t('common:actions.view'), onClick: () => navigate('/accounting?tab=clienti') }
+          : undefined,
+      })
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),

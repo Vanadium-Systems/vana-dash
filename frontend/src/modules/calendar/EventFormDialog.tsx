@@ -49,9 +49,11 @@ interface EventFormDialogProps {
   meta?: Pick<CalendarOccurrence, 'access' | 'ownerUserId' | 'ownerName' | 'attendees' | 'isCommon'> | null
   /** Calendarele în care omul poate crea: al lui și cele primite cu „editează". */
   writableCalendars?: CalendarLayer[]
+  /** Jumps the view to a newly created event, which may fall outside the visible week or month. */
+  onShowEvent?: (startAt: Date) => void
 }
 
-export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writableCalendars = [] }: EventFormDialogProps) {
+export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writableCalendars = [], onShowEvent }: EventFormDialogProps) {
   const confirm = useConfirm()
   const queryClient = useQueryClient()
   const { can, session } = useMe()
@@ -152,9 +154,14 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
             calendarOwnerUserId: ownerId && ownerId !== session?.user.id ? ownerId : undefined,
           })
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: ['calendar'] })
-      toast.success(event ? t('calendar:toasts.eventUpdated') : t('calendar:toasts.eventCreated'))
+      toast.success(event ? t('calendar:toasts.eventUpdated') : t('calendar:toasts.eventCreated'), {
+        action:
+          !event && onShowEvent
+            ? { label: t('common:actions.view'), onClick: () => onShowEvent(new Date(saved.startAt)) }
+            : undefined,
+      })
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),

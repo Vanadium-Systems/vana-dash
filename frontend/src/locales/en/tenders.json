@@ -44,6 +44,7 @@
   "showArchived": "Show archived",
   "loadFailed": "The opportunities could not be loaded.",
   "empty": "No opportunity for the current filters.",
+  "noneYet": "No opportunity has come in yet.",
   "minTurnover": "Min. turnover: {{value}}",
   "notInterested": "Not interested",
   "exported_one": "{{count}} opportunity exported",

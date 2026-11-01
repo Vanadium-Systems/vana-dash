@@ -160,7 +160,20 @@ export function TendersPage() {
           ) : tenders.isError ? (
             <p className="text-sm text-destructive">{t('tenders:loadFailed')}</p>
           ) : rows.length === 0 ? (
-            <EmptyState kind="new" title={t('tenders:empty')} />
+            sourceFilter !== 'all' || onlyPriority || search || showArchived ? (
+              <EmptyState
+                kind="filtered"
+                title={t('tenders:empty')}
+                onReset={() => {
+                  setSourceFilter('all')
+                  setOnlyPriority(false)
+                  setSearch('')
+                  setShowArchived(false)
+                }}
+              />
+            ) : (
+              <EmptyState kind="new" title={t('tenders:noneYet')} />
+            )
           ) : (
             <>
               <Table>

@@ -382,6 +382,7 @@ export function CalendarPage() {
         prefill={prefill}
         meta={editingMeta}
         writableCalendars={writableCalendars}
+        onShowEvent={setAnchor}
       />
       {shareOpen && myId ? (
         <AccessShareDialog

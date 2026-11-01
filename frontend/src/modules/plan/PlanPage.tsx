@@ -8,6 +8,7 @@ import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { SidePeek, usePeek } from '@/shared/components/ui/side-peek'
@@ -178,7 +179,7 @@ function GoalList({
     reorder.mutate(nextOrder)
   }
 
-  if (!goals.length) return <p className="text-sm text-muted-foreground">{t('plan:emptyTrack')}</p>
+  if (!goals.length) return <EmptyState kind="new" title={t('plan:emptyTrack')} />
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

@@ -208,7 +208,7 @@ function ActiveAlertsSection() {
 
 /** Istoric complet al declanșărilor (Contract F) — filtrabil pe regulă prin ?rule=<id>,
  *  deep-link din chips-urile asistentului ([[alert:<id>]] → /alerts?rule=<id>). */
-function HistorySection({ ruleFilter }: { ruleFilter: string | null }) {
+function HistorySection({ ruleFilter, onClearRule }: { ruleFilter: string | null; onClearRule: () => void }) {
   const queryClient = useQueryClient()
   const rules = useQuery({
     queryKey: ['alert-rules'],
@@ -258,7 +258,11 @@ function HistorySection({ ruleFilter }: { ruleFilter: string | null }) {
           {history.isPending ? (
             <ListSkeleton rows={4} />
           ) : !filtered?.length ? (
-            <EmptyState kind="new" title={t('alerts:historyEmpty')} />
+            <EmptyState
+              kind={ruleFilter && history.data?.length ? 'filtered' : 'new'}
+              title={ruleFilter && history.data?.length ? t('alerts:historyEmptyForRule') : t('alerts:historyEmpty')}
+              onReset={onClearRule}
+            />
           ) : (
             // table-fixed + lățimi pe coloane: textul lung se taie cu „…" în loc să împingă tabelul
             // în scroll orizontal; coloanele secundare dispar pe ecrane înguste.
@@ -418,7 +422,7 @@ export function AlertsPage() {
           <ActiveAlertsSection />
         </TabsContent>
         <TabsContent value="istoric">
-          <HistorySection ruleFilter={ruleFilter} />
+          <HistorySection ruleFilter={ruleFilter} onClearRule={() => setSearchParams({ tab: 'istoric' })} />
         </TabsContent>
         <TabsContent value="reguli">
           <RulesSection />

@@ -44,6 +44,7 @@
   "showArchived": "Arată arhivate",
   "loadFailed": "Nu am putut încărca oportunitățile.",
   "empty": "Nicio oportunitate pentru filtrele curente.",
+  "noneYet": "Încă nu a apărut nicio oportunitate.",
   "minTurnover": "CA min: {{value}}",
   "notInterested": "Nu mă interesează",
   "exported_one": "{{count}} oportunitate exportată",

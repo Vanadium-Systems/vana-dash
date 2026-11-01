@@ -4,6 +4,7 @@ import { Download, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/shared/components/ui/button'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Label } from '@/shared/components/ui/label'
 import { Skeleton } from '@/shared/components/ui/skeleton'
@@ -81,7 +82,7 @@ function DeclarationCard({
         ) : preview.isError ? (
           <p className="text-sm text-destructive">{t('accounting:declarations.loadFailed', { month })}</p>
         ) : !preview.data.lines.length ? (
-          <p className="text-sm text-muted-foreground">{t('accounting:declarations.none', { month })}</p>
+          <EmptyState kind="new" title={t('accounting:declarations.none', { month })} />
         ) : (
           <>
             {preview.data.warnings.length > 0 ? (

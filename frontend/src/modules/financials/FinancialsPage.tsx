@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { KPICard } from '@/shared/components/KPICard'
@@ -129,7 +130,7 @@ export function FinancialsPage() {
           ) : pnl.isError ? (
             <ChartError message={t('common:states.loadFailed')} />
           ) : !categoryRows.length ? (
-            <p className="text-sm text-muted-foreground">{t('financials:empty')}</p>
+            <EmptyState kind="new" title={t('financials:empty')} />
           ) : (
             <Table>
               <TableHeader>
@@ -172,7 +173,7 @@ export function FinancialsPage() {
           ) : cashflow.isError ? (
             <ChartError message={t('common:states.loadFailed')} />
           ) : !cashflow.data?.length ? (
-            <p className="text-sm text-muted-foreground">{t('financials:empty')}</p>
+            <EmptyState kind="new" title={t('financials:empty')} />
           ) : (
             <div className="grid gap-3 sm:grid-cols-3">
               {cashflow.data.map((entry) => (

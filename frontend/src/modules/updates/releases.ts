@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-01T08:49:00+02:00',
+    title: {
+      ro: 'Filtrele goale se resetează dintr-un click',
+      en: 'Empty filters reset in one click',
+    },
+    body: {
+      ro: 'La Licitații, la istoricul Alertelor filtrat pe o regulă și la piața din Investiții, când filtrul nu lasă nimic pe ecran ai un buton care îl resetează. După ce adaugi un eveniment în Calendar, „Vezi” din mesajul de confirmare te duce la ziua lui, iar după ce transformi un prospect în client, te duce la Clienți.',
+      en: 'In Tenders, in the Alerts history filtered by a rule and in the Investments market, when the filter leaves nothing on screen a button resets it. After you add a Calendar event, “View” in the confirmation takes you to its day, and after you turn a prospect into a client it takes you to Clients.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-01T08:38:00+02:00',
     title: {
       ro: 'Paginile se încarcă din meniu, înainte de click',

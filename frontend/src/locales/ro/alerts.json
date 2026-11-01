@@ -38,6 +38,7 @@
   "historyHint": "Toate declanșările, inclusiv cele confirmate",
   "ackAll": "Confirmă tot",
   "historyEmpty": "Nicio declanșare în istoric.",
+  "historyEmptyForRule": "Regula asta nu s-a declanșat încă.",
   "labels": {
     "rule": "Regulă",
     "triggered": "Declanșat",

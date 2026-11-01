@@ -38,6 +38,7 @@
   "historyHint": "All triggers, including the confirmed ones",
   "ackAll": "Confirm all",
   "historyEmpty": "No trigger in the history.",
+  "historyEmptyForRule": "This rule has not triggered yet.",
   "labels": {
     "rule": "Rule",
     "triggered": "Triggered",
