@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-01T08:38:00+02:00',
+    title: {
+      ro: 'Paginile se încarcă din meniu, înainte de click',
+      en: 'Pages start loading from the menu, before you click',
+    },
+    body: {
+      ro: 'Când treci cu mouse-ul peste o pagină din meniu, primele ei date se cer deja, așa că la click apar aproape imediat. Listele goale arată acum la fel peste tot, iar la Notițe, când căutarea nu găsește nimic, ai un buton care o golește. În Arhivă, după ce creezi un folder, „Vezi” din mesajul de confirmare te duce direct în el.',
+      en: 'When you hover a page in the menu, its first data is already requested, so it shows almost at once when you click. Empty lists now look the same everywhere, and in Notes, when a search finds nothing, a button clears it. In Archive, after you create a folder, “View” in the confirmation takes you straight into it.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-10-31T12:05:00+02:00',
     title: {
       ro: 'Meniuri, selecție și scurtături ca într-o aplicație de pe calculator',
