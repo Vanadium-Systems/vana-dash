@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
@@ -67,7 +68,7 @@ export function SequencesTab() {
           ) : sequences.isError ? (
             <p className="text-sm text-destructive">{t('email:sequences.loadFailed')}</p>
           ) : !sequences.data?.length ? (
-            <p className="text-sm text-muted-foreground">{t('email:sequences.empty')}</p>
+            <EmptyState kind="new" title={t('email:sequences.empty')} />
           ) : (
             <Table>
               <TableHeader>

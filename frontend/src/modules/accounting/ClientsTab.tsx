@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
@@ -186,7 +187,7 @@ export function ClientsTab() {
           {clients.isPending ? (
             <ListSkeleton rows={4} />
           ) : !clients.data?.length ? (
-            <p className="text-sm text-muted-foreground">{t('accounting:clients.empty')}</p>
+            <EmptyState kind="new" title={t('accounting:clients.empty')} />
           ) : (
             <ClientsTable clients={clients.data} onEdit={openEdit} onDelete={askDelete} />
           )}

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Download, Eye } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
@@ -293,7 +294,7 @@ export function SentTab() {
         ) : sends.isError ? (
           <p className="text-sm text-destructive">{t('email:sent.loadFailed')}</p>
         ) : !items.length ? (
-          <p className="text-sm text-muted-foreground">{t('email:sent.empty')}</p>
+          <EmptyState kind="new" title={t('email:sent.empty')} />
         ) : (
           <Table>
             <TableHeader>

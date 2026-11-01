@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { api } from '@/shared/lib/api'
 import type { EmailDraft } from '@/shared/lib/types'
@@ -32,7 +33,7 @@ export function DraftsList({ onOpen }: { onOpen: (draft: EmailDraft) => void }) 
         ) : drafts.isError ? (
           <p className="text-sm text-destructive">{t('email:drafts.loadFailed')}</p>
         ) : !drafts.data?.length ? (
-          <p className="text-sm text-muted-foreground">{t('email:drafts.empty')}</p>
+          <EmptyState kind="new" title={t('email:drafts.empty')} />
         ) : (
           <div className="space-y-1">
             {drafts.data.map((d) => (

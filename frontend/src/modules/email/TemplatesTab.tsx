@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
@@ -52,7 +53,7 @@ export function TemplatesTab() {
           ) : templates.isError ? (
             <p className="text-sm text-destructive">{t('email:templates.loadFailed')}</p>
           ) : !templates.data?.length ? (
-            <p className="text-sm text-muted-foreground">{t('email:templates.empty')}</p>
+            <EmptyState kind="new" title={t('email:templates.empty')} />
           ) : (
             <Table>
               <TableHeader>

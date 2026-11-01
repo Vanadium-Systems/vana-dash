@@ -95,9 +95,7 @@ export function ConturiTab() {
           {accounts.isPending ? (
             <Skeleton className="h-20 w-full" />
           ) : !accounts.data?.length ? (
-            <p className="text-sm text-muted-foreground">
-              {t('reconciliation:accounts.empty')}
-            </p>
+            <EmptyState kind="new" title={t('reconciliation:accounts.empty')} />
           ) : (
             <Table>
               <TableHeader>

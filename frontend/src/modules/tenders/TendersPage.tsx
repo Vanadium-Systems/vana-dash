@@ -6,6 +6,7 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Input } from '@/shared/components/ui/input'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
@@ -159,7 +160,7 @@ export function TendersPage() {
           ) : tenders.isError ? (
             <p className="text-sm text-destructive">{t('tenders:loadFailed')}</p>
           ) : rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t('tenders:empty')}</p>
+            <EmptyState kind="new" title={t('tenders:empty')} />
           ) : (
             <>
               <Table>

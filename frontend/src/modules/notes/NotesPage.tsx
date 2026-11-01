@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { api } from '@/shared/lib/api'
@@ -70,9 +71,11 @@ export function NotesPage() {
           ))}
         </div>
       ) : !notes.data?.length ? (
-        <p className="text-sm text-muted-foreground">
-          {search ? t('notes:noneFound') : t('notes:empty')}
-        </p>
+        <EmptyState
+          kind={search ? 'filtered' : 'new'}
+          title={search ? t('notes:noneFound') : t('notes:empty')}
+          onReset={() => setSearch('')}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {notes.data.map((note) => (

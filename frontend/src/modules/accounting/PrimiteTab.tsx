@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
@@ -66,9 +67,7 @@ export function PrimiteTab() {
           {records.isPending ? (
             <ListSkeleton rows={4} />
           ) : !records.data?.length ? (
-            <p className="text-sm text-muted-foreground">
-              {t('accounting:received.empty')}
-            </p>
+            <EmptyState kind="new" title={t('accounting:received.empty')} />
           ) : (
             <Table>
               <TableHeader>

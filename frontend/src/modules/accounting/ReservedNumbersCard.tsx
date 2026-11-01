@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Skeleton } from '@/shared/components/ui/skeleton'
@@ -82,7 +83,7 @@ export function ReservedNumbersCard() {
         ) : reserved.isError ? (
           <p className="text-sm text-destructive">{t('accounting:reserved.loadFailed')}</p>
         ) : list.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('accounting:reserved.empty')}</p>
+          <EmptyState kind="new" title={t('accounting:reserved.empty')} />
         ) : (
           <Table>
             <TableHeader>

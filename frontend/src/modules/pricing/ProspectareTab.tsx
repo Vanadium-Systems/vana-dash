@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
@@ -382,9 +383,9 @@ export function ProspectareTab() {
           {prospects.isPending ? (
             <ListSkeleton rows={8} />
           ) : !prospects.data?.length ? (
-            <p className="text-sm text-muted-foreground">{t('pricing:prospects.empty')}</p>
+            <EmptyState kind="new" title={t('pricing:prospects.empty')} />
           ) : !visibleProspects.length ? (
-            <p className="text-sm text-muted-foreground">{t('pricing:prospects.noneMatchFiltersHint')}</p>
+            <EmptyState kind="filtered" title={t('pricing:prospects.noneMatchFiltersHint')} />
           ) : (
             <div>
               <Table>

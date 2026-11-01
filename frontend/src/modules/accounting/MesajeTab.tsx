@@ -3,6 +3,7 @@ import { Check, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { ChartError } from '@/shared/components/charts/chart-states'
@@ -43,9 +44,7 @@ export function MesajeTab() {
         ) : messages.isError ? (
           <ChartError message={t('accounting:spv.loadFailed')} />
         ) : !messages.data?.length ? (
-          <p className="text-sm text-muted-foreground">
-            {t('accounting:spv.empty', { DAYS })}
-          </p>
+          <EmptyState kind="new" title={t('accounting:spv.empty', { DAYS })} />
         ) : (
           <Table>
             <TableHeader>

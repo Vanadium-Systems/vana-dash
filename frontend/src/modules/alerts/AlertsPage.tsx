@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
@@ -139,7 +140,7 @@ function ActiveAlertsSection() {
     )
   }
   if (alerts.data.length === 0) {
-    return <p className="rounded-md bg-muted/50 px-3 py-10 text-center text-sm text-muted-foreground">{t('alerts:noneActive')}</p>
+    return <EmptyState kind="new" title={t('alerts:noneActive')} />
   }
 
   const isDesktop = window.matchMedia('(min-width: 1024px)').matches
@@ -257,7 +258,7 @@ function HistorySection({ ruleFilter }: { ruleFilter: string | null }) {
           {history.isPending ? (
             <ListSkeleton rows={4} />
           ) : !filtered?.length ? (
-            <p className="text-sm text-muted-foreground">{t('alerts:historyEmpty')}</p>
+            <EmptyState kind="new" title={t('alerts:historyEmpty')} />
           ) : (
             // table-fixed + lățimi pe coloane: textul lung se taie cu „…" în loc să împingă tabelul
             // în scroll orizontal; coloanele secundare dispar pe ecrane înguste.
@@ -334,7 +335,7 @@ function RulesSection() {
           {rules.isPending ? (
             <ListSkeleton rows={4} />
           ) : !rules.data?.length ? (
-            <p className="text-sm text-muted-foreground">{t('alerts:rule.none')}</p>
+            <EmptyState kind="new" title={t('alerts:rule.none')} />
           ) : (
             <Table className="table-fixed">
               <TableHeader>

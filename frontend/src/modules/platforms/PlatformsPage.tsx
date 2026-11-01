@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
@@ -77,7 +78,7 @@ export function PlatformsPage() {
           {platforms.isPending ? (
             <ListSkeleton rows={4} />
           ) : !platforms.data?.length ? (
-            <p className="text-sm text-muted-foreground">{t('platforms:empty')}</p>
+            <EmptyState kind="new" title={t('platforms:empty')} />
           ) : (
             <Table>
               <TableHeader>

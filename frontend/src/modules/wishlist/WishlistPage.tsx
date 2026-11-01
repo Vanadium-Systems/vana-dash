@@ -7,6 +7,7 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
@@ -208,7 +209,7 @@ export function WishlistPage() {
           {wishlist.isPending ? (
             <ListSkeleton rows={4} />
           ) : !wishlist.data?.items.length ? (
-            <p className="text-sm text-muted-foreground">{t('wishlist:empty')}</p>
+            <EmptyState kind="new" title={t('wishlist:empty')} />
           ) : (
             <Table>
               <TableHeader>
