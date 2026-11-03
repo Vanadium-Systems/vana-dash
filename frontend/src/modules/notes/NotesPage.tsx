@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pin, PinOff, Plus, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
@@ -42,6 +43,17 @@ export function NotesPage() {
     setEditingNote(note)
     setDialogOpen(true)
   }
+
+  // Link to a shared note: open it once the list has loaded (once per id, so closing it stays closed).
+  const linkedNoteId = useSearchParams()[0].get('note') ?? ''
+  const openedLinkRef = useRef('')
+  useEffect(() => {
+    if (!linkedNoteId || openedLinkRef.current === linkedNoteId) return
+    const linked = notes.data?.find((note) => note.id === linkedNoteId)
+    if (!linked) return
+    openedLinkRef.current = linkedNoteId
+    openEdit(linked)
+  }, [linkedNoteId, notes.data])
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { MessageSquareShare } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
 import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Input } from '@/shared/components/ui/input'
@@ -21,6 +23,7 @@ interface NoteFormDialogProps {
 export function NoteFormDialog({ open, onOpenChange, note }: NoteFormDialogProps) {
   const confirm = useConfirm()
   const queryClient = useQueryClient()
+  const { canShare, share, dialog: shareDialog } = useShareToMessages()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
 
@@ -84,6 +87,22 @@ export function NoteFormDialog({ open, onOpenChange, note }: NoteFormDialogProps
             <Button type="submit" className="flex-1" disabled={save.isPending}>
               {save.isPending ? t('common:states.saving') : t('common:actions.save')}
             </Button>
+            {note && canShare ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                title={t('messages:share.action')}
+                aria-label={t('messages:share.action')}
+                onClick={() => {
+                  // Closed first so the share dialog is not a second modal on top of this one.
+                  onOpenChange(false)
+                  share({ type: 'note', id: note.id, title: note.title })
+                }}
+              >
+                <MessageSquareShare className="h-4 w-4" />
+              </Button>
+            ) : null}
             {note ? (
               <Button
                 type="button"
@@ -99,6 +118,7 @@ export function NoteFormDialog({ open, onOpenChange, note }: NoteFormDialogProps
           </div>
         </form>
       </DialogContent>
+      {shareDialog}
     </Dialog>
   )
 }

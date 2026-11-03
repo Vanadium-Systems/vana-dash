@@ -68,11 +68,11 @@ describe('Ctrl K — Arhivă și Calendar', () => {
   it('proprietarul își găsește fișierul și evenimentul, cu drumul folderului și ziua din București', async () => {
     const groups = await search(stefan, marker)
     const file = groups.find((g) => g.group === 'Arhivă')!.items[0]!
-    expect(file.to).toBe(`/archive?folder=${contracte.id}`)
+    expect(file.to).toBe(`/archive?folder=${contracte.id}&file=${file.id}`)
     expect(file.sublabel).toContain('Contracte')
     const ev = groups.find((g) => g.group === 'Calendar')!.items[0]!
     // 21:30 UTC e deja 21 iulie la București.
-    expect(ev.to).toBe('/calendar?date=2026-07-21')
+    expect(ev.to).toBe(`/calendar?date=2026-07-21&event=${ev.id}`)
     expect(ev.sublabel).not.toContain(stefan.displayName!)
   })
 

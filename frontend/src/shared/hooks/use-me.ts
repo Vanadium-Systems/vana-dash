@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { api } from '@/shared/lib/api'
+import { applyMotionPref } from '@/shared/lib/motion'
 import type { FeatureKey, SessionPayload } from '@/shared/lib/types'
 
 // Cine e omul logat și ce poate face (PLAN.md C2, FE-2). Un singur query, același pe
@@ -34,6 +35,10 @@ export function useMe(): UseMe {
   })
 
   const session = query.data ?? null
+  const motionPref = session?.motionPref
+  useEffect(() => {
+    if (motionPref) applyMotionPref(motionPref)
+  }, [motionPref])
   const features = useMemo(() => new Set(session?.features ?? []), [session])
   const can = useCallback(
     (feature: FeatureKey | null | undefined) => (feature === null || feature === undefined || session === null ? true : features.has(feature)),

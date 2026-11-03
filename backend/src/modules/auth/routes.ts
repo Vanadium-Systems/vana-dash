@@ -50,6 +50,8 @@ export function sessionPayload(me: SessionUser) {
     enabledLocales: ENABLED_LOCALES,
     displayCurrency: me.displayCurrency,
     displayCurrencies: DISPLAY_CURRENCIES,
+    motionPref: me.motionPref ?? 'system',
+    hideAmounts: me.hideAmounts ?? false,
   }
 }
 
@@ -258,6 +260,8 @@ export async function passwordRoutes(app: FastifyInstance) {
     }
     if (req.body.displayCurrency !== undefined) patch.displayCurrency = req.body.displayCurrency
     if (req.body.displayName !== undefined) patch.displayName = req.body.displayName
+    if (req.body.motionPref !== undefined) patch.motionPref = req.body.motionPref
+    if (req.body.hideAmounts !== undefined) patch.hideAmounts = req.body.hideAmounts
     if (req.body.updatesSeenAt !== undefined) {
       patch.updatesSeenAt = new Date(Math.min(Date.parse(req.body.updatesSeenAt), Date.now()))
     }

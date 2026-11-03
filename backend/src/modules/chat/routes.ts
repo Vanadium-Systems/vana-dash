@@ -15,18 +15,27 @@ import {
   EditMessageSchema,
   ListMessagesQuerySchema,
   MarkReadSchema,
+  MediaQuerySchema,
   MessageIdParamsSchema,
+  ReactionParamsSchema,
+  RecentTargetsQuerySchema,
+  RefLookupQuerySchema,
+  SearchMessagesQuerySchema,
   SendMessageSchema,
   UpdateConversationSchema,
 } from './schema.js'
 import * as service from './service.js'
-import { ConversationForbiddenError, GroupPermissionError, MessageBodyError } from './service.js'
+import { ChatRequestError, ConversationForbiddenError, GroupPermissionError, MessageBodyError } from './service.js'
+import { RefFileTooLargeError } from '../../shared/lib/entity-refs.js'
 import { tr, trFor } from '../../shared/lib/i18n.js'
 
 const HEARTBEAT_INTERVAL_MS = 25_000
 // Mesajul apare și în notificarea push; trunchiem ca unul lung să nu umple bara de
 // notificări a telefonului.
 const PUSH_BODY_MAX = 140
+// "Typing" is published at most this often per person and conversation.
+const TYPING_THROTTLE_MS = 3_000
+const lastTyping = new Map<string, number>()
 
 function writeEvent(res: ServerResponse, event: ChatEvent): void {
   res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`)
@@ -40,6 +49,12 @@ export async function chatRoutes(app: FastifyInstance) {
   server.setErrorHandler((error, _req, reply) => {
     if (error instanceof ConversationForbiddenError) {
       return reply.code(404).send({ success: false, error: error.message })
+    }
+    if (error instanceof ChatRequestError) {
+      return reply.code(400).send({ success: false, error: { code: error.code } })
+    }
+    if (error instanceof RefFileTooLargeError) {
+      return reply.code(413).send({ success: false, error: { code: 'REF_FILE_TOO_LARGE', message: tr('errors.chat.refFileTooLarge') } })
     }
     if (error instanceof MessageBodyError) {
       return reply.code(400).send({ success: false, error: error.message })
@@ -102,6 +117,23 @@ export async function chatRoutes(app: FastifyInstance) {
 
   // ── Conversații ────────────────────────────────────────────────────────────
 
+  // Registered before `/conversations/:id` so the static segment wins.
+  server.get(
+    '/api/chat/conversations/recent-targets',
+    { preHandler: [app.authenticate], schema: { querystring: RecentTargetsQuerySchema } },
+    async (req) => ({ success: true, data: await service.recentTargets(req.me, req.query.q) }),
+  )
+
+  server.get('/api/chat/refs', { preHandler: [app.authenticate], schema: { querystring: RefLookupQuerySchema } }, async (req) => ({
+    success: true,
+    data: await service.conversationsWithRef(req.me, req.query.type, req.query.id),
+  }))
+
+  server.get('/api/chat/refs/preview', { preHandler: [app.authenticate], schema: { querystring: RefLookupQuerySchema } }, async (req) => ({
+    success: true,
+    data: await service.previewRef(req.me, req.query.type, req.query.id),
+  }))
+
   server.get('/api/chat/conversations', { preHandler: [app.authenticate] }, async (req) => {
     const list = await service.listConversations(req.me)
     const now = new Date()
@@ -156,7 +188,14 @@ export async function chatRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, body: SendMessageSchema } },
     async (req) => {
       const { id: conversationId } = req.params
-      const message = await service.sendMessage(req.me, conversationId, req.body)
+      await service.assertMember(conversationId, req.me.id)
+      const prepared = await service.prepareRefs(req.me, req.body.refs)
+      // Archive files travel as chat attachments: uploaded unattached, linked by sendMessage.
+      const copied: (string | undefined)[] = []
+      for (const ref of prepared.rows) {
+        copied.push(ref.file ? (await uploadAttachment(req.me, ref.file)).id : undefined)
+      }
+      const message = await service.sendMessage(req.me, conversationId, req.body, prepared, copied)
       publish({ type: 'message.created', conversationId, message }, await service.memberIds(conversationId))
       void notifyMembers(conversationId, message)
       return { success: true, data: message }
@@ -175,7 +214,61 @@ export async function chatRoutes(app: FastifyInstance) {
     },
   )
 
+  server.post(
+    '/api/chat/conversations/:id/typing',
+    { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema } },
+    async (req) => {
+      const { id: conversationId } = req.params
+      await service.assertMember(conversationId, req.me.id)
+      const key = `${req.me.id}:${conversationId}`
+      const now = Date.now()
+      if (now - (lastTyping.get(key) ?? 0) >= TYPING_THROTTLE_MS) {
+        lastTyping.set(key, now)
+        publish({ type: 'typing', conversationId, userId: req.me.id }, await service.memberIds(conversationId, req.me.id))
+      }
+      return { success: true }
+    },
+  )
+
+  server.get(
+    '/api/chat/conversations/:id/search',
+    { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, querystring: SearchMessagesQuerySchema } },
+    async (req) => ({ success: true, data: await service.searchMessages(req.me, req.params.id, req.query.q) }),
+  )
+
+  server.get(
+    '/api/chat/conversations/:id/media',
+    { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, querystring: MediaQuerySchema } },
+    async (req) => ({ success: true, data: await service.listMedia(req.me, req.params.id, req.query) }),
+  )
+
   // ── Mesaje ─────────────────────────────────────────────────────────────────
+
+  server.put(
+    '/api/chat/messages/:id/reactions/:emoji',
+    { preHandler: [app.authenticate], schema: { params: ReactionParamsSchema } },
+    async (req) => {
+      const { conversationId, reactions } = await service.addReaction(req.me, req.params.id, req.params.emoji)
+      publish(
+        { type: 'reaction.updated', conversationId, messageId: req.params.id, reactions },
+        await service.memberIds(conversationId),
+      )
+      return { success: true, data: { reactions } }
+    },
+  )
+
+  server.delete(
+    '/api/chat/messages/:id/reactions/:emoji',
+    { preHandler: [app.authenticate], schema: { params: ReactionParamsSchema } },
+    async (req) => {
+      const { conversationId, reactions } = await service.removeReaction(req.me, req.params.id, req.params.emoji)
+      publish(
+        { type: 'reaction.updated', conversationId, messageId: req.params.id, reactions },
+        await service.memberIds(conversationId),
+      )
+      return { success: true, data: { reactions } }
+    },
+  )
 
   server.patch(
     '/api/chat/messages/:id',
@@ -256,14 +349,18 @@ async function publishDelivered(userId: string, upTo: Date, conversationIds: str
  * Push doar către oamenii fără conexiune SSE deschisă: cine are fluxul deschis primește
  * mesajul prin el în aceeași secundă, iar o notificare pe telefon ar fi doar duplicat.
  */
-async function notifyMembers(conversationId: string, message: { authorUserId: string; body: string }): Promise<void> {
+async function notifyMembers(
+  conversationId: string,
+  message: { authorUserId: string; body: string; refs: { card: { title: string } }[] },
+): Promise<void> {
   try {
     const target = await service.pushTarget(conversationId, message.authorUserId)
     if (!target) return
     const offline = target.recipients.filter((userId) => !hasOpenConnection(userId))
     if (offline.length === 0) return
 
-    const text = message.body.trim()
+    // A message with only a shared object reads as the object's title.
+    const text = message.body.trim() || (message.refs[0]?.card.title ?? '')
     const summary = text.length > PUSH_BODY_MAX ? `${text.slice(0, PUSH_BODY_MAX)}…` : text
     await notifyPush(
       'mesaje',

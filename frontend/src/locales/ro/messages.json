@@ -7,7 +7,13 @@
     "gallery": "Galerie",
     "camera": "Cameră",
     "dropHere": "Lasă aici fișierul",
-    "placeholder": "Scrie un mesaj"
+    "placeholder": "Scrie un mesaj",
+    "attachedObjects": "Obiecte atașate",
+    "removeObject": "Scoate {{title}}",
+    "previewFile": "Vezi {{name}} mare",
+    "tooManyRefs_one": "Cel mult {{count}} obiect într-un mesaj",
+    "tooManyRefs_few": "Cel mult {{count}} obiecte într-un mesaj",
+    "tooManyRefs_other": "Cel mult {{count}} de obiecte într-un mesaj"
   },
   "list": {
     "group": "Grup",
@@ -21,7 +27,9 @@
     "groups": "Grupuri",
     "direct": "Directe",
     "noMessagesYet": "Niciun mesaj încă",
-    "muted": "Notificările sunt oprite"
+    "muted": "Notificările sunt oprite",
+    "photo": "Poză",
+    "youPrefix": "Tu:"
   },
   "presence": {
     "activeNow": "Activ acum",
@@ -63,6 +71,107 @@
       "sent": "Trimis",
       "delivered": "Livrat",
       "seen": "Văzut"
-    }
+    },
+    "jumpToLatest": "Mergi la ultimele mesaje",
+    "jumpToLatestCount_one": "Mergi jos, {{count}} mesaj nou",
+    "jumpToLatestCount_few": "Mergi jos, {{count}} mesaje noi",
+    "jumpToLatestCount_other": "Mergi jos, {{count}} de mesaje noi",
+    "newCount_one": "{{count}} mesaj nou",
+    "newCount_few": "{{count}} mesaje noi",
+    "newCount_other": "{{count}} de mesaje noi",
+    "newer": "Mesaje mai noi"
+  },
+  "actions": {
+    "reply": "Răspunde",
+    "copy": "Copiază",
+    "copied": "Text copiat",
+    "copyFailed": "Nu am putut copia textul",
+    "deleted": "Mesaj șters",
+    "react": "Reacționează",
+    "reactions": "Reacții",
+    "reactWith": "Reacționează cu {{emoji}}",
+    "reactionSummary_one": "{{emoji}} de la {{names}}",
+    "reactionSummary_few": "{{emoji}} de la {{count}} oameni: {{names}}",
+    "reactionSummary_other": "{{emoji}} de la {{count}} de oameni: {{names}}"
+  },
+  "reply": {
+    "to": "Răspunzi lui {{name}}",
+    "attachment": "Atașament",
+    "cancel": "Renunță la răspuns",
+    "jump": "Mergi la mesajul lui {{name}}"
+  },
+  "day": {
+    "today": "Azi",
+    "yesterday": "Ieri",
+    "jumpMenu": ", sari la altă zi",
+    "lastWeek": "Săptămâna trecută",
+    "lastMonth": "Luna trecută",
+    "pickDate": "Alege data…"
+  },
+  "keys": {
+    "previous": "Mesajul de mai sus",
+    "next": "Mesajul de mai jos"
+  },
+  "panel": {
+    "info": "Detalii conversație",
+    "search": "Caută în conversație",
+    "searchPlaceholder": "Caută un cuvânt",
+    "noResults": "Niciun mesaj nu conține textul",
+    "mute": "Fără notificări",
+    "media": "Poze",
+    "files": "Fișiere",
+    "noMedia": "Nicio poză trimisă încă",
+    "noFiles": "Niciun fișier trimis încă",
+    "more": "Mai multe",
+    "members_one": "{{count}} membru",
+    "members_few": "{{count}} membri",
+    "members_other": "{{count}} de membri"
+  },
+  "picker": {
+    "title": "Atașează un obiect",
+    "placeholder": "Caută client, factură, email, fișier, eveniment",
+    "hint": "Scrie cel puțin două litere.",
+    "none": "Nimic de atașat cu textul ăsta."
+  },
+  "refs": {
+    "untitled": "Fără titlu",
+    "denied": "N-ai acces",
+    "requestAccess": "Cere acces",
+    "requestAccessText": "Nu am acces la „{{title}}”. Mi-l poți da?",
+    "gone": "Șters",
+    "lastContact": "contactat {{when}}",
+    "types": {
+      "prospect": "Client",
+      "invoice": "Factură",
+      "email_thread": "Email",
+      "calendar_event": "Eveniment",
+      "archive_file": "Fișier",
+      "note": "Notiță"
+    },
+    "invoiceStatus": {
+      "unpaid": "neplătită",
+      "partial": "plătită parțial",
+      "paid": "plătită"
+    },
+    "deniedByRole": "Accesul îl dă un administrator",
+    "requestAccessAdminText": "Am nevoie de acces la {{type}} „{{title}}”. Mi-l poți da?"
+  },
+  "typing": {
+    "named_one": "{{names}} scrie…",
+    "named_few": "{{names}} scriu…",
+    "named_other": "{{names}} scriu…"
+  },
+  "share": {
+    "action": "Trimite în Mesaje",
+    "title": "Trimite în Mesaje",
+    "search": "Caută o conversație sau un coleg",
+    "recent": "Recente",
+    "colleagues": "Colegi",
+    "none": "Nicio conversație sau coleg cu numele ăsta.",
+    "comment": "Comentariu (opțional)",
+    "send": "Trimite",
+    "sent": "Trimis în {{title}}",
+    "open": "Deschide",
+    "quote": "Trimite selecția în Mesaje"
   }
 }

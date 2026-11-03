@@ -47,7 +47,7 @@ const canCreateCommon = (me: SessionUser) => me.features.includes('calendar.comu
 export type EventAccess = 'owner' | 'edit' | 'view'
 
 /** Condiția SQL „omul vede evenimentul", pentru lista de ocurențe. */
-function visibleCondition(me: SessionUser): SQL {
+export function visibleCondition(me: SessionUser): SQL {
   const manageAll = managesAllCalendars(me)
   return sql`(
     e."owner_user_id" = ${me.id}

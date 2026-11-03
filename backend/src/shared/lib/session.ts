@@ -3,6 +3,7 @@ import { db } from '../db/client.js'
 import { roles, tenants, userMailboxes, users } from '../db/schema/index.js'
 import { availableFeatures, PAGES } from './features.js'
 import type { DisplayCurrency, Locale } from './locale.js'
+import type { MotionPref } from '../db/schema/users.js'
 
 // Cine e omul din sesiune, cu tot ce trebuie ca să autorizeze un request (PLAN.md C2).
 // Un singur query pe request, indexat pe PK — de aceea rolul vine în același SELECT ca
@@ -46,6 +47,9 @@ export interface SessionUser {
   sessionVersion: number
   locale: Locale
   displayCurrency: DisplayCurrency
+  // Optional so the users built by hand in tests stay valid; absent = the defaults.
+  motionPref?: MotionPref
+  hideAmounts?: boolean
 }
 
 export const DEFAULT_NOTIFICATION_PREFS = { chat: 'all', emailNew: true, alerts: true } as const
@@ -101,6 +105,8 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
       updatesSeenAt: users.updatesSeenAt,
       locale: users.locale,
       displayCurrency: users.displayCurrency,
+      motionPref: users.motionPref,
+      hideAmounts: users.hideAmounts,
       roleId: roles.id,
       roleName: roles.name,
       roleKind: roles.kind,
@@ -156,6 +162,8 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
     sessionVersion: row.sessionVersion,
     locale: row.locale,
     displayCurrency: row.displayCurrency,
+    motionPref: row.motionPref,
+    hideAmounts: row.hideAmounts,
   }
 }
 

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MOTION_PREFS } from '../../shared/db/schema/users.js'
 import { DISPLAY_CURRENCIES, LOCALES } from '../../shared/lib/locale.js'
 
 export const LoginBodySchema = z.object({
@@ -19,6 +20,8 @@ export const PatchMeSchema = z.object({
     .optional(),
   locale: z.enum(LOCALES).optional(),
   displayCurrency: z.enum(DISPLAY_CURRENCIES).optional(),
+  motionPref: z.enum(MOTION_PREFS).optional(),
+  hideAmounts: z.boolean().optional(),
 })
 
 export const ForgotPasswordSchema = z.object({ email: z.string().email() })

@@ -52,7 +52,9 @@
     "dmHasNoNameOrMembers": "Un DM nu are nume sau membri noi",
     "ownerOrAdminOnly": "Doar owner-ul grupului sau un administrator poate face asta",
     "emptyMessage": "Mesaj gol",
-    "messageNotFound": "Mesaj inexistent"
+    "messageNotFound": "Mesaj inexistent",
+    "refNotFound": "Obiectul nu există sau nu ai acces la el",
+    "refFileTooLarge": "Fișierul e prea mare pentru Mesaje (peste 20 MB)"
   },
   "archive": {
     "spaceNotCreated": "Nu am putut crea spațiul de arhivă",

@@ -540,6 +540,13 @@
       "when": 1793265644806,
       "tag": "0076_company_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1793696892944,
+      "tag": "0077_messages_share",
+      "breakpoints": true
     }
   ]
 }

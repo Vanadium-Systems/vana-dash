@@ -7,7 +7,12 @@
     "gallery": "Gallery",
     "camera": "Camera",
     "dropHere": "Drop the file here",
-    "placeholder": "Write a message"
+    "placeholder": "Write a message",
+    "attachedObjects": "Attached objects",
+    "removeObject": "Remove {{title}}",
+    "previewFile": "View {{name}} large",
+    "tooManyRefs_one": "At most {{count}} object in a message",
+    "tooManyRefs_other": "At most {{count}} objects in a message"
   },
   "list": {
     "group": "Group",
@@ -21,7 +26,9 @@
     "groups": "Groups",
     "direct": "Direct",
     "noMessagesYet": "No message yet",
-    "muted": "Notifications are off"
+    "muted": "Notifications are off",
+    "photo": "Photo",
+    "youPrefix": "You:"
   },
   "presence": {
     "activeNow": "Active now",
@@ -62,6 +69,102 @@
       "sent": "Sent",
       "delivered": "Delivered",
       "seen": "Seen"
-    }
+    },
+    "jumpToLatest": "Go to latest messages",
+    "jumpToLatestCount_one": "Go down, {{count}} new message",
+    "jumpToLatestCount_other": "Go down, {{count}} new messages",
+    "newCount_one": "{{count}} new message",
+    "newCount_other": "{{count}} new messages",
+    "newer": "Newer messages"
+  },
+  "actions": {
+    "reply": "Reply",
+    "copy": "Copy",
+    "copied": "Text copied",
+    "copyFailed": "Could not copy the text",
+    "deleted": "Message deleted",
+    "react": "React",
+    "reactions": "Reactions",
+    "reactWith": "React with {{emoji}}",
+    "reactionSummary_one": "{{emoji}} from {{names}}",
+    "reactionSummary_other": "{{emoji}} from {{count}} people: {{names}}"
+  },
+  "reply": {
+    "to": "Replying to {{name}}",
+    "attachment": "Attachment",
+    "cancel": "Cancel reply",
+    "jump": "Go to {{name}}'s message"
+  },
+  "day": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "jumpMenu": ", jump to another day",
+    "lastWeek": "Last week",
+    "lastMonth": "Last month",
+    "pickDate": "Pick a date…"
+  },
+  "keys": {
+    "previous": "Message above",
+    "next": "Message below"
+  },
+  "panel": {
+    "info": "Conversation details",
+    "search": "Search in conversation",
+    "searchPlaceholder": "Search for a word",
+    "noResults": "No message contains the text",
+    "mute": "Mute notifications",
+    "media": "Photos",
+    "files": "Files",
+    "noMedia": "No photos sent yet",
+    "noFiles": "No files sent yet",
+    "more": "More",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members"
+  },
+  "picker": {
+    "title": "Attach an object",
+    "placeholder": "Search clients, invoices, emails, files, events",
+    "hint": "Type at least two letters.",
+    "none": "Nothing to attach for this text."
+  },
+  "refs": {
+    "untitled": "Untitled",
+    "denied": "No access",
+    "requestAccess": "Ask for access",
+    "requestAccessText": "I can't open “{{title}}”. Could you give me access?",
+    "gone": "Deleted",
+    "lastContact": "contacted {{when}}",
+    "types": {
+      "prospect": "Client",
+      "invoice": "Invoice",
+      "email_thread": "Email",
+      "calendar_event": "Event",
+      "archive_file": "File",
+      "note": "Note"
+    },
+    "invoiceStatus": {
+      "unpaid": "unpaid",
+      "partial": "partly paid",
+      "paid": "paid"
+    },
+    "deniedByRole": "An administrator gives access",
+    "requestAccessAdminText": "I need access to the {{type}} “{{title}}”. Could you give it to me?"
+  },
+  "typing": {
+    "named_one": "{{names}} is typing…",
+    "named_other": "{{names}} are typing…"
+  },
+  "share": {
+    "action": "Send to Messages",
+    "title": "Send to Messages",
+    "search": "Search a conversation or colleague",
+    "recent": "Recent",
+    "colleagues": "Colleagues",
+    "none": "No conversation or colleague by that name.",
+    "comment": "Comment (optional)",
+    "send": "Send",
+    "sent": "Sent to {{title}}",
+    "open": "Open",
+    "quote": "Send selection to Messages"
   }
 }

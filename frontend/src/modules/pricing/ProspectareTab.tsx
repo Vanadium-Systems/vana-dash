@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArchiveRestore, Calculator, Check, Download, Pencil, Trash2, Upload, UserPlus } from 'lucide-react'
+import { Archive, ArchiveRestore, Calculator, Check, Download, MessageSquareShare, Pencil, Trash2, Upload, UserPlus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
@@ -24,6 +24,8 @@ import { ProspectStatusesCard } from './ProspectStatusesCard'
 import { ScoringConfigCard } from './ScoringConfigCard'
 import { StatusDot } from './status-colors'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
+import { useFlashRow } from '@/shared/hooks/use-flash-row'
 import { useMe } from '@/shared/hooks/use-me'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
@@ -63,6 +65,9 @@ export function ProspectareTab() {
   const confirm = useConfirm()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { canShare, share, dialog: shareDialog } = useShareToMessages()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const focusId = searchParams.get('prospect') ?? ''
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Multi-select (bifabile) în loc de un singur status/prioritate selectat — cerut explicit
@@ -141,10 +146,12 @@ export function ProspectareTab() {
     (p) =>
       (statusFilter.length === 0 || statusFilter.includes(p.status)) &&
       (priorityFilter.length === 0 || priorityFilter.includes(p.priority)) &&
-      (!mineOnly || p.assignedUserId === session?.user.id),
+      (!mineOnly || p.assignedUserId === session?.user.id) &&
+      (!focusId || p.id === focusId),
   )
+  useFlashRow(focusId, visibleProspects.some((p) => p.id === focusId) && page === 0)
 
-  useEffect(() => setPage(0), [search, statusFilter, priorityFilter, mineOnly])
+  useEffect(() => setPage(0), [search, statusFilter, priorityFilter, mineOnly, focusId])
 
   const pageCount = Math.max(1, Math.ceil(visibleProspects.length / pageSize))
   const clampedPage = Math.min(page, pageCount - 1)
@@ -303,6 +310,17 @@ export function ProspectareTab() {
             >
               {t('pricing:prospects.mine')}
             </button>
+            {focusId ? (
+              <button
+                type="button"
+                aria-pressed
+                title={t('common:emptyState.resetFilters')}
+                onClick={() => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete('prospect'); return next }, { replace: true })}
+                className={cn(FILTER_CHIP, FILTER_CHIP_ON)}
+              >
+                {prospects.data?.find((p) => p.id === focusId)?.name ?? t('common:emptyState.resetFilters')} <X className="h-3 w-3" />
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="space-y-1">
@@ -414,7 +432,7 @@ export function ProspectareTab() {
                 </TableHeader>
                 <TableBody>
                   {pagedProspects.map((p) => (
-                    <TableRow key={p.id}>
+                    <TableRow key={p.id} data-row-id={p.id}>
                       <TableCell>
                         <input
                           type="checkbox"
@@ -561,6 +579,9 @@ export function ProspectareTab() {
                             ...(!p.billingClientId ? [{ key: 'promote', icon: UserPlus, label: t('pricing:prospects.promote'), onClick: () => setPromoteTarget(p) }] : []),
                           ]}
                           menu={[
+                            ...(canShare
+                              ? [{ key: 'share', icon: MessageSquareShare, label: t('messages:share.action'), onClick: () => share({ type: 'prospect', id: p.id, title: p.name }) }]
+                              : []),
                             showArchived
                               ? { key: 'unarchive', icon: ArchiveRestore, label: t('pricing:prospects.unarchive'), onClick: () => unarchiveProspect.mutate(p.id) }
                               : { key: 'archive', icon: Archive, label: t('common:actions.archive'), onClick: () => archiveProspect.mutate(p.id) },
@@ -618,6 +639,7 @@ export function ProspectareTab() {
         </CardContent>
       </Card>
 
+      {shareDialog}
       <PromoteProspectDialog prospect={promoteTarget} onOpenChange={(open) => !open && setPromoteTarget(null)} />
       <AddToSequenceDialog
         prospects={addToSequenceTargets}

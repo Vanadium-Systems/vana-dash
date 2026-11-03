@@ -51,7 +51,9 @@
     "dmHasNoNameOrMembers": "A direct message has no name or new members",
     "ownerOrAdminOnly": "Only the group owner or an administrator can do this",
     "emptyMessage": "Empty message",
-    "messageNotFound": "The message does not exist"
+    "messageNotFound": "The message does not exist",
+    "refNotFound": "The object does not exist or you cannot see it",
+    "refFileTooLarge": "The file is too large for Messages (over 20 MB)"
   },
   "archive": {
     "spaceNotCreated": "The archive space could not be created",

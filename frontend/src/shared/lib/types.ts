@@ -1,4 +1,5 @@
 import type { DisplayCurrency, Locale } from './locale'
+import type { MotionPref } from './motion'
 export type FeatureKey = string
 
 export interface SessionRole {
@@ -37,6 +38,8 @@ export interface SessionPayload {
   enabledLocales: Locale[]
   displayCurrency: DisplayCurrency
   displayCurrencies: DisplayCurrency[]
+  motionPref?: MotionPref
+  hideAmounts?: boolean
 }
 
 /** Sent next to totals: the currency the figures are in and whether they were converted. */
@@ -1470,6 +1473,36 @@ export interface ChatMessage {
   editedAt: string | null
   deletedAt: string | null
   attachments: ChatAttachment[]
+  replyTo: ChatReplyPreview | null
+  reactions: ChatReaction[]
+  refs: ChatMessageRef[]
+}
+
+export interface ChatReplyPreview {
+  id: string
+  authorName: string
+  body: string
+  hasAttachment: boolean
+  deleted: boolean
+}
+
+export interface ChatReaction {
+  emoji: string
+  userIds: string[]
+}
+
+export type RefType = 'prospect' | 'invoice' | 'email_thread' | 'calendar_event' | 'archive_file' | 'note'
+
+/** An object shared into a message. `card` depends on `type`; `denied` carries only `title`. */
+export interface ChatMessageRef {
+  id: string
+  type: RefType
+  refId: string | null
+  state: 'live' | 'snapshot' | 'denied' | 'gone'
+  canOpen: boolean
+  card: { title: string } & Record<string, unknown>
+  /** Denied company object: who can give access (by role), instead of the sender. */
+  grantors?: { userId: string; name: string }[]
 }
 
 /** How far another member has got, for the ticks on your own messages. */
@@ -1484,7 +1517,13 @@ export interface ChatConversation {
   kind: 'dm' | 'group'
   name: string | null
   members: ChatMember[]
-  lastMessage: { body: string; authorId: string; createdAt: string } | null
+  lastMessage: {
+    body: string
+    authorId: string
+    createdAt: string
+    attachmentKind: 'image' | 'file' | null
+    refType: RefType | null
+  } | null
   unreadCount: number
   muted: boolean
 }
@@ -1496,3 +1535,5 @@ export type ChatStreamEvent =
   | { type: 'read'; conversationId: string; userId: string; messageId: string }
   | { type: 'delivered'; conversationId: string; userId: string; at: string }
   | { type: 'presence'; userId: string; presence: 'online' | 'away'; lastSeenAt: string | null }
+  | { type: 'typing'; conversationId: string; userId: string }
+  | { type: 'reaction.updated'; conversationId: string; messageId: string; reactions: ChatReaction[] }

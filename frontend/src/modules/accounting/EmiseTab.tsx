@@ -7,12 +7,14 @@ import {
   CircleDollarSign,
   Download,
   FileCheck,
+  MessageSquareShare,
   Pencil,
   Plus,
   Send,
   Trash2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
@@ -24,6 +26,8 @@ import { AnafStatusBadge, PaymentStatusBadge, formatDate } from './badges'
 import { InvoiceFormDialog } from './InvoiceFormDialog'
 import { PastRecordFormDialog } from './PastRecordFormDialog'
 import { useConsumeParam } from '@/shared/hooks/use-consume-param'
+import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
+import { useFlashRow } from '@/shared/hooks/use-flash-row'
 import { useMe } from '@/shared/hooks/use-me'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { EmptyState } from '@/shared/components/ui/empty-state'
@@ -49,6 +53,8 @@ export function EmiseTab() {
     setDialogOpen(true)
   })
   const [page, setPage] = useState(0)
+  const { canShare, share, dialog: shareDialog } = useShareToMessages()
+  const focusId = useSearchParams()[0].get('record') ?? ''
 
   const records = useQuery({
     queryKey: ['accounting', 'records', 'out'],
@@ -59,6 +65,13 @@ export function EmiseTab() {
   const maxPage = Math.max(0, Math.ceil(total / PAGE_SIZE) - 1)
   const safePage = Math.min(page, maxPage)
   const pageRecords = records.data?.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
+
+  // A shared link lands on the page that holds the record, then the row flashes.
+  const focusIndex = records.data?.findIndex((r) => r.id === focusId) ?? -1
+  useEffect(() => {
+    if (focusIndex >= 0) setPage(Math.floor(focusIndex / PAGE_SIZE))
+  }, [focusIndex])
+  useFlashRow(focusId, focusIndex >= 0 && safePage === Math.floor(focusIndex / PAGE_SIZE))
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['accounting'] })
 
@@ -167,6 +180,7 @@ export function EmiseTab() {
                   return (
                     <TableRow
                       key={r.id}
+                      data-row-id={r.id}
                     >
                       <TableCell className="tbl-fill font-medium">
                         <div className="whitespace-nowrap">{r.documentNumber ?? t('accounting:issued.draftMarker')}</div>
@@ -236,6 +250,9 @@ export function EmiseTab() {
                               : []),
                           ]}
                           menu={[
+                            ...(canShare
+                              ? [{ key: 'share', icon: MessageSquareShare, label: t('messages:share.action'), onClick: () => share({ type: 'invoice', id: r.id, title: r.documentNumber ?? r.counterpartyName ?? t('accounting:issued.draftMarker') }) }]
+                              : []),
                             ...(r.hasPdf ? [{ key: 'pdf', icon: Download, label: t('common:actions.downloadPdf'), onClick: () => openFile(`/api/accounting/records/${r.id}/pdf`, 'document.pdf') }] : []),
                             ...(r.hasXml ? [{ key: 'xml', icon: Download, label: t('accounting:actions.downloadXml'), onClick: () => openFile(`/api/accounting/records/${r.id}/xml`, 'document.xml') }] : []),
                             ...(canAnaf && r.hasAnafPdf ? [{ key: 'anaf-pdf', icon: Download, label: t('accounting:issued.downloadEfacturaPdf'), onClick: () => openFile(`/api/accounting/records/${r.id}/anaf-pdf`, 'document.pdf') }] : []),
@@ -282,6 +299,7 @@ export function EmiseTab() {
       </Card>
       <InvoiceFormDialog open={dialogOpen} onOpenChange={setDialogOpen} invoice={editing} />
       <PastRecordFormDialog open={pastDialogOpen} onOpenChange={setPastDialogOpen} direction="out" />
+      {shareDialog}
     </div>
   )
 }

@@ -436,10 +436,9 @@ export const FEATURES: FeatureDef[] = [
     routes: all('/api/audit'),
   },
 
-  // ── Mesaje (Etapa 1, push B) ──────────────────────────────────────────────
-  // Rutele /api/chat* apar împreună cu modulul chat, în Wave 5. Până atunci prefixul
-  // rămâne neacoperit de nicio rută — și e exact ce trebuie: când modulul apare, testul
-  // vede prefixul acoperit, fără altă schimbare.
+  // ── Mesaje ─────────────────────────────────────────────────────────────────
+  // Every /api/chat route, sharing included: what a shared card shows is checked against the
+  // reader's own features in the ref adapters, not here.
   {
     key: 'mesaje.view',
     page: 'mesaje',

@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Forward, Mail, MailOpen, Paperclip, RefreshCw, Reply, ShieldAlert, Star, Trash2 } from 'lucide-react'
+import { Archive, ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Forward, Mail, MailOpen, MessageSquareShare, Paperclip, RefreshCw, Reply, ShieldAlert, Star, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
+import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { ContextMenu, useContextMenu } from '@/shared/components/ui/context-menu'
@@ -143,6 +144,22 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
   const { session } = useMe()
   const members = useTeamMembers()
   const myId = session?.user.id
+  const { canShare, share, dialog: shareDialog } = useShareToMessages()
+  const messagesRef = useRef<HTMLDivElement>(null)
+  const [quote, setQuote] = useState('')
+  // Selection inside the message bodies only; the share button keeps it alive with preventDefault
+  // on mousedown, otherwise the click would collapse the selection before onClick reads `quote`.
+  useEffect(() => {
+    const onSelectionChange = () => {
+      const selection = document.getSelection()
+      const container = messagesRef.current
+      const text = selection?.toString().trim() ?? ''
+      const inside = Boolean(container && selection?.anchorNode && selection.focusNode && container.contains(selection.anchorNode) && container.contains(selection.focusNode))
+      setQuote(inside && text.length > 0 ? text.slice(0, 1000) : '')
+    }
+    document.addEventListener('selectionchange', onSelectionChange)
+    return () => document.removeEventListener('selectionchange', onSelectionChange)
+  }, [])
   // Numele trimiștorului vine din lista de membri, deja încărcată pentru „Trimis de" — un
   // query per mesaj ar fi un N+1 pe fir.
   const senderName = (id: string) => {
@@ -245,6 +262,11 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
             <h2 className="min-w-0 truncate text-lg font-semibold">{thread.subject}</h2>
           </div>
           <div className="flex gap-1">
+            {canShare ? (
+              <Button variant="outline" title={t('messages:share.action')} aria-label={t('messages:share.action')} onClick={() => share({ type: 'email_thread', id: thread.id, title: thread.subject || t('email:labels.noSubject') })}>
+                <MessageSquareShare className="h-4 w-4" />
+              </Button>
+            ) : null}
             <SnoozeMenu onSnooze={(until) => snooze.mutate(until)} disabled={snooze.isPending} />
             <Button variant="outline" title={t('common:actions.archive')} onClick={() => applyFolder.mutate('archive')}>
               <Archive className="h-4 w-4" />
@@ -257,12 +279,23 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
             </Button>
           </div>
         </div>
-        {lastInbound ? (
-          <Button onClick={() => onReply(thread, lastInbound)}>
-            <Reply className="h-4 w-4" /> {t('common:actions.reply')}
-          </Button>
-        ) : null}
-        <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {lastInbound ? (
+            <Button onClick={() => onReply(thread, lastInbound)}>
+              <Reply className="h-4 w-4" /> {t('common:actions.reply')}
+            </Button>
+          ) : null}
+          {canShare && quote ? (
+            <Button
+              variant="outline"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => share({ type: 'email_thread', id: thread.id, title: thread.subject || t('email:labels.noSubject'), quote })}
+            >
+              <MessageSquareShare className="h-4 w-4" /> {t('messages:share.quote')}
+            </Button>
+          ) : null}
+        </div>
+        <div ref={messagesRef} className="space-y-3">
           {messages.map((m) => (
             <div
               key={m.id}
@@ -334,6 +367,7 @@ function ThreadDetail({ threadId, onReply, onForward, onBack, onChanged }: Threa
           onDownload={(file) => void api.download(file.url, file.name).catch((err: Error) => toast.error(err.message))}
         />
       ) : null}
+      {shareDialog}
     </Card>
   )
 }

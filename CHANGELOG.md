@@ -4,6 +4,36 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-03: Messages: replies, reactions, sharing objects
+
+### Added
+- Reply to a message (quote in the bubble, click to jump to the original), six quick reactions,
+  and the message actions on other people's messages too: hover bar, context menu with
+  shortcuts (R, C, E, Del), bottom sheet on long press, swipe right to reply. Deleting offers a
+  6 second undo instead of a confirm dialog.
+- Sticky day chip that opens a jump-to-date menu, an "N new messages" line, a down button with a
+  count of what arrived meanwhile, "typing" on a reserved line and in the list, keyboard
+  navigation through messages, unread count in the tab title.
+- Conversation panel: members, mute, photos and files, search inside the conversation
+  (diacritics-insensitive).
+- "Send to Messages" from a prospect, an emitted or received invoice, an email thread (or a
+  selected passage of it), a calendar event, an Archive file and a note. `#` in the composer
+  searches objects, a pasted app link becomes a card. Clients and invoices show live data to
+  readers with access to the page; the other types show a snapshot and open the original only
+  for people who already have access. "Ask for access" writes to whoever manages the team for
+  clients and invoices (access comes with the role), and replies to the sender for the rest.
+  Archive files are copied into the conversation (20 MB at most).
+- File attachments show their type (PDF, document, spreadsheet, archive, media) with an icon.
+- Deep links to the exact object: `/pricing?prospect=`, `/accounting?record=`,
+  `/calendar?event=`, `/archive?file=`, `/notes?note=`.
+- Profile, Display: motion (system, full, reduced, off) and hide amounts everywhere.
+- API: see Messages in `docs/API.md`. Migration `0077_messages_share.sql` adds
+  `users.motion_pref`, `users.hide_amounts`, `messages.reply_to_id`, `message_reactions` and
+  `message_refs`.
+
+### Changed
+- On a phone the active tab in the bottom bar has a pill behind its icon.
+
 ## 2026-11-01: UX foundation
 
 ### Added

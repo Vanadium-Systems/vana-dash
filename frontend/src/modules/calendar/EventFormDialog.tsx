@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { MessageSquareShare } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
 import { Button } from '@/shared/components/ui/button'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
@@ -61,6 +63,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
   const canCommon = can('calendar.comune')
   // Un calendar primit cu „vede" sau un eveniment comun fără `calendar.comune`: se citește, nu se
   // schimbă (serverul răspunde oricum 403).
+  const { canShare, share, dialog: shareDialog } = useShareToMessages()
   const readOnly = Boolean(event && meta?.access === 'view')
   const [attendeeIds, setAttendeeIds] = useState<Set<string>>(new Set())
   const [calendarOwnerId, setCalendarOwnerId] = useState('')
@@ -456,7 +459,22 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
             </div>
           )}
         </form>
+        {event && canShare ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="self-start"
+            onClick={() => {
+              // Closed first so the share dialog is not a second modal on top of this one.
+              onOpenChange(false)
+              share({ type: 'calendar_event', id: event.id, title: event.title })
+            }}
+          >
+            <MessageSquareShare className="h-4 w-4" /> {t('messages:share.action')}
+          </Button>
+        ) : null}
       </DialogContent>
+      {shareDialog}
     </Dialog>
   )
 }

@@ -503,6 +503,7 @@
     "count": "{{count}} selected"
   },
   "keys": {
-    "shift": "Shift"
+    "shift": "Shift",
+    "delete": "Del"
   }
 }

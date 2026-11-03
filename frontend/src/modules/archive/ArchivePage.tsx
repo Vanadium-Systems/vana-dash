@@ -11,6 +11,7 @@ import {
   FolderPlus,
   LayoutGrid,
   List,
+  MessageSquareShare,
   MoreVertical,
   Pencil,
   Share2,
@@ -30,6 +31,8 @@ import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { AccessShareDialog } from '@/shared/components/AccessShareDialog'
+import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
+import { useFlashRow } from '@/shared/hooks/use-flash-row'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useMe } from '@/shared/hooks/use-me'
@@ -149,7 +152,7 @@ function FileCard({
   actions: ReactNode
 }) {
   return (
-    <div className="group relative rounded-lg border">
+    <div data-row-id={file.id} className="group relative rounded-lg border transition-colors">
       <button type="button" className="flex w-full flex-col items-center gap-2 p-3 hover:bg-accent" onClick={onOpen}>
         <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded border bg-muted">
           {file.previewUrl ? (
@@ -228,6 +231,8 @@ export function ArchivePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const currentFolderId = searchParams.get('folder')
   const viewParam = searchParams.get('view')
+  const linkedFileId = searchParams.get('file') ?? ''
+  const { canShare, share, dialog: shareDialog } = useShareToMessages()
   const spacesView: SpacesView | null = viewParam === 'shared' || viewParam === 'all' ? viewParam : null
   // Lista de spații (partajate / toate) se vede doar la rădăcina tab-ului; un folder deschis din
   // ea se listează ca oricare altul.
@@ -490,6 +495,10 @@ export function ArchivePage() {
     onError: (err) => toast.error(err.message),
   })
 
+  // Link to a shared file: the preview opens a new tab, which a browser blocks without a click,
+  // so the link only scrolls to the row and flashes it.
+  useFlashRow(linkedFileId, !isSearching && Boolean(files.data?.some((file) => file.id === linkedFileId)))
+
   // Click pe rând/card — doar previzualizare (tab nou pe URL-ul presemnat R2, nesupus CORS).
   const previewFile = useMutation({
     mutationFn: (id: string) => api.get<ArchiveDownloadUrl>(`/api/archive/files/${id}/download-url`),
@@ -560,6 +569,11 @@ export function ArchivePage() {
         <DropdownMenuItem onClick={() => downloadFile.mutate({ id: file.id, name: file.name })}>
           <Download className="h-4 w-4" /> {t('common:actions.download')}
         </DropdownMenuItem>
+        {canShare ? (
+          <DropdownMenuItem onClick={() => share({ type: 'archive_file', id: file.id, title: file.name })}>
+            <MessageSquareShare className="h-4 w-4" /> {t('messages:share.action')}
+          </DropdownMenuItem>
+        ) : null}
         {canShareFiles ? (
           <DropdownMenuItem onClick={() => shareFile.mutate({ id: file.id, name: file.name })}>
             <Share2 className="h-4 w-4" /> {t('common:actions.send')}
@@ -838,7 +852,7 @@ export function ArchivePage() {
               <TableBody>
                 {isSearching &&
                   search.data?.map((r) => (
-                    <TableRow key={r.id} className="cursor-pointer" onClick={() => previewFile.mutate(r.id)}>
+                    <TableRow key={r.id} data-row-id={r.id} className="cursor-pointer" onClick={() => previewFile.mutate(r.id)}>
                       <TableCell className="w-full max-w-0">
                         <FileNameCell
                           name={r.name}
@@ -902,7 +916,7 @@ export function ArchivePage() {
                   ))}
                 {!isSearching &&
                   files.data?.map((file) => (
-                  <TableRow key={file.id} className="cursor-pointer" onClick={() => previewFile.mutate(file.id)}>
+                  <TableRow key={file.id} data-row-id={file.id} className="cursor-pointer" onClick={() => previewFile.mutate(file.id)}>
                     <TableCell className="w-full max-w-0">
                       <FileNameCell name={file.name} previewUrl={file.previewUrl} details={[`${file.mimeType} · ${formatBytes(file.sizeBytes)}`]} />
                     </TableCell>
@@ -959,6 +973,7 @@ export function ArchivePage() {
         />
       ) : null}
       <SaveShareDialog />
+      {shareDialog}
       {shareTarget ? (
         <AccessShareDialog
           open

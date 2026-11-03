@@ -1,19 +1,22 @@
-import { BellOff, MessageSquarePlus, Users } from 'lucide-react'
+import { BellOff, Hash, Image, MessageSquarePlus, Paperclip, Users } from 'lucide-react'
+import { useLayoutEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { useLiveChatConversations } from '@/shared/hooks/use-chat'
+import { useChatTyping, useLiveChatConversations } from '@/shared/hooks/use-chat'
+import { motionLevel } from '@/shared/lib/motion'
 import { memberName } from '@/shared/hooks/use-team'
 import { cn } from '@/shared/lib/utils'
 import { formatRelativeTime } from '@/shared/lib/format'
 import type { ChatConversation } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
 
-// Coloana de conversații (fișa „Mesaje"): secțiuni „Grupuri" și „Directe", necititele cu nume
-// îngroșat + număr în `Badge` — deci nu doar culoare. Prezența e text („Activ acum"), nu
-// doar punctul verde.
+// The conversation column: "Groups" and "Direct" sections, unread ones with the name in bold and
+// a count in a `Badge`, so not colour alone. A row is two lines (#17): name and time, then the
+// preview and the count. Presence lives in the thread's header. When a conversation moves to the
+// top, the rows slide to their new place (FLIP, full motion only, #22).
 
 /** DM = celălalt om. Grupul = numele lui. */
 export function conversationTitle(conversation: ChatConversation, meId: string): string {
@@ -30,6 +33,30 @@ export function presenceLabel(presence: 'online' | 'away' | undefined, lastSeenA
 
 export function ConversationList({ meId, onNew }: { meId: string; onNew: () => void }) {
   const conversations = useLiveChatConversations()
+  const typing = useChatTyping()
+  const listRef = useRef<HTMLDivElement>(null)
+  const positions = useRef(new Map<string, number>())
+  const order = conversations.data?.map((c) => c.id).join(',')
+
+  useLayoutEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const rows = list.querySelectorAll<HTMLElement>('[data-conversation-id]')
+    const animate = motionLevel() === 'full' && positions.current.size > 0
+    const next = new Map<string, number>()
+    rows.forEach((row) => {
+      const id = row.dataset.conversationId!
+      const top = row.offsetTop
+      next.set(id, top)
+      const before = positions.current.get(id)
+      if (!animate || before === undefined || before === top) return
+      row.animate([{ transform: `translateY(${before - top}px)` }, { transform: 'translateY(0)' }], {
+        duration: 200,
+        easing: getComputedStyle(document.documentElement).getPropertyValue('--ease-in-out').trim() || 'ease-in-out',
+      })
+    })
+    positions.current = next
+  }, [order])
 
   if (conversations.isPending) {
     return (
@@ -81,18 +108,18 @@ export function ConversationList({ meId, onNew }: { meId: string; onNew: () => v
           <MessageSquarePlus className="h-4 w-4" />
         </Button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+      <div ref={listRef} className="scroll-subtle min-h-0 flex-1 overflow-y-auto pb-2">
         {groups.length > 0 ? (
           <Section title={t('messages:list.groups')}>
             {groups.map((conversation) => (
-              <Row key={conversation.id} conversation={conversation} meId={meId} />
+              <Row key={conversation.id} conversation={conversation} meId={meId} typingIds={typing.get(conversation.id) ?? []} />
             ))}
           </Section>
         ) : null}
         {direct.length > 0 ? (
           <Section title={t('messages:list.direct')}>
             {direct.map((conversation) => (
-              <Row key={conversation.id} conversation={conversation} meId={meId} />
+              <Row key={conversation.id} conversation={conversation} meId={meId} typingIds={typing.get(conversation.id) ?? []} />
             ))}
           </Section>
         ) : null}
@@ -110,52 +137,70 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Row({ conversation, meId }: { conversation: ChatConversation; meId: string }) {
+function Row({ conversation, meId, typingIds }: { conversation: ChatConversation; meId: string; typingIds: string[] }) {
   const title = conversationTitle(conversation, meId)
-  const other = conversation.kind === 'dm' ? conversation.members.find((member) => member.id !== meId) : undefined
   const unread = conversation.unreadCount > 0
-  const preview = conversation.lastMessage?.body ?? t('messages:list.noMessagesYet')
+  const others = typingIds.filter((id) => id !== meId)
+  const typingNames = others.map((id) => {
+    const member = conversation.members.find((m) => m.id === id)
+    return member ? memberName(member) : '?'
+  })
 
   return (
-    <li>
+    <li data-conversation-id={conversation.id}>
       <NavLink
         to={`/messages/${conversation.id}`}
         state={{ fromList: true }}
         className={({ isActive }) =>
-          // Selecția e tentă de suprafață, nu accent + border (regula din DESIGN.md).
-          cn(
-            'flex items-center gap-2 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            isActive && 'bg-accent',
-          )
+          // Selection is a surface tint, not an accent with a border (DESIGN.md).
+          cn('flex items-center gap-3 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', isActive && 'bg-accent')
         }
       >
-        <span
-          className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-medium',
-            unread ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
-          )}
-          aria-hidden="true"
-        >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground" aria-hidden="true">
           {conversation.kind === 'group' ? <Users className="h-4 w-4" /> : initials(title)}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
+          <span className="flex items-baseline gap-2">
             <span className={cn('min-w-0 flex-1 truncate text-sm', unread && 'font-semibold')}>{title}</span>
+            {conversation.lastMessage ? (
+              <span className={cn('shrink-0 text-xs tnum', unread ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+                {formatRelativeTime(conversation.lastMessage.createdAt)}
+              </span>
+            ) : null}
+          </span>
+          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            {typingNames.length > 0 ? (
+              <span className="min-w-0 flex-1 truncate italic">{t('messages:typing.named', { names: typingNames.join(', '), count: typingNames.length })}</span>
+            ) : (
+              <Preview conversation={conversation} meId={meId} unread={unread} />
+            )}
+            {conversation.muted ? <BellOff className="h-3.5 w-3.5 shrink-0" aria-label={t('messages:list.muted')} /> : null}
             {unread ? <Badge variant="destructive">{conversation.unreadCount}</Badge> : null}
-            {conversation.muted ? <BellOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label={t('messages:list.muted')} /> : null}
           </span>
-          <span className={cn('mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground', unread ? 'font-medium' : '')}>
-            <span className="min-w-0 flex-1 truncate">{preview}</span>
-            {conversation.lastMessage ? <span className="shrink-0 tnum">{formatRelativeTime(conversation.lastMessage.createdAt)}</span> : null}
-          </span>
-          {other ? (
-            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-              {presenceLabel(other.presence, other.lastSeenAt)}
-            </span>
-          ) : null}
         </span>
       </NavLink>
     </li>
+  )
+}
+
+/** The last message in one line: what it carries (photo, file, object) before its text (#23). */
+function Preview({ conversation, meId, unread }: { conversation: ChatConversation; meId: string; unread: boolean }) {
+  const last = conversation.lastMessage
+  if (!last) return <span className="min-w-0 flex-1 truncate">{t('messages:list.noMessagesYet')}</span>
+  const Icon = last.refType ? Hash : last.attachmentKind === 'image' ? Image : last.attachmentKind === 'file' ? Paperclip : null
+  const fallback = last.refType
+    ? t(`messages:refs.types.${last.refType}`)
+    : last.attachmentKind === 'image'
+      ? t('messages:list.photo')
+      : last.attachmentKind === 'file'
+        ? t('messages:reply.attachment')
+        : ''
+  return (
+    <span className={cn('flex min-w-0 flex-1 items-center gap-1', unread && 'font-medium text-foreground')}>
+      {last.authorId === meId ? <span className="shrink-0">{t('messages:list.youPrefix')}</span> : null}
+      {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
+      <span className="min-w-0 truncate">{last.body || fallback}</span>
+    </span>
   )
 }
 

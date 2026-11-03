@@ -22,6 +22,9 @@ export interface NotificationPrefs {
   alerts: boolean
 }
 
+export const MOTION_PREFS = ['system', 'full', 'reduced', 'off'] as const
+export type MotionPref = (typeof MOTION_PREFS)[number]
+
 export const users = pgTable(
   'users',
   {
@@ -50,11 +53,15 @@ export const users = pgTable(
     // bookkeeping stays in RON and every document keeps its own currency.
     locale: text('locale', { enum: LOCALES }).notNull().default('ro'),
     displayCurrency: text('display_currency', { enum: DISPLAY_CURRENCIES }).notNull().default('RON'),
+    // 'system' follows prefers-reduced-motion until the person picks a level in their profile.
+    motionPref: text('motion_pref', { enum: MOTION_PREFS }).notNull().default('system'),
+    hideAmounts: boolean('hide_amounts').notNull().default(false),
   },
   (t) => [
     uniqueIndex('uq_users_email').on(t.email),
     index('ix_users_role').on(t.roleId),
     check('ck_users_locale', sql`${t.locale} IN ('ro', 'en')`),
     check('ck_users_display_currency', sql`${t.displayCurrency} IN ('RON', 'EUR', 'USD')`),
+    check('ck_users_motion_pref', sql`${t.motionPref} IN ('system', 'full', 'reduced', 'off')`),
   ],
 )

@@ -77,9 +77,9 @@ route refuses every request.
 |---|---|---|
 | POST | `/api/auth/login` | `{ email, password }` → sets the cookie. A deactivated or still-invited person gets 401, like a wrong password |
 | POST | `/api/auth/logout` | Clears the cookie |
-| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies }`. `mailboxes: null` means all (admin) |
+| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies, motionPref, hideAmounts }`. `mailboxes: null` means all (admin) |
 | GET | `/api/auth/locale` | `{ defaultLocale, enabledLocales }`, for the pages before login |
-| PATCH | `/api/auth/me` | `{ displayName?, notificationPrefs?: { chat: 'all'\|'dm'\|'none', emailNew, alerts }, updatesSeenAt?, locale?: 'ro'\|'en', displayCurrency?: 'RON'\|'EUR'\|'USD' }`. `400` for a language or currency outside the lists. `updatesSeenAt` (ISO) is how far the person has read What's new; the server caps it at now |
+| PATCH | `/api/auth/me` | `{ displayName?, motionPref?: 'system'\|'full'\|'reduced'\|'off', hideAmounts?: boolean, notificationPrefs?: { chat: 'all'\|'dm'\|'none', emailNew, alerts }, updatesSeenAt?, locale?: 'ro'\|'en', displayCurrency?: 'RON'\|'EUR'\|'USD' }`. `400` for a language or currency outside the lists. `updatesSeenAt` (ISO) is how far the person has read What's new; the server caps it at now |
 | POST | `/api/auth/me/password` | `{ currentPassword, newPassword }` (12 characters minimum). Logs out the other sessions |
 | POST | `/api/auth/forgot-password` | `{ email }` → always `204`, whether the address has an account or not |
 | POST | `/api/auth/reset-password` | `{ token, password }`. Single-use token, 1h. `RESET_TOKEN_EXPIRED` |
@@ -130,16 +130,23 @@ goes through POST. The admin has no way to read other people's direct messages.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/chat/stream` | SSE: `message.created`, `message.updated`, `conversation.updated`, `read`, `delivered` (`{ conversationId, userId, at }`), `presence`. Heartbeat every 25s |
+| GET | `/api/chat/stream` | SSE: `message.created`, `message.updated`, `conversation.updated`, `reaction.updated`, `typing`, `read`, `delivered` (`{ conversationId, userId, at }`), `presence`. Heartbeat every 25s |
 | POST | `/api/chat/heartbeat` | A sign of life sent while the page is visible (every 45s). A sleeping device can keep the SSE socket "open", so presence relies on the heartbeat, not on the connection |
-| GET | `/api/chat/conversations` | `[{ id, kind, name, members: [{ id, displayName, presence, lastSeenAt }], lastMessage, unreadCount }]` |
+| GET | `/api/chat/conversations` | `[{ id, kind, name, members: [{ id, displayName, presence, lastSeenAt }], lastMessage, unreadCount }]`. `lastMessage` also carries `attachmentKind` and `refType`, for the list preview |
 | POST | `/api/chat/conversations` | `{ kind: 'dm', userId }` (returns the existing one) or `{ kind: 'group', name, memberIds }` |
 | PATCH | `/api/chat/conversations/:id` | `{ name?, addMemberIds?, removeMemberIds? }`. The group's owner or `echipa.administrare` |
-| GET | `/api/chat/conversations/:id/messages` | Query: `before?` (message id), `limit?` (default 50) → `{ messages, hasMore, receipts }`; `receipts` is `[{ userId, deliveredUpTo, readUpTo }]` for the other members. Loading the thread, like loading the conversation list, marks its messages delivered to the reader |
-| POST | `/api/chat/conversations/:id/messages` | `{ body, clientId, attachmentIds? }`. `clientId` deduplicates a resend; `body` may be empty when there are attachments |
+| GET | `/api/chat/conversations/:id/messages` | Query: `before?` (message id), `after?`, `around?` (message id), `aroundDate?` (ISO date), `limit?` (default 50). `before`, `after`, `around` and `aroundDate` are mutually exclusive. `around*` returns 25 messages before the anchor and 25 from it on. → `{ messages, hasMore, hasNewer, lastReadMessageId, receipts }`; `receipts` is `[{ userId, deliveredUpTo, readUpTo }]` for the other members. Loading the thread, like loading the conversation list, marks its messages delivered to the reader |
+| POST | `/api/chat/conversations/:id/messages` | `{ body, clientId, attachmentIds?, replyToId?, refs?: [{ type, id, quote? }] }`. `clientId` deduplicates a resend; `body` may be empty when there are attachments or refs. `replyToId` must be a message of the same conversation, else `400 REPLY_NOT_IN_CONVERSATION`. `refs` (max 5) share an object: `type` is `prospect`, `invoice`, `email_thread`, `calendar_event`, `archive_file` or `note`; `quote` (max 1000 characters) only on `email_thread`. `404` when the sender cannot see a ref; `413 REF_FILE_TOO_LARGE` for an Archive file over 20 MB (files are copied into the conversation). The message comes back with `replyTo`, `reactions: [{ emoji, userIds }]` and `refs: [{ id, type, refId, state, canOpen, card }]`: `state` is `live` (current data, for prospects and invoices the reader can see), `snapshot` (what the sender saw), `denied` (the reader has no access) or `gone`; `refId` is null when the reader cannot open the original. A `denied` prospect or invoice also carries `grantors: [{ userId, name }]`, the active people with `echipa.administrare`, since access to those pages comes with a role |
+| PUT, DELETE | `/api/chat/messages/:id/reactions/:emoji` | Adds or removes the caller's reaction. Idempotent. → `{ reactions }` |
+| POST | `/api/chat/conversations/:id/typing` | Nothing stored; members get a `typing` event |
+| GET | `/api/chat/conversations/:id/search` | Query: `q` (2-120 characters, diacritics-insensitive). Up to 50 messages, newest first |
+| GET | `/api/chat/conversations/:id/media` | Query: `kind=image\|file`, `cursor?`, `limit?` → `{ items, nextCursor }` |
+| GET | `/api/chat/conversations/recent-targets` | Query: `q?`. People and conversations, most recent first, for the "Send to Messages" picker |
+| GET | `/api/chat/refs` | Query: `type`, `id`. The caller's conversations where the object was shared |
+| GET | `/api/chat/refs/preview` | Query: `type`, `id`. The card the caller would share; `404` when they cannot see the object |
 | POST | `/api/chat/conversations/:id/read` | `{ messageId }` |
 | PATCH | `/api/chat/messages/:id` | `{ body }`. The author only; marked as edited |
-| DELETE | `/api/chat/messages/:id` | The author only; soft delete, shown as "Mesaj șters" |
+| DELETE | `/api/chat/messages/:id` | The author only; soft delete, shown as "Mesaj șters". Its refs and reactions are deleted with it |
 | POST | `/api/chat/attachments` | Multipart, 50 MB per file at most, 10 per message. Uploads not sent within 24h are removed by a job |
 | GET | `/api/chat/attachments/:id` | Members of the conversation only. Only plain images open inline; everything else (SVG and HTML included) is a download, with `nosniff`. `?size=thumb` on a JPEG, PNG or WebP returns a 640px JPEG made once and kept in R2. Cached as `immutable` |
 

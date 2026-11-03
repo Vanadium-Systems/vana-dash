@@ -1,7 +1,8 @@
 import { Money } from '@/shared/components/Money'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronLeft, ChevronRight, Download, FileText, Plus, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { Check, ChevronLeft, ChevronRight, Download, FileText, MessageSquareShare, Plus, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
@@ -14,6 +15,8 @@ import type { FinancialRecord } from '@/shared/lib/types'
 import { PaymentStatusBadge, formatDate } from './badges'
 import { PastRecordFormDialog } from './PastRecordFormDialog'
 import { RecurringExpensesSection } from './RecurringExpensesSection'
+import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
+import { useFlashRow } from '@/shared/hooks/use-flash-row'
 import { t } from '@/shared/lib/i18n'
 
 const PAGE_SIZE = 10
@@ -22,6 +25,8 @@ export function PrimiteTab() {
   const queryClient = useQueryClient()
   const [pastDialogOpen, setPastDialogOpen] = useState(false)
   const [page, setPage] = useState(0)
+  const { canShare, share, dialog: shareDialog } = useShareToMessages()
+  const focusId = useSearchParams()[0].get('record') ?? ''
 
   const records = useQuery({
     queryKey: ['accounting', 'records', 'in'],
@@ -32,6 +37,13 @@ export function PrimiteTab() {
   const maxPage = Math.max(0, Math.ceil(total / PAGE_SIZE) - 1)
   const safePage = Math.min(page, maxPage)
   const pageRecords = records.data?.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
+
+  // A shared link lands on the page that holds the record, then the row flashes.
+  const focusIndex = records.data?.findIndex((r) => r.id === focusId) ?? -1
+  useEffect(() => {
+    if (focusIndex >= 0) setPage(Math.floor(focusIndex / PAGE_SIZE))
+  }, [focusIndex])
+  useFlashRow(focusId, focusIndex >= 0 && safePage === Math.floor(focusIndex / PAGE_SIZE))
 
   const syncAnaf = useMutation({
     mutationFn: () => api.post<{ imported: number }>('/api/accounting/anaf/sync'),
@@ -87,6 +99,7 @@ export function PrimiteTab() {
                 {(pageRecords ?? []).map((r) => (
                   <TableRow
                     key={r.id}
+                    data-row-id={r.id}
                   >
                     <TableCell truncate className="font-medium">
                       {r.counterpartyName ?? '—'}
@@ -107,6 +120,9 @@ export function PrimiteTab() {
                       <RowActions
                         actions={r.paymentStatus !== 'paid' ? [{ key: 'paid', icon: Check, label: t('accounting:received.markPaid'), disabled: markPaid.isPending, onClick: () => markPaid.mutate(r.id) }] : []}
                         menu={[
+                          ...(canShare
+                            ? [{ key: 'share', icon: MessageSquareShare, label: t('messages:share.action'), onClick: () => share({ type: 'invoice', id: r.id, title: r.counterpartyName ?? r.description ?? t('common:labels.document') }) }]
+                            : []),
                           ...(r.hasXml ? [{ key: 'xml', icon: Download, label: t('accounting:actions.downloadXml'), onClick: () => void api.download(`/api/accounting/records/${r.id}/xml`, `${r.id}.xml`) }] : []),
                           ...(r.hasPdf ? [{ key: 'pdf', icon: FileText, label: t('common:actions.downloadPdf'), onClick: () => void api.download(`/api/accounting/records/${r.id}/pdf`, `${r.id}.pdf`) }] : []),
                         ]}
@@ -150,6 +166,7 @@ export function PrimiteTab() {
       </Card>
       <RecurringExpensesSection />
       <PastRecordFormDialog open={pastDialogOpen} onOpenChange={setPastDialogOpen} direction="in" />
+      {shareDialog}
     </div>
   )
 }

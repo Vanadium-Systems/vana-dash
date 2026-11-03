@@ -24,7 +24,7 @@ import {
 } from '../../shared/db/schema/index.js'
 import { effectiveFeatures, type SessionUser } from '../../shared/lib/session.js'
 import type { NotificationPrefs } from '../../shared/db/schema/index.js'
-import { hasOpenConnection, openConnection, resetPresenceForTests } from './presence.js'
+import { hasOpenConnection, openConnection, resetPresenceForTests, type ChatEvent } from './presence.js'
 import { pushTarget } from './service.js'
 
 // R2 nu e la îndemâna în teste: obiectul „se pierde" și se întoarce la descărcare, suficient
@@ -101,6 +101,7 @@ const cookie = (u: TestSession) => ({ vana_session: u.token })
 const get = (url: string, u: TestSession) => app.inject({ method: 'GET', url, cookies: cookie(u) })
 const post = (url: string, u: TestSession, payload: InjectPayload): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url, cookies: cookie(u), payload })
+const put = (url: string, u: TestSession) => app.inject({ method: 'PUT', url, cookies: cookie(u) })
 const patch = (url: string, u: TestSession, payload: InjectPayload): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'PATCH', url, cookies: cookie(u), payload })
 
@@ -410,5 +411,147 @@ describe('funcționalitatea', () => {
   it('omul fără mesaje.view e refuzat, nu vede o listă goală', async () => {
     const res = await get('/api/chat/conversations', faraMesaje)
     expect(res.statusCode).toBe(403)
+  })
+})
+
+describe('răspunsuri și reacții', () => {
+  const reactionUrl = (messageId: string, emoji: string) => `/api/chat/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`
+
+  it('un răspuns la un mesaj din altă conversație e 400 REPLY_NOT_IN_CONVERSATION', async () => {
+    const foreign = await post(`/api/chat/conversations/${otherDmId}/messages`, ion, { body: 'în altă parte', clientId: crypto.randomUUID() })
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, ana, {
+      body: 'răspuns',
+      clientId: crypto.randomUUID(),
+      replyToId: foreign.json().data.id,
+    })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error.code).toBe('REPLY_NOT_IN_CONVERSATION')
+  })
+
+  it('un răspuns valid vine cu replyTo', async () => {
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, ion, {
+      body: 'răspuns',
+      clientId: crypto.randomUUID(),
+      replyToId: firstMessageId,
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().data.replyTo).toMatchObject({ id: firstMessageId, body: 'Salut, Ion', deleted: false })
+  })
+
+  it('reacția cuiva din afara conversației e 404', async () => {
+    const res = await put(reactionUrl(firstMessageId, '👍'), outsider)
+    expect(res.statusCode).toBe(404)
+  })
+
+  it('reacția la un mesaj șters e 404', async () => {
+    const created = await post(`/api/chat/conversations/${groupId}/messages`, ion, { body: 'dispare', clientId: crypto.randomUUID() })
+    const id = created.json().data.id as string
+    await app.inject({ method: 'DELETE', url: `/api/chat/messages/${id}`, cookies: cookie(ion) })
+    const res = await put(reactionUrl(id, '👍'), ana)
+    expect(res.statusCode).toBe(404)
+  })
+
+  it('un emoji invalid e 400', async () => {
+    const res = await put(reactionUrl(firstMessageId, 'abc'), ana)
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('aceeași reacție pusă de două ori rămâne un singur rând', async () => {
+    await put(reactionUrl(firstMessageId, '🎉'), ana)
+    const res = await put(reactionUrl(firstMessageId, '🎉'), ana)
+    expect(res.statusCode).toBe(200)
+    const { reactions } = res.json().data as { reactions: { emoji: string; userIds: string[] }[] }
+    const party = reactions.find((r) => r.emoji === '🎉')
+    expect(party?.userIds).toEqual([ana.me.id])
+  })
+
+  it('reacția se scoate cu DELETE și a doua oară nu strică nimic', async () => {
+    await put(reactionUrl(firstMessageId, '🔥'), ion)
+    const first = await app.inject({ method: 'DELETE', url: reactionUrl(firstMessageId, '🔥'), cookies: cookie(ion) })
+    const second = await app.inject({ method: 'DELETE', url: reactionUrl(firstMessageId, '🔥'), cookies: cookie(ion) })
+    expect(first.statusCode).toBe(200)
+    expect(second.statusCode).toBe(200)
+    expect(second.json().data.reactions.some((r: { emoji: string }) => r.emoji === '🔥')).toBe(false)
+  })
+})
+
+describe('fereastra din jurul unui mesaj, căutare, tastare', () => {
+  it('around întoarce 25 mai vechi + 25 de la ancoră și hasNewer', async () => {
+    const conv = await post('/api/chat/conversations', ana, { kind: 'group', name: 'QA around', memberIds: [ion.me.id] })
+    const id = conv.json().data.id as string
+    conversationIds.push(id)
+    const start = Date.now() - 3_600_000
+    const rows = await db
+      .insert(messages)
+      .values(
+        Array.from({ length: 60 }, (_, i) => ({
+          conversationId: id,
+          authorUserId: ana.me.id,
+          body: `mesaj ${i}`,
+          clientId: crypto.randomUUID(),
+          createdAt: new Date(start + i * 1000),
+        })),
+      )
+      .returning()
+    const byBody = new Map(rows.map((r) => [r.body, r.id]))
+
+    // The 10th message has only 9 older ones, so nothing is left behind it.
+    const near = await get(`/api/chat/conversations/${id}/messages?around=${byBody.get('mesaj 9')}`, ion)
+    const nearPage = near.json().data as { messages: { id: string; body: string }[]; hasMore: boolean; hasNewer: boolean }
+    expect(nearPage.messages).toHaveLength(9 + 25)
+    expect(nearPage.messages[0]!.body).toBe('mesaj 0')
+    expect(nearPage.messages.some((m) => m.id === byBody.get('mesaj 9'))).toBe(true)
+    expect(nearPage.hasMore).toBe(false)
+    expect(nearPage.hasNewer).toBe(true)
+
+    const middle = await get(`/api/chat/conversations/${id}/messages?around=${byBody.get('mesaj 30')}`, ion)
+    const middlePage = middle.json().data as { messages: { body: string }[]; hasMore: boolean; hasNewer: boolean }
+    expect(middlePage.messages).toHaveLength(50)
+    expect(middlePage.messages[0]!.body).toBe('mesaj 5')
+    expect(middlePage.messages[25]!.body).toBe('mesaj 30')
+    expect(middlePage.hasMore).toBe(true)
+    expect(middlePage.hasNewer).toBe(true)
+  })
+
+  it('căutarea ignoră diacriticele', async () => {
+    const created = await post(`/api/chat/conversations/${dmId}/messages`, ana, { body: 'Mâine la ședință', clientId: crypto.randomUUID() })
+    const res = await get(`/api/chat/conversations/${dmId}/search?q=sedinta`, ion)
+    expect(res.statusCode).toBe(200)
+    expect(res.json().data.map((m: { id: string }) => m.id)).toContain(created.json().data.id)
+  })
+
+  it('căutarea într-o conversație străină e 404', async () => {
+    const res = await get(`/api/chat/conversations/${dmId}/search?q=salut`, outsider)
+    expect(res.statusCode).toBe(404)
+  })
+
+  it('tastarea ajunge la ceilalți membri, nu la cel care tastează', async () => {
+    resetPresenceForTests()
+    const forAna: ChatEvent[] = []
+    const forIon: ChatEvent[] = []
+    openConnection(ana.me.id, { id: 'qa-typing-ana', write: (event) => forAna.push(event) })
+    openConnection(ion.me.id, { id: 'qa-typing-ion', write: (event) => forIon.push(event) })
+    const res = await post(`/api/chat/conversations/${groupId}/typing`, ana, {})
+    expect(res.statusCode).toBe(200)
+    expect(res.json().success).toBe(true)
+    const typing = (events: ChatEvent[]) => events.filter((e) => e.type === 'typing')
+    expect(typing(forIon)).toEqual([{ type: 'typing', conversationId: groupId, userId: ana.me.id }])
+    expect(typing(forAna)).toHaveLength(0)
+    resetPresenceForTests()
+  })
+
+  it('tastarea într-o conversație străină e 404', async () => {
+    const res = await post(`/api/chat/conversations/${dmId}/typing`, outsider, {})
+    expect(res.statusCode).toBe(404)
+  })
+})
+
+describe('profilul: mișcare și sume ascunse', () => {
+  it('motionPref și hideAmounts se salvează și se întorc la GET /me', async () => {
+    const res = await patch('/api/auth/me', ana, { motionPref: 'off', hideAmounts: true })
+    expect(res.statusCode).toBe(200)
+    const me = (await get('/api/auth/me', ana)).json().data
+    expect(me.motionPref).toBe('off')
+    expect(me.hideAmounts).toBe(true)
   })
 })

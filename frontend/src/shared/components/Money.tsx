@@ -1,3 +1,4 @@
+import { useMe } from '@/shared/hooks/use-me'
 import { formatMoneyParts } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
@@ -30,7 +31,8 @@ function Figure({ amount, currency, plus }: MoneyAmount & { plus?: boolean }) {
 }
 
 export function Money({ amount, currency, secondary, hide, sign, className }: MoneyProps) {
-  if (hide) {
+  const { session } = useMe()
+  if (hide ?? session?.hideAmounts) {
     return (
       <span role="img" aria-label={t('common:money.hidden')} className={cn('tnum', className)}>
         ••••

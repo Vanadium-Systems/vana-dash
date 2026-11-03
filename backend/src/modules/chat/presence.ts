@@ -23,6 +23,8 @@ export type ChatEvent =
   | { type: 'read'; conversationId: string; userId: string; messageId: string }
   | { type: 'delivered'; conversationId: string; userId: string; at: string }
   | { type: 'presence'; userId: string; presence: 'online' | 'away'; lastSeenAt: string | null }
+  | { type: 'typing'; conversationId: string; userId: string }
+  | { type: 'reaction.updated'; conversationId: string; messageId: string; reactions: { emoji: string; userIds: string[] }[] }
 
 interface Connection {
   id: string

@@ -1,11 +1,10 @@
 import { sql } from 'drizzle-orm'
-import { bigint, boolean, index, integer, pgTable, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
+import { bigint, boolean, check, index, integer, jsonb, pgTable, smallint, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
 import { tenantColumns } from './tenant-column.js'
 
-// Mesaje între oameni (PLAN.md C3). Fără `tenant_id` în Etapa 1 (singura firmă); intră în
-// inventarul retrofit-ului din Etapa 3.
+// Messages between colleagues. Every table carries tenant_id; isolation is done by the RLS policies.
 
 export const conversations = pgTable(
   'conversations',
@@ -64,6 +63,7 @@ export const messages = pgTable(
     // Generat de client, dedupe la retrimitere (mesaj optimist din FE).
     clientId: uuid('client_id').notNull(),
     editedAt: timestamp('edited_at', { withTimezone: true }),
+    replyToId: uuid('reply_to_id').references((): AnyPgColumn => messages.id, { onDelete: 'set null' }),
   },
   (t) => [
     uniqueIndex('uq_messages_client_id').on(t.conversationId, t.clientId),
@@ -92,5 +92,53 @@ export const messageAttachments = pgTable(
   (t) => [
     index('idx_message_attachments_message').on(t.messageId),
     index('idx_message_attachments_unattached').on(t.createdAt),
+  ],
+)
+
+export const messageReactions = pgTable(
+  'message_reactions',
+  {
+    ...tenantColumns,
+    ...standardColumns,
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    emoji: text('emoji').notNull(),
+  },
+  (t) => [
+    uniqueIndex('uq_message_reactions').on(t.tenantId, t.messageId, t.userId, t.emoji),
+    index('idx_message_reactions_message').on(t.messageId),
+    check('ck_message_reactions_emoji', sql`char_length(${t.emoji}) <= 16`),
+  ],
+)
+
+export const MESSAGE_REF_TYPES = ['prospect', 'invoice', 'email_thread', 'calendar_event', 'archive_file', 'note'] as const
+export type MessageRefType = (typeof MESSAGE_REF_TYPES)[number]
+
+// An object shared into a message. `snapshot` is what the sender saw when sending: personal
+// objects are always shown from it, firm objects fall back to it once deleted.
+export const messageRefs = pgTable(
+  'message_refs',
+  {
+    ...tenantColumns,
+    ...standardColumns,
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    refType: text('ref_type', { enum: MESSAGE_REF_TYPES }).notNull(),
+    refId: uuid('ref_id').notNull(),
+    snapshot: jsonb('snapshot').$type<Record<string, unknown>>().notNull(),
+    position: smallint('position').notNull().default(0),
+  },
+  (t) => [
+    index('idx_message_refs_message').on(t.messageId),
+    index('idx_message_refs_target').on(t.tenantId, t.refType, t.refId),
+    check(
+      'ck_message_refs_type',
+      sql`${t.refType} IN ('prospect', 'invoice', 'email_thread', 'calendar_event', 'archive_file', 'note')`,
+    ),
   ],
 )

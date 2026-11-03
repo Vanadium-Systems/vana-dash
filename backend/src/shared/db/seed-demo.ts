@@ -15,6 +15,8 @@ import {
   dashboardConfig,
   exchangeRates,
   financialRecords,
+  messageReactions,
+  messageRefs,
   messages,
   notes,
   platformMetrics,
@@ -221,7 +223,7 @@ const received = [
   source: 'demo',
   createdByUserId: admin.id,
 }))
-await db.insert(financialRecords).values([...issued, ...received])
+const invoiceRows = await db.insert(financialRecords).values([...issued, ...received]).returning()
 
 // ── Prospects ────────────────────────────────────────────────────────────────
 
@@ -243,7 +245,7 @@ if (locale === 'en') {
 }
 
 const statusKeys = ['necontactat', 'necontactat', 'nu_a_raspuns', 'de_revenit', 'email', 'aprobat', 'respins']
-await db.insert(prospects).values(
+const prospectRows = await db.insert(prospects).values(
   Array.from({ length: 15 }, (_, i) => ({
     name: `Prospect ${String(i + 1).padStart(2, '0')} SRL`,
     cif: `RO2000${String(i + 1).padStart(4, '0')}`,
@@ -260,7 +262,7 @@ await db.insert(prospects).values(
     source: 'demo',
     createdByUserId: admin.id,
   })),
-)
+).returning()
 
 // ── Messages ─────────────────────────────────────────────────────────────────
 
@@ -286,12 +288,25 @@ const say = (conversationId: string, authorUserId: string, body: string, minutes
   clientId: crypto.randomUUID(),
   createdAt: new Date(now - minutesAgo * 60_000),
 })
-await db.insert(messages).values([
+const [dmFirst, , dmLast, groupFirst, groupLast] = await db.insert(messages).values([
   say(dm!.id, ana!.id, L({ ro: 'Am vorbit cu Prospect 04, vor o ofertă până vineri.', en: 'I talked to Prospect 04; they want an offer by Friday.' }), 190),
   say(dm!.id, admin.id, L({ ro: 'Bun. Fă calculul din Clienți și trimite-l de pe sales@.', en: 'Good. Do the calculation in Clients and send it from sales@.' }), 185),
   say(dm!.id, ana!.id, L({ ro: 'Trimis. Am pus și un reminder în calendar pentru luni.', en: 'Sent. I also put a reminder in the calendar for Monday.' }), 40),
   say(group!.id, mihai!.id, L({ ro: 'Facturile pe luna asta sunt emise, mai puțin două.', en: "This month's invoices are issued, except two." }), 300),
   say(group!.id, admin.id, L({ ro: 'Mulțumesc. Le închid eu mâine dimineață.', en: 'Thanks. I will close them tomorrow morning.' }), 290),
+]).returning()
+
+// A reply and a few reactions, so the thread shows quoted messages and chips.
+await db.insert(messages).values({
+  ...say(group!.id, ana!.id, L({ ro: 'Eu le verific pe cele două rămase azi.', en: 'I will check the two left today.' }), 120),
+  replyToId: groupFirst!.id,
+})
+await db.insert(messageReactions).values([
+  { messageId: dmFirst!.id, userId: admin.id, emoji: '👍' },
+  { messageId: dmLast!.id, userId: admin.id, emoji: '🙏' },
+  { messageId: groupFirst!.id, userId: admin.id, emoji: '👍' },
+  { messageId: groupFirst!.id, userId: ana!.id, emoji: '👍' },
+  { messageId: groupLast!.id, userId: mihai!.id, emoji: '✅' },
 ])
 
 // ── Calendar, notes, alerts, support ─────────────────────────────────────────
@@ -301,14 +316,14 @@ const inDays = (n: number, hour: number, minutes = 0) => {
   d.setUTCHours(hour, minutes, 0, 0)
   return d
 }
-await db.insert(calendarEvents).values([
+const eventRows = await db.insert(calendarEvents).values([
   { ownerUserId: admin.id, title: L({ ro: 'Apel Acme Recycling', en: 'Call with Acme Recycling' }), startAt: inDays(1, 8), endAt: inDays(1, 8, 30), reminderMinutesBefore: 15, createdByUserId: admin.id },
   { ownerUserId: admin.id, title: L({ ro: 'Închidere lună', en: 'Month-end close' }), startAt: inDays(3, 7), endAt: inDays(3, 9), createdByUserId: admin.id },
   { ownerUserId: ana!.id, title: L({ ro: 'Revenit la Prospect 04', en: 'Follow up with Prospect 04' }), startAt: inDays(4, 9), endAt: inDays(4, 9, 30), createdByUserId: ana!.id },
   { ownerUserId: admin.id, title: 'Demo Cobalt Logistics', location: 'Online', startAt: inDays(6, 11), endAt: inDays(6, 12), createdByUserId: admin.id },
-])
+]).returning()
 
-await db.insert(notes).values([
+const noteRows = await db.insert(notes).values([
   {
     ownerUserId: admin.id,
     title: L({ ro: 'Date demo', en: 'Demo data' }),
@@ -323,7 +338,44 @@ await db.insert(notes).values([
     title: L({ ro: 'De întrebat contabila', en: 'To ask the accountant' }),
     body: L({ ro: 'Termenul pentru D301 pe luna curentă.', en: 'The D301 deadline for the current month.' }),
   },
-])
+]).returning()
+
+// One shared object of each kind the demo has (no mailbox or archive rows exist here). The
+// snapshots follow the cards built by each module's refs.ts.
+type SharedType = 'prospect' | 'invoice' | 'calendar_event' | 'note'
+const sharedAbout = async (conversationId: string, authorUserId: string, minutesAgo: number, refType: SharedType, refId: string, snapshot: Record<string, unknown>) => {
+  const [message] = await db.insert(messages).values(say(conversationId, authorUserId, '', minutesAgo)).returning()
+  await db.insert(messageRefs).values({ messageId: message!.id, refType, refId, snapshot, position: 0 })
+}
+const sharedProspect = prospectRows[3]!
+const sharedInvoice = invoiceRows.find((r) => r.type === 'invoice' && r.paymentStatus === 'unpaid')!
+const sharedEvent = eventRows[0]!
+const sharedNote = noteRows[1]!
+await sharedAbout(dm!.id, ana!.id, 60, 'prospect', sharedProspect.id, {
+  title: sharedProspect.name,
+  ownerName: null,
+  statusLabel: L({ ro: 'De revenit', en: 'Call back' }),
+  lastContactAt: null,
+})
+await sharedAbout(group!.id, mihai!.id, 100, 'invoice', sharedInvoice.id, {
+  title: sharedInvoice.documentNumber,
+  clientName: sharedInvoice.counterpartyName,
+  total: sharedInvoice.amount,
+  currency: sharedInvoice.currency,
+  status: sharedInvoice.paymentStatus,
+  direction: sharedInvoice.direction,
+})
+await sharedAbout(dm!.id, admin.id, 30, 'calendar_event', sharedEvent.id, {
+  title: sharedEvent.title,
+  startAt: sharedEvent.startAt.toISOString(),
+  endAt: sharedEvent.endAt.toISOString(),
+  allDay: false,
+  attendeeNames: [],
+})
+await sharedAbout(group!.id, admin.id, 20, 'note', sharedNote.id, {
+  title: sharedNote.title,
+  excerpt: sharedNote.body,
+})
 
 const [rule] = await db
   .insert(alertRules)

@@ -147,7 +147,7 @@ async function searchArchive(me: SessionUser, term: string, limit: number): Prom
       id: r.id,
       label: r.name,
       sublabel: r.folderPath.map((f) => f.name).join(' / ') || null,
-      to: `/archive?folder=${r.folderId}`,
+      to: `/archive?folder=${r.folderId}&file=${r.id}`,
     })),
   }
 }
@@ -173,7 +173,7 @@ async function searchCalendar(me: SessionUser, term: string, limit: number): Pro
         // Numele proprietarului doar când nu e calendarul omului — altfel ar fi zgomot.
         sublabel: r.ownerUserId === me.id ? when : `${when} · ${r.ownerName}`,
         // The day in the company's zone, not in UTC: an event at 00:30 would otherwise land on the day before.
-        to: `/calendar?date=${start.toLocaleDateString('sv-SE', { timeZone })}`,
+        to: `/calendar?date=${start.toLocaleDateString('sv-SE', { timeZone })}&event=${r.id}`,
       }
     }),
   }

@@ -509,6 +509,7 @@
     "count": "{{count}} selectate"
   },
   "keys": {
-    "shift": "Shift"
+    "shift": "Shift",
+    "delete": "Del"
   }
 }

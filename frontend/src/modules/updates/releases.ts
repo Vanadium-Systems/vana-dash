@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-03T12:00:00+02:00',
+    title: {
+      ro: 'Mesaje: răspunsuri, reacții și obiecte trimise din aplicație',
+      en: 'Messages: replies, reactions and objects sent from the app',
+    },
+    body: {
+      ro: 'Poți răspunde la un mesaj (citatul te duce la original) și reacționa cu un emoji; pe telefon glisezi mesajul spre dreapta ca să răspunzi, iar apăsarea lungă deschide acțiunile. La ștergere ai 6 secunde să dai „Anulează”. Data de sus te lasă să sari la azi, la săptămâna trecută sau la o dată aleasă, iar linia „mesaje noi” arată unde ai rămas. Panoul conversației are membri, notificări oprite, poze, fișiere și căutare. Un client, o factură, un fir de email, un eveniment, un fișier din Arhivă sau o notiță se trimit în Mesaje din meniul lor, iar cine nu are acces la original poate apăsa „Cere acces”. În Profilul meu, la Afișare, apar „Mișcare” și „Ascunde sumele”.',
+      en: 'You can reply to a message (the quote takes you to the original) and react with an emoji; on a phone you swipe a message right to reply, and a long press opens its actions. When you delete, you have 6 seconds to press “Undo”. The date at the top lets you jump to today, last week or a date you pick, and the “new messages” line shows where you left off. The conversation panel has members, mute, photos, files and search. A client, an invoice, an email thread, an event, an Archive file or a note can be sent to Messages from its menu, and whoever cannot open the original can press “Ask for access”. In My profile, under Display, you find “Motion” and “Hide amounts”.',
+    },
+    features: ['mesaje.view'],
+  },
+  {
     publishedAt: '2026-11-01T08:49:00+02:00',
     title: {
       ro: 'Filtrele goale se resetează dintr-un click',

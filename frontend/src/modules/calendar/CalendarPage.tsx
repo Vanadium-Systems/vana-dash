@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarClock, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AccessShareDialog } from '@/shared/components/AccessShareDialog'
 import { PageHeader } from '@/shared/components/PageHeader'
@@ -222,6 +222,18 @@ export function CalendarPage() {
     setPrefill(null)
     setDialogOpen(true)
   }
+
+  // Link to a shared event: once the week that holds it is loaded, open its details (once per id).
+  const [searchParams] = useSearchParams()
+  const linkedEventId = searchParams.get('event') ?? ''
+  const openedLinkRef = useRef('')
+  useEffect(() => {
+    if (!linkedEventId || openedLinkRef.current === linkedEventId) return
+    const occ = occurrences.data?.find((o) => o.eventId === linkedEventId)
+    if (!occ) return
+    openedLinkRef.current = linkedEventId
+    void openEdit(occ)
+  })
 
   // Orele de programări (ora din București = ora browserului lui Stefan) întinse pe săptămâna afișată.
   const bookingWindows: TimeRange[] = canBookings && bookingSettings.data?.enabled

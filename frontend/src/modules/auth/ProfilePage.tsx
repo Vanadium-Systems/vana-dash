@@ -14,9 +14,11 @@ import { isPushSupported } from '@/shared/lib/push-client'
 import { extractEmailAddress } from '@/modules/email/identity'
 import { NavSettingsCard } from '@/modules/settings/NavSettingsCard'
 import { PushPreferencesCard, PushSubscriptionCard } from '@/modules/settings/PushCards'
-import type { EmailIdentity, EmailSettings } from '@/shared/lib/types'
+import type { EmailIdentity, EmailSettings, SessionPayload } from '@/shared/lib/types'
 import { PasswordInput } from './PasswordInput'
 import { changeLocale, t } from '@/shared/lib/i18n'
+import { applyMotionPref, type MotionPref } from '@/shared/lib/motion'
+import { cn } from '@/shared/lib/utils'
 import { LOCALE_NAMES, type DisplayCurrency, type Locale } from '@/shared/lib/locale'
 
 // „Profilul meu" (fișa din PLAN.md): trei secțiuni pe o pagină, fără tab-uri — profil,
@@ -28,6 +30,8 @@ const CHAT_OPTIONS = [
   { value: 'dm', label: t('auth:profile.notifications.chatDirectOnly') },
   { value: 'none', label: t('common:states.none') },
 ]
+
+const MOTION_PREFS: MotionPref[] = ['system', 'full', 'reduced', 'off']
 
 export function ProfilePage() {
   const { session, can } = useMe()
@@ -87,6 +91,15 @@ export function ProfilePage() {
 
   const saveLocale = useMutation({
     mutationFn: (locale: Locale) => changeLocale(locale, () => api.patch('/api/auth/me', { locale })),
+    onError: (error) => toast.error(error instanceof Error ? error.message : t('auth:profile.display.notSaved')),
+  })
+
+  const saveDisplayPrefs = useMutation({
+    mutationFn: (patch: { motionPref?: MotionPref; hideAmounts?: boolean }) => api.patch<SessionPayload>('/api/auth/me', patch),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['auth', 'me'], data)
+      applyMotionPref(data.motionPref ?? 'system')
+    },
     onError: (error) => toast.error(error instanceof Error ? error.message : t('auth:profile.display.notSaved')),
   })
 
@@ -151,6 +164,37 @@ export function ProfilePage() {
               options={(session?.displayCurrencies ?? []).map((currency) => ({ value: currency, label: t(`common:currencies.${currency}`) }))}
             />
           </Field>
+          <Field label={t('auth:profile.display.motion')} hint={t('auth:profile.display.motionHint')}>
+            <div role="radiogroup" aria-label={t('auth:profile.display.motion')} className="inline-flex flex-wrap gap-1 rounded-md bg-muted p-1">
+              {MOTION_PREFS.map((pref) => (
+                <button
+                  key={pref}
+                  type="button"
+                  role="radio"
+                  aria-checked={(session?.motionPref ?? 'system') === pref}
+                  disabled={saveDisplayPrefs.isPending}
+                  onClick={() => saveDisplayPrefs.mutate({ motionPref: pref })}
+                  className={cn(
+                    'h-control-md rounded-sm px-3 text-sm transition-colors duration-[var(--duration-fast)]',
+                    (session?.motionPref ?? 'system') === pref ? 'bg-background font-medium text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {t(`auth:profile.display.motionOptions.${pref}`)}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm">{t('auth:profile.display.hideAmounts')}</p>
+              <p className="text-xs text-muted-foreground">{t('auth:profile.display.hideAmountsHint')}</p>
+            </div>
+            <Switch
+              checked={session?.hideAmounts ?? false}
+              label={t('auth:profile.display.hideAmounts')}
+              onCheckedChange={(checked) => saveDisplayPrefs.mutate({ hideAmounts: checked })}
+            />
+          </div>
         </CardContent>
       </Card>
 

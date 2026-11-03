@@ -1,7 +1,8 @@
 // Cross-fade between pages through the View Transitions API. Where it is missing (older Android
 // WebViews) or motion is reduced, the navigation simply happens, instantly.
 
-const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+import { motionLevel } from './motion'
+
 // The new page is captured once it has rendered; a page whose code is still loading is not
 // waited for longer than this, since the screen does not respond while a transition is pending.
 const MAX_WAIT_MS = 300
@@ -9,7 +10,7 @@ const MAX_WAIT_MS = 300
 let routeCommitted: (() => void) | null = null
 
 export function navigateWithTransition(go: () => void) {
-  if (typeof document.startViewTransition !== 'function' || reducedMotion?.matches) {
+  if (typeof document.startViewTransition !== 'function' || motionLevel() !== 'full') {
     go()
     return
   }

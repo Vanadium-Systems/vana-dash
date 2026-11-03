@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { motionLevel } from '@/shared/lib/motion'
 
 const ROLL_MS = 600
 
-const prefersReducedMotion = (): boolean => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+const prefersReducedMotion = (): boolean => motionLevel() !== 'full'
 
 // Counts up once, when the figure first appears; a later refetch must not replay it, so after
 // the roll the value is rendered as it comes.

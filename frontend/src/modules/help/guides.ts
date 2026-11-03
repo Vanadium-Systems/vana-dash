@@ -111,6 +111,10 @@ const SOURCES: GuideSource[] = [
         ro: '„Amână” ascunde firul până la momentul ales; îl găsești între timp la „Amânate”.',
         en: '“Snooze” hides the thread until the time you pick; meanwhile it is under “Snoozed”.',
       },
+      {
+        ro: 'Un fir, sau doar un pasaj selectat din el, se trimite unui coleg cu „Trimite în Mesaje”.',
+        en: 'A thread, or just a passage selected in it, goes to a colleague with “Send to Messages”.',
+      },
     ],
   },
   {
@@ -153,8 +157,8 @@ const SOURCES: GuideSource[] = [
       en: 'Talking to a colleague or a group',
     },
     summary: {
-      ro: 'Mesajele ajung pe loc la cine are aplicația deschisă; ceilalți primesc notificare.',
-      en: 'Messages reach whoever has the app open right away; the others get a notification.',
+      ro: 'Mesajele ajung pe loc la cine are aplicația deschisă; ceilalți primesc notificare. Poți răspunde la un mesaj, reacționa și trimite obiecte din aplicație.',
+      en: 'Messages reach whoever has the app open right away; the others get a notification. You can reply to a message, react and send objects from the app.',
     },
     steps: [
       {
@@ -166,8 +170,36 @@ const SOURCES: GuideSource[] = [
         en: 'Type in the field at the bottom and send. A file of up to 15 MB is added with “Attach”.',
       },
       {
-        ro: 'Meniul „⋯” de lângă un mesaj de-al tău (pe telefon, apăsare lungă) îl editează sau îl șterge.',
-        en: 'The “⋯” menu next to one of your messages (on the phone, a long press) edits or deletes it.',
+        ro: 'Pe orice mesaj, al tău sau al altuia, ai „Răspunde” și reacțiile rapide: bara de deasupra la trecerea mouse-ului, click dreapta (R răspunde, C copiază, E editează, Del șterge) sau, pe telefon, apăsare lungă. Tot pe telefon, glisezi mesajul spre dreapta ca să răspunzi.',
+        en: 'On any message, yours or someone else’s, you get “Reply” and the quick reactions: the bar above it on hover, right-click (R reply, C copy, E edit, Del delete) or, on a phone, a long press. Also on a phone, swipe the message right to reply.',
+      },
+      {
+        ro: 'Citatul din răspuns te duce la mesajul original și îl aprinde o clipă. Ștergerea nu mai cere confirmare: ai 6 secunde să apeși „Anulează”.',
+        en: 'The quote in a reply takes you to the original message and lights it up for a moment. Deleting no longer asks to confirm: you have 6 seconds to press “Undo”.',
+      },
+      {
+        ro: 'Data lipită sus e un meniu: de acolo sari la azi, la săptămâna trecută, la luna trecută sau la o dată aleasă. Linia „N mesaje noi” arată unde ai rămas, iar butonul rotund cu săgeată în jos te duce la capăt.',
+        en: 'The date pinned at the top is a menu: jump to today, last week, last month or a date you pick. The “N new messages” line shows where you left off, and the round down arrow takes you to the end.',
+      },
+      {
+        ro: 'Butoanele din antet deschid panoul conversației: membri, oprirea notificărilor, pozele și fișierele trimise și căutarea în conversație (găsește și fără diacritice).',
+        en: 'The header buttons open the conversation panel: members, mute, photos and files sent, and search inside the conversation (it matches without diacritics too).',
+      },
+      {
+        ro: 'Din câmpul de scris, ↑ te duce la ultimul mesaj; apoi ↑ ↓ mută, R, E, C și Del acționează, Esc te întoarce la câmp.',
+        en: 'From the composer, ↑ takes you to the last message; then ↑ ↓ move, R, E, C and Del act, Esc returns to the composer.',
+      },
+      {
+        ro: 'Un client, o factură, un fir de email, un eveniment, un fișier din Arhivă sau o notiță se trimite aici din meniul lui, la „Trimite în Mesaje”. În câmpul de scris, # caută obiecte ca Ctrl K, iar un link lipit din aplicație devine card.',
+        en: 'A client, an invoice, an email thread, an event, an Archive file or a note is sent here from its menu, under “Send to Messages”. In the composer, # searches objects like Ctrl K, and a pasted link from the app becomes a card.',
+      },
+      {
+        ro: 'Cardul unui client sau al unei facturi arată datele de acum, dacă ai acces la pagina lor. Emailul, evenimentul, fișierul și notița arată ce a văzut cel care le-a trimis, iar originalul se deschide doar pentru cine are deja acces. Dacă nu ai, cardul zice „N-ai acces”; „Cere acces” scrie în conversație un răspuns gata completat.',
+        en: 'The card of a client or an invoice shows today’s data, if you have access to their page. An email, an event, a file and a note show what the sender saw, and the original opens only for whoever already has access. If you do not, the card says “No access”; “Ask for access” fills in a reply in the conversation.',
+      },
+      {
+        ro: 'Meniul „⋯” de lângă un mesaj de-al tău îl editează sau îl șterge.',
+        en: 'The “⋯” menu next to one of your messages edits or deletes it.',
       },
       {
         ro: 'Câte notificări primești se alege în Profilul meu, la Notificări.',
@@ -203,6 +235,10 @@ const SOURCES: GuideSource[] = [
       {
         ro: 'Comută între „Lună” și „Săptămână”; „Astăzi” te aduce înapoi la ziua curentă.',
         en: 'Switch between “Month” and “Week”; “Today” brings you back to the current day.',
+      },
+      {
+        ro: 'Deschis, un eveniment se poate trimite unui coleg cu „Trimite în Mesaje”.',
+        en: 'An open event can be sent to a colleague with “Send to Messages”.',
       },
     ],
   },
@@ -257,6 +293,10 @@ const SOURCES: GuideSource[] = [
       {
         ro: 'Apasă „Calculează preț” pe rând ca să deschizi calculatorul cu datele lui.',
         en: 'Press “Calculate price” on the row to open the calculator with its details.',
+      },
+      {
+        ro: 'Din meniul rândului, „Trimite în Mesaje” dă prospectul unui coleg.',
+        en: 'From the row menu, “Send to Messages” passes the prospect to a colleague.',
       },
       {
         ro: 'Când a devenit client, apasă „Promovează”.',

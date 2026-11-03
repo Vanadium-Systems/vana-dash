@@ -179,6 +179,11 @@ export function AppLayout() {
   const unreadCounts = useEmailUnreadCounts()
   const chatUnread = useChatUnreadTotal()
   const activeAlertsCount = useActiveAlertsCount()
+  // The title the page was loaded with is the app name; the unread count is a prefix on it.
+  const baseTitle = useRef(document.title)
+  useEffect(() => {
+    document.title = chatUnread > 0 ? `(${chatUnread}) ${baseTitle.current}` : baseTitle.current
+  }, [chatUnread])
   const { can } = useMe()
   const { canInstall, promptInstall } = useInstallPrompt()
   const online = useOnline()
@@ -435,12 +440,19 @@ export function AppLayout() {
                 end={to === '/'}
                 {...navLink(to)}
                 className={({ isActive }) =>
-                  cn('relative flex h-16 w-full flex-col items-center justify-center gap-1 text-xs', isActive ? 'text-foreground' : 'text-muted-foreground')
+                  cn('relative flex h-16 w-full flex-col items-center justify-center text-xs', isActive ? 'text-foreground' : 'text-muted-foreground')
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <Icon className="h-5 w-5" strokeWidth={isActive ? 2.2 : 1.8} />
+                    <span
+                      className={cn(
+                        'flex h-8 w-16 items-center justify-center rounded-full transition-colors duration-[var(--duration-fast)]',
+                        isActive && 'bg-accent',
+                      )}
+                    >
+                      <Icon className="h-5 w-5" strokeWidth={isActive ? 2.2 : 1.8} />
+                    </span>
                     <span className={cn(isActive && 'font-medium')}>{item.label}</span>
                     {to === '/email' && unreadCounts.data?.total ? (
                       <span className="absolute right-[22%] top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 tnum text-xs font-semibold text-white">
@@ -452,7 +464,6 @@ export function AppLayout() {
                         {chatUnread > 99 ? '99+' : chatUnread}
                       </span>
                     ) : null}
-                    {isActive ? <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-primary" /> : null}
                   </>
                 )}
               </NavLink>
