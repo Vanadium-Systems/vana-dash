@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-04T17:30:00+02:00',
+    title: {
+      ro: 'Secvențe: înscrierile în ordine, pașii numărați corect',
+      en: 'Sequences: enrollments in order, steps counted right',
+    },
+    body: {
+      ro: 'Lista de înscrieri începe cu cei neîncepuți, apoi activii, completații și opriții, iar în fiecare grup pasul crește de sus în jos. Bara unui pas arată câți l-au primit, nu doar câți au rămas la el, deci Pas 1 nu mai scade când oamenii trec la Pas 2. O adresă cu bounce, spam sau dezabonare trece pe Oprit la următoarea rulare a secvenței, nu abia când i-ar fi venit rândul; oricum nu primea nimic.',
+      en: 'The enrollments list starts with those not started, then active, completed and stopped, and inside each group the step goes up from top to bottom. A step’s bar shows how many received it, not only how many are still on it, so Step 1 no longer drops when people move on to Step 2. An address that bounced, complained or unsubscribed moves to Stopped on the sequence’s next run instead of when its turn would have come; it was not getting anything either way.',
+    },
+    features: ['email.view'],
+  },
+  {
     publishedAt: '2026-11-04T15:00:00+02:00',
     title: {
       ro: 'Mesaje: la zi pe toate device-urile, inițiale cu bulină, membri în grupuri',

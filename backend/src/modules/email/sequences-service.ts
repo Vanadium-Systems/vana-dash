@@ -112,7 +112,16 @@ export async function listEnrollments(sequenceId: string): Promise<EnrollmentRow
     .select()
     .from(emailSequenceEnrollments)
     .where(and(eq(emailSequenceEnrollments.sequenceId, sequenceId), isNull(emailSequenceEnrollments.deletedAt)))
-    .orderBy(desc(emailSequenceEnrollments.enrolledAt))
+    .orderBy(
+      sql`case
+        when ${emailSequenceEnrollments.status} = 'active' and ${emailSequenceEnrollments.currentStep} = 0 then 0
+        when ${emailSequenceEnrollments.status} = 'active' then 1
+        when ${emailSequenceEnrollments.status} = 'completed' then 2
+        when ${emailSequenceEnrollments.status} = 'replied' then 3
+        else 4 end`,
+      asc(emailSequenceEnrollments.currentStep),
+      desc(emailSequenceEnrollments.enrolledAt),
+    )
 }
 
 export interface EnrollResult {
@@ -199,10 +208,13 @@ export async function getSequenceStats(sequenceId: string): Promise<SequenceStat
     total += row.count
   }
 
+  // Step N counts everyone who received it (current_step >= N), not only those still sitting on it:
+  // otherwise step 1 drops as soon as people move on to step 2 and looks like it was never sent to all.
   const countByStep = new Map(stepRows.map((r) => [r.step, r.count]))
+  const reached = (stepOrder: number) => stepRows.reduce((sum, r) => (r.step >= stepOrder ? sum + r.count : sum), 0)
   const byStep = [
     { step: 0, label: tr('errors.email.notStarted'), count: countByStep.get(0) ?? 0 },
-    ...steps.map((s) => ({ step: s.stepOrder, label: `Pas ${s.stepOrder}`, count: countByStep.get(s.stepOrder) ?? 0 })),
+    ...steps.map((s) => ({ step: s.stepOrder, label: `Pas ${s.stepOrder}`, count: reached(s.stepOrder) })),
   ]
 
   return { total, byStatus, byStep }

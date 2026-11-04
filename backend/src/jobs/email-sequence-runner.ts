@@ -1,11 +1,11 @@
 import cron from 'node-cron'
-import { and, asc, eq, isNull, lte } from 'drizzle-orm'
+import { and, asc, eq, isNull, lte, sql } from 'drizzle-orm'
 import { getOutreachCapStatus, sendCampaignEmail } from '../modules/email/service.js'
 import { getEmailSettings } from '../modules/email/settings-service.js'
 import { getSuppressedEmails } from '../modules/email/unsubscribe-service.js'
 import { db } from '../shared/db/client.js'
 import { getCompanyTimeZone } from '../shared/lib/company.js'
-import { emailSequenceEnrollments, emailSequences, emailSequenceSteps, syncLog } from '../shared/db/schema/index.js'
+import { emailSequenceEnrollments, emailSequences, emailSequenceSteps, emailSuppressions, syncLog } from '../shared/db/schema/index.js'
 
 // Cron orar — la fiecare oră verifică dacă suntem în fereastra de trimitere configurată din
 // Setări Email (oră + doar zile lucrătoare, implicit 10:00 L-V, în fusul firmei — serverul
@@ -65,6 +65,19 @@ type EnrollmentRow = typeof emailSequenceEnrollments.$inferSelect
 type FromIdentity = 'stefan' | 'contact' | 'outreach'
 
 async function processDueEnrollments(): Promise<number> {
+  // Stop every suppressed address now, not only when its next step is due: otherwise a bounced
+  // or unsubscribed recipient keeps showing as active in the enrollments list until then.
+  await db
+    .update(emailSequenceEnrollments)
+    .set({ status: 'unsubscribed', updatedAt: new Date() })
+    .where(
+      and(
+        eq(emailSequenceEnrollments.status, 'active'),
+        isNull(emailSequenceEnrollments.deletedAt),
+        sql`exists (select 1 from ${emailSuppressions} where ${emailSuppressions.email} = lower(trim(${emailSequenceEnrollments.recipientEmail})))`,
+      ),
+    )
+
   const rows = await db
     .select({ enrollment: emailSequenceEnrollments, fromIdentity: emailSequences.fromIdentity })
     .from(emailSequenceEnrollments)
