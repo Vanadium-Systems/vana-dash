@@ -37,7 +37,7 @@ export function DaySeparator({ iso, onJump }: { iso: string; onJump: (dateIso: s
   return (
     <div className="pointer-events-none sticky top-1 z-10 flex justify-center py-1.5">
       <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger className="pointer-events-auto rounded-full border bg-background/90 px-3 py-0.5 text-xs font-medium text-muted-foreground backdrop-blur hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <DropdownMenuTrigger className="pointer-events-auto rounded-full border bg-background px-3 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {dayLabel(iso)}
           <span className="sr-only">{t('messages:day.jumpMenu')}</span>
         </DropdownMenuTrigger>

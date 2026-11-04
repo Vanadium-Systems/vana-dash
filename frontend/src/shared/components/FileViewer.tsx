@@ -73,7 +73,7 @@ export function FileViewer({
       tabIndex={-1}
       className="fixed inset-0 z-[60] flex flex-col bg-black text-white focus:outline-none"
     >
-      <div className="safe-top flex items-center gap-2 px-2 py-2">
+      <div className="flex items-center gap-2 px-2 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
         <button type="button" onClick={onClose} className={buttonClass} aria-label={t('common:actions.close')}>
           <X className="h-5 w-5" />
         </button>

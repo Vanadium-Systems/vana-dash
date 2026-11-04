@@ -20,7 +20,7 @@ export function ShellSkeleton() {
           <Skeleton key={index} className="h-5" style={{ width: `${60 + ((index * 17) % 30)}%` }} />
         ))}
       </aside>
-      <main className="safe-top flex-1 p-4 md:p-6">
+      <main className="flex-1 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:p-6">
         <div className="mx-auto max-w-6xl">
           <ContentSkeleton />
         </div>

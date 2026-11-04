@@ -147,7 +147,7 @@ export function AssetDetailPage() {
         <div
           aria-hidden={!titleCollapsed}
           className={cn(
-            'glass safe-top absolute inset-x-0 top-0 truncate border-b px-4 py-2 text-sm font-medium transition-opacity duration-fast',
+            'glass absolute inset-x-0 top-0 truncate border-b px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] text-sm font-medium transition-opacity duration-fast',
             titleCollapsed ? 'opacity-100' : 'pointer-events-none opacity-0',
           )}
         >

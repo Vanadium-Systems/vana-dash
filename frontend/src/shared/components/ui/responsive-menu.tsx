@@ -86,7 +86,7 @@ export function BottomSheet({
         role={role}
         aria-label={typeof title === 'string' ? title : undefined}
         data-state={state}
-        className="sheet-panel glass safe-bottom absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-xl border-t p-2 pt-0 text-card-foreground"
+        className="sheet-panel glass absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-xl border-t px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] pt-0 text-card-foreground"
         onTransitionEnd={(e) => {
           if (e.target === e.currentTarget && !open) setMounted(false)
         }}
