@@ -14,6 +14,7 @@ import { api } from '@/shared/lib/api'
 import { companyTimeZone, formatDateTime, intlTag } from '@/shared/lib/format'
 import { haptic } from '@/shared/lib/haptics'
 import { t } from '@/shared/lib/i18n'
+import { linkify } from '@/shared/lib/linkify'
 import type { ChatAttachment, ChatMessageRef, ChatReaction, ChatReplyPreview } from '@/shared/lib/types'
 import { cn, formatBytes } from '@/shared/lib/utils'
 import { ChatAvatar, personColor } from './ChatAvatar'
@@ -26,6 +27,8 @@ import { ChatAvatar, personColor } from './ChatAvatar'
 
 export const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const
 const LONG_PRESS_MS = 500
+// A long URL breaks anywhere instead of widening the bubble.
+const LINK_CLASS = 'break-all underline underline-offset-2 hover:no-underline'
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/3gpp']
 // One to three emoji and nothing else: shown large, without a bubble.
@@ -304,7 +307,7 @@ export const MessageBubble = forwardRef<
 
             {message.body ? (
               <div className={cn('whitespace-pre-wrap break-words', emojiOnly ? 'text-4xl leading-tight' : 'text-sm')}>
-                {message.body}
+                {emojiOnly ? message.body : linkify(message.body, LINK_CLASS)}
                 {emojiOnly ? null : meta}
               </div>
             ) : null}

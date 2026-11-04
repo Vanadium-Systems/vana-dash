@@ -15,6 +15,7 @@ import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { api, ApiError } from '@/shared/lib/api'
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { linkify } from '@/shared/lib/linkify'
 import { dismissDeliveredNotificationsByTag } from '@/shared/lib/native-push'
 import { undoToast } from '@/shared/lib/undo-toast'
 import type { EmailAttachmentMeta, EmailDraft, EmailMessage, EmailSenderOptions, EmailThread } from '@/shared/lib/types'
@@ -39,26 +40,6 @@ export function splitQuotedReply(text: string): { main: string; quoted: string |
   const quoted = text.slice(match.index).trim()
   if (!quoted) return { main: text, quoted: null }
   return { main: text.slice(0, match.index).trimEnd(), quoted }
-}
-
-const URL_RE = /((?:https?:\/\/|www\.)[^\s<>"')\]]+)/g
-
-// Plain-text bodies: only URL-looking parts become links, the rest stays text React escapes.
-function linkify(text: string) {
-  return text.split(URL_RE).map((part, i) => {
-    if (i % 2 === 0) return part
-    const trailing = /[.,;:!?)\]]+$/.exec(part)?.[0] ?? ''
-    const url = trailing ? part.slice(0, -trailing.length) : part
-    const href = url.startsWith('www.') ? `https://${url}` : url
-    return (
-      <span key={i}>
-        <a href={href} target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">
-          {url}
-        </a>
-        {trailing}
-      </span>
-    )
-  })
 }
 
 function TextBody({ text }: { text: string }) {
