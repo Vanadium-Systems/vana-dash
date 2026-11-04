@@ -14,6 +14,7 @@ import argon2 from 'argon2'
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../src/app.js'
+import { dispatchScheduledSend } from '../src/modules/email/scheduled-send.js'
 import { config } from '../src/shared/config.js'
 import { db, sql } from '../src/shared/db/client.js'
 import {
@@ -21,6 +22,7 @@ import {
   emailLabels,
   emailMessages,
   emailRules,
+  emailSends,
   emailThreads,
   users,
   roles,
@@ -34,6 +36,12 @@ const RUN_ID = Date.now()
 const TEST_EMAIL = `test-mailbox-${RUN_ID}@test.local`
 const TEST_PASSWORD = 'parola-de-test-123'
 const CLOUDFLARE_TOKEN = config.cloudflareEmailIngestToken
+
+// Sending waits in the undo window: make the row due and dispatch it by hand.
+async function dispatchNow(sendId: string) {
+  await db.update(emailSends).set({ sendAfter: new Date(Date.now() - 1000) }).where(eq(emailSends.id, sendId))
+  await dispatchScheduledSend(sendId)
+}
 
 let app: Awaited<ReturnType<typeof buildServer>>
 let cookie = ''
@@ -236,10 +244,10 @@ describe('Acțiuni de mailbox', () => {
       headers: { cookie },
       payload: { to: `forwarded-to-${RUN_ID}@example.com`, extraBody: 'Uite ce am primit' },
     })
-    expect(res.statusCode).toBe(201)
-    const body = res.json()
-    expect(body.data.subject).toBe(`Fwd: ${subject}`)
-    expect(body.data.forwardOfMessageId).toBe(original!.id)
-    expect(body.data.bodyText).toContain('Corp original')
+    expect(res.statusCode).toBe(202)
+    await dispatchNow(res.json().data.sendId)
+    const [forwarded] = await db.select().from(emailMessages).where(eq(emailMessages.forwardOfMessageId, original!.id))
+    expect(forwarded!.subject).toBe(`Fwd: ${subject}`)
+    expect(forwarded!.bodyText).toContain('Corp original')
   })
 })

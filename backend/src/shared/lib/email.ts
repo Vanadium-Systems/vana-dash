@@ -28,7 +28,10 @@ export interface SendEmailResult {
 }
 
 interface SendEmailOpts {
-  to: string
+  to: string | string[]
+  cc?: string[]
+  /** Resend keeps the first response for 24h per key, so a retried dispatch cannot send twice. */
+  idempotencyKey?: string
   subject: string
   text: string
   /** Versiune HTML opțională (semnătură cu logo etc.) — Resend acceptă text+html
@@ -73,10 +76,12 @@ async function sendEmailInternal(opts: SendEmailOpts): Promise<SendEmailResult> 
       headers: {
         Authorization: `Bearer ${config.resendApiKey}`,
         'Content-Type': 'application/json',
+        ...(opts.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
       },
       body: JSON.stringify({
         from: opts.from ?? config.alertEmailFrom,
-        to: [opts.to],
+        to: Array.isArray(opts.to) ? opts.to : [opts.to],
+        ...(opts.cc?.length ? { cc: opts.cc } : {}),
         subject: opts.subject,
         text: opts.text,
         html: wrapHtmlFont(opts.html),

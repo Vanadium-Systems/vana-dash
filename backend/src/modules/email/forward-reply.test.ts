@@ -1,26 +1,25 @@
 /**
- * forwardMessage / replyToThread — verifică split-ul text/html introdus 2026-08-11 (editorul
- * rich-text trimite HTML acum, nu mai text simplu wrapped prin textToHtmlParagraph). Fără
- * acoperire anterioară pentru aceste 2 funcții (nici la nivel de rută) — adăugată aici, nu doar
- * ca side-effect al schimbării, ca regresiile viitoare să fie prinse.
+ * sendReply / sendForward (through dispatchScheduledSend): checks the text/html split (the
+ * rich-text editor sends HTML, not plain text wrapped by textToHtmlParagraph). These two
+ * functions had no coverage before (not even at route level), so regressions get caught here.
  */
 import { randomUUID } from 'node:crypto'
-import { eq, inArray, like } from 'drizzle-orm'
+import { and, desc, eq, inArray, like, sql } from 'drizzle-orm'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { emailMessages, emailSends, emailThreads, roles, users } from '../../shared/db/schema/index.js'
+import { emailDrafts, emailMessages, emailSends, emailThreads, roles, users } from '../../shared/db/schema/index.js'
 import type { EmailAttachment, SendEmailResult } from '../../shared/lib/email.js'
 import { saveDocument } from '../../shared/lib/storage.js'
 import { emailImageStoragePath } from './images-service.js'
 
 const sendEmailWithResultMock =
-  vi.fn<(opts: { to: string; text: string; html: string; attachments?: EmailAttachment[] }) => Promise<SendEmailResult>>()
+  vi.fn<(opts: { to: string[]; text: string; html: string; attachments?: EmailAttachment[] }) => Promise<SendEmailResult>>()
 vi.mock('../../shared/lib/email.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../shared/lib/email.js')>()
   return { ...actual, sendEmailWithResult: sendEmailWithResultMock, fetchReceivedEmail: async () => null }
 })
 
-const { forwardMessage, replyToThread } = await import('./inbound-service.js')
+const { dispatchScheduledSend, sendForward, sendReply } = await import('./scheduled-send.js')
 const { effectiveFeatures } = await import('../../shared/lib/session.js')
 import type { SessionUser } from '../../shared/lib/session.js'
 
@@ -61,6 +60,50 @@ afterAll(async () => {
   await db.delete(emailSends).where(like(emailSends.subject, '%QA Forward/Reply%'))
 })
 
+// Sending waits in the undo window: make the row due and dispatch it by hand.
+async function dispatchNow(sendId: string) {
+  await db
+    .update(emailSends)
+    .set({ sendAfter: sql`now() - interval '1 second'` })
+    .where(eq(emailSends.id, sendId))
+  await dispatchScheduledSend(sendId)
+  const [row] = await db.select().from(emailSends).where(eq(emailSends.id, sendId))
+  // A failed send leaves a draft for the person to fix; clean it up.
+  const draftId = (row?.payload as { draftId?: string } | null)?.draftId
+  if (row?.status === 'failed' && draftId) await db.delete(emailDrafts).where(eq(emailDrafts.id, draftId))
+}
+
+/** The reply as recorded on its thread. */
+async function replyToThread(me: SessionUser, threadId: string, body: string) {
+  const { sendId } = await sendReply(me, threadId, { body })
+  await dispatchNow(sendId)
+  const [message] = await db
+    .select()
+    .from(emailMessages)
+    .where(and(eq(emailMessages.threadId, threadId), eq(emailMessages.direction, 'out')))
+    .orderBy(desc(emailMessages.createdAt))
+    .limit(1)
+  return message!
+}
+
+/** The forward as recorded on its own new thread. */
+async function forwardMessage(
+  me: SessionUser,
+  messageId: string,
+  input: { to: string; extraBody?: string; includeOriginalAttachments: boolean },
+) {
+  const { sendId } = await sendForward(me, messageId, { ...input, to: [input.to], cc: [] })
+  await dispatchNow(sendId)
+  const [message] = await db
+    .select()
+    .from(emailMessages)
+    .where(eq(emailMessages.forwardOfMessageId, messageId))
+    .orderBy(desc(emailMessages.createdAt))
+    .limit(1)
+  threadIds.push(message!.threadId)
+  return message!
+}
+
 async function makeThreadWithInboundMessage(overrides: { bodyText?: string; bodyHtml?: string | null } = {}) {
   const [thread] = await db
     .insert(emailThreads)
@@ -86,7 +129,7 @@ async function makeThreadWithInboundMessage(overrides: { bodyText?: string; body
   return { thread: thread!, message: message! }
 }
 
-describe('replyToThread', () => {
+describe('sendReply', () => {
   it('sends the rich-text HTML body as html and a plain-text derivation as text', async () => {
     sendEmailWithResultMock.mockResolvedValue({ ok: true })
     const { thread } = await makeThreadWithInboundMessage()
@@ -142,7 +185,7 @@ describe('replyToThread', () => {
   })
 })
 
-describe('forwardMessage', () => {
+describe('sendForward', () => {
   it('keeps the new HTML body real (not double-escaped) while quoting the original', async () => {
     sendEmailWithResultMock.mockResolvedValue({ ok: true })
     const { message } = await makeThreadWithInboundMessage({ bodyText: 'Corpul original' })

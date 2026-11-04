@@ -6,6 +6,8 @@ import {
   PlatformClientsParamsSchema,
   RecentBatchesQuerySchema,
   SendCreateSchema,
+  RecipientCheckQuerySchema,
+  SendIdParamsSchema,
   SendsFilterQuerySchema,
   SendsQuerySchema,
   SuppressionEmailParamsSchema,
@@ -15,8 +17,10 @@ import {
   UnsubscribeTokenParamsSchema,
 } from './schema.js'
 import * as service from './service.js'
+import * as scheduled from './scheduled-send.js'
+import { sendErrorReply } from './send-guard.js'
 import { MailboxForbidden } from './mailboxes.js'
-import { getSuppressionsOverview, removeSuppression, suppressEmail } from './unsubscribe-service.js'
+import { getSuppressedEmails, getSuppressionsOverview, removeSuppression, suppressEmail } from './unsubscribe-service.js'
 import { verifyUnsubscribeToken } from './unsubscribe-token.js'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -79,14 +83,49 @@ export async function emailRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: SendCreateSchema } },
     async (req, reply) => {
       try {
-        const result = await service.sendSingle(req.me, req.body)
-        return reply.code(201).send({ success: true, data: result })
+        return reply.code(202).send({ success: true, data: await scheduled.sendNew(req.me, req.body) })
       } catch (err) {
-        if (err instanceof MailboxForbidden) {
-          return reply.code(403).send({ success: false, error: { code: err.code, feature: err.fromKey } })
-        }
-        return reply.code(400).send({ success: false, error: String(err) })
+        return sendErrorReply(reply, err)
       }
+    },
+  )
+
+  // Checked as each recipient chip is made, so an unsubscribed address shows before Send. The
+  // gate in send-guard.ts still decides at send time.
+  server.get(
+    '/api/email/recipients/check',
+    { preHandler: [app.authenticate], schema: { querystring: RecipientCheckQuerySchema } },
+    async (req) => {
+      const suppressed = await getSuppressedEmails(req.query.addresses)
+      return { success: true, data: { unsubscribed: req.query.addresses.filter((a) => suppressed.has(a.trim().toLowerCase())) } }
+    },
+  )
+
+  // Undo inside the window; afterwards 409, the email already left.
+  server.delete(
+    '/api/email/sends/:id/scheduled',
+    { preHandler: [app.authenticate], schema: { params: SendIdParamsSchema } },
+    async (req, reply) => {
+      try {
+        const result = await scheduled.cancelScheduledSend(req.me, req.params.id)
+        if (!result) return reply.code(404).send({ success: false, error: 'Send not found' })
+        return { success: true, data: result }
+      } catch (err) {
+        if (err instanceof scheduled.SendAlreadyDispatched) {
+          return reply.code(409).send({ success: false, error: { code: err.code } })
+        }
+        throw err
+      }
+    },
+  )
+
+  server.get(
+    '/api/email/sends/:id/status',
+    { preHandler: [app.authenticate], schema: { params: SendIdParamsSchema } },
+    async (req, reply) => {
+      const status = await scheduled.getSendStatus(req.me, req.params.id)
+      if (!status) return reply.code(404).send({ success: false, error: 'Send not found' })
+      return { success: true, data: status }
     },
   )
 

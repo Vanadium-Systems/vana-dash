@@ -58,6 +58,7 @@
       "bulk": "Bulk sends and sequences",
       "sabloane": "Templates",
       "setari": "Identities, rules, blocklist",
+      "setari_proprii": "My settings: signature, cap, own labels and rules",
       "cutii": "Assigns mailboxes"
     },
     "calendar": {

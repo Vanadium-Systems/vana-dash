@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-04T09:40:00Z',
+    title: {
+      ro: 'Email: trimitere anulabilă, ciorne automate și setările mele',
+      en: 'Email: undoable send, automatic drafts and my settings',
+    },
+    body: {
+      ro: 'Fiecare mesaj stă acum pe o singură linie, cu un fragment din text, iar acțiunile apar la hover. După „Trimite” ai 5 secunde să dai „Anulează”, iar mesajul se întoarce în ciornă. Ferestrele de compunere salvează ciorna singure, se pot minimiza, iar răspunsul se scrie în pagina firului; Ctrl+Enter trimite. În fir, cel mai nou mesaj e sus și cele vechi sunt restrânse, iar ‹ › te mută între emailuri. Căutarea are filtre (De la, Necitit, perioadă) și sugestii, iar „Descarcă tot” aduce atașamentele unui mesaj într-un zip. Un email HTML lat se micșorează să încapă pe ecranul telefonului. În „Setările mele” ai semnătura ta pe fiecare cutie, un plafon propriu de outreach, mai mic decât al firmei, și etichetele și regulile tale. Un mesaj către o adresă dezabonată e refuzat acum pe orice cale de trimitere, iar chip-ul adresei se face roșu încă de când o scrii. La Trimise, cifrele de sus sunt și filtre (click pe Deschideri arată doar emailurile deschise), iar sursa, reacția, starea și perioada stau într-un singur buton Filtre.',
+      en: 'Each message is now a single line with a preview of the text, and the actions show on hover. After “Send” you have 5 seconds to press “Undo”, and the message goes back to a draft. Compose windows save the draft by themselves and can be minimized, and a reply is written on the thread page; Ctrl+Enter sends. In a thread, the newest message is on top and older ones are collapsed, and ‹ › move you between emails. Search has filters (From, Unread, period) and suggestions, and “Download all” brings a message’s attachments as a zip. A wide HTML email shrinks to fit a phone screen. In “My settings” you have your own signature per mailbox, your own outreach cap, lower than the company’s, and your own labels and rules. A message to an unsubscribed address is now refused on every way of sending, and its chip turns red as soon as you type it. In Sent, the numbers on top are filters too (click Opens to see only opened emails), and source, reaction, status and period sit in one Filters button.',
+    },
+    features: ['email.view', 'email.trimitere', 'email.setari_proprii'],
+  },
+  {
     publishedAt: '2026-11-03T12:00:00+02:00',
     title: {
       ro: 'Mesaje: răspunsuri, reacții și obiecte trimise din aplicație',

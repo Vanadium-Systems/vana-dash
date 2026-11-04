@@ -93,7 +93,33 @@
     "stillHere": "Mesajul tău e tot aici, netrimis.",
     "saveDraft": "Salvează draft",
     "repliedMeanwhile": "{{by}} a răspuns {{at}}",
-    "someoneElse": "Altcineva"
+    "someoneElse": "Altcineva",
+    "attach": "Atașează fișiere",
+    "capReached": "Ai atins plafonul de outreach de azi ({{limit}}).",
+    "cc": "Cc",
+    "discard": "Renunță la ciornă",
+    "discarded": "Ciornă ștearsă",
+    "draftChanged": "Ciorna s-a schimbat în alt tab.",
+    "draftMissing": "Ciorna nu mai există.",
+    "expand": "Deschide",
+    "forwardIncludes": "Atașamentele mesajului original pleacă și ele.",
+    "from": "De pe",
+    "invalidAddress": "„{{address}}” nu e o adresă de email",
+    "minimize": "Minimizează",
+    "newMessage": "Mesaj nou",
+    "recipientRequired": "Adaugă cel puțin un destinatar.",
+    "reload": "Reîncarcă",
+    "removeAttachment": "Scoate {{filename}}",
+    "removeRecipient": "Scoate {{address}}",
+    "savedAt": "Ciornă salvată la {{time}}",
+    "saveErrorRetry": "Ciorna nu s-a salvat · Reîncearcă",
+    "saveFailed": "Ciorna nu s-a salvat.",
+    "saving": "Se salvează…",
+    "sendFailed": "Nu s-a trimis.",
+    "sendShortcut": "Trimite (Ctrl+Enter)",
+    "subjectRequired": "Scrie un subiect.",
+    "unsubscribed": "{{address}} s-a dezabonat; emailul nu poate pleca spre această adresă.",
+    "titleWithKey": "Compune (tasta C)"
   },
   "status": {
     "sent": "Trimis",
@@ -101,7 +127,8 @@
     "failed": "Eșuat",
     "delivered": "Livrat",
     "bounced": "Respins (bounce)",
-    "delayed": "Întârziat"
+    "delayed": "Întârziat",
+    "cancelled": "Anulat"
   },
   "actions": {
     "forward": "Redirecționează"
@@ -118,7 +145,14 @@
     "quotaMonth": "Luna asta: {{month}}/{{monthlyLimit}}",
     "templates": "Template-uri",
     "bulk": "Trimitere Bulk",
-    "sequences": "Secvențe"
+    "sequences": "Secvențe",
+    "companySettings": "Setări email (firmă)",
+    "menu": "Deschide folderele",
+    "collapse": "Restrânge bara laterală",
+    "expand": "Extinde bara laterală",
+    "itemUnread_one": "{{label}}, {{count}} necitit",
+    "itemUnread_few": "{{label}}, {{count}} necitite",
+    "itemUnread_other": "{{label}}, {{count}} de necitite"
   },
   "folders": {
     "inbox": "Inbox",
@@ -140,7 +174,9 @@
     "noText": "(fără conținut text)",
     "complex": "Mesaj complex — arată conținutul",
     "showImages": "Arată imaginile",
-    "externalImageBlocked": "Imagine externă blocată"
+    "externalImageBlocked": "Imagine externă blocată",
+    "actualSize": "Mărime reală",
+    "fitToWidth": "Potrivește în ecran"
   },
   "toasts": {
     "archived": "Arhivat",
@@ -162,13 +198,31 @@
     "loadFailed": "Nu am putut încărca thread-ul.",
     "sentBy": "Trimis de {{sentByUserId}} · {{toAddress}}",
     "youTo": "Tu → {{toAddress}}",
-    "star": "Marchează"
+    "star": "Marchează",
+    "backToList": "Înapoi la listă",
+    "date": "Data",
+    "downloadAll": "Descarcă tot",
+    "gone": "Conversația nu mai există.",
+    "me": "Eu",
+    "next": "Următoarea",
+    "older_one": "Încă un mesaj",
+    "older_few": "{{count}} mesaje mai vechi",
+    "older_other": "{{count}} de mesaje mai vechi",
+    "position": "{{position}} din {{total}}",
+    "previous": "Precedenta",
+    "replyAll": "Răspunde tuturor",
+    "toAddress": "către {{address}}",
+    "toMe": "către mine",
+    "unstar": "Scoate steaua",
+    "zipTooLarge": "Atașamentele trec de 100 MB; descarcă-le pe rând.",
+    "showQuotedShort": "…"
   },
   "list": {
     "searchAria": "Caută în email",
     "searchPlaceholder": "Caută în subiect și conținut…",
     "receivedOnHint": "Pe ce adresă am primit",
     "anyAddress": "Orice adresă",
+    "receivedOnTitle": "Primit pe",
     "clearSelection": "Anulează selecția",
     "selected": "{{size}} selectate",
     "read": "Citit",
@@ -177,7 +231,9 @@
     "nothingOnAddress": "Nimic primit pe adresa asta",
     "nothingHere": "Nimic aici",
     "receivedOn": "Primit pe {{toAddress}}",
-    "perPageHint": "Mesaje pe pagină"
+    "perPageHint": "Mesaje pe pagină",
+    "hasAttachment": "Are atașament",
+    "nothingFiltered": "Nimic pentru filtrele alese"
   },
   "pagination": {
     "perPage": "{{size}} / pagină",
@@ -207,7 +263,15 @@
     "loadFailed": "Nu am putut încărca istoricul.",
     "empty": "Niciun email trimis încă.",
     "viewContent": "Vezi conținutul",
-    "rowsPerPage": "Rânduri pe pagină"
+    "rowsPerPage": "Rânduri pe pagină",
+    "openedFilter": "Deschise",
+    "clickedFilter": "Cu click",
+    "filterSource": "Sursă",
+    "filterReaction": "Reacție",
+    "filterStatus": "Stare",
+    "clearFilters": "Șterge filtrele",
+    "statFilterHint": "Arată doar emailurile acestea; încă un click scoate filtrul",
+    "filters": "Filtre"
   },
   "enrollments": {
     "replied": "A răspuns",
@@ -248,6 +312,13 @@
     "outreach": "Outreach (cold outreach)"
   },
   "settings": {
+    "groups": {
+      "sending": "Trimitere",
+      "receiving": "Primire",
+      "unsubscribes": "Dezabonări",
+      "organising": "Organizare",
+      "companyReadOnly": "Ale firmei, doar de citit"
+    },
     "signaturesSaved": "Semnături salvate",
     "logoUpdated": "Logo actualizat",
     "signaturesTitle": "Semnături și logo",
@@ -268,7 +339,13 @@
     "weekdaysOnly": "Doar zile lucrătoare (L-V)",
     "newLabelPlaceholder": "Nume etichetă nouă",
     "noNotifications": "Fără notificări",
-    "logoAlt": "logo"
+    "logoAlt": "logo",
+    "labelTaken": "Ai deja o etichetă cu numele ăsta.",
+    "signatureMailbox": "Cutia",
+    "signatureOwn": "are semnătura ei",
+    "usesCompanySignature": "Acum se folosește semnătura de firmă (Contact):",
+    "logoTitle": "Logo",
+    "logoHint": "Apare sub semnătură în emailurile trimise."
   },
   "rules": {
     "fromExactAddress": "De la adresa exactă",
@@ -328,5 +405,59 @@
     "confirm": "Amână",
     "future": "Alege un moment din viitor.",
     "done": "Amânat până {{when}}"
+  },
+  "filters": {
+    "add": "Filtru",
+    "attachment": "Are atașament",
+    "fromChip": "De la: {{address}}",
+    "fromHint": "De la… (scrie în căutare)",
+    "periodChip_one": "Ultima zi",
+    "periodChip_few": "Ultimele {{count}} zile",
+    "periodChip_other": "Ultimele {{count}} de zile",
+    "remove": "Scoate filtrul {{label}}",
+    "starred": "Cu stea",
+    "unread": "Necitite"
+  },
+  "send": {
+    "failed": "Emailul nu a plecat. {{reason}}",
+    "openDraft": "Deschide ciorna",
+    "sending": "Se trimite…",
+    "sent": "Trimis",
+    "tooLate": "Prea târziu, emailul a plecat deja.",
+    "undoFailed": "Anularea nu a mers.",
+    "undone": "Trimitere anulată, mesajul e înapoi în ciornă",
+    "view": "Vezi",
+    "sendingIn": "Se trimite în {{seconds}} s…"
+  },
+  "shortcuts": {
+    "next": "Următorul",
+    "open": "Deschide",
+    "previous": "Precedentul",
+    "search": "Caută",
+    "select": "Selectează"
+  },
+  "mySettings": {
+    "title": "Setările mele",
+    "labels": "Etichetele mele",
+    "labelsHint": "Le vezi doar tu; le poți pune pe orice email de pe cutiile tale.",
+    "rules": "Regulile mele",
+    "rulesHint": "Se aplică emailurilor care intră pe cutiile pe care le ai doar tu. Pe o cutie comună merg regulile firmei.",
+    "readOnlyHint": "Lista e a firmei; o schimbă cine are Setări email.",
+    "emptyList": "Lista e goală.",
+    "suppressionsHint": "Adresele de aici nu mai primesc emailuri de la firmă. Lista e a firmei; o schimbă cine are Setări email.",
+    "signature": "Semnătura mea",
+    "signatureHint": "Se adaugă la emailurile pe care le trimiți tu de pe fiecare cutie. Lasă gol ca să se folosească semnătura cutiei.",
+    "signaturePlaceholder": "Semnătura ta…",
+    "signatureSaved": "Semnătura s-a salvat",
+    "noMailboxes": "Nu ai cutii de email atribuite încă.",
+    "companySignatureUsed": "Acum se folosește semnătura cutiei:",
+    "cap": "Plafonul meu de outreach",
+    "capHint": "Câte emailuri de outreach trimiți tu pe zi. Plafonul firmei e {{cap}} pe zi; al tău poate fi doar mai mic.",
+    "capLabel": "Emailuri pe zi",
+    "perDay": "pe zi",
+    "capSaved": "Plafonul s-a salvat",
+    "capAboveCompany": "Poate fi cel mult plafonul firmei ({{cap}}).",
+    "capInvalid": "Scrie un număr întreg, 0 sau mai mare.",
+    "loadFailed": "Setările nu s-au încărcat."
   }
 }

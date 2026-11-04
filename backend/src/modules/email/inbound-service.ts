@@ -1,23 +1,23 @@
-import { and, asc, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm'
+import { foldDiacritics, foldedIlike } from '../../shared/lib/text.js'
 import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import {
   emailAttachments,
   emailMessages,
-  emailSends,
   emailThreadReads,
   emailThreads,
   syncLog,
   users,
 } from '../../shared/db/schema/index.js'
 import { computeSpamScore } from '../../shared/lib/email-spam-heuristic.js'
-import { fetchReceivedEmail, sendEmailWithResult } from '../../shared/lib/email.js'
+import { fetchReceivedEmail } from '../../shared/lib/email.js'
 import { notifyPush } from '../../shared/lib/push.js'
-import { readDocument, saveDocument } from '../../shared/lib/storage.js'
+import { saveDocument } from '../../shared/lib/storage.js'
 import { htmlToPlainText } from './html-to-text.js'
-import { inlineStoredImages } from './images-service.js'
 import { evaluateRulesForMessage, isAddressBlocked, labelAllowsNotifications } from './organize-service.js'
-import type { BulkUpdateSchema, ForwardSchema, MessagePatchSchema, ThreadsQuerySchema } from './inbound-schema.js'
+import type { BulkUpdateSchema, MessagePatchSchema, ThreadsQuerySchema } from './inbound-schema.js'
+import type { PreparedSend } from './scheduled-send.js'
 import { stopSequencesForReplyFrom } from './sequences-service.js'
 import { getEmailSettings, getIdentities } from './settings-service.js'
 import {
@@ -27,7 +27,9 @@ import {
   mailboxAddresses,
   markThreadRead,
   messageVisibleTo,
+  soleMailboxHolder,
   threadVisibleTo,
+  unreadThreadFilter,
   userIdsForIdentity,
 } from './mailboxes.js'
 import type { SessionUser } from '../../shared/lib/session.js'
@@ -125,6 +127,7 @@ async function classifyInboundMessage(
   subject: string,
   bodyText: string | null,
   dmarc: string | null = null,
+  toAddress: string | null = null,
 ): Promise<{ folder: 'inbox' | 'archive' | 'trash' | 'spam'; labelId: string | null }> {
   if (await isAddressBlocked(fromAddress)) {
     return { folder: 'trash', labelId: null }
@@ -135,7 +138,9 @@ async function classifyInboundMessage(
     return { folder: 'spam', labelId: null }
   }
 
-  const ruleResult = await evaluateRulesForMessage({ fromAddress, subject })
+  const identityKey = toAddress ? identityKeyForAddress(toAddress, await getIdentities()) : null
+  const mailboxOwnerId = identityKey ? await soleMailboxHolder(identityKey) : null
+  const ruleResult = await evaluateRulesForMessage({ fromAddress, subject, mailboxOwnerId })
   if (ruleResult.folder) {
     return { folder: ruleResult.folder, labelId: ruleResult.labelId }
   }
@@ -235,7 +240,7 @@ export async function ingestCloudflareInboundEmail(data: CloudflareInboundPayloa
   // simplu (nu-l stocăm brut, cu tag-uri vizibile — vezi html-to-text.ts).
   const bodyText = data.text || (data.html ? htmlToPlainText(data.html) : null)
 
-  const { folder, labelId } = await classifyInboundMessage(data.from, data.subject, bodyText, data.dmarc ?? null)
+  const { folder, labelId } = await classifyInboundMessage(data.from, data.subject, bodyText, data.dmarc ?? null, data.to)
 
   const thread = await findOrCreateThread(data.subject, participants)
   await touchThread(thread, participants, receivedAt)
@@ -346,6 +351,7 @@ export async function processCloudflareInboundWebhookEvent(data: CloudflareInbou
  * rezultate ca lista.
  */
 function buildThreadConditions(
+  me: SessionUser,
   query: Partial<z.infer<typeof ThreadsQuerySchema>> | undefined,
   mailboxScope: string[] | null,
 ): SQL[] {
@@ -399,6 +405,16 @@ function buildThreadConditions(
           WHERE m.thread_id = ${emailThreads.id} AND m.deleted_at IS NULL AND a.deleted_at IS NULL)`,
     )
   }
+  if (query?.from) {
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM email_messages m WHERE m.thread_id = ${emailThreads.id} AND m.direction = 'in'
+          AND m.deleted_at IS NULL AND ${foldedIlike(sql`m.from_address`, query.from)})`,
+    )
+  }
+  if (query?.unread) conditions.push(unreadThreadFilter(me))
+  // ISO strings cast in SQL: postgres.js cannot bind a Date inside a raw sql`` fragment.
+  if (query?.after) conditions.push(sql`${emailThreads.lastMessageAt} >= ${query.after}::timestamptz`)
+  if (query?.before) conditions.push(sql`${emailThreads.lastMessageAt} < ${query.before}::timestamptz`)
   if (query?.q) {
     // Fuzzy (2026-09-03, bug real Stefan: "dacă nu dau FIX adresa sau titlul nu-l găsește") —
     // `plainto_tsquery` singur cere match exact de cuvinte întregi și nu acoperea deloc
@@ -425,7 +441,7 @@ export async function countThreads(
   me: SessionUser,
   query?: Partial<z.infer<typeof ThreadsQuerySchema>>,
 ): Promise<number> {
-  const conditions = buildThreadConditions(query, await mailboxAddresses(me))
+  const conditions = buildThreadConditions(me, query, await mailboxAddresses(me))
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(emailThreads)
@@ -440,7 +456,7 @@ export async function listThreads(
   query?: Partial<z.infer<typeof ThreadsQuerySchema>>,
 ): Promise<EmailThreadListItem[]> {
   const mailboxScope = await mailboxAddresses(me)
-  const conditions = buildThreadConditions(query, mailboxScope)
+  const conditions = buildThreadConditions(me, query, mailboxScope)
 
   const orderBy =
     query?.sort === 'date_asc' ? asc(emailThreads.lastMessageAt)
@@ -503,7 +519,12 @@ export async function listThreads(
   // reale de-al lui Stefan (bug real: apăreau dublu — o dată în corp, o dată în lista de jos).
   const attachmentsByMessage = messageIds.length
     ? await db
-        .select({ messageId: emailAttachments.messageId, filename: emailAttachments.filename })
+        .select({
+          id: emailAttachments.id,
+          messageId: emailAttachments.messageId,
+          filename: emailAttachments.filename,
+          contentType: emailAttachments.contentType,
+        })
         .from(emailAttachments)
         .where(
           and(
@@ -515,12 +536,23 @@ export async function listThreads(
           ),
         )
     : []
-  const attachmentNamesByMessage = new Map<string, string[]>()
+  const attachmentsByMessageId = new Map<string, ThreadAttachmentChip[]>()
   for (const a of attachmentsByMessage) {
-    const list = attachmentNamesByMessage.get(a.messageId) ?? []
-    list.push(a.filename)
-    attachmentNamesByMessage.set(a.messageId, list)
+    const list = attachmentsByMessageId.get(a.messageId) ?? []
+    list.push({ id: a.id, filename: a.filename, contentType: a.contentType })
+    attachmentsByMessageId.set(a.messageId, list)
   }
+
+  // The row's snippet (E1): the latest message's text, whitespace collapsed. DISTINCT ON over the
+  // page's threads reads idx_email_messages_thread_created; only the head of each body is scanned.
+  const snippets = await db.execute<{ thread_id: string; snippet: string }>(sql`
+    SELECT DISTINCT ON (m.thread_id) m.thread_id,
+      left(btrim(regexp_replace(left(coalesce(m.body_text, ''), 600), ${WHITESPACE_RUN}, ' ', 'g')), 140) AS snippet
+    FROM email_messages m
+    WHERE m.thread_id IN (${sql.join(threadIds.map((id) => sql`${id}::uuid`), sql`, `)}) AND m.deleted_at IS NULL
+    ORDER BY m.thread_id, m.created_at DESC
+  `)
+  const snippetByThread = new Map(Array.from(snippets, (r) => [r.thread_id, r.snippet]))
 
   const lastReadByThread = new Map(reads.map((r) => [r.threadId, r.lastReadAt.getTime()]))
   const unreadByThread = new Set<string>()
@@ -532,7 +564,8 @@ export async function listThreads(
 
   return threads.map((thread) => {
     const s = summaryByThread.get(thread.id)
-    const attachmentNames = s ? (attachmentNamesByMessage.get(s.id) ?? []) : []
+    const attachments = s ? (attachmentsByMessageId.get(s.id) ?? []) : []
+    const attachmentNames = attachments.map((a) => a.filename)
     return {
       ...thread,
       latestMessageId: s?.id ?? null,
@@ -543,8 +576,19 @@ export async function listThreads(
       folder: s?.folder ?? null,
       hasAttachment: attachmentNames.length > 0,
       attachmentNames,
+      attachments: attachments.slice(0, 3),
+      snippet: snippetByThread.get(thread.id) ?? '',
     }
   })
+}
+
+// Passed as a parameter: a backslash inside the sql`` template would be eaten by JS.
+const WHITESPACE_RUN = '\\s+'
+
+export interface ThreadAttachmentChip {
+  id: string
+  filename: string
+  contentType: string | null
 }
 
 export interface EmailThreadListItem extends EmailThreadRow {
@@ -555,7 +599,45 @@ export interface EmailThreadListItem extends EmailThreadRow {
   isStarred: boolean
   folder: 'inbox' | 'archive' | 'trash' | 'spam' | null
   hasAttachment: boolean
+  /** Kept for older clients; `attachments` carries the ids for opening them. */
   attachmentNames: string[]
+  attachments: ThreadAttachmentChip[]
+  snippet: string
+}
+
+/**
+ * Suggestions while typing in the search (E22): addresses from the same source as Compose's
+ * autocomplete, and threads the person can see, matched without diacritics.
+ */
+export async function suggestSearch(
+  me: SessionUser,
+  q: string,
+): Promise<{ addresses: string[]; threads: Array<{ id: string; subject: string; fromAddress: string | null; lastMessageAt: Date }> }> {
+  const folded = foldDiacritics(q.toLowerCase())
+  const addresses = (await getRecentAddresses(me, 200)).filter((a) => foldDiacritics(a.toLowerCase()).includes(folded)).slice(0, 5)
+
+  const threads = await db
+    .select({
+      id: emailThreads.id,
+      subject: emailThreads.subject,
+      lastMessageAt: emailThreads.lastMessageAt,
+      fromAddress: sql<string | null>`(SELECT m.from_address FROM email_messages m
+        WHERE m.thread_id = ${emailThreads.id} AND m.deleted_at IS NULL ORDER BY m.created_at DESC LIMIT 1)`,
+    })
+    .from(emailThreads)
+    .where(
+      and(
+        isNull(emailThreads.deletedAt),
+        threadVisibleTo(await mailboxAddresses(me)),
+        or(
+          foldedIlike(emailThreads.subject, q),
+          sql`EXISTS (SELECT 1 FROM unnest(${emailThreads.participants}) p WHERE ${foldedIlike(sql`p`, q)})`,
+        ),
+      ),
+    )
+    .orderBy(desc(emailThreads.lastMessageAt))
+    .limit(5)
+  return { addresses, threads }
 }
 
 /**
@@ -781,105 +863,86 @@ export async function getMessageAttachment(me: SessionUser, id: string): Promise
 }
 
 /**
- * Forward — pornește o conversație NOUĂ cu alt destinatar (nu threadul original, decizie
- * fixată în PLAN.md). Corpul original e citat; atașamentele originale se re-atașează dacă
- * `includeOriginalAttachments`, din storage local (deja descărcate la primire), nu re-fetch de la
- * Resend.
+ * Forward: starts a NEW conversation with another recipient, not the original thread. The
+ * original body is quoted; its attachments are re-attached from local storage (already downloaded
+ * on receipt) when `includeOriginalAttachments` is set.
  */
-/**
- * Înregistrează în `email_sends` un reply/forward trimis dintr-un thread — fără asta, tab-ul
- * „Trimise" (SentTab.tsx) nu arăta NICIODATĂ reply-urile/forward-urile, doar Compose 1:1/bulk
- * (bug raportat de Stefan, 2026-09-07). Failure izolat (regula #7 CLAUDE.md) — trimiterea deja
- * reușită la Resend nu trebuie anulată dacă doar acest insert secundar pică.
- */
-async function recordSendHistory(input: {
-  recipient: string
-  fromAddress: string
-  subject: string
-  bodyText: string
-  bodyHtml: string
-  resendEmailId: string | null
-}): Promise<void> {
-  try {
-    await db.insert(emailSends).values({
-      recipient: input.recipient,
-      fromAddress: input.fromAddress,
-      subject: input.subject,
-      bodyText: input.bodyText,
-      bodyHtml: input.bodyHtml,
-      status: 'sent',
-      resendEmailId: input.resendEmailId,
-    })
-  } catch (err) {
-    console.error(`[email] înregistrare în email_sends eșuată pentru "${input.subject}" → ${input.recipient}: ${String(err)}`)
-  }
-}
-
-export async function forwardMessage(
+export async function prepareForward(
   me: SessionUser,
   messageId: string,
-  input: z.infer<typeof ForwardSchema>,
-): Promise<EmailMessageRow> {
+  input: {
+    to: string[]
+    cc: string[]
+    extraBody?: string
+    includeOriginalAttachments: boolean
+    attachments?: Array<{ filename: string; content: string }>
+  },
+): Promise<PreparedSend> {
   const [original] = await db
     .select()
     .from(emailMessages)
     .where(and(eq(emailMessages.id, messageId), isNull(emailMessages.deletedAt), messageVisibleTo(await mailboxAddresses(me))))
   if (!original) throw new Error(tr('errors.email.messageNotFound'))
 
-  // Forward-ul pleacă de pe cutia originalului: verificarea e totuși a omului, nu a adresei
-  // mesajului (altfel ar fi o ocolire prin id direct) — și anume a cutiei de pe care ar pleca
-  // mesajul, nu a uneia fixate în cod.
+  // The forward leaves from the original's mailbox, but the check is on the person, not the
+  // message's address (otherwise a direct id would bypass it).
   const identities = await getIdentities()
   assertCanSendFromAddress(me, original.toAddress, identities)
+  const fromKey = identityKeyForAddress(original.toAddress, identities) ?? 'contact'
 
   const subject = /^fwd:/i.test(original.subject) ? original.subject : `Fwd: ${original.subject}`
-  // `input.extraBody` e HTML (2026-08-11 — editor rich-text) — NU se mai poate concatena ca
-  // text simplu și trece prin textToHtmlParagraph (ar escapa tag-urile reale ale utilizatorului
-  // în text literal). Text simplu și HTML se construiesc separat de-acum.
+  // `extraBody` is HTML (rich-text editor); plain text and HTML are built separately.
   const extraBodyHtml = input.extraBody ?? ''
   const separatorText = tr('errors.email.forwardedHeader', { fromAddress: original.fromAddress, subject: original.subject })
   const quotedText = `${htmlToPlainText(extraBodyHtml)}${separatorText}${original.bodyText ?? ''}`
   const separatorHtml = `<p style="margin:16px 0 8px;color:#777;font-size:13px">${tr('errors.email.forwardedTitle')}<br>${tr('errors.email.forwardedFrom', { from: escapeHtml(original.fromAddress) })}<br>${tr('errors.email.forwardedSubject', { subject: escapeHtml(original.subject) })}</p>`
   const quotedHtml = `${extraBodyHtml}${separatorHtml}${original.bodyHtml ?? textToHtmlParagraph(original.bodyText ?? '')}`
 
-  const attachmentsToSend: Array<{ filename: string; content: string }> = [...(input.attachments ?? [])]
-  if (input.includeOriginalAttachments) {
-    const originalAttachments = await db
-      .select()
-      .from(emailAttachments)
-      .where(and(eq(emailAttachments.messageId, messageId), isNull(emailAttachments.deletedAt)))
-    for (const att of originalAttachments) {
-      try {
-        const buffer = await readDocument(att.storagePath)
-        attachmentsToSend.push({ filename: att.filename, content: buffer.toString('base64') })
-      } catch (err) {
-        console.error(`[email] re-atașare "${att.filename}" la forward eșuată: ${String(err)}`)
-      }
-    }
-  }
+  // The original's files are already on disk; the dispatcher reads them at send time.
+  const storedAttachments = input.includeOriginalAttachments
+    ? (
+        await db
+          .select({ filename: emailAttachments.filename, storagePath: emailAttachments.storagePath })
+          .from(emailAttachments)
+          .where(and(eq(emailAttachments.messageId, messageId), isNull(emailAttachments.deletedAt)))
+      )
+    : []
 
-  // Semnătura e a cutiei de pe care pleacă forward-ul; adresa care nu mai e nicio identitate
-  // (cutie scoasă din Setări) cade pe semnătura de firmă.
-  const sig = await buildSignature(identityKeyForAddress(original.toAddress, identities) ?? 'contact')
-  const quotedHtmlWithSig = `${quotedHtml}${sig.html}`
-  // Poze inserate din editor (în extraBody) → atașament MIME cu cid: la trimitere.
-  const { html: sendHtml, attachments: inlineImageAttachments } = await inlineStoredImages(quotedHtmlWithSig)
-
-  const result = await sendEmailWithResult({
+  // The signature is the sending mailbox's (or the person's own, if they set one).
+  const sig = await buildSignature(fromKey, me.id)
+  return {
+    mode: 'forward',
+    fromKey,
+    fromAddress: original.toAddress,
     to: input.to,
-    from: original.toAddress,
+    cc: input.cc,
     subject,
     text: `${quotedText}${sig.text}`,
-    html: sendHtml,
-    attachments: [
-      ...inlineImageAttachments,
-      ...attachmentsToSend.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64') })),
-    ],
-  })
-  if (!result.ok) throw new Error(result.error ?? tr('errors.email.sendFailed'))
+    html: `${quotedHtml}${sig.html}`,
+    body: extraBodyHtml,
+    newAttachments: input.attachments ?? [],
+    storedAttachments,
+    threadId: original.threadId,
+    sourceMessageId: original.id,
+    message: { bodyText: quotedText, bodyHtml: quotedHtml },
+  }
+}
 
-  const participants = Array.from(new Set([original.toAddress, input.to]))
-  const thread = await findOrCreateThread(subject, participants)
+/** After a forward left: a new thread with the forwarded message in it. */
+export async function recordForwardSent(input: {
+  fromAddress: string
+  to: string[]
+  cc: string[]
+  subject: string
+  bodyText: string
+  bodyHtml: string
+  forwardOfMessageId: string | null
+  resendEmailId: string | null
+  sentByUserId: string | null
+  attachments: Array<{ filename: string; content: string }>
+}): Promise<void> {
+  const participants = Array.from(new Set([input.fromAddress, ...input.to, ...input.cc]))
+  const thread = await findOrCreateThread(input.subject, participants)
   await touchThread(thread, participants, new Date())
 
   const [message] = await db
@@ -887,52 +950,45 @@ export async function forwardMessage(
     .values({
       threadId: thread.id,
       direction: 'out',
-      resendEmailId: result.id ?? null,
-      fromAddress: original.toAddress,
-      toAddress: input.to,
-      subject,
-      bodyText: quotedText,
-      bodyHtml: quotedHtml,
+      resendEmailId: input.resendEmailId,
+      fromAddress: input.fromAddress,
+      toAddress: input.to.join(', '),
+      subject: input.subject,
+      bodyText: input.bodyText,
+      bodyHtml: input.bodyHtml,
       receivedAt: null,
       isRead: true,
-      sentByUserId: me.id,
-      forwardOfMessageId: original.id,
+      sentByUserId: input.sentByUserId,
+      forwardOfMessageId: input.forwardOfMessageId,
     })
     .returning()
   if (!message) throw new Error(tr('errors.email.messageInsertFailedForward'))
-
-  if (attachmentsToSend.length) await persistOutboundAttachments(message.id, attachmentsToSend)
-
-  await recordSendHistory({
-    recipient: input.to,
-    fromAddress: original.toAddress,
-    subject,
-    bodyText: `${quotedText}${sig.text}`,
-    bodyHtml: quotedHtmlWithSig,
-    resendEmailId: result.id ?? null,
-  })
-
-  return message
+  if (input.attachments.length) await persistOutboundAttachments(message.id, input.attachments)
 }
 
 /**
- * Reply pe un thread existent. Trimite de la adresa inbound la care a venit ultimul
- * mesaj primit (nu de la adresa de alerte), cu In-Reply-To/References RFC setate din
- * `message_id`-ul acelui mesaj (recuperat din Received Emails API — nu-l persistăm,
- * schema n-are coloană pt. el, îl refetch-uim la nevoie; volum single-user, cost neglijabil).
+ * Reply on an existing thread. Sent from the inbound address the last received message came
+ * to, with RFC In-Reply-To/References taken from that message's `message_id`.
+ * Without explicit recipients it answers the last sender; `replyAll` adds the thread's other
+ * outside participants as Cc.
  */
-export async function replyToThread(
+export async function prepareReply(
   me: SessionUser,
   threadId: string,
-  body: string,
-  attachments?: Array<{ filename: string; content: string }>,
-  options: { lastSeenMessageId?: string | null } = {},
-): Promise<EmailMessageRow> {
-  const visible = threadVisibleTo(await mailboxAddresses(me))
+  input: {
+    body: string
+    to?: string[]
+    cc?: string[]
+    replyAll?: boolean
+    attachments?: Array<{ filename: string; content: string }>
+    lastSeenMessageId?: string | null
+  },
+): Promise<PreparedSend> {
+  const ownAddresses = await mailboxAddresses(me)
   const [thread] = await db
     .select()
     .from(emailThreads)
-    .where(and(eq(emailThreads.id, threadId), isNull(emailThreads.deletedAt), visible))
+    .where(and(eq(emailThreads.id, threadId), isNull(emailThreads.deletedAt), threadVisibleTo(ownAddresses)))
   if (!thread) throw new Error(tr('errors.email.threadNotFound'))
 
   const [lastInbound] = await db
@@ -943,15 +999,14 @@ export async function replyToThread(
     .limit(1)
   if (!lastInbound) throw new Error(tr('errors.email.threadNoInbound'))
 
-  // Răspunsul pleacă de pe adresa ultimului mesaj primit, nu de pe o identitate aleasă în
-  // dialog — deci garanția e a acelei cutii, nu a unei chei fixe scrise în cod.
+  // The reply leaves from the last received message's address, not from an identity picked in the dialog.
   const identities = await getIdentities()
   assertCanSendFromAddress(me, lastInbound.toAddress, identities)
+  const fromKey = identityKeyForAddress(lastInbound.toAddress, identities) ?? 'contact'
 
-  // Răspuns dublu (decizie Stefan, 2026-09-28): clientul trimite ce ultim mesaj a văzut, iar
-  // dacă între timp a plecat alt răspuns, omul vede „Ion a răspuns acum 3 min" și decide.
-  // Fără lock-uri și fără „cine scrie acum".
-  if (options.lastSeenMessageId) {
+  // Double reply: the client sends the last message it saw; if another reply left meanwhile, the
+  // person sees "Ion replied 3 min ago" and decides.
+  if (input.lastSeenMessageId) {
     const [newer] = await db
       .select({ id: emailMessages.id, sentByUserId: emailMessages.sentByUserId, createdAt: emailMessages.createdAt })
       .from(emailMessages)
@@ -960,7 +1015,7 @@ export async function replyToThread(
           eq(emailMessages.threadId, threadId),
           eq(emailMessages.direction, 'out'),
           isNull(emailMessages.deletedAt),
-          sql`${emailMessages.createdAt} > (SELECT created_at FROM email_messages WHERE id = ${options.lastSeenMessageId})`,
+          sql`${emailMessages.createdAt} > (SELECT created_at FROM email_messages WHERE id = ${input.lastSeenMessageId})`,
         ),
       )
       .orderBy(desc(emailMessages.createdAt))
@@ -979,9 +1034,8 @@ export async function replyToThread(
 
   const subject = /^re:/i.test(thread.subject) ? thread.subject : `Re: ${thread.subject}`
 
-  // Message-ID RFC pt. In-Reply-To/References — calea Cloudflare îl are deja pe rând
-  // (`sourceMessageId`, fără fetch suplimentar); doar thread-urile vechi, sourced din
-  // Resend inbound (abandonat), au nevoie de fetch la Resend pt. el.
+  // RFC Message-ID for In-Reply-To/References: the Cloudflare path has it on the row; only old
+  // threads that came through Resend inbound (dropped) need a fetch.
   let headers: Record<string, string> | undefined
   if (lastInbound.sourceMessageId) {
     headers = { 'In-Reply-To': lastInbound.sourceMessageId, References: lastInbound.sourceMessageId }
@@ -992,73 +1046,78 @@ export async function replyToThread(
     }
   }
 
-  // Bug găsit de Stefan (2026-07-17): reply-urile nu adăugau NICIODATĂ semnătura, deși UI-ul
-  // de Compose sugera "se adaugă automat la trimitere" universal — era adevărat doar pt.
-  // Compose. Semnătura e cea a cutiei pe care pleacă răspunsul (2026-09-30, per identitate).
-  const sig = await buildSignature(identityKeyForAddress(lastInbound.toAddress, identities) ?? 'contact')
-  // Preferă Reply-To (dacă expeditorul l-a setat explicit) — From poate fi o adresă
-  // tehnică/de bounce (ex. notificări bulk), Reply-To e unde chiar ajunge răspunsul.
-  const replyDestination = lastInbound.replyToAddress || lastInbound.fromAddress
+  // Prefer Reply-To when the sender set it: From can be a technical/bounce address.
+  const replyDestination = bareAddress(lastInbound.replyToAddress || lastInbound.fromAddress)
+  const to = input.to?.length ? input.to : [replyDestination]
+  let cc = input.cc ?? []
+  if (input.replyAll && !input.cc) {
+    // The thread's outside participants; ours (every configured mailbox) never go in Cc.
+    const ours = new Set(identities.map((i) => i.fromAddress?.toLowerCase()).filter(Boolean))
+    ours.add(lastInbound.toAddress.toLowerCase())
+    const taken = new Set(to.map((a) => a.toLowerCase()))
+    cc = thread.participants.map(bareAddress).filter((a) => a && !ours.has(a.toLowerCase()) && !taken.has(a.toLowerCase()))
+    cc = Array.from(new Set(cc)).slice(0, 10)
+  }
 
-  // `body` e HTML (2026-08-11 — editor rich-text, ComposeDialog.tsx) — text simplu derivat.
-  const bodyText = htmlToPlainText(body)
-  const bodyHtmlWithSig = `${body}${sig.html}`
-  // Poze inserate din editor → atașament MIME cu cid: la trimiterea reală (images-service.ts).
-  const { html: sendHtml, attachments: inlineImageAttachments } = await inlineStoredImages(bodyHtmlWithSig)
-
-  const result = await sendEmailWithResult({
-    to: replyDestination,
-    from: lastInbound.toAddress,
+  // The signature is the sending mailbox's (or the person's own, if they set one).
+  const sig = await buildSignature(fromKey, me.id)
+  // `body` is HTML (rich-text editor); the plain text is derived from it.
+  const bodyText = htmlToPlainText(input.body)
+  return {
+    mode: input.replyAll ? 'reply_all' : 'reply',
+    fromKey,
+    fromAddress: lastInbound.toAddress,
+    to,
+    cc,
     subject,
     text: `${bodyText}${sig.text}`,
-    // Fără `html`, logo-ul (un <img> în sig.html) nu ajunge NICIODATĂ la destinatar — un
-    // client de mail nu poate randa o imagine în varianta text-only (a doua jumătate a
-    // bug-ului de semnătură raportat de Stefan, 2026-07-17).
-    html: sendHtml,
+    // Without `html` the signature logo never reaches the recipient.
+    html: `${input.body}${sig.html}`,
+    body: input.body,
     headers,
-    attachments: [
-      ...inlineImageAttachments,
-      ...(attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64') })) ?? []),
-    ],
-  })
-  if (!result.ok) throw new Error(result.error ?? tr('errors.email.sendFailed'))
+    newAttachments: input.attachments ?? [],
+    storedAttachments: [],
+    threadId,
+    sourceMessageId: lastInbound.id,
+    message: { bodyText, bodyHtml: input.body },
+  }
+}
 
+/** After a reply left: the message on the thread, its files, the thread's date. */
+export async function recordReplySent(input: {
+  threadId: string
+  fromAddress: string
+  to: string[]
+  subject: string
+  bodyText: string
+  bodyHtml: string
+  resendEmailId: string | null
+  sentByUserId: string | null
+  attachments: Array<{ filename: string; content: string }>
+}): Promise<void> {
   const [message] = await db
     .insert(emailMessages)
     .values({
-      threadId,
+      threadId: input.threadId,
       direction: 'out',
-      resendEmailId: result.id ?? null,
-      fromAddress: lastInbound.toAddress,
-      toAddress: replyDestination,
-      subject,
-      bodyText,
-      bodyHtml: body,
+      resendEmailId: input.resendEmailId,
+      fromAddress: input.fromAddress,
+      toAddress: input.to.join(', '),
+      subject: input.subject,
+      bodyText: input.bodyText,
+      bodyHtml: input.bodyHtml,
       receivedAt: null,
       isRead: true, // mesaje proprii sunt implicit "citite"
-      sentByUserId: me.id,
+      sentByUserId: input.sentByUserId,
     })
     .returning()
   if (!message) throw new Error(tr('errors.email.messageInsertFailed'))
-
-  if (attachments?.length) await persistOutboundAttachments(message.id, attachments)
-
-  await db.update(emailThreads).set({ lastMessageAt: new Date(), updatedAt: new Date() }).where(eq(emailThreads.id, threadId))
-
-  await recordSendHistory({
-    recipient: replyDestination,
-    fromAddress: lastInbound.toAddress,
-    subject,
-    bodyText: `${bodyText}${sig.text}`,
-    bodyHtml: bodyHtmlWithSig,
-    resendEmailId: result.id ?? null,
-  })
-
-  return message
+  if (input.attachments.length) await persistOutboundAttachments(message.id, input.attachments)
+  await db.update(emailThreads).set({ lastMessageAt: new Date(), updatedAt: new Date() }).where(eq(emailThreads.id, input.threadId))
 }
 
-/** Salvează local atașamentele trimise de Stefan (Compose/Reply/Forward) — simetric cu cele
- *  primite; azi se trimiteau direct la Resend și se pierdeau, fără cum să le revezi. */
+/** Saves sent attachments (Compose/Reply/Forward) locally, like received ones; otherwise they
+ *  went straight to Resend and could not be viewed again. */
 async function persistOutboundAttachments(messageId: string, attachments: Array<{ filename: string; content: string }>): Promise<void> {
   for (const [i, att] of attachments.entries()) {
     try {
@@ -1066,29 +1125,31 @@ async function persistOutboundAttachments(messageId: string, attachments: Array<
       const storagePath = await saveDocument(`email-attachments/${messageId}/${i}_${safeName}`, Buffer.from(att.content, 'base64'))
       await db.insert(emailAttachments).values({ messageId, filename: att.filename, storagePath, contentType: null })
     } catch (err) {
-      // Failure izolat per atașament (regula #7 CLAUDE.md) — nu blocăm trimiterea deja reușită.
+      // Failure isolated per attachment (CLAUDE.md rule #7): do not block a send that already succeeded.
       console.error(`[email] salvare locală atașament trimis "${att.filename}" eșuată: ${String(err)}`)
     }
   }
 }
 
 /**
- * Oglindește o trimitere Compose 1:1 (NU bulk — decizie fixată în PLAN.md) în
- * `email_threads`/`email_messages`, ca să apară în conversație dacă cineva răspunde — exact ca
- * în Gmail. Thread nou sau existent, aceeași euristică de threading ca la inbound.
+ * Mirrors a 1:1 Compose send (NOT bulk) into `email_threads`/`email_messages`, so it shows in
+ * the conversation if someone replies, as in Gmail. New or existing thread, same threading
+ * heuristic as inbound.
  */
 export async function mirrorOutboundMessage(input: {
   fromAddress: string
   toAddress: string
   subject: string
-  /** Cine a trimis (C2) — aceeași cutie poate fi la doi oameni. */
+  /** Who sent it (C2): the same mailbox can belong to two people. */
   sentByUserId?: string | null
-  /** HTML (2026-08-11 — editor rich-text) — `bodyText` se derivă din el mai jos. */
+  /** HTML (rich-text editor); `bodyText` is derived from it below. */
   body: string
   resendEmailId: string | null
   attachments?: Array<{ filename: string; content: string }>
+  /** Every address on the message (to + cc); defaults to `toAddress`. */
+  participants?: string[]
 }): Promise<void> {
-  const participants = Array.from(new Set([input.fromAddress, input.toAddress].filter((a) => a.length > 0)))
+  const participants = Array.from(new Set([input.fromAddress, ...(input.participants ?? [input.toAddress])].filter((a) => a.length > 0)))
   const now = new Date()
   const thread = await findOrCreateThread(input.subject, participants)
   await touchThread(thread, participants, now)

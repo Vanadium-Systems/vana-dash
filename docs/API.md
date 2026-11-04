@@ -297,24 +297,74 @@ signature is per identity (`email.signature.<identityKey>`), falling back to the
 | POST | `/api/email/templates` | `{ name, subject, body }`. `body` is HTML and may use the placeholder `{{nume}}`, replaced when sending |
 | PATCH | `/api/email/templates/:id` | Partial update |
 | DELETE | `/api/email/templates/:id` | Soft delete |
-| POST | `/api/email/send` | `{ to, subject, body, templateId? }`, one message. `body` is HTML; the plain text is derived from it. 400 if `templateId` does not exist |
+| POST | `/api/email/send` | `{ to, cc?, subject, body, from?, templateId?, attachments?, draftId? }`, one message. `to` is an address or an array (10 at most), `cc` an array (10 at most); the `outreach` identity takes a single recipient. `body` is HTML; the plain text is derived from it. `draftId` is the autosaved draft the send comes from: it is kept until the email has left, so Undo can reopen it. The message does not go out at once: `202 { sendId, sendAfter }`, with `sendAfter` 5 seconds ahead (see "Delayed send" below). 400 if `templateId` does not exist; `409 RECIPIENT_UNSUBSCRIBED { address }`; `429 OUTREACH_CAP_REACHED { limit }`. Needs `email.trimitere` |
+| DELETE | `/api/email/sends/:id/scheduled` | Undo, inside the window and only by the author → `200 { draftId }`, the message is back in a draft. `404` for an unknown send or someone else's; `409 SEND_ALREADY_DISPATCHED` once the email left. Needs `email.trimitere` |
+| GET | `/api/email/sends/:id/status` | Own sends only → `{ status, error, threadId, draftId }`. `status` is `scheduled`, `sending`, `sent`, `cancelled` or `failed`; `threadId` is set once the message landed on a thread. `404` otherwise. Needs `email.trimitere` |
 | POST | `/api/email/bulk-send` | `{ templateId, recipients: [{ email, nume? }] }` (50 at most) → `{ sent, skipped, suppressed, failed, results }`. `skipped` is the automatic dedup on `(recipient, templateId)`. `suppressed` are addresses in `email_suppressions` (unsubscribed), skipped without sending. An unsubscribe link is appended; messages go out one by one with a delay |
-| GET | `/api/email/sends` | Send history. Query: `templateId?`, `recipient?`, `batchId?`, `limit` (default 200, max 500) |
+| GET | `/api/email/sends` | Send history. Query: `templateId?`, `recipient?`, `batchId?`, `source?`, `engagement?` (`opened`, `clicked`, `engaged`, `unengaged`, `unsubscribed`), `status?` (`delivered`, `bounced`, `complained`, `failed`), `period?`, `limit` (default 200, max 500). Undone sends are left out. The same filters apply to `/sends/report` and `/sends/export` |
+| GET | `/api/email/recipients/check` | `?addresses=a@x.ro,b@y.ro` (20 at most) → `{ unsubscribed: string[] }`, so a recipient chip can turn red before Send; the send gate still decides. Needs `email.trimitere` |
 | GET | `/api/email/send-quota` | Usage against the daily and monthly limits of the Resend plan |
 | GET/POST | `/api/email/unsubscribe/:token` | **No session.** The link in the footer of a bulk send, and the one-click POST of RFC 8058. A stateless token (HMAC-SHA256 over the address, `EMAIL_UNSUBSCRIBE_SECRET`). 400 if the secret is not configured or the signature fails. On success: an idempotent upsert into `email_suppressions`, and the matching prospect, if any, gets `status: 'dezabonat'` |
 | POST | `/api/email/images` | Uploads a picture for the rich-text editor: multipart, 5 MB at most, PNG/JPEG/GIF/WEBP only → `{ url: '/api/email-images/<uuid>.<ext>' }`. The URL is for previews; when the message is really sent, `<img src>` is rewritten to `cid:` with a MIME attachment, because mail clients hide images loaded from an external URL |
 | GET | `/api/email-images/:filename` | **No session.** Serves the picture above for previews. `filename` is validated strictly (a UUID and an extension from a fixed list). Cached for a year: the generated name is never reused |
 | GET | `/api/email/recent-addresses` | Autocomplete for "Către" in compose: distinct addresses from `email_messages`, most recently used first |
-| GET | `/api/email/threads` | The inbox threads, by `lastMessageAt` descending |
+| GET | `/api/email/threads` | `{ items, total }`, by `lastMessageAt` descending by default. Query: `folder?`, `labelId?`, `toAddress?`, `q?`, `isStarred?`, `hasAttachment?`, `snoozed?`, `from?` (sender, 200 characters at most), `unread?` (`true`/`false`), `after?` and `before?` (ISO datetimes), `sort?` (`date_desc`, `date_asc`, `subject_asc`), `limit` (default 50, max 200), `offset`. Each item adds `snippet` (the latest message's text, whitespace collapsed, 140 characters at most) and `attachments: [{ id, filename, contentType }]` (3 at most; `attachmentNames` stays for older clients) |
+| GET | `/api/email/search/suggest` | Query: `q` (2-120 characters) → `{ addresses: string[], threads: [{ id, subject, fromAddress, lastMessageAt }] }`, 5 of each at most. Matching ignores diacritics; the threads come only from the person's mailboxes. Needs `email.view` |
 | GET | `/api/email/threads/:id` | `{ thread, messages }`. `bodyHtml` is raw, unsanitized HTML; it is sanitized in the browser (DOMPurify) when rendered, never on the server |
-| POST | `/api/email/threads/:id/reply` | `{ body, lastSeenMessageId? }` → a reply in the thread, through Resend, with `In-Reply-To`/`References` set from the message replied to |
-| POST | `/api/email/messages/:id/forward` | `{ to, extraBody?, includeOriginalAttachments, attachments? }`. `extraBody` is HTML; the quote of the original is built separately |
+| POST | `/api/email/threads/:id/reply` | `{ body, to?, cc?, replyAll?, lastSeenMessageId?, attachments?, draftId? }` → a reply in the thread, through Resend, with `In-Reply-To`/`References` set from the message replied to. Without `to` it goes to the last sender; `replyAll` adds the other participants as Cc. Delayed like `/send`: `202 { sendId, sendAfter }`. `409 RECIPIENT_UNSUBSCRIBED`, `409 THREAD_REPLIED_MEANWHILE`, `429 OUTREACH_CAP_REACHED`, `403 MAILBOX_FORBIDDEN`. Needs `email.trimitere` |
+| POST | `/api/email/messages/:id/forward` | `{ to, cc?, extraBody?, includeOriginalAttachments, attachments?, draftId? }`. `to` is an address or an array (10 at most). `extraBody` is HTML; the quote of the original is built separately. Delayed like `/send`: `202 { sendId, sendAfter }`, with the same `409` / `429` refusals. Needs `email.trimitere` |
+| GET | `/api/email/messages/:id/attachments.zip` | All the attachments of a message the person can see, as `application/zip`. `404` for an unknown or hidden message; `413 ZIP_TOO_LARGE { limitMb }` over 100 MB. Needs `email.view` |
 | GET | `/api/email/attachments/:id/download` | An attachment of a message the person can see. Images, PDFs and plain text open inline; everything else is a download served as `application/octet-stream`, since the sender chose the type |
 | GET | `/api/email/settings/logo` | **No session.** The current logo, used in the `<img>` of the signature |
 | POST | `/api/webhooks/resend-inbound` | **No session.** Delivery status events from Resend. The **Svix** signature (headers `svix-id`, `svix-timestamp`, `svix-signature`, secret `RESEND_WEBHOOK_SECRET`) is verified on the raw body: 503 if the secret is not configured, 401 if the signature fails. A malformed payload or an unknown event → 200, so Resend does not retry forever |
 | POST | `/api/webhooks/cloudflare-inbound` | **No session.** Received mail, posted by the Worker in `infra/cloudflare-email-worker/` with the header `X-Cloudflare-Email-Token`. The payload holds the whole message: `html`, `text`, attachments with `contentId` and `disposition` |
 
 Sending works whether or not receiving is set up.
+
+### Drafts
+
+Source: `drafts-routes.ts`, `drafts-schema.ts`. Drafts belong to their author and are autosaved by the compose window. All routes need `email.trimitere`.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/email/drafts` | Own drafts. Query: `threadId?`, to get the draft of a reply under one thread |
+| GET | `/api/email/drafts/:id` | One draft; `404` if it is not the person's |
+| POST | `/api/email/drafts` | `{ fromKey?, to?, cc?, subject?, body?, templateId?, attachments?, mode?, threadId?, sourceMessageId? }` → `201`. `mode` is `new` (default), `reply`, `reply_all` or `forward`; replies need `threadId` and forwards need `sourceMessageId`, else 400. `to` and `cc` are comma-separated strings. An attachment given as `storagePath` is accepted only if it is already on the draft or belongs to the source message |
+| PATCH | `/api/email/drafts/:id` | Partial update, same fields, plus `expectedUpdatedAt?` (ISO). If the draft changed since then, `409 DRAFT_CHANGED { updatedAt }`, so a second tab does not overwrite the first |
+| DELETE | `/api/email/drafts/:id` | Deletes the draft |
+| POST | `/api/email/drafts/:id/send` | `{ lastSeenMessageId? }` (the body may be omitted). Delayed like `/send`: `202 { sendId, sendAfter }`; the same `409` / `429` refusals as the other send routes |
+
+### Delayed send and the send gate
+
+Compose, reply, forward and draft sends are written as a `scheduled` row in `email_sends` and leave
+5 seconds later (`sendAfter`). An in-process timer sends them; `jobs/email-scheduled-sends.ts`
+(every minute) catches what the timer missed after a restart, and a row stuck in `sending` for more
+than 5 minutes is picked up again with the same `Idempotency-Key`. The claim is an atomic
+`UPDATE ... WHERE status = 'scheduled'`, so a send goes out once. A failed send puts the message
+back in a draft.
+
+Every send passes `send-guard.ts` right before it reaches Resend: compose, reply, forward, draft,
+bulk, sequences and the assistant. An address in `email_suppressions` is refused with
+`409 RECIPIENT_UNSUBSCRIBED { address }`, and the `outreach` identity checks the daily cap, the
+person's own one included (`429 OUTREACH_CAP_REACHED { limit }`). `email_messages` has no Cc column,
+so a thread shows only "To"; the Cc does go out through Resend.
+
+### My settings
+
+Source: `me-routes.ts`, `me-schema.ts`. Everything under `/api/email/me` needs `email.setari_proprii`
+and works on the person's own data only. Unsubscribes and the blocklist are the company's, so they
+are read-only here.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/email/me/settings` | `{ mailboxes: [{ key, label, fromAddress, companySignature }], signatures, outreachDailyCap, companyOutreachCap }`. `signatures` is keyed by mailbox key; `outreachDailyCap` is `null` when the person has none of their own |
+| PATCH | `/api/email/me/settings` | `{ signatures?: { [mailboxKey]: html }, outreachDailyCap?: number \| null }` (0-1000). An empty signature clears the person's one, so the mailbox's applies again; the HTML is stripped of active content on the server. `400 CAP_ABOVE_COMPANY { limit }` over the company's cap; `400 MAILBOX_NOT_MINE { identityKey }` for a mailbox the person does not have |
+| GET/POST | `/api/email/me/labels` | The person's own labels; POST `201`. `409 LABEL_NAME_TAKEN` |
+| PATCH/DELETE | `/api/email/me/labels/:id` | `404` for a label that is not theirs; `409 LABEL_NAME_TAKEN` on rename |
+| GET/POST | `/api/email/me/rules` | The person's own rules; POST `201`. `400 RULE_LABEL_NOT_ALLOWED` for a label the person cannot use |
+| PATCH/DELETE | `/api/email/me/rules/:id` | `404` for a rule that is not theirs. A rule applies only on mailboxes that belong to the person alone, since the label and the folder are set on the message and a shared mailbox would move it for colleagues too |
+| GET | `/api/email/me/suppressions` | The company's unsubscribes, read-only |
+| GET | `/api/email/me/blocklist` | The company's blocklist, read-only |
 
 ### Outreach sequences (automatic drip)
 

@@ -2,6 +2,7 @@ import { pgTable, text, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { emailLabels } from './email-labels.js'
 import { tenantColumns } from './tenant-column.js'
+import { users } from './users.js'
 
 // Reguli de rutare la ingest (ex: "de la contabil@x.ro → label Contabilitate"). TOATE regulile
 // se evaluează la fiecare mesaj primit (ca la Gmail filters — pot aplica mai multe simultan),
@@ -13,4 +14,7 @@ export const emailRules = pgTable('email_rules', {
   matchValue: text('match_value').notNull(),
   action: text('action', { enum: ['label', 'archive', 'trash', 'spam'] }).notNull(),
   labelId: uuid('label_id').references(() => emailLabels.id, { onDelete: 'set null' }),
+  // null = company rule, applied to every inbound message; set = a person's rule, applied only
+  // to messages arriving in that person's mailboxes.
+  ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'cascade' }),
 })

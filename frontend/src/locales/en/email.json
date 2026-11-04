@@ -89,7 +89,33 @@
     "stillHere": "Your message is still here, not sent.",
     "saveDraft": "Save the draft",
     "repliedMeanwhile": "{{by}} replied {{at}}",
-    "someoneElse": "Someone else"
+    "someoneElse": "Someone else",
+    "attach": "Attach files",
+    "capReached": "You reached today's outreach cap ({{limit}}).",
+    "cc": "Cc",
+    "discard": "Discard draft",
+    "discarded": "Draft deleted",
+    "draftChanged": "The draft changed in another tab.",
+    "draftMissing": "The draft no longer exists.",
+    "expand": "Open",
+    "forwardIncludes": "The original message's attachments go too.",
+    "from": "From",
+    "invalidAddress": "“{{address}}” is not an email address",
+    "minimize": "Minimize",
+    "newMessage": "New message",
+    "recipientRequired": "Add at least one recipient.",
+    "reload": "Reload",
+    "removeAttachment": "Remove {{filename}}",
+    "removeRecipient": "Remove {{address}}",
+    "savedAt": "Draft saved at {{time}}",
+    "saveErrorRetry": "Draft not saved · Retry",
+    "saveFailed": "The draft was not saved.",
+    "saving": "Saving…",
+    "sendFailed": "Not sent.",
+    "sendShortcut": "Send (Ctrl+Enter)",
+    "subjectRequired": "Write a subject.",
+    "unsubscribed": "{{address}} unsubscribed; the email cannot go to this address.",
+    "titleWithKey": "Compose (C key)"
   },
   "status": {
     "sent": "Sent",
@@ -97,7 +123,8 @@
     "failed": "Failed",
     "delivered": "Delivered",
     "bounced": "Rejected (bounce)",
-    "delayed": "Delayed"
+    "delayed": "Delayed",
+    "cancelled": "Undone"
   },
   "actions": {
     "forward": "Forward"
@@ -114,7 +141,13 @@
     "quotaMonth": "This month: {{month}}/{{monthlyLimit}}",
     "templates": "Templates",
     "bulk": "Bulk send",
-    "sequences": "Sequences"
+    "sequences": "Sequences",
+    "companySettings": "Email settings (company)",
+    "menu": "Open folders",
+    "collapse": "Collapse the sidebar",
+    "expand": "Expand the sidebar",
+    "itemUnread_one": "{{label}}, {{count}} unread",
+    "itemUnread_other": "{{label}}, {{count}} unread"
   },
   "folders": {
     "inbox": "Inbox",
@@ -136,7 +169,9 @@
     "noText": "(no text content)",
     "complex": "Complex message: show the content",
     "showImages": "Show the images",
-    "externalImageBlocked": "External image blocked"
+    "externalImageBlocked": "External image blocked",
+    "actualSize": "Actual size",
+    "fitToWidth": "Fit to screen"
   },
   "toasts": {
     "archived": "Archived",
@@ -155,13 +190,30 @@
     "loadFailed": "The thread could not be loaded.",
     "sentBy": "Sent by {{sentByUserId}} · {{toAddress}}",
     "youTo": "You → {{toAddress}}",
-    "star": "Star"
+    "star": "Star",
+    "backToList": "Back to the list",
+    "date": "Date",
+    "downloadAll": "Download all",
+    "gone": "This conversation no longer exists.",
+    "me": "Me",
+    "next": "Next",
+    "older_one": "One more message",
+    "older_other": "{{count}} older messages",
+    "position": "{{position}} of {{total}}",
+    "previous": "Previous",
+    "replyAll": "Reply all",
+    "toAddress": "to {{address}}",
+    "toMe": "to me",
+    "unstar": "Remove star",
+    "zipTooLarge": "The attachments are over 100 MB; download them one by one.",
+    "showQuotedShort": "…"
   },
   "list": {
     "searchAria": "Search the email",
     "searchPlaceholder": "Search in subject and content…",
     "receivedOnHint": "The address it was received on",
     "anyAddress": "Any address",
+    "receivedOnTitle": "Received on",
     "clearSelection": "Clear the selection",
     "selected": "{{size}} selected",
     "read": "Read",
@@ -170,7 +222,9 @@
     "nothingOnAddress": "Nothing received on this address",
     "nothingHere": "Nothing here",
     "receivedOn": "Received on {{toAddress}}",
-    "perPageHint": "Messages per page"
+    "perPageHint": "Messages per page",
+    "hasAttachment": "Has attachment",
+    "nothingFiltered": "Nothing for these filters"
   },
   "pagination": {
     "perPage": "{{size}} / page",
@@ -200,7 +254,15 @@
     "loadFailed": "The history could not be loaded.",
     "empty": "No email sent yet.",
     "viewContent": "See the content",
-    "rowsPerPage": "Rows per page"
+    "rowsPerPage": "Rows per page",
+    "openedFilter": "Opened",
+    "clickedFilter": "Clicked",
+    "filterSource": "Source",
+    "filterReaction": "Reaction",
+    "filterStatus": "Status",
+    "clearFilters": "Clear filters",
+    "statFilterHint": "Show only these emails; click again to remove the filter",
+    "filters": "Filters"
   },
   "enrollments": {
     "replied": "Replied",
@@ -241,6 +303,13 @@
     "outreach": "Outreach (cold outreach)"
   },
   "settings": {
+    "groups": {
+      "sending": "Sending",
+      "receiving": "Receiving",
+      "unsubscribes": "Unsubscribes",
+      "organising": "Organising",
+      "companyReadOnly": "The company's, read only"
+    },
     "signaturesSaved": "Signatures saved",
     "logoUpdated": "Logo updated",
     "signaturesTitle": "Signatures and logo",
@@ -261,7 +330,13 @@
     "weekdaysOnly": "Working days only (Mon-Fri)",
     "newLabelPlaceholder": "New label name",
     "noNotifications": "No notifications",
-    "logoAlt": "logo"
+    "logoAlt": "logo",
+    "labelTaken": "You already have a label with this name.",
+    "signatureMailbox": "Mailbox",
+    "signatureOwn": "has its own signature",
+    "usesCompanySignature": "The company signature (Contact) is used now:",
+    "logoTitle": "Logo",
+    "logoHint": "Shown under the signature in sent emails."
   },
   "rules": {
     "fromExactAddress": "From the exact address",
@@ -321,5 +396,58 @@
     "confirm": "Snooze",
     "future": "Pick a time in the future.",
     "done": "Snoozed until {{when}}"
+  },
+  "filters": {
+    "add": "Filter",
+    "attachment": "Has attachment",
+    "fromChip": "From: {{address}}",
+    "fromHint": "From… (type in the search)",
+    "periodChip_one": "Last day",
+    "periodChip_other": "Last {{count}} days",
+    "remove": "Remove the {{label}} filter",
+    "starred": "Starred",
+    "unread": "Unread"
+  },
+  "send": {
+    "failed": "The email did not go out. {{reason}}",
+    "openDraft": "Open draft",
+    "sending": "Sending…",
+    "sent": "Sent",
+    "tooLate": "Too late, the email already left.",
+    "undoFailed": "Undo did not work.",
+    "undone": "Sending undone, the message is back in drafts",
+    "view": "View",
+    "sendingIn": "Sending in {{seconds}} s…"
+  },
+  "shortcuts": {
+    "next": "Next",
+    "open": "Open",
+    "previous": "Previous",
+    "search": "Search",
+    "select": "Select"
+  },
+  "mySettings": {
+    "title": "My settings",
+    "labels": "My labels",
+    "labelsHint": "Only you see them; you can put them on any email in your mailboxes.",
+    "rules": "My rules",
+    "rulesHint": "They apply to email arriving in mailboxes only you have. On a shared mailbox the company's rules apply.",
+    "readOnlyHint": "This list is the company's; whoever has Email settings changes it.",
+    "emptyList": "The list is empty.",
+    "suppressionsHint": "These addresses no longer get email from the company. The list is the company's; whoever has Email settings changes it.",
+    "signature": "My signature",
+    "signatureHint": "Added to the emails you send from each mailbox. Leave it empty to use the mailbox's signature.",
+    "signaturePlaceholder": "Your signature…",
+    "signatureSaved": "Signature saved",
+    "noMailboxes": "You have no mailboxes assigned yet.",
+    "companySignatureUsed": "The mailbox's signature is used now:",
+    "cap": "My outreach cap",
+    "capHint": "How many outreach emails you send a day. The company's cap is {{cap}} a day; yours can only be lower.",
+    "capLabel": "Emails a day",
+    "perDay": "a day",
+    "capSaved": "Cap saved",
+    "capAboveCompany": "It can be at most the company's cap ({{cap}}).",
+    "capInvalid": "Write a whole number, 0 or more.",
+    "loadFailed": "The settings did not load."
   }
 }

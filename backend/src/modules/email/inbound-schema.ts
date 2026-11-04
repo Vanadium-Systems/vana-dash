@@ -56,6 +56,11 @@ export const ThreadReplySchema = z.object({
   // răspuns pe fir, serverul răspunde 409 THREAD_REPLIED_MEANWHILE (decizie Stefan,
   // 2026-09-28) — fără lock-uri și fără „cine scrie acum".
   lastSeenMessageId: z.string().uuid().nullish(),
+  // Without `to`, the reply goes to the last sender; `replyAll` adds the other participants as Cc.
+  to: z.array(z.string().trim().email()).min(1).max(10).optional(),
+  cc: z.array(z.string().trim().email()).max(10).optional(),
+  replyAll: z.boolean().optional(),
+  draftId: z.string().uuid().optional(),
 })
 
 // Filtre de listare — paritate Gmail (foldere/label/search/starred), PLAN.md Wave 1.
@@ -71,6 +76,12 @@ export const ThreadsQuerySchema = z.object({
   // Vedere dedicată "Amânate" (snooze) — ignoră `folder` când e prezent (mesajele amânate pot
   // fi din orice folder de bază). Fără el, `folder=inbox` exclude implicit ce e amânat acum.
   snoozed: z.coerce.boolean().optional(),
+  // Filter chips under the search (E23). `from` matches the sender of a received message.
+  from: z.string().trim().min(1).max(200).optional(),
+  // `z.coerce.boolean()` would read "false" as true; the chips send only "true".
+  unread: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
+  after: z.string().datetime().optional(),
+  before: z.string().datetime().optional(),
   sort: z.enum(['date_desc', 'date_asc', 'subject_asc']).default('date_desc'),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
@@ -84,6 +95,8 @@ export const ThreadReadStateQuerySchema = z.object({
     .transform((value) => value.split(',').filter(Boolean))
     .pipe(z.array(z.string().uuid()).max(100)),
 })
+
+export const SearchSuggestQuerySchema = z.object({ q: z.string().trim().min(2).max(120) })
 
 export const MessageIdParamsSchema = z.object({ id: z.string().uuid() })
 export const AttachmentIdParamsSchema = z.object({ id: z.string().uuid() })
@@ -107,7 +120,11 @@ export const BulkUpdateSchema = z.object({
 })
 
 export const ForwardSchema = z.object({
-  to: z.string().email(),
+  to: z
+    .union([z.string().trim().email(), z.array(z.string().trim().email()).min(1).max(10)])
+    .transform((v) => (Array.isArray(v) ? v : [v])),
+  cc: z.array(z.string().trim().email()).max(10).default([]),
+  draftId: z.string().uuid().optional(),
   extraBody: z.string().optional(),
   includeOriginalAttachments: z.boolean().default(false),
   attachments: z

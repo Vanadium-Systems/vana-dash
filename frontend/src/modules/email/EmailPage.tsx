@@ -1,25 +1,29 @@
 import { Menu, PenLine } from 'lucide-react'
 import { Fab } from '@/shared/components/ui/fab'
 import { useMe } from '@/shared/hooks/use-me'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { BulkSendTab } from './BulkSendTab'
-import { ComposeDialog, type ComposeMode } from './ComposeDialog'
+import { openCompose } from './compose/compose-store'
+import { ComposeWindows } from './compose/ComposeWindows'
 import { DraftsList } from './DraftsList'
 import { EmailSidebar, type EmailView } from './EmailSidebar'
 import { MailboxView } from './MailboxView'
 import { SentTab } from './SentTab'
 import { SequencesTab } from './SequencesTab'
+import { MySettingsTab } from './MySettingsTab'
 import { SettingsTab } from './SettingsTab'
 import { TemplatesTab } from './TemplatesTab'
 import { PageHeader } from '@/shared/components/PageHeader'
-import type { EmailDraft, EmailFolder, EmailMessage, EmailThread } from '@/shared/lib/types'
+import type { EmailDraft, EmailFolder } from '@/shared/lib/types'
 import { useConsumeParam } from '@/shared/hooks/use-consume-param'
+import { useDragDismiss } from '@/shared/hooks/use-drag-dismiss'
 import { t } from '@/shared/lib/i18n'
 
 function viewFromParams(params: URLSearchParams): EmailView {
   const kind = params.get('view') ?? 'mailbox'
-  if (kind === 'drafts' || kind === 'sent' || kind === 'templates' || kind === 'bulk' || kind === 'sequences' || kind === 'settings') {
+  if (kind === 'drafts' || kind === 'sent' || kind === 'templates' || kind === 'bulk' || kind === 'sequences' || kind === 'settings' || kind === 'mysettings') {
     return { kind }
   }
   const folderParam = params.get('folder') as EmailFolder | 'all' | null
@@ -46,11 +50,62 @@ function paramsFromView(view: EmailView): URLSearchParams {
   return p
 }
 
+const SIDEBAR_COLLAPSED_KEY = 'email.sidebar.collapsed'
+
+// Phone only: the folder list slides over the page instead of replacing it. Same mount/closing
+// dance as BottomSheet, so the panel stays mounted for the slide out.
+function SidebarDrawer({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const [mounted, setMounted] = useState(open)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const drag = useDragDismiss(panelRef, 'left', onClose)
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true)
+      return
+    }
+    const fallback = setTimeout(() => setMounted(false), 400)
+    return () => clearTimeout(fallback)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open, onClose])
+
+  if (!mounted) return null
+  const state = open ? 'open' : 'closing'
+  return createPortal(
+    <div className="fixed inset-0 z-50 md:hidden">
+      <div data-state={state} className="sheet-backdrop absolute inset-0 bg-black/50 opacity-100" onClick={onClose} />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-label={title}
+        data-state={state}
+        className="drawer-panel glass safe-top safe-bottom absolute inset-y-0 left-0 w-72 max-w-[85vw] touch-pan-y overflow-y-auto overscroll-contain border-r p-3"
+        onTransitionEnd={(e) => {
+          if (e.target === e.currentTarget && !open) setMounted(false)
+        }}
+        onClick={(e) => e.stopPropagation()}
+        {...drag}
+      >
+        {children}
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 export function EmailPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1')
   const { can } = useMe()
-  const [compose, setCompose] = useState<{ open: boolean; mode: ComposeMode }>({ open: false, mode: { kind: 'compose' } })
 
   const view = viewFromParams(searchParams)
 
@@ -59,14 +114,12 @@ export function EmailPage() {
     setSidebarOpen(false)
   }
 
-  const openCompose = (mode: ComposeMode) => setCompose({ open: true, mode })
-
   // Deschidere directă din alte pagini (ex: click pe email în Prospectare) — /email?to=x@y.ro.
   // Consumat o singură dată la montare, apoi scos din URL ca refresh/back să nu re-deschidă compose.
   useEffect(() => {
     const to = searchParams.get('to')
     if (!to) return
-    openCompose({ kind: 'compose', to })
+    openCompose({ kind: 'new', to: [to] })
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
       next.delete('to')
@@ -76,26 +129,14 @@ export function EmailPage() {
     // stabile din react-router, includerea lor ar re-declanșa efectul la fiecare navigare internă.
   }, [])
 
-  useConsumeParam('compose', () => openCompose({ kind: 'compose' }))
+  useConsumeParam('compose', () => openCompose({ kind: 'new' }))
 
-  const handleReply = (thread: EmailThread, lastInbound: EmailMessage) => {
-    // toAddress = adresa reală pe care a venit mesajul (stefan@/contact@) — determină ce
-    // semnătură se pune la trimitere (server, replyToThread); dus mai departe doar ca
-    // Compose să poată previzualiza semnătura corectă, nu presupune 'stefan' implicit.
-    openCompose({
-      kind: 'reply',
-      threadId: thread.id,
-      to: lastInbound.fromAddress,
-      subject: thread.subject,
-      fromAddress: lastInbound.toAddress,
-      // Ultimul mesaj văzut de om: dacă altcineva răspunde până trimite, serverul întoarce
-      // 409 și bara de sub compunere arată cine (fișa „Email cu cutii comune").
-      lastSeenMessageId: lastInbound.id,
-    })
+  const toggleCollapsed = () => {
+    const next = !collapsed
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0')
+    setCollapsed(next)
   }
-  const handleForward = (message: EmailMessage) => {
-    openCompose({ kind: 'forward', messageId: message.id, subject: message.subject, fromAddress: message.toAddress })
-  }
+
   const handleOpenDraft = (draft: EmailDraft) => openCompose({ kind: 'draft', draft })
 
   return (
@@ -103,34 +144,51 @@ export function EmailPage() {
       <PageHeader
         title={t('common:labels.email')}
         actions={
-          <button className="rounded-md border p-2 md:hidden" onClick={() => setSidebarOpen((v) => !v)}>
+          <button className="rounded-md border p-2 md:hidden" aria-label={t('email:sidebar.menu')} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen((v) => !v)}>
             <Menu className="h-4 w-4" />
           </button>
         }
       />
 
       <div className="flex gap-6">
-        <div className={sidebarOpen ? 'w-full md:w-auto' : 'hidden md:block'}>
-          <EmailSidebar current={view} onNavigate={navigate} onCompose={() => openCompose({ kind: 'compose' })} />
+        <div className="hidden md:block">
+          <EmailSidebar
+            current={view}
+            onNavigate={navigate}
+            onCompose={() => openCompose({ kind: 'new' })}
+            collapsed={collapsed}
+            onToggleCollapsed={toggleCollapsed}
+          />
         </div>
 
-        {/* On a phone the open folder list replaces the content instead of squeezing it sideways. */}
-        <div className={sidebarOpen ? 'hidden min-w-0 flex-1 md:block' : 'min-w-0 flex-1'}>
-          {view.kind === 'mailbox' ? <MailboxView view={view} onReply={handleReply} onForward={handleForward} /> : null}
+        <div className="min-w-0 flex-1">
+          {view.kind === 'mailbox' ? <MailboxView view={view} /> : null}
           {view.kind === 'drafts' ? <DraftsList onOpen={handleOpenDraft} /> : null}
           {view.kind === 'sent' ? <SentTab /> : null}
           {view.kind === 'templates' ? <TemplatesTab /> : null}
           {view.kind === 'bulk' ? <BulkSendTab /> : null}
           {view.kind === 'sequences' ? <SequencesTab /> : null}
           {view.kind === 'settings' ? <SettingsTab /> : null}
+          {view.kind === 'mysettings' ? <MySettingsTab /> : null}
         </div>
       </div>
 
+      <SidebarDrawer open={sidebarOpen} onClose={() => setSidebarOpen(false)} title={t('email:sidebar.menu')}>
+        <EmailSidebar
+          current={view}
+          onNavigate={navigate}
+          onCompose={() => {
+            setSidebarOpen(false)
+            openCompose({ kind: 'new' })
+          }}
+        />
+      </SidebarDrawer>
+
       {/* On a phone the sidebar with "Compose" is a tap away behind the menu; the thumb gets it here. */}
-      {can('email.trimitere') && view.kind === 'mailbox' ? (
-        <Fab icon={<PenLine className="h-5 w-5" />} label={t('email:compose.title')} onClick={() => openCompose({ kind: 'compose' })} />
+      {can('email.trimitere') && view.kind === 'mailbox' && !searchParams.get('thread') ? (
+        <Fab icon={<PenLine className="h-5 w-5" />} label={t('email:compose.title')} onClick={() => openCompose({ kind: 'new' })} />
       ) : null}
-      <ComposeDialog open={compose.open} onOpenChange={(open) => setCompose((c) => ({ ...c, open }))} mode={compose.mode} />
+      <ComposeWindows />
     </div>
   )
 }

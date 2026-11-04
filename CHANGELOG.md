@@ -4,6 +4,45 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-04: Email: undoable send, drafts, personal settings
+
+### Added
+- Sending is delayed by 5 seconds for a new message, a reply, a forward and a draft, with an
+  Undo toast that reopens the message as a draft. The send happens on the server (timer plus a
+  per-minute job for restarts), once, with an idempotency key.
+- Autosaved drafts, a floating compose window (minimize, two at most, full screen on a phone),
+  replies written under the thread, recipient chips with Cc and Reply all, Ctrl+Enter to send. A
+  second tab editing the same draft gets a conflict instead of overwriting it.
+- Message rows on one line with a snippet, bold for unread, attachment chips, hover actions in
+  place of the date, a selection bar instead of the toolbar on desktop.
+- Threads newest first with older messages collapsed, a relative date in the header,
+  previous and next arrows between emails, "Download all" as a zip (100 MB at most). A wide HTML
+  email shrinks to fit the screen, with an "Actual size" switch.
+- Search suggestions and filter chips (from, unread, attachment, starred, period).
+- Recipient chips are checked as they are made: an unsubscribed address turns red before Send
+  (`GET /api/email/recipients/check`).
+- Sent: the totals are one strip whose numbers filter the list (opened, clicked, bounced, spam,
+  unsubscribed); source, reaction, status and period are one Filters menu. New `engagement`
+  values `opened` and `clicked` and a `status` filter on the sends list, report and export.
+- Keyboard shortcuts in the list, the thread and the compose window, listed under `?`.
+- My settings (`email.setari_proprii`): a signature per mailbox, an outreach cap below the
+  company's, own labels and rules, and the unsubscribes and blocklist as read-only lists. Own
+  rules apply only on mailboxes that belong to one person.
+- API: see Email in `docs/API.md`. Migration `0078_email_ux.sql` adds `email_user_settings`, the
+  scheduled-send columns on `email_sends` and the new draft fields.
+
+### Changed
+- On a phone the navigation is a drawer, the mailbox switcher is a sheet, and Reply / Forward sit
+  at the bottom of a thread.
+- Forwarding always includes the original attachments.
+
+### Fixed
+- A one-to-one send skipped the unsubscribe list and the outreach cap that bulk sends already
+  checked. Every path now goes through one gate and an unsubscribed address answers
+  `409 RECIPIENT_UNSUBSCRIBED`.
+- A draft could reference any file in storage by path; only files already on the draft or on the
+  source message are accepted.
+
 ## 2026-11-03: Messages: replies, reactions, sharing objects
 
 ### Added

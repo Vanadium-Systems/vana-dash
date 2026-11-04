@@ -7,6 +7,9 @@ import { t } from '@/shared/lib/i18n'
 // (nu doar 'sent' vs 'failed' binar — un check `=== 'sent'` arăta greșit "Eșuat" pe orice email
 // deja livrat, bug raportat live de Stefan, 2026-08-11).
 export const STATUS_LABEL: Record<EmailSendStatus, string> = {
+  scheduled: t('email:send.sending'),
+  sending: t('email:send.sending'),
+  cancelled: t('email:status.cancelled'),
   sent: t('email:status.sent'),
   delivered: t('email:status.delivered'),
   bounced: t('email:status.bounced'),
@@ -16,6 +19,9 @@ export const STATUS_LABEL: Record<EmailSendStatus, string> = {
 }
 
 export const STATUS_TONE: Record<EmailSendStatus, StateTone> = {
+  scheduled: 'neutral',
+  sending: 'neutral',
+  cancelled: 'neutral',
   sent: 'neutral',
   delivered: 'success',
   bounced: 'critical',

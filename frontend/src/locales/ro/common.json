@@ -506,7 +506,8 @@
     "toolbar": "Acțiuni pe selecție",
     "clear": "Golește selecția",
     "all": "Selectează tot",
-    "count": "{{count}} selectate"
+    "count": "{{count}} selectate",
+    "pageOf": "toate de pe pagină, din {{total}}"
   },
   "keys": {
     "shift": "Shift",

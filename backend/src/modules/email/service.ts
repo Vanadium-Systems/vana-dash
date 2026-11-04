@@ -1,18 +1,19 @@
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq, gte, ilike, inArray, isNull, lte, ne, or, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, isNull, lte, ne, notInArray, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
 import { billingClients, emailMessages, emailSends, emailSequenceEnrollments, emailSequences, emailSuppressions, emailTemplates } from '../../shared/db/schema/index.js'
 import { getResendSentCount, sendEmailWithResult, type SendEmailResult } from '../../shared/lib/email.js'
+import type { PreparedSend } from './scheduled-send.js'
+import { assertCanDeliver, countOutreachSendsToday, EmailSuppressedError, OutreachCapError } from './send-guard.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { assertCanSendFrom } from './mailboxes.js'
 import { resolvePeriod } from '../../shared/lib/period.js'
 import { wrapBulkCampaignHtml } from './campaign-layout.js'
 import { htmlToPlainText } from './html-to-text.js'
 import { inlineStoredImages } from './images-service.js'
-import { mirrorOutboundMessage } from './inbound-service.js'
-import { getEmailSettings, getIdentities } from './settings-service.js'
+import { getEmailSettings, resolveFromAddress } from './settings-service.js'
 import { buildSignature, escapeHtml } from './signature.js'
 import { buildUnsubscribeToken } from './unsubscribe-token.js'
 import { getSuppressedEmails, suppressEmail } from './unsubscribe-service.js'
@@ -20,7 +21,6 @@ import type {
   BulkSendSchema,
   EmailAttachmentSchema,
   EmailFromSchema,
-  SendCreateSchema,
   SendsFilterQuerySchema,
   SendsQuerySchema,
   TemplateCreateSchema,
@@ -34,27 +34,16 @@ type EmailSendRow = typeof emailSends.$inferSelect
 // Volum sub 50/trimitere (decizie Stefan) — delay simplu între emailuri, fără coadă.
 const DELAY_BETWEEN_SENDS_MS = 200
 
-// Rezolvă cheia identității (ex: 'stefan', 'contact', 'outreach' sau orice identitate adăugată
-// din Setări) la adresa "From" efectivă. Necunoscută = eroare tare (400 la apelant) — nu
-// tăcem și trimitem de pe altă identitate decât a ales Stefan. Identitate configurată cu
-// fromAddress gol = fail-soft pe contact (pattern-ul outreach din 2026-08-12).
-async function resolveFromAddress(from: z.infer<typeof EmailFromSchema>): Promise<string> {
-  const identities = await getIdentities()
-  const identity = identities.find((i) => i.key === from)
-  if (!identity) throw new Error(tr('errors.email.unknownIdentity', { from }))
-  if (!identity.fromAddress) {
-    return identities.find((i) => i.key === 'contact' && i.fromAddress)?.fromAddress ?? config.emailFromContact
-  }
-  return identity.fromAddress
-}
-
 /**
- * Corp complet (text + html) pt. un mesaj compus liber (Compose 1:1), cu semnătura ataşată.
- * `bodyHtml` e sursa (2026-08-11 — editor rich-text, ComposeDialog.tsx) — textul simplu se
- * DERIVĂ din HTML (htmlToPlainText, deja folosit la ingest-ul mesajelor primite), nu invers.
+ * Full body (text + html) of a freely composed message (1:1 Compose), signature attached.
+ * `bodyHtml` is the source (rich-text editor); the plain text is DERIVED from the HTML, not the reverse.
  */
-async function composeWithSignature(bodyHtml: string, from: z.infer<typeof EmailFromSchema>): Promise<{ text: string; html: string }> {
-  const sig = await buildSignature(from)
+async function composeWithSignature(
+  bodyHtml: string,
+  from: z.infer<typeof EmailFromSchema>,
+  senderUserId: string,
+): Promise<{ text: string; html: string }> {
+  const sig = await buildSignature(from, senderUserId)
   return {
     text: `${htmlToPlainText(bodyHtml)}${sig.text}`,
     html: `${bodyHtml}${sig.html}`,
@@ -100,69 +89,42 @@ export async function softDeleteTemplate(id: string): Promise<boolean> {
 
 // ── Send (1:1) ───────────────────────────────────────────────────────────────
 
-export async function sendSingle(me: SessionUser, input: z.infer<typeof SendCreateSchema>): Promise<EmailSendRow> {
-  const { to, subject, body, templateId, from, attachments } = input
-  // Trimiterea acceptă doar cutiile omului (C2) — compose nu e o excepție la regulă.
+/** Everything a new message needs before it is scheduled (scheduled-send.ts sends it). */
+export async function prepareSingle(
+  me: SessionUser,
+  input: {
+    to: string[]
+    cc: string[]
+    subject: string
+    body: string
+    from: string
+    templateId?: string | null
+    attachments?: Array<{ filename: string; content: string }>
+  },
+): Promise<PreparedSend> {
+  const { to, cc, subject, body, templateId, from, attachments } = input
+  // Sending accepts only the person's own mailboxes (C2); compose is no exception.
   assertCanSendFrom(me, from)
-  // Validare explicită înainte de insert — fără ea, un templateId inexistent (UUID
-  // valid ca formă, dar fără rând) trece de Zod și pică abia la FK constraint pe
-  // insert, cu eroare SQL brută urcată necaptată (BUG-EMAIL-001, găsit de QA).
+  // Explicit check: a missing templateId would only fail at the FK, with a raw SQL error.
   if (templateId && !(await getTemplate(templateId))) {
     throw new Error(tr('errors.email.templateNotFound'))
   }
   const fromAddress = await resolveFromAddress(from)
-  const { text, html } = await composeWithSignature(body, from)
-  // Poze inserate din editor → atașament MIME cu cid: la trimiterea reală (nu URL extern, vezi
-  // images-service.ts) — `html` stocat mai jos (bodyHtml) rămâne neatins, cu URL-ul public.
-  const { html: sendHtml, attachments: inlineImageAttachments } = await inlineStoredImages(html)
-  const result = await sendEmailWithResult({
+  const { text, html } = await composeWithSignature(body, from, me.id)
+  return {
+    mode: 'new',
+    fromKey: from,
+    fromAddress,
     to,
+    cc,
     subject,
     text,
-    html: sendHtml,
-    from: fromAddress,
-    attachments: [
-      ...inlineImageAttachments,
-      ...(attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64') })) ?? []),
-    ],
-  })
-  const [row] = await db
-    .insert(emailSends)
-    .values({
-      templateId: templateId ?? null,
-      recipient: to,
-      fromAddress,
-      subject,
-      bodyText: text,
-      bodyHtml: html,
-      status: result.ok ? 'sent' : 'failed',
-      errorMessage: result.ok ? null : result.error,
-      resendEmailId: result.id ?? null,
-      batchId: null,
-      sentByUserId: me.id,
-    })
-    .returning()
-  if (!row) throw new Error(tr('errors.email.sendInsertFailed'))
-
-  if (result.ok) {
-    // Oglindire în thread/conversație — DOAR Compose 1:1, NU bulk (decizie fixată în PLAN.md).
-    // Failure izolat: dacă oglindirea pică, trimiterea deja reușită tot rămâne validă.
-    try {
-      await mirrorOutboundMessage({
-        fromAddress,
-        toAddress: to,
-        subject,
-        body,
-        sentByUserId: me.id,
-        resendEmailId: result.id ?? null,
-        attachments,
-      })
-    } catch (err) {
-      console.error(`[email] oglindire Compose în thread eșuată pentru "${subject}" → ${to}: ${String(err)}`)
-    }
+    html,
+    body,
+    templateId: templateId ?? null,
+    newAttachments: attachments ?? [],
+    storedAttachments: [],
   }
-
-  return row
 }
 
 // ── Bulk send: clienți activi per platformă ──────────────────────────────────
@@ -244,6 +206,8 @@ export interface SendCampaignEmailParams {
   from: z.infer<typeof EmailFromSchema>
   batchId?: string | null
   sequenceEnrollmentId?: string | null
+  /** Who started it: the person for bulk, null for the sequence job. */
+  senderUserId?: string | null
   attachments?: z.infer<typeof EmailAttachmentSchema>[]
 }
 
@@ -255,12 +219,13 @@ export interface SendCampaignEmailParams {
  * (recipient, templateId), sequence-runner pe status de enrollment).
  */
 export async function sendCampaignEmail(params: SendCampaignEmailParams): Promise<{ result: SendEmailResult; row: EmailSendRow }> {
-  const { to, nume, templateId, from, batchId = null, sequenceEnrollmentId = null, attachments } = params
+  const { to, nume, templateId, from, batchId = null, sequenceEnrollmentId = null, senderUserId = null, attachments } = params
   const template = await getTemplate(templateId)
   if (!template) throw new Error(tr('errors.email.templateNotFound'))
+  await assertCanDeliver({ identityKey: from, recipients: [to], senderUserId })
 
   const fromAddress = await resolveFromAddress(from)
-  const sig = await buildSignature(from)
+  const sig = await buildSignature(from, senderUserId)
   // template.body e HTML (sursa — editor rich-text, TemplateFormDialog.tsx) — text simplu
   // derivat din el (htmlToPlainText), nu invers.
   const renderedBodyHtml = renderBody(template.body, nume)
@@ -294,6 +259,8 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
       resendEmailId: result.id ?? null,
       batchId,
       sequenceEnrollmentId,
+      sentByUserId: senderUserId,
+      kind: sequenceEnrollmentId ? 'sequence' : 'bulk',
     })
     .returning()
   if (!row) throw new Error(tr('errors.email.sendInsertFailed'))
@@ -329,12 +296,6 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
   if (!template) throw new Error(tr('errors.email.templateNotFound'))
 
   const batchId = randomUUID()
-  // Un singur query pt. tot batch-ul (nu per destinatar, spre deosebire de dedup-ul de mai jos —
-  // ăsta chiar e un IN() pe un set mic, nu o agregare, regula #9 nu se aplică).
-  const suppressedEmails = await getSuppressedEmails(recipients.map((r) => r.email))
-  // Plafon de warm-up — doar pt. identitatea outreach, verificat o singură dată înainte de buclă
-  // (nu per destinatar) și decrementat local pe măsură ce trimitem.
-  let outreachRemaining: number | null = from === 'outreach' ? (await getOutreachCapStatus()).remaining : null
   const results: EmailSendRow[] = []
   const skippedRecipients: string[] = []
   const suppressedRecipients: string[] = []
@@ -344,14 +305,10 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
   let suppressed = 0
   let failed = 0
 
-  for (const recipient of recipients) {
-    if (suppressedEmails.has(recipient.email.trim().toLowerCase())) {
-      suppressed++
-      suppressedRecipients.push(recipient.email)
-      continue
-    }
+  let capReached = false
 
-    if (outreachRemaining !== null && outreachRemaining <= 0) {
+  for (const recipient of recipients) {
+    if (capReached) {
       capBlockedRecipients.push(recipient.email)
       continue
     }
@@ -372,7 +329,7 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
             isNull(emailSends.deletedAt),
             eq(emailSends.recipient, recipient.email),
             eq(emailSends.templateId, templateId),
-            ne(emailSends.status, 'failed'),
+            notInArray(emailSends.status, ['failed', 'cancelled']),
           ),
         )
         .limit(1)
@@ -383,13 +340,32 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
         continue
       }
 
-      const { result, row } = await sendCampaignEmail({ to: recipient.email, nume: recipient.nume, templateId, from, batchId, attachments })
-      if (outreachRemaining !== null) outreachRemaining--
+      // The shared gate (send-guard.ts) checks unsubscribes and the outreach cap per recipient;
+      // its refusals are sorted into the counters instead of failing the batch.
+      const { result, row } = await sendCampaignEmail({
+        to: recipient.email,
+        nume: recipient.nume,
+        templateId,
+        from,
+        batchId,
+        senderUserId: me.id,
+        attachments,
+      })
 
       results.push(row)
       if (result.ok) sent++
       else failed++
     } catch (err) {
+      if (err instanceof EmailSuppressedError) {
+        suppressed++
+        suppressedRecipients.push(recipient.email)
+        continue
+      }
+      if (err instanceof OutreachCapError) {
+        capReached = true
+        capBlockedRecipients.push(recipient.email)
+        continue
+      }
       failed++
       console.error(`[email] bulk-send eșuat pentru ${recipient.email}: ${String(err)}`)
       try {
@@ -403,6 +379,8 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
             status: 'failed',
             errorMessage: String(err).slice(0, 500),
             batchId,
+            sentByUserId: me.id,
+            kind: 'bulk',
           })
           .returning()
         if (row) results.push(row)
@@ -488,7 +466,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * le traduce în SQL, ca raportul și exportul să numere garantat aceleași rânduri ca tabelul.
  */
 function buildSendFilterConditions(query: z.infer<typeof SendsFilterQuerySchema>): SQL[] {
-  const conditions: SQL[] = [isNull(emailSends.deletedAt)]
+  // An undone send never left; it stays in the table only for the undo itself.
+  const conditions: SQL[] = [isNull(emailSends.deletedAt), ne(emailSends.status, 'cancelled')]
   if (query.source === 'manual') conditions.push(isNull(emailSends.batchId), isNull(emailSends.sequenceEnrollmentId))
   if (query.source === 'bulk') conditions.push(sql`${emailSends.batchId} IS NOT NULL`)
   if (query.source === 'sequence') {
@@ -502,6 +481,9 @@ function buildSendFilterConditions(query: z.infer<typeof SendsFilterQuerySchema>
       )
     }
   }
+  if (query.status) conditions.push(eq(emailSends.status, query.status))
+  if (query.engagement === 'opened') conditions.push(sql`${emailSends.openCount} > 0`)
+  if (query.engagement === 'clicked') conditions.push(sql`${emailSends.clickCount} > 0`)
   if (query.engagement === 'engaged') {
     conditions.push(sql`(${emailSends.openCount} > 0 OR ${emailSends.clickCount} > 0)`)
   } else if (query.engagement === 'unengaged') {
@@ -743,7 +725,7 @@ async function countSendsSince(from: Date): Promise<number> {
     db
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(emailSends)
-      .where(and(isNull(emailSends.deletedAt), ne(emailSends.status, 'failed'), gte(emailSends.createdAt, from))),
+      .where(and(isNull(emailSends.deletedAt), notInArray(emailSends.status, ['failed', 'cancelled']), gte(emailSends.createdAt, from))),
     db
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(emailMessages)
@@ -793,18 +775,6 @@ export async function getSendQuotaUsage(): Promise<SendQuotaUsage> {
 }
 
 // ── Warm-up outreach (2026-08-12) ────────────────────────────────────────────
-//
-/** Trimiteri de azi pe identitatea outreach — reutilizează pattern-ul `countSendsSince` de mai
- *  sus (SUM SQL, regula #9), scoped pe `fromAddress` outreach în loc de tot `email_sends`. */
-async function countOutreachSendsToday(): Promise<number> {
-  const now = new Date()
-  const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-  const [row] = await db
-    .select({ count: sql<number>`COUNT(*)::int` })
-    .from(emailSends)
-    .where(and(isNull(emailSends.deletedAt), eq(emailSends.fromAddress, await resolveFromAddress('outreach')), gte(emailSends.createdAt, startOfDay)))
-  return row?.count ?? 0
-}
 
 export interface OutreachCapStatus {
   cap: number

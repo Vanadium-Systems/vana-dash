@@ -4,22 +4,42 @@ import { Button } from './button'
 import { Checkbox } from './checkbox'
 import { t } from '@/shared/lib/i18n'
 
-// Floats at the bottom centre while something is selected, instead of a toolbar that pushes the
-// list down (E6, X3). On a phone it sits above the bottom nav. The actions are the page's own.
+// While something is selected. `floating`: at the bottom centre, above the bottom nav on a phone,
+// where the thumb is. `toolbar`: in place of the list's own toolbar, same height, so nothing
+// jumps (E6, Gmail and Drive on a desktop); `total` adds "Select all N" when the list has more
+// than the page. The actions are the page's own.
 export function SelectionBar({
   count,
   allSelected,
   onSelectAll,
   onClear,
+  placement = 'floating',
+  total,
   children,
 }: {
   count: number
   allSelected: boolean
   onSelectAll: () => void
   onClear: () => void
+  placement?: 'floating' | 'toolbar'
+  total?: number
   children: ReactNode
 }) {
   if (count === 0) return null
+  if (placement === 'toolbar') {
+    return (
+      <div role="toolbar" aria-label={t('common:selection.toolbar')} className="flex min-h-9 min-w-0 flex-wrap items-center gap-1">
+        <Checkbox checked={allSelected} indeterminate={!allSelected} onChange={() => (allSelected ? onClear() : onSelectAll())} aria-label={t('common:selection.all')} />
+        <span className="tnum whitespace-nowrap px-1 text-sm">{t('common:selection.count', { count })}</span>
+        {total && total > count && allSelected ? <span className="text-sm text-muted-foreground">{t('common:selection.pageOf', { total })}</span> : null}
+        <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+        {children}
+        <Button variant="ghost" size="sm" className="ml-auto" onClick={onClear}>
+          {t('common:selection.clear')}
+        </Button>
+      </div>
+    )
+  }
   return (
     <div
       role="toolbar"

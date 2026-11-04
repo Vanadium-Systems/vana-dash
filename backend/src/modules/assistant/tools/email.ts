@@ -2,6 +2,7 @@ import { z } from 'zod/v4'
 import * as emailService from '../../email/service.js'
 import * as inboundService from '../../email/inbound-service.js'
 import * as draftsService from '../../email/drafts-service.js'
+import { sendForward, sendNew, sendReply } from '../../email/scheduled-send.js'
 import { selectableIdentities } from '../../email/mailboxes.js'
 import { getIdentities } from '../../email/settings-service.js'
 import type { SessionUser } from '../../../shared/lib/session.js'
@@ -126,13 +127,15 @@ export const emailConfirmExecutors: Record<
 > = {
   // Fără `from` explicit, executorul trimite de pe prima cutie a omului — nu de pe `stefan@`,
   // care nu e a lui. Cheia aleasă de model e oricum validată de `assertCanSendFrom` în service.
+  // Same path as the person's own sends: the delivery gate (unsubscribes, outreach cap) and the
+  // 10s undo window, so the email is in Sent with a status like any other.
   send_email: (input: { to: string; subject: string; body: string; from?: string; templateId?: string }, ctx) =>
-    emailService.sendSingle(ctx.user, { ...input, from: input.from ?? ctx.user.mailboxes?.[0] ?? 'stefan' } as never),
-  reply_to_email_thread: (input: { threadId: string; body: string }, ctx) =>
-    inboundService.replyToThread(ctx.user, input.threadId, input.body),
+    sendNew(ctx.user, { ...input, to: [input.to], cc: [], from: input.from ?? ctx.user.mailboxes?.[0] ?? 'stefan' }),
+  reply_to_email_thread: (input: { threadId: string; body: string }, ctx) => sendReply(ctx.user, input.threadId, { body: input.body }),
   forward_email: (input: { messageId: string; to: string; extraBody?: string }, ctx) =>
-    inboundService.forwardMessage(ctx.user, input.messageId, {
-      to: input.to,
+    sendForward(ctx.user, input.messageId, {
+      to: [input.to],
+      cc: [],
       extraBody: input.extraBody,
       includeOriginalAttachments: false,
     }),

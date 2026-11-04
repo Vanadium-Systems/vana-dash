@@ -132,6 +132,21 @@ export async function userIdsForIdentity(identityKey: string): Promise<string[]>
   return rows.filter((r) => r.prefs?.emailNew !== false).map((r) => r.id)
 }
 
+/**
+ * The one person holding mailbox `identityKey` (an explicit assignment), or null when it is
+ * shared or held by nobody. A person's own rules act only on such a mailbox: label and folder
+ * are on the message, so on a shared mailbox one person's rule would move a colleague's mail.
+ */
+export async function soleMailboxHolder(identityKey: string): Promise<string | null> {
+  const rows = await db
+    .select({ userId: userMailboxes.userId })
+    .from(userMailboxes)
+    .innerJoin(users, eq(users.id, userMailboxes.userId))
+    .where(and(eq(userMailboxes.identityKey, identityKey), isNull(userMailboxes.deletedAt), isNull(users.deletedAt)))
+    .limit(2)
+  return rows.length === 1 ? (rows[0]?.userId ?? null) : null
+}
+
 // ── Citit / necitit per om ───────────────────────────────────────────────────────────────────
 
 /** Fire necitite ale omului: mesaje primite după ultima lui citire. */

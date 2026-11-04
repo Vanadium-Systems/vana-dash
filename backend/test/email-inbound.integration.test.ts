@@ -9,12 +9,13 @@
 import { rm } from 'node:fs/promises'
 import path from 'node:path'
 import argon2 from 'argon2'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../src/app.js'
+import { dispatchScheduledSend } from '../src/modules/email/scheduled-send.js'
 import { config } from '../src/shared/config.js'
 import { db, sql } from '../src/shared/db/client.js'
-import { emailMessages, emailThreads, users, roles } from '../src/shared/db/schema/index.js'
+import { emailMessages, emailSends, emailThreads, users, roles } from '../src/shared/db/schema/index.js'
 
 // Rolul Admin (seedat de migrare) ca user de test să vadă tot, ca Stefan.
 const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))
@@ -26,6 +27,12 @@ const TEST_PASSWORD = 'parola-de-test-123'
 const CLOUDFLARE_TOKEN = config.cloudflareEmailIngestToken
 const SUBJECT_1 = `Salut de la client ${RUN_ID}`
 const MESSAGE_ID_1 = `<msg-1-${RUN_ID}@extern.ro>`
+
+// Sending waits in the undo window: make the row due and dispatch it by hand.
+async function dispatchNow(sendId: string) {
+  await db.update(emailSends).set({ sendAfter: new Date(Date.now() - 1000) }).where(eq(emailSends.id, sendId))
+  await dispatchScheduledSend(sendId)
+}
 
 let app: Awaited<ReturnType<typeof buildServer>>
 let cookie = ''
@@ -134,11 +141,14 @@ describe('GET /api/email/threads + reply', () => {
       headers: { cookie },
       payload: { body: 'Răspuns de test' },
     })
-    expect(replyRes.statusCode).toBe(201)
-    const replyBody = replyRes.json()
-    expect(replyBody.data.direction).toBe('out')
-    expect(replyBody.data.toAddress).toBe('client@example.com')
-    expect(replyBody.data.subject).toMatch(/^Re: /)
+    expect(replyRes.statusCode).toBe(202)
+    await dispatchNow(replyRes.json().data.sendId)
+    const [sentMessage] = await db
+      .select()
+      .from(emailMessages)
+      .where(and(eq(emailMessages.threadId, threadId), eq(emailMessages.direction, 'out')))
+    expect(sentMessage!.toAddress).toBe('client@example.com')
+    expect(sentMessage!.subject).toMatch(/^Re: /)
 
     const sendCall = calls.find((c) => c.url === 'https://api.resend.com/emails')
     expect(sendCall).toBeDefined()
@@ -151,7 +161,7 @@ describe('GET /api/email/threads + reply', () => {
     // vede în UI) rămâne curat, ca la Compose.
     expect(sentBody.text).toContain('\n\n--\n')
     expect(sentBody.text.startsWith('Răspuns de test')).toBe(true)
-    expect(replyBody.data.bodyText).toBe('Răspuns de test')
+    expect(sentMessage!.bodyText).toBe('Răspuns de test')
   })
 
   it('404 pentru un thread inexistent', async () => {

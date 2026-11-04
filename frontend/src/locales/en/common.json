@@ -500,7 +500,8 @@
     "toolbar": "Selection actions",
     "clear": "Clear selection",
     "all": "Select all",
-    "count": "{{count}} selected"
+    "count": "{{count}} selected",
+    "pageOf": "all on this page, of {{total}}"
   },
   "keys": {
     "shift": "Shift",

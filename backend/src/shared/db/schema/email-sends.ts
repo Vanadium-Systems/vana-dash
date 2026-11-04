@@ -1,4 +1,5 @@
-import { index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { check, index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { emailSequenceEnrollments } from './email-sequences.js'
 import { emailTemplates } from './email-templates.js'
@@ -27,7 +28,11 @@ export const emailSends = pgTable(
     // 'sent' = acceptat de Resend la submit; restul vin din webhook-ul de status
     // livrare (email.delivered/bounced/complained/delivery_delayed) — 'failed' rămâne
     // strict pt. eșec la submit (Resend jos/API key greșit etc.), nu pt. bounce.
-    status: text('status', { enum: ['sent', 'delivered', 'bounced', 'complained', 'delayed', 'failed'] }).notNull(),
+    // 'scheduled' = held for the undo window (send_after), 'cancelled' = undone before dispatch,
+    // 'sending' = claimed by the dispatcher (scheduled-send.ts). No CHECK in the DB, TS only.
+    status: text('status', {
+      enum: ['scheduled', 'cancelled', 'sending', 'sent', 'delivered', 'bounced', 'complained', 'delayed', 'failed'],
+    }).notNull(),
     errorMessage: text('error_message'),
     // id-ul Resend al emailului — cheie de match pt. webhook-ul de status livrare.
     // nullable: rândurile 'failed' la submit n-au primit niciodată un id de la Resend.
@@ -49,11 +54,19 @@ export const emailSends = pgTable(
     sequenceEnrollmentId: uuid('sequence_enrollment_id').references(() => emailSequenceEnrollments.id, { onDelete: 'set null' }),
     // Cine a trimis (PLAN.md C2): aceeași cutie poate fi la doi oameni, deci adresa nu spune.
     sentByUserId: uuid('sent_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    // Delayed send: the row is written at submit time, the dispatcher sends it after send_after.
+    sendAfter: timestamp('send_after', { withTimezone: true }),
+    kind: text('kind', { enum: ['single', 'reply', 'forward', 'draft', 'bulk', 'sequence'] }).notNull().default('single'),
+    // What the dispatcher needs that the columns above do not hold (thread, source message,
+    // attachments, cc, reply headers). Only set on scheduled rows.
+    payload: jsonb('payload'),
   },
   (t) => [
     // dedup lookup la bulk send: (recipient, templateId) deja trimis?
     index('idx_email_sends_recipient_template').on(t.recipient, t.templateId),
     // lookup la webhook-ul de status livrare, pe email_id
     index('idx_email_sends_resend_email_id').on(t.resendEmailId),
+    index('idx_email_sends_scheduled').on(t.sendAfter).where(sql`${t.status} = 'scheduled'`),
+    check('ck_email_sends_kind', sql`${t.kind} IN ('single', 'reply', 'forward', 'draft', 'bulk', 'sequence')`),
   ],
 )

@@ -5,11 +5,11 @@
  * unsubscribe footer / {{nume}} rendering.
  */
 import { randomUUID } from 'node:crypto'
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
-import { emailSends, emailSuppressions, emailTemplates, roles, users } from '../../shared/db/schema/index.js'
+import { emailDrafts, emailSends, emailSuppressions, emailTemplates, roles, users } from '../../shared/db/schema/index.js'
 import type { EmailAttachment, SendEmailResult } from '../../shared/lib/email.js'
 import { saveDocument } from '../../shared/lib/storage.js'
 import { emailImageStoragePath } from './images-service.js'
@@ -47,7 +47,7 @@ admin.id = adminUserRow!.id
 const sendEmailWithResultMock =
   vi.fn<
     (opts: {
-      to: string
+      to: string | string[]
       subject: string
       text: string
       html?: string
@@ -57,13 +57,31 @@ const sendEmailWithResultMock =
     }) => Promise<SendEmailResult>
   >()
 
-vi.mock('../../shared/lib/email.js', () => ({
-  sendEmailWithResult: sendEmailWithResultMock,
-}))
+vi.mock('../../shared/lib/email.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../shared/lib/email.js')>()
+  return { ...actual, sendEmailWithResult: sendEmailWithResultMock, fetchReceivedEmail: async () => null }
+})
 
-const { bulkSend, getRecentBatchIds, listSends, recordEngagementEvent, sendSingle, updateSendStatusFromWebhook } = await import(
-  './service.js'
-)
+const { bulkSend, getRecentBatchIds, listSends, recordEngagementEvent, updateSendStatusFromWebhook } = await import('./service.js')
+const { dispatchScheduledSend, sendNew } = await import('./scheduled-send.js')
+
+// A 1:1 send now waits in the undo window; the tests make the row due and dispatch it by hand.
+async function sendSingle(
+  me: SessionUser,
+  input: { to: string; subject: string; body: string; from: string; templateId?: string },
+) {
+  const { sendId } = await sendNew(me, { ...input, to: [input.to], cc: [] })
+  await db
+    .update(emailSends)
+    .set({ sendAfter: sql`now() - interval '1 second'` })
+    .where(eq(emailSends.id, sendId))
+  await dispatchScheduledSend(sendId)
+  const [row] = await db.select().from(emailSends).where(eq(emailSends.id, sendId))
+  // A failed send leaves a draft behind for the person to fix; not what these tests look at.
+  const draftId = (row!.payload as { draftId?: string } | null)?.draftId
+  if (row!.status === 'failed' && draftId) await db.delete(emailDrafts).where(eq(emailDrafts.id, draftId))
+  return row!
+}
 
 let templateId: string
 

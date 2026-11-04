@@ -702,7 +702,9 @@ export interface EmailTemplate {
   updatedAt: string
 }
 
-export type EmailSendStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'delayed' | 'failed'
+// 'scheduled' and 'sending': inside the 10s undo window or being handed to Resend. Undone sends
+// ('cancelled') are left out of the Sent list by the server.
+export type EmailSendStatus = 'scheduled' | 'sending' | 'cancelled' | 'sent' | 'delivered' | 'bounced' | 'complained' | 'delayed' | 'failed'
 // Cheia unei identități din Setări Email: 'stefan', 'contact', 'outreach' (cu plafon de
 // warm-up propriu) sau orice identitate adăugată de acolo (ex. 'sales').
 export type EmailFromKey = string
@@ -863,6 +865,10 @@ export interface EmailThread {
   folder: EmailFolder | null
   hasAttachment: boolean
   attachmentNames: string[]
+  /** First three attachments of the representative message, for the row's chips. */
+  attachments: Array<{ id: string; filename: string; contentType: string | null }>
+  /** Head of the latest message's text, whitespace collapsed (≤140 characters). */
+  snippet: string
 }
 
 export interface EmailAttachmentMeta {
@@ -881,6 +887,8 @@ export interface EmailMessage {
   resendEmailId: string | null
   fromAddress: string
   toAddress: string
+  /** Where replies go when the sender set it (bulk senders often do). */
+  replyToAddress: string | null
   subject: string
   bodyText: string | null
   bodyHtml: string | null
@@ -908,6 +916,8 @@ export interface EmailLabel {
   name: string
   color: string | null
   notificationsEnabled: boolean
+  /** null = the company's label; set = someone's own (only they see it). */
+  ownerUserId: string | null
 }
 
 export type EmailRuleMatchType = 'from_address' | 'from_domain' | 'subject_contains'
@@ -933,15 +943,46 @@ export interface EmailDraftAttachment {
   storagePath: string
 }
 
+export type EmailDraftMode = 'new' | 'reply' | 'reply_all' | 'forward'
+
 export interface EmailDraft {
   id: string
   fromKey: EmailFromKey
   to: string
+  cc: string
   subject: string
   body: string
   templateId: string | null
   attachments: EmailDraftAttachment[]
+  mode: EmailDraftMode
+  threadId: string | null
+  sourceMessageId: string | null
   updatedAt: string
+}
+
+/** A send waiting out its undo window, or its outcome (`GET /api/email/sends/:id/status`). */
+export interface EmailScheduledSend {
+  sendId: string
+  sendAfter: string
+}
+
+export interface EmailSendOutcome {
+  status: EmailSendStatus
+  error: string | null
+  threadId: string | null
+  draftId: string | null
+}
+
+export interface EmailSearchSuggestions {
+  addresses: string[]
+  threads: Array<{ id: string; subject: string; fromAddress: string | null; lastMessageAt: string }>
+}
+
+export interface EmailMySettings {
+  mailboxes: Array<{ key: string; label: string; fromAddress: string; companySignature: string }>
+  signatures: Record<string, string>
+  outreachDailyCap: number | null
+  companyOutreachCap: number
 }
 
 export interface EmailIdentity {

@@ -3,6 +3,7 @@ import argon2 from 'argon2'
 import { eq } from 'drizzle-orm'
 import { config } from '../config.js'
 import { encryptApiKey } from '../lib/crypto.js'
+import { defaultIdentities } from '../../modules/email/settings-service.js'
 import { ENABLED_LOCALES, isLocale, type Locale } from '../lib/locale.js'
 import { db, sql } from './client.js'
 import {
@@ -13,6 +14,10 @@ import {
   conversationMembers,
   conversations,
   dashboardConfig,
+  emailDrafts,
+  emailMessages,
+  emailThreads,
+  emailUserSettings,
   exchangeRates,
   financialRecords,
   messageReactions,
@@ -26,6 +31,7 @@ import {
   roles,
   supportTicketReplies,
   supportTickets,
+  userMailboxes,
   users,
 } from './schema/index.js'
 
@@ -83,7 +89,7 @@ const [salesRole] = await db
   .values({
     name: 'Sales (demo)',
     kind: 'custom',
-    features: ['clienti.view', 'clienti.prospectare', 'clienti.calculator', 'email.view', 'email.trimitere', 'calendar.view', 'calendar.editare', 'mesaje.view'],
+    features: ['clienti.view', 'clienti.prospectare', 'clienti.calculator', 'email.view', 'email.trimitere', 'email.setari_proprii', 'calendar.view', 'calendar.editare', 'mesaje.view'],
     createdByUserId: admin.id,
   })
   .returning()
@@ -309,6 +315,153 @@ await db.insert(messageReactions).values([
   { messageId: groupLast!.id, userId: mihai!.id, emoji: '✅' },
 ])
 
+// ── Email: Ana's mailbox with threads, a long thread, a wide HTML newsletter and a reply draft ──
+
+// The identity list replaces the env defaults once stored, so the defaults stay in it.
+const salesAddress = 'sales@example.com'
+await db
+  .insert(dashboardConfig)
+  .values({ key: 'email.identities', value: [...defaultIdentities(), { key: 'sales', label: 'Sales', fromAddress: `Sales <${salesAddress}>` }] })
+  .onConflictDoNothing({ target: [dashboardConfig.tenantId, dashboardConfig.key] })
+await db.insert(userMailboxes).values({ userId: ana!.id, identityKey: 'sales' })
+
+type DemoMail = { direction: 'in' | 'out'; at: Date; subject: string; text: string; html?: string; read?: boolean; starred?: boolean }
+const addThread = async (outside: string, mails: DemoMail[]) => {
+  const last = mails.reduce((a, m) => (m.at > a ? m.at : a), mails[0]!.at)
+  const [thread] = await db
+    .insert(emailThreads)
+    .values({ subject: mails[0]!.subject, participants: [outside, salesAddress], lastMessageAt: last, createdAt: mails[0]!.at })
+    .returning()
+  const rows = await db
+    .insert(emailMessages)
+    .values(
+      mails.map((m) => ({
+        threadId: thread!.id,
+        direction: m.direction,
+        fromAddress: m.direction === 'in' ? outside : salesAddress,
+        toAddress: m.direction === 'in' ? salesAddress : outside,
+        subject: m.subject,
+        bodyText: m.text,
+        bodyHtml: m.html ?? null,
+        receivedAt: m.direction === 'in' ? m.at : null,
+        isRead: m.direction === 'out' ? true : (m.read ?? false),
+        isStarred: m.starred ?? false,
+        sentByUserId: m.direction === 'out' ? ana!.id : null,
+        createdAt: m.at,
+      })),
+    )
+    .returning()
+  return { thread: thread!, messages: rows }
+}
+
+const offerThread = await addThread('office@client1.example.com', [
+  {
+    direction: 'in',
+    at: daysAgo(1, 9),
+    subject: L({ ro: 'Cerere de ofertă pentru colectare', en: 'Quote request for waste collection' }),
+    text: L({
+      ro: 'Bună ziua, avem două puncte de lucru și vrem o ofertă pentru colectarea lunară. Ne interesează hârtia și plasticul. Puteți trimite prețurile până joi?',
+      en: 'Hello, we have two sites and would like a quote for monthly collection. We are interested in paper and plastic. Could you send the prices by Thursday?',
+    }),
+    starred: true,
+  },
+])
+await addThread('contabil@client2.example.com', [
+  {
+    direction: 'in',
+    at: daysAgo(2, 14),
+    subject: L({ ro: 'Factura din martie', en: 'The March invoice' }),
+    text: L({
+      ro: 'Am primit factura, dar suma nu corespunde cu oferta. Ne puteți confirma tariful pe tonă? Vă rugăm să ne răspundeți când aveți un moment.',
+      en: 'We received the invoice, but the amount does not match the offer. Can you confirm the rate per ton? Please reply when you have a moment.',
+    }),
+    read: true,
+  },
+  {
+    direction: 'out',
+    at: daysAgo(2, 15),
+    subject: L({ ro: 'Re: Factura din martie', en: 'Re: The March invoice' }),
+    text: L({
+      ro: 'Mulțumesc pentru semnalare. Tariful din ofertă era de 180 RON pe tonă; verific factura și revin azi cu o corecție.',
+      en: 'Thanks for flagging it. The rate in the offer was 180 RON per ton; I am checking the invoice and will come back today with a correction.',
+    }),
+  },
+  {
+    direction: 'in',
+    at: daysAgo(0, 7),
+    subject: L({ ro: 'Re: Factura din martie', en: 'Re: The March invoice' }),
+    text: L({
+      ro: 'Perfect, așteptăm factura corectată. Vă mulțumim pentru răspunsul rapid.',
+      en: 'Perfect, we will wait for the corrected invoice. Thank you for the quick answer.',
+    }),
+  },
+])
+
+// Seven messages over six days, in and out alternating: the thread view collapses the older ones.
+const longSubject = L({ ro: 'Program de colectare, depozit nou', en: 'Collection schedule, new warehouse' })
+const longSteps: Array<[number, 'in' | 'out', { ro: string; en: string }]> = [
+  [6, 'in', { ro: 'Ne mutăm într-un depozit nou luna viitoare. Putem stabili un program de colectare pentru adresa nouă?', en: 'We are moving to a new warehouse next month. Can we set up a collection schedule for the new address?' }],
+  [6, 'out', { ro: 'Sigur. Spuneți-ne adresa și intervalul în care e cineva la depozit, iar noi propunem zilele.', en: 'Of course. Send us the address and the hours when someone is at the warehouse, and we will propose the days.' }],
+  [5, 'in', { ro: 'Adresa e Str. Exemplu 12. Suntem acolo de luni până vineri, între 8 și 16.', en: 'The address is 12 Example St. We are there Monday to Friday, between 8 and 16.' }],
+  [4, 'out', { ro: 'Propunem miercurea dimineața, la două săptămâni. Camionul ajunge între 9 și 11.', en: 'We propose Wednesday mornings, every two weeks. The truck arrives between 9 and 11.' }],
+  [3, 'in', { ro: 'Miercurea merge. Avem nevoie și de containere suplimentare pentru carton, câte ați putea aduce?', en: 'Wednesday works. We also need extra containers for cardboard; how many can you bring?' }],
+  [2, 'out', { ro: 'Putem aduce patru containere la prima colectare. Le lăsăm la rampă și vă anunțăm înainte.', en: 'We can bring four containers on the first pickup. We leave them at the dock and let you know beforehand.' }],
+  [0, 'in', { ro: 'Patru ajung. Mai e o întrebare: cine semnează procesul-verbal de predare la fiecare colectare?', en: 'Four will do. One more question: who signs the handover report at each pickup?' }],
+]
+await addThread(
+  'logistica@client3.example.com',
+  longSteps.map(([ago, direction, text], i) => ({
+    direction,
+    at: daysAgo(ago, direction === 'in' ? 9 : 13),
+    subject: i === 0 || direction === 'in' ? longSubject : `Re: ${longSubject}`,
+    text: L(text),
+    read: i < longSteps.length - 1,
+  })),
+)
+
+// Fixed 700px layout with inline styles only, on purpose: it has to be shrunk on a 360px screen.
+const newsletterTitle = L({ ro: 'Noutăți de toamnă', en: 'Autumn news' })
+const newsletterHtml = `<table width="700" cellpadding="0" cellspacing="0" border="0" style="width:700px;background:#ffffff;font-family:Arial,sans-serif;color:#222222;">
+<tr><td colspan="2" style="background:#1d4e89;color:#ffffff;padding:24px;font-size:22px;font-weight:bold;">Acme Newsletter &middot; ${newsletterTitle}</td></tr>
+<tr>
+<td width="420" valign="top" style="padding:20px;font-size:14px;line-height:1.5;"><h2 style="margin:0 0 8px;font-size:18px;">${L({ ro: 'Reciclarea în cifre', en: 'Recycling in numbers' })}</h2><p style="margin:0;">${L({ ro: 'Anul acesta am colectat cu 18% mai mult decât în urmă cu un an. Citiți raportul complet pe site.', en: 'This year we collected 18% more than a year ago. Read the full report on our site.' })}</p></td>
+<td width="280" valign="top" style="padding:20px;background:#f2f4f7;font-size:14px;line-height:1.5;"><h3 style="margin:0 0 8px;font-size:16px;">${L({ ro: 'Evenimente', en: 'Events' })}</h3><p style="margin:0;">${L({ ro: 'Ziua porților deschise, 14 noiembrie, la sediul din Str. Exemplu 1.', en: 'Open day on 14 November at 1 Example St.' })}</p></td>
+</tr>
+<tr><td colspan="2" style="background:#222222;color:#bbbbbb;padding:16px 24px;font-size:12px;">Acme Recycling &middot; 1 Example St. &middot; newsletter@example.com</td></tr>
+</table>`
+await addThread('newsletter@acme-recycling.example.com', [
+  {
+    direction: 'in',
+    at: daysAgo(0, 6),
+    subject: `Acme Newsletter: ${newsletterTitle}`,
+    text: L({
+      ro: 'Reciclarea în cifre: anul acesta am colectat cu 18% mai mult decât în urmă cu un an. Evenimente: ziua porților deschise, 14 noiembrie.',
+      en: 'Recycling in numbers: this year we collected 18% more than a year ago. Events: open day on 14 November.',
+    }),
+    html: newsletterHtml,
+  },
+])
+
+await db.insert(emailDrafts).values({
+  ownerUserId: ana!.id,
+  fromKey: 'sales',
+  to: 'office@client1.example.com',
+  subject: L({ ro: 'Re: Cerere de ofertă pentru colectare', en: 'Re: Quote request for waste collection' }),
+  body: L({
+    ro: '<p>Bună ziua,</p><p>Vă trimit oferta până joi. Pentru două puncte de lucru propunem o colectare lunară.</p>',
+    en: '<p>Hello,</p><p>I will send the offer by Thursday. For two sites we propose a monthly collection.</p>',
+  }),
+  mode: 'reply',
+  threadId: offerThread.thread.id,
+  sourceMessageId: offerThread.messages[0]!.id,
+})
+
+await db.insert(emailUserSettings).values({
+  userId: ana!.id,
+  outreachDailyCap: 20,
+  signatureByMailbox: { sales: `<p>${L({ ro: 'Cu stimă', en: 'Best regards' })},<br>Ana Popescu<br>Acme Sales</p>` },
+})
+
 // ── Calendar, notes, alerts, support ─────────────────────────────────────────
 
 const inDays = (n: number, hour: number, minutes = 0) => {
@@ -340,7 +493,7 @@ const noteRows = await db.insert(notes).values([
   },
 ]).returning()
 
-// One shared object of each kind the demo has (no mailbox or archive rows exist here). The
+// One shared object of each kind the demo has (no archive rows exist here). The
 // snapshots follow the cards built by each module's refs.ts.
 type SharedType = 'prospect' | 'invoice' | 'calendar_event' | 'note'
 const sharedAbout = async (conversationId: string, authorUserId: string, minutesAgo: number, refType: SharedType, refId: string, snapshot: Record<string, unknown>) => {

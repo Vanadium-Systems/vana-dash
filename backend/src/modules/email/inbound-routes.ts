@@ -14,13 +14,17 @@ import {
   MessagePatchSchema,
   ThreadIdParamsSchema,
   ThreadReadStateQuerySchema,
+  SearchSuggestQuerySchema,
   ThreadReplySchema,
   ThreadsQuerySchema,
 } from './inbound-schema.js'
 import * as inboundService from './inbound-service.js'
-import { MailboxForbidden } from './mailboxes.js'
+import * as scheduled from './scheduled-send.js'
+import { sendErrorReply } from './send-guard.js'
 import { recordEngagementEvent, updateSendStatusFromWebhook, type DeliveryStatus } from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { contentDisposition } from '../../shared/lib/text.js'
+import { buildMessageAttachmentsZip, ZIP_LIMIT_MB } from './attachments-zip.js'
 
 // Mapare tip eveniment Resend → statusul nostru intern (email_sends.status).
 const DELIVERY_STATUS_BY_EVENT: Record<string, DeliveryStatus> = {
@@ -204,6 +208,12 @@ export async function emailInboundRoutes(app: FastifyInstance) {
     return { success: true, data: await inboundService.getUnreadCounts(req.me) }
   })
 
+  server.get(
+    '/api/email/search/suggest',
+    { preHandler: [app.authenticate], schema: { querystring: SearchSuggestQuerySchema } },
+    async (req) => ({ success: true, data: await inboundService.suggestSearch(req.me, req.query.q) }),
+  )
+
   // Autocomplete la Compose — adrese cu care Stefan a corespondat recent (trimise + primite).
   server.get('/api/email/recent-addresses', { preHandler: [app.authenticate] }, async (req) => {
     return { success: true, data: await inboundService.getRecentAddresses(req.me) }
@@ -232,23 +242,9 @@ export async function emailInboundRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ThreadIdParamsSchema, body: ThreadReplySchema } },
     async (req, reply) => {
       try {
-        const message = await inboundService.replyToThread(req.me, req.params.id, req.body.body, req.body.attachments, {
-          lastSeenMessageId: req.body.lastSeenMessageId,
-        })
-        return reply.code(201).send({ success: true, data: message })
+        return reply.code(202).send({ success: true, data: await scheduled.sendReply(req.me, req.params.id, req.body) })
       } catch (err) {
-        // Răspuns dublu: 409 cu cine a răspuns între timp, ca frontendul să poată arăta
-        // „Ion a răspuns acum 3 min" și să lase omul să trimită oricum.
-        if (err instanceof Error && (err as { code?: string }).code === 'THREAD_REPLIED_MEANWHILE') {
-          const e = err as unknown as { by: string | null; at: Date }
-          return reply.code(409).send({ success: false, error: { code: 'THREAD_REPLIED_MEANWHILE', by: e.by, at: e.at } })
-        }
-        // Răspunsul pleacă de pe cutia firului: dacă aceea nu e a omului, e tot un refuz de
-        // cutie (403), nu o eroare de validare — altfel frontendul n-ar ști ce să arate.
-        if (err instanceof MailboxForbidden) {
-          return reply.code(403).send({ success: false, error: { code: err.code, feature: err.fromKey } })
-        }
-        return reply.code(400).send({ success: false, error: String(err) })
+        return sendErrorReply(reply, err)
       }
     },
   )
@@ -279,14 +275,26 @@ export async function emailInboundRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: MessageIdParamsSchema, body: ForwardSchema } },
     async (req, reply) => {
       try {
-        const message = await inboundService.forwardMessage(req.me, req.params.id, req.body)
-        return reply.code(201).send({ success: true, data: message })
+        return reply.code(202).send({ success: true, data: await scheduled.sendForward(req.me, req.params.id, req.body) })
       } catch (err) {
-        if (err instanceof MailboxForbidden) {
-          return reply.code(403).send({ success: false, error: { code: err.code, feature: err.fromKey } })
-        }
-        return reply.code(400).send({ success: false, error: String(err) })
+        return sendErrorReply(reply, err)
       }
+    },
+  )
+
+  server.get(
+    '/api/email/messages/:id/attachments.zip',
+    { preHandler: [app.authenticate], schema: { params: MessageIdParamsSchema } },
+    async (req, reply) => {
+      const result = await buildMessageAttachmentsZip(req.me, req.params.id)
+      if (result.kind === 'not-found') return reply.code(404).send({ success: false, error: 'Message not found' })
+      if (result.kind === 'too-large') {
+        return reply.code(413).send({ success: false, error: { code: 'ZIP_TOO_LARGE', limitMb: ZIP_LIMIT_MB } })
+      }
+      return reply
+        .header('Content-Disposition', contentDisposition('attachment', result.fileName))
+        .type('application/zip')
+        .send(result.buffer)
     },
   )
 

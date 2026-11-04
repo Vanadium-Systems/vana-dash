@@ -302,10 +302,13 @@
     "billingClientFailed": "Creating the self-serve billing_client failed"
   },
   "email": {
+    "draftAttachmentRejected": "The attachment does not belong to this draft",
     "draftInsertFailed": "Inserting the draft returned nothing",
     "draftNotFound": "The draft does not exist",
     "draftNoRecipient": "The draft has no recipient",
     "draftNoSubject": "The draft has no subject",
+    "draftInvalidRecipients": "The draft has invalid recipients (email addresses, at most 10 per field)",
+    "outreachSingleRecipient": "The outreach identity sends to one recipient; use bulk sending for more",
     "imageTypeNotAccepted": "File type not accepted: {{mimetype}} (PNG/JPEG/GIF/WEBP only)",
     "imageTooLarge": "The image is too large (over 5MB)",
     "imageNotFound": "The image does not exist",

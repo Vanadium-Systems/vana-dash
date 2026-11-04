@@ -13,6 +13,7 @@ import { startCryptoPriceSyncJob } from './jobs/crypto-price-sync.js'
 import { startAssetsPriceSyncJob } from './jobs/assets-price-sync.js'
 import { startEmailReconcileJob } from './jobs/email-reconcile.js'
 import { startEmailSequenceRunnerJob } from './jobs/email-sequence-runner.js'
+import { startEmailScheduledSendsJob } from './jobs/email-scheduled-sends.js'
 import { startJeffbotAlertsJob } from './jobs/jeffbot-alerts.js'
 import { startMetricAlertsJob } from './jobs/metric-alerts.js'
 import { startMonthlyReportEmailJob } from './jobs/monthly-report-email.js'
@@ -59,6 +60,7 @@ startUptimeMonitorJob()
 startMonthlyReportEmailJob()
 startEmailReconcileJob()
 startEmailSequenceRunnerJob()
+startEmailScheduledSendsJob()
 startVanagreenBillingJob()
 startVanagreenTenantSyncJob()
 startBillingCycleRolloverJob()

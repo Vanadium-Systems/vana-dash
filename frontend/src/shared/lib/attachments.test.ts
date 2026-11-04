@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fileFromUrl } from './attachments'
 
-describe('fileFromUrl — atașare din Arhivă (ComposeDialog)', () => {
+describe('fileFromUrl — attaching from the Archive (ComposeForm)', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })

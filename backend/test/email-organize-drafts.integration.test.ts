@@ -8,9 +8,10 @@ import argon2 from 'argon2'
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../src/app.js'
+import { dispatchScheduledSend } from '../src/modules/email/scheduled-send.js'
 import { config } from '../src/shared/config.js'
 import { db, sql } from '../src/shared/db/client.js'
-import { emailDrafts, emailMessages, emailThreads, users, roles } from '../src/shared/db/schema/index.js'
+import { emailDrafts, emailMessages, emailSends, emailThreads, users, roles } from '../src/shared/db/schema/index.js'
 
 // Rolul Admin (seedat de migrare) ca user de test să vadă tot, ca Stefan.
 const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))
@@ -19,6 +20,12 @@ const adminRoleId = adminRole!.id
 const RUN_ID = Date.now()
 const TEST_EMAIL = `test-organize-${RUN_ID}@test.local`
 const TEST_PASSWORD = 'parola-de-test-123'
+
+// Sending waits in the undo window: make the row due and dispatch it by hand.
+async function dispatchNow(sendId: string) {
+  await db.update(emailSends).set({ sendAfter: new Date(Date.now() - 1000) }).where(eq(emailSends.id, sendId))
+  await dispatchScheduledSend(sendId)
+}
 
 let app: Awaited<ReturnType<typeof buildServer>>
 let cookie = ''
@@ -189,7 +196,8 @@ describe('Drafts — create → update → send → dispare', () => {
     expect(update.json().data.to).toBe(`destinatar-${RUN_ID}@example.com`)
 
     const send = await app.inject({ method: 'POST', url: `/api/email/drafts/${draftId}/send`, headers: { cookie } })
-    expect(send.statusCode).toBe(200)
+    expect(send.statusCode, send.body).toBe(202)
+    await dispatchNow(send.json().data.sendId)
 
     const [remaining] = await db.select().from(emailDrafts).where(eq(emailDrafts.id, draftId))
     expect(remaining).toBeUndefined() // draftul a dispărut după trimitere

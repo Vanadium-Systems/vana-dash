@@ -1,3 +1,6 @@
+import { and, eq, isNull } from 'drizzle-orm'
+import { db } from '../../shared/db/client.js'
+import { emailUserSettings } from '../../shared/db/schema/index.js'
 import { htmlToPlainText } from './html-to-text.js'
 import { getEmailSettings } from './settings-service.js'
 
@@ -38,10 +41,12 @@ export function textToHtmlParagraph(text: string): string {
  * oameni, sales@ își are semnătura ei. O identitate fără rând primește semnătura de firmă, iar
  * șirul gol înseamnă „fără semnătură" — nici linia separatoare.
  */
-export async function buildSignature(from: EmailFromKey): Promise<{ text: string; html: string }> {
+export async function buildSignature(from: EmailFromKey, senderUserId?: string | null): Promise<{ text: string; html: string }> {
   const settings = await getEmailSettings()
-  // Cheie necunoscută (identitate scoasă din Setări) → semnătura de firmă, ca până acum.
-  const signatureHtml = settings.signatures[from] ?? settings.signatures['contact'] ?? ''
+  // The sender's own signature for this mailbox wins: on a shared mailbox each person signs as
+  // themselves. An unknown key (identity removed from Settings) falls back to the company signature.
+  const own = senderUserId ? await ownSignature(senderUserId, from) : null
+  const signatureHtml = own ?? settings.signatures[from] ?? settings.signatures['contact'] ?? ''
   if (!signatureHtml.trim()) return { text: '', html: '' }
   const logo = settings.logoUrl
     ? `<br><img src="${settings.logoUrl}" alt="" style="max-height:48px;margin-top:8px;display:block">`
@@ -50,4 +55,14 @@ export async function buildSignature(from: EmailFromKey): Promise<{ text: string
     text: `\n\n--\n${htmlToPlainText(signatureHtml)}`,
     html: `<div style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e5e5;color:#555;font-size:13px">${signatureHtml}${logo}</div>`,
   }
+}
+
+/** A blank own signature means "not set", so the mailbox's signature applies. */
+async function ownSignature(userId: string, from: EmailFromKey): Promise<string | null> {
+  const [row] = await db
+    .select({ signatures: emailUserSettings.signatureByMailbox })
+    .from(emailUserSettings)
+    .where(and(eq(emailUserSettings.userId, userId), isNull(emailUserSettings.deletedAt)))
+  const html = row?.signatures[from]
+  return html && html.trim() ? html : null
 }

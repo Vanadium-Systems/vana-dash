@@ -31,7 +31,16 @@ export function snoozeOptions(now: Date): SnoozeOption[] {
 }
 
 /** The "snooze" button: a menu of ready times plus a date picker. `onSnooze` gets an ISO time. */
-export function SnoozeMenu({ onSnooze, disabled }: { onSnooze: (untilIso: string) => void; disabled?: boolean }) {
+export function SnoozeMenu({
+  onSnooze,
+  disabled,
+  triggerClassName,
+}: {
+  onSnooze: (untilIso: string) => void
+  disabled?: boolean
+  /** The list row's hover actions use a borderless icon instead of the outline button. */
+  triggerClassName?: string
+}) {
   const [picking, setPicking] = useState(false)
   const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +49,7 @@ export function SnoozeMenu({ onSnooze, disabled }: { onSnooze: (untilIso: string
     <>
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="inline-flex h-control-md items-center justify-center rounded-md border border-input bg-card px-2.5 hover:bg-accent disabled:opacity-50"
+          className={triggerClassName ?? 'inline-flex h-control-md items-center justify-center rounded-md border border-input bg-card px-2.5 hover:bg-accent disabled:opacity-50'}
         >
           <Clock className="h-3.5 w-3.5" aria-hidden="true" />
           <span className="sr-only">{t('email:snooze.title')}</span>

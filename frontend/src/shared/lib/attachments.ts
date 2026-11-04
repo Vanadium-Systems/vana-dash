@@ -20,10 +20,9 @@ export function readFileAsBase64(file: File): Promise<PendingAttachment> {
   })
 }
 
-// Atașare din Arhivă (ComposeDialog) — fișierul e deja pe R2, doar îl aducem în browser ca
-// să-l putem re-încoda base64 și trimite prin același payload ca uploadul de pe disc. Modulele
-// email/archive rămân izolate (regula #5 CLAUDE.md) — nu există niciun import cross-modul pe
-// backend pt. asta.
+// Attaching from the Archive (compose/ComposeForm): the file is already in storage; it is fetched
+// into the browser and re-encoded as base64, so it travels like an upload from disk. The email and
+// archive modules stay apart (rule #5): no cross-module import on the backend.
 //
 // 2026-08-11 (bug Stefan, "network error" la atașare) — NU mai folosește URL-ul presemnat R2
 // direct (`/api/archive/files/:id/download-url`): Cloudflare R2 nu aplică politica CORS a

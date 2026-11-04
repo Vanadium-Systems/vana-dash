@@ -304,10 +304,13 @@
     "billingClientFailed": "Creare billing_client self-serve eșuată"
   },
   "email": {
+    "draftAttachmentRejected": "Atașamentul nu aparține ciornei",
     "draftInsertFailed": "email_drafts insert nu a returnat nimic",
     "draftNotFound": "Draft inexistent",
     "draftNoRecipient": "Draftul nu are destinatar",
     "draftNoSubject": "Draftul nu are subiect",
+    "draftInvalidRecipients": "Destinatarii ciornei nu sunt valizi (adrese de email, cel mult 10 pe câmp)",
+    "outreachSingleRecipient": "Identitatea de outreach trimite către un singur destinatar; pentru mai mulți folosește trimiterea în masă",
     "imageTypeNotAccepted": "Tip de fișier neacceptat: {{mimetype}} (doar PNG/JPEG/GIF/WEBP)",
     "imageTooLarge": "Poză prea mare (peste 5MB)",
     "imageNotFound": "Poză inexistentă",

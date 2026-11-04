@@ -33,6 +33,7 @@ import { emailDraftsRoutes } from './modules/email/drafts-routes.js'
 import { emailImagesRoutes } from './modules/email/images-routes.js'
 import { emailInboundRoutes } from './modules/email/inbound-routes.js'
 import { emailOrganizeRoutes } from './modules/email/organize-routes.js'
+import { emailMeRoutes } from './modules/email/me-routes.js'
 import { emailRoutes } from './modules/email/routes.js'
 import { emailSequencesRoutes } from './modules/email/sequences-routes.js'
 import { emailSettingsRoutes } from './modules/email/settings-routes.js'
@@ -147,6 +148,7 @@ export async function buildServer() {
   await app.register(emailImagesRoutes)
   await app.register(emailInboundRoutes)
   await app.register(emailOrganizeRoutes)
+  await app.register(emailMeRoutes)
   await app.register(emailDraftsRoutes)
   await app.register(emailSequencesRoutes)
   await app.register(emailSettingsRoutes)

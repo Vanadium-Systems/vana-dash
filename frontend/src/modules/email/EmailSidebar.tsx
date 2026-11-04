@@ -6,6 +6,9 @@ import {
   Inbox,
   Layers,
   Megaphone,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PenLine,
   Repeat,
   Send,
   Settings as SettingsIcon,
@@ -13,6 +16,7 @@ import {
   Star,
   Tag,
   Trash2,
+  UserCog,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { useEmailUnreadCounts } from '@/shared/hooks/use-email-unread-counts'
@@ -56,6 +60,7 @@ export type EmailView =
   | { kind: 'bulk' }
   | { kind: 'sequences' }
   | { kind: 'settings' }
+  | { kind: 'mysettings' }
 
 interface NavItemProps {
   active: boolean
@@ -63,24 +68,42 @@ interface NavItemProps {
   label: string
   onClick: () => void
   unreadCount?: number
+  rail: boolean
 }
 
-function NavItem({ active, icon, label, onClick, unreadCount }: NavItemProps) {
+function NavItem({ active, icon, label, onClick, unreadCount, rail }: NavItemProps) {
+  const count = unreadCount ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null
+  const name = unreadCount ? t('email:sidebar.itemUnread', { label, count: unreadCount }) : label
+  if (rail) {
+    return (
+      <button
+        onClick={onClick}
+        title={name}
+        aria-label={name}
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'flex w-full flex-col items-center gap-0.5 rounded-md py-1.5 transition-colors',
+          active ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        )}
+      >
+        {icon}
+        {count ? <span className="text-xs leading-none tabular-nums text-muted-foreground">{count}</span> : null}
+      </button>
+    )
+  }
   return (
     <button
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className={cn(
         'flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-sm transition-colors',
-        active ? 'bg-primary/10 font-medium text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        active ? 'bg-muted font-medium text-foreground' : 'hover:bg-muted hover:text-foreground',
+        !active && (unreadCount ? 'font-semibold text-foreground' : 'text-muted-foreground'),
       )}
     >
       {icon}
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      {unreadCount ? (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-semibold text-white">
-          {unreadCount > 99 ? '99+' : unreadCount}
-        </span>
-      ) : null}
+      {count ? <span className="text-xs font-normal tabular-nums text-muted-foreground">{count}</span> : null}
     </button>
   )
 }
@@ -94,10 +117,15 @@ export function EmailSidebar({
   current,
   onNavigate,
   onCompose,
+  collapsed = false,
+  onToggleCollapsed,
 }: {
   current: EmailView
   onNavigate: (view: EmailView) => void
   onCompose: () => void
+  // Rail of icons on desktop; the drawer on a phone never passes these.
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
 }) {
   const { can, canAny } = useMe()
   const labels = useQuery({
@@ -115,16 +143,39 @@ export function EmailSidebar({
       icon={icon}
       label={label}
       unreadCount={unreadCount}
+      rail={collapsed}
       onClick={() => onNavigate(view)}
     />
   )
 
   return (
-    <div className="flex w-full flex-col gap-4 md:w-52 md:shrink-0">
-      {can('email.trimitere') ? (
-        <Button className="w-full" onClick={onCompose}>
-          {t('email:compose.title')}
+    <div className={cn('flex flex-col gap-4', collapsed ? 'w-14 shrink-0' : 'w-full md:w-52 md:shrink-0')}>
+      {onToggleCollapsed ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn('hidden md:inline-flex', collapsed ? 'self-center' : 'self-end')}
+          title={collapsed ? t('email:sidebar.expand') : t('email:sidebar.collapse')}
+          aria-label={collapsed ? t('email:sidebar.expand') : t('email:sidebar.collapse')}
+          onClick={onToggleCollapsed}
+        >
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </Button>
+      ) : null}
+
+      {can('email.trimitere') ? (
+        collapsed ? (
+          <Button size="icon" className="self-center" title={t('email:compose.titleWithKey')} aria-label={t('email:compose.title')} onClick={onCompose}>
+            <PenLine className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button className="w-full" title={t('email:compose.titleWithKey')} onClick={onCompose}>
+            <PenLine className="h-4 w-4" />
+            {t('email:compose.title')}
+            {/* The key is shown where there is a keyboard; ? lists the others. */}
+            <kbd className="ml-auto hidden rounded border border-current/30 px-1.5 font-sans text-xs opacity-70 [@media(hover:hover)_and_(pointer:fine)]:inline">C</kbd>
+          </Button>
+        )
       ) : null}
 
       <nav className="space-y-0.5">
@@ -141,7 +192,7 @@ export function EmailSidebar({
 
       {labels.data?.length ? (
         <div className="space-y-0.5">
-          <p className="px-3 text-xs text-muted-foreground">{t('email:labels.labels')}</p>
+          {collapsed ? null : <p className="px-3 text-xs text-muted-foreground">{t('email:labels.labels')}</p>}
           {labels.data.map((label) =>
             item({ kind: 'mailbox', labelId: label.id }, <Tag className="h-4 w-4" style={{ color: label.color ?? undefined }} />, label.name),
           )}
@@ -150,7 +201,7 @@ export function EmailSidebar({
 
       {/* Fiecare view are functionalitatea lui (PLAN.md C2): ce nu e pornit nu există
           pentru omul ăsta, nici măcar ca link. */}
-      {canAny(['email.sabloane', 'email.bulk', 'email.setari']) ? (
+      {canAny(['email.sabloane', 'email.bulk', 'email.setari', 'email.setari_proprii']) ? (
         <div className="space-y-0.5 border-t pt-2">
           {can('email.sabloane') ? item({ kind: 'templates' }, <FileEdit className="h-4 w-4" />, t('email:sidebar.templates')) : null}
           {can('email.bulk') ? (
@@ -159,11 +210,12 @@ export function EmailSidebar({
               {item({ kind: 'sequences' }, <Repeat className="h-4 w-4" />, t('email:sidebar.sequences'))}
             </>
           ) : null}
-          {can('email.setari') ? item({ kind: 'settings' }, <SettingsIcon className="h-4 w-4" />, t('common:nav.settings')) : null}
+          {can('email.setari_proprii') ? item({ kind: 'mysettings' }, <UserCog className="h-4 w-4" />, t('email:mySettings.title')) : null}
+          {can('email.setari') ? item({ kind: 'settings' }, <SettingsIcon className="h-4 w-4" />, t('email:sidebar.companySettings')) : null}
         </div>
       ) : null}
 
-      {can('email.bulk') ? (
+      {can('email.bulk') && !collapsed ? (
         <div className="border-t pt-2">
           <SendQuotaIndicator />
         </div>

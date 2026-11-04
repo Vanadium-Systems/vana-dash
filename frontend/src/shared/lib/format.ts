@@ -112,3 +112,16 @@ export function formatRelativeTime(value: DateInput, now: Date = new Date()): st
   if (Math.abs(days) < 8) return relative.format(days, 'day')
   return formatDateTime(date)
 }
+
+/**
+ * A list row's date, as mail clients show it: the time for today, "17 Oct" this year, the full
+ * date for older ones. The complete date belongs in the row's `title`.
+ */
+export function formatListDate(value: DateInput, now: Date = new Date()): string {
+  const date = toDate(value)
+  const dayKey = (d: Date) => formatDate(d, { year: 'numeric', month: '2-digit', day: '2-digit' })
+  if (dayKey(date) === dayKey(now)) return formatDate(date, { timeStyle: 'short' })
+  const year = (d: Date) => formatDate(d, { year: 'numeric' })
+  if (year(date) === year(now)) return formatDate(date, { day: 'numeric', month: 'short' })
+  return formatDate(date, { day: '2-digit', month: '2-digit', year: 'numeric' })
+}

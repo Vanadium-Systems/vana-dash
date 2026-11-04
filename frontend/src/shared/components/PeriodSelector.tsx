@@ -2,7 +2,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 
-const PERIODS = [
+export const PERIODS = [
   { value: '7d', label: t('common:labels.days7') },
   { value: '30d', label: t('common:labels.days30') },
   { value: '90d', label: t('common:labels.days90') },

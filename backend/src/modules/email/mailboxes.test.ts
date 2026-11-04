@@ -4,14 +4,15 @@
  * prin id direct, atașament cerut direct, și trimitere de pe o cutie care nu e a lui.
  */
 import argon2 from 'argon2'
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
-import { emailAttachments, emailDrafts, emailMessages, emailThreads, emailTemplates, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
+import { emailAttachments, emailDrafts, emailMessages, emailSends, emailThreads, emailTemplates, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
 import { emailSequences, emailSequenceSteps } from '../../shared/db/schema/index.js'
 import { effectiveFeatures, type SessionUser } from '../../shared/lib/session.js'
 import { saveDocument } from '../../shared/lib/storage.js'
+import { dispatchScheduledSend } from './scheduled-send.js'
 
 // Fără mock, reply-ul ar lovi Resend-ul real. Restul modulului rămâne cel adevărat.
 // `id` unic la fiecare trimitere: `email_messages.resend_email_id` are index unic, iar un
@@ -30,6 +31,15 @@ vi.mock('../../shared/lib/email.js', async (importOriginal) => {
 
 const app = await buildServer()
 await app.ready()
+
+// Sending waits in the undo window: make the row due and dispatch it by hand.
+async function dispatchNow(sendId: string) {
+  await db
+    .update(emailSends)
+    .set({ sendAfter: sql`now() - interval '1 second'` })
+    .where(eq(emailSends.id, sendId))
+  await dispatchScheduledSend(sendId)
+}
 
 const PASSWORD = 'parola-de-test-123'
 const threadIds: string[] = []
@@ -194,7 +204,7 @@ describe('trimiterea', () => {
       payload: { body: '<p>Răspuns de test</p>' },
     })
     // Răspunsul pleacă de pe adresa firului (contact@), care e și cutia omului ăsta.
-    expect(res.statusCode).toBe(201)
+    expect(res.statusCode).toBe(202)
   })
 
   it('răspunsul pe un fir străin e refuzat, chiar cu id corect', async () => {
@@ -242,8 +252,14 @@ describe('trimiterea', () => {
       cookies: { vana_session: tokenOf(stefanUser) },
       payload: { body: '<p>Răspuns de pe stefan@</p>' },
     })
-    expect(res.statusCode, res.body).toBe(201)
-    expect(res.json().data.fromAddress).toBe('stefan@vanadium.systems')
+    expect(res.statusCode, res.body).toBe(202)
+    await dispatchNow(res.json().data.sendId)
+    const [trimis] = await db
+      .select({ fromAddress: emailMessages.fromAddress })
+      .from(emailMessages)
+      .where(and(eq(emailMessages.threadId, stefanThread.thread.id), eq(emailMessages.direction, 'out')))
+      .orderBy(desc(emailMessages.createdAt))
+    expect(trimis!.fromAddress).toBe('stefan@vanadium.systems')
   })
 
   it('forward pe un mesaj din altă cutie: mesaj inexistent, ca orice id străin', async () => {
@@ -292,7 +308,8 @@ describe('trimiterea', () => {
       cookies: { vana_session: tokenOf(salesUser) },
       payload: { to: 'altcineva@extern.ro' },
     })
-    expect(res.statusCode, res.body).toBe(201)
+    expect(res.statusCode, res.body).toBe(202)
+    await dispatchNow(res.json().data.sendId)
     const [trimis] = await db
       .select({ sentByUserId: emailMessages.sentByUserId, fromAddress: emailMessages.fromAddress, threadId: emailMessages.threadId })
       .from(emailMessages)
@@ -378,7 +395,8 @@ describe('aceeași cutie la doi oameni', () => {
       cookies: { vana_session: tokenOf(primul) },
       payload: { body: '<p>Primul a răspuns</p>' },
     })
-    expect(raspuns.statusCode).toBe(201)
+    expect(raspuns.statusCode).toBe(202)
+    await dispatchNow(raspuns.json().data.sendId)
     expect((await unreadOf(primul)).total).toBe(inainte.primul)
     expect((await unreadOf(alDoilea)).total).toBe(inainte.alDoilea + 1)
 
@@ -399,12 +417,14 @@ describe('aceeași cutie la doi oameni', () => {
       .from(emailMessages)
       .where(and(eq(emailMessages.threadId, fir.thread.id), eq(emailMessages.direction, 'in')))
 
-    await app.inject({
+    const primulRes = await app.inject({
       method: 'POST',
       url: `/api/email/threads/${fir.thread.id}/reply`,
       cookies: { vana_session: tokenOf(primul) },
       payload: { body: '<p>Primul a răspuns</p>', lastSeenMessageId: primit!.id },
     })
+    // The 409 compares against 'out' rows on the thread, so the first send must have been dispatched.
+    await dispatchNow(primulRes.json().data.sendId)
     // „Trimite oricum" rămâne posibil: al doilea are voie să trimită peste răspunsul primului.
     const res = await app.inject({
       method: 'POST',
@@ -421,7 +441,7 @@ describe('aceeași cutie la doi oameni', () => {
       cookies: { vana_session: tokenOf(alDoilea) },
       payload: { body: '<p>Fortez, am citit răspunsul</p>' },
     })
-    expect(forzat.statusCode).toBe(201)
+    expect(forzat.statusCode).toBe(202)
   })
 })
 

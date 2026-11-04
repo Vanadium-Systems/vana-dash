@@ -1,66 +1,138 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import { emailBlocklist, emailLabels, emailMessages, emailRules } from '../../shared/db/schema/index.js'
 import type { BlocklistCreateSchema, LabelCreateSchema, LabelUpdateSchema, RuleCreateSchema, RuleUpdateSchema } from './organize-schema.js'
 import { tr } from '../../shared/lib/i18n.js'
+import type { SessionUser } from '../../shared/lib/session.js'
+
+// Labels and rules are the company's (owner null, managed in Settings with email.setari) or a
+// person's own (owner set, /api/email/me). Every write names whose rows it may touch, so the
+// company screens cannot reach someone's own label by id, and the reverse.
+type Owner = string | null
+
+const labelOwnedBy = (owner: Owner) => (owner ? eq(emailLabels.ownerUserId, owner) : isNull(emailLabels.ownerUserId))
+const ruleOwnedBy = (owner: Owner) => (owner ? eq(emailRules.ownerUserId, owner) : isNull(emailRules.ownerUserId))
+
+export class LabelNameTaken extends Error {
+  readonly code = 'LABEL_NAME_TAKEN'
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return (err as { code?: string }).code === '23505' || (err as { cause?: { code?: string } }).cause?.code === '23505'
+}
 
 // ── Labels ───────────────────────────────────────────────────────────────────
 
-export async function listLabels() {
-  return db.select().from(emailLabels).where(isNull(emailLabels.deletedAt)).orderBy(emailLabels.name)
+/** The labels a person can put on a message: the company's and their own. */
+export async function listLabels(me: SessionUser) {
+  return db
+    .select()
+    .from(emailLabels)
+    .where(and(isNull(emailLabels.deletedAt), or(isNull(emailLabels.ownerUserId), eq(emailLabels.ownerUserId, me.id))))
+    .orderBy(emailLabels.name)
 }
 
-export async function createLabel(input: z.infer<typeof LabelCreateSchema>) {
-  const [row] = await db.insert(emailLabels).values(input).returning()
-  return row
+export async function listOwnLabels(owner: string) {
+  return db
+    .select()
+    .from(emailLabels)
+    .where(and(isNull(emailLabels.deletedAt), eq(emailLabels.ownerUserId, owner)))
+    .orderBy(emailLabels.name)
 }
 
-export async function updateLabel(id: string, input: z.infer<typeof LabelUpdateSchema>) {
-  const [row] = await db
-    .update(emailLabels)
-    .set({ ...input, updatedAt: new Date() })
-    .where(and(eq(emailLabels.id, id), isNull(emailLabels.deletedAt)))
-    .returning()
-  return row ?? null
+export async function createLabel(input: z.infer<typeof LabelCreateSchema>, owner: Owner = null) {
+  try {
+    const [row] = await db
+      .insert(emailLabels)
+      .values({ ...input, ownerUserId: owner })
+      .returning()
+    return row
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new LabelNameTaken(input.name)
+    throw err
+  }
 }
 
-export async function deleteLabel(id: string): Promise<boolean> {
+export async function updateLabel(id: string, input: z.infer<typeof LabelUpdateSchema>, owner: Owner = null) {
+  try {
+    const [row] = await db
+      .update(emailLabels)
+      .set({ ...input, updatedAt: new Date() })
+      .where(and(eq(emailLabels.id, id), isNull(emailLabels.deletedAt), labelOwnedBy(owner)))
+      .returning()
+    return row ?? null
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new LabelNameTaken(input.name ?? '')
+    throw err
+  }
+}
+
+export async function deleteLabel(id: string, owner: Owner = null): Promise<boolean> {
   const [row] = await db
     .update(emailLabels)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(emailLabels.id, id), isNull(emailLabels.deletedAt)))
+    .where(and(eq(emailLabels.id, id), isNull(emailLabels.deletedAt), labelOwnedBy(owner)))
     .returning({ id: emailLabels.id })
   return Boolean(row)
+}
+
+/** A company rule may only label with a company label; a person's rule also with their own. */
+async function assertRuleLabelAllowed(labelId: string | undefined, owner: Owner): Promise<void> {
+  if (!labelId) return
+  const [label] = await db
+    .select({ id: emailLabels.id })
+    .from(emailLabels)
+    .where(
+      and(
+        eq(emailLabels.id, labelId),
+        isNull(emailLabels.deletedAt),
+        owner ? or(isNull(emailLabels.ownerUserId), eq(emailLabels.ownerUserId, owner)) : isNull(emailLabels.ownerUserId),
+      ),
+    )
+  if (!label) throw new RuleLabelNotAllowed()
+}
+
+export class RuleLabelNotAllowed extends Error {
+  readonly code = 'RULE_LABEL_NOT_ALLOWED'
 }
 
 // ── Rules ────────────────────────────────────────────────────────────────────
 
 type Rule = typeof emailRules.$inferSelect
 
-export async function listRules() {
-  return db.select().from(emailRules).where(isNull(emailRules.deletedAt)).orderBy(desc(emailRules.createdAt))
+export async function listRules(owner: Owner = null) {
+  return db
+    .select()
+    .from(emailRules)
+    .where(and(isNull(emailRules.deletedAt), ruleOwnedBy(owner)))
+    .orderBy(desc(emailRules.createdAt))
 }
 
-export async function createRule(input: z.infer<typeof RuleCreateSchema>) {
-  const [row] = await db.insert(emailRules).values(input).returning()
+export async function createRule(input: z.infer<typeof RuleCreateSchema>, owner: Owner = null) {
+  await assertRuleLabelAllowed(input.labelId, owner)
+  const [row] = await db
+    .insert(emailRules)
+    .values({ ...input, ownerUserId: owner })
+    .returning()
   return row
 }
 
-export async function updateRule(id: string, input: z.infer<typeof RuleUpdateSchema>) {
+export async function updateRule(id: string, input: z.infer<typeof RuleUpdateSchema>, owner: Owner = null) {
+  await assertRuleLabelAllowed(input.labelId, owner)
   const [row] = await db
     .update(emailRules)
     .set({ ...input, updatedAt: new Date() })
-    .where(and(eq(emailRules.id, id), isNull(emailRules.deletedAt)))
+    .where(and(eq(emailRules.id, id), isNull(emailRules.deletedAt), ruleOwnedBy(owner)))
     .returning()
   return row ?? null
 }
 
-export async function deleteRule(id: string): Promise<boolean> {
+export async function deleteRule(id: string, owner: Owner = null): Promise<boolean> {
   const [row] = await db
     .update(emailRules)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(emailRules.id, id), isNull(emailRules.deletedAt)))
+    .where(and(eq(emailRules.id, id), isNull(emailRules.deletedAt), ruleOwnedBy(owner)))
     .returning({ id: emailRules.id })
   return Boolean(row)
 }
@@ -88,7 +160,11 @@ function ruleUpdatePatch(rule: Rule): Record<string, unknown> {
 
 /** Aplică o regulă retroactiv pe mesajele deja existente — un singur UPDATE, nu buclă. */
 export async function applyRuleToExisting(id: string): Promise<number> {
-  const [rule] = await db.select().from(emailRules).where(and(eq(emailRules.id, id), isNull(emailRules.deletedAt)))
+  // Company rules only: a person's rule must not rewrite messages on mailboxes shared with others.
+  const [rule] = await db
+    .select()
+    .from(emailRules)
+    .where(and(eq(emailRules.id, id), isNull(emailRules.deletedAt), isNull(emailRules.ownerUserId)))
   if (!rule) throw new Error(tr('errors.alerts.ruleNotFound'))
 
   const rows = await db
@@ -114,8 +190,21 @@ export interface RuleEvaluation {
  * filters, pot aplica simultan label + archive/trash/spam). Volum mic (regulile lui Stefan,
  * nu rânduri din DB), evaluare în JS aici e potrivită — nu e agregare pe seturi mari.
  */
-export async function evaluateRulesForMessage(message: { fromAddress: string; subject: string }): Promise<RuleEvaluation> {
-  const rules = await db.select().from(emailRules).where(isNull(emailRules.deletedAt))
+export async function evaluateRulesForMessage(message: {
+  fromAddress: string
+  subject: string
+  /** The person who alone holds the receiving mailbox; their own rules apply too. */
+  mailboxOwnerId?: string | null
+}): Promise<RuleEvaluation> {
+  const rules = await db
+    .select()
+    .from(emailRules)
+    .where(
+      and(
+        isNull(emailRules.deletedAt),
+        message.mailboxOwnerId ? or(isNull(emailRules.ownerUserId), eq(emailRules.ownerUserId, message.mailboxOwnerId)) : isNull(emailRules.ownerUserId),
+      ),
+    )
   let labelId: string | null = null
   let folder: RuleEvaluation['folder'] = null
   let matched = false

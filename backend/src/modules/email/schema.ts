@@ -33,13 +33,31 @@ export const EmailAttachmentSchema = z.object({
   content: z.string().min(1).max(20_000_000),
 })
 
+// One address or a list; older clients and the API send a single string.
+export const RecipientsSchema = z
+  .union([z.string().trim().email(), z.array(z.string().trim().email()).min(1).max(10)])
+  .transform((v) => (Array.isArray(v) ? v : [v]))
+export const CcSchema = z.array(z.string().trim().email()).max(10).default([])
+
 export const SendCreateSchema = z.object({
-  to: z.string().email(),
+  to: RecipientsSchema,
+  cc: CcSchema,
   subject: z.string().min(1),
   body: z.string().min(1),
   templateId: z.string().uuid().optional(),
   from: EmailFromSchema.default('stefan'),
   attachments: z.array(EmailAttachmentSchema).max(5).optional(),
+  // The autosaved draft this send comes from: kept until the email left, so Undo reopens it.
+  draftId: z.string().uuid().optional(),
+})
+
+export const SendIdParamsSchema = z.object({ id: z.string().uuid() })
+
+export const RecipientCheckQuerySchema = z.object({
+  addresses: z
+    .string()
+    .transform((value) => value.split(',').map((a) => a.trim()).filter(Boolean))
+    .pipe(z.array(z.string().max(320)).min(1).max(20)),
 })
 
 // ── Bulk send ────────────────────────────────────────────────────────────────
@@ -69,9 +87,11 @@ export const SendsFilterQuerySchema = z.object({
   source: z.enum(['manual', 'sequence', 'bulk']).optional(),
   // Doar cu source:'sequence' — restrânge la o secvență anume (dropdown SentTab.tsx).
   sequenceId: z.string().uuid().optional(),
-  // Doar cu source:'sequence' — engaged (deschis/click), unengaged (trimis, fără reacție) sau
-  // dezabonat (email_suppressions), independent de status-ul de livrare.
-  engagement: z.enum(['engaged', 'unengaged', 'unsubscribed']).optional(),
+  // Any source: opened, clicked, engaged (either), unengaged (no reaction) or unsubscribed
+  // (email_suppressions), independent of the delivery status.
+  engagement: z.enum(['engaged', 'opened', 'clicked', 'unengaged', 'unsubscribed']).optional(),
+  // Delivery outcome, from the Resend webhook.
+  status: z.enum(['delivered', 'bounced', 'complained', 'failed']).optional(),
   // Perioadă — mirror PeriodQuerySchema din financials/metrics (duplicat intenționat, module
   // izolate, vezi CLAUDE.md regula #5).
   period: z.enum(['7d', '30d', '90d', 'mtd', 'ytd']).optional(),

@@ -84,12 +84,20 @@ const SOURCES: GuideSource[] = [
         en: 'Pick the mailbox and the folder in the left column.',
       },
       {
-        ro: 'Deschide un mesaj din listă; se marchează citit doar pentru tine.',
-        en: 'Open a message from the list; it is marked as read only for you.',
+        ro: 'Fiecare mesaj e pe o linie, cu un fragment din text; cele necitite sunt îngroșate. Deschide unul din listă; se marchează citit doar pentru tine. La hover, acțiunile (arhivează, șterge, citit / necitit, amână) apar în locul datei.',
+        en: 'Each message is on one line, with a preview of the text; unread ones are bold. Open one from the list; it is marked as read only for you. On hover, the actions (archive, delete, read / unread, snooze) replace the date.',
       },
       {
-        ro: 'Scrie în câmpul de căutare ca să cauți în subiect și în conținut.',
-        en: 'Type in the search field to search the subject and the content.',
+        ro: 'Într-un fir, mesajele vechi sunt restrânse sub „N mesaje mai vechi”; apasă ca să le vezi. ‹ › din antet te mută la emailul dinainte sau de după, fără să revii în listă.',
+        en: 'In a thread, older messages are collapsed under “N older messages”; press to see them. ‹ › in the header move you to the previous or next email without going back to the list.',
+      },
+      {
+        ro: 'Un email HTML lat se micșorează să încapă în ecran, mai ales pe telefon; „Mărime reală” îl arată cum a fost trimis.',
+        en: 'A wide HTML email shrinks to fit the screen, mostly on a phone; “Actual size” shows it as it was sent.',
+      },
+      {
+        ro: 'Scrie în câmpul de căutare ca să cauți în subiect și în conținut. Apar sugestii (adrese și fire), iar filtrele De la, Necitit, Are atașament, Cu stea și Perioadă îngustează rezultatele.',
+        en: 'Type in the search field to search the subject and the content. Suggestions appear (addresses and threads), and the filters From, Unread, Has attachment, Starred and Period narrow the results.',
       },
       {
         ro: 'Selectează mesaje cu bifa, cu Ctrl + click sau cu Shift + click pentru un interval; acțiunile apar în bara de jos. Esc golește selecția.',
@@ -104,8 +112,16 @@ const SOURCES: GuideSource[] = [
         en: 'After archiving, spam or delete, “Undo” in the message at the bottom puts the thread back where it was.',
       },
       {
-        ro: 'Atașamentele se deschid peste pagină; treci la următorul cu ← →, închizi cu Esc. Apasă ? ca să vezi toate scurtăturile.',
-        en: 'Attachments open over the page; move to the next with ← →, close with Esc. Press ? to see every shortcut.',
+        ro: 'Atașamentele se deschid peste pagină; treci la următorul cu ← →, închizi cu Esc. „Descarcă tot” aduce atașamentele unui mesaj într-un zip.',
+        en: 'Attachments open over the page; move to the next with ← →, close with Esc. “Download all” brings a message’s attachments as a zip.',
+      },
+      {
+        ro: 'Scurtături în listă: j / k între mesaje, o sau Enter deschide, x selectează, s pune steaua, e arhivează, # șterge, ! marchează spam, Shift+I / Shift+U citit / necitit, / mută cursorul în căutare, c compune.',
+        en: 'Shortcuts in the list: j / k between messages, o or Enter opens, x selects, s stars, e archives, # deletes, ! marks as spam, Shift+I / Shift+U read / unread, / moves to search, c composes.',
+      },
+      {
+        ro: 'Scurtături în fir: r răspunde, a răspunde tuturor, f redirecționează, e arhivează, # șterge, j / k emailul următor sau anterior, u înapoi la listă. Apasă ? ca să le vezi pe toate.',
+        en: 'Shortcuts in a thread: r replies, a replies to all, f forwards, e archives, # deletes, j / k next or previous email, u back to the list. Press ? to see them all.',
       },
       {
         ro: '„Amână” ascunde firul până la momentul ales; îl găsești între timp la „Amânate”.',
@@ -126,25 +142,72 @@ const SOURCES: GuideSource[] = [
       en: 'Writing and replying',
     },
     summary: {
-      ro: 'Mesajul pleacă de pe cutia pe care o alegi la expeditor, dintre cele pe care le ai.',
-      en: 'The message goes out from the mailbox you pick as sender, among the ones you have.',
+      ro: 'Mesajul pleacă de pe cutia pe care o alegi la expeditor, dintre cele pe care le ai. După „Trimite” mai ai 5 secunde să te răzgândești.',
+      en: 'The message goes out from the mailbox you pick as sender, among the ones you have. After “Send” you have 5 seconds to change your mind.',
     },
     steps: [
       {
-        ro: 'Apasă „Compune” pentru un mesaj nou, sau „Răspunde” într-un fir deschis.',
-        en: 'Press “Compose” for a new message, or “Reply” in an open thread.',
+        ro: 'Apasă „Compune” (sau c) pentru un mesaj nou. Se deschide o fereastră în colț, pe care o poți minimiza ca să te uiți în altă parte; pe telefon se deschide pe tot ecranul.',
+        en: 'Press “Compose” (or c) for a new message. A window opens in the corner, and you can minimize it to look elsewhere; on a phone it opens full screen.',
+      },
+      {
+        ro: 'Răspunsul se scrie în pagina firului, deasupra mesajelor, nu într-o fereastră separată: „Răspunde” (r), „Răspunde tuturor” (a) sau „Redirecționează” (f). Destinatarii sunt chip-uri; poți adăuga și Cc.',
+        en: 'A reply is written on the thread page, above the messages, not in a separate window: “Reply” (r), “Reply all” (a) or “Forward” (f). Recipients are chips; you can add Cc too.',
+      },
+      {
+        ro: 'Ciorna se salvează singură pe măsură ce scrii. O găsești la „Draft-uri”, iar dacă o editezi în alt tab, aplicația te anunță și îți cere să o reîncarci.',
+        en: 'The draft saves itself as you type. You find it under “Drafts”, and if you edit it in another tab, the app tells you and asks you to reload it.',
       },
       {
         ro: 'Verifică expeditorul: la un răspuns e deja cutia pe care a venit mesajul.',
         en: 'Check the sender: for a reply it is already the mailbox the message came to.',
       },
       {
-        ro: 'Pentru un fișier, atașează-l de pe dispozitiv sau cu „Atașează din Arhivă”.',
-        en: 'For a file, attach it from the device or with “Attach from the Archive”.',
+        ro: 'Pentru un fișier, atașează-l de pe dispozitiv sau cu „Atașează din Arhivă”. La redirecționare, atașamentele mesajului original merg mereu cu el.',
+        en: 'For a file, attach it from the device or with “Attach from the Archive”. When forwarding, the original message’s attachments always go with it.',
       },
       {
-        ro: 'Dacă trimiterea nu reușește, mesajul rămâne în fereastră, netrimis, și poți încerca din nou.',
-        en: 'If sending fails, the message stays in the window, not sent, and you can try again.',
+        ro: 'Trimite cu butonul sau cu Ctrl+Enter. Mesajul nu pleacă imediat: un mesaj jos spune „Se trimite” și are „Anulează”. Apăsat în 5 secunde, mesajul se întoarce în ciornă, deschis, ca să-l poți corecta.',
+        en: 'Send with the button or Ctrl+Enter. The message does not leave at once: a message at the bottom says “Sending” and has “Undo”. Pressed within 5 seconds, the message goes back to a draft, open, so you can fix it.',
+      },
+      {
+        ro: 'Dacă între timp a răspuns altcineva în fir, aplicația te anunță și nu trimite de două ori. Un mesaj către o adresă dezabonată este refuzat, indiferent pe ce cale pleacă.',
+        en: 'If someone else replied in the thread meanwhile, the app tells you and does not send twice. A message to an unsubscribed address is refused, whichever way it goes out.',
+      },
+      {
+        ro: 'Dacă trimiterea nu reușește, mesajul se întoarce în ciornă și poți încerca din nou.',
+        en: 'If sending fails, the message goes back to a draft and you can try again.',
+      },
+    ],
+  },
+  {
+    id: 'email-setarile-mele',
+    route: '/email',
+    feature: 'email.setari_proprii',
+    title: {
+      ro: 'Setările mele de email',
+      en: 'My email settings',
+    },
+    summary: {
+      ro: 'Ce e doar al tău în email: semnătura, plafonul de outreach, etichetele și regulile. Setările firmei rămân la cei care au acces la ele.',
+      en: 'What is only yours in email: the signature, the outreach cap, the labels and the rules. The company’s settings stay with the people who have access to them.',
+    },
+    steps: [
+      {
+        ro: 'Deschide „Setările mele” din Email. Pentru fiecare cutie a ta poți scrie o semnătură proprie; goală, se folosește cea a cutiei.',
+        en: 'Open “My settings” in Email. For each of your mailboxes you can write your own signature; left empty, the mailbox’s one is used.',
+      },
+      {
+        ro: 'Plafonul zilnic de outreach îl poți coborî sub cel al firmei (scris lângă), niciodată peste el.',
+        en: 'You can lower your daily outreach cap below the company’s (written next to it), never above it.',
+      },
+      {
+        ro: 'Etichetele și regulile tale se văd doar de tine. O regulă proprie se aplică doar pe cutiile care sunt numai ale tale; pe o cutie comună n-ar avea cum să nu mute mesajul și pentru colegi.',
+        en: 'Your labels and rules are visible only to you. A rule of your own applies only to mailboxes that are yours alone; on a shared mailbox it could not avoid moving the message for colleagues too.',
+      },
+      {
+        ro: 'Dezabonările și lista de blocări se văd doar pentru citire; le schimbă cine are setările firmei.',
+        en: 'Unsubscribes and the blocklist are read-only here; whoever has the company settings changes them.',
       },
     ],
   },

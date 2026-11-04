@@ -189,6 +189,8 @@ export const FEATURES: FeatureDef[] = [
       ...read('/api/email/sender-options'),
       ...read('/api/email/attachments'),
       ...read('/api/email/labels'),
+      ...read('/api/email/search'),
+      ...read('/api/email/messages/:id/attachments.zip'),
       // Marcat citit, arhivat, etichetat, starred — acțiuni de inbox, nu trimitere.
       ...write('/api/email/messages/:id'),
       ...all('/api/email/messages/bulk-update'),
@@ -204,6 +206,10 @@ export const FEATURES: FeatureDef[] = [
       '/api/email/drafts',
       '/api/email/recent-addresses',
       '/api/email/images',
+      // Undo and status of one's own send; longer than `/api/email/sends` (email.bulk).
+      '/api/email/sends/:id/scheduled',
+      '/api/email/sends/:id/status',
+      '/api/email/recipients',
     ),
   },
   {
@@ -233,6 +239,13 @@ export const FEATURES: FeatureDef[] = [
       ...all('/api/email/suppressions-overview'),
       ...write('/api/email/labels'),
     ],
+  },
+  {
+    // A person's own signature, outreach cap, labels and rules; unsubscribes and the blocklist
+    // read-only. Granted by migration 0078 to every role that could send.
+    key: 'email.setari_proprii',
+    page: 'email',
+    routes: all('/api/email/me'),
   },
   {
     key: 'email.cutii',

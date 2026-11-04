@@ -68,6 +68,8 @@ export const emailMessages = pgTable(
     index('idx_email_messages_folder').on(t.folder),
     index('idx_email_messages_label').on(t.labelId),
     index('idx_email_messages_sent_by').on(t.sentByUserId),
+    // Thread view and the list's snippet/attachments lateral join read a thread's messages by date.
+    index('idx_email_messages_thread_created').on(t.threadId, t.createdAt),
     // Dedup pe calea Cloudflare — parțial, ca rândurile 'resend' (sourceMessageId mereu
     // null acolo) să nu intre în conflict între ele.
     uniqueIndex('uq_email_messages_source_message_id')

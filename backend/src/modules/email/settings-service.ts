@@ -214,3 +214,17 @@ export async function getLogoFile(): Promise<{ buffer: Buffer; contentType: stri
   const buffer = await readDocument(logo.path)
   return { buffer, contentType: logo.contentType }
 }
+
+// Resolves an identity key (e.g. 'contact', 'outreach' or any identity added in Settings) to the
+// effective "From" address. An unknown key is a hard error (400 to the caller): we must not
+// silently send from a different identity than the one chosen. An identity configured with an
+// empty fromAddress falls back to contact (the outreach pattern).
+export async function resolveFromAddress(from: string): Promise<string> {
+  const identities = await getIdentities()
+  const identity = identities.find((i) => i.key === from)
+  if (!identity) throw new Error(tr('errors.email.unknownIdentity', { from }))
+  if (!identity.fromAddress) {
+    return identities.find((i) => i.key === 'contact' && i.fromAddress)?.fromAddress ?? config.emailFromContact
+  }
+  return identity.fromAddress
+}

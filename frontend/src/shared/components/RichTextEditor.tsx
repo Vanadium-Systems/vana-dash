@@ -124,9 +124,11 @@ interface RichTextEditorProps {
   onChange: (html: string) => void
   placeholder?: string
   className?: string
+  /** Puts the cursor at the end on mount (a reply goes straight into its body). */
+  autoFocus?: boolean
 }
 
-export function RichTextEditor({ id, value, onChange, placeholder, className }: RichTextEditorProps) {
+export function RichTextEditor({ id, value, onChange, placeholder, className, autoFocus }: RichTextEditorProps) {
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [htmlImportOpen, setHtmlImportOpen] = useState(false)
   const [htmlDraft, setHtmlDraft] = useState('')
@@ -146,6 +148,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className }: 
       Placeholder.configure({ placeholder: placeholder ?? '' }),
     ],
     content: legacyBodyToHtml(value),
+    autofocus: autoFocus ? 'end' : false,
     editorProps: {
       attributes: {
         class: 'min-h-40 max-w-none px-3 py-2 text-sm focus:outline-none prose prose-sm',

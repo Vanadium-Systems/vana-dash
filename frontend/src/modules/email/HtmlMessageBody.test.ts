@@ -6,7 +6,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { EmailAttachmentMeta } from '@/shared/lib/types'
-import { MAX_INLINE_HTML_CHARS, renderMessageHtml, rewriteCidReferences, sanitizeAndGateImages } from './HtmlMessageBody'
+import { fitRatio, MAX_INLINE_HTML_CHARS, renderMessageHtml, rewriteCidReferences, sanitizeAndGateImages } from './HtmlMessageBody'
 
 function attachment(overrides: Partial<EmailAttachmentMeta> = {}): EmailAttachmentMeta {
   return {
@@ -173,5 +173,24 @@ describe('renderMessageHtml — plasă de siguranță pt. conținut de email ne�
     expect(result).toBeNull()
     expect(spy).toHaveBeenCalled()
     spy.mockRestore()
+  })
+})
+
+describe('fitRatio', () => {
+  it('is 1 when the content fits', () => {
+    expect(fitRatio(600, 500)).toBe(1)
+    expect(fitRatio(600, 600)).toBe(1)
+  })
+
+  it('is the available/content ratio when the content is wider', () => {
+    expect(fitRatio(300, 600)).toBe(0.5)
+  })
+
+  it('never goes below 0.4', () => {
+    expect(fitRatio(100, 1000)).toBe(0.4)
+  })
+
+  it('is 1 when the content width is 0', () => {
+    expect(fitRatio(300, 0)).toBe(1)
   })
 })

@@ -8,7 +8,7 @@
 import { eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { emailSends, emailTemplates } from '../../shared/db/schema/index.js'
+import { emailSends, emailTemplates, roles, users } from '../../shared/db/schema/index.js'
 import type { SendEmailResult } from '../../shared/lib/email.js'
 
 import { effectiveFeatures } from '../../shared/lib/session.js'
@@ -46,6 +46,9 @@ const { bulkSend } = await import('./service.js')
 let templateId: string
 
 beforeAll(async () => {
+  // bulk sends store sent_by_user_id (FK to users), so the session user needs a real row.
+  const [role] = await db.insert(roles).values({ id: admin.role.id, name: 'QA batch-dedup admin', kind: 'admin', features: [] }).returning()
+  await db.insert(users).values({ id: admin.id, email: 'qa-batch-dedup@example.com', passwordHash: 'x', displayName: 'QA', roleId: role!.id })
   const [tpl] = await db
     .insert(emailTemplates)
     .values({ name: 'QA batch-dedup 2x', subject: 'Salut {{nume}}', body: 'Bună {{nume}}.' })
@@ -60,6 +63,9 @@ afterEach(() => {
 afterAll(async () => {
   await db.delete(emailSends).where(eq(emailSends.templateId, templateId))
   await db.delete(emailTemplates).where(eq(emailTemplates.id, templateId))
+  await db.delete(emailSends).where(eq(emailSends.sentByUserId, admin.id))
+  await db.delete(users).where(eq(users.id, admin.id))
+  await db.delete(roles).where(eq(roles.id, admin.role.id))
 })
 
 describe('bulkSend — batch întreg (3 destinatari) retrimis identic de 2 ori la rând', () => {

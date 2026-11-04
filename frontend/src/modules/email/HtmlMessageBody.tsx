@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/shared/components/ui/button'
 import type { EmailAttachmentMeta } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
+import { cn } from '@/shared/lib/utils'
 
 // Randare HTML sigură pt. emailuri primite (Sprint 3, PLAN.md). `bodyHtml` e stocat BRUT,
 // nesanitizat, în DB — sanitizarea e strict aici, client-side, la randare.
@@ -120,9 +121,18 @@ interface HtmlMessageBodyProps {
   autoLoadImages?: boolean
 }
 
-// Fixed-width emails (600-700px tables) are shrunk like Gmail does, instead of being cut on the right.
-function useFitToWidth(renderedHtml: string) {
+// Fixed-width emails (600-700px tables) are shrunk like Gmail does, instead of being cut on the
+// right (EM1). `zoom`, not `transform: scale`, so no empty layout space is left behind. "Actual
+// size" puts it back at 100% for whoever wants to read the small print, with sideways scroll.
+export function fitRatio(available: number, contentWidth: number): number {
+  if (contentWidth <= 0) return 1
+  const ratio = available / contentWidth
+  return ratio < 1 ? Math.max(ratio, 0.4) : 1
+}
+
+function useFitToWidth(renderedHtml: string, actualSize: boolean) {
   const ref = useRef<HTMLDivElement>(null)
+  const [shrunk, setShrunk] = useState(false)
   useEffect(() => {
     const box = ref.current
     if (!box) return
@@ -133,20 +143,22 @@ function useFitToWidth(renderedHtml: string) {
       content.style.zoom = '1'
       const style = getComputedStyle(box)
       const available = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
-      const ratio = available / content.scrollWidth
-      content.style.zoom = ratio < 1 ? String(Math.max(ratio, 0.4)) : '1'
+      const ratio = fitRatio(available, content.scrollWidth)
+      setShrunk(ratio < 1)
+      content.style.zoom = actualSize ? '1' : String(ratio)
     }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(box)
     return () => observer.disconnect()
-  }, [renderedHtml])
-  return ref
+  }, [renderedHtml, actualSize])
+  return { ref, shrunk }
 }
 
 export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImages }: HtmlMessageBodyProps) {
   const [showExternalImages, setShowExternalImages] = useState(autoLoadImages ?? false)
   const [forceRender, setForceRender] = useState(false)
+  const [actualSize, setActualSize] = useState(false)
 
   const isLarge = html.length > MAX_INLINE_HTML_CHARS
   const shouldRender = !isLarge || forceRender
@@ -155,7 +167,7 @@ export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImage
     if (!shouldRender) return null
     return renderMessageHtml(html, attachments, showExternalImages)
   }, [shouldRender, html, attachments, showExternalImages])
-  const fitRef = useFitToWidth(rendered?.html ?? '')
+  const fit = useFitToWidth(rendered?.html ?? '', actualSize)
 
   if (shouldRender && !rendered) {
     return (
@@ -178,16 +190,28 @@ export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImage
 
   return (
     <div>
-      {hasExternalImages && !showExternalImages ? (
-        <Button variant="outline" className="mb-2" onClick={() => setShowExternalImages(true)}>
-          {t('email:body.showImages')}
-        </Button>
+      {(hasExternalImages && !showExternalImages) || fit.shrunk ? (
+        <div className="mb-2 flex flex-wrap gap-2">
+          {hasExternalImages && !showExternalImages ? (
+            <Button variant="outline" size="sm" onClick={() => setShowExternalImages(true)}>
+              {t('email:body.showImages')}
+            </Button>
+          ) : null}
+          {fit.shrunk ? (
+            <Button variant="ghost" size="sm" onClick={() => setActualSize((v) => !v)}>
+              {actualSize ? t('email:body.fitToWidth') : t('email:body.actualSize')}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
       {/* dangerouslySetInnerHTML DOAR pe output-ul deja sanitizat de DOMPurify mai sus.
           Canvas alb forțat (Contract E): emailul HTML e proiectat pe alb indiferent de temă. */}
       <div
-        ref={fitRef}
-        className="email-canvas email-html-body max-w-full overflow-x-auto rounded-sm border p-4 text-sm [&_img]:max-w-full [&_table]:max-w-full"
+        ref={fit.ref}
+        className={cn(
+          'email-canvas email-html-body max-w-full rounded-sm p-3 text-sm [&_img]:max-w-full',
+          actualSize ? 'overflow-x-auto' : 'overflow-x-hidden [&_table]:max-w-full',
+        )}
       >
         <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
       </div>

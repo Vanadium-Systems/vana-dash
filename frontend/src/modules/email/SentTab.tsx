@@ -1,15 +1,18 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Download, Eye } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Download, Eye, Search, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
-import { ListSkeleton } from '@/shared/components/ui/skeleton'
+import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
+import { DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
+import { ResponsiveMenu, ResponsiveMenuContent } from '@/shared/components/ui/responsive-menu'
+import { cn } from '@/shared/lib/utils'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Input } from '@/shared/components/ui/input'
-import { KPICard } from '@/shared/components/KPICard'
-import { PeriodSelector, usePeriod } from '@/shared/components/PeriodSelector'
+import { PERIODS, usePeriod } from '@/shared/components/PeriodSelector'
+import { useSearchParams } from 'react-router-dom'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { api } from '@/shared/lib/api'
 import type { EmailSend, EmailSendsReport, EmailSequence } from '@/shared/lib/types'
@@ -17,19 +20,89 @@ import { EngagementBadges } from './EngagementBadges'
 import { STATUS_LABEL, STATUS_TONE } from './send-status'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Select } from '@/shared/components/ui/select'
-import { intlTag } from '@/shared/lib/format'
+import { formatNumber, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 
 type SourceFilter = 'all' | 'manual' | 'sequence' | 'bulk'
 const SOURCE_LABELS: Record<SourceFilter, string> = { all: t('common:labels.all'), manual: t('email:sent.sourceManual'), sequence: t('email:labels.sequence'), bulk: t('email:sent.sourceBulk') }
 
-type EngagementFilter = 'all' | 'engaged' | 'unengaged' | 'unsubscribed'
+type EngagementFilter = 'all' | 'opened' | 'clicked' | 'engaged' | 'unengaged' | 'unsubscribed'
 const ENGAGEMENT_LABELS: Record<EngagementFilter, string> = {
   all: t('email:folders.all'),
+  opened: t('email:sent.openedFilter'),
+  clicked: t('email:sent.clickedFilter'),
   engaged: t('email:sent.withEngagement'),
   unengaged: t('email:sent.withoutEngagement'),
   unsubscribed: t('email:sent.unsubscribedFilter'),
 }
+
+type StatusFilter = 'all' | 'delivered' | 'bounced' | 'complained' | 'failed'
+const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
+  all: t('common:labels.all'),
+  delivered: t('email:status.delivered'),
+  bounced: t('email:status.bounceShort'),
+  complained: t('email:folders.spam'),
+  failed: t('email:status.failed'),
+}
+
+interface FilterGroup {
+  key: string
+  title: string
+  value: string
+  defaultValue: string
+  options: Array<{ value: string; label: string }>
+  onChange: (value: string) => void
+}
+
+/**
+ * One "Filters" button instead of a control per filter: the button names what is active
+ * ("30 days · Manual · Opened"), the menu holds the four groups. A sheet on a phone.
+ */
+function FiltersMenu({ groups, onReset }: { groups: FilterGroup[]; onReset: () => void }) {
+  const summary = groups
+    .filter((g) => g.value !== g.defaultValue || g.key === 'period')
+    .map((g) => g.options.find((o) => o.value === g.value)?.label)
+    .filter(Boolean)
+    .join(' · ')
+  const changed = groups.some((g) => g.value !== g.defaultValue)
+  return (
+    <ResponsiveMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          'inline-flex h-control-md min-w-0 max-w-full items-center gap-1.5 rounded-md border px-3 text-sm',
+          changed ? 'border-foreground/40 bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        )}
+      >
+        <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="shrink-0">{t('email:sent.filters')}</span>
+        {summary ? <span className="min-w-0 truncate text-muted-foreground">· {summary}</span> : null}
+        <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      </DropdownMenuTrigger>
+      <ResponsiveMenuContent title={t('email:sent.filters')} align="start">
+        {groups.map((group, index) => (
+          <div key={group.key}>
+            {index > 0 ? <DropdownMenuSeparator /> : null}
+            <p className="px-2 pb-1 pt-2 text-xs text-muted-foreground">{group.title}</p>
+            {group.options.map((option) => (
+              <DropdownMenuItem key={option.value} onClick={() => group.onChange(option.value)}>
+                <Check className={cn('h-4 w-4', option.value === group.value ? 'opacity-100' : 'opacity-0')} />
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+          </div>
+        ))}
+        {changed ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onReset}>{t('email:sent.clearFilters')}</DropdownMenuItem>
+          </>
+        ) : null}
+      </ResponsiveMenuContent>
+    </ResponsiveMenu>
+  )
+}
+
+const entries = <K extends string>(labels: Record<K, string>) => (Object.keys(labels) as K[]).map((value) => ({ value, label: labels[value] }))
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString(intlTag(), { dateStyle: 'medium', timeStyle: 'short' })
@@ -40,30 +113,103 @@ function pct(rate: number): number {
   return Math.round(rate * 1000) / 10
 }
 
-function ReportPanel({ report, isPending }: { report: EmailSendsReport | undefined; isPending: boolean }) {
+function Stat({
+  label,
+  value,
+  hint,
+  isPending,
+  warn,
+  active,
+  onClick,
+}: {
+  label: string
+  value: string | null
+  hint?: string
+  isPending: boolean
+  warn?: boolean
+  active?: boolean
+  onClick?: () => void
+}) {
+  const body = (
+    <>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      {isPending || value === null ? (
+        <Skeleton className="mt-1 h-6 w-16" />
+      ) : (
+        <span className={cn('mt-0.5 block text-xl font-semibold tabular-nums', warn && 'text-destructive')}>{value}</span>
+      )}
+      {hint ? <span className="mt-0.5 block truncate text-xs text-muted-foreground">{hint}</span> : null}
+    </>
+  )
+  const base = 'flex min-w-0 flex-col bg-card px-4 py-3 text-left'
+  if (!onClick) return <div className={base}>{body}</div>
+  return (
+    <button type="button" aria-pressed={active} title={t('email:sent.statFilterHint')} onClick={onClick} className={cn(base, 'transition-colors hover:bg-muted', active && 'bg-muted')}>
+      {body}
+    </button>
+  )
+}
+
+interface StatFilters {
+  engagement: EngagementFilter
+  status: StatusFilter
+  toggleEngagement: (value: EngagementFilter) => void
+  toggleStatus: (value: StatusFilter) => void
+}
+
+function ReportPanel({ report, isPending, filters }: { report: EmailSendsReport | undefined; isPending: boolean; filters: StatFilters }) {
   const totals = report?.totals
   return (
     <div className="space-y-3">
-      <div className="kpi-grid gap-3">
-        <KPICard label={t('email:folders.sent')} value={totals?.sent ?? null} isPending={isPending} />
-        <KPICard
+      {/* One strip, not a card per number. Each number filters the list to the sends behind it. */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4 xl:grid-cols-7">
+        <Stat label={t('email:folders.sent')} value={totals ? formatNumber(totals.sent) : null} isPending={isPending} />
+        <Stat
           label={t('email:sent.openRate')}
-          value={totals ? pct(totals.openRate) : null}
-          unit="%"
-          isPending={isPending}
+          value={totals ? `${formatNumber(pct(totals.openRate))}%` : null}
           hint={totals ? t('email:sent.openedOfSent', { opened: totals.opened, sent: totals.sent }) : undefined}
-        />
-        <KPICard
-          label={t('email:sent.clickRate')}
-          value={totals ? pct(totals.clickRate) : null}
-          unit="%"
           isPending={isPending}
-          hint={totals ? t('email:sent.clickedOfSent', { clicked: totals.clicked, sent: totals.sent }) : undefined}
+          active={filters.engagement === 'opened'}
+          onClick={() => filters.toggleEngagement('opened')}
         />
-        <KPICard label={t('email:sent.replies')} value={totals?.replied ?? null} isPending={isPending} hint={totals && totals.sent > 0 ? t('email:sent.replyRateOfSent', { replyRate: pct(totals.replyRate) }) : undefined} />
-        <KPICard label={t('email:status.bounceShort')} value={totals?.bounced ?? null} isPending={isPending} tone={totals && totals.bounced > 0 ? 'negative' : undefined} />
-        <KPICard label={t('email:folders.spam')} value={totals?.complained ?? null} isPending={isPending} tone={totals && totals.complained > 0 ? 'negative' : undefined} />
-        <KPICard label={t('email:sent.unsubscribes')} value={totals?.unsubscribed ?? null} isPending={isPending} tone={totals && totals.unsubscribed > 0 ? 'negative' : undefined} hint={t('email:sent.pureHint')} />
+        <Stat
+          label={t('email:sent.clickRate')}
+          value={totals ? `${formatNumber(pct(totals.clickRate))}%` : null}
+          hint={totals ? t('email:sent.clickedOfSent', { clicked: totals.clicked, sent: totals.sent }) : undefined}
+          isPending={isPending}
+          active={filters.engagement === 'clicked'}
+          onClick={() => filters.toggleEngagement('clicked')}
+        />
+        <Stat
+          label={t('email:sent.replies')}
+          value={totals ? formatNumber(totals.replied) : null}
+          hint={totals && totals.sent > 0 ? t('email:sent.replyRateOfSent', { replyRate: pct(totals.replyRate) }) : undefined}
+          isPending={isPending}
+        />
+        <Stat
+          label={t('email:status.bounceShort')}
+          value={totals ? formatNumber(totals.bounced) : null}
+          warn={Boolean(totals && totals.bounced > 0)}
+          isPending={isPending}
+          active={filters.status === 'bounced'}
+          onClick={() => filters.toggleStatus('bounced')}
+        />
+        <Stat
+          label={t('email:folders.spam')}
+          value={totals ? formatNumber(totals.complained) : null}
+          warn={Boolean(totals && totals.complained > 0)}
+          isPending={isPending}
+          active={filters.status === 'complained'}
+          onClick={() => filters.toggleStatus('complained')}
+        />
+        <Stat
+          label={t('email:sent.unsubscribes')}
+          value={totals ? formatNumber(totals.unsubscribed) : null}
+          hint={t('email:sent.pureHint')}
+          isPending={isPending}
+          active={filters.engagement === 'unsubscribed'}
+          onClick={() => filters.toggleEngagement('unsubscribed')}
+        />
       </div>
 
       {!isPending && report && (report.bySequence.length > 0 || report.byTemplate.length > 0) ? (
@@ -176,17 +322,26 @@ export function SentTab() {
   const [source, setSource] = useState<SourceFilter>('all')
   const [sequenceId, setSequenceId] = useState<string>('')
   const [engagement, setEngagement] = useState<EngagementFilter>('all')
+  const [status, setStatus] = useState<StatusFilter>('all')
   const [q, setQ] = useState('')
   const debouncedQ = useDebounced(q, 300)
   const [pageSize, setPageSize] = useState(50)
   const [page, setPage] = useState(0)
   const [exporting, setExporting] = useState(false)
   const period = usePeriod()
+  const [, setSearchParams] = useSearchParams()
+  // The period lives in the URL (?period=), shared with the other screens' PeriodSelector.
+  const setPeriod = (value: string) =>
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('period', value)
+      return next
+    })
 
   // Filtru schimbat → pagina 1, altfel rămâi pe o pagină care poate să nu mai existe în noul set.
   useEffect(() => {
     setPage(0)
-  }, [source, sequenceId, engagement, debouncedQ, period, pageSize])
+  }, [source, sequenceId, engagement, status, debouncedQ, period, pageSize])
 
   const sequences = useQuery({
     queryKey: ['email', 'sequences'],
@@ -198,7 +353,8 @@ export function SentTab() {
   const filterParams = new URLSearchParams()
   if (source !== 'all') filterParams.set('source', source)
   if (source === 'sequence' && sequenceId) filterParams.set('sequenceId', sequenceId)
-  if (source === 'sequence' && engagement !== 'all') filterParams.set('engagement', engagement)
+  if (engagement !== 'all') filterParams.set('engagement', engagement)
+  if (status !== 'all') filterParams.set('status', status)
   filterParams.set('period', period)
 
   const params = new URLSearchParams(filterParams)
@@ -223,58 +379,51 @@ export function SentTab() {
   return (
     <Card>
       <CardContent className="space-y-4 pt-6">
-        <ReportPanel report={report.data} isPending={report.isPending} />
+        <ReportPanel
+          report={report.data}
+          isPending={report.isPending}
+          filters={{
+            engagement,
+            status,
+            toggleEngagement: (value) => setEngagement((current) => (current === value ? 'all' : value)),
+            toggleStatus: (value) => setStatus((current) => (current === value ? 'all' : value)),
+          }}
+        />
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Input
-              placeholder={t('email:sent.searchPlaceholder')}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="max-w-[45vw] sm:max-w-xs"
-            />
-            <Select
-              className="w-auto max-w-[45vw] sm:max-w-none"
-              value={source}
-              onChange={(e) => setSource(e.target.value as SourceFilter)}
-            >
-              {(Object.keys(SOURCE_LABELS) as SourceFilter[]).map((s) => (
-                <option key={s} value={s}>
-                  {SOURCE_LABELS[s]}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-48 flex-1 sm:max-w-sm">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input aria-label={t('email:sent.searchPlaceholder')} placeholder={t('email:sent.searchPlaceholder')} value={q} onChange={(e) => setQ(e.target.value)} className="pl-8" />
+          </div>
+          <FiltersMenu
+            groups={[
+              { key: 'source', title: t('email:sent.filterSource'), value: source, defaultValue: 'all', options: entries(SOURCE_LABELS), onChange: (v) => setSource(v as SourceFilter) },
+              { key: 'engagement', title: t('email:sent.filterReaction'), value: engagement, defaultValue: 'all', options: entries(ENGAGEMENT_LABELS), onChange: (v) => setEngagement(v as EngagementFilter) },
+              { key: 'status', title: t('email:sent.filterStatus'), value: status, defaultValue: 'all', options: entries(STATUS_FILTER_LABELS), onChange: (v) => setStatus(v as StatusFilter) },
+              { key: 'period', title: t('common:period.label'), value: period, defaultValue: '30d', options: PERIODS, onChange: setPeriod },
+            ]}
+            onReset={() => {
+              setSource('all')
+              setEngagement('all')
+              setStatus('all')
+              setSequenceId('')
+              setPeriod('30d')
+            }}
+          />
+          {source === 'sequence' ? (
+            <Select className="w-auto" value={sequenceId} onChange={(e) => setSequenceId(e.target.value)} aria-label={t('email:labels.sequence')}>
+              <option value="">{t('email:sent.allSequences')}</option>
+              {sequences.data?.map((seq) => (
+                <option key={seq.id} value={seq.id}>
+                  {seq.name}
                 </option>
               ))}
             </Select>
-            {source === 'sequence' ? (
-              <Select
-                className="w-auto max-w-[45vw] sm:max-w-none"
-                value={sequenceId}
-                onChange={(e) => setSequenceId(e.target.value)}
-              >
-                <option value="">{t('email:sent.allSequences')}</option>
-                {sequences.data?.map((seq) => (
-                  <option key={seq.id} value={seq.id}>
-                    {seq.name}
-                  </option>
-                ))}
-              </Select>
-            ) : null}
-            {source === 'sequence' ? (
-              <Select
-                className="w-auto max-w-[45vw] sm:max-w-none"
-                value={engagement}
-                onChange={(e) => setEngagement(e.target.value as EngagementFilter)}
-              >
-                {(Object.keys(ENGAGEMENT_LABELS) as EngagementFilter[]).map((e) => (
-                  <option key={e} value={e}>
-                    {ENGAGEMENT_LABELS[e]}
-                  </option>
-                ))}
-              </Select>
-            ) : null}
-            <PeriodSelector />
-          </div>
+          ) : null}
           <Button
-            variant="outline"
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
             disabled={exporting}
             onClick={async () => {
               setExporting(true)
@@ -316,7 +465,8 @@ export function SentTab() {
                   <TableCell priority="md" className="max-w-[14rem] truncate text-sm">{s.recipient}</TableCell>
                   <TableCell className="tbl-truncate w-full max-w-0 text-sm">
                     <div className="truncate">{s.subject}</div>
-                    <TableDetails items={[s.recipient, formatDate(s.createdAt)]} />
+                    {/* On a phone the engagement column is hidden; opens and clicks come along under the subject. */}
+                    <TableDetails items={[s.recipient, formatDate(s.createdAt), <EngagementBadges key="engagement" send={s} />]} />
                   </TableCell>
                   <TableCell>
                     <StatePill tone={STATUS_TONE[s.status]}>{STATUS_LABEL[s.status]}</StatePill>
