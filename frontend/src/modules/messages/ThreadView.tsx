@@ -22,6 +22,7 @@ import { JumpToBottom } from './JumpToBottom'
 import { MessageBubble, type ReceiptState, type ThreadRow } from './MessageBubble'
 import { NewMessagesLine } from './NewMessagesLine'
 import { useThreadMessages } from './useThreadMessages'
+import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
 
 // The thread: bubbles as in WhatsApp (yours on the right), the behaviour of Slack around them:
 // keyboard, a menu with shortcuts, "typing…" on a reserved line, jumping to a date. A series
@@ -35,6 +36,7 @@ const UNDO_MS = 6000
 
 export function ThreadView({ conversation, meId, onBack }: { conversation: ChatConversation; meId: string; onBack?: () => void }) {
   const thread = useThreadMessages(conversation.id)
+  useMinuteTick()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { status } = useChatStream()

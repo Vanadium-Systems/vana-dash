@@ -17,6 +17,7 @@ import { t } from '@/shared/lib/i18n'
 import type { ChatAttachment, ChatConversation } from '@/shared/lib/types'
 import { formatBytes } from '@/shared/lib/utils'
 import { conversationTitle, presenceLabel } from './ConversationList'
+import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
 
 // The conversation's side panel (#24, #25), in the URL as `?panel=info|search`: members, mute,
 // the photos and files sent in it, and search inside it. Full screen on a phone.
@@ -95,6 +96,7 @@ function InfoPanel({
   onOpenMedia: (attachment: ChatAttachment) => void
   onMutedChange: () => void
 }) {
+  useMinuteTick()
   const [saving, setSaving] = useState(false)
   const toggleMute = async (muted: boolean) => {
     setSaving(true)

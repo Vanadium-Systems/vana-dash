@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { formatRelativeTime } from '@/shared/lib/format'
 import type { ChatConversation } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
+import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
 
 // The conversation column: "Groups" and "Direct" sections, unread ones with the name in bold and
 // a count in a `Badge`, so not colour alone. A row is two lines (#17): name and time, then the
@@ -138,6 +139,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Row({ conversation, meId, typingIds }: { conversation: ChatConversation; meId: string; typingIds: string[] }) {
+  useMinuteTick()
   const title = conversationTitle(conversation, meId)
   const unread = conversation.unreadCount > 0
   const others = typingIds.filter((id) => id !== meId)

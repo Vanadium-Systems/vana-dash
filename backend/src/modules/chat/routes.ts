@@ -4,6 +4,7 @@ import multipart from '@fastify/multipart'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { notifyPush } from '../../shared/lib/push.js'
+import { contentDisposition } from '../../shared/lib/text.js'
 import { MAX_ATTACHMENT_BYTES, readAttachment, uploadAttachment } from './attachments.js'
 import { hasOpenConnection, markAlive, openConnection, presenceFor, publish, closeConnection } from './presence.js'
 import type { ChatEvent } from './presence.js'
@@ -330,7 +331,7 @@ export async function chatRoutes(app: FastifyInstance) {
       // An attachment never changes after upload, so the phone keeps it for good instead of
       // pulling every photo from R2 through the VPS again each day.
       reply.header('Cache-Control', 'private, max-age=31536000, immutable')
-      reply.header('Content-Disposition', `${file.inline && req.query.download !== '1' ? 'inline' : 'attachment'}; filename="${file.filename.replace(/"/g, "'")}"`)
+      reply.header('Content-Disposition', contentDisposition(file.inline && req.query.download !== '1' ? 'inline' : 'attachment', file.filename))
       return reply.type(file.contentType).send(file.buffer)
     },
   )

@@ -15,3 +15,13 @@ export function foldedIlike(column: AnyColumn | SQL, term: string): SQL {
   const pattern = `%${foldDiacritics(term).replace(/[\\%_]/g, (c) => `\\${c}`)}%`
   return sql`translate(lower(${column}), ${DIACRITICS}, ${FOLDED}) like ${pattern}`
 }
+
+/**
+ * A Content-Disposition value for any file name. Node rejects a header with characters outside
+ * Latin-1 (a macOS screenshot name has `ă` and a narrow no-break space), so the name travels as
+ * RFC 5987 `filename*`, with an ASCII `filename` for clients that ignore it.
+ */
+export function contentDisposition(kind: 'inline' | 'attachment', filename: string): string {
+  const ascii = filename.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, "'")
+  return `${kind}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`
+}

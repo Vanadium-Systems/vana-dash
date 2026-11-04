@@ -19,6 +19,7 @@ import * as service from './service.js'
 import { ArchiveConflictError, ArchiveNotFoundError } from './service.js'
 import { ensureSpaceRoot } from './access.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { contentDisposition } from '../../shared/lib/text.js'
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024 // 200MB — arhivă personală, nu streaming video la scară
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -239,7 +240,7 @@ export async function archiveRoutes(app: FastifyInstance) {
   server.get('/api/archive/files/:id/download', { preHandler: [app.authenticate] }, async (req, reply) => {
     const result = await service.getFileBufferForDownload(req.me, (req.params as { id: string }).id)
     if (!result) return reply.code(404).send({ success: false, error: tr('errors.archive.fileNotFound') })
-    reply.header('Content-Disposition', `attachment; filename="${result.name.replace(/"/g, "'")}"`)
+    reply.header('Content-Disposition', contentDisposition('attachment', result.name))
     return reply.type(result.mimeType).send(result.buffer)
   })
 
@@ -269,7 +270,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const result = await service.buildFolderZipBuffer(req.me, (req.params as { id: string }).id)
       if (!result) return reply.code(404).send({ success: false, error: tr('errors.archive.folderNotFound') })
-      reply.header('Content-Disposition', `attachment; filename="${result.fileName.replace(/"/g, "'")}"`)
+      reply.header('Content-Disposition', contentDisposition('attachment', result.fileName))
       return reply.type('application/zip').send(result.buffer)
     },
   )

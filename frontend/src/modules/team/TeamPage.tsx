@@ -22,7 +22,7 @@ import { memberName, TEAM_QUERY_KEY, useTeamMembers, type TeamMember } from '@/s
 import { api, ApiError } from '@/shared/lib/api'
 import type { EmailIdentity, EmailSettings } from '@/shared/lib/types'
 import { cn, normalizeForSearch } from '@/shared/lib/utils'
-import { companyTimeZone, intlTag } from '@/shared/lib/format'
+import { companyTimeZone, formatRelativeTime, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 
 // Cine e în echipă, ce rol are fiecare și cine n-a acceptat încă invitația (fișa „Echipă").
@@ -47,7 +47,7 @@ function LastSeen({ at }: { at: string | null }) {
   // Fără prezență (push B vine cu Mesajele), „activ acum" înseamnă că a venit un request
   // în ultimele două minute — `last_seen_at` se scrie cel mult o dată pe minut.
   const active = minutes < 2
-  const label = active ? t('team:members.activeNow') : new Intl.RelativeTimeFormat(intlTag(), { numeric: 'auto' }).format(-minutes, 'minute')
+  const label = active ? t('team:members.activeNow') : formatRelativeTime(at)
   return (
     <Tooltip content={full}>
       <span className="text-sm text-muted-foreground">
