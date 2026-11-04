@@ -1,6 +1,6 @@
 import { and, desc, ilike, isNull, or, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
-import { emailThreads, financialRecords, prospects } from '../../shared/db/schema/index.js'
+import { emailThreads, financialRecords, prospectArchives, prospects } from '../../shared/db/schema/index.js'
 import { getCompanyTimeZone } from '../../shared/lib/company.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { searchFiles } from '../archive/service.js'
@@ -66,7 +66,7 @@ async function searchInvoices(term: string, limit: number): Promise<SearchGroup 
   }
 }
 
-async function searchProspects(term: string, limit: number): Promise<SearchGroup | null> {
+async function searchProspects(me: SessionUser, term: string, limit: number): Promise<SearchGroup | null> {
   const like = `%${term}%`
   const rows = await db
     .select({ id: prospects.id, name: prospects.name, contactName: prospects.contactName, cif: prospects.cif, status: prospects.status })
@@ -74,7 +74,7 @@ async function searchProspects(term: string, limit: number): Promise<SearchGroup
     .where(
       and(
         isNull(prospects.deletedAt),
-        isNull(prospects.archivedAt),
+        sql`NOT EXISTS (SELECT 1 FROM ${prospectArchives} WHERE ${prospectArchives.prospectId} = ${prospects.id} AND ${prospectArchives.userId} = ${me.id})`,
         or(
           ilike(prospects.name, like),
           ilike(prospects.contactName, like),
@@ -187,7 +187,7 @@ export async function search(me: SessionUser, q: string, options: SearchOptions 
 
   const groups = await Promise.all([
     me.features.includes('facturi.view') ? searchInvoices(term, limit) : null,
-    me.features.includes('clienti.view') ? searchProspects(term, limit) : null,
+    me.features.includes('clienti.view') ? searchProspects(me, term, limit) : null,
     me.features.includes('email.view') ? searchThreads(me, term, limit) : null,
     me.features.includes('arhiva.view') ? searchArchive(me, term, limit) : null,
     me.features.includes('calendar.view') ? searchCalendar(me, term, limit) : null,

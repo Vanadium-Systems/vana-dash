@@ -8,6 +8,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { auditLog, billingClients, prospects, users } from '../../shared/db/schema/index.js'
+import { runWithFreshActor } from '../../shared/lib/request-context.js'
 import * as service from './service.js'
 
 const prospectIds: string[] = []
@@ -291,5 +292,47 @@ describe('responsabil per prospect', () => {
     await db.update(users).set({ status: 'disabled' }).where(eq(users.id, ownerId))
     await expect(service.updateProspect(prospectId, { assignedUserId: ownerId })).rejects.toBeInstanceOf(service.InvalidAssigneeError)
     await db.update(users).set({ status: 'active' }).where(eq(users.id, ownerId))
+  })
+})
+
+describe('archiving is per person', () => {
+  const emails = ['qa-archive-a@example.com', 'qa-archive-b@example.com']
+  let aId: string
+  let bId: string
+  let prospectId: string
+  const as = <T>(userId: string, fn: () => Promise<T>) => runWithFreshActor({ userId, ip: null }, fn)
+  const listedFor = async (userId: string, archived?: 'only') =>
+    (await as(userId, () => service.listProspects({ archived } as never))).some((p) => p.id === prospectId)
+
+  beforeAll(async () => {
+    await db.delete(users).where(inArray(users.email, emails))
+    const [a, b] = await db
+      .insert(users)
+      .values(emails.map((email) => ({ email, passwordHash: 'x' })))
+      .returning()
+    aId = a!.id
+    bId = b!.id
+    const prospect = await service.createProspect({ name: 'QA ARCHIVE FIRMA SRL', cif: 'QA-SVC-ARCH' })
+    prospectId = prospect!.id
+    prospectIds.push(prospectId)
+  })
+
+  afterAll(async () => {
+    await db.delete(users).where(inArray(users.id, [aId, bId]))
+  })
+
+  it('hides the prospect only for the person who archived it', async () => {
+    expect(await as(aId, () => service.archiveProspect(prospectId))).toBeTruthy()
+    expect(await listedFor(aId)).toBe(false)
+    expect(await listedFor(aId, 'only')).toBe(true)
+    expect(await listedFor(bId)).toBe(true)
+    expect(await listedFor(bId, 'only')).toBe(false)
+  })
+
+  it('unarchiving brings it back only for that person', async () => {
+    await as(bId, () => service.archiveProspects([prospectId]))
+    await as(aId, () => service.unarchiveProspects([prospectId]))
+    expect(await listedFor(aId)).toBe(true)
+    expect(await listedFor(bId)).toBe(false)
   })
 })

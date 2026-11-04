@@ -365,6 +365,10 @@ const SOURCES: GuideSource[] = [
         ro: 'Când a devenit client, apasă „Promovează”.',
         en: 'When it has become a client, press “Promote”.',
       },
+      {
+        ro: '„Arhivează” din meniul rândului ascunde prospectul doar din lista ta; colegii îl văd în continuare. Îl găsești cu „Arată arhivate”.',
+        en: '“Archive” in the row menu hides the prospect only from your list; your colleagues still see it. Find it again with “Show archived”.',
+      },
     ],
   },
   {

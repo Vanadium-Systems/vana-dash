@@ -459,9 +459,20 @@
     border-width: 0;
   }
 }
+/* Shows the values of the hidden `lg` columns on the title cell, only once they are hidden. */
+.tbl-lg-fallback {
+  display: none;
+}
 @container (max-width: 55.99rem) {
   .tbl-lg {
     display: none;
+  }
+  .tbl-lg-fallback {
+    display: block;
+  }
+  .tbl-fill-lg {
+    width: 100%;
+    max-width: 0;
   }
 }
 @container (min-width: 40rem) {
@@ -476,6 +487,15 @@
 .tbl-container[data-fit='no-md'] .tbl-md,
 .tbl-container[data-fit='no-md'] .tbl-inline {
   display: none;
+}
+.tbl-container[data-fit='no-lg'] .tbl-lg-fallback,
+.tbl-container[data-fit='no-md'] .tbl-lg-fallback {
+  display: block;
+}
+/* A title cell that may shrink and cut with "…" as soon as the `lg` columns go, not only at `no-md`. */
+.tbl-container[data-fit='no-lg'] .tbl-fill-lg {
+  width: 100%;
+  max-width: 0;
 }
 .tbl-container[data-fit='no-md'] .tbl-fill {
   width: 100%;

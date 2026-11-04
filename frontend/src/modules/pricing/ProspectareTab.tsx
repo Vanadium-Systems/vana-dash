@@ -125,7 +125,7 @@ export function ProspectareTab() {
       <Select
         size="sm"
         aria-label={`Status ${p.name}`}
-        className={fill ? 'w-full min-w-0' : 'w-40'}
+        className={fill ? 'w-full min-w-0' : 'w-32'}
         value={p.status}
         onValueChange={(status) => updateProspect.mutate({ id: p.id, body: { status } })}
       >
@@ -138,6 +138,30 @@ export function ProspectareTab() {
       </Select>
     </div>
   )
+  // Notes are what colleagues read on every call, so they never drop out with the other columns:
+  // on a narrow table they move under the company name.
+  const renderNotes = (p: Prospect) => (
+    <Textarea
+      className="min-h-9"
+      aria-label={`${t('common:nav.notes')} ${p.name}`}
+      defaultValue={p.notes ?? ''}
+      onBlur={(e) => {
+        if (e.target.value !== (p.notes ?? '')) updateProspect.mutate({ id: p.id, body: { notes: e.target.value || null } })
+      }}
+    />
+  )
+  const ownerName = (p: Prospect) => {
+    const person = (assignees.data ?? []).find((a) => a.id === p.assignedUserId)
+    return person ? (person.displayName ?? person.email) : null
+  }
+  const sizeLine = (p: Prospect) =>
+    [
+      `${p.priority} ${p.score ?? ''}`.trim(),
+      p.employeeCount != null ? t('pricing:prospects.employeesCount', { count: p.employeeCount }) : null,
+      p.revenue ? formatNumber(Number(p.revenue), BASE_CURRENCY) : null,
+    ]
+      .filter(Boolean)
+      .join(' · ')
   const statusToken = (status: string) => statusCatalog.find((s) => s.key === status)?.colorToken
 
   // Filtrare pe status/prioritate client-side (nu server) — multi-select, volum mic (~164 rânduri),
@@ -418,15 +442,12 @@ export function ProspectareTab() {
                         }
                       />
                     </TableHead>
-                    <TableHead priority="md">{t('common:labels.priority')}</TableHead>
-                    <TableHead priority="lg">{t('pricing:prospects.score')}</TableHead>
+                    <TableHead priority="lg">{t('common:labels.priority')}</TableHead>
                     <TableHead>{t('common:labels.company')}</TableHead>
                     <TableHead priority="md">{t('pricing:prospects.contact')}</TableHead>
-                    <TableHead priority="md">{t('common:labels.status')}</TableHead>
-                    <TableHead priority="lg">{t('pricing:prospects.owner')}</TableHead>
-                    <TableHead priority="lg">{t('common:nav.notes')}</TableHead>
-                    <TableHead priority="lg">{t('pricing:prospects.employees')}</TableHead>
-                    <TableHead priority="lg">{t('pricing:prospects.turnoverShort')}</TableHead>
+                    <TableHead priority="md">{t('common:labels.status')} / {t('pricing:prospects.owner')}</TableHead>
+                    <TableHead priority="md">{t('common:nav.notes')}</TableHead>
+                    <TableHead priority="lg">{t('pricing:prospects.employees')} / {t('pricing:prospects.turnoverShort')}</TableHead>
                     <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -447,17 +468,21 @@ export function ProspectareTab() {
                           }
                         />
                       </TableCell>
-                      <TableCell priority="md">
+                      <TableCell priority="lg">
                         <Badge variant={PRIORITY_VARIANT[p.priority]}>{p.priority}</Badge>
+                        <div className="mt-1 font-mono text-xs text-muted-foreground">{p.score ?? '—'}</div>
                       </TableCell>
-                      <TableCell priority="lg" className="font-mono text-xs">{p.score ?? '—'}</TableCell>
-                      <TableCell className="tbl-fill md:max-w-[16rem]">
+                      <TableCell className="tbl-fill tbl-fill-lg md:max-w-[13rem]">
                         <div className="truncate font-medium">{p.name}</div>
                         <div className="truncate text-xs text-muted-foreground">{p.cif ?? t('pricing:prospects.noCif')}</div>
-                        <TableDetails items={[p.priority, p.phone ? splitMultiValue(p.phone)[0] : null]} />
-                        <div className="tbl-narrow-only mt-1">{renderStatus(p, true)}</div>
+                        <div className="tbl-lg-fallback truncate text-xs text-muted-foreground">{sizeLine(p)}</div>
+                        <TableDetails items={[p.phone ? splitMultiValue(p.phone)[0] : null, ownerName(p)]} />
+                        <div className="tbl-narrow-only mt-1 space-y-1">
+                          {renderStatus(p, true)}
+                          {renderNotes(p)}
+                        </div>
                       </TableCell>
-                      <TableCell priority="md" className="min-w-[11rem] space-y-1 text-xs">
+                      <TableCell priority="md" className="min-w-[9rem] space-y-1 text-xs">
                         {editingContactId === p.id ? (
                           <>
                             <Input
@@ -492,7 +517,7 @@ export function ProspectareTab() {
                             </Button>
                           </>
                         ) : (
-                          <div className="flex max-w-[14rem] items-start justify-between gap-1">
+                          <div className="flex max-w-[13rem] items-start justify-between gap-1">
                             <div className="min-w-0 space-y-0 leading-tight">
                               {p.phone && (
                                 <div className="flex flex-wrap gap-1">
@@ -542,36 +567,33 @@ export function ProspectareTab() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell priority="md">
+                      <TableCell priority="md" className="space-y-1">
                         {renderStatus(p, false)}
+                        <div className="flex items-center gap-2">
+                          <span className="w-2" />
+                          <Select
+                            size="sm"
+                            aria-label={t('pricing:prospects.ownerOf', { name: p.name })}
+                            className="w-32"
+                            value={p.assignedUserId ?? ''}
+                            onValueChange={(assignedUserId) => updateProspect.mutate({ id: p.id, body: { assignedUserId: assignedUserId || null } })}
+                          >
+                            <option value="">{t('pricing:prospects.noOwner')}</option>
+                            {(assignees.data ?? []).map((person) => (
+                              <option key={person.id} value={person.id}>
+                                {person.displayName ?? person.email}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
                       </TableCell>
-                      <TableCell priority="lg">
-                        <Select
-                          size="sm"
-                          aria-label={t('pricing:prospects.ownerOf', { name: p.name })}
-                          className="w-36"
-                          value={p.assignedUserId ?? ''}
-                          onValueChange={(assignedUserId) => updateProspect.mutate({ id: p.id, body: { assignedUserId: assignedUserId || null } })}
-                        >
-                          <option value="">{t('pricing:prospects.noOwner')}</option>
-                          {(assignees.data ?? []).map((person) => (
-                            <option key={person.id} value={person.id}>
-                              {person.displayName ?? person.email}
-                            </option>
-                          ))}
-                        </Select>
+                      <TableCell priority="md" className="min-w-[10rem]">
+                        {renderNotes(p)}
                       </TableCell>
-                      <TableCell priority="lg" className="min-w-[12rem]">
-                        <Textarea
-                          className="min-h-9"
-                          defaultValue={p.notes ?? ''}
-                          onBlur={(e) => {
-                            if (e.target.value !== (p.notes ?? '')) updateProspect.mutate({ id: p.id, body: { notes: e.target.value || null } })
-                          }}
-                        />
+                      <TableCell priority="lg" className="whitespace-nowrap text-xs tabular-nums">
+                        <div>{p.employeeCount ?? '—'}</div>
+                        <div className="text-muted-foreground">{p.revenue ? formatNumber(Number(p.revenue), BASE_CURRENCY) : '—'}</div>
                       </TableCell>
-                      <TableCell priority="lg">{p.employeeCount ?? '—'}</TableCell>
-                      <TableCell priority="lg" className="whitespace-nowrap tabular-nums">{p.revenue ? formatNumber(Number(p.revenue), BASE_CURRENCY) : '—'}</TableCell>
                       <TableCell>
                         <RowActions
                           actions={[

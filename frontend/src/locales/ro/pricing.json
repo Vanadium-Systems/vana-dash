@@ -202,6 +202,7 @@
     "score": "Scor",
     "contact": "Contact",
     "employees": "Angajați",
+    "employeesCount": "{{count}} ang.",
     "turnoverShort": "CA",
     "archivedFlag": "Arhivat",
     "searchLabel": "Căutare (nume/CIF/telefon/email/contact)",

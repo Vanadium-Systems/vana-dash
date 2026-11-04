@@ -198,6 +198,7 @@
     "score": "Score",
     "contact": "Contact",
     "employees": "Employees",
+    "employeesCount": "{{count}} empl.",
     "turnoverShort": "Turnover",
     "archivedFlag": "Archived",
     "searchLabel": "Search (name/CIF/phone/email/contact)",

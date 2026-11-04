@@ -2,7 +2,7 @@ import { and, asc, eq, getTableColumns, ilike, inArray, isNull, sql } from 'driz
 import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import { createdByUserId, recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
-import { prospects, prospectScoringConfig, prospectStatuses, users } from '../../shared/db/schema/index.js'
+import { prospectArchives, prospects, prospectScoringConfig, prospectStatuses, users } from '../../shared/db/schema/index.js'
 import * as invoicingService from '../invoicing/service.js'
 import { computeScore, type ScoringWeights } from './scoring.js'
 import type {
@@ -15,6 +15,7 @@ import type {
   UpdateScoringConfigSchema,
 } from './schema.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { currentActor } from '../../shared/lib/request-context.js'
 
 type CreateInput = z.infer<typeof CreateProspectSchema>
 type UpdateInput = z.infer<typeof UpdateProspectSchema>
@@ -179,9 +180,11 @@ export async function listProspects(query: ListQuery) {
     END
   `
 
+  // Archived = archived by the person asking. Without a user (jobs, scripts) nothing is archived.
+  const userId = currentActor().userId ?? null
   const filters = [isNull(prospects.deletedAt)]
-  if (query.archived === 'only') filters.push(sql`${prospects.archivedAt} IS NOT NULL`)
-  else if (query.archived !== 'all') filters.push(isNull(prospects.archivedAt))
+  if (query.archived === 'only') filters.push(sql`${prospectArchives.archivedAt} IS NOT NULL`)
+  else if (query.archived !== 'all') filters.push(isNull(prospectArchives.archivedAt))
   if (query.status) filters.push(eq(prospects.status, query.status))
   if (query.source) filters.push(eq(prospects.source, query.source))
   if (query.search) {
@@ -193,8 +196,12 @@ export async function listProspects(query: ListQuery) {
   if (query.priority) filters.push(sql`${rawPriorityCase()} = ${query.priority}`)
 
   return db
-    .select({ ...getTableColumns(prospects), priority: rawPriorityCase().as('priority') })
+    .select({ ...getTableColumns(prospects), archivedAt: prospectArchives.archivedAt, priority: rawPriorityCase().as('priority') })
     .from(prospects)
+    .leftJoin(
+      prospectArchives,
+      and(eq(prospectArchives.prospectId, prospects.id), userId ? eq(prospectArchives.userId, userId) : sql`false`),
+    )
     .where(and(...filters))
     .orderBy(sql`${prospects.score} DESC NULLS LAST`)
 }
@@ -350,40 +357,50 @@ export async function deleteProspect(id: string) {
   return row
 }
 
-export async function archiveProspect(id: string) {
-  const [row] = await db
-    .update(prospects)
-    .set({ archivedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(prospects.id, id), isNull(prospects.deletedAt)))
-    .returning()
-  return row
+function archiveUserId(): string {
+  const userId = currentActor().userId
+  if (!userId) throw new Error('prospect archive needs a user')
+  return userId
 }
 
-export async function unarchiveProspect(id: string) {
-  const [row] = await db
-    .update(prospects)
-    .set({ archivedAt: null, updatedAt: new Date() })
-    .where(and(eq(prospects.id, id), isNull(prospects.deletedAt)))
-    .returning()
-  return row
+async function liveProspectIds(ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return []
+  const rows = await db
+    .select({ id: prospects.id })
+    .from(prospects)
+    .where(and(inArray(prospects.id, ids), isNull(prospects.deletedAt)))
+  return rows.map((r) => r.id)
 }
 
 export async function archiveProspects(ids: string[]) {
-  const rows = await db
-    .update(prospects)
-    .set({ archivedAt: new Date(), updatedAt: new Date() })
-    .where(and(inArray(prospects.id, ids), isNull(prospects.deletedAt)))
-    .returning()
-  return rows
+  const userId = archiveUserId()
+  const live = await liveProspectIds(ids)
+  if (live.length === 0) return []
+  await db
+    .insert(prospectArchives)
+    .values(live.map((prospectId) => ({ prospectId, userId })))
+    .onConflictDoNothing()
+  return live
 }
 
 export async function unarchiveProspects(ids: string[]) {
-  const rows = await db
-    .update(prospects)
-    .set({ archivedAt: null, updatedAt: new Date() })
-    .where(and(inArray(prospects.id, ids), isNull(prospects.deletedAt)))
-    .returning()
-  return rows
+  const userId = archiveUserId()
+  const live = await liveProspectIds(ids)
+  if (live.length === 0) return []
+  await db
+    .delete(prospectArchives)
+    .where(and(eq(prospectArchives.userId, userId), inArray(prospectArchives.prospectId, live)))
+  return live
+}
+
+export async function archiveProspect(id: string) {
+  const [archived] = await archiveProspects([id])
+  return archived ? getProspect(id) : undefined
+}
+
+export async function unarchiveProspect(id: string) {
+  const [restored] = await unarchiveProspects([id])
+  return restored ? getProspect(id) : undefined
 }
 
 /**

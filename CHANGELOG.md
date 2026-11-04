@@ -4,6 +4,18 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-04: Prospects: notes always visible, per-user archive
+
+### Changed
+- Archiving a prospect is per person (`prospect_archives`, migration 0079). Everyone shares the
+  same prospects, but an archived one is hidden only for the person who archived it, in the list
+  and in Ctrl K search. Existing archives move to the last person who edited the prospect, else
+  its creator, else the platform admin. `prospects.archived_at` is dropped.
+- The prospects table no longer hides the Notes column when it gets narrow (smaller window or
+  larger zoom). Score sits under priority, owner under status, employees and turnover share a
+  column; when the `lg` columns go, their values show under the company name
+  (`.tbl-lg-fallback`), and on a phone the note and status move under the name too.
+
 ## 2026-11-04: Email: undoable send, drafts, personal settings
 
 ### Added

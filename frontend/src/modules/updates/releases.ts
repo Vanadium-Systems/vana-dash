@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-04T12:30:00Z',
+    title: {
+      ro: 'Clienți: notițele se văd la orice zoom, arhiva e a fiecăruia',
+      en: 'Clients: notes show at any zoom, the archive is your own',
+    },
+    body: {
+      ro: 'Coloana Notițe din Prospectare nu mai dispare când ecranul e mai îngust sau zoom-ul mai mare: pe un tabel îngust, notița și statusul trec sub numele firmei. Scorul stă sub prioritate, responsabilul sub status, iar angajații și cifra de afaceri într-o singură coloană, ca să încapă mai mult pe rând. Arhivarea e acum a fiecăruia: un prospect pe care îl arhivezi dispare doar din lista ta, colegii îl văd în continuare.',
+      en: 'The Notes column in Prospects no longer disappears on a narrower screen or a larger zoom: on a narrow table, the note and the status move under the company name. The score sits under the priority, the owner under the status, and employees and turnover share one column, so more fits on a row. Archiving is now personal: a prospect you archive disappears only from your list, your colleagues still see it.',
+    },
+    features: ['clienti.prospectare'],
+  },
+  {
     publishedAt: '2026-11-04T09:40:00Z',
     title: {
       ro: 'Email: trimitere anulabilă, ciorne automate și setările mele',

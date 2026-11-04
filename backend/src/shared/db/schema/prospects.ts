@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { index, integer, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { index, integer, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { auditColumns, users } from './users.js'
 import { platforms } from './platforms.js'
@@ -39,9 +39,6 @@ export const prospects = pgTable(
     platformId: uuid('platform_id').references(() => platforms.id),
     billingClientId: uuid('billing_client_id').references(() => billingClients.id),
     lastContactedAt: timestamp('last_contacted_at', { withTimezone: true }),
-    // Arhivare — distinctă de `deletedAt` (soft delete "definitiv"): un prospect arhivat dispare
-    // din lista implicită, dar rămâne căutabil explicit (filtru "Arhivate"), nu e o ștergere.
-    archivedAt: timestamp('archived_at', { withTimezone: true }),
     // The colleague working this prospect, so two salespeople do not call the same company.
     assignedUserId: uuid('assigned_user_id').references(() => users.id),
   },
@@ -50,6 +47,26 @@ export const prospects = pgTable(
     index('idx_prospects_status').on(t.status),
     index('idx_prospects_assigned_user').on(t.assignedUserId),
     uniqueIndex('idx_prospects_cif').on(t.tenantId, t.cif).where(sql`${t.cif} IS NOT NULL`),
+  ],
+)
+
+// Archiving is per person: everyone shares the same prospects, but hiding one from my list must
+// not hide it from a colleague's. A row here means "this user archived this prospect".
+export const prospectArchives = pgTable(
+  'prospect_archives',
+  {
+    ...tenantColumns,
+    prospectId: uuid('prospect_id')
+      .notNull()
+      .references(() => prospects.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    archivedAt: timestamp('archived_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.prospectId, t.userId] }),
+    index('idx_prospect_archives_user').on(t.tenantId, t.userId),
   ],
 )
 
