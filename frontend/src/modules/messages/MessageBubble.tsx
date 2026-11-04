@@ -1,4 +1,4 @@
-import { Check, CheckCheck, Clock, Copy, Loader2, MoreHorizontal, Paperclip, Pencil, Play, Reply, RotateCw, Trash2 } from 'lucide-react'
+import { Check, CheckCheck, ChevronDown, Clock, Copy, Loader2, Paperclip, Pencil, Play, Reply, RotateCw, Trash2 } from 'lucide-react'
 import { forwardRef, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { RefCard } from '@/shared/components/entity-cards/RefCard'
@@ -16,14 +16,15 @@ import { haptic } from '@/shared/lib/haptics'
 import { t } from '@/shared/lib/i18n'
 import type { ChatAttachment, ChatMessageRef, ChatReaction, ChatReplyPreview } from '@/shared/lib/types'
 import { cn, formatBytes } from '@/shared/lib/utils'
+import { ChatAvatar, personColor } from './ChatAvatar'
 
-// One message. Yours on the right in the tinted bubble, the others' on the left. Actions come from
-// three places with the same items: the bar that appears on hover or focus (desktop), right click
-// (desktop, with the key written beside each item) and a long press that opens a bottom sheet
-// (phone). Swiping a bubble to the right replies to it.
+// One message. Yours on the right in the tinted bubble, the others' on the left; in a group, the
+// first bubble of a series has the author's avatar and name in their colour. Actions come from
+// three places with the same items: the arrow in the bubble's corner on hover or focus (desktop,
+// as in WhatsApp: nothing floats over the thread), right click (with the key beside each item) and
+// a long press that opens a bottom sheet (phone). Swiping a bubble to the right replies to it.
 
 export const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const
-const HOVER_REACTIONS = QUICK_REACTIONS.slice(0, 3)
 const LONG_PRESS_MS = 500
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/3gpp']
@@ -74,6 +75,7 @@ export const MessageBubble = forwardRef<
     meId: string
     startsSeries: boolean
     showAuthor: boolean
+    authorOnline?: boolean
     receipt: ReceiptState | null
     editing: boolean
     focused: boolean
@@ -81,7 +83,7 @@ export const MessageBubble = forwardRef<
     nameOf: (userId: string) => string
     actions: BubbleActions
   }
->(function MessageBubble({ message, own, meId, startsSeries, showAuthor, receipt, editing, focused, highlighted, nameOf, actions }, ref) {
+>(function MessageBubble({ message, own, meId, startsSeries, showAuthor, authorOnline, receipt, editing, focused, highlighted, nameOf, actions }, ref) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const contextMenu = useContextMenu()
@@ -189,6 +191,12 @@ export const MessageBubble = forwardRef<
           <Reply className="h-4 w-4" />
         </span>
       ) : null}
+      {showAuthor && !own ? (
+        // The column stays for the whole series, so its bubbles line up under the first one.
+        <div className="mr-1.5 w-7 shrink-0 self-start">
+          {startsSeries ? <ChatAvatar size="sm" userId={message.authorUserId} name={message.authorName} online={authorOnline} /> : null}
+        </div>
+      ) : null}
       <div
         className={cn(
           'relative flex min-w-0 max-w-[85%] flex-col md:max-w-[65%]',
@@ -202,7 +210,11 @@ export const MessageBubble = forwardRef<
         onTouchEnd={cancelLongPress}
         onTouchMove={cancelLongPress}
       >
-        {startsSeries && showAuthor && !own ? <span className="mb-0.5 px-1 text-xs font-medium text-muted-foreground">{message.authorName}</span> : null}
+        {startsSeries && showAuthor && !own ? (
+          <span className="mb-0.5 px-1 text-xs font-medium" style={{ color: personColor(message.authorUserId) }}>
+            {message.authorName}
+          </span>
+        ) : null}
 
         {editing ? (
           <EditForm initial={message.body} onSave={actions.onEditSave} onCancel={actions.onEditCancel} />
@@ -259,6 +271,37 @@ export const MessageBubble = forwardRef<
             {!message.body || emojiOnly ? (
               <div className={cn('flex justify-end', photoOnly && 'absolute bottom-2 right-2')}>{meta}</div>
             ) : null}
+
+            {canAct ? (
+              // Desktop only (CSS): shown on hover, on focus and while its menu is open.
+              <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+                <DropdownMenuTrigger
+                  className={cn(
+                    'msg-actions absolute right-1 top-1 z-10 items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    menuOpen && 'msg-actions-open',
+                    photoOnly
+                      ? 'rounded-full bg-black/55 p-0.5 text-white/90 hover:text-white'
+                      : emojiOnly
+                        ? 'rounded-full border bg-popover p-0.5'
+                        : // Fades into the bubble, so the end of the first line does not look cut off.
+                          cn('rounded-tr-lg bg-gradient-to-l via-60% to-transparent pb-1 pl-4 pr-0.5', own ? 'from-bubble-own via-bubble-own' : 'from-bubble-other via-bubble-other'),
+                  )}
+                >
+                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                  <span className="sr-only">{t('messages:thread.messageActions')}</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align={own ? 'end' : 'start'}>
+                  <ReactionRow
+                    onPick={(emoji) => {
+                      setMenuOpen(false)
+                      actions.onReact(emoji)
+                    }}
+                    className="px-1 pb-1"
+                  />
+                  {menuItems}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </div>
         )}
 
@@ -279,38 +322,6 @@ export const MessageBubble = forwardRef<
           </div>
         ) : null}
 
-        {canAct ? (
-          // Desktop only (CSS): shown on hover and while something inside has focus.
-          <div
-            className={cn(
-              'msg-actions absolute -top-4 z-10 items-center gap-0.5 rounded-full border bg-popover px-1 py-0.5 shadow-sm',
-              own ? 'right-1' : 'left-1',
-              menuOpen && 'msg-actions-open',
-            )}
-          >
-            {HOVER_REACTIONS.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                className="rounded-full px-1 text-base leading-6 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={t('messages:actions.reactWith', { emoji })}
-                onClick={() => actions.onReact(emoji)}
-              >
-                {emoji}
-              </button>
-            ))}
-            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" aria-label={t('messages:actions.reply')} onClick={actions.onReply}>
-              <Reply className="h-3.5 w-3.5" />
-            </Button>
-            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-              <DropdownMenuTrigger className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="sr-only">{t('messages:thread.messageActions')}</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align={own ? 'end' : 'start'}>{menuItems}</DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ) : null}
       </div>
 
       <ContextMenu state={contextMenu}>

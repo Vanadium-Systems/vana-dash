@@ -125,7 +125,14 @@
     "more": "Mai multe",
     "members_one": "{{count}} membru",
     "members_few": "{{count}} membri",
-    "members_other": "{{count}} de membri"
+    "members_other": "{{count}} de membri",
+    "addPeople": "Adaugă oameni",
+    "addDone": "Gata",
+    "nobodyToAdd": "Toți colegii activi sunt deja în grup.",
+    "removeMember": "Scoate pe {{name}} din grup",
+    "removed": "{{name}} nu mai e în grup",
+    "added": "{{name}} e acum în grup",
+    "you": "tu"
   },
   "picker": {
     "title": "Atașează un obiect",

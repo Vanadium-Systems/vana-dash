@@ -119,7 +119,14 @@
     "noFiles": "No files sent yet",
     "more": "More",
     "members_one": "{{count}} member",
-    "members_other": "{{count}} members"
+    "members_other": "{{count}} members",
+    "addPeople": "Add people",
+    "addDone": "Done",
+    "nobodyToAdd": "Every active colleague is already in the group.",
+    "removeMember": "Remove {{name}} from the group",
+    "removed": "{{name}} is no longer in the group",
+    "added": "{{name}} is now in the group",
+    "you": "you"
   },
   "picker": {
     "title": "Attach an object",

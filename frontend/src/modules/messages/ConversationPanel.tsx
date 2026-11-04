@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { UserMinus, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { FileTypeIcon } from '@/shared/components/FileTypeIcon'
@@ -10,17 +11,19 @@ import { SidePeek } from '@/shared/components/ui/side-peek'
 import { Switch } from '@/shared/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useDebounced } from '@/shared/hooks/use-debounced'
-import { memberName } from '@/shared/hooks/use-team'
+import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
 import { formatDate, formatDateTime } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import type { ChatAttachment, ChatConversation } from '@/shared/lib/types'
 import { formatBytes } from '@/shared/lib/utils'
+import { ChatAvatar } from './ChatAvatar'
 import { conversationTitle, presenceLabel } from './ConversationList'
 import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
 
-// The conversation's side panel (#24, #25), in the URL as `?panel=info|search`: members, mute,
-// the photos and files sent in it, and search inside it. Full screen on a phone.
+// The conversation's side panel (#24, #25), in the URL as `?panel=info|search`: members (added and
+// removed here by whoever manages the group), mute, the photos and files sent in it, and search
+// inside it. Full screen on a phone.
 
 interface MediaItem {
   id: string
@@ -76,6 +79,7 @@ export function ConversationPanel({
       ) : panel === 'info' ? (
         <InfoPanel
           conversation={conversation}
+          meId={meId}
           onOpenMedia={(attachment) => {
             if (isPhone()) close()
             onOpenMedia(attachment)
@@ -89,10 +93,12 @@ export function ConversationPanel({
 
 function InfoPanel({
   conversation,
+  meId,
   onOpenMedia,
   onMutedChange,
 }: {
   conversation: ChatConversation
+  meId: string
   onOpenMedia: (attachment: ChatAttachment) => void
   onMutedChange: () => void
 }) {
@@ -110,6 +116,24 @@ function InfoPanel({
     }
   }
 
+  const [adding, setAdding] = useState(false)
+  const changeMembers = async (change: { addMemberIds: string[] } | { removeMemberIds: string[] }, done: string, undo?: () => void) => {
+    setSaving(true)
+    try {
+      await api.patch(`/api/chat/conversations/${conversation.id}`, change)
+      onMutedChange()
+      toast.success(done, undo ? { action: { label: t('common:undo.action'), onClick: undo } } : undefined)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+  const addMember = (member: { id: string; displayName: string | null; email: string }) =>
+    void changeMembers({ addMemberIds: [member.id] }, t('messages:panel.added', { name: memberName(member) }))
+  const removeMember = (member: { id: string; displayName: string | null; email: string }) =>
+    void changeMembers({ removeMemberIds: [member.id] }, t('messages:panel.removed', { name: memberName(member) }), () => addMember(member))
+
   return (
     <div className="space-y-5">
       <section aria-labelledby="panel-members">
@@ -119,16 +143,40 @@ function InfoPanel({
         <ul className="space-y-2">
           {conversation.members.map((member) => (
             <li key={member.id} className="flex items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground" aria-hidden="true">
-                {memberName(member).slice(0, 1).toUpperCase()}
-              </span>
+              <ChatAvatar userId={member.id} name={memberName(member)} online={member.presence === 'online'} size="sm" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm">{memberName(member)}</span>
+                <span className="block truncate text-sm">
+                  {memberName(member)}
+                  {member.id === meId ? <span className="text-muted-foreground"> ({t('messages:panel.you')})</span> : null}
+                </span>
                 <span className="block truncate text-xs text-muted-foreground">{presenceLabel(member.presence, member.lastSeenAt)}</span>
               </span>
+              {/* Nobody removes themselves: the group would be left without anyone to manage it. */}
+              {conversation.canManage && member.id !== meId ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  disabled={saving}
+                  aria-label={t('messages:panel.removeMember', { name: memberName(member) })}
+                  title={t('messages:panel.removeMember', { name: memberName(member) })}
+                  onClick={() => removeMember(member)}
+                >
+                  <UserMinus className="h-4 w-4" />
+                </Button>
+              ) : null}
             </li>
           ))}
         </ul>
+        {conversation.canManage ? (
+          adding ? (
+            <AddMembers conversation={conversation} disabled={saving} onAdd={addMember} onDone={() => setAdding(false)} />
+          ) : (
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setAdding(true)}>
+              <UserPlus className="h-4 w-4" />
+              {t('messages:panel.addPeople')}
+            </Button>
+          )
+        ) : null}
       </section>
 
       <label className="flex items-center justify-between gap-3">
@@ -148,6 +196,48 @@ function InfoPanel({
           <MediaList conversationId={conversation.id} kind="file" onOpen={onOpenMedia} />
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+/** Active colleagues not yet in the group; a click adds one at once. */
+function AddMembers({
+  conversation,
+  disabled,
+  onAdd,
+  onDone,
+}: {
+  conversation: ChatConversation
+  disabled: boolean
+  onAdd: (member: { id: string; displayName: string | null; email: string }) => void
+  onDone: () => void
+}) {
+  const team = useTeamMembers()
+  const inGroup = new Set(conversation.members.map((m) => m.id))
+  const candidates = (team.data ?? []).filter((member) => member.status === 'active' && !inGroup.has(member.id))
+  return (
+    <div className="mt-3 space-y-2 rounded-md border p-2">
+      {team.isPending ? (
+        <p className="px-1 text-sm text-muted-foreground">{t('common:states.loading')}</p>
+      ) : candidates.length === 0 ? (
+        <p className="px-1 text-sm text-muted-foreground">{t('messages:panel.nobodyToAdd')}</p>
+      ) : (
+        <ul className="max-h-56 overflow-y-auto">
+          {candidates.map((member) => (
+            <li key={member.id}>
+              <Button variant="ghost" disabled={disabled} className="w-full justify-start gap-3" onClick={() => onAdd(member)}>
+                <ChatAvatar userId={member.id} name={memberName(member)} size="sm" />
+                <span className="truncate">{memberName(member)}</span>
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" onClick={onDone}>
+          {t('messages:panel.addDone')}
+        </Button>
+      </div>
     </div>
   )
 }

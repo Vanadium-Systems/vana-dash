@@ -32,6 +32,7 @@ function conversation(overrides: Partial<ChatConversation> = {}): ChatConversati
     lastMessage: null,
     unreadCount: 0,
     muted: false,
+    canManage: false,
     ...overrides,
   }
 }

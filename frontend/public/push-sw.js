@@ -16,6 +16,8 @@ self.addEventListener('push', (event) => {
       body: payload.body || '',
       icon: '/pwa-192x192.png',
       badge: '/pwa-192x192.png',
+      // Same tag = replaces the previous notification of that conversation or thread.
+      tag: payload.tag || undefined,
       data: { url: payload.url || '/' },
     }),
   )

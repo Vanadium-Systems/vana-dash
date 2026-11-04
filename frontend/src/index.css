@@ -532,8 +532,8 @@
   animation-timing-function: var(--ease-out);
 }
 
-/* Mesaje. The action bar shows on hover or focus only where there is a mouse; a phone uses the
-   long press instead. */
+/* Mesaje. The arrow in a bubble's corner shows on hover or focus only where there is a mouse; a
+   phone uses the long press instead. */
 .msg-actions {
   display: none;
 }

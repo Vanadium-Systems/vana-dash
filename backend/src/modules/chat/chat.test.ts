@@ -186,6 +186,21 @@ describe('izolarea între conversații', () => {
     const res = await patch(`/api/chat/conversations/${dmId}`, ana, { name: 'DM cu nume' })
     expect(res.statusCode).toBe(404)
   })
+
+  it('owner-ul grupului adaugă și scoate oameni, iar lista îi spune doar lui că poate', async () => {
+    const canManage = async (u: TestSession) =>
+      (await get('/api/chat/conversations', u)).json().data.find((c: { id: string }) => c.id === groupId)?.canManage
+    expect(await canManage(ana)).toBe(true)
+    expect(await canManage(ion)).toBe(false)
+
+    expect((await patch(`/api/chat/conversations/${groupId}`, ion, { addMemberIds: [outsider.me.id] })).statusCode).toBe(403)
+    expect((await patch(`/api/chat/conversations/${groupId}`, ana, { addMemberIds: [outsider.me.id] })).statusCode).toBe(200)
+    expect(await canManage(outsider)).toBe(false)
+
+    expect((await patch(`/api/chat/conversations/${groupId}`, ana, { removeMemberIds: [outsider.me.id] })).statusCode).toBe(200)
+    const ids = (await get('/api/chat/conversations', outsider)).json().data.map((c: { id: string }) => c.id)
+    expect(ids).not.toContain(groupId)
+  })
 })
 
 describe('mesaje', () => {

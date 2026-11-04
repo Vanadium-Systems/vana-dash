@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useChatStream } from '@/shared/components/chat/ChatStreamProvider'
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
+import { clearReadChatNotifications } from '@/shared/lib/native-push'
 import type { ChatConversation, ChatStreamEvent } from '@/shared/lib/types'
 
 // Conversațiile omului (PLAN.md C3). Un singur query, citit de lista din sidebar, de badge-ul
@@ -64,6 +65,16 @@ export function useChatUnreadTotal(): number {
   const conversations = useLiveChatConversations()
   return useMemo(() => (can('mesaje.view') ? (conversations.data ?? []).reduce((sum, c) => sum + c.unreadCount, 0) : 0), [can, conversations.data])
 }
+/** On the phone: a conversation's notification goes once it has nothing unread, wherever it was
+ *  read. Runs on every refresh of the list; the stream reconnecting on resume brings one. */
+export function useClearReadChatNotifications(): void {
+  const conversations = useChatConversations()
+  useEffect(() => {
+    if (!conversations.data) return
+    void clearReadChatNotifications(new Map(conversations.data.map((c) => [c.id, c.unreadCount])))
+  }, [conversations.data])
+}
+
 // The sender repeats "typing" at most every 3s while typing; without a repeat it fades after 5s.
 const TYPING_TTL_MS = 5_000
 

@@ -167,8 +167,11 @@ export async function chatRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, body: UpdateConversationSchema } },
     async (req) => {
       const { id } = req.params
+      // Read before the change: someone just removed still has the group in the list.
+      const before = await service.memberIds(id)
       await service.updateConversation(req.me, id, req.body)
-      publish({ type: 'conversation.updated', conversationId: id }, await service.memberIds(id))
+      const after = await service.memberIds(id)
+      publish({ type: 'conversation.updated', conversationId: id }, [...new Set([...before, ...after])])
       return { success: true }
     },
   )
@@ -374,6 +377,8 @@ async function notifyMembers(
               : target.byline
             : summary || trFor(locale, 'push.chat.attachment'),
         url: `/messages/${conversationId}`,
+        // One notification per conversation, which the app clears once it is read anywhere.
+        tag: `chat-${conversationId}`,
       }),
       offline,
     )

@@ -67,6 +67,7 @@ const conversation: ChatConversation = {
   lastMessage: null,
   unreadCount: 2,
   muted: false,
+  canManage: false,
 }
 
 let container: HTMLDivElement

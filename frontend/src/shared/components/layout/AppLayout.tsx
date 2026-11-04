@@ -15,7 +15,7 @@ import { ConfirmProvider } from '@/shared/components/ui/confirm-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { onForbiddenRefreshMe } from '@/shared/lib/api'
 import { useActiveAlertsCount } from '@/shared/hooks/use-active-alerts-count'
-import { useChatUnreadTotal } from '@/shared/hooks/use-chat'
+import { useChatUnreadTotal, useClearReadChatNotifications } from '@/shared/hooks/use-chat'
 import { useAuth, useLogout } from '@/shared/hooks/use-auth'
 import { ME_QUERY_KEY, useMe } from '@/shared/hooks/use-me'
 import { useEmailUnreadCounts } from '@/shared/hooks/use-email-unread-counts'
@@ -227,6 +227,7 @@ export function AppLayout() {
   }, [user])
 
   useEffect(() => onNativeNotificationTap((path) => navigate(path)), [navigate])
+  useClearReadChatNotifications()
 
   // Emails read on another device: their notifications go when the app comes back to the front.
   useEffect(() => {

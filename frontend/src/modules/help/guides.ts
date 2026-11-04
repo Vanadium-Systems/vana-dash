@@ -233,8 +233,8 @@ const SOURCES: GuideSource[] = [
         en: 'Type in the field at the bottom and send. A file of up to 15 MB is added with “Attach”.',
       },
       {
-        ro: 'Pe orice mesaj, al tău sau al altuia, ai „Răspunde” și reacțiile rapide: bara de deasupra la trecerea mouse-ului, click dreapta (R răspunde, C copiază, E editează, Del șterge) sau, pe telefon, apăsare lungă. Tot pe telefon, glisezi mesajul spre dreapta ca să răspunzi.',
-        en: 'On any message, yours or someone else’s, you get “Reply” and the quick reactions: the bar above it on hover, right-click (R reply, C copy, E edit, Del delete) or, on a phone, a long press. Also on a phone, swipe the message right to reply.',
+        ro: 'Pe orice mesaj, al tău sau al altuia, ai „Răspunde” și reacțiile rapide: săgeata din colțul mesajului, care apare la trecerea mouse-ului, click dreapta (R răspunde, C copiază, E editează, Del șterge) sau, pe telefon, apăsare lungă. Tot pe telefon, glisezi mesajul spre dreapta ca să răspunzi.',
+        en: 'On any message, yours or someone else’s, you get “Reply” and the quick reactions: the arrow in the message’s corner, which shows on hover, right-click (R reply, C copy, E edit, Del delete) or, on a phone, a long press. Also on a phone, swipe the message right to reply.',
       },
       {
         ro: 'Citatul din răspuns te duce la mesajul original și îl aprinde o clipă. Ștergerea nu mai cere confirmare: ai 6 secunde să apeși „Anulează”.',
@@ -245,8 +245,8 @@ const SOURCES: GuideSource[] = [
         en: 'The date pinned at the top is a menu: jump to today, last week, last month or a date you pick. The “N new messages” line shows where you left off, and the round down arrow takes you to the end.',
       },
       {
-        ro: 'Butoanele din antet deschid panoul conversației: membri, oprirea notificărilor, pozele și fișierele trimise și căutarea în conversație (găsește și fără diacritice).',
-        en: 'The header buttons open the conversation panel: members, mute, photos and files sent, and search inside the conversation (it matches without diacritics too).',
+        ro: 'Butoanele din antet deschid panoul conversației: membri, oprirea notificărilor, pozele și fișierele trimise și căutarea în conversație (găsește și fără diacritice). Cine a făcut grupul adaugă oameni din „Adaugă oameni” și îi scoate cu butonul de lângă nume. Bulina verde de pe inițiale arată cine e acum în aplicație.',
+        en: 'The header buttons open the conversation panel: members, mute, photos and files sent, and search inside the conversation (it matches without diacritics too). Whoever made the group adds people with “Add people” and removes them with the button next to their name. The green dot on the initials shows who is in the app right now.',
       },
       {
         ro: 'Din câmpul de scris, ↑ te duce la ultimul mesaj; apoi ↑ ↓ mută, R, E, C și Del acționează, Esc te întoarce la câmp.',
@@ -261,8 +261,8 @@ const SOURCES: GuideSource[] = [
         en: 'The card of a client or an invoice shows today’s data, if you have access to their page. An email, an event, a file and a note show what the sender saw, and the original opens only for whoever already has access. If you do not, the card says “No access”; “Ask for access” fills in a reply in the conversation.',
       },
       {
-        ro: 'Meniul „⋯” de lângă un mesaj de-al tău îl editează sau îl șterge.',
-        en: 'The “⋯” menu next to one of your messages edits or deletes it.',
+        ro: 'Din același meniu, un mesaj de-al tău se editează sau se șterge.',
+        en: 'From the same menu, one of your messages is edited or deleted.',
       },
       {
         ro: 'Câte notificări primești se alege în Profilul meu, la Notificări.',

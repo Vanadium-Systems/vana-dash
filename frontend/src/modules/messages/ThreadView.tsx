@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Info, Search, Users } from 'lucide-react'
+import { ArrowLeft, Info, Search } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { FileViewer } from '@/shared/components/FileViewer'
@@ -15,6 +15,7 @@ import { motionLevel } from '@/shared/lib/motion'
 import type { ChatAttachment, ChatConversation, ChatMessageRef, ChatReceipt, ChatReplyPreview } from '@/shared/lib/types'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Composer, type ComposerHandle } from './Composer'
+import { ChatAvatar } from './ChatAvatar'
 import { ConversationPanel } from './ConversationPanel'
 import { conversationTitle, presenceLabel } from './ConversationList'
 import { DaySeparator, dayKey } from './DaySeparator'
@@ -102,11 +103,14 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
 
   // The "New" line: before the first message from someone else after the watermark of the opening.
   const newLine = useMemo(() => {
+    // A reply means what came before it was seen, even when the watermark did not move (answered
+    // from the phone's notification, or on another device).
+    const lastOwn = rows.findLastIndex((r) => r.authorUserId === meId)
     if (thread.openedReadId === null) {
-      const index = rows.findIndex((r) => r.id && r.authorUserId !== meId)
+      const index = rows.findIndex((r, i) => i > lastOwn && r.id && r.authorUserId !== meId)
       return conversation.unreadCount > 0 && index >= 0 ? { index, count: rows.length - index } : null
     }
-    const readAt = rows.findIndex((r) => r.id === thread.openedReadId)
+    const readAt = Math.max(rows.findIndex((r) => r.id === thread.openedReadId), lastOwn)
     if (readAt < 0) return null
     const index = rows.findIndex((r, i) => i > readAt && r.id && r.authorUserId !== meId)
     return index >= 0 ? { index, count: rows.slice(index).filter((r) => r.authorUserId !== meId).length } : null
@@ -132,9 +136,11 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
     opened.current = true
     const target = newLine ? rows[newLine.index]?.id : undefined
     const el = target ? rowRefs.current.get(target) : undefined
-    if (el && scrollRef.current) {
-      pinnedRef.current = false
-      scrollRef.current.scrollTop = el.offsetTop - 48
+    const pane = scrollRef.current
+    if (el && pane) {
+      pane.scrollTop = el.offsetTop - 48
+      // A short run of new messages fits on the screen: that is the end, and it stays pinned.
+      pinnedRef.current = pane.scrollHeight - pane.scrollTop - pane.clientHeight < 80
     } else {
       scrollToEnd()
     }
@@ -143,9 +149,15 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
+    let lastTop = el.scrollTop
     const onScroll = () => {
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight
-      pinnedRef.current = distance < 80
+      // Only the reader scrolling up unpins. Photos that load after the jump to the end grow the
+      // thread before this event fires, and measuring the distance alone then read as "scrolled
+      // up": a long conversation opened somewhere above its end.
+      const scrolledUp = el.scrollTop < lastTop - 2
+      lastTop = el.scrollTop
+      pinnedRef.current = distance < 80 || (pinnedRef.current && !scrolledUp)
       // Any distance a reader would scroll back, not a whole screen: short threads need it too.
       setFarFromEnd(distance > 160)
       if (pinnedRef.current) setMissed(0)
@@ -367,6 +379,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
   )
 
   const typingIds = (typingByConversation.get(conversation.id) ?? []).filter((id) => id !== meId)
+  const onlineIds = new Set(conversation.members.filter((m) => m.presence === 'online').map((m) => m.id))
   const other = conversation.kind === 'dm' ? conversation.members.find((m) => m.id !== meId) : undefined
 
   if (thread.isPending) {
@@ -403,15 +416,17 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
             <ArrowLeft className="h-4 w-4" />
           </Button>
         ) : null}
-        <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setPanel('info')}>
-          <span className="block truncate text-sm font-medium">{title}</span>
-          <span className="block truncate text-xs text-muted-foreground">
-            {other
-              ? presenceLabel(other.presence, other.lastSeenAt)
-              : t('messages:thread.members', { count: conversation.members.length, names: conversation.members.map((m) => m.displayName ?? m.email).join(', ') })}
+        <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 text-left" onClick={() => setPanel('info')}>
+          <ChatAvatar name={title} group={conversation.kind === 'group'} userId={other?.id} online={other?.presence === 'online'} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">{title}</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {other
+                ? presenceLabel(other.presence, other.lastSeenAt)
+                : t('messages:thread.members', { count: conversation.members.length, names: conversation.members.map((m) => m.displayName ?? m.email).join(', ') })}
+            </span>
           </span>
         </button>
-        {conversation.kind === 'group' ? <Users className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" /> : null}
         <Button variant="ghost" size="icon" aria-label={t('messages:panel.search')} onClick={() => setPanel('search')}>
           <Search className="h-4 w-4" />
         </Button>
@@ -462,52 +477,58 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
             {rows.length === 0 ? (
               <EmptyThread title={title} />
             ) : (
-              rows.map((row, index) => {
-                const previous = rows[index - 1]
-                const newDay = !previous || dayKey(previous.createdAt) !== dayKey(row.createdAt)
-                // clientId, not id: the optimistic bubble and the saved one are the same element,
-                // so sending does not remount it (that read as a flicker).
-                const key = row.clientId
-                return (
-                  <Fragment key={key}>
-                    {newDay ? <DaySeparator iso={row.createdAt} onJump={(date) => void jump({ date })} /> : null}
-                    {newLine?.index === index ? <NewMessagesLine count={newLine.count} /> : null}
-                    <MessageBubble
-                      ref={(el) => {
-                        if (row.id && el) rowRefs.current.set(row.id, el)
-                        else if (row.id) rowRefs.current.delete(row.id)
-                      }}
-                      message={row}
-                      own={row.authorUserId === meId}
-                      meId={meId}
-                      startsSeries={newDay || !sameSeries(previous, row)}
-                      showAuthor={conversation.kind === 'group'}
-                      receipt={row.authorUserId === meId && !row.pending ? receiptState(row.createdAt, thread.receipts) : null}
-                      editing={editingId !== null && editingId === row.id}
-                      focused={focusedId !== null && focusedId === row.id}
-                      highlighted={highlightId !== null && highlightId === row.id}
-                      nameOf={memberName}
-                      actions={{
-                        onReply: () => startReply(row),
-                        onReact: (emoji) => react(row, emoji),
-                        onCopy: () => copy(row),
-                        onEditStart: () => row.id && setEditingId(row.id),
-                        onEditSave: (body) => {
-                          setEditingId(null)
-                          if (row.id) thread.edit(row.id, body).catch((err: Error) => toast.error(err.message))
-                        },
-                        onEditCancel: () => setEditingId(null),
-                        onDelete: () => row.id && deleteMessage(row.id),
-                        onRetry: () => void thread.retry(row.clientId),
-                        onDiscard: () => thread.discard(row.clientId),
-                        onOpenMedia: setViewing,
-                        onJumpToQuote: (messageId) => void jump({ messageId }),
-                        onRequestAccess: (refItem) => void requestAccess(row, refItem),
-                      }}
-                    />
-                  </Fragment>
-                )
-              })
+              // One section per day: its sticky chip is pushed out by the next day's, instead of
+              // all of them piling up at the top.
+              groupByDay(rows).map((day) => (
+                <section key={day.key}>
+                  <DaySeparator iso={day.rows[0]!.row.createdAt} onJump={(date) => void jump({ date })} />
+                  {day.rows.map(({ row, index }) => {
+                    const previous = rows[index - 1]
+                    const newDay = !previous || dayKey(previous.createdAt) !== dayKey(row.createdAt)
+                    // clientId, not id: the optimistic bubble and the saved one are the same
+                    // element, so sending does not remount it (that read as a flicker).
+                    return (
+                      <Fragment key={row.clientId}>
+                        {newLine?.index === index ? <NewMessagesLine count={newLine.count} /> : null}
+                        <MessageBubble
+                          ref={(el) => {
+                            if (row.id && el) rowRefs.current.set(row.id, el)
+                            else if (row.id) rowRefs.current.delete(row.id)
+                          }}
+                          message={row}
+                          own={row.authorUserId === meId}
+                          meId={meId}
+                          startsSeries={newDay || !sameSeries(previous, row)}
+                          showAuthor={conversation.kind === 'group'}
+                          authorOnline={onlineIds.has(row.authorUserId)}
+                          receipt={row.authorUserId === meId && !row.pending ? receiptState(row.createdAt, thread.receipts) : null}
+                          editing={editingId !== null && editingId === row.id}
+                          focused={focusedId !== null && focusedId === row.id}
+                          highlighted={highlightId !== null && highlightId === row.id}
+                          nameOf={memberName}
+                          actions={{
+                            onReply: () => startReply(row),
+                            onReact: (emoji) => react(row, emoji),
+                            onCopy: () => copy(row),
+                            onEditStart: () => row.id && setEditingId(row.id),
+                            onEditSave: (body) => {
+                              setEditingId(null)
+                              if (row.id) thread.edit(row.id, body).catch((err: Error) => toast.error(err.message))
+                            },
+                            onEditCancel: () => setEditingId(null),
+                            onDelete: () => row.id && deleteMessage(row.id),
+                            onRetry: () => void thread.retry(row.clientId),
+                            onDiscard: () => thread.discard(row.clientId),
+                            onOpenMedia: setViewing,
+                            onJumpToQuote: (messageId) => void jump({ messageId }),
+                            onRequestAccess: (refItem) => void requestAccess(row, refItem),
+                          }}
+                        />
+                      </Fragment>
+                    )
+                  })}
+                </section>
+              ))
             )}
 
             {thread.hasNewer ? (
@@ -585,6 +606,17 @@ function receiptState(createdAt: string, receipts: ChatReceipt[]): ReceiptState 
   if (receipts.every((r) => reached(r.readUpTo))) return 'seen'
   if (receipts.every((r) => reached(r.readUpTo) || reached(r.deliveredUpTo))) return 'delivered'
   return 'sent'
+}
+
+function groupByDay(rows: ThreadRow[]): { key: string; rows: { row: ThreadRow; index: number }[] }[] {
+  const days: { key: string; rows: { row: ThreadRow; index: number }[] }[] = []
+  rows.forEach((row, index) => {
+    const key = dayKey(row.createdAt)
+    const last = days.at(-1)
+    if (last?.key === key) last.rows.push({ row, index })
+    else days.push({ key, rows: [{ row, index }] })
+  })
+  return days
 }
 
 function sameSeries(previous: ThreadRow | undefined, current: ThreadRow): boolean {

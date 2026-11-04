@@ -115,6 +115,8 @@ export interface ChatConversationSummary {
   } | null
   unreadCount: number
   muted: boolean
+  /** Can rename the group and add or remove its members (its creator, or a team admin). */
+  canManage: boolean
 }
 
 export class ConversationForbiddenError extends Error {
@@ -331,6 +333,7 @@ export async function listConversations(me: SessionUser): Promise<ChatConversati
       userId: conversationMembers.userId,
       kind: conversations.kind,
       name: conversations.name,
+      createdByUserId: conversations.createdByUserId,
       displayName: users.displayName,
       email: users.email,
       lastSeenAt: users.lastSeenAt,
@@ -368,6 +371,7 @@ export async function listConversations(me: SessionUser): Promise<ChatConversati
       lastMessage: null,
       unreadCount: 0,
       muted: membership.muted,
+      canManage: row.kind === 'group' && canManageConversation(me, row.createdByUserId),
     })
   }
 

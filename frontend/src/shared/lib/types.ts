@@ -1567,6 +1567,8 @@ export interface ChatConversation {
   } | null
   unreadCount: number
   muted: boolean
+  /** Can rename the group and add or remove its members. */
+  canManage: boolean
 }
 
 export type ChatStreamEvent =

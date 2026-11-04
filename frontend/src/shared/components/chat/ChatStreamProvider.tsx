@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useMe } from '@/shared/hooks/use-me'
+import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
 import type { ChatStreamEvent } from '@/shared/lib/types'
 
@@ -29,6 +30,7 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
   const { can } = useMe()
   const enabled = can('mesaje.view')
   const [status, setStatus] = useState<ChatStreamStatus>('off')
+  const queryClient = useQueryClient()
   const handlers = useRef(new Set<(event: ChatStreamEvent) => void>())
 
   const subscribe = useCallback((handler: (event: ChatStreamEvent) => void) => {
@@ -42,6 +44,7 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
     if (!enabled) return
     let source: EventSource | null = null
     let heartbeat: number | null = null
+    let connectedBefore = false
 
     const emit = (event: ChatStreamEvent) => {
       for (const handler of handlers.current) handler(event)
@@ -65,7 +68,13 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
           }
         })
       }
-      stream.onopen = () => setStatus('live')
+      stream.onopen = () => {
+        setStatus('live')
+        // Whatever happened while the stream was down (tab hidden, laptop asleep, a deploy) never
+        // arrives as an event, and window focus does not refetch here: the chat queries reload.
+        if (connectedBefore) void queryClient.invalidateQueries({ queryKey: ['chat'] })
+        connectedBefore = true
+      }
       stream.onerror = () => {
         // readyState 2 = închis definitiv (403 după ce rolul i-a fost schimbat). Nu reintra
         // în buclă de reîncercare — poarta `mesaje.view` se verifică înainte de a deschide.
@@ -98,9 +107,8 @@ export function ChatStreamProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('online', open)
       close()
-      handlers.current.clear()
     }
-  }, [enabled])
+  }, [enabled, queryClient])
 
   const value = useMemo<ChatStreamValue>(() => ({ status, subscribe }), [status, subscribe])
   return <ChatStreamContext.Provider value={value}>{children}</ChatStreamContext.Provider>

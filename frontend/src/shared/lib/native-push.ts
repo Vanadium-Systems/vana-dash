@@ -93,4 +93,23 @@ export async function clearReadEmailNotifications(): Promise<void> {
   }
 }
 
+/**
+ * Clears the notification of every conversation that has nothing unread any more: read or answered
+ * on another device, or its unread message deleted. `unread` is the conversation list; a
+ * conversation missing from it (left, removed) counts as read.
+ */
+export async function clearReadChatNotifications(unread: Map<string, number>): Promise<void> {
+  if (!isPushNativeAvailable()) return
+  try {
+    const { notifications } = await PushNotifications.getDeliveredNotifications()
+    const toRemove = notifications.filter((n) => {
+      const conversationId = /^chat-([0-9a-f-]{36})$/.exec(n.tag ?? '')?.[1]
+      return conversationId !== undefined && (unread.get(conversationId) ?? 0) === 0
+    })
+    if (toRemove.length > 0) await PushNotifications.removeDeliveredNotifications({ notifications: toRemove })
+  } catch {
+    // Best effort, as for email.
+  }
+}
+
 export { PushNotifications }

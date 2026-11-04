@@ -1,4 +1,4 @@
-import { BellOff, Hash, Image, MessageSquarePlus, Paperclip, Users } from 'lucide-react'
+import { BellOff, Hash, Image, MessageSquarePlus, Paperclip } from 'lucide-react'
 import { useLayoutEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Badge } from '@/shared/components/ui/badge'
@@ -13,6 +13,7 @@ import { formatRelativeTime } from '@/shared/lib/format'
 import type { ChatConversation } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
 import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
+import { ChatAvatar } from './ChatAvatar'
 
 // The conversation column: "Groups" and "Direct" sections, unread ones with the name in bold and
 // a count in a `Badge`, so not colour alone. A row is two lines (#17): name and time, then the
@@ -141,6 +142,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ conversation, meId, typingIds }: { conversation: ChatConversation; meId: string; typingIds: string[] }) {
   useMinuteTick()
   const title = conversationTitle(conversation, meId)
+  const other = conversation.kind === 'dm' ? conversation.members.find((m) => m.id !== meId) : undefined
   const unread = conversation.unreadCount > 0
   const others = typingIds.filter((id) => id !== meId)
   const typingNames = others.map((id) => {
@@ -158,9 +160,7 @@ function Row({ conversation, meId, typingIds }: { conversation: ChatConversation
           cn('flex items-center gap-3 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', isActive && 'bg-accent')
         }
       >
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground" aria-hidden="true">
-          {conversation.kind === 'group' ? <Users className="h-4 w-4" /> : initials(title)}
-        </span>
+        <ChatAvatar size="lg" name={title} group={conversation.kind === 'group'} userId={other?.id} online={other?.presence === 'online'} />
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
             <span className={cn('min-w-0 flex-1 truncate text-sm', unread && 'font-semibold')}>{title}</span>
@@ -203,16 +203,5 @@ function Preview({ conversation, meId, unread }: { conversation: ChatConversatio
       {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
       <span className="min-w-0 truncate">{last.body || fallback}</span>
     </span>
-  )
-}
-
-function initials(name: string): string {
-  return (
-    name
-      .split(/[\s@.]+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? '')
-      .join('') || '?'
   )
 }

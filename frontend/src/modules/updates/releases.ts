@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-04T15:00:00+02:00',
+    title: {
+      ro: 'Mesaje: la zi pe toate device-urile, inițiale cu bulină, membri în grupuri',
+      en: 'Messages: current on every device, initials with a dot, group members',
+    },
+    body: {
+      ro: 'Ce scrii de pe telefon apare pe dash fără reîncărcare, și invers, chiar dacă tab-ul a stat în fundal. Când citești sau răspunzi pe dash, notificarea conversației dispare de pe telefon la următoarea deschidere a aplicației, la fel când mesajul necitit e șters. O conversație lungă se deschide la capăt, iar ziua de sus nu se mai adună una sub alta: Ieri lasă locul lui Azi. Fiecare om are inițialele în culoarea lui, cu bulină verde când e în aplicație; în grupuri le vezi lângă primul mesaj din serie. Acțiunile unui mesaj stau sub săgeata din colțul lui, ca în WhatsApp, nu într-o bară peste conversație. Cine a făcut grupul adaugă și scoate oameni din panoul conversației.',
+      en: 'What you write on the phone shows on the dash without a reload, and the other way round, even after the tab sat in the background. When you read or reply on the dash, the conversation’s notification leaves the phone the next time you open the app, and so it does when the unread message is deleted. A long conversation opens at its end, and the day at the top no longer piles up: Yesterday makes room for Today. Everyone has their initials in their own colour, with a green dot while they are in the app; in groups you see them beside the first message of a series. A message’s actions sit under the arrow in its corner, as in WhatsApp, not in a bar over the conversation. Whoever made a group adds and removes people from the conversation panel.',
+    },
+    features: ['mesaje.view'],
+  },
+  {
     publishedAt: '2026-11-04T12:30:00Z',
     title: {
       ro: 'Clienți: notițele se văd la orice zoom, arhiva e a fiecăruia',
