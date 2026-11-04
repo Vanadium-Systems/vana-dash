@@ -1,5 +1,5 @@
 import { Check, CheckCheck, ChevronDown, Clock, Copy, Loader2, Paperclip, Pencil, Play, Reply, RotateCw, Trash2 } from 'lucide-react'
-import { forwardRef, useRef, useState } from 'react'
+import { forwardRef, useRef, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { RefCard } from '@/shared/components/entity-cards/RefCard'
 import { FileTypeIcon } from '@/shared/components/FileTypeIcon'
@@ -117,6 +117,8 @@ export const MessageBubble = forwardRef<
   const images = attachments.filter((a) => IMAGE_TYPES.includes(a.contentType))
   const emojiOnly = !message.replyTo && attachments.length === 0 && message.refs.length === 0 && EMOJI_ONLY.test(message.body.trim())
   const photoOnly = !message.body && images.length === 1 && attachments.length === 1 && message.refs.length === 0 && !message.replyTo
+  // The arrow then sits in the photo's corner, over a shade, not on a patch of the bubble's colour.
+  const startsWithImage = !message.replyTo && attachments[0] !== undefined && IMAGE_TYPES.includes(attachments[0].contentType)
 
   const menuItems = (
     <>
@@ -147,6 +149,43 @@ export const MessageBubble = forwardRef<
         </>
       ) : null}
     </>
+  )
+
+  // Desktop only (CSS): shown on hover, on focus and while its menu is open. The wrapper is
+  // absolute because DropdownMenu renders an inline-block: in the flow it added an empty line to
+  // every bubble.
+  const actionsMenu = (
+    <div className={cn('msg-actions absolute z-10', startsWithImage ? 'right-0 top-0' : 'right-1 top-1', menuOpen && 'msg-actions-open')}>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <DropdownMenuTrigger
+          className={cn(
+            'flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            startsWithImage
+              ? 'rounded-tr-md bg-gradient-to-bl from-black/50 via-black/20 to-transparent pb-3 pl-5 pr-1 pt-1 text-white/90 hover:text-white'
+              : emojiOnly
+                ? 'rounded-full border bg-popover p-0.5 text-muted-foreground hover:text-foreground'
+                : // Fades into the bubble, so the end of the first line does not look cut off.
+                  cn(
+                    'rounded-tr-lg bg-gradient-to-l via-60% to-transparent pb-1 pl-4 pr-0.5 text-muted-foreground hover:text-foreground',
+                    own ? 'from-bubble-own via-bubble-own' : 'from-bubble-other via-bubble-other',
+                  ),
+          )}
+        >
+          <ChevronDown className="h-4 w-4" aria-hidden="true" />
+          <span className="sr-only">{t('messages:thread.messageActions')}</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align={own ? 'end' : 'start'}>
+          <ReactionRow
+            onPick={(emoji) => {
+              setMenuOpen(false)
+              actions.onReact(emoji)
+            }}
+            className="px-1 pb-1"
+          />
+          {menuItems}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 
   const meta = (
@@ -234,9 +273,10 @@ export const MessageBubble = forwardRef<
 
             {attachments.length > 0 ? (
               <ul className={cn('flex flex-col gap-1', (message.body || message.refs.length > 0) && 'mb-1')}>
-                {attachments.map((attachment) => (
+                {attachments.map((attachment, index) => (
                   <AttachmentItem
                     key={attachment.id}
+                    corner={index === 0 && canAct && startsWithImage ? actionsMenu : null}
                     attachment={attachment}
                     fill={photoOnly}
                     uploading={message.pending === 'sending'}
@@ -272,36 +312,7 @@ export const MessageBubble = forwardRef<
               <div className={cn('flex justify-end', photoOnly && 'absolute bottom-2 right-2')}>{meta}</div>
             ) : null}
 
-            {canAct ? (
-              // Desktop only (CSS): shown on hover, on focus and while its menu is open.
-              <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-                <DropdownMenuTrigger
-                  className={cn(
-                    'msg-actions absolute right-1 top-1 z-10 items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    menuOpen && 'msg-actions-open',
-                    photoOnly
-                      ? 'rounded-full bg-black/55 p-0.5 text-white/90 hover:text-white'
-                      : emojiOnly
-                        ? 'rounded-full border bg-popover p-0.5'
-                        : // Fades into the bubble, so the end of the first line does not look cut off.
-                          cn('rounded-tr-lg bg-gradient-to-l via-60% to-transparent pb-1 pl-4 pr-0.5', own ? 'from-bubble-own via-bubble-own' : 'from-bubble-other via-bubble-other'),
-                  )}
-                >
-                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
-                  <span className="sr-only">{t('messages:thread.messageActions')}</span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align={own ? 'end' : 'start'}>
-                  <ReactionRow
-                    onPick={(emoji) => {
-                      setMenuOpen(false)
-                      actions.onReact(emoji)
-                    }}
-                    className="px-1 pb-1"
-                  />
-                  {menuItems}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
+            {canAct && !startsWithImage ? actionsMenu : null}
           </div>
         )}
 
@@ -486,11 +497,24 @@ function EditForm({ initial, onSave, onCancel }: { initial: string; onSave: (bod
   )
 }
 
-function AttachmentItem({ attachment, fill, uploading, onOpen }: { attachment: ChatAttachment; fill: boolean; uploading: boolean; onOpen: () => void }) {
+function AttachmentItem({
+  attachment,
+  fill,
+  uploading,
+  onOpen,
+  corner,
+}: {
+  attachment: ChatAttachment
+  fill: boolean
+  uploading: boolean
+  onOpen: () => void
+  /** The message's arrow, over the photo's corner: `w-fit` keeps the item as wide as the photo. */
+  corner: ReactNode
+}) {
   const href = `/api/chat/attachments/${attachment.id}`
   if (IMAGE_TYPES.includes(attachment.contentType)) {
     return (
-      <li className="relative">
+      <li className="relative w-fit max-w-full">
         <button type="button" onClick={onOpen} className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {/* The thumbnail (640px), not the original: a phone photo is megabytes. */}
           <img
@@ -501,6 +525,7 @@ function AttachmentItem({ attachment, fill, uploading, onOpen }: { attachment: C
           />
         </button>
         {uploading ? <Spinner /> : null}
+        {corner}
       </li>
     )
   }
