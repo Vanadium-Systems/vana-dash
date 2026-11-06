@@ -199,18 +199,23 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'email.trimitere',
     page: 'email',
-    routes: whole(
-      '/api/email/send',
-      '/api/email/threads/:id/reply',
-      '/api/email/messages/:id/forward',
-      '/api/email/drafts',
-      '/api/email/recent-addresses',
-      '/api/email/images',
-      // Undo and status of one's own send; longer than `/api/email/sends` (email.bulk).
-      '/api/email/sends/:id/scheduled',
-      '/api/email/sends/:id/status',
-      '/api/email/recipients',
-    ),
+    routes: [
+      ...whole(
+        '/api/email/send',
+        '/api/email/threads/:id/reply',
+        '/api/email/messages/:id/forward',
+        '/api/email/drafts',
+        '/api/email/recent-addresses',
+        '/api/email/images',
+        // Undo and status of one's own send.
+        '/api/email/sends/:id/scheduled',
+        '/api/email/sends/:id/status',
+        '/api/email/recipients',
+      ),
+      // The Sent folder (list, report, export) is linked for anyone who reads email. Without
+      // email.bulk the service narrows it to the person's own sends.
+      ...read('/api/email/sends'),
+    ],
   },
   {
     key: 'email.bulk',
@@ -218,7 +223,7 @@ export const FEATURES: FeatureDef[] = [
     routes: whole(
       '/api/email/bulk-send',
       '/api/email/sequences',
-      '/api/email/sends',
+      '/api/email/sends/recent-batches',
       '/api/email/send-quota',
       '/api/email/platform-clients',
     ),

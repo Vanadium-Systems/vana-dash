@@ -465,9 +465,12 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * sursă + secvență + engagement + perioadă, exact filtrele din SentTab.tsx. Un singur loc care
  * le traduce în SQL, ca raportul și exportul să numere garantat aceleași rânduri ca tabelul.
  */
-function buildSendFilterConditions(query: z.infer<typeof SendsFilterQuerySchema>): SQL[] {
+function buildSendFilterConditions(me: SessionUser, query: z.infer<typeof SendsFilterQuerySchema>): SQL[] {
   // An undone send never left; it stays in the table only for the undo itself.
   const conditions: SQL[] = [isNull(emailSends.deletedAt), ne(emailSends.status, 'cancelled')]
+  // The whole company's sends (campaigns, sequences, colleagues) are for email.bulk; anyone else
+  // sees only what they sent themselves.
+  if (!me.features.includes('email.bulk')) conditions.push(eq(emailSends.sentByUserId, me.id))
   if (query.source === 'manual') conditions.push(isNull(emailSends.batchId), isNull(emailSends.sequenceEnrollmentId))
   if (query.source === 'bulk') conditions.push(sql`${emailSends.batchId} IS NOT NULL`)
   if (query.source === 'sequence') {
@@ -511,8 +514,8 @@ function buildSendFilterConditions(query: z.infer<typeof SendsFilterQuerySchema>
   return conditions
 }
 
-export async function listSends(query: z.infer<typeof SendsQuerySchema>) {
-  const conditions = buildSendFilterConditions(query)
+export async function listSends(me: SessionUser, query: z.infer<typeof SendsQuerySchema>) {
+  const conditions = buildSendFilterConditions(me, query)
   if (query.templateId) conditions.push(eq(emailSends.templateId, query.templateId))
   if (query.recipient) conditions.push(eq(emailSends.recipient, query.recipient))
   if (query.batchId) conditions.push(eq(emailSends.batchId, query.batchId))
@@ -585,8 +588,8 @@ const REPLIED_EXISTS = sql`EXISTS (
     AND COALESCE(em.received_at, em.created_at) > ${emailSends.createdAt}
 )`
 
-export async function getSendsReport(query: z.infer<typeof SendsFilterQuerySchema>) {
-  const conditions = buildSendFilterConditions(query)
+export async function getSendsReport(me: SessionUser, query: z.infer<typeof SendsFilterQuerySchema>) {
+  const conditions = buildSendFilterConditions(me, query)
 
   const [totalsRow] = await db
     .select({
@@ -666,8 +669,8 @@ function sendSourceLabel(row: { batchId: string | null; sequenceEnrollmentId: st
  * volumul unui singur outreach solo, vezi DELAY_BETWEEN_SENDS_MS mai sus; evită un export
  * nemărginit pe un `ytd` fără alt filtru).
  */
-export async function exportSendsCsv(query: z.infer<typeof SendsFilterQuerySchema>): Promise<string> {
-  const conditions = buildSendFilterConditions(query)
+export async function exportSendsCsv(me: SessionUser, query: z.infer<typeof SendsFilterQuerySchema>): Promise<string> {
+  const conditions = buildSendFilterConditions(me, query)
   const rows = await db.select().from(emailSends).where(and(...conditions)).orderBy(desc(emailSends.createdAt)).limit(5000)
 
   const header = ['data', 'sursa', 'de_la', 'catre', 'subiect', 'stare', 'deschideri', 'click-uri', 'dezabonat']

@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-06T11:30:00+02:00',
+    title: {
+      ro: 'Email: „Trimise” se deschide pentru toți cei care trimit',
+      en: 'Email: “Sent” opens for everyone who sends',
+    },
+    body: {
+      ro: 'Folderul „Trimise” dădea eroare la încărcarea istoricului pentru cine nu avea Trimitere Bulk. Acum îți arată emailurile trimise de tine, cu starea lor; campaniile și trimiterile colegilor rămân la cei cu Trimitere Bulk.',
+      en: 'The “Sent” folder failed to load its history for anyone without Bulk send. It now shows the emails you sent, with their state; campaigns and colleagues’ sends stay with whoever has Bulk send.',
+    },
+    features: ['email.trimitere'],
+  },
+  {
     publishedAt: '2026-11-04T17:30:00+02:00',
     title: {
       ro: 'Secvențe: înscrierile în ordine, pașii numărați corect',

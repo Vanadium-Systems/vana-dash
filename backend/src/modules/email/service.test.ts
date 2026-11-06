@@ -62,7 +62,7 @@ vi.mock('../../shared/lib/email.js', async (importOriginal) => {
   return { ...actual, sendEmailWithResult: sendEmailWithResultMock, fetchReceivedEmail: async () => null }
 })
 
-const { bulkSend, getRecentBatchIds, listSends, recordEngagementEvent, updateSendStatusFromWebhook } = await import('./service.js')
+const { bulkSend, getRecentBatchIds, getSendsReport, listSends, recordEngagementEvent, updateSendStatusFromWebhook } = await import('./service.js')
 const { dispatchScheduledSend, sendNew } = await import('./scheduled-send.js')
 
 // A 1:1 send now waits in the undo window; the tests make the row due and dispatch it by hand.
@@ -233,7 +233,7 @@ describe('listSends — q (căutare liberă în SentTab.tsx, 2026-09-03 — nu e
     const unique = randomUUID()
     await bulkSend(admin, { templateId, recipients: [{ email: `Findme-${unique}@Example.com` }, { email: `other-${unique}@example.com` }], from: 'contact' })
 
-    const { items } = await listSends({ q: `findme-${unique}`, limit: 200, offset: 0 })
+    const { items } = await listSends(admin, { q: `findme-${unique}`, limit: 200, offset: 0 })
     expect(items).toHaveLength(1)
     expect(items[0]!.recipient.toLowerCase()).toBe(`findme-${unique}@example.com`.toLowerCase())
   })
@@ -243,7 +243,7 @@ describe('listSends — q (căutare liberă în SentTab.tsx, 2026-09-03 — nu e
     const unique = randomUUID()
     await bulkSend(admin, { templateId, recipients: [{ email: `subj-${unique}@example.com`, nume: `Unic${unique}` }], from: 'contact' })
 
-    const { items } = await listSends({ q: `Salut Unic${unique}`, limit: 200, offset: 0 })
+    const { items } = await listSends(admin, { q: `Salut Unic${unique}`, limit: 200, offset: 0 })
     expect(items.some((r) => r.recipient === `subj-${unique}@example.com`)).toBe(true)
   })
 
@@ -252,8 +252,37 @@ describe('listSends — q (căutare liberă în SentTab.tsx, 2026-09-03 — nu e
     const unique = randomUUID()
     await bulkSend(admin, { templateId, recipients: [{ email: `qnomatch-${unique}@example.com` }], from: 'contact' })
 
-    const { items } = await listSends({ q: `nu-exista-${randomUUID()}`, limit: 200, offset: 0 })
+    const { items } = await listSends(admin, { q: `nu-exista-${randomUUID()}`, limit: 200, offset: 0 })
     expect(items.some((r) => r.recipient === `qnomatch-${unique}@example.com`)).toBe(false)
+  })
+})
+
+describe('Sent folder without email.bulk', () => {
+  // A colleague with email.trimitere sees only what they sent; email.bulk sees the whole company.
+  it('narrows list and report to the person\'s own sends', async () => {
+    const unique = randomUUID()
+    const rows = await db
+      .insert(emailSends)
+      .values([
+        { recipient: `own-${unique}@example.com`, subject: `Own ${unique}`, status: 'sent', sentByUserId: admin.id },
+        { recipient: `other-${unique}@example.com`, subject: `Other ${unique}`, status: 'sent', sentByUserId: null },
+      ])
+      .returning({ id: emailSends.id })
+    try {
+      const colleague = { ...admin, features: ['email.view', 'email.trimitere'] }
+      const own = await listSends(colleague, { q: unique, limit: 200, offset: 0 })
+      expect(own.items.map((r) => r.recipient)).toEqual([`own-${unique}@example.com`])
+
+      const everyone = await listSends(admin, { q: unique, limit: 200, offset: 0 })
+      expect(everyone.total).toBe(2)
+
+      const window = { from: new Date(Date.now() - 60_000).toISOString(), to: new Date(Date.now() + 60_000).toISOString() }
+      const all = await getSendsReport(admin, window)
+      const mine = await getSendsReport(colleague, window)
+      expect(mine.totals.sent).toBeLessThan(all.totals.sent)
+    } finally {
+      await db.delete(emailSends).where(inArray(emailSends.id, rows.map((r) => r.id)))
+    }
   })
 })
 
@@ -270,7 +299,7 @@ describe('listSends — batchId filter (2026-08-11, persistă status-ul bulk-sen
     sendEmailWithResultMock.mockResolvedValue({ ok: true })
     await bulkSend(admin, { templateId, recipients: [{ email: 'other-batch@example.com' }], from: 'contact' })
 
-    const { items, total } = await listSends({ batchId, limit: 200, offset: 0 })
+    const { items, total } = await listSends(admin, { batchId, limit: 200, offset: 0 })
     expect(items).toHaveLength(2)
     expect(total).toBe(2)
     expect(items.every((r) => r.batchId === batchId)).toBe(true)
@@ -283,7 +312,7 @@ describe('listSends — batchId filter (2026-08-11, persistă status-ul bulk-sen
     const batchIdA = first.results[0]!.batchId!
     const batchIdB = second.results[0]!.batchId!
 
-    const { items } = await listSends({ batchIds: `${batchIdA},not-a-uuid,${batchIdB}`, limit: 200, offset: 0 })
+    const { items } = await listSends(admin, { batchIds: `${batchIdA},not-a-uuid,${batchIdB}`, limit: 200, offset: 0 })
     expect(items.map((r) => r.recipient).sort()).toEqual(['multi-batch-a@example.com', 'multi-batch-b@example.com'])
   })
 
@@ -298,7 +327,7 @@ describe('listSends — batchId filter (2026-08-11, persistă status-ul bulk-sen
     await db.insert(emailSuppressions).values({ email: 'later-unsub@example.com' })
 
     try {
-      const { items } = await listSends({ batchId, limit: 200, offset: 0 })
+      const { items } = await listSends(admin, { batchId, limit: 200, offset: 0 })
       const unsub = items.find((r) => r.recipient === 'later-unsub@example.com')
       const staysSub = items.find((r) => r.recipient === 'stays-subscribed@example.com')
       expect(unsub?.isSuppressed).toBe(true)

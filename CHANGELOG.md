@@ -4,6 +4,17 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-06: Email: the Sent folder loads for everyone who sends
+
+### Fixed
+- The Sent folder was linked for every email reader but its routes (`GET /api/email/sends`,
+  `/sends/report`, `/sends/export`) required `email.bulk`, so colleagues without it got a 403
+  and an empty history. Reading those routes now falls under `email.trimitere`; without
+  `email.bulk` the service narrows list, report and export to the person's own sends
+  (`sent_by_user_id`). `/sends/recent-batches` and `/sequences` stay under `email.bulk`.
+- The Sent link is shown only with `email.trimitere`, and the source and sequence filters only
+  with `email.bulk`.
+
 ## 2026-11-04: Prospects: notes always visible, per-user archive
 
 ### Changed

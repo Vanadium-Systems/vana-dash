@@ -9,7 +9,11 @@ import { eq } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { emailMessages, emailSends, emailSuppressions, emailThreads } from '../../shared/db/schema/index.js'
+import type { SessionUser } from '../../shared/lib/session.js'
 import { getSendsReport } from './service.js'
+
+// Only the features matter here: email.bulk sees every send.
+const admin = { id: randomUUID(), features: ['email.bulk'] } as SessionUser
 
 const WINDOW_FROM = '2020-01-01T00:00:00.000Z'
 const WINDOW_TO = '2020-01-02T00:00:00.000Z'
@@ -64,7 +68,7 @@ describe('getSendsReport — replied (manual sends, nu doar secvențe)', () => {
       receivedAt: new Date('2020-01-01T12:00:00Z'), // DUPĂ send (10:00)
     })
 
-    const report = await getSendsReport({ from: WINDOW_FROM, to: WINDOW_TO })
+    const report = await getSendsReport(admin, { from: WINDOW_FROM, to: WINDOW_TO })
 
     expect(report.totals.sent).toBe(2)
     expect(report.totals.replied).toBe(1)
@@ -93,7 +97,7 @@ describe('getSendsReport — replied (manual sends, nu doar secvențe)', () => {
       receivedAt: new Date('2020-01-01T09:00:00Z'), // ÎNAINTE de send (15:00)
     })
 
-    const report = await getSendsReport({ from: '2020-01-01T14:00:00.000Z', to: '2020-01-01T16:00:00.000Z' })
+    const report = await getSendsReport(admin, { from: '2020-01-01T14:00:00.000Z', to: '2020-01-01T16:00:00.000Z' })
     expect(report.totals.sent).toBe(1)
     expect(report.totals.replied).toBe(0)
   })
@@ -120,7 +124,7 @@ describe('getSendsReport — replied (manual sends, nu doar secvențe)', () => {
       receivedAt: new Date('2020-01-01T21:00:00Z'),
     })
 
-    const report = await getSendsReport({ from: '2020-01-01T19:00:00.000Z', to: '2020-01-01T22:00:00.000Z' })
+    const report = await getSendsReport(admin, { from: '2020-01-01T19:00:00.000Z', to: '2020-01-01T22:00:00.000Z' })
     expect(report.totals.sent).toBe(1)
     expect(report.totals.replied).toBe(1)
   })
@@ -152,7 +156,7 @@ describe('getSendsReport — unsubscribed (bug self-join fără alias, 2026-08-2
     const [suppBounced] = await db.insert(emailSuppressions).values({ email: bouncedRecipient }).returning()
     suppressionIds.push(suppPure!.id, suppBounced!.id)
 
-    const report = await getSendsReport({ from: WINDOW_FROM, to: WINDOW_TO })
+    const report = await getSendsReport(admin, { from: WINDOW_FROM, to: WINDOW_TO })
     expect(report.totals.unsubscribed).toBe(1)
   })
 })

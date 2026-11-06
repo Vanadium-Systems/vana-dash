@@ -22,6 +22,7 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { Select } from '@/shared/components/ui/select'
 import { formatNumber, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { useMe } from '@/shared/hooks/use-me'
 
 type SourceFilter = 'all' | 'manual' | 'sequence' | 'bulk'
 const SOURCE_LABELS: Record<SourceFilter, string> = { all: t('common:labels.all'), manual: t('email:sent.sourceManual'), sequence: t('email:labels.sequence'), bulk: t('email:sent.sourceBulk') }
@@ -343,10 +344,14 @@ export function SentTab() {
     setPage(0)
   }, [source, sequenceId, engagement, status, debouncedQ, period, pageSize])
 
+  // Without email.bulk the folder holds only one's own 1:1 sends, so there is no source to pick.
+  const { can } = useMe()
+  const seesCampaigns = can('email.bulk')
   const sequences = useQuery({
     queryKey: ['email', 'sequences'],
     queryFn: () => api.get<EmailSequence[]>('/api/email/sequences'),
     staleTime: 5 * 60 * 1000,
+    enabled: seesCampaigns,
   })
 
   // Filtrele comune listei/raportului/exportului — sursă, secvență, engagement, perioadă.
@@ -397,7 +402,9 @@ export function SentTab() {
           </div>
           <FiltersMenu
             groups={[
-              { key: 'source', title: t('email:sent.filterSource'), value: source, defaultValue: 'all', options: entries(SOURCE_LABELS), onChange: (v) => setSource(v as SourceFilter) },
+              ...(seesCampaigns
+                ? [{ key: 'source', title: t('email:sent.filterSource'), value: source, defaultValue: 'all', options: entries(SOURCE_LABELS), onChange: (v: string) => setSource(v as SourceFilter) }]
+                : []),
               { key: 'engagement', title: t('email:sent.filterReaction'), value: engagement, defaultValue: 'all', options: entries(ENGAGEMENT_LABELS), onChange: (v) => setEngagement(v as EngagementFilter) },
               { key: 'status', title: t('email:sent.filterStatus'), value: status, defaultValue: 'all', options: entries(STATUS_FILTER_LABELS), onChange: (v) => setStatus(v as StatusFilter) },
               { key: 'period', title: t('common:period.label'), value: period, defaultValue: '30d', options: PERIODS, onChange: setPeriod },

@@ -183,7 +183,7 @@ export function EmailSidebar({
         {item({ kind: 'mailbox', starred: true }, <Star className="h-4 w-4" />, t('email:folders.starred'))}
         {item({ kind: 'mailbox', snoozed: true }, <Clock className="h-4 w-4" />, t('email:folders.snoozed'))}
         {item({ kind: 'drafts' }, <FileEdit className="h-4 w-4" />, t('email:folders.drafts'))}
-        {item({ kind: 'sent' }, <Send className="h-4 w-4" />, t('email:folders.sent'))}
+        {can('email.trimitere') ? item({ kind: 'sent' }, <Send className="h-4 w-4" />, t('email:folders.sent')) : null}
         {item({ kind: 'mailbox', folder: 'archive' }, <Archive className="h-4 w-4" />, t('email:folders.archive'))}
         {item({ kind: 'mailbox', folder: 'spam' }, <ShieldAlert className="h-4 w-4" />, t('email:folders.spam'), unreadCounts.data?.spam)}
         {item({ kind: 'mailbox', folder: 'trash' }, <Trash2 className="h-4 w-4" />, t('email:folders.trash'))}

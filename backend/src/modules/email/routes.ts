@@ -161,7 +161,7 @@ export async function emailRoutes(app: FastifyInstance) {
     '/api/email/sends',
     { preHandler: [app.authenticate], schema: { querystring: SendsQuerySchema } },
     async (req) => {
-      return { success: true, data: await service.listSends(req.query) }
+      return { success: true, data: await service.listSends(req.me, req.query) }
     },
   )
 
@@ -177,7 +177,7 @@ export async function emailRoutes(app: FastifyInstance) {
     '/api/email/sends/report',
     { preHandler: [app.authenticate], schema: { querystring: SendsFilterQuerySchema } },
     async (req) => {
-      return { success: true, data: await service.getSendsReport(req.query) }
+      return { success: true, data: await service.getSendsReport(req.me, req.query) }
     },
   )
 
@@ -185,7 +185,7 @@ export async function emailRoutes(app: FastifyInstance) {
     '/api/email/sends/export',
     { preHandler: [app.authenticate], schema: { querystring: SendsFilterQuerySchema } },
     async (req, reply) => {
-      const csv = await service.exportSendsCsv(req.query)
+      const csv = await service.exportSendsCsv(req.me, req.query)
       return reply.type('text/csv').header('Content-Disposition', 'attachment; filename="email-sends.csv"').send(csv)
     },
   )

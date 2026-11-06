@@ -96,6 +96,10 @@ const SOURCES: GuideSource[] = [
         en: 'A wide HTML email shrinks to fit the screen, mostly on a phone; “Actual size” shows it as it was sent.',
       },
       {
+        ro: '„Trimise” arată emailurile trimise de tine, cu starea fiecăruia (livrat, deschis, click). Cine are Trimitere Bulk vede acolo toate trimiterile firmei.',
+        en: '“Sent” lists the emails you sent, with the state of each (delivered, opened, clicked). Whoever has Bulk send sees every send of the company there.',
+      },
+      {
         ro: 'Scrie în câmpul de căutare ca să cauți în subiect și în conținut. Apar sugestii (adrese și fire), iar filtrele De la, Necitit, Are atașament, Cu stea și Perioadă îngustează rezultatele.',
         en: 'Type in the search field to search the subject and the content. Suggestions appear (addresses and threads), and the filters From, Unread, Has attachment, Starred and Period narrow the results.',
       },
