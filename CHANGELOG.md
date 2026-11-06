@@ -4,6 +4,15 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-06: Email: Sent covers shared mailboxes, Sent by filter
+
+### Changed
+- Without `email.bulk`, the Sent folder lists the person's own sends plus everything that left
+  from their mailboxes (`from_address` matched like the inbox), so a shared mailbox shows
+  colleagues' and sequences' sends too.
+- New `sentBy` filter on `/api/email/sends`, `/report` and `/export`: `me`, a user id, or `auto`
+  (no author). Each row shows who sent it.
+
 ## 2026-11-06: Email: the Sent folder loads for everyone who sends
 
 ### Fixed

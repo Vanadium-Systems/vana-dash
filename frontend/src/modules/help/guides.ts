@@ -96,8 +96,8 @@ const SOURCES: GuideSource[] = [
         en: 'A wide HTML email shrinks to fit the screen, mostly on a phone; “Actual size” shows it as it was sent.',
       },
       {
-        ro: '„Trimise” arată emailurile trimise de tine, cu starea fiecăruia (livrat, deschis, click). Cine are Trimitere Bulk vede acolo toate trimiterile firmei.',
-        en: '“Sent” lists the emails you sent, with the state of each (delivered, opened, clicked). Whoever has Bulk send sees every send of the company there.',
+        ro: '„Trimise” arată ce ai trimis tu și tot ce a plecat de pe cutiile tale, inclusiv secvențele, cu starea fiecăruia (livrat, deschis, click). Pe o cutie comună, filtrul „Trimis de” arată doar ce ai trimis tu, ce a trimis un coleg sau ce a plecat automat. Cine are Trimitere Bulk vede toate trimiterile firmei.',
+        en: '“Sent” lists what you sent and everything that left your mailboxes, sequences included, with the state of each (delivered, opened, clicked). On a shared mailbox, the “Sent by” filter shows only what you sent, what a colleague sent, or what went out automatically. Whoever has Bulk send sees every send of the company.',
       },
       {
         ro: 'Scrie în câmpul de căutare ca să cauți în subiect și în conținut. Apar sugestii (adrese și fire), iar filtrele De la, Necitit, Are atașament, Cu stea și Perioadă îngustează rezultatele.',

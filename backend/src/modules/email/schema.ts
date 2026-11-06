@@ -90,6 +90,8 @@ export const SendsFilterQuerySchema = z.object({
   // Any source: opened, clicked, engaged (either), unengaged (no reaction) or unsubscribed
   // (email_suppressions), independent of the delivery status.
   engagement: z.enum(['engaged', 'opened', 'clicked', 'unengaged', 'unsubscribed']).optional(),
+  // Who sent it from a shared mailbox: 'me', a colleague's id, or 'auto' (sequences, no author).
+  sentBy: z.union([z.enum(['me', 'auto']), z.string().uuid()]).optional(),
   // Delivery outcome, from the Resend webhook.
   status: z.enum(['delivered', 'bounced', 'complained', 'failed']).optional(),
   // Perioadă — mirror PeriodQuerySchema din financials/metrics (duplicat intenționat, module

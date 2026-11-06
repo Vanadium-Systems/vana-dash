@@ -260,6 +260,9 @@
     "filterSource": "Source",
     "filterReaction": "Reaction",
     "filterStatus": "Status",
+    "filterSentBy": "Sent by",
+    "sentByMe": "Me",
+    "sentByAuto": "Automatic (sequences)",
     "clearFilters": "Clear filters",
     "statFilterHint": "Show only these emails; click again to remove the filter",
     "filters": "Filters"

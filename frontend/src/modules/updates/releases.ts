@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-06T12:30:00+02:00',
+    title: {
+      ro: 'Email: „Trimise” arată și cutiile comune, cu filtrul „Trimis de”',
+      en: 'Email: “Sent” covers shared mailboxes, with a “Sent by” filter',
+    },
+    body: {
+      ro: 'În „Trimise” vezi tot ce a plecat de pe cutiile tale, nu doar ce ai trimis tu: pe o cutie comună, ca outreach, apar și emailurile colegilor și ale secvențelor. Sub adresă scrie cine a trimis, iar filtrul „Trimis de” te lasă să vezi doar ce ai trimis tu, ce a trimis un coleg sau ce a plecat automat.',
+      en: 'In “Sent” you see everything that left your mailboxes, not only what you sent: on a shared mailbox such as outreach, colleagues’ and sequences’ emails show up too. Under the address it says who sent it, and the “Sent by” filter shows only what you sent, what a colleague sent, or what went out automatically.',
+    },
+    features: ['email.trimitere'],
+  },
+  {
     publishedAt: '2026-11-06T11:30:00+02:00',
     title: {
       ro: 'Email: „Trimise” se deschide pentru toți cei care trimit',

@@ -23,6 +23,7 @@ import { Select } from '@/shared/components/ui/select'
 import { formatNumber, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { useMe } from '@/shared/hooks/use-me'
+import { memberNameMap, useTeamMembers } from '@/shared/hooks/use-team'
 
 type SourceFilter = 'all' | 'manual' | 'sequence' | 'bulk'
 const SOURCE_LABELS: Record<SourceFilter, string> = { all: t('common:labels.all'), manual: t('email:sent.sourceManual'), sequence: t('email:labels.sequence'), bulk: t('email:sent.sourceBulk') }
@@ -324,6 +325,7 @@ export function SentTab() {
   const [sequenceId, setSequenceId] = useState<string>('')
   const [engagement, setEngagement] = useState<EngagementFilter>('all')
   const [status, setStatus] = useState<StatusFilter>('all')
+  const [sentBy, setSentBy] = useState('all')
   const [q, setQ] = useState('')
   const debouncedQ = useDebounced(q, 300)
   const [pageSize, setPageSize] = useState(50)
@@ -342,11 +344,20 @@ export function SentTab() {
   // Filtru schimbat → pagina 1, altfel rămâi pe o pagină care poate să nu mai existe în noul set.
   useEffect(() => {
     setPage(0)
-  }, [source, sequenceId, engagement, status, debouncedQ, period, pageSize])
+  }, [source, sequenceId, engagement, status, sentBy, debouncedQ, period, pageSize])
 
   // Without email.bulk the folder holds only one's own 1:1 sends, so there is no source to pick.
-  const { can } = useMe()
+  const { can, session } = useMe()
   const seesCampaigns = can('email.bulk')
+  // On a shared mailbox several people send from the same address; the name tells them apart.
+  const team = useTeamMembers()
+  const names = memberNameMap(team.data)
+  const sentByOptions = [
+    { value: 'all', label: t('common:labels.all') },
+    { value: 'me', label: t('email:sent.sentByMe') },
+    ...(team.data ?? []).filter((m) => m.id !== session?.user.id && m.status === 'active').map((m) => ({ value: m.id, label: names.get(m.id) ?? m.email })),
+    { value: 'auto', label: t('email:sent.sentByAuto') },
+  ]
   const sequences = useQuery({
     queryKey: ['email', 'sequences'],
     queryFn: () => api.get<EmailSequence[]>('/api/email/sequences'),
@@ -360,6 +371,7 @@ export function SentTab() {
   if (source === 'sequence' && sequenceId) filterParams.set('sequenceId', sequenceId)
   if (engagement !== 'all') filterParams.set('engagement', engagement)
   if (status !== 'all') filterParams.set('status', status)
+  if (sentBy !== 'all') filterParams.set('sentBy', sentBy)
   filterParams.set('period', period)
 
   const params = new URLSearchParams(filterParams)
@@ -405,6 +417,7 @@ export function SentTab() {
               ...(seesCampaigns
                 ? [{ key: 'source', title: t('email:sent.filterSource'), value: source, defaultValue: 'all', options: entries(SOURCE_LABELS), onChange: (v: string) => setSource(v as SourceFilter) }]
                 : []),
+              { key: 'sentBy', title: t('email:sent.filterSentBy'), value: sentBy, defaultValue: 'all', options: sentByOptions, onChange: setSentBy },
               { key: 'engagement', title: t('email:sent.filterReaction'), value: engagement, defaultValue: 'all', options: entries(ENGAGEMENT_LABELS), onChange: (v) => setEngagement(v as EngagementFilter) },
               { key: 'status', title: t('email:sent.filterStatus'), value: status, defaultValue: 'all', options: entries(STATUS_FILTER_LABELS), onChange: (v) => setStatus(v as StatusFilter) },
               { key: 'period', title: t('common:period.label'), value: period, defaultValue: '30d', options: PERIODS, onChange: setPeriod },
@@ -413,6 +426,7 @@ export function SentTab() {
               setSource('all')
               setEngagement('all')
               setStatus('all')
+              setSentBy('all')
               setSequenceId('')
               setPeriod('30d')
             }}
@@ -468,7 +482,10 @@ export function SentTab() {
               {items.map((s) => (
                 <TableRow key={s.id} className="cursor-pointer" onClick={() => setViewing(s)}>
                   <TableCell priority="md" className="whitespace-nowrap text-sm text-muted-foreground">{formatDate(s.createdAt)}</TableCell>
-                  <TableCell priority="lg" className="max-w-[14rem] truncate text-sm">{s.fromAddress ?? '—'}</TableCell>
+                  <TableCell priority="lg" className="max-w-[14rem] text-sm">
+                    <div className="truncate">{s.fromAddress ?? '—'}</div>
+                    <div className="truncate text-xs text-muted-foreground">{s.sentByUserId ? (names.get(s.sentByUserId) ?? '—') : t('email:sent.sentByAuto')}</div>
+                  </TableCell>
                   <TableCell priority="md" className="max-w-[14rem] truncate text-sm">{s.recipient}</TableCell>
                   <TableCell className="tbl-truncate w-full max-w-0 text-sm">
                     <div className="truncate">{s.subject}</div>

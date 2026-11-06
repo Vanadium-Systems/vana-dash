@@ -8,7 +8,7 @@ import { getResendSentCount, sendEmailWithResult, type SendEmailResult } from '.
 import type { PreparedSend } from './scheduled-send.js'
 import { assertCanDeliver, countOutreachSendsToday, EmailSuppressedError, OutreachCapError } from './send-guard.js'
 import type { SessionUser } from '../../shared/lib/session.js'
-import { assertCanSendFrom } from './mailboxes.js'
+import { assertCanSendFrom, mailboxAddresses, sendFromMailboxes } from './mailboxes.js'
 import { resolvePeriod } from '../../shared/lib/period.js'
 import { wrapBulkCampaignHtml } from './campaign-layout.js'
 import { htmlToPlainText } from './html-to-text.js'
@@ -465,12 +465,16 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * sursă + secvență + engagement + perioadă, exact filtrele din SentTab.tsx. Un singur loc care
  * le traduce în SQL, ca raportul și exportul să numere garantat aceleași rânduri ca tabelul.
  */
-function buildSendFilterConditions(me: SessionUser, query: z.infer<typeof SendsFilterQuerySchema>): SQL[] {
+async function buildSendFilterConditions(me: SessionUser, query: z.infer<typeof SendsFilterQuerySchema>): Promise<SQL[]> {
   // An undone send never left; it stays in the table only for the undo itself.
   const conditions: SQL[] = [isNull(emailSends.deletedAt), ne(emailSends.status, 'cancelled')]
-  // The whole company's sends (campaigns, sequences, colleagues) are for email.bulk; anyone else
-  // sees only what they sent themselves.
-  if (!me.features.includes('email.bulk')) conditions.push(eq(emailSends.sentByUserId, me.id))
+  // email.bulk sees every send of the company. Anyone else sees what they sent and what left from
+  // their mailboxes, sequences included, like the inbox of those mailboxes.
+  if (!me.features.includes('email.bulk')) {
+    const addresses = (await mailboxAddresses(me)) ?? []
+    const own = or(eq(emailSends.sentByUserId, me.id), sendFromMailboxes(addresses, emailSends.fromAddress))
+    if (own) conditions.push(own)
+  }
   if (query.source === 'manual') conditions.push(isNull(emailSends.batchId), isNull(emailSends.sequenceEnrollmentId))
   if (query.source === 'bulk') conditions.push(sql`${emailSends.batchId} IS NOT NULL`)
   if (query.source === 'sequence') {
@@ -484,6 +488,9 @@ function buildSendFilterConditions(me: SessionUser, query: z.infer<typeof SendsF
       )
     }
   }
+  if (query.sentBy === 'me') conditions.push(eq(emailSends.sentByUserId, me.id))
+  else if (query.sentBy === 'auto') conditions.push(isNull(emailSends.sentByUserId))
+  else if (query.sentBy) conditions.push(eq(emailSends.sentByUserId, query.sentBy))
   if (query.status) conditions.push(eq(emailSends.status, query.status))
   if (query.engagement === 'opened') conditions.push(sql`${emailSends.openCount} > 0`)
   if (query.engagement === 'clicked') conditions.push(sql`${emailSends.clickCount} > 0`)
@@ -515,7 +522,7 @@ function buildSendFilterConditions(me: SessionUser, query: z.infer<typeof SendsF
 }
 
 export async function listSends(me: SessionUser, query: z.infer<typeof SendsQuerySchema>) {
-  const conditions = buildSendFilterConditions(me, query)
+  const conditions = await buildSendFilterConditions(me, query)
   if (query.templateId) conditions.push(eq(emailSends.templateId, query.templateId))
   if (query.recipient) conditions.push(eq(emailSends.recipient, query.recipient))
   if (query.batchId) conditions.push(eq(emailSends.batchId, query.batchId))
@@ -589,7 +596,7 @@ const REPLIED_EXISTS = sql`EXISTS (
 )`
 
 export async function getSendsReport(me: SessionUser, query: z.infer<typeof SendsFilterQuerySchema>) {
-  const conditions = buildSendFilterConditions(me, query)
+  const conditions = await buildSendFilterConditions(me, query)
 
   const [totalsRow] = await db
     .select({
@@ -670,7 +677,7 @@ function sendSourceLabel(row: { batchId: string | null; sequenceEnrollmentId: st
  * nemărginit pe un `ytd` fără alt filtru).
  */
 export async function exportSendsCsv(me: SessionUser, query: z.infer<typeof SendsFilterQuerySchema>): Promise<string> {
-  const conditions = buildSendFilterConditions(me, query)
+  const conditions = await buildSendFilterConditions(me, query)
   const rows = await db.select().from(emailSends).where(and(...conditions)).orderBy(desc(emailSends.createdAt)).limit(5000)
 
   const header = ['data', 'sursa', 'de_la', 'catre', 'subiect', 'stare', 'deschideri', 'click-uri', 'dezabonat']

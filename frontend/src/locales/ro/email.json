@@ -269,6 +269,9 @@
     "filterSource": "Sursă",
     "filterReaction": "Reacție",
     "filterStatus": "Stare",
+    "filterSentBy": "Trimis de",
+    "sentByMe": "Eu",
+    "sentByAuto": "Automat (secvențe)",
     "clearFilters": "Șterge filtrele",
     "statFilterHint": "Arată doar emailurile acestea; încă un click scoate filtrul",
     "filters": "Filtre"

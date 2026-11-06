@@ -68,6 +68,12 @@ export function messageVisibleTo(addresses: string[] | null): SQL | undefined {
   )`
 }
 
+/** A row of `email_sends` that left from one of the person's mailboxes. */
+export function sendFromMailboxes(addresses: string[], fromAddress: Column): SQL {
+  if (addresses.length === 0) return sql`false`
+  return sql`${addressOf(fromAddress)} = ANY(${addressList(addresses)})`
+}
+
 export class MailboxForbidden extends Error {
   readonly code = 'MAILBOX_FORBIDDEN'
   constructor(readonly fromKey: string) {

@@ -13,6 +13,7 @@ import { emailDrafts, emailSends, emailSuppressions, emailTemplates, roles, user
 import type { EmailAttachment, SendEmailResult } from '../../shared/lib/email.js'
 import { saveDocument } from '../../shared/lib/storage.js'
 import { emailImageStoragePath } from './images-service.js'
+import { getIdentities } from './settings-service.js'
 
 import { effectiveFeatures } from '../../shared/lib/session.js'
 import type { SessionUser } from '../../shared/lib/session.js'
@@ -259,22 +260,30 @@ describe('listSends — q (căutare liberă în SentTab.tsx, 2026-09-03 — nu e
 
 describe('Sent folder without email.bulk', () => {
   // A colleague with email.trimitere sees only what they sent; email.bulk sees the whole company.
-  it('narrows list and report to the person\'s own sends', async () => {
+  it('narrows list and report to the person\'s own sends and mailboxes', async () => {
     const unique = randomUUID()
+    const mailbox = (await getIdentities()).find((identity) => identity.key !== 'stefan')
     const rows = await db
       .insert(emailSends)
       .values([
         { recipient: `own-${unique}@example.com`, subject: `Own ${unique}`, status: 'sent', sentByUserId: admin.id },
         { recipient: `other-${unique}@example.com`, subject: `Other ${unique}`, status: 'sent', sentByUserId: null },
+        // A sequence send from a mailbox the colleague holds: no author, still theirs to see.
+        { recipient: `box-${unique}@example.com`, subject: `Box ${unique}`, status: 'sent', sentByUserId: null, fromAddress: mailbox!.fromAddress },
       ])
       .returning({ id: emailSends.id })
     try {
-      const colleague = { ...admin, features: ['email.view', 'email.trimitere'] }
+      const colleague = { ...admin, features: ['email.view', 'email.trimitere'], mailboxes: [mailbox!.key] }
       const own = await listSends(colleague, { q: unique, limit: 200, offset: 0 })
-      expect(own.items.map((r) => r.recipient)).toEqual([`own-${unique}@example.com`])
+      expect(own.items.map((r) => r.recipient).sort()).toEqual([`box-${unique}@example.com`, `own-${unique}@example.com`])
 
       const everyone = await listSends(admin, { q: unique, limit: 200, offset: 0 })
-      expect(everyone.total).toBe(2)
+      expect(everyone.total).toBe(3)
+
+      const mineOnly = await listSends(colleague, { q: unique, sentBy: 'me', limit: 200, offset: 0 })
+      expect(mineOnly.items.map((r) => r.recipient)).toEqual([`own-${unique}@example.com`])
+      const automatic = await listSends(colleague, { q: unique, sentBy: 'auto', limit: 200, offset: 0 })
+      expect(automatic.items.map((r) => r.recipient)).toEqual([`box-${unique}@example.com`])
 
       const window = { from: new Date(Date.now() - 60_000).toISOString(), to: new Date(Date.now() + 60_000).toISOString() }
       const all = await getSendsReport(admin, window)

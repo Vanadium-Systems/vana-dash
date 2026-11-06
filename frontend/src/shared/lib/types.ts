@@ -727,6 +727,7 @@ export interface EmailSend {
   templateId: string | null
   recipient: string
   fromAddress: string | null
+  sentByUserId: string | null
   subject: string
   bodyText: string | null
   bodyHtml: string | null
