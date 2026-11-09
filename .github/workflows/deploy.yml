@@ -112,11 +112,10 @@ jobs:
 
   # Does this push touch anything native? Everything else (backend, web UI) reaches the APK
   # live when it is reopened, with no reinstall, so rebuilding on every push only cost five
-  # minutes for nothing.
+  # minutes for nothing. Needs nothing, so it runs next to the builds.
   changes:
     name: Detect native changes
     runs-on: ubuntu-latest
-    needs: deploy
     outputs:
       native: ${{ steps.filter.outputs.native }}
     steps:
@@ -132,7 +131,10 @@ jobs:
 
   # The Capacitor APK is a thin shell that loads the deployed web app, so a native rebuild
   # matters only when plugins, the manifest or versionCode change (the `changes` job above).
-  # It runs after the deploy (needs), otherwise the deploy's rewrite of dist/ would delete it.
+  # Runs next to the deploy. The canonical copy is ~/vana-dash-secrets/vanadash.apk, which
+  # deploy-prod.sh puts back into the freshly emptied dist/; writing the canonical copy first and
+  # dist/ second leaves the new APK served whichever of the two jobs finishes last. Writing only
+  # dist/ (as before) lost every new APK at the next deploy, to a copy from August.
   # Signed for release with the key from secrets.
   apk:
     name: Build + publish APK
@@ -209,5 +211,22 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           source: vanadash.apk
-          target: /home/${{ secrets.VPS_USER }}/vana-dash/frontend/dist
+          target: /home/${{ secrets.VPS_USER }}/vana-dash-releases/apk
           strip_components: 0
+
+      - name: Publish APK
+        # mv within one filesystem is atomic, so neither the deploy nor a download ever reads a
+        # half-written file.
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            mkdir -p "$HOME/vana-dash-secrets" "$HOME/vana-dash/frontend/dist"
+            mv "$HOME/vana-dash-releases/apk/vanadash.apk" "$HOME/vana-dash-secrets/vanadash.apk"
+            # A deploy emptying dist/ right now restores the canonical copy itself.
+            { cp "$HOME/vana-dash-secrets/vanadash.apk" "$HOME/vana-dash/frontend/dist/.vanadash.apk.tmp" \
+              && mv "$HOME/vana-dash/frontend/dist/.vanadash.apk.tmp" "$HOME/vana-dash/frontend/dist/vanadash.apk"; } \
+              || echo "dist/ was being rewritten; deploy-prod.sh puts the canonical APK back"
