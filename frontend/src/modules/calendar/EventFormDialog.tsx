@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { MessageSquareShare } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
 import { Button } from '@/shared/components/ui/button'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
@@ -11,18 +10,18 @@ import { TimeInput } from '@/shared/components/ui/time-input'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
-import { CHART_COLORS } from '@/shared/lib/chart-colors'
-import type { CalendarEvent, CalendarLayer, CalendarOccurrence } from '@/shared/lib/types'
+import { personTag, TAG_COLORS, tagColor } from '@/shared/lib/tag-colors'
+import type { CalendarEvent, CalendarLayer, CalendarOccurrence, SeriesScope } from '@/shared/lib/types'
 import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { useMe } from '@/shared/hooks/use-me'
 import { toDatetimeLocalValue, WEEKDAY_LABELS } from './date-utils'
-import { BYDAY_CODES, buildRecurrence, parseRecurrence, recurrenceEndInputValue, recurrenceEndIso, type RecurrenceType } from './recurrence'
-import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { BYDAY_CODES, buildRecurrence, describeRule, parseRecurrence, recurrenceEndInputValue, recurrenceEndIso, type RecurrenceType } from './recurrence'
+import { revertableToast } from './calendar-undo'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 
-const COLORS: string[] = [...CHART_COLORS]
-const DEFAULT_COLOR = COLORS[0] ?? '#2a78d6'
+// Stored as `tag-<n>` (the shared category palette); null = the owner's own colour, as in chat.
+const TAG_VALUES = TAG_COLORS.map((n) => `tag-${n}`)
 
 // startAt/endAt rămân un singur string "YYYY-MM-DDTHH:mm" (toDatetimeLocalValue) — doar UI-ul
 // le arată ca 2 input-uri separate (dată + oră), mai ușor de folosit decât un <input
@@ -40,31 +39,40 @@ function withTimePart(value: string, time: string): string {
   return `${datePart(value)}T${time}`
 }
 
+const REMINDER_PRESETS = [0, 5, 10, 15, 30, 60, 120, 1440, 10080]
+const MAX_REMINDERS = 5
+
 interface EventFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** null = create. */
-  event: CalendarEvent | null
-  /** Prefill la creare dintr-un click pe un slot orar din vedere. */
-  prefill?: { startAt: Date; endAt: Date } | null
-  /** Al cui e evenimentul și ce poate face omul cu el; lipsește la creare. */
-  meta?: Pick<CalendarOccurrence, 'access' | 'ownerUserId' | 'ownerName' | 'attendees' | 'isCommon'> | null
+  /** The occurrence being edited; null = create. */
+  occurrence: CalendarOccurrence | null
+  /** Prefill la creare: intervalul tras pe grilă și ce s-a scris în creare rapidă. */
+  prefill?: { startAt: Date; endAt: Date; title?: string } | null
   /** Calendarele în care omul poate crea: al lui și cele primite cu „editează". */
   writableCalendars?: CalendarLayer[]
-  /** Jumps the view to a newly created event, which may fall outside the visible week or month. */
+  /** Jumps the view to a newly created event, which may fall outside the visible period. */
   onShowEvent?: (startAt: Date) => void
+  /** Asks "only this / this and following / all" for a series; null = cancelled. */
+  requestScope: (action: 'edit') => Promise<SeriesScope | null>
 }
 
-export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writableCalendars = [], onShowEvent }: EventFormDialogProps) {
-  const confirm = useConfirm()
+function reminderLabel(minutes: number): string {
+  if (minutes === 0) return t('calendar:reminders.atStart')
+  if (minutes % 10080 === 0) return t('calendar:reminders.weeks', { count: minutes / 10080 })
+  if (minutes % 1440 === 0) return t('calendar:reminders.days', { count: minutes / 1440 })
+  if (minutes % 60 === 0) return t('calendar:reminders.hours', { count: minutes / 60 })
+  return t('calendar:reminders.minutes', { count: minutes })
+}
+
+export function EventFormDialog({ open, onOpenChange, occurrence, prefill, writableCalendars = [], onShowEvent, requestScope }: EventFormDialogProps) {
   const queryClient = useQueryClient()
   const { can, session } = useMe()
   const members = useTeamMembers()
   const canCommon = can('calendar.comune')
   // Un calendar primit cu „vede" sau un eveniment comun fără `calendar.comune`: se citește, nu se
   // schimbă (serverul răspunde oricum 403).
-  const { canShare, share, dialog: shareDialog } = useShareToMessages()
-  const readOnly = Boolean(event && meta?.access === 'view')
+  const readOnly = Boolean(occurrence && occurrence.access === 'view')
   const [attendeeIds, setAttendeeIds] = useState<Set<string>>(new Set())
   const [calendarOwnerId, setCalendarOwnerId] = useState('')
   const [title, setTitle] = useState('')
@@ -78,32 +86,33 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
   // The parts of the rule the form does not show, saved back as they were.
   const [recurrenceKept, setRecurrenceKept] = useState<{ rest: string[]; raw: string | null }>({ rest: [], raw: null })
   const [recurrenceEndAt, setRecurrenceEndAt] = useState('')
-  const [color, setColor] = useState<string>(DEFAULT_COLOR)
-  // '' = fără reminder (select), altfel minute ca string — convertit la number/null la salvare.
-  const [reminderMinutesBefore, setReminderMinutesBefore] = useState('')
+  const [color, setColor] = useState<string | null>(null)
+  const [reminders, setReminders] = useState<number[]>([])
 
   useEffect(() => {
     if (!open) return
-    if (event) {
-      setTitle(event.title)
-      setDescription(event.description ?? '')
-      setLocation(event.location ?? '')
-      setStartAt(toDatetimeLocalValue(new Date(event.startAt)))
-      setEndAt(toDatetimeLocalValue(new Date(event.endAt)))
-      const parsed = parseRecurrence(event.recurrenceRule)
+    if (occurrence) {
+      // The form shows the occurrence that was clicked; "all events" maps the change back onto the series.
+      const start = new Date(occurrence.occurrenceStart)
+      setTitle(occurrence.title)
+      setDescription(occurrence.description ?? '')
+      setLocation(occurrence.location ?? '')
+      setStartAt(toDatetimeLocalValue(start))
+      setEndAt(toDatetimeLocalValue(new Date(occurrence.occurrenceEnd)))
+      const parsed = parseRecurrence(occurrence.recurrenceRule, new Date(occurrence.seriesStart))
       setRecurrence(parsed.type)
       setByDays(new Set(parsed.days))
       setRecurrenceInterval(String(parsed.interval))
       setRecurrenceKept({ rest: parsed.rest, raw: parsed.raw })
-      setRecurrenceEndAt(recurrenceEndInputValue(event.recurrenceEndAt))
-      setColor(event.color ?? DEFAULT_COLOR)
-      setReminderMinutesBefore(event.reminderMinutesBefore ? String(event.reminderMinutesBefore) : '')
-      setAttendeeIds(new Set((meta?.attendees ?? []).map((a) => a.id)))
-      setCalendarOwnerId(meta?.ownerUserId ?? '')
+      setRecurrenceEndAt(recurrenceEndInputValue(occurrence.recurrenceEndAt))
+      setColor(occurrence.color)
+      setReminders(occurrence.reminders)
+      setAttendeeIds(new Set(occurrence.attendees.map((a) => a.id)))
+      setCalendarOwnerId(occurrence.ownerUserId ?? '')
     } else {
       const start = prefill?.startAt ?? new Date()
       const end = prefill?.endAt ?? new Date(start.getTime() + 60 * 60 * 1000)
-      setTitle('')
+      setTitle(prefill?.title ?? '')
       setDescription('')
       setLocation('')
       setStartAt(toDatetimeLocalValue(start))
@@ -113,58 +122,99 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
       setRecurrenceInterval('1')
       setRecurrenceKept({ rest: [], raw: null })
       setRecurrenceEndAt('')
-      setColor(DEFAULT_COLOR)
-      setReminderMinutesBefore('')
+      setColor(null)
+      setReminders([])
       setAttendeeIds(new Set())
       setCalendarOwnerId(session?.user.id ?? '')
     }
-    // `meta` vine din același click ca `event`, deci nu declanșează singur o resetare.
-  }, [open, event, prefill])
+  }, [open, occurrence, prefill])
 
   const ownerId = calendarOwnerId || session?.user.id
   const attendeeCandidates = (members.data ?? []).filter((m) => m.status === 'active' && m.id !== ownerId)
+  const startDate = startAt ? new Date(startAt) : new Date()
+  const builtRule = buildRecurrence(
+    { type: recurrence, interval: Number(recurrenceInterval) || 1, days: [...byDays], rest: recurrenceKept.rest, raw: recurrenceKept.raw },
+    startDate,
+  )
+  const ruleSummary = builtRule ? describeRule(builtRule, startDate, recurrenceEndAt ? new Date(recurrenceEndIso(recurrenceEndAt)) : null) : ''
+  const optionLabel = (type: RecurrenceType) =>
+    describeRule(buildRecurrence({ type, interval: 1, days: [], rest: [], raw: null }, startDate), startDate)
 
   const save = useMutation({
-    mutationFn: () => {
-      const startDate = new Date(startAt)
-      const recurrenceRule =
-        buildRecurrence(
-          { type: recurrence, interval: Number(recurrenceInterval) || 1, days: [...byDays], rest: recurrenceKept.rest, raw: recurrenceKept.raw },
-          startDate,
-        ) ?? undefined
-      const body = {
+    mutationFn: async (): Promise<{ data: CalendarEvent; revertToken: string } | null> => {
+      const start = new Date(startAt)
+      const end = new Date(endAt)
+      const recurrenceEndIsoValue = builtRule && recurrenceEndAt ? recurrenceEndIso(recurrenceEndAt) : null
+      const common = {
         title,
-        description: description || undefined,
-        location: location || undefined,
-        startAt: startDate.toISOString(),
-        endAt: new Date(endAt).toISOString(),
-        recurrenceRule,
-        recurrenceEndAt: recurrenceRule && recurrenceEndAt ? recurrenceEndIso(recurrenceEndAt) : undefined,
+        description: description || null,
+        location: location || null,
         color,
-        reminderMinutesBefore: reminderMinutesBefore ? Number(reminderMinutesBefore) : undefined,
+        reminders,
         // Fără `calendar.comune` câmpul nu se trimite deloc: serverul l-ar refuza, chiar gol.
         attendeeUserIds: canCommon ? [...attendeeIds].filter((id) => id !== ownerId) : undefined,
       }
-      return event
-        ? api.patch<CalendarEvent>(`/api/calendar/events/${event.id}`, {
-            ...body,
-            recurrenceRule: recurrenceRule ?? null,
-            recurrenceEndAt: body.recurrenceEndAt ?? null,
-            reminderMinutesBefore: reminderMinutesBefore ? Number(reminderMinutesBefore) : null,
-          })
-        : api.post<CalendarEvent>('/api/calendar/events', {
-            ...body,
-            calendarOwnerUserId: ownerId && ownerId !== session?.user.id ? ownerId : undefined,
-          })
+      if (!occurrence) {
+        return api.write<CalendarEvent>('POST', '/api/calendar/events', {
+          ...common,
+          description: description || undefined,
+          location: location || undefined,
+          color: color ?? undefined,
+          startAt: start.toISOString(),
+          endAt: end.toISOString(),
+          recurrenceRule: builtRule ?? undefined,
+          recurrenceEndAt: recurrenceEndIsoValue ?? undefined,
+          calendarOwnerUserId: ownerId && ownerId !== session?.user.id ? ownerId : undefined,
+        })
+      }
+      const path = `/api/calendar/events/${occurrence.eventId}`
+      if (!occurrence.isRecurring) {
+        return api.write<CalendarEvent>('PATCH', path, {
+          ...common,
+          startAt: start.toISOString(),
+          endAt: end.toISOString(),
+          recurrenceRule: builtRule,
+          recurrenceEndAt: recurrenceEndIsoValue,
+        })
+      }
+      const scope = await requestScope('edit')
+      if (!scope) return null
+      const query = `?scope=${scope}&occurrence=${encodeURIComponent(occurrence.occurrenceKey ?? occurrence.occurrenceStart)}`
+      if (scope === 'occurrence') {
+        return api.write<CalendarEvent>('PATCH', path + query, {
+          title,
+          description: description || null,
+          location: location || null,
+          color,
+          startAt: start.toISOString(),
+          endAt: end.toISOString(),
+        })
+      }
+      // An unchanged rule is not sent, so the server turns its weekdays when the day moved.
+      const ruleChanged = builtRule !== occurrence.recurrenceRule || recurrenceEndIsoValue !== occurrence.recurrenceEndAt
+      const rule = ruleChanged ? { recurrenceRule: builtRule, recurrenceEndAt: recurrenceEndIsoValue } : {}
+      if (scope === 'following') {
+        return api.write<CalendarEvent>('PATCH', path + query, { ...common, ...rule, startAt: start.toISOString(), endAt: end.toISOString() })
+      }
+      // The whole series moves by as much as this occurrence did.
+      const shift = start.getTime() - new Date(occurrence.occurrenceStart).getTime()
+      const seriesStart = new Date(new Date(occurrence.seriesStart).getTime() + shift)
+      return api.write<CalendarEvent>('PATCH', path + query, {
+        ...common,
+        ...rule,
+        startAt: seriesStart.toISOString(),
+        endAt: new Date(seriesStart.getTime() + (end.getTime() - start.getTime())).toISOString(),
+      })
     },
     onSuccess: (saved) => {
+      if (!saved) return
       void queryClient.invalidateQueries({ queryKey: ['calendar'] })
-      toast.success(event ? t('calendar:toasts.eventUpdated') : t('calendar:toasts.eventCreated'), {
-        action:
-          !event && onShowEvent
-            ? { label: t('common:actions.view'), onClick: () => onShowEvent(new Date(saved.startAt)) }
-            : undefined,
-      })
+      revertableToast(
+        occurrence ? t('calendar:toasts.eventUpdatedNamed', { title }) : t('calendar:toasts.eventCreatedNamed', { title }),
+        saved.revertToken,
+        queryClient,
+      )
+      if (!occurrence) onShowEvent?.(new Date(startAt))
       onOpenChange(false)
     },
     onError: (err) => toast.error(err.message),
@@ -187,24 +237,16 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
     onError: () => toast.error(t('calendar:toasts.blockFailed')),
   })
 
-  const remove = useMutation({
-    mutationFn: () => api.delete<void>(`/api/calendar/events/${event?.id}`),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['calendar'] })
-      toast.success(t('calendar:toasts.eventDeleted'))
-      onOpenChange(false)
-    },
-    onError: (err) => toast.error(err.message),
-  })
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{readOnly ? event?.title : event ? t('calendar:event.editTitle') : t('calendar:event.newTitle')}</DialogTitle>
-          {event && meta && meta.access !== 'owner' && meta.ownerName ? (
+          <DialogTitle>{readOnly ? occurrence?.title : occurrence ? t('calendar:event.editTitle') : t('calendar:event.newTitle')}</DialogTitle>
+          {occurrence && occurrence.access !== 'owner' && occurrence.ownerName ? (
             <p className="text-sm text-muted-foreground">
-              {meta.isCommon ? t('calendar:event.sharedCreatedBy', { ownerName: meta.ownerName }) : t('calendar:event.inCalendarOf', { ownerName: meta.ownerName })}
+              {occurrence.isCommon
+                ? t('calendar:event.sharedCreatedBy', { ownerName: occurrence.ownerName })
+                : t('calendar:event.inCalendarOf', { ownerName: occurrence.ownerName })}
               {readOnly ? t('calendar:event.readOnly') : ''}
             </p>
           ) : null}
@@ -217,7 +259,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
           }}
         >
           <fieldset disabled={readOnly} className="space-y-4">
-            {!event && writableCalendars.length > 1 ? (
+            {!occurrence && writableCalendars.length > 1 ? (
               <div className="space-y-2">
                 <Label htmlFor="ev-calendar">{t('common:nav.calendar')}</Label>
                 <Select id="ev-calendar" value={calendarOwnerId} onValueChange={setCalendarOwnerId}>
@@ -231,7 +273,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
             ) : null}
             <div className="space-y-2">
               <Label htmlFor="ev-title">{t('common:labels.title')}</Label>
-              <Input id="ev-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+              <Input id="ev-title" value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus={!occurrence} />
             </div>
             {/* Rânduri separate (nu grid 2 coloane) — date/time input-urile native au o lățime
                 minimă proprie pe care n-o respectă la comprimare, ieșeau din dialog când
@@ -248,14 +290,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                     onChange={(e) => setStartAt(withDatePart(startAt, e.target.value))}
                     required
                   />
-                  <TimeInput
-                    id="ev-start-time"
-                 
-                    className="w-20 shrink-0"
-                    value={timePart(startAt)}
-                    onChange={(v) => setStartAt(withTimePart(startAt, v))}
-                    required
-                  />
+                  <TimeInput id="ev-start-time" className="w-20 shrink-0" value={timePart(startAt)} onChange={(v) => setStartAt(withTimePart(startAt, v))} required />
                 </div>
               </div>
               <div className="space-y-2">
@@ -269,14 +304,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                     onChange={(e) => setEndAt(withDatePart(endAt, e.target.value))}
                     required
                   />
-                  <TimeInput
-                    id="ev-end-time"
-                 
-                    className="w-20 shrink-0"
-                    value={timePart(endAt)}
-                    onChange={(v) => setEndAt(withTimePart(endAt, v))}
-                    required
-                  />
+                  <TimeInput id="ev-end-time" className="w-20 shrink-0" value={timePart(endAt)} onChange={(v) => setEndAt(withTimePart(endAt, v))} required />
                 </div>
               </div>
             </div>
@@ -290,16 +318,17 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
             </div>
             <div className="space-y-2">
               <Label htmlFor="ev-recurrence">{t('calendar:event.recurrence')}</Label>
-              <Select
-                id="ev-recurrence"
-                value={recurrence}
-                onChange={(e) => setRecurrence(e.target.value as RecurrenceType)}
-              >
+              <Select id="ev-recurrence" value={recurrence} onChange={(e) => setRecurrence(e.target.value as RecurrenceType)}>
                 <option value="none">{t('calendar:event.noRecurrence')}</option>
-                <option value="daily">{t('calendar:event.daily')}</option>
+                <option value="daily">{optionLabel('daily')}</option>
+                <option value="weekdays">{optionLabel('weekdays')}</option>
                 <option value="weekly">{t('calendar:event.weekly')}</option>
+                <option value="monthlyDate">{optionLabel('monthlyDate')}</option>
+                <option value="monthlyWeekday">{optionLabel('monthlyWeekday')}</option>
+                <option value="yearly">{optionLabel('yearly')}</option>
                 {recurrence === 'custom' ? <option value="custom">{t('calendar:event.customRecurrence')}</option> : null}
               </Select>
+              {ruleSummary ? <p className="text-xs text-muted-foreground">{ruleSummary}</p> : null}
             </div>
             {recurrence === 'weekly' ? (
               <div className="space-y-2">
@@ -312,6 +341,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                       <button
                         key={code}
                         type="button"
+                        aria-pressed={active}
                         className={`rounded-md border px-2 py-1 text-xs ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
                         onClick={() =>
                           setByDays((prev) => {
@@ -329,7 +359,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                 </div>
               </div>
             ) : null}
-            {recurrence === 'daily' || recurrence === 'weekly' ? (
+            {recurrence !== 'none' && recurrence !== 'custom' && recurrence !== 'weekdays' ? (
               <div className="space-y-2">
                 <Label htmlFor="ev-recurrence-interval">{t('calendar:event.interval')}</Label>
                 <div className="flex items-center gap-2">
@@ -341,7 +371,9 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                     onChange={(e) => setRecurrenceInterval(e.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
                   />
                   <span className="text-sm text-muted-foreground">
-                    {t(recurrence === 'daily' ? 'calendar:event.intervalDays' : 'calendar:event.intervalWeeks', { count: Number(recurrenceInterval) || 1 })}
+                    {t(`calendar:event.interval${recurrence === 'daily' ? 'Days' : recurrence === 'weekly' ? 'Weeks' : recurrence === 'yearly' ? 'Years' : 'Months'}`, {
+                      count: Number(recurrenceInterval) || 1,
+                    })}
                   </span>
                 </div>
               </div>
@@ -349,38 +381,56 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
             {recurrence !== 'none' ? (
               <div className="space-y-2">
                 <Label htmlFor="ev-recurrence-end">{t('calendar:event.recurrenceUntil')}</Label>
-                <Input
-                  id="ev-recurrence-end"
-                  type="date"
-                  value={recurrenceEndAt}
-                  onChange={(e) => setRecurrenceEndAt(e.target.value)}
-                />
+                <Input id="ev-recurrence-end" type="date" value={recurrenceEndAt} onChange={(e) => setRecurrenceEndAt(e.target.value)} />
               </div>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor="ev-reminder">{t('calendar:event.reminder')}</Label>
-              <Select
-                id="ev-reminder"
-                value={reminderMinutesBefore}
-                onChange={(e) => setReminderMinutesBefore(e.target.value)}
-              >
-                <option value="">{t('calendar:event.reminderNone')}</option>
-                <option value="5">{t('calendar:event.reminder5')}</option>
-                <option value="15">{t('calendar:event.reminder15')}</option>
-                <option value="30">{t('calendar:event.reminder30')}</option>
-                <option value="60">{t('calendar:event.reminder60')}</option>
-              </Select>
+              <Label>{t('calendar:reminders.label')}</Label>
+              <ul className="space-y-2">
+                {reminders.map((minutes, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <Select
+                      aria-label={t('calendar:reminders.label')}
+                      className="flex-1"
+                      value={String(minutes)}
+                      onChange={(e) => setReminders((prev) => prev.map((m, i) => (i === index ? Number(e.target.value) : m)))}
+                    >
+                      {[...new Set([...REMINDER_PRESETS, minutes])]
+                        .sort((a, b) => a - b)
+                        .map((option) => (
+                          <option key={option} value={option} disabled={option !== minutes && reminders.includes(option)}>
+                            {reminderLabel(option)}
+                          </option>
+                        ))}
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t('calendar:reminders.remove', { label: reminderLabel(minutes) })}
+                      onClick={() => setReminders((prev) => prev.filter((_, i) => i !== index))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              {reminders.length < MAX_REMINDERS ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setReminders((prev) => [...prev, REMINDER_PRESETS.find((m) => m >= 10 && !prev.includes(m)) ?? 0])}
+                >
+                  <Plus className="h-4 w-4" /> {t('calendar:reminders.add')}
+                </Button>
+              ) : null}
             </div>
             {canCommon && !readOnly ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>{t('calendar:event.attendeesOptional')}</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAttendeeIds(new Set(attendeeCandidates.map((m) => m.id)))}
-                  >
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setAttendeeIds(new Set(attendeeCandidates.map((m) => m.id)))}>
                     {t('calendar:event.wholeTeam')}
                   </Button>
                 </div>
@@ -408,44 +458,47 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
                 </div>
                 <p className="text-xs text-muted-foreground">{t('calendar:event.attendeesHint')}</p>
               </div>
-            ) : meta?.attendees.length ? (
+            ) : occurrence?.attendees.length ? (
               <div className="space-y-1">
                 <Label>{t('calendar:event.attendees')}</Label>
-                <p className="text-sm">{meta.attendees.map((a) => a.name).join(', ')}</p>
+                <p className="text-sm">{occurrence.attendees.map((a) => a.name).join(', ')}</p>
               </div>
+            ) : !readOnly ? (
+              // Without `calendar.comune` an event cannot reach anyone else's calendar; said here so
+              // nobody believes they invited a colleague.
+              <p className="text-xs text-muted-foreground">{t('calendar:event.onlyYourCalendar')}</p>
             ) : null}
             <div className="space-y-2">
-              <Label>{t('calendar:event.color')}</Label>
-              <div className="flex gap-2">
-                {COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`h-6 w-6 rounded-full border-2 ${color === c ? 'border-foreground' : 'border-transparent'}`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setColor(c)}
-                  />
-                ))}
+              <Label id="ev-color-label">{t('calendar:event.color')}</Label>
+              <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-labelledby="ev-color-label">
+                {[null, ...TAG_VALUES, ...(color && !TAG_VALUES.includes(color) ? [color] : [])].map((value) => {
+                  const selected = color === value
+                  const swatch = value === null ? tagColor(personTag(ownerId ?? '')) : value.startsWith('tag-') ? tagColor(Number(value.slice(4))) : value
+                  return (
+                    <button
+                      key={value ?? 'mine'}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={value === null ? t('calendar:event.colorMine') : t('calendar:event.colorOption', { n: value.startsWith('tag-') ? value.slice(4) : '•' })}
+                      title={value === null ? t('calendar:event.colorMine') : undefined}
+                      className={`flex h-7 items-center gap-1.5 rounded-full border-2 ${selected ? 'border-foreground' : 'border-transparent'} ${value === null ? 'pl-1 pr-2 text-xs' : 'w-7 justify-center'}`}
+                      onClick={() => setColor(value)}
+                    >
+                      <span className="h-5 w-5 shrink-0 rounded-full" style={{ backgroundColor: swatch }} aria-hidden="true" />
+                      {value === null ? t('calendar:event.colorMine') : null}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </fieldset>
           {readOnly ? null : (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button type="submit" className="flex-1" disabled={save.isPending}>
                 {save.isPending ? t('common:states.saving') : t('common:actions.save')}
               </Button>
-              {event ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={remove.isPending}
-                  onClick={() => {
-                    void confirm({ title: t('calendar:event.deleteTitle', { title: event.title }), consequence: event.recurrenceRule ? t('calendar:event.deleteRecurringBody') : undefined, confirmLabel: t('calendar:event.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate())
-                  }}
-                >
-                  {t('common:actions.delete')}
-                </Button>
-              ) : can('calendar.programari') ? (
+              {!occurrence && can('calendar.programari') ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -459,22 +512,7 @@ export function EventFormDialog({ open, onOpenChange, event, prefill, meta, writ
             </div>
           )}
         </form>
-        {event && canShare ? (
-          <Button
-            type="button"
-            variant="ghost"
-            className="self-start"
-            onClick={() => {
-              // Closed first so the share dialog is not a second modal on top of this one.
-              onOpenChange(false)
-              share({ type: 'calendar_event', id: event.id, title: event.title })
-            }}
-          >
-            <MessageSquareShare className="h-4 w-4" /> {t('messages:share.action')}
-          </Button>
-        ) : null}
       </DialogContent>
-      {shareDialog}
     </Dialog>
   )
 }

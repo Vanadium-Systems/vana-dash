@@ -54,7 +54,10 @@
     "nextSlot": "Următorul slot liber: {{slot}} · {{free}} în 14 zile",
     "freeSlots_one": "{{count}} slot liber",
     "freeSlots_few": "{{count}} sloturi libere",
-    "freeSlots_other": "{{count}} de sloturi libere"
+    "freeSlots_other": "{{count}} de sloturi libere",
+    "joinCall": "Intră în apel",
+    "copyCallLink": "Copiază linkul",
+    "callLinkCopied": "Linkul apelului e copiat"
   },
   "toasts": {
     "accessSaved": "Acces salvat",
@@ -65,11 +68,19 @@
     "eventCreated": "Eveniment creat",
     "blockedForBookings": "Interval blocat pentru programări",
     "blockFailed": "Intervalul nu s-a blocat. Încearcă din nou.",
-    "eventDeleted": "Eveniment șters"
+    "eventDeleted": "Eveniment șters",
+    "movedTo": "„{{title}}” mutat {{when}}",
+    "deletedNamed": "„{{title}}” șters",
+    "duplicatedNamed": "„{{title}}” duplicat",
+    "eventCreatedNamed": "„{{title}}” creat",
+    "eventUpdatedNamed": "„{{title}}” salvat"
   },
   "view": {
     "week": "Săptămână",
-    "month": "Lună"
+    "month": "Lună",
+    "agenda": "Program",
+    "day": "Zi",
+    "label": "Vedere"
   },
   "event": {
     "newTitle": "Eveniment nou",
@@ -110,14 +121,25 @@
     "intervalWeeks_one": "săptămână",
     "intervalWeeks_few": "săptămâni",
     "intervalWeeks_other": "de săptămâni",
-    "customRecurrence": "Altă regulă (păstrată așa cum e)"
+    "customRecurrence": "Altă regulă (păstrată așa cum e)",
+    "onlyYourCalendar": "Evenimentul apare doar în calendarul tău. Ca să-l vadă și colegii, ai nevoie de funcționalitatea „Evenimente comune”.",
+    "intervalMonths_one": "lună",
+    "intervalMonths_few": "luni",
+    "intervalMonths_other": "de luni",
+    "intervalYears_one": "an",
+    "intervalYears_few": "ani",
+    "intervalYears_other": "de ani",
+    "colorMine": "Culoarea mea",
+    "colorOption": "Culoarea {{n}}"
   },
   "nav": {
     "previousWeek": "Săptămâna anterioară",
     "previousMonth": "Luna anterioară",
     "today": "Astăzi",
     "nextWeek": "Săptămâna următoare",
-    "nextMonth": "Luna următoare"
+    "nextMonth": "Luna următoare",
+    "previous": "Perioada anterioară",
+    "next": "Perioada următoare"
   },
   "layers": {
     "shown": "Calendare afișate",
@@ -131,7 +153,10 @@
     "description": "Cine primește „Vede” îți vede tot calendarul. Cu „Editează” poate și adăuga sau muta evenimente, dar nu-l poate da mai departe."
   },
   "month": {
-    "more": "+{{count}} mai multe"
+    "more": "+{{count}} mai multe",
+    "events_one": "{{count}} eveniment",
+    "events_few": "{{count}} evenimente",
+    "events_other": "{{count}} de evenimente"
   },
   "week": {
     "blockedForBookings": "Blocat pentru programări",
@@ -143,5 +168,125 @@
     "seriesTitle": "Muți toată seria „{{title}}”?",
     "seriesBody": "Toate aparițiile se mută la fel. O singură apariție nu se poate muta separat.",
     "seriesConfirm": "Mută seria"
+  },
+  "recurrence": {
+    "daily": "Zilnic",
+    "everyDays_one": "La fiecare zi",
+    "everyDays_few": "La fiecare {{count}} zile",
+    "everyDays_other": "La fiecare {{count}} de zile",
+    "weekly": "Săptămânal, {{days}}",
+    "everyWeeks_one": "În fiecare săptămână, {{days}}",
+    "everyWeeks_few": "La fiecare {{count}} săptămâni, {{days}}",
+    "everyWeeks_other": "La fiecare {{count}} de săptămâni, {{days}}",
+    "weekdays": "În zilele lucrătoare",
+    "monthlyDate": "Lunar, pe {{day}}",
+    "everyMonthsDate_one": "În fiecare lună, pe {{day}}",
+    "everyMonthsDate_few": "La fiecare {{count}} luni, pe {{day}}",
+    "everyMonthsDate_other": "La fiecare {{count}} de luni, pe {{day}}",
+    "monthlyWeekday": "Lunar, în {{ordinal}} {{weekday}}",
+    "everyMonthsWeekday_one": "În fiecare lună, în {{ordinal}} {{weekday}}",
+    "everyMonthsWeekday_few": "La fiecare {{count}} luni, în {{ordinal}} {{weekday}}",
+    "everyMonthsWeekday_other": "La fiecare {{count}} de luni, în {{ordinal}} {{weekday}}",
+    "yearly": "Anual, pe {{date}}",
+    "everyYears_one": "În fiecare an, pe {{date}}",
+    "everyYears_few": "La fiecare {{count}} ani, pe {{date}}",
+    "everyYears_other": "La fiecare {{count}} de ani, pe {{date}}",
+    "until": ", până la {{date}}",
+    "times_one": ", o dată",
+    "times_few": ", de {{count}} ori",
+    "times_other": ", de {{count}} de ori",
+    "custom": "Regulă personalizată",
+    "ordinal": {
+      "first": "prima",
+      "second": "a doua",
+      "third": "a treia",
+      "fourth": "a patra",
+      "last": "ultima"
+    }
+  },
+  "agenda": {
+    "label": "Program",
+    "today": "Azi",
+    "empty": "Nimic programat",
+    "allDay": "Toată ziua",
+    "more": "Mai departe"
+  },
+  "mini": {
+    "label": "Alege o zi",
+    "prevMonth": "Luna anterioară",
+    "nextMonth": "Luna următoare"
+  },
+  "fab": {
+    "addOn": "Adaugă {{day}}"
+  },
+  "filter": {
+    "button": "Calendare",
+    "buttonCount_one": "Calendare (+{{count}})",
+    "buttonCount_few": "Calendare (+{{count}})",
+    "buttonCount_other": "Calendare (+{{count}})",
+    "title": "Calendarele afișate",
+    "search": "Caută un coleg",
+    "onlyMine": "Doar al meu",
+    "all": "Toate",
+    "noMatch": "Niciun coleg cu numele ăsta"
+  },
+  "quick": {
+    "untitled": "(Fără titlu)",
+    "titlePlaceholder": "Adaugă un titlu",
+    "more": "Mai multe opțiuni"
+  },
+  "read": {
+    "repeats": "Se repetă",
+    "changedOnce": "schimbat doar aici",
+    "copyLink": "Copiază linkul",
+    "copyFailed": "Nu s-a putut copia",
+    "duplicate": "Duplică",
+    "inCalendarOf": "În calendarul lui {{name}}",
+    "viewOnly": "Calendarul lui {{name}} e doar de citit",
+    "notFound": "Evenimentul nu mai există sau nu e în perioada asta",
+    "reminders_one": "{{count}} notificare",
+    "reminders_few": "{{count}} notificări",
+    "reminders_other": "{{count}} de notificări"
+  },
+  "reminders": {
+    "label": "Notificări",
+    "add": "Adaugă notificare",
+    "remove": "Scoate notificarea {{label}}",
+    "atStart": "La început",
+    "minutes_one": "Cu {{count}} minut înainte",
+    "minutes_few": "Cu {{count}} minute înainte",
+    "minutes_other": "Cu {{count}} de minute înainte",
+    "hours_one": "Cu {{count}} oră înainte",
+    "hours_few": "Cu {{count}} ore înainte",
+    "hours_other": "Cu {{count}} de ore înainte",
+    "days_one": "Cu {{count}} zi înainte",
+    "days_few": "Cu {{count}} zile înainte",
+    "days_other": "Cu {{count}} de zile înainte",
+    "weeks_one": "Cu {{count}} săptămână înainte",
+    "weeks_few": "Cu {{count}} săptămâni înainte",
+    "weeks_other": "Cu {{count}} de săptămâni înainte"
+  },
+  "scope": {
+    "title": {
+      "move": "Muți un eveniment care se repetă",
+      "edit": "Salvezi un eveniment care se repetă",
+      "delete": "Ștergi un eveniment care se repetă"
+    },
+    "occurrence": "Doar acest eveniment",
+    "following": "Acesta și următoarele",
+    "all": "Toate evenimentele",
+    "confirm": "Salvează",
+    "confirmDelete": "Șterge"
+  },
+  "search": {
+    "label": "Caută în calendar",
+    "placeholder": "Caută în calendar",
+    "empty": "Nimic găsit pentru „{{term}}”"
+  },
+  "shortcuts": {
+    "create": "Eveniment nou",
+    "today": "Azi",
+    "next": "Perioada următoare",
+    "previous": "Perioada anterioară"
   }
 }

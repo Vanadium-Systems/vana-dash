@@ -59,7 +59,7 @@ const event = (await calendar.createEvent(stefan, {
   title: `Întâlnire ${marker}`,
   startAt: start,
   endAt: new Date(start.getTime() + 60 * 60 * 1000),
-}))!
+})).data
 eventIds.push(event.id)
 
 const groupsOf = async (me: typeof stefan) => (await search(me, marker)).map((g) => g.group).sort()

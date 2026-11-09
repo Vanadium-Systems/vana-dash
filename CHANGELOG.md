@@ -4,6 +4,34 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-09: Calendar series exceptions, undo, reminders, new views
+
+### Calendar
+- One occurrence of a series can be moved or cancelled on its own: `calendar_event_exceptions`
+  (migration 0083), keyed by `occurrence_start`. "This and following" splits the series in two.
+  `PATCH` and `DELETE /api/calendar/events/:id` take `scope=occurrence|following|all` and
+  `occurrence=<ISO key>`; on a recurring event both are required, else `400 SCOPE_REQUIRED`.
+  Moving a series to another weekday rotates `BYDAY`.
+- Every calendar write returns a `revertToken`; `POST /api/calendar/events/revert/:token` undoes it
+  (60 seconds, only for its author, server-side).
+- New routes: `POST /api/calendar/events/:id/duplicate` and `GET /api/calendar/events/search?q=`
+  (2-120 characters, ignores diacritics, returns the next occurrence).
+- Several reminders per event (`reminders: number[]`, 0-5 values, 0..40320 minutes) in
+  `calendar_event_reminders`. `reminderMinutesBefore` is still accepted. The reminder job dedups per
+  reminder and occurrence.
+- Series are expanded on the company's wall clock. A weekly 10:00 meeting created in summer used to
+  show at 09:00 after the clock change on 25 October; public booking slots had the same drift.
+  Both are fixed.
+- Recurring payments show in the calendar only for people with `facturi.cheltuieli`.
+- `GET /api/booking/bookings` returns `call: { id, url, status } | null`.
+- UI: Day, Week, Month and Agenda views; drag to move, drag the bottom edge to resize, draw a range
+  to create; read view before editing; scope dialog for recurring events; undo toast and Ctrl+Z;
+  period, event and view in the URL; search; keyboard shortcuts; mini month calendar; one
+  "Calendars" filter instead of a row of checkboxes; more recurrence rules (monthly by date or by
+  weekday position, yearly, weekdays) with the rule written out; bookings panel opened from a button.
+- `db:seed:demo` adds a weekly series with a moved and a cancelled occurrence, an event with two
+  reminders, a common event, a calendar share, three calls and a booking.
+
 ## 2026-11-09: Archive spaces created twice
 
 ### Fixed

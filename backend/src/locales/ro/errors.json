@@ -92,7 +92,11 @@
     "shareOwnOnly": "Poți partaja doar calendarul tău",
     "shareWithSelf": "Nu poți partaja calendarul cu tine însuți",
     "userGone": "Utilizatorul nu mai există",
-    "paymentTitle": "Plată: {{description}}"
+    "paymentTitle": "Plată: {{description}}",
+    "occurrenceRequired": "Alege apariția din serie",
+    "occurrenceNotInSeries": "Apariția nu face parte din serie",
+    "scopeRequired": "Alege dacă schimbi doar acest eveniment, și pe următoarele sau toată seria",
+    "revertExpired": "Nu se mai poate anula"
   },
   "booking": {
     "blockNotFound": "Interval negăsit",

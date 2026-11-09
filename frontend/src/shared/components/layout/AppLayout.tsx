@@ -205,7 +205,8 @@ export function AppLayout() {
   // nevoie de altfel: coloană de conversații + fir, deci ocupă lățimea tot. Restul modulelor
   // rămân pe max-w-6xl.
   // Wide working tables get the whole width, so a desktop shows their secondary columns too.
-  const isFullWidthPage = ['/email', '/messages', '/pricing', '/tenders'].some((path) => location.pathname.startsWith(path))
+  // The calendar's week grid is cramped in 6xl next to the mini calendar.
+  const isFullWidthPage = ['/email', '/messages', '/pricing', '/tenders', '/calendar'].some((path) => location.pathname.startsWith(path))
   // Într-o conversație, pe telefon, firul ocupă tot ecranul; bara de jos ar acoperi câmpul de scris.
   const inConversation = /^\/messages\/[^/]+/.test(location.pathname)
 

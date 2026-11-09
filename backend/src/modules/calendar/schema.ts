@@ -11,9 +11,9 @@ const eventFields = {
   recurrenceRule: z.string().trim().min(1).optional(),
   recurrenceEndAt: z.coerce.date().optional(),
   color: z.string().trim().optional(),
-  // null/absent = fără reminder. Select-ul din UI oferă doar 5/15/30/60, dar nu impunem enum
-  // strict aici — un client viitor (sau Stefan direct din API) poate avea nevoie de altă valoare.
+  // Old single reminder, still accepted from APK builds and the assistant; `reminders` wins.
   reminderMinutesBefore: z.number().int().positive().max(1440).nullable().optional(),
+  reminders: z.array(z.number().int().min(0).max(40320)).max(5).optional(),
 }
 
 // `attendeeUserIds` = evenimentul comun (apare în calendarul fiecărui participant). Trimis
@@ -43,7 +43,22 @@ export const UpdateEventSchema = z.object({
   recurrenceEndAt: z.coerce.date().nullable().optional(),
   color: z.string().trim().nullable().optional(),
   reminderMinutesBefore: z.number().int().positive().max(1440).nullable().optional(),
+  reminders: z.array(z.number().int().min(0).max(40320)).max(5).optional(),
   attendeeUserIds: z.array(z.string().uuid()).max(50).optional(),
+})
+
+/** Which part of a series a write touches; `occurrence` is the occurrence's key. */
+export const SeriesScopeQuerySchema = z.object({
+  scope: z.enum(['occurrence', 'following', 'all']).optional(),
+  occurrence: z.coerce.date().optional(),
+})
+
+export const DuplicateEventSchema = z.object({
+  occurrence: z.coerce.date().optional(),
+})
+
+export const SearchEventsQuerySchema = z.object({
+  q: z.string().trim().min(2).max(120),
 })
 
 export const CreateCalendarShareSchema = z.object({

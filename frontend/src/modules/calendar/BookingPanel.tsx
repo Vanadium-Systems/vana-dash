@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Trash2 } from 'lucide-react'
+import { Link2, Trash2, Video } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
@@ -387,6 +387,26 @@ export function BookingDetailDialog({ booking, onOpenChange }: { booking: Bookin
             <StatePill tone={booking.status === 'confirmed' ? 'success' : 'neutral'}>{booking.status === 'confirmed' ? t('calendar:booking.statusConfirmed') : t('calendar:booking.statusCancelled')}</StatePill>
           </dd>
         </dl>
+        {booking.call && booking.call.status === 'open' ? (
+          <div className="flex flex-wrap gap-2">
+            <Button asChild>
+              <a href={booking.call.url} target="_blank" rel="noreferrer">
+                <Video className="h-4 w-4" /> {t('calendar:booking.joinCall')}
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                void navigator.clipboard.writeText(booking.call!.url).then(
+                  () => toast.success(t('calendar:booking.callLinkCopied')),
+                  () => toast.error(t('calendar:read.copyFailed')),
+                )
+              }
+            >
+              <Link2 className="h-4 w-4" /> {t('calendar:booking.copyCallLink')}
+            </Button>
+          </div>
+        ) : null}
         {booking.status === 'confirmed' ? (
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button

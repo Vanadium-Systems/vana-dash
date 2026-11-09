@@ -1,27 +1,44 @@
 #!/usr/bin/env bash
-# Deploy, run on the server itself (GitHub Actions calls it over SSH).
-# Assumes the repository is already cloned and the production .env sits at its root.
+# Deploy, run on the server itself (GitHub Actions calls it over SSH after building).
+# Nothing is built here: the backend image comes from GHCR and the SPA as a tarball.
+# Expects BACKEND_IMAGE (ghcr.io/...:<sha>) and FRONTEND_TARBALL; GHCR_USER / GHCR_TOKEN log
+# in for the pull when the package is private. The production .env sits at the repository root.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+: "${BACKEND_IMAGE:?BACKEND_IMAGE missing}"
+: "${FRONTEND_TARBALL:?FRONTEND_TARBALL missing}"
+export BACKEND_IMAGE
 
 if [ "${SKIP_GIT_PULL:-0}" != "1" ]; then
   git fetch origin main
   git reset --hard origin/main
 fi
 
-corepack enable
-pnpm install --frozen-lockfile
-pnpm --filter @vana-dash/frontend build
+if [ -n "${GHCR_TOKEN:-}" ]; then
+  echo "$GHCR_TOKEN" | docker login ghcr.io -u "${GHCR_USER:?}" --password-stdin
+  trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+fi
+docker pull "$BACKEND_IMAGE"
+
+# Caddy bind-mounts frontend/dist by path, so the directory itself has to stay (a renamed
+# or replaced one would keep the old inode in the container). Its contents are swapped.
+STAGE=$(mktemp -d)
+tar -xzf "$FRONTEND_TARBALL" -C "$STAGE"
+mkdir -p frontend/dist
+find frontend/dist -mindepth 1 -delete
+cp -a "$STAGE"/. frontend/dist/
+rm -rf "$STAGE" "$FRONTEND_TARBALL"
 
 # The Android APK is not in git (a binary, rarely rebuilt). Its canonical copy lives on the
-# server in ~/vana-dash-secrets/ and is put back after every build, because `vite build`
-# empties dist/ and the download button in Settings would then serve index.html under an
-# .apk name.
+# server in ~/vana-dash-secrets/ and is put back after every deploy, because dist/ was just
+# emptied and the download button in Settings would then serve index.html under an .apk name.
 if [ -f ~/vana-dash-secrets/vanadash.apk ]; then
   cp ~/vana-dash-secrets/vanadash.apk frontend/dist/vanadash.apk
 fi
 
-docker compose -f infra/docker-compose.prod.yml --env-file .env up -d --build
+# Migrations run at container start (the image CMD), before the server listens.
+docker compose -f infra/docker-compose.prod.yml --env-file .env up -d --no-build
 # The Caddyfile is mounted as a single file. `git reset` replaces it with a new inode, and
 # the caddy container (unchanged in compose, so not recreated by `up -d`) keeps seeing the old
 # one. It is recreated only when the content changed since the last deploy.
@@ -30,12 +47,6 @@ if [ "$(cat .caddyfile.sha256 2>/dev/null)" != "$CADDYFILE_SUM" ]; then
   docker compose -f infra/docker-compose.prod.yml --env-file .env up -d --force-recreate caddy
   echo "$CADDYFILE_SUM" > .caddyfile.sha256
 fi
-docker image prune -f
-# `docker image prune` does not touch the BuildKit build cache, which grows without limit.
-# Pruning by age (`until=Xh`) does nothing here: every build refreshes "last used" on all the
-# layers of the chain, the unchanged ones included (a cache hit counts as "used now"), so
-# with several deploys a day no layer ever gets older than the threshold. That is how the
-# cache reached 17 GB (61% of the disk) under a 24h filter. A cap on size
-# (`--max-used-space`) does not depend on recency: it cut 17 GB to under 5 and leaves the
-# cache of the latest build intact.
-docker builder prune -f --max-used-space=3GB
+docker image prune -af --filter "until=72h"
+# Left over from the years of building on the box; a no-op once the cache is gone.
+docker builder prune -af >/dev/null 2>&1 || true

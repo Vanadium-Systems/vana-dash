@@ -1,6 +1,14 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { CreateCalendarShareSchema, CreateEventSchema, ListOccurrencesQuerySchema, UpdateEventSchema } from './schema.js'
+import {
+  CreateCalendarShareSchema,
+  CreateEventSchema,
+  DuplicateEventSchema,
+  ListOccurrencesQuerySchema,
+  SearchEventsQuerySchema,
+  SeriesScopeQuerySchema,
+  UpdateEventSchema,
+} from './schema.js'
 import * as service from './service.js'
 import { CalendarAccessError } from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
@@ -25,8 +33,8 @@ export async function calendarRoutes(app: FastifyInstance) {
     '/api/calendar/events',
     { preHandler: [app.authenticate], schema: { body: CreateEventSchema } },
     async (req) => {
-      const row = await service.createEvent(req.me, req.body)
-      return { success: true, data: row }
+      const { data, revertToken } = await service.createEvent(req.me, req.body)
+      return { success: true, data, revertToken }
     },
   )
 
@@ -39,19 +47,48 @@ export async function calendarRoutes(app: FastifyInstance) {
     },
   )
 
+  // Before /events/:id, so "search" is not read as an id.
+  server.get(
+    '/api/calendar/events/search',
+    { preHandler: [app.authenticate], schema: { querystring: SearchEventsQuerySchema } },
+    async (req) => ({ success: true, data: await service.searchCalendar(req.me, req.query.q) }),
+  )
+
   server.patch(
     '/api/calendar/events/:id',
-    { preHandler: [app.authenticate], schema: { body: UpdateEventSchema } },
+    { preHandler: [app.authenticate], schema: { body: UpdateEventSchema, querystring: SeriesScopeQuerySchema } },
     async (req, reply) => {
-      const row = await service.updateEvent(req.me, (req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
-      return { success: true, data: row }
+      const result = await service.updateEvent(req.me, (req.params as { id: string }).id, req.body, req.query)
+      if (!result) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
+      return { success: true, data: result.data, revertToken: result.revertToken }
     },
   )
 
-  server.delete('/api/calendar/events/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
-    const row = await service.deleteEvent(req.me, (req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
+  server.delete(
+    '/api/calendar/events/:id',
+    { preHandler: [app.authenticate], schema: { querystring: SeriesScopeQuerySchema } },
+    async (req, reply) => {
+      const result = await service.deleteEvent(req.me, (req.params as { id: string }).id, req.query)
+      if (!result) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
+      return { success: true, revertToken: result.revertToken }
+    },
+  )
+
+  server.post(
+    '/api/calendar/events/:id/duplicate',
+    { preHandler: [app.authenticate], schema: { body: DuplicateEventSchema } },
+    async (req, reply) => {
+      const result = await service.duplicateEvent(req.me, (req.params as { id: string }).id, req.body.occurrence)
+      if (!result) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
+      return reply.code(201).send({ success: true, data: result.data, revertToken: result.revertToken })
+    },
+  )
+
+  server.post('/api/calendar/events/revert/:token', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const done = await service.revertWrite(req.me, (req.params as { token: string }).token)
+    if (!done) {
+      return reply.code(404).send({ success: false, error: { code: 'REVERT_EXPIRED', message: tr('errors.calendar.revertExpired') } })
+    }
     return { success: true }
   })
 

@@ -1,7 +1,6 @@
 # vana-dash: production stack, for one VPS.
 #
-# Run: docker compose -f infra/docker-compose.prod.yml --env-file .env up -d --build
-# (scripts/deploy-prod.sh does it). Needs the production .env at the repository root
+# Run by scripts/deploy-prod.sh, which pulls the backend image from GHCR (no build on the box). Needs the production .env at the repository root
 # (mode 600), with DOMAIN set.
 name: vana-dash
 
@@ -22,6 +21,8 @@ services:
       retries: 10
 
   backend:
+    # Built and pushed by .github/workflows/deploy.yml; `build` stays for a local fallback.
+    image: ${BACKEND_IMAGE:-ghcr.io/vanadium-systems/vana-dash-backend:latest}
     build:
       context: ..
       dockerfile: infra/backend.Dockerfile

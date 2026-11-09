@@ -29,7 +29,8 @@ export function buildCalendarTools(ctx: { user: SessionUser }) {
       name: 'create_calendar_event',
       inputSchema: z.object(eventFields),
       description: 'Creează un eveniment în calendarul tău. Reversibil — editabil/ștergibil imediat din UI.',
-      run: (a) => calendarService.createEvent(ctx.user, { ...a, startAt: new Date(a.startAt), endAt: new Date(a.endAt) } as never),
+      run: async (a) =>
+        (await calendarService.createEvent(ctx.user, { ...a, startAt: new Date(a.startAt), endAt: new Date(a.endAt) } as never)).data,
     }),
     autoTool({
       name: 'update_calendar_event',
@@ -43,18 +44,22 @@ export function buildCalendarTools(ctx: { user: SessionUser }) {
         allDay: z.boolean().optional(),
       }),
       description: 'Editează un eveniment de calendar existent.',
-      run: ({ id, startAt, endAt, ...rest }) =>
-        calendarService.updateEvent(ctx.user, id, {
-          ...rest,
-          startAt: startAt ? new Date(startAt) : undefined,
-          endAt: endAt ? new Date(endAt) : undefined,
-        } as never),
+      // The assistant edits whole series; single occurrences are changed from the grid.
+      run: async ({ id, startAt, endAt, ...rest }) =>
+        (
+          await calendarService.updateEvent(
+            ctx.user,
+            id,
+            { ...rest, startAt: startAt ? new Date(startAt) : undefined, endAt: endAt ? new Date(endAt) : undefined } as never,
+            { scope: 'all' },
+          )
+        )?.data ?? null,
     }),
     autoTool({
       name: 'delete_calendar_event',
       inputSchema: z.object({ id: z.string() }),
       description: 'Șterge un eveniment de calendar.',
-      run: (a) => calendarService.deleteEvent(ctx.user, a.id),
+      run: async (a) => (await calendarService.deleteEvent(ctx.user, a.id, { scope: 'all' }))?.data ?? null,
     }),
   ]
 }

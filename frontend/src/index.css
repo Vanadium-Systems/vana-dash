@@ -59,6 +59,8 @@
     --tag-7-surface: 265 70% 92%;
     --tag-8: 330 62% 42%;
     --tag-8-surface: 330 70% 92%;
+    /* Text on a solid tag colour (calendar chips): white on the darker light-theme tags. */
+    --tag-on: 0 0% 100%;
   }
 
   .dark {
@@ -107,6 +109,8 @@
     --tag-7-surface: 265 28% 17%;
     --tag-8: 330 60% 62%;
     --tag-8-surface: 330 28% 17%;
+    /* Near black on the lighter dark-theme tags. */
+    --tag-on: 0 0% 9%;
     --bubble-own: 214 40% 20%;
     --bubble-other: 0 0% 13%;
     --tick-seen: 214 90% 68%;

@@ -89,8 +89,8 @@ export async function deleteBlock(id: string): Promise<boolean> {
   return Boolean(row)
 }
 
-export function listBookings(from: Date, to: Date) {
-  return db
+export async function listBookings(from: Date, to: Date) {
+  const rows = await db
     .select({
       id: bookings.id,
       calendarEventId: bookings.calendarEventId,
@@ -102,10 +102,18 @@ export function listBookings(from: Date, to: Date) {
       topic: bookings.topic,
       status: bookings.status,
       createdAt: bookings.createdAt,
+      callId: calls.id,
+      callPublicId: calls.publicId,
+      callStatus: calls.status,
     })
     .from(bookings)
+    .leftJoin(calls, eq(calls.bookingId, bookings.id))
     .where(and(isNull(bookings.deletedAt), lt(bookings.startAt, to), gte(bookings.endAt, from)))
     .orderBy(bookings.startAt)
+  return rows.map(({ callId, callPublicId, callStatus, ...booking }) => ({
+    ...booking,
+    call: callId && callPublicId && callStatus ? { id: callId, url: callPublicUrl(callPublicId), status: callStatus } : null,
+  }))
 }
 
 /**

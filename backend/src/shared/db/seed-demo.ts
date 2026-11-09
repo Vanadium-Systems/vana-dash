@@ -6,6 +6,8 @@ import { encryptApiKey } from '../lib/crypto.js'
 import { ensureSpaceRootOf } from '../../modules/archive/access.js'
 import { defaultIdentities } from '../../modules/email/settings-service.js'
 import { ENABLED_LOCALES, isLocale, type Locale } from '../lib/locale.js'
+import { getCompanyTimeZone } from '../lib/company.js'
+import { zonedTimeToUtc } from '../lib/schedule-recurrence.js'
 import { tiptapToText, type TiptapNode } from '../lib/tiptap-text.js'
 import { db, sql } from './client.js'
 import {
@@ -17,7 +19,13 @@ import {
   archiveStars,
   archiveTrashBatches,
   billingClients,
+  bookings,
+  calendarEventAttendees,
+  calendarEventExceptions,
+  calendarEventReminders,
   calendarEvents,
+  calendarShares,
+  calls,
   conversationMembers,
   conversations,
   dashboardConfig,
@@ -483,6 +491,87 @@ const eventRows = await db.insert(calendarEvents).values([
   { ownerUserId: ana!.id, title: L({ ro: 'Revenit la Prospect 04', en: 'Follow up with Prospect 04' }), startAt: inDays(4, 9), endAt: inDays(4, 9, 30), createdByUserId: ana!.id },
   { ownerUserId: admin.id, title: 'Demo Cobalt Logistics', location: 'Online', startAt: inDays(6, 11), endAt: inDays(6, 12), createdByUserId: admin.id },
 ]).returning()
+
+// A weekly Monday 10:00 series (company wall time) with the 2nd Monday moved and the 3rd cancelled.
+const timeZone = await getCompanyTimeZone()
+const nextMonday = new Date(now)
+nextMonday.setUTCDate(nextMonday.getUTCDate() + ((8 - nextMonday.getUTCDay()) % 7))
+const mondayAt = (weeks: number, hour: number, minutes = 0) => {
+  const d = new Date(Date.UTC(nextMonday.getUTCFullYear(), nextMonday.getUTCMonth(), nextMonday.getUTCDate() + weeks * 7))
+  return zonedTimeToUtc(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), hour, minutes, timeZone)
+}
+const [weeklySeries] = await db.insert(calendarEvents).values({
+  ownerUserId: admin.id,
+  title: L({ ro: 'Ședință de echipă', en: 'Team sync' }),
+  startAt: mondayAt(0, 10),
+  endAt: mondayAt(0, 10, 45),
+  recurrenceRule: 'FREQ=WEEKLY;BYDAY=MO',
+  createdByUserId: admin.id,
+}).returning()
+await db.insert(calendarEventExceptions).values([
+  { eventId: weeklySeries!.id, occurrenceStart: mondayAt(1, 10), kind: 'moved', startAt: mondayAt(1, 14), endAt: mondayAt(1, 14, 45), overrides: { location: 'Online' } },
+  { eventId: weeklySeries!.id, occurrenceStart: mondayAt(2, 10), kind: 'cancelled' },
+])
+
+// Two reminders on one event, a common event with attendees, and a calendar shared with Ana.
+const [twoReminders] = await db.insert(calendarEvents).values({
+  ownerUserId: admin.id,
+  title: L({ ro: 'Depunere declarație', en: 'Tax filing' }),
+  startAt: inDays(5, 9),
+  endAt: inDays(5, 10),
+  createdByUserId: admin.id,
+}).returning()
+await db.insert(calendarEventReminders).values([
+  { eventId: twoReminders!.id, minutesBefore: 10 },
+  { eventId: twoReminders!.id, minutesBefore: 1440 },
+])
+const [commonEvent] = await db.insert(calendarEvents).values({
+  ownerUserId: admin.id,
+  title: L({ ro: 'Planificare trimestru', en: 'Quarter planning' }),
+  startAt: inDays(2, 12),
+  endAt: inDays(2, 13, 30),
+  createdByUserId: admin.id,
+}).returning()
+await db.insert(calendarEventAttendees).values([
+  { eventId: commonEvent!.id, userId: ana!.id },
+  { eventId: commonEvent!.id, userId: mihai!.id },
+])
+await db.insert(calendarShares).values({ ownerUserId: ana!.id, userId: admin.id, level: 'edit' })
+
+// A booking from the site with its call, plus one open and one ended call. Rooms are invented:
+// nothing here reaches Daily.
+const [bookingEvent] = await db.insert(calendarEvents).values({
+  ownerUserId: admin.id,
+  title: L({ ro: 'Programare: Acme Recycling', en: 'Booking: Acme Recycling' }),
+  startAt: inDays(2, 8),
+  endAt: inDays(2, 8, 30),
+  source: 'booking',
+  createdByUserId: admin.id,
+}).returning()
+const [demoBooking] = await db.insert(bookings).values({
+  calendarEventId: bookingEvent!.id,
+  startAt: bookingEvent!.startAt,
+  endAt: bookingEvent!.endAt,
+  name: 'Ioana Acme',
+  email: 'ioana@example.com',
+  company: 'Acme Recycling',
+  topic: L({ ro: 'Ofertă colectare', en: 'Collection quote' }),
+  locale,
+  consentAt: new Date(now - DAY),
+}).returning()
+const demoCall = (slug: string, title: string, extra: Partial<typeof calls.$inferInsert>) => ({
+  title,
+  roomName: `demo-room-${slug}`,
+  roomUrl: `https://demo.invalid/demo-room-${slug}`,
+  publicId: `demo-${slug}`,
+  expiresAt: inDays(3, 12),
+  ...extra,
+})
+await db.insert(calls).values([
+  demoCall('booking', bookingEvent!.title, { bookingId: demoBooking!.id, scheduledAt: bookingEvent!.startAt }),
+  demoCall('open', L({ ro: 'Apel cu echipa', en: 'Team call' }), { scheduledAt: inDays(1, 13) }),
+  demoCall('ended', L({ ro: 'Apel încheiat', en: 'Finished call' }), { status: 'ended', scheduledAt: daysAgo(2, 9), expiresAt: daysAgo(2, 11), durationSeconds: 1260, participantCount: 2 }),
+])
 
 const noteRows = await db.insert(notes).values([
   {

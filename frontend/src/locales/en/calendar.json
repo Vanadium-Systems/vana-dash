@@ -53,7 +53,10 @@
     "siteBooking": "Booking from the site",
     "nextSlot": "Next free slot: {{slot}} · {{free}} in 14 days",
     "freeSlots_one": "{{count}} free slot",
-    "freeSlots_other": "{{count}} free slots"
+    "freeSlots_other": "{{count}} free slots",
+    "joinCall": "Join call",
+    "copyCallLink": "Copy link",
+    "callLinkCopied": "Call link copied"
   },
   "toasts": {
     "accessSaved": "Access saved",
@@ -64,11 +67,19 @@
     "eventCreated": "Event created",
     "blockedForBookings": "Time slot blocked for bookings",
     "blockFailed": "The time slot was not blocked. Try again.",
-    "eventDeleted": "Event deleted"
+    "eventDeleted": "Event deleted",
+    "movedTo": "“{{title}}” moved to {{when}}",
+    "deletedNamed": "“{{title}}” deleted",
+    "duplicatedNamed": "“{{title}}” duplicated",
+    "eventCreatedNamed": "“{{title}}” created",
+    "eventUpdatedNamed": "“{{title}}” saved"
   },
   "view": {
     "week": "Week",
-    "month": "Month"
+    "month": "Month",
+    "agenda": "Schedule",
+    "day": "Day",
+    "label": "View"
   },
   "event": {
     "newTitle": "New event",
@@ -107,14 +118,23 @@
     "intervalDays_other": "days",
     "intervalWeeks_one": "week",
     "intervalWeeks_other": "weeks",
-    "customRecurrence": "Other rule (kept as is)"
+    "customRecurrence": "Other rule (kept as is)",
+    "onlyYourCalendar": "This event shows only in your calendar. For colleagues to see it you need the “Shared events” feature.",
+    "intervalMonths_one": "month",
+    "intervalMonths_other": "months",
+    "intervalYears_one": "year",
+    "intervalYears_other": "years",
+    "colorMine": "My colour",
+    "colorOption": "Colour {{n}}"
   },
   "nav": {
     "previousWeek": "Previous week",
     "previousMonth": "Previous month",
     "today": "Today",
     "nextWeek": "Next week",
-    "nextMonth": "Next month"
+    "nextMonth": "Next month",
+    "previous": "Previous period",
+    "next": "Next period"
   },
   "layers": {
     "shown": "Calendars shown",
@@ -128,7 +148,9 @@
     "description": "Whoever gets “Can view” sees your whole calendar. With “Can edit” they can also add or move events, but cannot pass it on."
   },
   "month": {
-    "more": "+{{count}} more"
+    "more": "+{{count}} more",
+    "events_one": "{{count}} event",
+    "events_other": "{{count}} events"
   },
   "week": {
     "blockedForBookings": "Blocked for bookings",
@@ -140,5 +162,113 @@
     "seriesTitle": "Move the whole series “{{title}}”?",
     "seriesBody": "Every occurrence moves by the same amount. A single occurrence cannot be moved on its own.",
     "seriesConfirm": "Move series"
+  },
+  "recurrence": {
+    "daily": "Daily",
+    "everyDays_one": "Every day",
+    "everyDays_other": "Every {{count}} days",
+    "weekly": "Weekly on {{days}}",
+    "everyWeeks_one": "Every week on {{days}}",
+    "everyWeeks_other": "Every {{count}} weeks on {{days}}",
+    "weekdays": "Every weekday",
+    "monthlyDate": "Monthly on day {{day}}",
+    "everyMonthsDate_one": "Every month on day {{day}}",
+    "everyMonthsDate_other": "Every {{count}} months on day {{day}}",
+    "monthlyWeekday": "Monthly on the {{ordinal}} {{weekday}}",
+    "everyMonthsWeekday_one": "Every month on the {{ordinal}} {{weekday}}",
+    "everyMonthsWeekday_other": "Every {{count}} months on the {{ordinal}} {{weekday}}",
+    "yearly": "Yearly on {{date}}",
+    "everyYears_one": "Every year on {{date}}",
+    "everyYears_other": "Every {{count}} years on {{date}}",
+    "until": ", until {{date}}",
+    "times_one": ", once",
+    "times_other": ", {{count}} times",
+    "custom": "Custom rule",
+    "ordinal": {
+      "first": "first",
+      "second": "second",
+      "third": "third",
+      "fourth": "fourth",
+      "last": "last"
+    }
+  },
+  "agenda": {
+    "label": "Schedule",
+    "today": "Today",
+    "empty": "Nothing scheduled",
+    "allDay": "All day",
+    "more": "Load more"
+  },
+  "mini": {
+    "label": "Pick a day",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
+  },
+  "fab": {
+    "addOn": "Add on {{day}}"
+  },
+  "filter": {
+    "button": "Calendars",
+    "buttonCount_one": "Calendars (+{{count}})",
+    "buttonCount_other": "Calendars (+{{count}})",
+    "title": "Calendars shown",
+    "search": "Find a colleague",
+    "onlyMine": "Only mine",
+    "all": "All",
+    "noMatch": "No colleague by that name"
+  },
+  "quick": {
+    "untitled": "(No title)",
+    "titlePlaceholder": "Add a title",
+    "more": "More options"
+  },
+  "read": {
+    "repeats": "Repeats",
+    "changedOnce": "changed here only",
+    "copyLink": "Copy link",
+    "copyFailed": "Could not copy",
+    "duplicate": "Duplicate",
+    "inCalendarOf": "In {{name}}'s calendar",
+    "viewOnly": "{{name}}'s calendar is view only",
+    "notFound": "This event no longer exists or is not in this period",
+    "reminders_one": "{{count}} notification",
+    "reminders_other": "{{count}} notifications"
+  },
+  "reminders": {
+    "label": "Notifications",
+    "add": "Add notification",
+    "remove": "Remove notification {{label}}",
+    "atStart": "At start",
+    "minutes_one": "{{count}} minute before",
+    "minutes_other": "{{count}} minutes before",
+    "hours_one": "{{count}} hour before",
+    "hours_other": "{{count}} hours before",
+    "days_one": "{{count}} day before",
+    "days_other": "{{count}} days before",
+    "weeks_one": "{{count}} week before",
+    "weeks_other": "{{count}} weeks before"
+  },
+  "scope": {
+    "title": {
+      "move": "Moving a recurring event",
+      "edit": "Saving a recurring event",
+      "delete": "Deleting a recurring event"
+    },
+    "occurrence": "This event",
+    "following": "This and following events",
+    "all": "All events",
+    "confirm": "Save",
+    "confirmDelete": "Delete"
+  },
+  "search": {
+    "label": "Search the calendar",
+    "placeholder": "Search the calendar",
+    "empty": "Nothing found for “{{term}}”"
+  },
+  "shortcuts": {
+    "create": "New event",
+    "today": "Today",
+    "next": "Next period",
+    "previous": "Previous period"
   }
 }

@@ -184,6 +184,11 @@ export const api = {
   delete: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'DELETE', body: body === undefined ? undefined : JSON.stringify(body) }),
   upload: <T>(path: string, formData: FormData) => request<T>(path, { method: 'POST', body: formData }),
+  /** A write that answers with an undo token next to `data` (calendar). */
+  write: async <T>(method: 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<{ data: T; revertToken: string }> => {
+    const envelope = await requestEnvelope<T>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) })
+    return { data: envelope.data, revertToken: (envelope as ApiEnvelope<T> & { revertToken: string }).revertToken }
+  },
   download: downloadFile,
   getBlob: fetchBlob,
 }

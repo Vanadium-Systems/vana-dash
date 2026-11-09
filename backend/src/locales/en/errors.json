@@ -91,7 +91,11 @@
     "shareOwnOnly": "You can share only your own calendar",
     "shareWithSelf": "You cannot share the calendar with yourself",
     "userGone": "The user no longer exists",
-    "paymentTitle": "Payment: {{description}}"
+    "paymentTitle": "Payment: {{description}}",
+    "occurrenceRequired": "Pick the occurrence in the series",
+    "occurrenceNotInSeries": "That occurrence is not part of the series",
+    "scopeRequired": "Choose whether to change only this event, this and following, or the whole series",
+    "revertExpired": "This can no longer be undone"
   },
   "booking": {
     "blockNotFound": "Time slot not found",

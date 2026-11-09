@@ -292,16 +292,32 @@ const SOURCES: GuideSource[] = [
         en: 'Press “New event” and fill in the title, the start and the end.',
       },
       {
-        ro: 'Alege un reminder dacă vrei notificare înainte, și o recurență dacă se repetă; „Repetă la fiecare” dă intervalul (din 2 în 2 săptămâni).',
-        en: 'Pick a reminder if you want a notification beforehand, and a recurrence if it repeats; “Repeat every” sets the interval (every 2 weeks).',
+        ro: 'Sau trage un interval direct în calendar (pe telefon, ține apăsat), scrie titlul și apasă Enter.',
+        en: 'Or draw a range straight in the calendar (on a phone, press and hold), type the title and press Enter.',
       },
       {
-        ro: 'Ca să muți un eveniment, trage-l pe altă zi în vederea pe săptămână, sau deschide-l și schimbă ora. La un eveniment care se repetă se mută toată seria.',
-        en: 'To move an event, drag it to another day in the week view, or open it and change the time. For a repeating event the whole series moves.',
+        ro: 'Poți pune până la 5 notificări înainte de eveniment și o recurență: zilnic, în zilele lucrătoare, săptămânal, lunar (după dată sau „a patra joi”) sau anual. Sub formular vezi regula scrisă în cuvinte.',
+        en: 'You can add up to 5 notifications before the event and a recurrence: daily, on weekdays, weekly, monthly (by date or “fourth Thursday”) or yearly. Under the form you see the rule written out.',
       },
       {
-        ro: 'Comută între „Lună” și „Săptămână”; „Astăzi” te aduce înapoi la ziua curentă.',
-        en: 'Switch between “Month” and “Week”; “Today” brings you back to the current day.',
+        ro: 'Ca să muți un eveniment, trage-l pe altă zi sau oră; trage de marginea de jos ca să-i schimbi durata. La un eveniment care se repetă alegi „Doar acest eveniment”, „Acesta și următoarele” sau „Toate evenimentele”.',
+        en: 'To move an event, drag it to another day or time; drag its bottom edge to change the length. For a repeating event you pick “This event”, “This and following events” or “All events”.',
+      },
+      {
+        ro: 'Apasă un eveniment ca să-l citești; de acolo îl editezi, duplici sau ștergi, iar din ⋯ îl trimiți în Mesaje sau copiezi linkul. După orice schimbare apare „Anulează”, iar cât e mesajul pe ecran merge și Ctrl+Z.',
+        en: 'Click an event to read it; from there you edit, duplicate or delete it, and from ⋯ you send it to Messages or copy the link. After any change “Undo” appears, and Ctrl+Z works while the message is on screen.',
+      },
+      {
+        ro: 'Comută între „Zi”, „Săptămână”, „Lună” și „Program” (lista a ce urmează); „Astăzi” te aduce la ziua curentă. Caută cu căsuța de căutare sau cu /.',
+        en: 'Switch between “Day”, “Week”, “Month” and “Schedule” (the list of what comes next); “Today” brings you back to the current day. Search with the search box or with /.',
+      },
+      {
+        ro: 'Scurtături: c eveniment nou, t azi, n / p înainte și înapoi, d / w / m / a pentru vedere, e editează, Delete șterge.',
+        en: 'Shortcuts: c new event, t today, n / p forward and back, d / w / m / a for the view, e edit, Delete delete.',
+      },
+      {
+        ro: 'Dacă nu poți adăuga participanți, evenimentul rămâne doar în calendarul tău.',
+        en: 'If you cannot add attendees, the event stays only in your calendar.',
       },
       {
         ro: 'Deschis, un eveniment se poate trimite unui coleg cu „Trimite în Mesaje”.',
@@ -323,8 +339,8 @@ const SOURCES: GuideSource[] = [
     },
     steps: [
       {
-        ro: 'Bifează calendarele pe care vrei să le vezi la „Calendare afișate”.',
-        en: 'Tick the calendars you want to see under “Calendars shown”.',
+        ro: 'Apasă „Calendare”, caută colegul și bifează calendarele pe care vrei să le vezi.',
+        en: 'Press “Calendars”, find the colleague and tick the calendars you want to see.',
       },
       {
         ro: 'Evenimentul altcuiva are numele omului în titlu.',

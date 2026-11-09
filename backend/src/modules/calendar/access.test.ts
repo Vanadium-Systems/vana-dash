@@ -29,7 +29,7 @@ async function makeEvent(input: { title: string; attendeeUserIds?: string[]; cal
     startAt: MON,
     endAt: new Date(MON.getTime() + 60 * 60 * 1000),
     ...input,
-  }))!
+  })).data
   eventIds.push(row.id)
   return row
 }
@@ -93,7 +93,7 @@ describe('editare și ștergere după id', () => {
     await service.setCalendarShare(stefan, stefan.id, secretar.id, 'edit')
 
     const updated = await service.updateEvent(secretar, event.id, { title: 'Mutat de secretar' })
-    expect(updated?.title).toBe('Mutat de secretar')
+    expect(updated?.data.title).toBe('Mutat de secretar')
     // Dar calendarul rămâne al lui Stefan — schimbarea e o programare, nu o preluare.
     const [row] = await db.select().from(calendarEvents).where(eq(calendarEvents.id, event.id))
     expect(row?.ownerUserId).toBe(stefan.id)
@@ -155,7 +155,7 @@ describe('evenimente comune', () => {
     })
     await service.setCalendarShare(comun, comun.id, secretarComun.id, 'edit')
     const updated = await service.updateEvent(secretarComun, event.id, { title: 'Mutat de participant' })
-    expect(updated?.title).toBe('Mutat de participant')
+    expect(updated?.data.title).toBe('Mutat de participant')
   })
 
   it('creatorul nu se poate adăuga și el participant', async () => {

@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react'
-import { chartColor } from '@/shared/lib/chart-colors'
+import { personTag, tagColor } from '@/shared/lib/tag-colors'
 import { t } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
 
@@ -7,11 +7,9 @@ import { cn } from '@/shared/lib/utils'
 // glance. The colour comes from the user id, so it is the same on every screen and every device.
 // There are no profile photos yet; when there are, they go inside this circle.
 
-/** The person's slot in the categorical palette; their name in a group uses it too. */
+/** The person's colour (shared with the calendar); their name in a group uses it too. */
 export function personColor(userId: string): string {
-  let hash = 0
-  for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) | 0
-  return chartColor(Math.abs(hash))
+  return tagColor(personTag(userId))
 }
 
 /** Two letters; a name that is only an email splits on its dots and @. */

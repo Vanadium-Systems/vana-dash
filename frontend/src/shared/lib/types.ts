@@ -1221,16 +1221,43 @@ export interface CalendarOccurrence {
   recurrenceEndAt: string | null
   occurrenceStart: string
   occurrenceEnd: string
+  /** Where the series put this occurrence, even after it was moved: the key for `?occurrence=`.
+   *  Null for a single event and for expenses. */
+  occurrenceKey: string | null
+  /** Moved or edited on its own, apart from its series. */
+  isException: boolean
   /** Start and end of the event row (the first occurrence of a series). */
   seriesStart: string
   seriesEnd: string
   reminderMinutesBefore: number | null
+  /** Every reminder, in minutes before the event. */
+  reminders: number[]
   /** Null pe cheltuielile recurente: sunt ale firmei, nu au calendar. */
   ownerUserId: string | null
   ownerName: string | null
   attendees: { id: string; name: string }[]
   isCommon: boolean
   access: 'owner' | 'edit' | 'view' | null
+}
+
+export type SeriesScope = 'occurrence' | 'following' | 'all'
+
+/** A calendar write's answer: the row and the token that undoes it for 60s. */
+export interface CalendarWrite<T = CalendarEvent> {
+  data: T
+  revertToken: string
+}
+
+export interface CalendarSearchHit {
+  eventId: string
+  title: string
+  location: string | null
+  color: string | null
+  allDay: boolean
+  ownerName: string
+  occurrenceStart: string
+  occurrenceEnd: string
+  occurrenceKey: string | null
 }
 
 export interface CalendarLayer {
@@ -1604,6 +1631,8 @@ export interface BookingSummary {
   topic: string | null
   status: 'confirmed' | 'cancelled'
   createdAt: string
+  /** The video call opened for the booking, if any (AP2). */
+  call: { id: string; url: string; status: 'open' | 'ended' | 'cancelled' } | null
 }
 
 export interface BookingSlots {

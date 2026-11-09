@@ -446,7 +446,8 @@ subfolders, the financial archive, the quarterly package) write into the platfor
 ## Calendar
 
 One table (`calendar_events`) for single and recurring events (RRULE, expanded on the server
-over the window asked for).
+over the window asked for, on the company's wall clock so a 10:00 meeting stays at 10:00 across
+daylight saving). One occurrence can be moved or cancelled on its own (`calendar_event_exceptions`).
 
 **A calendar per person.** Each event has an owner. A share is given on the person's whole
 calendar (`view` / `edit`), only by the owner or the admin. A common event (one with attendees)
@@ -458,14 +459,17 @@ platform admin's calendar, and free slots are computed from it alone.
 | Method | Route | Description |
 |---|---|---|
 | GET | `/api/calendar/calendars` | `{ mine: [{ userId, name, level, owner }], given: [...], members: [...] }`, the layers in the UI and the share dialog |
-| POST | `/api/calendar/events` | `{ title, startAt, endAt, description?, location?, allDay?, recurrenceRule?, recurrenceEndAt?, color?, reminderMinutesBefore?, attendeeUserIds?, calendarOwnerUserId? }`. `attendeeUserIds` needs `calendar.comune` (`403 COMMON_NOT_ALLOWED`). `calendarOwnerUserId` creates in someone else's calendar, with an `edit` share (`403 CALENDAR_READ_ONLY`) |
-| GET | `/api/calendar/events` | Query: `from`, `to` → the occurrences the person can see: `{ eventId, occurrenceStart, occurrenceEnd, ownerUserId, ownerName, attendees, isCommon, access: 'owner'\|'edit'\|'view'\|null, source: 'manual'\|'booking', ... }`. Recurring expenses appear with `ownerUserId: null` |
-| PATCH | `/api/calendar/events/:id` | Partial update, on the whole series. `attendeeUserIds` needs `calendar.comune` |
-| DELETE | `/api/calendar/events/:id` | Soft delete, the whole series |
+| POST | `/api/calendar/events` | `{ title, startAt, endAt, description?, location?, allDay?, recurrenceRule?, recurrenceEndAt?, color?, reminders?, reminderMinutesBefore?, attendeeUserIds?, calendarOwnerUserId? }`. `reminders` is a list of 0-5 values, minutes before, 0..40320; `reminderMinutesBefore` (legacy) is still accepted. `attendeeUserIds` needs `calendar.comune` (`403 COMMON_NOT_ALLOWED`). `calendarOwnerUserId` creates in someone else's calendar, with an `edit` share (`403 CALENDAR_READ_ONLY`) |
+| GET | `/api/calendar/events` | Query: `from`, `to` → the occurrences the person can see: `{ eventId, occurrenceStart, occurrenceEnd, ownerUserId, ownerName, attendees, isCommon, access: 'owner'\|'edit'\|'view'\|null, source: 'manual'\|'booking', ... }`. Recurring expenses appear with `ownerUserId: null`, and only for people with `facturi.cheltuieli`. A moved occurrence carries its new time and `occurrenceStart` is still the key the series gave it; a cancelled one is left out |
+| PATCH | `/api/calendar/events/:id` | Partial update. Query: `scope=occurrence\|following\|all`, `occurrence=<ISO key>` (the occurrence's `occurrenceKey`: where the series put it, even after a move). Both are required on a recurring event, else `400 SCOPE_REQUIRED`. `occurrence` changes or moves one occurrence, `following` splits the series from that occurrence on, `all` changes the whole series (moving it to another weekday rotates `BYDAY`). `attendeeUserIds` needs `calendar.comune` |
+| DELETE | `/api/calendar/events/:id` | Same `scope` and `occurrence` query. `occurrence` cancels one occurrence, `following` ends the series before it, `all` soft-deletes the series. A single event takes no query |
+| POST | `/api/calendar/events/:id/duplicate` | `{ occurrence? }` (ISO key). Copies the event, or one occurrence of a series as a single event, into the same calendar, or into your own when that calendar is view only. Attendees are copied only with `calendar.comune` |
+| GET | `/api/calendar/events/search` | Query: `q` (2-120 characters, ignores diacritics). The events the person can see that match, each with its next occurrence |
+| POST | `/api/calendar/events/revert/:token` | Undoes the write that returned the token. Valid 60 seconds, only for its author (`404` for anyone else or after that) |
 | POST | `/api/calendar/shares` | `{ ownerUserId, userId, level }` → the shares given. Owner or admin (`403 SHARE_NOT_ALLOWED`). Audited |
 | DELETE | `/api/calendar/shares/:ownerUserId/:userId` | Removes the access. Audited |
 
-An event's reminder reaches the owner and, for a common event, each attendee.
+Every write (`POST`, `PATCH`, `DELETE`, `duplicate`) answers with a `revertToken` next to the result. An event's reminders reach the owner and, for a common event, each attendee; each reminder fires once per occurrence.
 
 ## Notes
 
@@ -911,7 +915,7 @@ are called only by the website's server-side function, after Turnstile, with the
 | GET | `/api/booking/blocks` | Query: `from`, `to`. The intervals blocked for booking |
 | POST | `/api/booking/blocks` | `{ startAt, endAt, reason? }` → 201 |
 | DELETE | `/api/booking/blocks/:id` | Unblocks (soft delete) |
-| GET | `/api/booking/bookings` | Query: `from`, `to`. `[{ id, calendarEventId, start, end, name, email, company, topic, status, createdAt }]`; the personal fields are `null` after the purge |
+| GET | `/api/booking/bookings` | Query: `from`, `to`. `[{ id, calendarEventId, start, end, name, email, company, topic, status, call: { id, url, status } \| null, createdAt }]`, `call` being the video call of the booking (see Calls); the personal fields are `null` after the purge |
 | POST | `/api/booking/bookings/:id/cancel` | `{ notifyVisitor? }` (default `true`). Cancels, deletes the event, and emails the visitor only with `notifyVisitor` |
 
 A slot is free if it is inside the weekly schedule, after `minNoticeHours`, within

@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-09T18:00:00+02:00',
+    title: {
+      ro: 'Calendar: vederi Zi și Program, tragi ca să muți sau să creezi, o ocurență a unei serii se mută sau se anulează singură',
+      en: 'Calendar: Day and Schedule views, drag to move or create, one occurrence of a series can be moved or canceled on its own',
+    },
+    body: {
+      ro: 'Calendarul are acum vederile Zi, Săptămână, Lună și Program. Tragi un eveniment ca să-l muți, tragi de marginea de jos ca să-i schimbi durata și tragi un interval gol ca să creezi unul; pe telefon ții apăsat. La un eveniment care se repetă alegi dacă schimbi doar acea zi, aceasta și următoarele sau toată seria. După orice schimbare apare „Anulează”, iar cât e mesajul pe ecran merge și Ctrl+Z. Poți pune până la 5 notificări și repetări lunare („a patra joi”) sau anuale, iar sub formular vezi regula scrisă în cuvinte. Evenimentul se deschide întâi la citit, cu Editează, Duplică și Șterge; ai și căutare în calendar (tasta /) și scurtături (c, t, n, p, d, w, m, a). Calendarele colegilor se aleg dintr-un singur buton, „Calendare”, iar programările de pe site au butoanele „Intră în apel” și „Copiază linkul”. Întâlnirile care se repetă create înainte de 25 octombrie apar din nou la ora la care le-ai creat (se mutaseră cu o oră). Plățile recurente apar în calendar doar la cei care văd cheltuielile. Fiecare om are culoarea lui, aceeași ca în Mesaje, iar un eveniment o ia implicit; din formular poți alege una din 8 culori.',
+      en: 'The calendar now has Day, Week, Month and Schedule views. Drag an event to move it, drag its bottom edge to change the length, and draw over an empty range to create one; on a phone, press and hold. For a repeating event you choose whether to change just that day, this and the following ones, or the whole series. After any change “Undo” appears, and Ctrl+Z works while the message is on screen. You can add up to 5 notifications and monthly (“fourth Thursday”) or yearly repeats, and under the form you see the rule written out. An event opens for reading first, with Edit, Duplicate and Delete; there is also calendar search (the / key) and shortcuts (c, t, n, p, d, w, m, a). Colleagues\' calendars are picked from a single “Calendars” button, and bookings from the site have “Join call” and “Copy link”. Recurring meetings created before 25 October show again at the hour they were created (they had drifted an hour). Recurring payments appear in the calendar only for people who see expenses. Each person has their own colour, the same as in Messages, and events take it by default; the form offers 8 colours to pick from.',
+    },
+    features: ['calendar.view'],
+  },
+  {
     publishedAt: '2026-11-09T12:00:00+02:00',
     title: {
       ro: 'Notițe: editor cu formatare, liste de bifat, culori, versiuni; în Plan tragi obiectivele între niveluri',

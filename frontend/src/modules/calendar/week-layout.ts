@@ -98,3 +98,60 @@ export function placedStyle(placed: PlacedOccurrence): { top: number; height: nu
     width: `calc(${share}% - 4px)`,
   }
 }
+
+// ── Dragging, resizing and drawing a range on the grid (FE2). Pure, so the snapping and the
+// limits are tested without a DOM; the grid only feeds pointer offsets in.
+
+export const SNAP_MINUTES = 15
+const MINUTE_MS = 60_000
+
+export function snapMinutes(minutes: number): number {
+  return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES
+}
+
+/** The snapped time under a vertical offset (px from the top of the day column). */
+export function timeAt(day: Date, offsetY: number, grid: DayGrid): Date {
+  const minutes = snapMinutes(grid.startHour * 60 + (offsetY / grid.hourHeight) * 60)
+  const clamped = Math.min(Math.max(minutes, grid.startHour * 60), grid.endHour * 60)
+  const time = new Date(day)
+  time.setHours(0, 0, 0, 0)
+  time.setMinutes(clamped)
+  return time
+}
+
+/**
+ * Where a dragged event lands: moved by whole days (the column under the pointer) and by snapped
+ * minutes (the vertical distance dragged), keeping its duration.
+ */
+export function dragTarget(start: Date, end: Date, dayDelta: number, offsetPx: number, grid: DayGrid): { start: Date; end: Date } {
+  const minutes = snapMinutes((offsetPx / grid.hourHeight) * 60)
+  const next = new Date(start)
+  next.setDate(next.getDate() + dayDelta)
+  next.setTime(next.getTime() + minutes * MINUTE_MS)
+  return { start: next, end: new Date(next.getTime() + (end.getTime() - start.getTime())) }
+}
+
+/** The new end while the bottom edge is dragged: at least one snap after the start, at most the end of its day. */
+export function resizeTarget(start: Date, end: Date, offsetPx: number, grid: DayGrid): Date {
+  const minutes = snapMinutes((offsetPx / grid.hourHeight) * 60)
+  const dayEnd = new Date(start)
+  dayEnd.setHours(0, 0, 0, 0)
+  dayEnd.setTime(dayEnd.getTime() + grid.endHour * 3_600_000)
+  const next = end.getTime() + minutes * MINUTE_MS
+  return new Date(Math.min(Math.max(next, start.getTime() + SNAP_MINUTES * MINUTE_MS), Math.max(dayEnd.getTime(), end.getTime())))
+}
+
+/** A range drawn on one day, in either direction; a click without drag gives one hour. */
+export function drawnRange(day: Date, fromY: number, toY: number, grid: DayGrid): { start: Date; end: Date } {
+  const a = timeAt(day, Math.min(fromY, toY), grid)
+  let b = timeAt(day, Math.max(fromY, toY), grid)
+  if (b.getTime() - a.getTime() < SNAP_MINUTES * MINUTE_MS) {
+    // A plain click: the hour slot it fell in.
+    const slot = new Date(day)
+    slot.setHours(0, 0, 0, 0)
+    slot.setMinutes(Math.floor((grid.startHour * 60 + (fromY / grid.hourHeight) * 60) / 60) * 60)
+    return { start: slot, end: new Date(slot.getTime() + 60 * MINUTE_MS) }
+  }
+  if (b.getTime() <= a.getTime()) b = new Date(a.getTime() + SNAP_MINUTES * MINUTE_MS)
+  return { start: a, end: b }
+}
