@@ -22,24 +22,13 @@ export class MailboxNotMine extends Error {
 }
 
 // Rendering sanitizes on the client (DOMPurify); this only keeps a signature from carrying
-// active content into the emails it is appended to.
+// active content into the emails it is appended to. It neutralizes instead of cutting: removing
+// `<script>` from `<scr<script>ipt>` would splice a new one together, escaping a `<` cannot.
 export function stripActiveHtml(html: string): string {
-  // Repeated until nothing changes: removing `<scr<script>ipt>` once leaves a `<script>` behind.
-  let previous: string
-  let current = html
-  do {
-    previous = current
-    current = stripActiveHtmlOnce(previous)
-  } while (current !== previous)
-  return current
-}
-
-function stripActiveHtmlOnce(html: string): string {
   return html
-    .replace(/<(script|style|iframe|object|embed|form|link|meta)\b[\s\S]*?(<\/\1\s*>|$)/gi, '')
-    .replace(/<(script|style|iframe|object|embed|form|link|meta)\b[^>]*\/?>/gi, '')
-    .replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/(href|src)\s*=\s*("|')\s*javascript:[^"']*\2/gi, '$1=$2#$2')
+    .replace(/<(?=\s*\/?\s*(script|style|iframe|object|embed|form|link|meta)\b)/gi, '&lt;')
+    .replace(/([\s/])(on[a-z]+\s*=)/gi, '$1data-blocked-$2')
+    .replace(/((?:href|src)\s*=\s*["']?\s*)javascript:/gi, '$1#blocked:')
 }
 
 export interface MySettings {

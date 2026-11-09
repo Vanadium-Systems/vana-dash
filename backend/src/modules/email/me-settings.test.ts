@@ -81,7 +81,7 @@ describe('PATCH /api/email/me/settings', () => {
     expect(res.statusCode, res.body).toBe(200)
     const stored: string = res.json().data.signatures.contact
     expect(stored).toContain('Anna')
-    expect(stored).not.toMatch(/script|onclick/i)
+    expect(stored).not.toMatch(/<\s*script|\sonclick\s*=/i)
   })
 })
 
