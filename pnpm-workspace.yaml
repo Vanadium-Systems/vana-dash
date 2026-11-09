@@ -39,6 +39,10 @@ overrides:
   postcss-selector-parser: ^7.1.6
   # workbox-build's jake>filelist>minimatch@5 chain stays on brace-expansion@2.
   'minimatch@5>brace-expansion': ^2.1.7
+  # rimraf and workbox-build (build-time only) lock glob 10/11/13 and, through it, minimatch 9/10:
+  # glob's AbortSignal bypass and minimatch's globparts amplification. Same API on the fixed majors.
+  'glob@>=9.0.0 <14.0.2': ^14.0.2
+  'minimatch@>=7.0.0 <11.0.1': ^11.0.1
   # prosemirror-view resolved its own prosemirror-model next to the one @tiptap/pm
   # uses; two copies make every DOM-read keystroke throw "multiple versions of
   # prosemirror-model" and the typed text is dropped.
