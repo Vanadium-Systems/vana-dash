@@ -83,10 +83,12 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
 
   // Sub 2 caractere serverul nu caută nimic (`/api/search` cere minimum 2), deci nici
   // interogăm — cu un prefix scurt ar întreba trei tabele pentru orice.
+  // Without `cautare.view` the palette only jumps between pages: the server would answer 403.
+  const canSearch = can('cautare.view')
   const results = useQuery({
     queryKey: ['search', debouncedTerm],
     queryFn: () => api.get<SearchGroup[]>(`/api/search?q=${encodeURIComponent(debouncedTerm)}`),
-    enabled: open && debouncedTerm.length >= 2,
+    enabled: open && canSearch && debouncedTerm.length >= 2,
     staleTime: 30_000,
   })
 
@@ -100,7 +102,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const subPages = SUB_PAGES.filter((page) => can(page.feature))
   const actions = ACTIONS.filter((action) => can(action.feature))
   const groups = (results.data ?? []).filter((group) => can(group.feature))
-  const searching = term.length >= 2
+  const searching = canSearch && term.length >= 2
   // Cât timp răspunde serverul, arătăm doar starea de căutare, nu paginile: o listă care
   // se schimbă sub cursorul omului e mai derutantă decât o așteptare scurtă.
   const waiting = searching && (results.isPending || debouncedTerm !== term)

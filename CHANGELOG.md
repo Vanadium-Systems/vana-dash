@@ -4,6 +4,58 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-09: Archive Trash, Notes editor, Plan drag between tiers
+
+### Archive
+- Deleting is now a move to the Trash. A folder goes with everything in it, in one batch
+  (`archive_trash_batches`, `deleted_batch_id` on files and folders, migration 0080). A batch can be
+  restored for 30 days (`GET /api/archive/trash`, `POST /api/archive/trash/:batchId/restore`) or
+  deleted for good (`DELETE /api/archive/trash/:batchId`). `DELETE /api/archive/files/:id` no
+  longer takes `permanent`, and `DELETE /api/archive/folders/:id` no longer refuses a folder that
+  has content. Rows soft-deleted before the migration got a batch each, due in 30 days.
+- New `jobs/trash-purge.ts` (03:30 daily) removes expired batches and their R2 objects, at most
+  20 batches and 2000 objects per run, and logs to `sync_log` as `archive:trash-purge`. Files
+  deleted before this release used to stay in R2 forever.
+- `GET /api/archive/files` is paginated (`{ items, total, page, pageSize }`); the list used to
+  stop at the first 50 files with no sign of it. Search covers folders, ignores diacritics and
+  treats `%` and `_` literally.
+- New routes: details with the inherited access list, stars (per person), recent files, bulk
+  move / delete / put-back, folder `color`. Rename and move answer with the previous values so
+  the client can undo them.
+- Uploads over the storage limit answer `413 STORAGE_FULL`. The limit counts files in the Trash.
+- UI: preview over the page with arrows, details panel, multi-select with drag to a folder,
+  upload panel with progress and retry, Recent / Starred / Trash tabs, folder colors, undo
+  after delete, move and rename.
+
+### Notes and Plan
+- Notes get a rich editor (headings, lists, checklists, `/` menu) stored as `body_json`;
+  `body` stays the plain text, derived on the server (migration 0081). Old notes keep
+  `body_format = 'plain'` until their first edit. Saves are continuous, with
+  `expectedUpdatedAt` and `409 NOTE_CHANGED` on a conflict.
+- Notes can be colored, labeled, archived and moved to a 30-day Trash. New routes cover
+  archive / unarchive / restore, `DELETE /api/notes/trash`, labels, `POST /api/notes/bulk` and
+  versions (`note_versions`, one per 10 minutes at most, 50 per note). The note title is optional;
+  an empty note is `400 EMPTY_NOTE`. Notes appear in Ctrl K, the person's own only.
+  `jobs/trash-purge.ts` also deletes notes that have been in the Trash for over 30 days.
+- Plan: `PATCH /api/plan/:id/move` moves a goal to another tier and renumbers both.
+  In the UI, goals are dragged between tiers and Enter adds a new goal under the current one.
+
+### Tabs and filters
+- `TabsList` has a `segmented` variant for views inside a page (Notes / Archive / Trash,
+  Personal / Company, the Archive views, Media / Files in a conversation); page tabs keep the
+  sliding line. The line now also follows a tab that grows after it was placed (web font swap).
+- Wishlist: the two tab rows became one Filter menu with removable chips. `FilterChip` and
+  `FilterMenuTrigger` moved to `shared/components/ui/filter-chip.tsx`.
+- Notes: the "Create a note" bar sits under the views row and the grid is aligned left.
+
+### Fixed
+- Two copies of `prosemirror-model` were installed (`prosemirror-view` resolved its own since the
+  2026-10-13 dependency update), so every keystroke read from the DOM threw "multiple versions of
+  prosemirror-model" and the text was dropped. A `pnpm` override pins one version.
+- Archive search results carry `updatedAt`, so the Modified column is no longer empty.
+- Ctrl K no longer calls `/api/search` for people without `cautare.view` (it answered 403 and
+  showed "Search failed"); it lists pages only.
+
 ## 2026-11-06: Email: Sent covers shared mailboxes, Sent by filter
 
 ### Changed

@@ -1,184 +1,75 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Directory, Filesystem } from '@capacitor/filesystem'
-import { Share } from '@capacitor/share'
-import {
-  CalendarClock,
-  Download,
-  File as FileIcon,
-  Folder,
-  FolderInput,
-  FolderOpen,
-  FolderPlus,
-  LayoutGrid,
-  List,
-  MessageSquareShare,
-  MoreVertical,
-  Pencil,
-  Share2,
-  Trash2,
-  Upload,
-  Users,
-} from 'lucide-react'
-import { useRef, useState, type DragEvent, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { DndContext, DragOverlay, PointerSensor, pointerWithin, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Camera, Download, FolderInput, FolderPlus, Info, MessageSquareShare, Palette, Pencil, Plus, Star, Trash2, Upload, Users } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Badge } from '@/shared/components/ui/badge'
+import { AccessShareDialog } from '@/shared/components/AccessShareDialog'
+import { FileViewer, viewerButtonClass, type ViewerFile } from '@/shared/components/FileViewer'
+import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
-import { Input } from '@/shared/components/ui/input'
-import { ListSkeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
-import { PageHeader } from '@/shared/components/PageHeader'
-import { AccessShareDialog } from '@/shared/components/AccessShareDialog'
-import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
-import { useFlashRow } from '@/shared/hooks/use-flash-row'
+import { DropdownMenuItem, DropdownMenuSeparator } from '@/shared/components/ui/dropdown-menu'
 import { EmptyState } from '@/shared/components/ui/empty-state'
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
-import { useMe } from '@/shared/hooks/use-me'
+import { Fab } from '@/shared/components/ui/fab'
+import { SelectionBar } from '@/shared/components/ui/selection-bar'
+import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { useDebounced } from '@/shared/hooks/use-debounced'
+import { useHotkeys } from '@/shared/hooks/use-hotkeys'
+import { useMe } from '@/shared/hooks/use-me'
+import { useSelection } from '@/shared/hooks/use-selection'
+import { useUrlState } from '@/shared/hooks/use-url-state'
 import { api } from '@/shared/lib/api'
-import { blobToBase64, isNative } from '@/shared/lib/native'
+import { t } from '@/shared/lib/i18n'
 import type {
   AccessLevel,
   AccessShare,
+  ArchiveDetails,
   ArchiveDownloadUrl,
-  ArchiveFile,
+  ArchiveFilesPage,
   ArchiveFolder,
   ArchiveFolderPath,
-  ArchiveSearchResult,
-  ArchiveSpaceEntry,
+  ArchiveRecentFile,
+  ArchiveSearchHit,
   ArchiveSpaces,
-  StorageUsage,
+  ArchiveStars,
 } from '@/shared/lib/types'
-import { cn, formatBytes } from '@/shared/lib/utils'
+import { formatBytes } from '@/shared/lib/utils'
+import { PAGE_SIZES } from '@/shared/components/ui/table-pagination'
+import { ArchiveGrid } from './ArchiveGrid'
+import { ArchiveHeader, crumbDropId, type ArchiveView, type Crumb } from './ArchiveHeader'
+import { ArchiveList } from './ArchiveList'
+import { ArchiveToolbar, type SortMode, type ViewMode } from './ArchiveToolbar'
+import { downloadItems, moveItems, renameItem, setStarred, trashItems } from './archive-actions'
+import { ColorDialog } from './ColorDialog'
+import { DetailsPeek } from './DetailsPeek'
+import type { FilterValues } from './FilterChips'
+import { isModifiedRange, isTypeFilter, modifiedAfterIso } from './filters'
+import type { ItemActions } from './ItemMenu'
+import { fileItem, folderItem, hitItem, starredFolderItem, type ArchiveItem } from './items'
+import { carriesFiles, type ListEnv } from './list-env'
 import { MoveDialog } from './MoveDialog'
 import { NameDialog } from './NameDialog'
+import { canShareFiles, shareFileNatively } from './native-share'
+import { useRowActivation } from './row-activation'
 import { SaveShareDialog } from './SaveShareDialog'
-import { useConfirm } from '@/shared/components/ui/confirm-dialog'
-import { Select } from '@/shared/components/ui/select'
-import { t } from '@/shared/lib/i18n'
-import { openExternal } from '@/shared/lib/open-file'
+import { SpacesTable } from './SpacesTable'
+import { TrashView } from './TrashView'
+import { UploadPanel } from './UploadPanel'
+import { enqueueUploads, useUploads } from './uploads'
 
 const VIEW_MODE_KEY = 'archive-view-mode'
-type ViewMode = 'list' | 'grid'
-type SortMode = 'recent' | 'oldest' | 'name'
-const SORT_LABELS: Record<SortMode, string> = { recent: t('archive:sort.recent'), oldest: t('archive:sort.old'), name: 'A-Z' }
+const VIEWS: ArchiveView[] = ['own', 'shared', 'all', 'recent', 'starred', 'trash']
 
-// Chrome desktop/Firefox n-au Web Share API — ascundem butonul în loc să-l arătăm mereu ca
-// să eșueze la click. Pe nativ sheet-ul vine oricum din plugin-ul Capacitor. Verificare reală
-// (fișier+MIME) tot se face la share (`canShare`), asta e doar gate-ul de randare.
-const canShareFiles = isNative || (typeof navigator !== 'undefined' && typeof navigator.share === 'function')
-
-// Roșu peste 90% din plafonul gratuit R2 (10GB implicit, config.r2.freeTierLimitGb) — Stefan
-// vede din timp înainte să treacă pe planul plătit fără să vrea.
-function StorageUsageIndicator() {
-  const usage = useQuery({
-    queryKey: ['archive', 'storage'],
-    queryFn: () => api.get<StorageUsage>('/api/archive/storage'),
-    staleTime: 5 * 60 * 1000,
-  })
-  if (!usage.data) return null
-  const ratio = usage.data.usedBytes / usage.data.limitBytes
-  const tone = ratio >= 0.9 ? 'text-destructive' : ratio >= 0.7 ? 'text-warning' : 'text-muted-foreground'
-  return (
-    <span className={cn('text-sm', tone)} title={t('archive:storage.hint')}>
-      {formatBytes(usage.data.usedBytes)} / {formatBytes(usage.data.limitBytes)}
-    </span>
-  )
+function parseView(value: string | null): ArchiveView {
+  return VIEWS.includes(value as ArchiveView) && value !== 'own' ? (value as ArchiveView) : 'own'
 }
 
-// Miniatura reală (PDF: prima pagină randată la upload; imagini: fișierul propriu, scalat de
-// browser) când previewUrl există, altfel o iconiță generică — evită să tragem thumbnail-uri
-// pt. tipuri fără preview (xml, zip etc.).
-function FileNameCell({ name, previewUrl, details = [] }: { name: string; previewUrl: string | null; details?: ReactNode[] }) {
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      {previewUrl ? (
-        <img src={previewUrl} alt="" className="h-10 w-10 shrink-0 rounded border object-cover" />
-      ) : (
-        <FileIcon className="h-10 w-10 shrink-0 rounded border p-2 text-muted-foreground" />
-      )}
-      <div className="min-w-0">
-        <span className="block truncate font-medium">{name}</span>
-        <TableDetails items={details} />
-      </div>
-    </div>
-  )
-}
+const matchesFinePointer = () => window.matchMedia?.('(hover: hover) and (pointer: fine)').matches ?? false
 
-// Rândurile de fișiere/foldere se umpluseră de butoane individuale ("arată freaky",
-// feedback Stefan) — un singur kebab pe rând, restul acțiunilor în meniu.
-function RowActionsMenu({ children }: { children: ReactNode }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-card hover:bg-accent">
-        <MoreVertical className="h-4 w-4" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>{children}</DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-// Card pt. modul grilă (view mode "grid") — thumbnail mare + kebab suprapus în colț, gen
-// Google Drive. Butonul de deschidere (onOpen) și meniul de acțiuni sunt frați, nu unul
-// în celălalt (nested <button> ar fi HTML invalid) — poziționarea absolute e ce le suprapune vizual.
-function FolderCard({ folder, onOpen, actions }: { folder: ArchiveFolder; onOpen: () => void; actions: ReactNode }) {
-  return (
-    <div className="group relative rounded-lg border">
-      <button type="button" className="flex w-full flex-col items-center gap-2 p-3 hover:bg-accent" onClick={onOpen}>
-        <Folder className="h-16 w-16 shrink-0 text-muted-foreground" />
-        <span className="line-clamp-2 w-full break-words text-center text-sm font-medium">{folder.name}</span>
-        <span className="text-xs text-muted-foreground">
-          {t('common:count.files', { count: folder.fileCount })} · {t('common:count.folders', { count: folder.subfolderCount })}
-        </span>
-      </button>
-      {actions ? (
-        <div className="absolute right-1 top-1" onClick={(e) => e.stopPropagation()}>
-          {actions}
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function FileCard({
-  file,
-  onOpen,
-  actions,
-}: {
-  file: { id: string; name: string; sizeBytes: number; previewUrl: string | null }
-  onOpen: () => void
-  actions: ReactNode
-}) {
-  return (
-    <div data-row-id={file.id} className="group relative rounded-lg border transition-colors">
-      <button type="button" className="flex w-full flex-col items-center gap-2 p-3 hover:bg-accent" onClick={onOpen}>
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded border bg-muted">
-          {file.previewUrl ? (
-            <img src={file.previewUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <FileIcon className="h-8 w-8 text-muted-foreground" />
-          )}
-        </div>
-        <span className="line-clamp-2 w-full break-words text-center text-sm font-medium">{file.name}</span>
-        <span className="text-xs text-muted-foreground">{formatBytes(file.sizeBytes)}</span>
-      </button>
-      <div className="absolute right-1 top-1" onClick={(e) => e.stopPropagation()}>
-        {actions}
-      </div>
-    </div>
-  )
-}
-
-interface Crumb {
-  id: string | null
-  name: string
-}
-
-type SpacesView = 'shared' | 'all'
-
-const LEVEL_LABEL: Record<AccessLevel, string> = { view: t('common:access.share.levelView'), edit: t('common:access.share.levelEdit') }
+// A press on a control inside a row (its name button, a menu item) already does its own thing on
+// Enter or Space; the page-wide shortcut must not open the focused row a second time.
+const fromControl = (e: KeyboardEvent) => e.target instanceof HTMLElement && Boolean(e.target.closest('button, a, input, select, [role="menuitem"]'))
 
 interface ShareTarget {
   id: string
@@ -186,132 +77,118 @@ interface ShareTarget {
   ownerUserId: string
 }
 
-// Folderele partajate cu omul sau, pentru administrare, rădăcinile tuturor spațiilor. Proprietarul
-// e scris pe rând, nu doar sugerat prin grupare: aceeași listă amestecă spațiile mai multor oameni.
-function SpacesTable({ entries, onOpen }: { entries: ArchiveSpaceEntry[]; onOpen: (id: string) => void }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{t('archive:labels.folder')}</TableHead>
-          <TableHead priority="md">{t('archive:labels.owner')}</TableHead>
-          <TableHead className="text-right">{t('archive:labels.access')}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {entries.map((entry) => (
-          <TableRow key={entry.id} className="cursor-pointer" onClick={() => onOpen(entry.id)}>
-            <TableCell className="w-full max-w-0 font-medium">
-              <span className="flex min-w-0 items-center gap-2">
-                <Folder className="h-4 w-4 shrink-0 text-muted-foreground" /> <span className="truncate">{entry.name}</span>
-              </span>
-              <TableDetails items={[entry.ownerName]} />
-            </TableCell>
-            <TableCell priority="md" className="whitespace-nowrap text-muted-foreground">{entry.ownerName}</TableCell>
-            <TableCell className="text-right">
-              <Badge variant="secondary">{LEVEL_LABEL[entry.level]}</Badge>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
+type NameTarget = { type: 'new-folder' } | { type: 'rename'; item: ArchiveItem }
 
-// Navigare tip breadcrumb (nu arbore expand/collapse) — mai simplu de implementat corect,
-// suficient pt. un browser de fișiere personal. `folder` trăiește în URL (nu doar state local,
-// pattern identic EmailPage/MailboxView) — altfel back-ul browserului sărea din pagină în loc
-// să meargă un folder înapoi (bug real, Stefan, 2026-09-03). Breadcrumb-ul se reconstruiește din
-// `/api/archive/folders/:id/path` — necesar la load direct/refresh/back pe un folder adânc,
-// unde trail-ul de click-uri anterioare nu (mai) există.
+// Navigation is the URL: `folder`, `view`, `q` and the filter chips, `page`, `file` (the open
+// preview), `details` (the side panel). `folder` lives there and not in state so Back goes up one
+// folder instead of leaving the page (bug seen 2026-09-03), and the path is rebuilt from
+// `/folders/:id/path` on a direct load, where no trail of earlier clicks exists.
 export function ArchivePage() {
-  const confirm = useConfirm()
   const queryClient = useQueryClient()
-  const { session } = useMe()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { session, can } = useMe()
   const [searchParams, setSearchParams] = useSearchParams()
-  const currentFolderId = searchParams.get('folder')
-  const viewParam = searchParams.get('view')
-  const linkedFileId = searchParams.get('file') ?? ''
-  const { canShare, share, dialog: shareDialog } = useShareToMessages()
-  const spacesView: SpacesView | null = viewParam === 'shared' || viewParam === 'all' ? viewParam : null
-  // Lista de spații (partajate / toate) se vede doar la rădăcina tab-ului; un folder deschis din
-  // ea se listează ca oricare altul.
-  const listingSpaces = spacesView !== null && !currentFolderId
+  const { canShare: canShareToMessages, share: shareToMessages, dialog: shareDialog } = useShareToMessages()
 
-  function openSpacesView(next: SpacesView | null) {
-    setSearchParams((prev) => {
-      const params = new URLSearchParams(prev)
-      params.delete('folder')
-      if (next) params.set('view', next)
-      else params.delete('view')
-      return params
-    })
+  const currentFolderId = searchParams.get('folder')
+  const view = parseView(searchParams.get('view'))
+  const fileParam = searchParams.get('file') ?? ''
+  const detailsParam = searchParams.get('details') ?? ''
+  const page = Math.max(1, Number.parseInt(searchParams.get('page') ?? '1', 10) || 1)
+  const requestedSize = Number.parseInt(searchParams.get('size') ?? '', 10)
+  const pageSize = (PAGE_SIZES as readonly number[]).includes(requestedSize) ? requestedSize : 50
+
+  const [q, setQ] = useUrlState('q')
+  const [typeParam, setTypeParam] = useUrlState('type')
+  const [modifiedParam, setModifiedParam] = useUrlState('modified')
+  const [tagParam, setTagParam] = useUrlState('tag')
+  const [sortParam, setSortParam] = useUrlState('sort', 'recent')
+  const sort: SortMode = sortParam === 'oldest' || sortParam === 'name' ? sortParam : 'recent'
+  const filters: FilterValues = {
+    type: isTypeFilter(typeParam) ? typeParam : null,
+    modified: isModifiedRange(modifiedParam) ? modifiedParam : null,
+    tag: tagParam || null,
+  }
+  const hasFilters = filters.type !== null || filters.modified !== null || filters.tag !== null
+
+  // The URL gets the search text 300ms after the last key, or every letter would refetch and swap
+  // the table for a skeleton.
+  const [searchDraft, setSearchDraft] = useState(q)
+  const debouncedDraft = useDebounced(searchDraft, 300)
+  useEffect(() => {
+    if (debouncedDraft !== q) setQ(debouncedDraft)
+    // `q` is left out on purpose: a change that came from the URL must not be overwritten by the older draft.
+  }, [debouncedDraft])
+  const searching = view !== 'recent' && view !== 'starred' && view !== 'trash' && q.trim().length > 0
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => (localStorage.getItem(VIEW_MODE_KEY) === 'grid' ? 'grid' : 'list'))
+  function setViewMode(mode: ViewMode) {
+    setViewModeState(mode)
+    localStorage.setItem(VIEW_MODE_KEY, mode)
   }
 
-  function openFolder(id: string | null) {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (id) next.set('folder', id)
-      else next.delete('folder')
+  const canEdit = can('arhiva.editare')
+  const browsing = view === 'own' || view === 'shared' || view === 'all'
+  // The shared / all-spaces tabs list the spaces at their root; a folder opened from there lists like any other.
+  const listingSpaces = (view === 'shared' || view === 'all') && !currentFolderId
+
+  function setParam(key: string, value: string | null, options?: { replace?: boolean }) {
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        if (value) next.set(key, value)
+        else next.delete(key)
+        return next
+      },
+      { replace: options?.replace },
+    )
+  }
+
+  // Going elsewhere drops the search, the chips and the page; the sort stays.
+  function navigateTo(folder: string | null, nextView: ArchiveView) {
+    setSearchDraft('')
+    setSearchParams((previous) => {
+      const next = new URLSearchParams()
+      const sortValue = previous.get('sort')
+      if (sortValue) next.set('sort', sortValue)
+      if (nextView !== 'own') next.set('view', nextView)
+      if (folder) next.set('folder', folder)
       return next
     })
   }
+  // A folder opened from Recent, Starred or the Trash is browsed in the person's own tab.
+  const openFolder = (id: string | null) => navigateTo(id, view === 'recent' || view === 'starred' || view === 'trash' ? 'own' : view)
 
   const spaces = useQuery({
     queryKey: ['archive', 'spaces'],
     queryFn: () => api.get<ArchiveSpaces>('/api/archive/spaces'),
     staleTime: 60 * 1000,
   })
-
   const folderPath = useQuery({
     queryKey: ['archive', 'folder-path', currentFolderId],
     queryFn: () => api.get<ArchiveFolderPath>(`/api/archive/folders/${currentFolderId}/path`),
-    enabled: currentFolderId !== null,
+    enabled: currentFolderId !== null && browsing,
     placeholderData: keepPreviousData,
   })
-  const pathData = currentFolderId ? folderPath.data : undefined
+  const pathData = currentFolderId && browsing ? folderPath.data : undefined
   const ownRoot = spaces.data?.own ?? null
-  // Rădăcina propriului spațiu nu apare în drum: „Arhivă" e deja spațiul omului.
+  // The root of the person's own space is not in the path: "Arhivă" already stands for it.
   const pathEntries = (pathData?.path ?? []).filter((entry, i) => !(i === 0 && entry.id === ownRoot?.id))
-  const rootLabel = spacesView === 'shared' ? t('archive:spaces.sharedWithMe') : spacesView === 'all' ? t('archive:spaces.all') : t('common:nav.archive')
-  const trail: Crumb[] = [{ id: null, name: rootLabel }, ...pathEntries]
   const currentLevel: AccessLevel = pathData?.level ?? 'edit'
-  const canWrite = !listingSpaces && currentLevel === 'edit'
-  const othersFolder = pathData && session && pathData.ownerUserId !== session.user.id ? pathData : null
-  const showSpacesTabs = Boolean(spaces.data && (spaces.data.shared.length > 0 || spaces.data.spaces))
+  const canWriteHere = browsing && !listingSpaces && currentLevel === 'edit' && canEdit
+  const uploadFolderId = currentFolderId ?? ownRoot?.id ?? null
+  const currentName = pathEntries.at(-1)?.name ?? (view === 'shared' ? t('archive:spaces.sharedWithMe') : view === 'all' ? t('archive:spaces.all') : t('common:nav.archive'))
 
-  const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null)
-  const currentShareTarget: ShareTarget | null = listingSpaces
-    ? null
-    : currentFolderId
-      ? pathData?.canShare
-        ? { id: currentFolderId, name: pathData.path.at(-1)?.name ?? '', ownerUserId: pathData.ownerUserId }
-        : null
-      : ownRoot && session
-        ? { id: ownRoot.id, name: t('archive:spaces.mine'), ownerUserId: session.user.id }
-        : null
-  const [q, setQ] = useState('')
-  const [tagsFilter, setTagsFilter] = useState('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  // dragenter/dragleave se declanșează și pe elementele copil (bordura animată nu trebuie să
-  // clipească la fiecare hover intern) — numărăm intrările/ieșirile, nu doar ultimul eveniment.
-  const [isDragOver, setIsDragOver] = useState(false)
-  const dragCounter = useRef(0)
-  // Persistat local — Stefan alege o dată ce vizualizare preferă, nu la fiecare vizită.
-  const [viewMode, setViewModeState] = useState<ViewMode>(() => (localStorage.getItem(VIEW_MODE_KEY) === 'grid' ? 'grid' : 'list'))
-  function setViewMode(mode: ViewMode) {
-    setViewModeState(mode)
-    localStorage.setItem(VIEW_MODE_KEY, mode)
-  }
-  const [sort, setSort] = useState<SortMode>('recent')
+  const stars = useQuery({
+    queryKey: ['archive', 'stars'],
+    queryFn: () => api.get<ArchiveStars>('/api/archive/stars'),
+    staleTime: 30 * 1000,
+  })
+  const starredIds = useMemo(() => new Set([...(stars.data?.files ?? []).map((file) => file.id), ...(stars.data?.folders ?? []).map((folder) => folder.id)]), [stars.data])
 
-  // Debounce — fără el, fiecare tastă schimbă cheia query-ului și React Query trece prin
-  // `pending` (fără date cache pt. cheia nouă), Skeleton-ul înlocuiește tabelul la fiecare
-  // literă (bug raportat: "fac spazz out toate fișierele"). `q` nededuplicat rezolvă doar
-  // jumătate din problemă — placeholderData mai jos ține datele vechi vizibile în timpul fetch-ului.
-  const debouncedQ = useDebounced(q, 300)
-  const isSearching = debouncedQ.trim().length > 0
-
+  const showFolders = browsing && !listingSpaces && !searching && !hasFilters
   const folders = useQuery({
     queryKey: ['archive', 'folders', currentFolderId, sort],
     queryFn: () => {
@@ -319,54 +196,105 @@ export function ArchivePage() {
       if (currentFolderId) params.set('parentId', currentFolderId)
       return api.get<ArchiveFolder[]>(`/api/archive/folders?${params.toString()}`)
     },
-    enabled: !listingSpaces,
+    enabled: showFolders,
     placeholderData: keepPreviousData,
   })
-
   const files = useQuery({
-    queryKey: ['archive', 'files', currentFolderId, tagsFilter, sort],
+    queryKey: ['archive', 'files', currentFolderId, page, pageSize, sort, filters.type, filters.modified, filters.tag],
     queryFn: () => {
-      const params = new URLSearchParams()
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), sort })
       if (currentFolderId) params.set('folderId', currentFolderId)
-      if (tagsFilter) params.set('tags', tagsFilter)
-      params.set('sort', sort)
-      return api.get<ArchiveFile[]>(`/api/archive/files?${params.toString()}`)
+      if (filters.type) params.set('type', filters.type)
+      if (filters.modified) params.set('modifiedAfter', modifiedAfterIso(filters.modified))
+      if (filters.tag) params.set('tags', filters.tag)
+      return api.get<ArchiveFilesPage>(`/api/archive/files?${params.toString()}`)
     },
-    enabled: !isSearching && !listingSpaces,
+    enabled: browsing && !listingSpaces && !searching,
     placeholderData: keepPreviousData,
   })
-
-  // Căutare pe toată arhiva (nu doar folderul curent), cu path-ul complet per rezultat —
-  // altfel un fișier "pierdut" într-un subfolder nu apărea deloc la căutare din rădăcină.
+  // The search covers the whole Archive, not the open folder, and returns folders as well.
   const search = useQuery({
-    queryKey: ['archive', 'search', debouncedQ, tagsFilter],
+    queryKey: ['archive', 'search', q.trim(), filters.type, filters.modified, filters.tag],
     queryFn: () => {
-      const params = new URLSearchParams({ q: debouncedQ })
-      if (tagsFilter) params.set('tags', tagsFilter)
-      return api.get<ArchiveSearchResult[]>(`/api/archive/search?${params.toString()}`)
+      const params = new URLSearchParams({ q: q.trim() })
+      if (filters.type) params.set('type', filters.type)
+      if (filters.modified) params.set('modifiedAfter', modifiedAfterIso(filters.modified))
+      if (filters.tag) params.set('tags', filters.tag)
+      return api.get<ArchiveSearchHit[]>(`/api/archive/search?${params.toString()}`)
     },
-    enabled: isSearching,
+    enabled: searching,
     placeholderData: keepPreviousData,
   })
+  const recent = useQuery({
+    queryKey: ['archive', 'recent'],
+    queryFn: () => api.get<ArchiveRecentFile[]>('/api/archive/recent'),
+    enabled: view === 'recent',
+  })
 
-  const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['archive'] })
+  const invalidate = useCallback(() => void queryClient.invalidateQueries({ queryKey: ['archive'] }), [queryClient])
+
+  const items = useMemo<ArchiveItem[]>(() => {
+    let list: ArchiveItem[] = []
+    if (view === 'recent') {
+      list = (recent.data ?? []).map((file) => fileItem(file, { starred: starredIds.has(file.id), canWrite: canEdit && file.level === 'edit', location: file.folderPath }))
+    } else if (view === 'starred') {
+      list = [
+        ...(stars.data?.folders ?? []).map((folder) => starredFolderItem(folder, canEdit && folder.level === 'edit')),
+        ...(stars.data?.files ?? []).map((file) => fileItem(file, { starred: true, canWrite: canEdit && file.level === 'edit' })),
+      ]
+    } else if (searching) {
+      list = (search.data ?? []).map((hit) => hitItem(hit, { starredIds, canWrite: canEdit && hit.level === 'edit' }))
+    } else if (browsing && !listingSpaces) {
+      const here = currentLevel === 'edit'
+      list = [
+        ...(page === 1 && showFolders ? (folders.data ?? []).map(folderItem) : []),
+        ...(files.data?.items ?? []).map((file) => fileItem(file, { starred: starredIds.has(file.id), canWrite: here })),
+      ]
+    }
+    // The feature gate applies on top of the folder level, wherever the row came from.
+    return list.map((item) => (item.canWrite && !canEdit ? { ...item, canWrite: false } : item))
+  }, [view, recent.data, stars.data, search.data, folders.data, files.data, starredIds, searching, browsing, listingSpaces, showFolders, page, currentLevel, canEdit])
+
+  const itemIds = useMemo(() => items.map((item) => item.id), [items])
+  const selection = useSelection(itemIds)
+  const selectedItems = useMemo(() => items.filter((item) => selection.selected.has(item.id)), [items, selection.selected])
+  const selectedBytes = selectedItems.reduce((sum, item) => sum + item.sizeBytes, 0)
+  const targetsFor = (item: ArchiveItem) => (selection.selected.has(item.id) && selectedItems.length > 1 ? selectedItems : [item])
+
+  const [focusId, setFocusId] = useState<string | null>(null)
+  const focused = items.find((item) => item.id === focusId) ?? null
+
+  // Tags offered by the "Etichetă" chip: the ones on the files in view.
+  const tagOptions = useMemo(() => [...new Set(items.flatMap((item) => item.tags))].sort(), [items])
+
+  // After the last file of a page is deleted the page is gone: step back to the last one.
+  useEffect(() => {
+    const data = files.data
+    if (!data || data.items.length > 0 || data.total === 0 || page === 1) return
+    setParam('page', String(Math.ceil(data.total / pageSize)), { replace: true })
+  })
+
+  // --- dialogs ---
+  const [nameTarget, setNameTarget] = useState<NameTarget | null>(null)
+  const [moveTargets, setMoveTargets] = useState<ArchiveItem[] | null>(null)
+  const [colorTarget, setColorTarget] = useState<ArchiveItem | null>(null)
+  const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null)
+  const [busy, setBusy] = useState(false)
+  const dialogOpen = nameTarget !== null || moveTargets !== null || colorTarget !== null || shareTarget !== null
 
   const shares = useQuery({
     queryKey: ['archive', 'shares', shareTarget?.id],
     queryFn: () => api.get<AccessShare[]>(`/api/archive/folders/${shareTarget!.id}/shares`),
     enabled: shareTarget !== null,
   })
-
   const setShare = useMutation({
-    mutationFn: ({ userId, level }: { userId: string; level: AccessLevel }) =>
-      api.post<AccessShare[]>(`/api/archive/folders/${shareTarget!.id}/shares`, { userId, level }),
+    mutationFn: ({ userId, level }: { userId: string; level: AccessLevel }) => api.post<AccessShare[]>(`/api/archive/folders/${shareTarget!.id}/shares`, { userId, level }),
     onSuccess: (data) => {
       queryClient.setQueryData(['archive', 'shares', shareTarget?.id], data)
       toast.success(t('archive:toasts.accessSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
-
   const removeShare = useMutation({
     mutationFn: (userId: string) => api.delete<AccessShare[]>(`/api/archive/folders/${shareTarget!.id}/shares/${userId}`),
     onSuccess: (data) => {
@@ -376,600 +304,655 @@ export function ArchivePage() {
     onError: (err) => toast.error(err.message),
   })
 
-  const toggleAutoMonthly = useMutation({
-    mutationFn: ({ id, autoMonthlySubfolders }: { id: string; autoMonthlySubfolders: boolean }) =>
-      api.patch<ArchiveFolder>(`/api/archive/folders/${id}`, { autoMonthlySubfolders }),
-    onSuccess: (_data, vars) => {
-      invalidate()
-      toast.success(
-        vars.autoMonthlySubfolders
-          ? t('archive:toasts.monthlyOn')
-          : t('archive:toasts.monthlyOff'),
+  async function guarded(work: () => Promise<unknown>) {
+    setBusy(true)
+    try {
+      await work()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('common:states.changeNotSaved'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function openFile(id: string) {
+    const next = new URLSearchParams(searchParams)
+    next.set('file', id)
+    // Marked so that closing the preview can step Back instead of stacking another entry.
+    navigate({ search: next.toString() }, { state: { viewer: true } })
+  }
+  function closeViewer() {
+    if ((location.state as { viewer?: boolean } | null)?.viewer) navigate(-1)
+    else setParam('file', null, { replace: true })
+  }
+
+  const actions: ItemActions = {
+    open: (item) => (item.kind === 'folder' ? openFolder(item.id) : openFile(item.id)),
+    download: (targets) => void downloadItems(targets).catch((err: Error) => toast.error(err.message)),
+    rename: (item) => setNameTarget({ type: 'rename', item }),
+    move: (targets) => setMoveTargets(targets),
+    toggleStar: (targets) => {
+      const add = !targets.every((item) => item.starred)
+      void setStarred(targets, add).then(
+        () => {
+          invalidate()
+          toast.success(add ? t('archive:toasts.starred', { count: targets.length }) : t('archive:toasts.unstarred', { count: targets.length }))
+        },
+        (err: Error) => toast.error(err.message),
       )
     },
-    onError: (err) => toast.error(err.message),
-  })
-
-  function goToFolder(path: { id: string; name: string }[]) {
-    openFolder(path.length ? path[path.length - 1]!.id : null)
-    setQ('')
+    trash: (targets) =>
+      void trashItems(targets, invalidate).then((ok) => {
+        if (!ok) return
+        selection.clear()
+        if (fileParam && targets.some((item) => item.id === fileParam)) closeViewer()
+      }),
+    details: (item) => setParam('details', item.id),
+    share: (item) => setShareTarget({ id: item.id, name: item.name, ownerUserId: item.ownerUserId ?? '' }),
+    sendToMessages: (item) => shareToMessages({ type: 'archive_file', id: item.id, title: item.name }),
+    sendNative: (item) =>
+      void shareFileNatively(item.id, item.name).catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return // closed from the system sheet
+        toast.error(err instanceof Error ? err.message : t('common:errors.unknown'))
+      }),
+    toggleMonthly: (item) =>
+      void guarded(async () => {
+        const enable = !item.autoMonthlySubfolders
+        await api.patch(`/api/archive/folders/${item.id}`, { autoMonthlySubfolders: enable })
+        invalidate()
+        toast.success(enable ? t('archive:toasts.monthlyOn') : t('archive:toasts.monthlyOff'))
+      }),
+    pickColor: (item) => setColorTarget(item),
+    showLocation: (item) => navigateTo(item.location?.at(-1)?.id ?? null, 'own'),
+    canSendToMessages: canShareToMessages,
+    canSendNative: canShareFiles,
   }
 
-  const createFolder = useMutation({
-    mutationFn: (name: string) =>
-      api.post<ArchiveFolder>('/api/archive/folders', { name, parentId: currentFolderId ?? undefined }),
-    onSuccess: (folder) => {
-      invalidate()
-      toast.success(t('archive:toasts.folderCreated'), {
-        action: { label: t('common:actions.view'), onClick: () => openFolder(folder.id) },
-      })
-    },
-    onError: (err) => toast.error(err.message),
-  })
+  const activation = useRowActivation<ArchiveItem>(selection, actions.open)
 
-  const renameFolder = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) =>
-      api.patch<ArchiveFolder>(`/api/archive/folders/${id}`, { name }),
-    onSuccess: () => {
-      invalidate()
-      toast.success(t('archive:toasts.folderRenamed'))
-    },
-    onError: (err) => toast.error(err.message),
-  })
+  // --- uploads ---
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const uploads = useUploads()
+  const finishedUploads = uploads.filter((upload) => upload.status === 'done').length
+  useEffect(() => {
+    if (finishedUploads > 0) invalidate()
+  }, [finishedUploads, invalidate])
 
-  const deleteFolder = useMutation({
-    mutationFn: (id: string) => api.delete<void>(`/api/archive/folders/${id}`),
-    onSuccess: () => {
-      invalidate()
-      toast.success(t('archive:toasts.folderDeleted'))
-    },
-    onError: (err) => toast.error(err.message),
-  })
+  function uploadFiles(list: File[], folderId: string | null, folderName: string) {
+    if (list.length > 0) enqueueUploads(list, { folderId, folderName })
+  }
+  const pickFiles = () => fileInputRef.current?.click()
+  const newFolder = () => setNameTarget({ type: 'new-folder' })
 
-  const renameFile = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => api.patch<ArchiveFile>(`/api/archive/files/${id}`, { name }),
-    onSuccess: () => {
-      invalidate()
-      toast.success(t('archive:toasts.fileRenamed'))
-    },
-    onError: (err) => toast.error(err.message),
-  })
+  // --- files dragged in from the desktop ---
+  // dragenter/dragleave also fire for every child, so entries and exits are counted, not the last event.
+  const dragDepth = useRef(0)
+  const [osDragOver, setOsDragOver] = useState(false)
+  const [osDropFolderId, setOsDropFolderId] = useState<string | null>(null)
+  const osDropFolder = items.find((item) => item.id === osDropFolderId) ?? null
+  const endOsDrag = () => {
+    dragDepth.current = 0
+    setOsDragOver(false)
+    setOsDropFolderId(null)
+  }
+  const fileDrop = canWriteHere ? { over: setOsDropFolderId, drop: (list: File[], folderId: string) => { uploadFiles(list, folderId, items.find((item) => item.id === folderId)?.name ?? ''); endOsDrag() } } : null
 
-  const deleteFile = useMutation({
-    mutationFn: (id: string) => api.delete<void>(`/api/archive/files/${id}`),
-    onSuccess: () => {
-      invalidate()
-      toast.success(t('archive:toasts.fileDeleted'))
-    },
-    onError: (err) => toast.error(err.message),
-  })
+  // --- dragging rows onto a folder or a segment of the path ---
+  const [dragged, setDragged] = useState<ArchiveItem[] | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const suppressClick = useRef(false)
 
-  const [moveTarget, setMoveTarget] = useState<{ type: 'file' | 'folder'; id: string; name: string } | null>(null)
-  const [nameTarget, setNameTarget] = useState<{ type: 'file' | 'folder'; id: string; name: string } | { type: 'new-folder' } | null>(null)
+  const showSpacesTabs = Boolean(spaces.data && (spaces.data.shared.length > 0 || spaces.data.spaces))
+  const tabs: { value: ArchiveView; label: string }[] = [
+    { value: 'own', label: t('archive:spaces.mine') },
+    ...(showSpacesTabs ? [{ value: 'shared' as const, label: t('archive:spaces.sharedWithMe') }] : []),
+    ...(spaces.data?.spaces ? [{ value: 'all' as const, label: t('archive:spaces.all') }] : []),
+    { value: 'recent', label: t('archive:tabs.recent') },
+    { value: 'starred', label: t('archive:tabs.starred') },
+    ...(canEdit ? [{ value: 'trash' as const, label: t('archive:tabs.trash') }] : []),
+  ]
 
-  const moveFile = useMutation({
-    mutationFn: ({ id, folderId }: { id: string; folderId: string | null }) =>
-      api.patch<ArchiveFile>(`/api/archive/files/${id}`, { folderId }),
-    onSuccess: () => {
-      invalidate()
-      toast.success(t('archive:toasts.fileMoved'))
-      setMoveTarget(null)
-    },
-    onError: (err) => toast.error(err.message),
-  })
+  const trail: Crumb[] = !browsing
+    ? [{ id: null, name: tabs.find((tab) => tab.value === view)?.label ?? '' }]
+    : [{ id: null, name: view === 'shared' ? t('archive:spaces.sharedWithMe') : view === 'all' ? t('archive:spaces.all') : t('common:nav.archive'), dropFolderId: view === 'own' ? (ownRoot?.id ?? undefined) : undefined }, ...pathEntries.map((entry) => ({ id: entry.id, name: entry.name, dropFolderId: entry.id }))]
 
-  const moveFolder = useMutation({
-    mutationFn: ({ id, parentId }: { id: string; parentId: string | null }) =>
-      api.patch<ArchiveFolder>(`/api/archive/folders/${id}`, { parentId }),
-    onSuccess: () => {
-      invalidate()
-      toast.success(t('archive:toasts.folderMoved'))
-      setMoveTarget(null)
-    },
-    onError: (err) => toast.error(err.message),
-  })
-
-  function uploadOne(file: File) {
-    const fd = new FormData()
-    // folderId TREBUIE adăugat înainte de file (@fastify/multipart citește secvențial).
-    if (currentFolderId) fd.append('folderId', currentFolderId)
-    fd.append('file', file)
-    return api.upload<ArchiveFile>('/api/archive/files', fd)
+  function dropTarget(id: string | null): { id: string; name: string } | null {
+    if (!id) return null
+    const crumb = trail.find((candidate) => crumbDropId(candidate) === id)
+    if (crumb?.dropFolderId) return { id: crumb.dropFolderId, name: crumb.name }
+    const folder = items.find((item) => item.kind === 'folder' && item.id === id && item.canWrite)
+    return folder ? { id: folder.id, name: folder.name } : null
   }
 
-  // Backend-ul acceptă un singur fișier per request (@fastify/multipart, files:1) — upload
-  // multiplu = N request-uri de la client, `allSettled` (nu `all`) ca un fișier eșuat să nu
-  // blocheze restul batch-ului. Un singur toast de sumar la final, nu unul per fișier.
-  const upload = useMutation({
-    mutationFn: async (files: File[]) => {
-      const results = await Promise.allSettled(files.map(uploadOne))
-      const failed = results.filter((r) => r.status === 'rejected').length
-      return { total: files.length, failed }
+  function onDragStart(event: DragStartEvent) {
+    const item = items.find((candidate) => candidate.id === event.active.id)
+    if (item) setDragged(targetsFor(item))
+  }
+  function onDragEnd(event: DragEndEvent) {
+    const moving = dragged
+    setDragged(null)
+    setOverId(null)
+    // The mouse-up after a drag is also a click on the row it ends over.
+    suppressClick.current = true
+    setTimeout(() => (suppressClick.current = false), 0)
+    const target = dropTarget(event.over ? String(event.over.id) : null)
+    const movable = moving?.filter((item) => item.id !== target?.id)
+    if (!target || !movable?.length || target.id === currentFolderId) return
+    void moveItems(movable, target, invalidate).then(() => selection.clear())
+  }
+  const overTarget = dropTarget(overId)
+
+  // --- the preview ---
+  const fileItems = useMemo(() => items.filter((item) => item.kind === 'file'), [items])
+  const listedIndex = fileParam ? fileItems.findIndex((item) => item.id === fileParam) : -1
+  const linked = useQuery({
+    queryKey: ['archive', 'details', fileParam],
+    queryFn: () => api.get<ArchiveDetails>(`/api/archive/files/${fileParam}/details`),
+    enabled: fileParam !== '' && listedIndex === -1,
+    retry: false,
+  })
+  // A link from Messages names no folder: land in the one the file is in.
+  useEffect(() => {
+    const folderId = linked.data?.folderId
+    if (folderId && folderId !== currentFolderId && browsing && !searching) setParam('folder', folderId, { replace: true })
+  }, [linked.data?.folderId])
+  useEffect(() => {
+    if (!linked.isError) return
+    toast.error(t('archive:viewer.gone'))
+    setParam('file', null, { replace: true })
+  }, [linked.isError])
+
+  const viewerList: { id: string; name: string; mimeType: string }[] =
+    listedIndex >= 0
+      ? fileItems
+      : linked.data?.mimeType
+        ? [{ id: linked.data.id, name: linked.data.name, mimeType: linked.data.mimeType }]
+        : []
+  const viewerIndex = listedIndex >= 0 ? listedIndex : 0
+  // The presigned URL of the open file and its neighbours: ← → shows the next at once.
+  const neighbourIds = [viewerIndex - 1, viewerIndex, viewerIndex + 1].map((i) => viewerList[i]?.id).filter((id): id is string => Boolean(id))
+  const urlQueries = useQueries({
+    queries: neighbourIds.map((id) => ({
+      queryKey: ['archive', 'download-url', id],
+      queryFn: () => api.get<ArchiveDownloadUrl>(`/api/archive/files/${id}/download-url`),
+      staleTime: 10 * 60 * 1000,
+      enabled: fileParam !== '',
+    })),
+  })
+  const urlById = new Map(neighbourIds.map((id, i) => [id, urlQueries[i]?.data?.url ?? '']))
+  const viewerFiles: ViewerFile[] = viewerList.map((file) => {
+    const url = urlById.get(file.id) ?? ''
+    // Until the URL arrives the viewer shows a plain file card, not a broken image.
+    return { id: file.id, name: file.name, url, mimeType: url ? file.mimeType : 'application/octet-stream' }
+  })
+  const viewerCurrent = viewerList[viewerIndex]
+  const viewerOpen = fileParam !== '' && viewerFiles.length > 0
+
+  // --- shortcuts ---
+  const moveFocus = (step: number) => {
+    if (items.length === 0) return
+    const index = focused ? items.indexOf(focused) : -1
+    const next = items[Math.min(items.length - 1, Math.max(0, index + step))]
+    if (!next) return
+    setFocusId(next.id)
+    document.querySelector(`[data-row-id="${CSS.escape(next.id)}"]`)?.scrollIntoView({ block: 'nearest' })
+  }
+  const targetsNow = (): ArchiveItem[] => (selection.count > 0 ? selectedItems : focused ? [focused] : [])
+  const onFocused = (run: (item: ArchiveItem) => void) => () => focused && run(focused)
+
+  useHotkeys(
+    [
+      { keys: 'arrowdown', label: t('archive:shortcuts.next'), onKey: (e) => { e.preventDefault(); moveFocus(1) } },
+      { keys: 'arrowup', label: t('archive:shortcuts.previous'), onKey: (e) => { e.preventDefault(); moveFocus(-1) } },
+      { keys: 'enter', label: t('archive:shortcuts.open'), onKey: (e) => { if (!fromControl(e) && focused) actions.open(focused) } },
+      { keys: 'space', label: t('archive:shortcuts.preview'), onKey: (e) => { if (fromControl(e) || focused?.kind !== 'file') return; e.preventDefault(); openFile(focused.id) } },
+      { keys: 'f2', label: t('common:actions.rename'), onKey: onFocused((item) => item.canWrite && actions.rename(item)) },
+      { keys: 'm', label: t('common:actions.move'), onKey: () => { const targets = targetsNow(); if (targets.length && targets.every((item) => item.canWrite)) actions.move(targets) } },
+      { keys: 's', label: t('archive:menu.star'), onKey: () => { const targets = targetsNow(); if (targets.length) actions.toggleStar(targets) } },
+      { keys: 'i', label: t('archive:menu.details'), onKey: onFocused(actions.details) },
+      { keys: 'delete', label: t('common:actions.delete'), onKey: () => { const targets = targetsNow(); if (targets.length && targets.every((item) => item.canWrite)) actions.trash(targets) } },
+      { keys: 'mod+a', label: t('common:selection.all'), onKey: (e) => { e.preventDefault(); selection.selectAll() } },
+      { keys: '/', label: t('archive:shortcuts.search'), onKey: (e) => { e.preventDefault(); searchRef.current?.focus() } },
+      { keys: 'u', label: t('archive:actions.upload'), onKey: () => canWriteHere && pickFiles() },
+      { keys: 'shift+n', label: t('archive:folders.new'), onKey: () => canWriteHere && newFolder() },
+    ],
+    { enabled: view !== 'trash' && !listingSpaces && !viewerOpen && !dialogOpen },
+  )
+
+  const env: ListEnv = {
+    actions,
+    selectedIds: selection.selected,
+    focusId,
+    query: searching ? q : '',
+    targetsFor,
+    onActivate: (e, item) => {
+      if (suppressClick.current) return
+      setFocusId(item.id)
+      activation.onActivate(e, item)
     },
-    onSuccess: ({ total, failed }) => {
-      invalidate()
-      if (failed === 0) toast.success(total === 1 ? t('archive:toasts.fileUploaded') : t('archive:toasts.filesUploaded', { count: total }))
-      else if (failed === total) toast.error(total === 1 ? t('archive:toasts.uploadFailed') : t('archive:toasts.allFailed', { count: total }))
-      else toast.warning(t('archive:toasts.partlyUploaded', { done: total - failed, total, failed }))
-    },
-    onError: (err) => toast.error(err.message),
-  })
+    onToggle: selection.toggle,
+    longPress: { start: activation.startLongPress, cancel: activation.cancelLongPress },
+    draggable: matchesFinePointer(),
+    osDropFolderId,
+    fileDrop,
+  }
 
-  // Link to a shared file: the preview opens a new tab, which a browser blocks without a click,
-  // so the link only scrolls to the row and flashes it.
-  useFlashRow(linkedFileId, !isSearching && Boolean(files.data?.some((file) => file.id === linkedFileId)))
-
-  // Click pe rând/card — doar previzualizare (tab nou pe URL-ul presemnat R2, nesupus CORS).
-  const previewFile = useMutation({
-    mutationFn: (id: string) => api.get<ArchiveDownloadUrl>(`/api/archive/files/${id}/download-url`),
-    onSuccess: (data) => openExternal(data.url),
-    onError: (err) => toast.error(err.message),
-  })
-
-  // "Descarcă" din meniu — găsit live 2026-08-18: pe Chrome Android, `window.open` pe URL-ul
-  // presemnat R2 (cross-origin, deci atributul `download` de pe un `<a>` n-ar avea efect oricum)
-  // deschide previzualizarea in-browser, nu un "Save As" real. Ruta same-origin de streaming
-  // (deja folosită de ArchiveAttachPicker) + `api.download` (blob local, `<a download>`) dă
-  // un download real, identic pe desktop și mobil.
-  const downloadFile = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => api.download(`/api/archive/files/${id}/download`, name),
-    onError: (err) => toast.error(err.message),
-  })
-
-  // Descărcare reală (zip), spre deosebire de preview-ul de fișier individual de mai sus —
-  // un folder nu are cum să fie "previzualizat".
-  const downloadFolder = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => api.download(`/api/archive/folders/${id}/download`, `${name}.zip`),
-    onError: (err) => toast.error(err.message),
-  })
-
-  // Web Share API (sheet nativ Android — WhatsApp/Email/etc.) — fișierul e trimis ca atașament
-  // real, nu link: URL-ul presemnat expiră în 15 min (archive/service.ts), inutilizabil odată
-  // ajuns la destinatar. Pe nativ `navigator.share` nu e garantat în WebView — scriem fișierul
-  // în cache și sheet-ul vine din plugin-ul Share. Fără suport pe web (`canShare` lipsă/false —
-  // desktop, majoritatea browserelor non-mobile), butonul nici nu se randează.
-  const shareFile = useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { blob, filename } = await api.getBlob(`/api/archive/files/${id}/download`)
-      const title = filename ?? name
-
-      if (isNative) {
-        const path = `share/${title}`
-        await Filesystem.writeFile({
-          path,
-          data: await blobToBase64(blob),
-          directory: Directory.Cache,
-          recursive: true,
-        })
-        try {
-          const { uri } = await Filesystem.getUri({ directory: Directory.Cache, path })
-          await Share.share({ title, url: uri })
-        } finally {
-          await Filesystem.deleteFile({ directory: Directory.Cache, path }).catch(() => {})
+  const currentFolderItem: ArchiveItem | null =
+    browsing && !listingSpaces
+      ? {
+          kind: 'folder',
+          id: currentFolderId ?? ownRoot?.id ?? '',
+          name: currentName,
+          mimeType: '',
+          sizeBytes: 0,
+          updatedAt: null,
+          previewUrl: null,
+          tags: [],
+          color: null,
+          starred: false,
+          fileCount: 0,
+          subfolderCount: 0,
+          canWrite: canWriteHere,
+          canShare: currentFolderId ? Boolean(pathData?.canShare) : Boolean(ownRoot),
+          ownerUserId: currentFolderId ? (pathData?.ownerUserId ?? null) : (session?.user.id ?? null),
+          autoMonthlySubfolders: false,
+          location: null,
         }
-        return
-      }
+      : null
 
-      const shared = new File([blob], title, { type: blob.type })
-      await navigator.share({ files: [shared], title })
-    },
-    onError: (err) => {
-      if (err instanceof Error && err.name === 'AbortError') return // anulat din sheet-ul nativ
-      toast.error(err.message)
-    },
-  })
-
-  // Factorizat — folosit din tabelul de căutare, tabelul de listare ȘI grilă, ca cele 3
-  // moduri de randare să nu diveargă (înainte de grilă, primele două deja duplicau meniul).
-  // `writable` vine de la folderul curent; la căutare nivelul fiecărui rezultat nu e cunoscut,
-  // deci acțiunile rămân, iar serverul refuză pe un folder doar de citit.
-  function fileActionsMenu(file: { id: string; name: string }, writable = canWrite) {
-    return (
-      <RowActionsMenu>
-        <DropdownMenuItem onClick={() => downloadFile.mutate({ id: file.id, name: file.name })}>
-          <Download className="h-4 w-4" /> {t('common:actions.download')}
-        </DropdownMenuItem>
-        {canShare ? (
-          <DropdownMenuItem onClick={() => share({ type: 'archive_file', id: file.id, title: file.name })}>
-            <MessageSquareShare className="h-4 w-4" /> {t('messages:share.action')}
-          </DropdownMenuItem>
-        ) : null}
-        {canShareFiles ? (
-          <DropdownMenuItem onClick={() => shareFile.mutate({ id: file.id, name: file.name })}>
-            <Share2 className="h-4 w-4" /> {t('common:actions.send')}
-          </DropdownMenuItem>
-        ) : null}
-        {writable ? (
+  const folderMenu =
+    currentFolderItem && currentFolderItem.id ? (
+      <>
+        {canWriteHere ? (
           <>
-            <DropdownMenuItem onClick={() => setMoveTarget({ type: 'file', id: file.id, name: file.name })}>
-              <FolderInput className="h-4 w-4" /> {t('common:actions.move')}
+            <DropdownMenuItem onClick={newFolder}>
+              <FolderPlus className="h-4 w-4" /> {t('archive:folders.new')}
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setNameTarget({ type: 'file', id: file.id, name: file.name })
-              }}
-            >
+            <DropdownMenuItem onClick={pickFiles}>
+              <Upload className="h-4 w-4" /> {t('archive:actions.upload')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
+        {canWriteHere && currentFolderId ? (
+          <>
+            <DropdownMenuItem onClick={() => actions.rename(currentFolderItem)}>
               <Pencil className="h-4 w-4" /> {t('common:actions.rename')}
             </DropdownMenuItem>
-            <DropdownMenuItem
-              destructive
-              onClick={() => {
-                void confirm({ title: t('archive:files.deleteTitle', { name: file.name }), confirmLabel: t('archive:files.deleteConfirm'), destructive: true }).then((ok) => ok && deleteFile.mutate(file.id))
-              }}
-            >
-              <Trash2 className="h-4 w-4" /> {t('common:actions.delete')}
+            <DropdownMenuItem onClick={() => actions.pickColor(currentFolderItem)}>
+              <Palette className="h-4 w-4" /> {t('archive:menu.color')}
             </DropdownMenuItem>
           </>
         ) : null}
-      </RowActionsMenu>
-    )
-  }
-
-  function folderActionsMenu(f: ArchiveFolder) {
-    const writable = f.level === 'edit'
-    return (
-      <RowActionsMenu>
-        {f.canShare ? (
-          <DropdownMenuItem onClick={() => setShareTarget({ id: f.id, name: f.name, ownerUserId: f.ownerUserId })}>
+        {currentFolderItem.canShare ? (
+          <DropdownMenuItem onClick={() => actions.share(currentFolderItem)}>
             <Users className="h-4 w-4" /> {t('common:actions.share')}
           </DropdownMenuItem>
         ) : null}
-        <DropdownMenuItem onClick={() => downloadFolder.mutate({ id: f.id, name: f.name })}>
-          <Download className="h-4 w-4" /> {t('archive:actions.downloadZip')}
+        <DropdownMenuItem onClick={() => actions.details(currentFolderItem)}>
+          <Info className="h-4 w-4" /> {t('archive:menu.details')}
         </DropdownMenuItem>
-        {writable ? (
-          <>
-            <DropdownMenuItem onClick={() => toggleAutoMonthly.mutate({ id: f.id, autoMonthlySubfolders: !f.autoMonthlySubfolders })}>
-              <CalendarClock className="h-4 w-4" />
-              {f.autoMonthlySubfolders ? t('archive:folders.monthlyDisable') : t('archive:folders.monthlyEnable')}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setMoveTarget({ type: 'folder', id: f.id, name: f.name })}>
-              <FolderInput className="h-4 w-4" /> {t('common:actions.move')}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setNameTarget({ type: 'folder', id: f.id, name: f.name })
-              }}
-            >
-              <Pencil className="h-4 w-4" /> {t('common:actions.rename')}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              destructive
-              onClick={() => {
-                void confirm({ title: t('archive:folders.deleteTitle', { name: f.name }), consequence: t('archive:folders.deleteBody'), confirmLabel: t('archive:folders.deleteConfirm'), destructive: true }).then((ok) => ok && deleteFolder.mutate(f.id))
-              }}
-            >
-              <Trash2 className="h-4 w-4" /> {t('common:actions.delete')}
-            </DropdownMenuItem>
-          </>
-        ) : null}
-      </RowActionsMenu>
-    )
+      </>
+    ) : null
+
+  const pathOwner = pathData && session && pathData.ownerUserId !== session.user.id ? pathData : null
+  const ownerNote = pathOwner ? `${t('archive:spaces.belongsTo')} ${pathOwner.ownerName}${pathOwner.level === 'view' ? t('archive:spaces.readOnly') : ''}` : null
+
+  const spaceEntries = (view === 'shared' ? spaces.data?.shared : spaces.data?.spaces) ?? []
+  const loading = listingSpaces
+    ? spaces.isPending
+    : view === 'recent'
+      ? recent.isPending
+      : view === 'starred'
+        ? stars.isPending
+        : searching
+          ? search.isPending
+          : files.isPending || (showFolders && folders.isPending)
+  const failed = view === 'recent' ? recent.isError : view === 'starred' ? stars.isError : searching ? search.isError : files.isError
+  const pagination =
+    browsing && !listingSpaces && !searching && files.data
+      ? {
+          page,
+          pageSize,
+          total: files.data.total,
+          onPage: (next: number) => setParam('page', next > 1 ? String(next) : null),
+          onPageSize: (next: number) => setSearchParams((previous) => { const params = new URLSearchParams(previous); params.delete('page'); if (next === 50) params.delete('size'); else params.set('size', String(next)); return params }),
+        }
+      : undefined
+
+  function resetFilters() {
+    setSearchDraft('')
+    setQ('')
+    setTypeParam('')
+    setModifiedParam('')
+    setTagParam('')
+  }
+  function changeFilters(next: Partial<FilterValues>) {
+    if ('type' in next) setTypeParam(next.type ?? '')
+    if ('modified' in next) setModifiedParam(next.modified ?? '')
+    if ('tag' in next) setTagParam(next.tag ?? '')
+    setParam('page', null, { replace: true })
   }
 
-  const spaceEntries = (spacesView === 'shared' ? spaces.data?.shared : spaces.data?.spaces) ?? []
+  const selectionActions = (
+    <>
+      <span className="tnum whitespace-nowrap text-sm text-muted-foreground">{selectedBytes > 0 ? formatBytes(selectedBytes) : null}</span>
+      <Button variant="ghost" size="sm" onClick={() => actions.download(selectedItems)}>
+        <Download className="h-4 w-4" /> {t('common:actions.download')}
+      </Button>
+      {selectedItems.every((item) => item.canWrite) ? (
+        <Button variant="ghost" size="sm" onClick={() => actions.move(selectedItems)}>
+          <FolderInput className="h-4 w-4" /> {t('common:actions.move')}
+        </Button>
+      ) : null}
+      <Button variant="ghost" size="sm" onClick={() => actions.toggleStar(selectedItems)}>
+        <Star className="h-4 w-4" /> {t('archive:menu.star')}
+      </Button>
+      {selectedItems.length === 1 && selectedItems[0]?.kind === 'file' && canShareToMessages ? (
+        <Button variant="ghost" size="sm" onClick={() => actions.sendToMessages(selectedItems[0]!)}>
+          <MessageSquareShare className="h-4 w-4" /> {t('messages:share.action')}
+        </Button>
+      ) : null}
+      {selectedItems.every((item) => item.canWrite) ? (
+        <Button variant="ghost" size="sm" onClick={() => actions.trash(selectedItems)}>
+          <Trash2 className="h-4 w-4" /> {t('common:actions.delete')}
+        </Button>
+      ) : null}
+    </>
+  )
+  const selectionBarProps = { count: selection.count, allSelected: selection.allSelected, onSelectAll: selection.selectAll, onClear: selection.clear, total: pagination?.total }
 
-  const isEmpty = isSearching ? !search.data?.length : !folders.data?.length && !files.data?.length
+  function body() {
+    if (view === 'trash') return <TrashView onOpenFolder={openFolder} />
+    if (listingSpaces) {
+      if (spaces.isPending) return <ListSkeleton rows={4} />
+      return spaceEntries.length ? (
+        <SpacesTable entries={spaceEntries} onOpen={openFolder} />
+      ) : (
+        <EmptyState
+          kind="new"
+          title={view === 'shared' ? t('archive:empty.nothingShared') : t('archive:empty.noSpace')}
+          description={view === 'shared' ? t('archive:empty.sharedHint') : undefined}
+        />
+      )
+    }
+    if (loading) return <ListSkeleton rows={6} />
+    if (failed) return <EmptyState kind="new" title={t('common:states.loadFailed')} />
+    if (items.length === 0) {
+      if (view === 'recent') return <EmptyState kind="new" title={t('archive:empty.recentTitle')} description={t('archive:empty.recentHint')} />
+      if (view === 'starred') return <EmptyState kind="new" title={t('archive:empty.starredTitle')} description={t('archive:empty.starredHint')} />
+      if (searching || hasFilters) return <EmptyState kind="filtered" title={t('archive:empty.noFileFound')} onReset={resetFilters} />
+      return (
+        <EmptyState
+          kind="new"
+          title={currentFolderId ? t('archive:empty.folderTitle') : t('archive:empty.spaceEmpty')}
+          description={canWriteHere ? t('archive:empty.folderHint') : t('archive:empty.folder')}
+          action={
+            canWriteHere ? (
+              <Button onClick={pickFiles}>
+                <Upload className="h-4 w-4" /> {t('archive:actions.upload')}
+              </Button>
+            ) : undefined
+          }
+        />
+      )
+    }
+    return viewMode === 'grid' ? <ArchiveGrid items={items} env={env} pagination={pagination} /> : <ArchiveList items={items} env={env} pagination={pagination} />
+  }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t('common:nav.archive')}
-        description={
-          <div className="flex flex-wrap items-center gap-1">
-            {trail.map((crumb, i) => (
-              <span key={crumb.id ?? 'root'} className="flex items-center gap-1">
-                {i > 0 ? <span>/</span> : null}
-                <button
-                  type="button"
-                  className="hover:underline disabled:no-underline"
-                  onClick={() => openFolder(crumb.id)}
-                  disabled={i === trail.length - 1}
-                >
-                  {crumb.name}
-                </button>
-              </span>
-            ))}
-            {othersFolder ? (
-              <>
-                <span className="mx-1">·</span>
-                <span>
-                  {t('archive:spaces.belongsTo')} {othersFolder.ownerName}
-                  {othersFolder.level === 'view' ? t('archive:spaces.readOnly') : ''}
-                </span>
-              </>
-            ) : null}
-            <span className="mx-1">·</span>
-            <StorageUsageIndicator />
-          </div>
-        }
-        actions={
-          <>
-            {currentShareTarget ? (
-              <Button variant="outline" onClick={() => setShareTarget(currentShareTarget)}>
-                <Users className="h-4 w-4" /> {t('common:actions.share')}
-              </Button>
-            ) : null}
-            {canWrite ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => setNameTarget({ type: 'new-folder' })}
-                >
+    <DndContext
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      onDragStart={onDragStart}
+      onDragOver={(event) => setOverId(event.over ? String(event.over.id) : null)}
+      onDragEnd={onDragEnd}
+      onDragCancel={() => {
+        setDragged(null)
+        setOverId(null)
+      }}
+    >
+      <div className="space-y-4">
+        <ArchiveHeader
+          tabs={tabs}
+          view={view}
+          onView={(next) => navigateTo(null, next)}
+          trail={trail}
+          onNavigate={openFolder}
+          folderMenu={folderMenu}
+          ownerNote={ownerNote}
+          actions={
+            canWriteHere ? (
+              <div className="hidden items-center gap-2 md:flex">
+                <Button variant="outline" onClick={newFolder}>
                   <FolderPlus className="h-4 w-4" /> {t('archive:folders.new')}
                 </Button>
-                <Button onClick={() => fileInputRef.current?.click()} disabled={upload.isPending}>
-                  <Upload className="h-4 w-4" /> {upload.isPending ? t('common:states.uploading') : t('archive:actions.upload')}
+                <Button onClick={pickFiles}>
+                  <Upload className="h-4 w-4" /> {t('archive:actions.upload')}
                 </Button>
-              </>
+              </div>
+            ) : null
+          }
+        />
+
+        {browsing && !listingSpaces ? (
+          <>
+            {selection.count > 0 ? (
+              <div className="hidden md:block">
+                <SelectionBar placement="toolbar" {...selectionBarProps}>
+                  {selectionActions}
+                </SelectionBar>
+              </div>
             ) : null}
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                const files = Array.from(e.target.files ?? [])
-                if (files.length) upload.mutate(files)
-                e.target.value = ''
-              }}
-            />
+            <div className={selection.count > 0 ? 'md:hidden' : undefined}>
+              <ArchiveToolbar
+                searchRef={searchRef}
+                search={searchDraft}
+                onSearch={setSearchDraft}
+                filters={filters}
+                tagOptions={tagOptions}
+                onFilters={changeFilters}
+                sort={sort}
+                onSort={(next) => {
+                  setSortParam(next)
+                  setParam('page', null, { replace: true })
+                }}
+                showSort={!searching}
+                viewMode={viewMode}
+                onViewMode={setViewMode}
+              />
+            </div>
           </>
-        }
-      />
-
-      {showSpacesTabs ? (
-        <Tabs value={spacesView ?? 'own'} onValueChange={(v) => openSpacesView(v === 'own' ? null : (v as SpacesView))}>
-          <TabsList>
-            <TabsTrigger value="own">{t('archive:spaces.mine')}</TabsTrigger>
-            <TabsTrigger value="shared">{t('archive:spaces.sharedWithMe')}</TabsTrigger>
-            {spaces.data?.spaces ? <TabsTrigger value="all">{t('archive:spaces.all')}</TabsTrigger> : null}
-          </TabsList>
-        </Tabs>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          placeholder={t('archive:search.placeholder')}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="max-w-xs"
-        />
-        <Input
-          placeholder={t('archive:search.tagFilter')}
-          value={tagsFilter}
-          onChange={(e) => setTagsFilter(e.target.value)}
-          className="max-w-xs"
-        />
-        {!isSearching ? (
-          <Select
-            className="w-auto"
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortMode)}
-            title={t('archive:view.sortFiles')}
-          >
-            {(Object.keys(SORT_LABELS) as SortMode[]).map((s) => (
-              <option key={s} value={s}>
-                {SORT_LABELS[s]}
-              </option>
-            ))}
-          </Select>
+        ) : selection.count > 0 ? (
+          <SelectionBar placement="toolbar" {...selectionBarProps}>
+            {selectionActions}
+          </SelectionBar>
         ) : null}
-        <div className="ml-auto flex items-center gap-1 rounded-md border border-input p-0.5">
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'ghost'}
-            size="icon-sm"
-            title={t('archive:view.list')}
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'ghost'}
-            size="icon-sm"
-            title={t('archive:view.grid')}
-            onClick={() => setViewMode('grid')}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </Button>
+
+        <Card
+          className="relative"
+          onDragEnter={(e: DragEvent) => {
+            if (!canWriteHere || !carriesFiles(e)) return
+            e.preventDefault()
+            dragDepth.current += 1
+            setOsDragOver(true)
+          }}
+          onDragLeave={(e: DragEvent) => {
+            if (!carriesFiles(e)) return
+            dragDepth.current -= 1
+            if (dragDepth.current <= 0) endOsDrag()
+          }}
+          onDragOver={(e: DragEvent) => {
+            if (!carriesFiles(e)) return
+            e.preventDefault()
+            setOsDropFolderId(null)
+          }}
+          onDrop={(e: DragEvent) => {
+            if (!carriesFiles(e)) return
+            e.preventDefault()
+            const dropped = Array.from(e.dataTransfer.files)
+            endOsDrag()
+            if (canWriteHere) uploadFiles(dropped, uploadFolderId, currentName)
+          }}
+        >
+          {osDragOver ? (
+            <div className="pointer-events-none absolute inset-1 z-10 flex items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary/5">
+              <p className="glass flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium">
+                <Upload className="h-4 w-4" /> {t('archive:upload.dropTo', { folder: osDropFolder?.name ?? currentName })}
+              </p>
+            </div>
+          ) : null}
+          <CardContent className="px-2 pt-4 sm:px-4">{body()}</CardContent>
+        </Card>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            uploadFiles(Array.from(e.target.files ?? []), uploadFolderId, currentName)
+            e.target.value = ''
+          }}
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            uploadFiles(Array.from(e.target.files ?? []), uploadFolderId, currentName)
+            e.target.value = ''
+          }}
+        />
+
+        {canWriteHere && selection.count === 0 ? (
+          <Fab
+            icon={<Plus className="h-6 w-6" />}
+            label={t('archive:fab.label')}
+            actions={[
+              { key: 'folder', icon: <FolderPlus className="h-4 w-4" />, label: t('archive:folders.new'), onClick: newFolder },
+              { key: 'upload', icon: <Upload className="h-4 w-4" />, label: t('archive:actions.upload'), onClick: pickFiles },
+              { key: 'camera', icon: <Camera className="h-4 w-4" />, label: t('archive:fab.camera'), onClick: () => cameraInputRef.current?.click() },
+            ]}
+          />
+        ) : null}
+
+        <div className="md:hidden">
+          <SelectionBar {...selectionBarProps}>{selectionActions}</SelectionBar>
         </div>
       </div>
 
-      <Card
-        className="relative"
-        onDragEnter={(e: DragEvent) => {
-          e.preventDefault()
-          dragCounter.current += 1
-          if (canWrite && e.dataTransfer.types.includes('Files')) setIsDragOver(true)
-        }}
-        onDragLeave={(e: DragEvent) => {
-          e.preventDefault()
-          dragCounter.current -= 1
-          if (dragCounter.current <= 0) {
-            dragCounter.current = 0
-            setIsDragOver(false)
-          }
-        }}
-        onDragOver={(e: DragEvent) => e.preventDefault()}
-        onDrop={(e: DragEvent) => {
-          e.preventDefault()
-          dragCounter.current = 0
-          setIsDragOver(false)
-          const files = Array.from(e.dataTransfer.files)
-          if (files.length && canWrite) upload.mutate(files)
-        }}
-      >
-        {isDragOver ? (
-          <div className="pointer-events-none absolute inset-1 z-10 flex animate-pulse items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary/5">
-            <p className="flex items-center gap-2 text-sm font-medium text-primary">
-              <Upload className="h-4 w-4" /> {t('archive:upload.dropHere')}
-            </p>
+      <DragOverlay dropAnimation={null}>
+        {dragged ? (
+          <div className="glass rounded-full border px-3 py-1.5 text-sm shadow-lg">
+            {overTarget ? t('archive:drag.moveTo', { folder: overTarget.name }) : dragged.length === 1 ? dragged[0]!.name : t('archive:selection.count', { count: dragged.length })}
           </div>
         ) : null}
-        <CardContent className="px-2 pt-6 max-sm:px-2 sm:px-6">
-          {listingSpaces && !isSearching ? (
-            spaces.isPending ? (
-              <ListSkeleton rows={4} />
-            ) : spaceEntries.length ? (
-              <SpacesTable entries={spaceEntries} onOpen={openFolder} />
-            ) : (
-              <EmptyState
-                kind="new"
-                title={spacesView === 'shared' ? t('archive:empty.nothingShared') : t('archive:empty.noSpace')}
-                description={spacesView === 'shared' ? t('archive:empty.sharedHint') : undefined}
-              />
-            )
-          ) : (isSearching ? search.isPending : folders.isPending || files.isPending) ? (
-            <ListSkeleton rows={4} />
-          ) : isEmpty ? (
-            <p className="text-sm text-muted-foreground">
-              {isSearching ? t('archive:empty.noFileFound') : canWrite ? t('archive:empty.folderWithActions') : t('archive:empty.folder')}
-            </p>
-          ) : !isSearching && viewMode === 'grid' ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {folders.data?.map((f) => (
-                <FolderCard
-                  key={f.id}
-                  folder={f}
-                  onOpen={() => openFolder(f.id)}
-                  actions={folderActionsMenu(f)}
-                />
-              ))}
-              {files.data?.map((file) => (
-                <FileCard key={file.id} file={file} onOpen={() => previewFile.mutate(file.id)} actions={fileActionsMenu(file)} />
-              ))}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('common:labels.name')}</TableHead>
-                  <TableHead priority="md">{isSearching ? t('archive:labels.location') : t('common:labels.details')}</TableHead>
-                  <TableHead priority="lg">{t('archive:labels.tags')}</TableHead>
-                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isSearching &&
-                  search.data?.map((r) => (
-                    <TableRow key={r.id} data-row-id={r.id} className="cursor-pointer" onClick={() => previewFile.mutate(r.id)}>
-                      <TableCell className="w-full max-w-0">
-                        <FileNameCell
-                          name={r.name}
-                          previewUrl={r.previewUrl}
-                          details={[r.folderPath.length ? r.folderPath.map((p) => p.name).join(' / ') : t('archive:folders.root'), formatBytes(r.sizeBytes)]}
-                        />
-                      </TableCell>
-                      <TableCell priority="md" className="text-muted-foreground">
-                        <button
-                          type="button"
-                          className="flex items-center gap-1 hover:underline"
-                          title={t('archive:folders.open')}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            goToFolder(r.folderPath)
-                          }}
-                        >
-                          <FolderOpen className="h-3.5 w-3.5 shrink-0" />
-                          {r.folderPath.length ? r.folderPath.map((p) => p.name).join(' / ') : t('archive:folders.root')}
-                        </button>
-                        <div className="text-xs">
-                          {r.mimeType} · {formatBytes(r.sizeBytes)}
-                        </div>
-                      </TableCell>
-                      <TableCell priority="lg">
-                        <div className="flex flex-wrap gap-1">
-                          {r.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        {fileActionsMenu(r, true)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                {!isSearching &&
-                  folders.data?.map((f) => (
-                    <TableRow
-                      key={f.id}
-                      className="cursor-pointer"
-                      onClick={() => openFolder(f.id)}
-                    >
-                      <TableCell className="w-full max-w-0 font-medium">
-                        <span className="flex min-w-0 items-center gap-2">
-                          <Folder className="h-4 w-4 shrink-0 text-muted-foreground" /> <span className="truncate">{f.name}</span>
-                        </span>
-                      </TableCell>
-                      <TableCell priority="md" className="whitespace-nowrap text-muted-foreground">
-                        {t('common:count.files', { count: f.fileCount })} · {t('common:count.folders', { count: f.subfolderCount })}
-                      </TableCell>
-                      <TableCell priority="lg" />
-                      <TableCell className="text-right">
-                        <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-                          {folderActionsMenu(f)}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                {!isSearching &&
-                  files.data?.map((file) => (
-                  <TableRow key={file.id} data-row-id={file.id} className="cursor-pointer" onClick={() => previewFile.mutate(file.id)}>
-                    <TableCell className="w-full max-w-0">
-                      <FileNameCell name={file.name} previewUrl={file.previewUrl} details={[`${file.mimeType} · ${formatBytes(file.sizeBytes)}`]} />
-                    </TableCell>
-                    <TableCell priority="md" className="whitespace-nowrap text-muted-foreground">
-                      {file.mimeType} · {formatBytes(file.sizeBytes)}
-                    </TableCell>
-                    <TableCell priority="lg">
-                      <div className="flex flex-wrap gap-1">
-                        {file.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      {fileActionsMenu(file)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-      {moveTarget ? (
+      </DragOverlay>
+
+      {viewerOpen ? (
+        <FileViewer
+          files={viewerFiles}
+          index={viewerIndex}
+          onIndexChange={(index) => setParam('file', viewerFiles[index]?.id ?? null, { replace: true })}
+          onClose={closeViewer}
+          onDownload={(file) => void api.download(`/api/archive/files/${file.id}/download`, file.name).catch((err: Error) => toast.error(err.message))}
+          toolbar={
+            viewerCurrent ? (
+              <>
+                <button
+                  type="button"
+                  className={viewerButtonClass}
+                  aria-label={starredIds.has(viewerCurrent.id) ? t('archive:menu.unstar') : t('archive:menu.star')}
+                  onClick={() => {
+                    const add = !starredIds.has(viewerCurrent.id)
+                    void setStarred([{ kind: 'file', id: viewerCurrent.id }], add).then(invalidate, (err: Error) => toast.error(err.message))
+                  }}
+                >
+                  <Star className={starredIds.has(viewerCurrent.id) ? 'h-5 w-5 fill-warning text-warning' : 'h-5 w-5'} />
+                </button>
+                <button type="button" className={viewerButtonClass} aria-label={t('archive:menu.details')} onClick={() => setParam('details', viewerCurrent.id)}>
+                  <Info className="h-5 w-5" />
+                </button>
+                {canShareToMessages ? (
+                  <button
+                    type="button"
+                    className={viewerButtonClass}
+                    aria-label={t('messages:share.action')}
+                    onClick={() => {
+                      // The share dialog sits under the viewer, so the viewer steps aside first.
+                      closeViewer()
+                      shareToMessages({ type: 'archive_file', id: viewerCurrent.id, title: viewerCurrent.name })
+                    }}
+                  >
+                    <MessageSquareShare className="h-5 w-5" />
+                  </button>
+                ) : null}
+              </>
+            ) : null
+          }
+        />
+      ) : null}
+
+      <DetailsPeek
+        id={detailsParam || null}
+        item={items.find((item) => item.id === detailsParam) ?? null}
+        actions={actions}
+        raised={viewerOpen}
+        onClose={() => setParam('details', null, { replace: true })}
+        onOpenFolder={openFolder}
+      />
+
+      <UploadPanel />
+
+      {moveTargets ? (
         <MoveDialog
           open
-          onOpenChange={(o) => {
-            if (!o) setMoveTarget(null)
+          onOpenChange={(open) => !open && setMoveTargets(null)}
+          itemName={moveTargets.length === 1 ? moveTargets[0]!.name : t('archive:selection.count', { count: moveTargets.length })}
+          isPending={busy}
+          onConfirm={(target) => {
+            const targetId = target.id ?? ownRoot?.id
+            if (!targetId) return toast.error(t('archive:move.noSpace'))
+            void guarded(async () => {
+              await moveItems(moveTargets, { id: targetId, name: target.name }, invalidate)
+              setMoveTargets(null)
+              selection.clear()
+            })
           }}
-          itemName={moveTarget.name}
-          isPending={moveFile.isPending || moveFolder.isPending}
-          onConfirm={(targetFolderId) =>
-            moveTarget.type === 'file'
-              ? moveFile.mutate({ id: moveTarget.id, folderId: targetFolderId })
-              : moveFolder.mutate({ id: moveTarget.id, parentId: targetFolderId })
-          }
         />
       ) : null}
       {nameTarget ? (
         <NameDialog
-          title={nameTarget.type === 'new-folder' ? t('archive:nameDialog.newFolderTitle') : t('archive:nameDialog.renameTitle', { name: nameTarget.name })}
-          initialName={nameTarget.type === 'new-folder' ? '' : nameTarget.name}
+          title={nameTarget.type === 'new-folder' ? t('archive:nameDialog.newFolderTitle') : t('archive:nameDialog.renameTitle', { name: nameTarget.item.name })}
+          initialName={nameTarget.type === 'new-folder' ? '' : nameTarget.item.name}
           submitLabel={nameTarget.type === 'new-folder' ? t('common:actions.create') : t('common:actions.rename')}
-          isPending={createFolder.isPending || renameFile.isPending || renameFolder.isPending}
+          isPending={busy}
           onClose={() => setNameTarget(null)}
-          onSubmit={(name) => {
-            const done = { onSuccess: () => setNameTarget(null) }
-            if (nameTarget.type === 'new-folder') createFolder.mutate(name, done)
-            else if (nameTarget.type === 'file') renameFile.mutate({ id: nameTarget.id, name }, done)
-            else renameFolder.mutate({ id: nameTarget.id, name }, done)
-          }}
+          onSubmit={(name) =>
+            void guarded(async () => {
+              if (nameTarget.type === 'new-folder') {
+                const folder = await api.post<ArchiveFolder>('/api/archive/folders', { name, parentId: currentFolderId ?? undefined })
+                invalidate()
+                toast.success(t('archive:toasts.folderCreated'), { action: { label: t('common:actions.view'), onClick: () => openFolder(folder.id) } })
+              } else {
+                await renameItem(nameTarget.item, name, invalidate)
+              }
+              setNameTarget(null)
+            })
+          }
+        />
+      ) : null}
+      {colorTarget ? (
+        <ColorDialog
+          name={colorTarget.name}
+          value={colorTarget.color}
+          onClose={() => setColorTarget(null)}
+          onPick={(color) => void guarded(async () => { await api.patch(`/api/archive/folders/${colorTarget.id}`, { color }); invalidate() })}
         />
       ) : null}
       <SaveShareDialog />
@@ -988,6 +971,6 @@ export function ArchivePage() {
           onRemove={(userId) => removeShare.mutate(userId)}
         />
       ) : null}
-    </div>
+    </DndContext>
   )
 }

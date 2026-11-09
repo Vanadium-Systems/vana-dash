@@ -71,7 +71,12 @@
     "folderNotCreated": "Nu am putut crea folderul \"{{name}}\"",
     "fileNotCreated": "Fișier necreat",
     "shareWithSelf": "Nu poți împărți spațiul cu tine însuți",
-    "spaceName": "Spațiul lui {{name}}"
+    "spaceName": "Spațiul lui {{name}}",
+    "spaceRootDelete": "Rădăcina unui spațiu nu se poate șterge",
+    "trashNotFound": "Elementul nu mai e în Coș",
+    "restoredSuffix": "(restaurat)",
+    "storageFull": "Spațiul de stocare e plin: {{used}} din {{limit}}",
+    "bulkTooMany": "Prea multe elemente deodată"
   },
   "calendar": {
     "eventNotFound": "Eveniment inexistent",
@@ -109,7 +114,11 @@
     "ticketNotFound": "Tichet inexistent"
   },
   "notes": {
-    "notFound": "Notiță inexistentă"
+    "notFound": "Notiță inexistentă",
+    "empty": "Notița e goală",
+    "changed": "Notița s-a schimbat între timp",
+    "invalidBody": "Conținutul notiței nu e valid",
+    "labelNotFound": "Eticheta nu există"
   },
   "plan": {
     "goalNotFound": "Goal inexistent",

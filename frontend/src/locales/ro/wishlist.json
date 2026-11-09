@@ -34,5 +34,9 @@
     "inList": "În listă"
   },
   "markBought": "Marchează cumpărat",
-  "addAsExpense": "Adaugă și ca cheltuială în Facturi ({{amount}})"
+  "addAsExpense": "Adaugă și ca cheltuială în Facturi ({{amount}})",
+  "filter": {
+    "scope": "Personal sau firmă",
+    "category": "Tip"
+  }
 }

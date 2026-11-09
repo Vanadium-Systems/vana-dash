@@ -25,6 +25,30 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-09T12:00:00+02:00',
+    title: {
+      ro: 'Notițe: editor cu formatare, liste de bifat, culori, versiuni; în Plan tragi obiectivele între niveluri',
+      en: 'Notes: editor with formatting, checklists, colors, versions; in Plan you drag goals between tiers',
+    },
+    body: {
+      ro: 'Notița se scrie într-un editor cu titluri, liste, liste de bifat, citate și cod. Apeși / ca să alegi un bloc, selectezi text ca să-l faci aldin sau link, iar salvarea se face singură, fără buton. Notițele vechi se deschid ca până acum și nu pierd nimic. Fiecare notiță poate avea o culoare și etichete, se poate fixa, arhiva sau muta în Coș, unde stă 30 de zile și o poți restaura. După orice acțiune apare „Anulează”. Din ⋯ vezi versiunile mai vechi ale notiței și o aduci înapoi pe cea dorită. Notițele apar și în căutarea Ctrl K, doar ale tale. Bifezi mai multe notițe odată ca să le arhivezi, să le colorezi sau să le pui o etichetă. În Plan tragi un obiectiv dintr-un nivel în altul, iar Enter în titlul unui obiectiv deschis adaugă unul nou sub el. În Wishlist, Personal / Firmă și Necesități / Plăceri sunt acum în butonul Filtru.',
+      en: 'A note is written in an editor with headings, lists, checklists, quotes and code. Press / to pick a block, select text to make it bold or a link, and saving happens on its own, with no button. Old notes open as before and lose nothing. Each note can have a color and labels, and can be pinned, archived or moved to the Trash, where it stays for 30 days and can be restored. “Undo” appears after any action. From ⋯ you see the older versions of a note and bring back the one you want. Notes also show up in Ctrl K search, yours only. Tick several notes at once to archive them, color them or add a label. In Plan you drag a goal from one tier to another, and Enter in the title of an open goal adds a new one under it. In Wishlist, Personal / Company and Needs / Wants are now under the Filter button.',
+    },
+    features: ['notite.view'],
+  },
+  {
+    publishedAt: '2026-11-09T11:30:00+02:00',
+    title: {
+      ro: 'Arhivă: Coș cu restaurare, anulare, previzualizare cu săgeți, selecție multiplă și tragere',
+      en: 'Archive: Trash with restore, undo, preview with arrows, multi-select and drag',
+    },
+    body: {
+      ro: 'Ștergerea nu mai cere confirmare: elementul trece în Coș, unde stă 30 de zile și îl restaurezi, iar un folder se șterge cu tot ce are în el. Fișierele șterse înainte de această actualizare apar acum în Coș pentru 30 de zile, apoi dispar definitiv. După ștergere, mutare sau redenumire apare „Anulează”. Un fișier se deschide peste pagină, cu ← → între fișierele folderului, iar „Detalii” arată locul lui, cine l-a creat și cine are acces. Bifezi mai multe elemente (Ctrl sau Shift + click, pe telefon apăsare lungă) și le muți, le ștergi sau le descarci, ori le tragi peste un folder. Fișierele încărcate apar într-un panou cu progres pe fiecare, iar unul eșuat se reîncearcă. Lista arată acum toate fișierele folderului, pe pagini, nu doar primele 50. Folderele pot avea culoare, ai „Recente” și „Cu stea”, iar căutarea găsește și foldere, fără să conteze diacriticele.',
+      en: 'Deleting no longer asks for confirmation: the item goes to the Trash, where it stays for 30 days and can be restored, and a folder is deleted with everything in it. Files deleted before this update now appear in the Trash for 30 days, then disappear for good. After a delete, move or rename, “Undo” appears. A file opens over the page, with ← → between the files of the folder, and “Details” shows where it is, who created it and who has access. Tick several items (Ctrl or Shift + click, long press on a phone) to move, delete or download them, or drag them onto a folder. Uploaded files appear in a panel with progress on each, and a failed one can be retried. The list now shows every file in the folder, in pages, not only the first 50. Folders can have a color, there are “Recent” and “Starred”, and search finds folders too, whatever the diacritics.',
+    },
+    features: ['arhiva.view'],
+  },
+  {
     publishedAt: '2026-11-06T12:30:00+02:00',
     title: {
       ro: 'Email: „Trimise” arată și cutiile comune, cu filtrul „Trimis de”',

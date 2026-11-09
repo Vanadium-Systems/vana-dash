@@ -511,6 +511,23 @@
   },
   "keys": {
     "shift": "Shift",
-    "delete": "Del"
+    "delete": "Del",
+    "enter": "Enter"
+  },
+  "tagColors": {
+    "1": "Roșu",
+    "2": "Portocaliu",
+    "3": "Galben",
+    "4": "Verde",
+    "5": "Turcoaz",
+    "6": "Albastru",
+    "7": "Mov",
+    "8": "Roz",
+    "none": "Fără culoare",
+    "label": "Culoare"
+  },
+  "filter": {
+    "add": "Filtru",
+    "remove": "Scoate filtrul {{filter}}"
   }
 }

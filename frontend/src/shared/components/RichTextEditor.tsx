@@ -1,12 +1,9 @@
 import Color from '@tiptap/extension-color'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
-import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
 import { TextStyle } from '@tiptap/extension-text-style'
-import Underline from '@tiptap/extension-underline'
 import { EditorContent, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
 import {
   AlignCenter,
   AlignLeft,
@@ -26,6 +23,7 @@ import { toast } from 'sonner'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
+import { baseExtensions, LINK_OPTIONS, placeholderExtension } from './tiptap-base'
 
 // 2026-08-11 — editor unic pt. Compose/Reply/Forward/Templates (nu mai există un mod separat
 // "text simplu" vs "HTML": dacă nu atingi toolbar-ul, iese text simplu; dacă vrei, adaugi
@@ -135,8 +133,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className, au
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Underline,
+      ...baseExtensions(),
       TextStyle,
       Color,
       // 'heading' inclus explicit — fără el, un <h2 style="text-align:center"> lipit prin
@@ -144,8 +141,8 @@ export function RichTextEditor({ id, value, onChange, placeholder, className, au
       // email centrat rămânea aliniat stânga după import, restul paragrafelor rămâneau centrate).
       TextAlign.configure({ types: ['paragraph', 'heading'] }),
       ImageWithStyle,
-      LinkWithStyle.configure({ openOnClick: false }),
-      Placeholder.configure({ placeholder: placeholder ?? '' }),
+      LinkWithStyle.configure(LINK_OPTIONS),
+      placeholderExtension(placeholder ?? ''),
     ],
     content: legacyBodyToHtml(value),
     autofocus: autoFocus ? 'end' : false,

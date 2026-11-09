@@ -1,26 +1,19 @@
-import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, Circle, GripVertical, Lock, Plus } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
-import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Button } from '@/shared/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { Card, CardContent } from '@/shared/components/ui/card'
 import { SidePeek, usePeek } from '@/shared/components/ui/side-peek'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { api } from '@/shared/lib/api'
-import { haptic } from '@/shared/lib/haptics'
-import { cn } from '@/shared/lib/utils'
 import type { PlanGoal, PlanResponse, PlanScope } from '@/shared/lib/types'
 import { PlanGoalForm, PlanGoalFormDialog } from './PlanGoalFormDialog'
+import { PlanBoard, formatRon } from './PlanBoard'
 import { tierLabel } from './tiers'
-import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
@@ -30,197 +23,19 @@ const SCOPES = [
   { key: 'firma', label: t('common:labels.company') },
 ] as const
 
-const STATUS_STYLES: Record<PlanGoal['status'], string> = {
-  locked: 'border-muted bg-muted/30 text-muted-foreground',
-  available: 'border-primary bg-primary/5',
-  completed: 'border-success/40 bg-success/5',
-}
-
-function StatusIcon({ status }: { status: PlanGoal['status'] }) {
-  if (status === 'completed') return <CheckCircle2 className="h-5 w-5 text-success" />
-  if (status === 'available') return <Circle className="h-5 w-5 text-primary" />
-  return <Lock className="h-5 w-5 text-muted-foreground" />
-}
-
-function formatRon(value: number): string {
-  return value.toLocaleString(intlTag())
-}
-
-function formatTargetDate(value: string): string {
-  return new Date(`${value}T00:00:00`).toLocaleDateString(intlTag(), { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function GoalRow({ goal, mrrRon, onEdit }: { goal: PlanGoal; mrrRon: number; onEdit: (goal: PlanGoal) => void }) {
-  const queryClient = useQueryClient()
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: goal.id })
-
-  const toggleComplete = useMutation({
-    mutationFn: (completed: boolean) => api.patch<PlanGoal>(`/api/plan/${goal.id}/complete`, { completed }),
-    onSuccess: (_goal, completed) => {
-      if (completed) void haptic('success')
-      void queryClient.invalidateQueries({ queryKey: ['plan'] })
-    },
-    onError: (err) => toast.error(err.message),
-  })
-
-  const thresholdValue = goal.thresholdValue ? Number(goal.thresholdValue) : null
-  const progressPct = thresholdValue ? Math.min(100, (mrrRon / thresholdValue) * 100) : null
-  const monthlyCost = goal.monthlyCostRon ? Number(goal.monthlyCostRon) : null
-  const targetPrice = goal.targetPriceAmount ? Number(goal.targetPriceAmount) : null
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn(
-        'flex flex-wrap items-start gap-3 rounded-lg border p-4 transition-colors',
-        STATUS_STYLES[goal.status],
-        isDragging ? 'opacity-50' : '',
-      )}
-    >
-      <button
-        type="button"
-        className="mt-1 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <div className="mt-0.5">
-        <StatusIcon status={goal.status} />
-      </div>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn('font-medium', goal.status === 'completed' ? 'line-through decoration-success' : '')}>
-            {goal.title}
-          </span>
-          {goal.thresholdType === 'mrr_ron' ? <Badge variant="outline">{t('plan:mrrThresholdTag')}</Badge> : null}
-          {monthlyCost !== null ? <Badge variant="outline">{t('plan:perMonth', { amount: `${formatRon(monthlyCost)} ${BASE_CURRENCY}` })}</Badge> : null}
-          {targetPrice !== null ? (
-            <Badge variant="outline">
-              {formatRon(targetPrice)} {goal.targetPriceCurrency}
-            </Badge>
-          ) : null}
-          {goal.targetDate ? (
-            <Badge variant={goal.status !== 'completed' && goal.targetDate < new Date().toISOString().slice(0, 10) ? 'warning' : 'outline'}>
-              {t('plan:deadline', { targetDate: formatTargetDate(goal.targetDate) })}
-            </Badge>
-          ) : null}
-        </div>
-        {goal.note ? <p className="text-sm text-muted-foreground">{goal.note}</p> : null}
-        {progressPct !== null ? (
-          <div className="space-y-1 pt-1">
-            <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-muted">
-              <div className="h-full origin-left bg-primary transition-transform duration-screen ease-out-strong" style={{ transform: `scaleX(${progressPct / 100})` }} />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t('plan:mrrProgress', { current: formatRon(mrrRon), target: `${formatRon(thresholdValue!)} ${BASE_CURRENCY}` })}
-            </p>
-          </div>
-        ) : null}
-      </div>
-      <div className="flex w-full shrink-0 justify-end gap-1 sm:w-auto">
-        <Button
-          variant="outline"
-          disabled={toggleComplete.isPending}
-          onClick={() => toggleComplete.mutate(goal.status !== 'completed')}
-        >
-          {goal.status === 'completed' ? t('common:actions.cancel') : t('plan:markDone')}
-        </Button>
-        <Button variant="outline" onClick={() => onEdit(goal)}>
-          {t('common:actions.edit')}
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-/** Listă drag-and-drop pt. un singur (scope, tier) — reorder-ul e strict scoped la acest set. */
-function GoalList({
-  scope,
-  tier,
-  goals,
-  mrrRon,
-  onEdit,
-}: {
-  scope: PlanScope
-  tier: number
-  goals: PlanGoal[]
-  mrrRon: number
-  onEdit: (goal: PlanGoal) => void
-}) {
-  const queryClient = useQueryClient()
-
-  const reorder = useMutation({
-    mutationFn: (orderedIds: string[]) => api.post<PlanGoal[]>('/api/plan/reorder', { scope, tier, orderedIds }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['plan'] }),
-    onError: (err) => {
-      toast.error(err.message)
-      void queryClient.invalidateQueries({ queryKey: ['plan'] })
-    },
-  })
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = goals.findIndex((g) => g.id === active.id)
-    const newIndex = goals.findIndex((g) => g.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-    const nextOrder = arrayMove(goals, oldIndex, newIndex).map((g) => g.id)
-    const positionById = new Map(nextOrder.map((id, i) => [id, i + 1]))
-
-    queryClient.setQueryData<PlanResponse | undefined>(['plan'], (current) => {
-      if (!current) return current
-      const updated = current[scope].map((g) => (positionById.has(g.id) ? { ...g, position: positionById.get(g.id)! } : g))
-      return { ...current, [scope]: updated }
-    })
-    reorder.mutate(nextOrder)
-  }
-
-  if (!goals.length) return <EmptyState kind="new" title={t('plan:emptyTrack')} />
-
-  return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={goals.map((g) => g.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2">
-          {goals.map((goal) => (
-            <GoalRow key={goal.id} goal={goal} mrrRon={mrrRon} onEdit={onEdit} />
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
-  )
-}
-
-function groupByTier(goals: PlanGoal[]): [number, PlanGoal[]][] {
-  const byTier = new Map<number, PlanGoal[]>()
-  for (const goal of goals) {
-    const bucket = byTier.get(goal.tier)
-    if (bucket) bucket.push(goal)
-    else byTier.set(goal.tier, [goal])
-  }
-  for (const bucket of byTier.values()) bucket.sort((a, b) => a.position - b.position)
-  return [...byTier.entries()].sort(([a], [b]) => a - b)
-}
-
 function sumMonthlyCost(goals: PlanGoal[]): number {
   return goals.reduce((sum, g) => sum + (g.monthlyCostRon ? Number(g.monthlyCostRon) : 0), 0)
 }
 
-/** Pista "firma" — grupată pe etaje (tycoon), fiecare etaj cu propriul drag-and-drop și cost lunar. */
+const FIRMA_TIERS = [1, 2, 3, 4]
+const PERSONAL_TIERS = [1]
+
+/** The company track: one column per tier with its monthly cost; goals can be dragged between tiers. */
 function TieredGoals({ goals, mrrRon, onEdit }: { goals: PlanGoal[]; mrrRon: number; onEdit: (goal: PlanGoal) => void }) {
-  const tiers = groupByTier(goals)
   const totalMonthlyCost = sumMonthlyCost(goals)
   const gap = totalMonthlyCost - mrrRon
 
-  let cumulative = 0
-  const tiersWithCumulative = tiers.map(([tier, tierGoals]) => {
-    const tierCost = sumMonthlyCost(tierGoals)
-    cumulative += tierCost
-    return { tier, tierGoals, tierCost, cumulativeCost: cumulative }
-  })
+  const cumulativeCostUpTo = (tier: number) => sumMonthlyCost(goals.filter((goal) => goal.tier <= tier))
 
   return (
     <div className="space-y-4">
@@ -240,12 +55,18 @@ function TieredGoals({ goals, mrrRon, onEdit }: { goals: PlanGoal[]; mrrRon: num
         </Card>
       ) : null}
 
-      {tiersWithCumulative.map(({ tier, tierGoals, tierCost, cumulativeCost }) => {
-        const cumulativeGap = cumulativeCost - mrrRon
-        return (
-          <Card key={tier}>
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
-              <CardTitle className="text-base">{tierLabel(tier)}</CardTitle>
+      <PlanBoard
+        scope="firma"
+        goals={goals}
+        tiers={FIRMA_TIERS}
+        mrrRon={mrrRon}
+        onEdit={onEdit}
+        tierHeader={(tier, tierGoals) => {
+          const tierCost = sumMonthlyCost(tierGoals)
+          const cumulativeGap = cumulativeCostUpTo(tier) - mrrRon
+          return (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-semibold">{tierLabel(tier)}</h2>
               {tierCost > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   <Badge variant="outline">{t('plan:perMonth', { amount: `${formatRon(tierCost)} ${BASE_CURRENCY}` })}</Badge>
@@ -254,13 +75,10 @@ function TieredGoals({ goals, mrrRon, onEdit }: { goals: PlanGoal[]; mrrRon: num
                   </Badge>
                 </div>
               ) : null}
-            </CardHeader>
-            <CardContent>
-              <GoalList scope="firma" tier={tier} goals={tierGoals} mrrRon={mrrRon} onEdit={onEdit} />
-            </CardContent>
-          </Card>
-        )
-      })}
+            </div>
+          )
+        }}
+      />
     </div>
   )
 }
@@ -290,33 +108,34 @@ export function PlanPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={t('common:nav.plan')}
-        description={t('plan:description')}
-        actions={
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4" /> {t('plan:step.new')}
-          </Button>
-        }
-      />
+      <PageHeader title={t('common:nav.plan')} description={t('plan:description')} />
 
       <Tabs value={scope} onValueChange={(v) => setScope(v as PlanScope)}>
-        <TabsList>
-          {SCOPES.map((s) => (
-            <TabsTrigger key={s.key} value={s.key}>
-              {s.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        {/* The page's action sits on the tabs row, on the right, so the tabs do not move when the page changes (N29). */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <TabsList variant="segmented">
+            {SCOPES.map((s) => (
+              <TabsTrigger key={s.key} value={s.key}>
+                {s.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <Button className="ml-auto" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4" /> {t('plan:step.new')}
+          </Button>
+        </div>
         <TabsContent value="personal">
           {plan.isPending ? (
             <ListSkeleton rows={4} />
           ) : (
-            <Card>
-              <CardContent className="space-y-3 pt-6">
-                <GoalList scope="personal" tier={1} goals={plan.data?.personal ?? []} mrrRon={mrrRon} onEdit={openEdit} />
-              </CardContent>
-            </Card>
+            <PlanBoard
+              scope="personal"
+              goals={plan.data?.personal ?? []}
+              tiers={PERSONAL_TIERS}
+              mrrRon={mrrRon}
+              onEdit={openEdit}
+              tierHeader={() => null}
+            />
           )}
         </TabsContent>
         <TabsContent value="firma">
@@ -326,7 +145,7 @@ export function PlanPage() {
 
       <PlanGoalFormDialog open={dialogOpen} onOpenChange={setDialogOpen} scope={scope} />
       <SidePeek open={Boolean(peekedGoal)} onClose={closePeek} title={t('plan:step.editTitle')}>
-        {peekedGoal ? <PlanGoalForm key={peekedGoal.id} goal={peekedGoal} scope={peekedGoal.scope} onDone={closePeek} /> : null}
+        {peekedGoal ? <PlanGoalForm key={peekedGoal.id} goal={peekedGoal} scope={peekedGoal.scope} onDone={closePeek} onAddedBelow={(created) => openPeek(created.id)} /> : null}
       </SidePeek>
     </div>
   )

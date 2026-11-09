@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, Plus } from 'lucide-react'
+import { Check, ExternalLink, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -11,7 +11,8 @@ import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/shared/components/ui/dropdown-menu'
+import { FilterChip, FilterMenuTrigger } from '@/shared/components/ui/filter-chip'
 import { cn } from '@/shared/lib/utils'
 import { api } from '@/shared/lib/api'
 import { formatNumber, intlTag } from '@/shared/lib/format'
@@ -181,28 +182,30 @@ export function WishlistPage() {
       </div>
       <MoneyNote money={wishlist.money} />
 
-      {/* Medii separate — Personal/Firmă e independent de Necesități/Plăceri (cerință
-          explicită Stefan, 2026-07-22): două rânduri de tab-uri, nu unul combinat, ca să poți
-          filtra pe oricare din cele 2 axe fără să pierzi cealaltă. */}
-      <Tabs value={scopeTab} onValueChange={(v) => setScopeTab(v as (typeof SCOPES)[number]['key'])}>
-        <TabsList>
-          {SCOPES.map((s) => (
-            <TabsTrigger key={s.key} value={s.key}>
-              {s.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      <Tabs value={tab} onValueChange={(v) => setTab(v as (typeof TABS)[number]['key'])}>
-        <TabsList>
-          {TABS.map((tab) => (
-            <TabsTrigger key={tab.key} value={tab.key}>
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {/* Personal/Company and Needs/Wants are two independent axes (decided 2026-07-22), so each is
+          its own filter: setting one keeps the other. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <DropdownMenu>
+          <FilterMenuTrigger />
+          <DropdownMenuContent align="start">
+            <p className="px-2 py-1 text-xs text-muted-foreground">{t('wishlist:filter.scope')}</p>
+            {SCOPES.map((s) => (
+              <DropdownMenuItem key={s.key} onClick={() => setScopeTab(s.key)}>
+                <Check className={cn('h-4 w-4', scopeTab !== s.key && 'invisible')} aria-hidden="true" /> {s.label}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <p className="px-2 py-1 text-xs text-muted-foreground">{t('wishlist:filter.category')}</p>
+            {TABS.map((option) => (
+              <DropdownMenuItem key={option.key} onClick={() => setTab(option.key)}>
+                <Check className={cn('h-4 w-4', tab !== option.key && 'invisible')} aria-hidden="true" /> {option.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {scopeTab !== 'all' ? <FilterChip label={SCOPES.find((s) => s.key === scopeTab)!.label} onRemove={() => setScopeTab('all')} /> : null}
+        {tab !== 'all' ? <FilterChip label={TABS.find((x) => x.key === tab)!.label} onRemove={() => setTab('all')} /> : null}
+      </div>
 
       <Card>
         <CardContent className="pt-6">

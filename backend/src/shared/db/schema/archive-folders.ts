@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, check, index, pgTable, text, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
+import { boolean, check, index, pgTable, smallint, text, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
 import { tenantColumns } from './tenant-column.js'
@@ -27,6 +27,9 @@ export const archiveFolders = pgTable(
     // jobs/archive-monthly-folders.ts — pe 1 ale lunii, creează automat un subfolder "LL-AAAA"
     // sub orice folder cu flag-ul ăsta activ (setat din UI, per folder, nu global).
     autoMonthlySubfolders: boolean('auto_monthly_subfolders').notNull().default(false),
+    // Index into the shared `--tag-1..8` palette; null = default folder color.
+    color: smallint('color'),
+    deletedBatchId: uuid('deleted_batch_id'),
   },
   (t) => [
     index('idx_archive_folders_parent').on(t.parentId),
@@ -35,5 +38,7 @@ export const archiveFolders = pgTable(
     // termine (2026-10-01: 15 interogări au scris ~700 GB de fișiere temporare pe Postgres-ul de
     // dev). Ciclurile mai lungi le oprește `wouldCreateCycle` la mutare.
     check('archive_folders_not_own_parent', sql`${t.parentId} IS NULL OR ${t.parentId} <> ${t.id}`),
+    check('archive_folders_color_range', sql`${t.color} IS NULL OR ${t.color} BETWEEN 1 AND 8`),
+    index('idx_archive_folders_batch').on(t.deletedBatchId).where(sql`${t.deletedBatchId} IS NOT NULL`),
   ],
 )

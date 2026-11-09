@@ -8,11 +8,12 @@
 import { eq, inArray, sql } from 'drizzle-orm'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { archiveFiles, archiveFolders } from '../../shared/db/schema/index.js'
+import { archiveFiles, archiveFolders, archiveTrashBatches } from '../../shared/db/schema/index.js'
 import { cleanupTestUsers, createTestUser } from '../../shared/testing/users.js'
 
 vi.mock('../../shared/lib/r2.js', () => ({
   deleteFromR2: vi.fn().mockResolvedValue(undefined),
+  deleteManyFromR2: vi.fn().mockResolvedValue(undefined),
   downloadFromR2: vi.fn().mockResolvedValue(Buffer.from('bytes')),
   getPresignedDownloadUrl: vi.fn().mockResolvedValue('https://r2.example.com/presigned-fake'),
   uploadToR2: vi.fn().mockResolvedValue(undefined),
@@ -22,6 +23,7 @@ vi.mock('../../shared/lib/thumbnail.js', () => ({
 }))
 
 const service = await import('./service.js')
+const trash = await import('./trash.js')
 
 const userIds: string[] = []
 
@@ -69,6 +71,7 @@ afterAll(async () => {
     await db.delete(archiveFiles).where(inArray(archiveFiles.folderId, ids))
     await db.delete(archiveFolders).where(inArray(archiveFolders.id, ids))
   }
+  await db.delete(archiveTrashBatches).where(inArray(archiveTrashBatches.deletedByUserId, userIds))
   await cleanupTestUsers(userIds)
 })
 
@@ -116,7 +119,7 @@ describe('izolare între spații', () => {
     await expect(service.getFileForDownload(ana, f.id)).rejects.toThrow(service.ArchiveNotFoundError)
     expect(await service.getFileBufferForDownload(ana, f.id)).toBeNull()
     await expect(service.updateFile(ana, f.id, { name: 'copie.pdf' })).rejects.toThrow(service.ArchiveNotFoundError)
-    await expect(service.deleteFile(ana, f.id, false)).rejects.toThrow(service.ArchiveNotFoundError)
+    await expect(trash.trashFile(ana, f.id)).rejects.toThrow(service.ArchiveNotFoundError)
   })
 
   it('searchFiles nu scoate fișiere din alt spațiu', async () => {
@@ -171,7 +174,7 @@ describe('share pe folder', () => {
 
     expect((await service.getFileForDownload(ana, f.id)).url).toContain('presigned')
     await expect(service.updateFile(ana, f.id, { name: 'nu.pdf' })).rejects.toThrow(service.ArchiveNotFoundError)
-    await expect(service.deleteFile(ana, f.id, false)).rejects.toThrow(service.ArchiveNotFoundError)
+    await expect(trash.trashFile(ana, f.id)).rejects.toThrow(service.ArchiveNotFoundError)
   })
 
   it('lista de foldere și drumul spun nivelul și dacă omul poate da share', async () => {

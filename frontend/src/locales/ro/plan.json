@@ -18,7 +18,8 @@
     "mrrThreshold": "Prag MRR (RON)",
     "thresholdHint": "Bifarea „realizat\" rămâne mereu manuală — pragul e doar informativ, arată progresul, nu declanșează nimic automat.",
     "deleteTitle": "Șterge pasul „{{title}}”",
-    "deleteConfirm": "Șterge pasul"
+    "deleteConfirm": "Șterge pasul",
+    "untitled": "Obiectiv nou"
   },
   "mrrThresholdTag": "prag MRR",
   "deadline": "termen: {{targetDate}}",
@@ -36,5 +37,15 @@
   "mrrProgress": "{{current}} / {{target}} MRR",
   "totalVsMrr": "Cost lunar total al planului: {{cost}} vs. MRR curent {{mrr}}",
   "gap": "gap de {{amount}}",
-  "cumulativeGap": "gap cumulat de {{amount}}"
+  "cumulativeGap": "gap cumulat de {{amount}}",
+  "emptyTier": "Trage un obiectiv aici.",
+  "dnd": {
+    "handle": "Mută „{{title}}”",
+    "instructions": "Apasă Space sau Enter pe mâner ca să iei obiectivul, săgețile îl mută, Space îl lasă jos, Esc anulează.",
+    "picked": "Ai luat „{{title}}”.",
+    "over": "„{{title}}” e peste {{target}}.",
+    "dropped": "„{{title}}” a fost mutat în {{target}}.",
+    "cancelled": "Mutarea lui „{{title}}” a fost anulată.",
+    "tierName": "nivelul {{tier}}"
+  }
 }

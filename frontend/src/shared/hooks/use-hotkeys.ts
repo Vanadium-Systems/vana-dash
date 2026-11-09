@@ -1,7 +1,7 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 
 export interface Hotkey {
-  /** `e`, `shift+?`, `mod+k`, `escape`. `mod` is Ctrl or Meta. */
+  /** `e`, `shift+?`, `mod+k`, `escape`, `space`. `mod` is Ctrl or Meta. */
   keys: string
   label: string
   onKey: (e: KeyboardEvent) => void
@@ -10,7 +10,8 @@ export interface Hotkey {
 
 export function matchesHotkey(e: KeyboardEvent, keys: string): boolean {
   const parts = keys.toLowerCase().split('+')
-  const key = parts.pop()
+  const named = parts.pop()
+  const key = named === 'space' ? ' ' : named
   const wants = (modifier: string) => parts.includes(modifier)
   const mod = e.ctrlKey || e.metaKey
   if (wants('mod') ? !mod : mod) return false

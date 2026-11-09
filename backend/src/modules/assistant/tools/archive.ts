@@ -1,5 +1,6 @@
 import { z } from 'zod/v4'
 import * as archiveService from '../../archive/service.js'
+import * as archiveTrash from '../../archive/trash.js'
 import type { SessionUser } from '../../../shared/lib/session.js'
 import { autoTool, confirmTool, type ToolBuildContext } from './shared.js'
 
@@ -47,8 +48,8 @@ export function buildArchiveTools(ctx: ToolBuildContext) {
     autoTool({
       name: 'delete_archive_folder',
       inputSchema: z.object({ id: z.string() }),
-      description: 'Șterge un folder gol din Arhivă.',
-      run: (a) => archiveService.deleteFolder(user, a.id),
+      description: 'Mută un folder din Arhivă în Coș, cu tot conținutul (se poate restaura 30 de zile).',
+      run: (a) => archiveTrash.trashFolder(user, a.id),
     }),
     autoTool({
       name: 'update_archive_file',
@@ -59,8 +60,8 @@ export function buildArchiveTools(ctx: ToolBuildContext) {
     autoTool({
       name: 'delete_archive_file',
       inputSchema: z.object({ id: z.string() }),
-      description: 'Șterge un fișier din Arhivă (soft-delete, reversibil — rămâne recuperabil).',
-      run: (a) => archiveService.deleteFile(user, a.id, false),
+      description: 'Mută un fișier din Arhivă în Coș (se poate restaura 30 de zile).',
+      run: (a) => archiveTrash.trashFile(user, a.id),
     }),
 
     confirmTool(ctx, {
@@ -76,6 +77,9 @@ export const archiveConfirmExecutors: Record<
   string,
   (input: never, ctx: { conversationId: string; user: SessionUser }) => Promise<unknown>
 > = {
-  permanently_delete_archive_file: (input: { id: string }, ctx) =>
-    archiveService.deleteFile(ctx.user, input.id, true),
+  // Confirmed by the person in the chat: through the Trash, then purged right away.
+  permanently_delete_archive_file: async (input: { id: string }, ctx) => {
+    const { batchId } = await archiveTrash.trashFile(ctx.user, input.id)
+    return archiveTrash.purgeBatchNow(ctx.user, batchId)
+  },
 }

@@ -41,6 +41,24 @@
     --bubble-own: 214 95% 94%;
     --bubble-other: 0 0% 95%;
     --tick-seen: 214 97% 42%;
+    /* Categories a person picks (folder, note). Plain hue for icons and dots (3:1 on the
+       background), the surface for a filled card, where text keeps 4.5:1. */
+    --tag-1: 0 62% 42%;
+    --tag-1-surface: 0 70% 92%;
+    --tag-2: 28 62% 42%;
+    --tag-2-surface: 28 70% 92%;
+    --tag-3: 45 62% 42%;
+    --tag-3-surface: 45 70% 92%;
+    --tag-4: 145 62% 42%;
+    --tag-4-surface: 145 70% 92%;
+    --tag-5: 180 62% 42%;
+    --tag-5-surface: 180 70% 92%;
+    --tag-6: 214 62% 42%;
+    --tag-6-surface: 214 70% 92%;
+    --tag-7: 265 62% 42%;
+    --tag-7-surface: 265 70% 92%;
+    --tag-8: 330 62% 42%;
+    --tag-8-surface: 330 70% 92%;
   }
 
   .dark {
@@ -72,6 +90,23 @@
     --destructive-text: 0 70% 66%;
     --surface-raised: 0 0% 9%;
     --surface-overlay: 0 0% 12%;
+    /* tag palette, dark: same hues */
+    --tag-1: 0 60% 62%;
+    --tag-1-surface: 0 28% 17%;
+    --tag-2: 28 60% 62%;
+    --tag-2-surface: 28 28% 17%;
+    --tag-3: 45 60% 62%;
+    --tag-3-surface: 45 28% 17%;
+    --tag-4: 145 60% 62%;
+    --tag-4-surface: 145 28% 17%;
+    --tag-5: 180 60% 62%;
+    --tag-5-surface: 180 28% 17%;
+    --tag-6: 214 60% 62%;
+    --tag-6-surface: 214 28% 17%;
+    --tag-7: 265 60% 62%;
+    --tag-7-surface: 265 28% 17%;
+    --tag-8: 330 60% 62%;
+    --tag-8-surface: 330 28% 17%;
     --bubble-own: 214 40% 20%;
     --bubble-other: 0 0% 13%;
     --tick-seen: 214 90% 68%;
@@ -543,6 +578,21 @@
   .msg-row:has(:focus-visible) .msg-actions,
   .msg-actions.msg-actions-open {
     display: flex;
+  }
+}
+
+/* Archive rows. Secondary actions and the select box show on hover or keyboard focus where there is
+   a mouse; on touch the ⋯ stays visible and a long press starts the selection. `data-selecting` keeps
+   every box visible once something is selected. */
+@media (hover: hover) and (pointer: fine) {
+  .hover-row .hover-reveal {
+    opacity: 0;
+  }
+  .hover-row:hover .hover-reveal,
+  .hover-row:focus-within .hover-reveal,
+  .hover-row[data-selecting] .hover-reveal,
+  .hover-row .hover-reveal[data-open] {
+    opacity: 1;
   }
 }
 

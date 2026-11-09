@@ -132,7 +132,7 @@ describe('CommandPalette', () => {
         ],
       }),
     })
-    session.features = [...session.features, 'clienti.view']
+    session.features = [...session.features, 'clienti.view', 'cautare.view']
     vi.stubGlobal('fetch', fetchMock)
     render()
 
@@ -150,5 +150,19 @@ describe('CommandPalette', () => {
 
     act(() => document.querySelector('[cmdk-item]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
     expect(currentPath).toBe('/pricing?prospect=p1')
+  })
+
+  it('without cautare.view it only lists pages and never calls the server', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true, data: [] }) })
+    vi.stubGlobal('fetch', fetchMock)
+    render()
+
+    type('notite')
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400))
+    })
+
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/search'), expect.anything())
+    expect(items().join('|')).toContain('Notițe')
   })
 })

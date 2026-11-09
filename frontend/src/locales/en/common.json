@@ -505,6 +505,23 @@
   },
   "keys": {
     "shift": "Shift",
-    "delete": "Del"
+    "delete": "Del",
+    "enter": "Enter"
+  },
+  "tagColors": {
+    "1": "Red",
+    "2": "Orange",
+    "3": "Yellow",
+    "4": "Green",
+    "5": "Teal",
+    "6": "Blue",
+    "7": "Purple",
+    "8": "Pink",
+    "none": "No color",
+    "label": "Color"
+  },
+  "filter": {
+    "add": "Filter",
+    "remove": "Remove the filter {{filter}}"
   }
 }

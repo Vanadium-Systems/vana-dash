@@ -27,6 +27,7 @@ describe('matchesHotkey', () => {
   it('matches shift+? and named keys', () => {
     expect(matchesHotkey(event({ key: '?', shiftKey: true }), 'shift+?')).toBe(true)
     expect(matchesHotkey(event({ key: 'Escape' }), 'escape')).toBe(true)
+    expect(matchesHotkey(event({ key: ' ' }), 'space')).toBe(true)
   })
 })
 

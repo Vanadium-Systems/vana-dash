@@ -1,13 +1,143 @@
 {
-  "updated": "Notiță actualizată",
-  "created": "Notiță creată",
-  "deleted": "Notiță ștearsă",
-  "editTitle": "Editează notița",
-  "deleteTitle": "Șterge notița „{{title}}”",
-  "deleteConfirm": "Șterge notița",
-  "searchPlaceholder": "Caută în titlu sau conținut…",
+  "newNote": "Notiță nouă",
+  "editTitle": "Notiță",
+  "untitled": "Notiță fără titlu",
+  "titlePlaceholder": "Titlu",
+  "searchPlaceholder": "Caută în notițe…",
   "noneFound": "Nicio notiță găsită.",
-  "empty": "Nicio notiță încă — creează prima.",
-  "unpin": "Deblochează",
-  "pin": "Fixează"
+  "empty": {
+    "active": "Nicio notiță încă. Scrie prima în bara de sus.",
+    "archived": "Arhiva e goală.",
+    "trash": "Coșul e gol."
+  },
+  "views": {
+    "active": "Notițe",
+    "archived": "Arhivă",
+    "trash": "Coș"
+  },
+  "sections": {
+    "pinned": "Fixate",
+    "others": "Altele"
+  },
+  "pin": "Fixează",
+  "unpin": "Desprinde",
+  "archive": "Arhivează",
+  "unarchive": "Dezarhivează",
+  "restore": "Restaurează",
+  "moveToTrash": "Mută în Coș",
+  "copyLink": "Copiază linkul",
+  "color": "Culoare",
+  "select": "Selectează notița",
+  "done": "Gata",
+  "notFound": "Notița nu există.",
+  "saveFailed": "Notița nu s-a putut salva.",
+  "emptyDiscarded": "Notiță goală aruncată",
+  "trashBanner": "În Coș. Se șterge definitiv după 30 de zile.",
+  "status": {
+    "saving": "Se salvează…",
+    "error": "Nesalvat, reîncerc",
+    "editedNow": "Editată acum",
+    "editedAt": "Editată la {{time}}"
+  },
+  "conflict": {
+    "message": "Notița s-a schimbat în alt tab.",
+    "reload": "Reîncarcă",
+    "keepMine": "Păstrează versiunea mea"
+  },
+  "composer": {
+    "placeholder": "Creează o notiță…",
+    "list": "Listă nouă"
+  },
+  "fab": {
+    "note": "Notiță",
+    "list": "Listă"
+  },
+  "editor": {
+    "label": "Conținutul notiței",
+    "placeholder": "Scrie ceva sau apasă / pentru blocuri",
+    "toolbar": "Formatare",
+    "bold": "Aldin (Ctrl+B)",
+    "italic": "Cursiv (Ctrl+I)",
+    "underline": "Subliniat (Ctrl+U)",
+    "link": "Link",
+    "linkPlaceholder": "Lipește un link, Enter",
+    "heading": "Titlu",
+    "bulletList": "Listă",
+    "taskList": "Listă de bifat",
+    "undo": "Anulează",
+    "redo": "Refă"
+  },
+  "slash": {
+    "label": "Blocuri",
+    "none": "Niciun bloc",
+    "text": "Text",
+    "h1": "Titlu 1",
+    "h2": "Titlu 2",
+    "h3": "Titlu 3",
+    "bullet": "Listă cu buline",
+    "ordered": "Listă numerotată",
+    "task": "Listă de bifat",
+    "quote": "Citat",
+    "code": "Cod"
+  },
+  "label": {
+    "add": "Etichetă",
+    "newPlaceholder": "Etichetă nouă",
+    "remove": "Scoate eticheta {{label}}",
+    "manage": "Gestionează etichetele",
+    "manageHint": "Redenumirea sau ștergerea se aplică pe toate notițele tale.",
+    "none": "Nicio etichetă încă.",
+    "rename": "Redenumește eticheta {{label}}",
+    "delete": "Șterge eticheta {{label}}",
+    "deleteTitle": "Șterge eticheta „{{label}}”",
+    "deleteConsequence_one": "Eticheta se scoate de pe o notiță. Notița rămâne.",
+    "deleteConsequence_few": "Eticheta se scoate de pe {{count}} notițe. Notițele rămân.",
+    "deleteConsequence_other": "Eticheta se scoate de pe {{count}} de notițe. Notițele rămân.",
+    "deleteConfirm": "Șterge eticheta"
+  },
+  "trash": {
+    "hint": "Notițele din Coș se șterg definitiv după 30 de zile.",
+    "empty": "Golește Coșul",
+    "emptyTitle": "Golești Coșul?",
+    "emptyConsequence_one": "O notiță se șterge definitiv, fără cale de întoarcere.",
+    "emptyConsequence_few": "{{count}} notițe se șterg definitiv, fără cale de întoarcere.",
+    "emptyConsequence_other": "{{count}} de notițe se șterg definitiv, fără cale de întoarcere."
+  },
+  "versions": {
+    "action": "Versiuni",
+    "title": "Versiuni",
+    "none": "Nicio versiune salvată încă. Se salvează una la cel mult 10 minute de editare.",
+    "hint": "Alege o versiune ca s-o vezi.",
+    "restore": "Restaurează versiunea asta",
+    "restored": "Versiune restaurată"
+  },
+  "toast": {
+    "archived_one": "O notiță arhivată",
+    "archived_few": "{{count}} notițe arhivate",
+    "archived_other": "{{count}} de notițe arhivate",
+    "unarchived_one": "O notiță dezarhivată",
+    "unarchived_few": "{{count}} notițe dezarhivate",
+    "unarchived_other": "{{count}} de notițe dezarhivate",
+    "trashed_one": "O notiță mutată în Coș",
+    "trashed_few": "{{count}} notițe mutate în Coș",
+    "trashed_other": "{{count}} de notițe mutate în Coș",
+    "restored_one": "O notiță restaurată",
+    "restored_few": "{{count}} notițe restaurate",
+    "restored_other": "{{count}} de notițe restaurate",
+    "pinned_one": "O notiță fixată",
+    "pinned_few": "{{count}} notițe fixate",
+    "pinned_other": "{{count}} de notițe fixate",
+    "unpinned_one": "O notiță desprinsă",
+    "unpinned_few": "{{count}} notițe desprinse",
+    "unpinned_other": "{{count}} de notițe desprinse",
+    "colored_one": "Culoare schimbată pe o notiță",
+    "colored_few": "Culoare schimbată pe {{count}} notițe",
+    "colored_other": "Culoare schimbată pe {{count}} de notițe",
+    "labeled_one": "Eticheta „{{label}}” pusă pe o notiță",
+    "labeled_few": "Eticheta „{{label}}” pusă pe {{count}} notițe",
+    "labeled_other": "Eticheta „{{label}}” pusă pe {{count}} de notițe",
+    "unlabeled_one": "Eticheta „{{label}}” scoasă de pe o notiță",
+    "unlabeled_few": "Eticheta „{{label}}” scoasă de pe {{count}} notițe",
+    "unlabeled_other": "Eticheta „{{label}}” scoasă de pe {{count}} de notițe"
+  }
 }

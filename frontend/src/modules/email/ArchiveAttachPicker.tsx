@@ -31,7 +31,10 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
 
   const results = useQuery({
     queryKey: ['archive', 'search', debouncedQ],
-    queryFn: () => api.get<ArchiveSearchResult[]>(`/api/archive/search?q=${encodeURIComponent(debouncedQ)}`),
+    queryFn: () =>
+      api
+        .get<ArchiveSearchResult[]>(`/api/archive/search?q=${encodeURIComponent(debouncedQ)}`)
+        .then((rows) => rows.filter((row) => row.kind !== 'folder')),
     enabled: open && debouncedQ.trim().length > 0,
   })
 

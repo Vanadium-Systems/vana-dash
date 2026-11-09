@@ -14,7 +14,20 @@ export function usePeek(param = 'peek'): [string | null, (id: string) => void, (
 
 // A detail that floats beside the list instead of replacing it: the list stays visible and
 // interactive behind. Full screen on a phone, where there is no room beside anything.
-export function SidePeek({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: ReactNode; children: ReactNode }) {
+export function SidePeek({
+  open,
+  onClose,
+  title,
+  className,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  title: ReactNode
+  /** For a peek that has to sit above another layer (the file viewer is z-[60]). */
+  className?: string
+  children: ReactNode
+}) {
   const panelRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
   const onCloseRef = useRef(onClose)
@@ -48,6 +61,7 @@ export function SidePeek({ open, onClose, title, children }: { open: boolean; on
       className={cn(
         'glass peek-panel safe-top safe-bottom fixed inset-0 z-40 flex flex-col overflow-hidden border focus:outline-none',
         'md:inset-y-2 md:left-auto md:right-2 md:w-[min(28rem,calc(100vw-1rem))] md:rounded-xl md:shadow-xl',
+        className,
       )}
     >
       <div className="flex items-center justify-between gap-2 border-b px-4 py-3">

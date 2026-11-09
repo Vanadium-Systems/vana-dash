@@ -7,12 +7,13 @@
 import { inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { archiveFiles, archiveFolders } from '../../shared/db/schema/index.js'
+import { archiveFiles, archiveFolders, archiveTrashBatches } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { cleanupTestUsers, createTestUser } from '../../shared/testing/users.js'
 
 vi.mock('../../shared/lib/r2.js', () => ({
   deleteFromR2: vi.fn().mockResolvedValue(undefined),
+  deleteManyFromR2: vi.fn().mockResolvedValue(undefined),
   downloadFromR2: vi.fn().mockResolvedValue(Buffer.from('fake file bytes')),
   getPresignedDownloadUrl: vi.fn().mockResolvedValue('https://r2.example.com/presigned-fake'),
   uploadToR2: vi.fn().mockResolvedValue(undefined),
@@ -22,9 +23,10 @@ vi.mock('../../shared/lib/thumbnail.js', () => ({
   generatePdfThumbnail: vi.fn().mockResolvedValue(null),
 }))
 
-const { deleteFromR2, downloadFromR2, getPresignedDownloadUrl, uploadToR2 } = await import('../../shared/lib/r2.js')
+const { deleteManyFromR2, downloadFromR2, getPresignedDownloadUrl, uploadToR2 } = await import('../../shared/lib/r2.js')
 const { generatePdfThumbnail } = await import('../../shared/lib/thumbnail.js')
 const service = await import('./service.js')
+const trash = await import('./trash.js')
 
 const folderIds: string[] = []
 const fileIds: string[] = []
@@ -75,6 +77,7 @@ afterAll(async () => {
     await db.delete(archiveFiles).where(inArray(archiveFiles.folderId, ids))
     await db.delete(archiveFolders).where(inArray(archiveFolders.id, ids))
   }
+  await db.delete(archiveTrashBatches).where(inArray(archiveTrashBatches.deletedByUserId, userIds))
   await cleanupTestUsers(userIds)
 })
 
@@ -116,7 +119,7 @@ describe('folders', () => {
 
   it('updateFolder pe un folder deja șters (soft) dă 404, nu-l "resuscită"', async () => {
     const folder = await makeFolder('QA Archive Update Deleted')
-    await service.deleteFolder(qa, folder.id)
+    await trash.trashFolder(qa, folder.id)
     // Un folder șters e „inexistent" la fel ca unul din alt spațiu: `requireFolder` e singurul
     // loc care decide, și aruncă ArchiveNotFoundError → 404 pe rută.
     await expect(service.updateFolder(qa, folder.id, { name: 'nu ar trebui să meargă' })).rejects.toThrow(
@@ -124,22 +127,15 @@ describe('folders', () => {
     )
   })
 
-  it('deleteFolder respinge ștergerea unui folder cu subfoldere', async () => {
-    const parent = await makeFolder('QA Archive Delete Parent')
-    await makeFolder('QA Archive Delete Child', parent.id)
-    await expect(service.deleteFolder(qa, parent.id)).rejects.toThrow(service.ArchiveConflictError)
-  })
-
-  it('deleteFolder respinge ștergerea unui folder cu fișiere', async () => {
-    const folder = await makeFolder('QA Archive Delete With Files')
-    await makeFile({ folderId: folder.id })
-    await expect(service.deleteFolder(qa, folder.id)).rejects.toThrow(service.ArchiveConflictError)
-  })
-
-  it('deleteFolder șterge (soft) un folder gol', async () => {
-    const folder = await makeFolder('QA Archive Delete Empty')
-    const deleted = (await service.deleteFolder(qa, folder.id))!
-    expect(deleted.deletedAt).not.toBeNull()
+  it('trashFolder trimite în Coș tot subarborele, într-un singur lot', async () => {
+    const parent = await makeFolder('QA Archive Trash Parent')
+    const child = await makeFolder('QA Archive Trash Child', parent.id)
+    const file = await makeFile({ folderId: child.id, sizeBytes: 100 })
+    const result = await trash.trashFolder(qa, parent.id)
+    expect(result.itemCount).toBe(3)
+    expect(result.totalBytes).toBe(100)
+    const [row] = await db.select().from(archiveFiles).where(inArray(archiveFiles.id, [file.id]))
+    expect(row?.deletedBatchId).toBe(result.batchId)
   })
 })
 
@@ -148,7 +144,7 @@ describe('files', () => {
     await makeFile({ name: 'Contract-Vanadium-2026.pdf' })
     await makeFile({ name: 'Poza-vacanta.jpg' })
 
-    const results = await service.listFiles(qa, { q: 'contract', page: 1 })
+    const { items: results } = await service.listFiles(qa, { q: 'contract', page: 1 })
     expect(results.some((f) => f.name === 'Contract-Vanadium-2026.pdf')).toBe(true)
     expect(results.every((f) => f.name.toLowerCase().includes('contract'))).toBe(true)
   })
@@ -157,7 +153,7 @@ describe('files', () => {
     await makeFile({ name: 'QA-tagged-both.pdf', tags: ['facturi', 'urgent'] })
     await makeFile({ name: 'QA-tagged-one.pdf', tags: ['facturi'] })
 
-    const results = await service.listFiles(qa, { tags: 'facturi,urgent', page: 1 })
+    const { items: results } = await service.listFiles(qa, { tags: 'facturi,urgent', page: 1 })
     expect(results.some((f) => f.name === 'QA-tagged-both.pdf')).toBe(true)
     expect(results.some((f) => f.name === 'QA-tagged-one.pdf')).toBe(false)
   })
@@ -167,7 +163,7 @@ describe('files', () => {
     const inFolder = await makeFile({ folderId: folder.id, name: 'QA-in-folder.pdf' })
     await makeFile({ name: 'QA-outside-folder.pdf' })
 
-    const results = await service.listFiles(qa, { folderId: folder.id, page: 1 })
+    const { items: results } = await service.listFiles(qa, { folderId: folder.id, page: 1 })
     expect(results.map((f) => f.id)).toEqual([inFolder.id])
   })
 
@@ -176,7 +172,7 @@ describe('files', () => {
     const inFolder = await makeFile({ folderId: folder.id, name: 'QA-root-regression-in-folder.pdf' })
     const atRoot = await makeFile({ name: 'QA-root-regression-at-root.pdf' })
 
-    const results = await service.listFiles(qa, { page: 1 })
+    const { items: results } = await service.listFiles(qa, { page: 1 })
     const ids = results.map((f) => f.id)
     expect(ids).toContain(atRoot.id)
     expect(ids).not.toContain(inFolder.id)
@@ -186,7 +182,7 @@ describe('files', () => {
     const image = await makeFile({ name: 'QA-preview-image.png', mimeType: 'image/png' })
     vi.mocked(getPresignedDownloadUrl).mockClear()
 
-    const results = await service.listFiles(qa, { q: 'QA-preview-image', page: 1 })
+    const { items: results } = await service.listFiles(qa, { q: 'QA-preview-image', page: 1 })
     expect(results[0]?.previewUrl).toBe('https://r2.example.com/presigned-fake')
     expect(getPresignedDownloadUrl).toHaveBeenCalledWith(image.r2Key)
   })
@@ -199,7 +195,7 @@ describe('files', () => {
     })
     vi.mocked(getPresignedDownloadUrl).mockClear()
 
-    const results = await service.listFiles(qa, { q: 'QA-preview-pdf', page: 1 })
+    const { items: results } = await service.listFiles(qa, { q: 'QA-preview-pdf', page: 1 })
     expect(results[0]?.previewUrl).toBe('https://r2.example.com/presigned-fake')
     expect(getPresignedDownloadUrl).toHaveBeenCalledWith(pdf.thumbnailR2Key)
     expect(getPresignedDownloadUrl).not.toHaveBeenCalledWith(pdf.r2Key)
@@ -207,7 +203,7 @@ describe('files', () => {
 
   it('listFiles: previewUrl e null pt. fișiere fără thumbnail și care nu sunt imagini', async () => {
     await makeFile({ name: 'QA-preview-none.xml', mimeType: 'application/xml' })
-    const results = await service.listFiles(qa, { q: 'QA-preview-none', page: 1 })
+    const { items: results } = await service.listFiles(qa, { q: 'QA-preview-none', page: 1 })
     expect(results[0]?.previewUrl).toBeNull()
   })
 
@@ -250,46 +246,37 @@ describe('files', () => {
 
   it('updateFile pe un fișier deja șters (soft) dă 404, nu-l "resuscită"', async () => {
     const file = await makeFile({ name: 'QA-update-deleted.pdf' })
-    await service.deleteFile(qa, file.id, false)
+    await trash.trashFile(qa, file.id)
     await expect(service.updateFile(qa, file.id, { name: 'nu ar trebui să meargă' })).rejects.toThrow(
       service.ArchiveNotFoundError,
     )
   })
 
-  it('deleteFile (soft) marchează deletedAt, NU apelează R2', async () => {
+  it('trashFile marchează deletedAt și lotul, NU apelează R2', async () => {
     const file = await makeFile({ name: 'QA-soft-delete.pdf' })
-    vi.mocked(deleteFromR2).mockClear()
-    const deleted = await service.deleteFile(qa, file.id, false)
-    expect(deleted?.deletedAt).toBeNull() // rândul întors e cel citit ÎNAINTE de update
-    expect(deleteFromR2).not.toHaveBeenCalled()
+    vi.mocked(deleteManyFromR2).mockClear()
+    const result = await trash.trashFile(qa, file.id)
+    expect(result.itemCount).toBe(1)
+    expect(deleteManyFromR2).not.toHaveBeenCalled()
 
     const [row] = await db.select().from(archiveFiles).where(inArray(archiveFiles.id, [file.id]))
     expect(row?.deletedAt).not.toBeNull()
   })
 
-  it('deleteFile (permanent) apelează deleteFromR2 și șterge rândul din DB', async () => {
-    const file = await makeFile({ name: 'QA-permanent-delete.pdf' })
-    fileIds.splice(fileIds.indexOf(file.id), 1) // șters explicit mai jos, nu mai există pt. afterAll
-
-    await service.deleteFile(qa, file.id, true)
-    expect(deleteFromR2).toHaveBeenCalledWith(file.r2Key)
-
-    const rows = await db.select().from(archiveFiles).where(inArray(archiveFiles.id, [file.id]))
-    expect(rows).toHaveLength(0)
-  })
-
-  it('deleteFile (permanent) pt. un PDF cu thumbnail șterge ambele obiecte din R2 (original + thumbnail)', async () => {
+  it('purgeBatches șterge din R2 originalul și miniatura, apoi rândul', async () => {
     const file = await makeFile({
       name: 'QA-permanent-delete-with-thumb.pdf',
       mimeType: 'application/pdf',
-      thumbnailR2Key: 'archive/thumbnails/qa-test-delete-thumb.jpg',
+      thumbnailR2Key: `archive/thumbnails/qa-test-${crypto.randomUUID()}.jpg`,
     })
     fileIds.splice(fileIds.indexOf(file.id), 1)
-    vi.mocked(deleteFromR2).mockClear()
+    vi.mocked(deleteManyFromR2).mockClear()
 
-    await service.deleteFile(qa, file.id, true)
-    expect(deleteFromR2).toHaveBeenCalledWith(file.r2Key)
-    expect(deleteFromR2).toHaveBeenCalledWith(file.thumbnailR2Key)
+    const { batchId } = await trash.trashFile(qa, file.id)
+    await trash.purgeBatches([batchId])
+    expect(deleteManyFromR2).toHaveBeenCalledWith([file.r2Key, file.thumbnailR2Key])
+    const rows = await db.select().from(archiveFiles).where(inArray(archiveFiles.id, [file.id]))
+    expect(rows).toHaveLength(0)
   })
 })
 
@@ -453,7 +440,7 @@ describe('getStorageUsage (avertisment plafon R2)', () => {
   it('nu numără fișierele soft-șterse', async () => {
     const file = await makeFile({ sizeBytes: 999_999 })
     const before = await service.getStorageUsage(qa)
-    await service.deleteFile(qa, file.id, false)
+    await trash.trashFile(qa, file.id)
     const after = await service.getStorageUsage(qa)
     expect(after.usedBytes).toBe(before.usedBytes - 999_999)
   })

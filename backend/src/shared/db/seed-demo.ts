@@ -3,12 +3,19 @@ import argon2 from 'argon2'
 import { eq } from 'drizzle-orm'
 import { config } from '../config.js'
 import { encryptApiKey } from '../lib/crypto.js'
+import { ensureSpaceRootOf } from '../../modules/archive/access.js'
 import { defaultIdentities } from '../../modules/email/settings-service.js'
 import { ENABLED_LOCALES, isLocale, type Locale } from '../lib/locale.js'
+import { tiptapToText, type TiptapNode } from '../lib/tiptap-text.js'
 import { db, sql } from './client.js'
 import {
   alertRules,
   alerts,
+  archiveFiles,
+  archiveFolderShares,
+  archiveFolders,
+  archiveStars,
+  archiveTrashBatches,
   billingClients,
   calendarEvents,
   conversationMembers,
@@ -23,6 +30,7 @@ import {
   messageReactions,
   messageRefs,
   messages,
+  noteVersions,
   notes,
   platformMetrics,
   platforms,
@@ -89,7 +97,7 @@ const [salesRole] = await db
   .values({
     name: 'Sales (demo)',
     kind: 'custom',
-    features: ['clienti.view', 'clienti.prospectare', 'clienti.calculator', 'email.view', 'email.trimitere', 'email.setari_proprii', 'calendar.view', 'calendar.editare', 'mesaje.view'],
+    features: ['clienti.view', 'clienti.prospectare', 'clienti.calculator', 'email.view', 'email.trimitere', 'email.setari_proprii', 'calendar.view', 'calendar.editare', 'mesaje.view', 'arhiva.view', 'arhiva.editare', 'notite.view'],
     createdByUserId: admin.id,
   })
   .returning()
@@ -493,7 +501,7 @@ const noteRows = await db.insert(notes).values([
   },
 ]).returning()
 
-// One shared object of each kind the demo has (no archive rows exist here). The
+// One shared object of each kind the demo has (messages never point at the archive rows below). The
 // snapshots follow the cards built by each module's refs.ts.
 type SharedType = 'prospect' | 'invoice' | 'calendar_event' | 'note'
 const sharedAbout = async (conversationId: string, authorUserId: string, minutesAgo: number, refType: SharedType, refId: string, snapshot: Record<string, unknown>) => {
@@ -530,6 +538,207 @@ await sharedAbout(group!.id, admin.id, 20, 'note', sharedNote.id, {
   excerpt: sharedNote.body,
 })
 
+// ── Notes: rich bodies, colors, labels, an archived one, one in the Trash, one with versions ──
+
+const textBlock = (type: string, text: string, attrs?: Record<string, unknown>): TiptapNode => ({
+  type,
+  ...(attrs ? { attrs } : {}),
+  content: [{ type: 'text', text }],
+})
+const para = (text: string) => textBlock('paragraph', text)
+const heading = (level: number, text: string) => textBlock('heading', text, { level })
+const bullets = (items: string[]): TiptapNode => ({
+  type: 'bulletList',
+  content: items.map((item) => ({ type: 'listItem', content: [para(item)] })),
+})
+const tasks = (items: [string, boolean][]): TiptapNode => ({
+  type: 'taskList',
+  content: items.map(([item, checked]) => ({ type: 'taskItem', attrs: { checked }, content: [para(item)] })),
+})
+const docOf = (...content: TiptapNode[]): TiptapNode => ({ type: 'doc', content })
+// `body` is always the plain text derived from the JSON, as the server does on every save.
+const richNote = (doc: TiptapNode) => ({ bodyJson: doc, body: tiptapToText(doc), bodyFormat: 'rich' as const })
+
+const launchDoc = docOf(
+  heading(1, L({ ro: 'Lansare produs', en: 'Product launch' })),
+  para(L({ ro: 'Pașii de făcut înainte de lansare, în ordine.', en: 'What has to be done before the launch, in order.' })),
+  tasks([
+    [L({ ro: 'Textul paginii de prețuri', en: 'Pricing page copy' }), true],
+    [L({ ro: 'Testat plata cu cardul', en: 'Card payment tested' }), true],
+    [L({ ro: 'Anunț către clienții existenți', en: 'Announcement to existing clients' }), false],
+    [L({ ro: 'Ghid de pornire în 5 minute', en: '5-minute getting started guide' }), false],
+  ]),
+)
+const meetingDoc = docOf(
+  heading(2, L({ ro: 'Ședință de echipă', en: 'Team meeting' })),
+  bullets([
+    L({ ro: 'Facturile pe luna asta se închid vineri', en: "This month's invoices close on Friday" }),
+    L({ ro: 'Ana preia prospecții din Cluj', en: 'Ana takes over the Cluj prospects' }),
+    L({ ro: 'Mihai verifică extrasele bancare', en: 'Mihai checks the bank statements' }),
+  ]),
+  heading(3, L({ ro: 'De urmărit', en: 'Follow-ups' })),
+  para(L({ ro: 'Revin cu un rezumat după apelul de luni.', en: 'I will send a summary after the Monday call.' })),
+)
+const shoppingDoc = docOf(
+  tasks([
+    [L({ ro: 'Hârtie A4', en: 'A4 paper' }), true],
+    [L({ ro: 'Cartușe imprimantă', en: 'Printer cartridges' }), false],
+    [L({ ro: 'Cafea pentru birou', en: 'Office coffee' }), false],
+  ]),
+)
+// The version history of one note: three earlier states, then the current one.
+const roadmapV1 = docOf(heading(1, L({ ro: 'Plan trimestrial', en: 'Quarterly plan' })), para(L({ ro: 'De decis prioritățile.', en: 'Priorities to be decided.' })))
+const roadmapV2 = docOf(
+  heading(1, L({ ro: 'Plan trimestrial', en: 'Quarterly plan' })),
+  bullets([L({ ro: 'Arhiva cu Coș', en: 'Archive with a Trash' }), L({ ro: 'Notițe cu formatare', en: 'Notes with formatting' })]),
+)
+const roadmapV3 = docOf(
+  heading(1, L({ ro: 'Plan trimestrial', en: 'Quarterly plan' })),
+  bullets([
+    L({ ro: 'Arhiva cu Coș', en: 'Archive with a Trash' }),
+    L({ ro: 'Notițe cu formatare', en: 'Notes with formatting' }),
+    L({ ro: 'Calendar partajat', en: 'Shared calendar' }),
+  ]),
+)
+const roadmapNow = docOf(
+  heading(1, L({ ro: 'Plan trimestrial', en: 'Quarterly plan' })),
+  bullets([
+    L({ ro: 'Arhiva cu Coș', en: 'Archive with a Trash' }),
+    L({ ro: 'Notițe cu formatare', en: 'Notes with formatting' }),
+    L({ ro: 'Calendar partajat', en: 'Shared calendar' }),
+  ]),
+  tasks([
+    [L({ ro: 'Date de test pentru fiecare ecran nou', en: 'Demo rows for every new screen' }), true],
+    [L({ ro: 'Revizuit ghidurile', en: 'Review the guides' }), false],
+  ]),
+)
+
+const [, , , roadmapNote] = await db.insert(notes).values([
+  { ownerUserId: admin.id, title: L({ ro: 'Lansare produs', en: 'Product launch' }), ...richNote(launchDoc), color: 3, labels: [L({ ro: 'lansare', en: 'launch' })], pinned: true, updatedAt: daysAgo(1) },
+  { ownerUserId: admin.id, title: L({ ro: 'Ședință de echipă', en: 'Team meeting' }), ...richNote(meetingDoc), color: 5, labels: [L({ ro: 'echipă', en: 'team' })], updatedAt: daysAgo(2) },
+  { ownerUserId: admin.id, title: L({ ro: 'Cumpărături birou', en: 'Office shopping' }), ...richNote(shoppingDoc), labels: [L({ ro: 'birou', en: 'office' })], updatedAt: daysAgo(4) },
+  { ownerUserId: admin.id, title: L({ ro: 'Plan trimestrial', en: 'Quarterly plan' }), ...richNote(roadmapNow), color: 1, labels: [L({ ro: 'lansare', en: 'launch' }), L({ ro: 'echipă', en: 'team' })], updatedAt: daysAgo(0, 8) },
+  { ownerUserId: admin.id, title: L({ ro: 'Idei pentru blog', en: 'Blog ideas' }), body: L({ ro: 'Ghid de reciclare pentru birouri mici.', en: 'A recycling guide for small offices.' }), color: 7, labels: [L({ ro: 'idei', en: 'ideas' })], archivedAt: daysAgo(10), updatedAt: daysAgo(12) },
+  { ownerUserId: admin.id, title: L({ ro: 'Ciornă ofertă veche', en: 'Old offer draft' }), body: L({ ro: 'Nu mai e valabilă.', en: 'No longer valid.' }), deletedAt: daysAgo(2), updatedAt: daysAgo(3) },
+]).returning()
+await db.insert(noteVersions).values(
+  ([[roadmapV1, 5], [roadmapV2, 3], [roadmapV3, 1]] as [TiptapNode, number][]).map(([doc, ago]) => ({
+    noteId: roadmapNote!.id,
+    title: roadmapNote!.title,
+    body: tiptapToText(doc),
+    bodyJson: doc,
+    createdAt: daysAgo(ago),
+    updatedAt: daysAgo(ago),
+  })),
+)
+
+// ── Archive: a long folder (pagination), colors, stars, a Trash batch, two shared folders ────
+// The files are rows only: their R2 keys point at nothing, so opening one shows the error state.
+
+const adminRoot = await ensureSpaceRootOf(admin.id)
+const makeFolder = async (name: string, parentId: string, color: number | null = null, deletedAt: Date | null = null) => {
+  const [folder] = await db.insert(archiveFolders).values({ name, parentId, ownerUserId: admin.id, color, deletedAt }).returning()
+  return folder!
+}
+const invoicesFolder = await makeFolder(L({ ro: 'Facturi 2026', en: 'Invoices 2026' }), adminRoot, 1)
+const contractsFolder = await makeFolder(L({ ro: 'Contracte', en: 'Contracts' }), adminRoot, 3)
+const marketingFolder = await makeFolder('Marketing', adminRoot, 5)
+const offersFolder = await makeFolder(L({ ro: 'Oferte clienți', en: 'Client offers' }), adminRoot)
+const projectsFolder = await makeFolder(L({ ro: 'Proiecte comune', en: 'Shared projects' }), adminRoot)
+const oldFolder = await makeFolder(L({ ro: 'Documente vechi', en: 'Old documents' }), adminRoot, null, daysAgo(3))
+
+const MIME = {
+  pdf: 'application/pdf',
+  png: 'image/png',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  zip: 'application/zip',
+} as const
+let fileSeq = 0
+const demoFile = (folderId: string, name: string, mimeType: string, kb: number, ago: number, extra: { deletedAt?: Date; deletedBatchId?: string } = {}) => {
+  fileSeq += 1
+  return {
+    folderId,
+    name,
+    mimeType,
+    sizeBytes: kb * 1024,
+    r2Key: `archive/demo-${String(fileSeq).padStart(3, '0')}-${name}`,
+    createdByUserId: admin.id,
+    updatedByUserId: admin.id,
+    createdAt: daysAgo(ago),
+    updatedAt: daysAgo(ago),
+    ...extra,
+  }
+}
+
+// 64 files: more than one page of 50, so the pagination shows.
+const invoiceFiles = await db
+  .insert(archiveFiles)
+  .values(
+    Array.from({ length: 64 }, (_, i) =>
+      demoFile(
+        invoicesFolder.id,
+        `${L({ ro: 'Factura', en: 'Invoice' })}-${String(i + 1).padStart(3, '0')}.${i % 9 === 8 ? 'xlsx' : 'pdf'}`,
+        i % 9 === 8 ? MIME.xlsx : MIME.pdf,
+        40 + ((i * 37) % 260),
+        i,
+      ),
+    ),
+  )
+  .returning()
+const contractFiles = await db
+  .insert(archiveFiles)
+  .values([
+    demoFile(contractsFolder.id, `${L({ ro: 'Contract Acme Recycling', en: 'Acme Recycling contract' })}.pdf`, MIME.pdf, 310, 40),
+    demoFile(contractsFolder.id, `${L({ ro: 'Anexa tarife', en: 'Rates annex' })}.docx`, MIME.docx, 58, 38),
+    demoFile(contractsFolder.id, `${L({ ro: 'Contract Borealis Metal', en: 'Borealis Metal contract' })}.pdf`, MIME.pdf, 284, 22),
+  ])
+  .returning()
+const marketingFiles = await db
+  .insert(archiveFiles)
+  .values([
+    demoFile(marketingFolder.id, 'banner-toamna.png', MIME.png, 840, 6),
+    demoFile(marketingFolder.id, 'logo-acme.png', MIME.png, 96, 30),
+  ])
+  .returning()
+await db.insert(archiveFiles).values([
+  demoFile(offersFolder.id, `${L({ ro: 'Oferta Cobalt Logistics', en: 'Cobalt Logistics offer' })}.pdf`, MIME.pdf, 205, 5),
+  demoFile(offersFolder.id, `${L({ ro: 'Oferta Delta Print', en: 'Delta Print offer' })}.pdf`, MIME.pdf, 188, 9),
+  demoFile(projectsFolder.id, `${L({ ro: 'Plan proiect', en: 'Project plan' })}.docx`, MIME.docx, 72, 3),
+  demoFile(projectsFolder.id, `${L({ ro: 'Buget', en: 'Budget' })}.xlsx`, MIME.xlsx, 130, 2),
+  demoFile(projectsFolder.id, `${L({ ro: 'Materiale', en: 'Materials' })}.zip`, MIME.zip, 2048, 14),
+])
+
+// One Trash batch: a folder deleted with a file in it, kept for 30 days.
+const trashBatchId = crypto.randomUUID()
+const oldFileKb = 150
+await db.update(archiveFolders).set({ deletedBatchId: trashBatchId }).where(eq(archiveFolders.id, oldFolder.id))
+await db.insert(archiveFiles).values(
+  demoFile(oldFolder.id, `${L({ ro: 'Raport 2024', en: '2024 report' })}.pdf`, MIME.pdf, oldFileKb, 200, { deletedAt: daysAgo(3), deletedBatchId: trashBatchId }),
+)
+await db.insert(archiveTrashBatches).values({
+  id: trashBatchId,
+  rootType: 'folder',
+  rootId: oldFolder.id,
+  originalParentId: adminRoot,
+  deletedByUserId: admin.id,
+  itemCount: 2,
+  totalBytes: oldFileKb * 1024,
+  purgeAfter: new Date(now + 30 * DAY),
+  createdAt: daysAgo(3),
+})
+
+await db.insert(archiveStars).values([
+  { userId: admin.id, itemType: 'folder', itemId: contractsFolder.id },
+  { userId: admin.id, itemType: 'file', itemId: contractFiles[0]!.id },
+  { userId: admin.id, itemType: 'file', itemId: invoiceFiles[0]!.id },
+  { userId: admin.id, itemType: 'file', itemId: marketingFiles[0]!.id },
+])
+await db.insert(archiveFolderShares).values([
+  { folderId: offersFolder.id, userId: ana!.id, level: 'view' },
+  { folderId: projectsFolder.id, userId: ana!.id, level: 'edit' },
+])
+
 const [rule] = await db
   .insert(alertRules)
   .values({ name: L({ ro: 'Venit zilnic sub 1000 RON', en: 'Daily revenue below 1000 RON' }), metricKey: 'revenue', condition: 'lt', threshold: '1000', windowHours: 24, severity: 'warning', platformId: platform!.id, createdByUserId: admin.id })
@@ -550,5 +759,5 @@ const [ticket] = await db
   .returning()
 await db.insert(supportTicketReplies).values({ ticketId: ticket!.id, authorUserId: admin.id, body: L({ ro: 'Ți-am atribuit-o acum din Echipă. Reîncarcă pagina.', en: 'I just assigned it to you from Team. Reload the page.' }), isPlatformReply: true })
 
-console.log(`Demo data added (${locale}): ${clients.length} clients, ${issued.length + received.length} invoices and expenses, 15 prospects, 90 days of metrics.`)
+console.log(`Demo data added (${locale}): ${clients.length} clients, ${issued.length + received.length} invoices and expenses, 15 prospects, 90 days of metrics, notes and archive files.`)
 await sql.end()

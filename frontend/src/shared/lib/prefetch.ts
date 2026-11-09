@@ -33,7 +33,7 @@ const PAGE_DATA: Record<string, PageQuery[]> = {
       queryFn: () => api.get('/api/audit?limit=50'),
     },
   ],
-  '/notes': [{ feature: 'notite.view', queryKey: ['notes', ''], queryFn: () => api.get('/api/notes') }],
+  '/notes': [{ feature: 'notite.view', queryKey: ['notes', 'list', 'active', '', '', ''], queryFn: () => api.get('/api/notes?view=active') }],
   '/archive': [
     { feature: 'arhiva.view', queryKey: ['archive', 'folders', null, 'recent'], queryFn: () => api.get('/api/archive/folders?sort=recent') },
   ],

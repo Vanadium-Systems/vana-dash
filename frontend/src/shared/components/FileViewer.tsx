@@ -10,7 +10,7 @@ export interface ViewerFile {
   mimeType: string
 }
 
-const buttonClass = 'rounded-sm p-2 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white'
+export const viewerButtonClass = 'rounded-sm p-2 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white'
 
 // Full-screen over the page, contained, not a new tab: in the APK a plain link showed the photo at
 // real size, cropped. Back in the APK sends Escape while a [role=dialog] is open (native-back.ts),
@@ -22,12 +22,15 @@ export function FileViewer({
   onIndexChange,
   onClose,
   onDownload,
+  toolbar,
 }: {
   files: ViewerFile[]
   index: number
   onIndexChange: (index: number) => void
   onClose: () => void
   onDownload?: (file: ViewerFile) => void
+  /** Extra buttons before Download (details, send...). Use `viewerButtonClass` so they match. */
+  toolbar?: ReactNode
 }) {
   const file = files[index]
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -55,11 +58,11 @@ export function FileViewer({
   if (!file) return null
 
   const download = onDownload ? (
-    <button type="button" onClick={() => onDownload(file)} className={buttonClass} aria-label={t('common:actions.download')}>
+    <button type="button" onClick={() => onDownload(file)} className={viewerButtonClass} aria-label={t('common:actions.download')}>
       <Download className="h-5 w-5" />
     </button>
   ) : (
-    <a href={file.url} download={file.name} className={buttonClass} aria-label={t('common:actions.download')}>
+    <a href={file.url} download={file.name} className={viewerButtonClass} aria-label={t('common:actions.download')}>
       <Download className="h-5 w-5" />
     </a>
   )
@@ -74,7 +77,7 @@ export function FileViewer({
       className="fixed inset-0 z-[60] flex flex-col bg-black text-white focus:outline-none"
     >
       <div className="flex items-center gap-2 px-2 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
-        <button type="button" onClick={onClose} className={buttonClass} aria-label={t('common:actions.close')}>
+        <button type="button" onClick={onClose} className={viewerButtonClass} aria-label={t('common:actions.close')}>
           <X className="h-5 w-5" />
         </button>
         <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
@@ -83,6 +86,7 @@ export function FileViewer({
             {index + 1} / {files.length}
           </span>
         ) : null}
+        {toolbar}
         {download}
       </div>
       <div className="safe-bottom relative flex min-h-0 flex-1 items-center justify-center">
@@ -91,7 +95,7 @@ export function FileViewer({
           <button
             type="button"
             onClick={() => onIndexChange(index - 1)}
-            className={`${buttonClass} absolute left-2 top-1/2 -translate-y-1/2 bg-black/50`}
+            className={`${viewerButtonClass} absolute left-2 top-1/2 -translate-y-1/2 bg-black/50`}
             aria-label={t('common:viewer.previous')}
           >
             <ChevronLeft className="h-6 w-6" />
@@ -101,7 +105,7 @@ export function FileViewer({
           <button
             type="button"
             onClick={() => onIndexChange(index + 1)}
-            className={`${buttonClass} absolute right-2 top-1/2 -translate-y-1/2 bg-black/50`}
+            className={`${viewerButtonClass} absolute right-2 top-1/2 -translate-y-1/2 bg-black/50`}
             aria-label={t('common:viewer.next')}
           >
             <ChevronRight className="h-6 w-6" />

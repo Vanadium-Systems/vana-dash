@@ -44,7 +44,7 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
 }
 
 /** „?” lângă titlu, doar pe paginile care au ghiduri pentru funcționalitățile omului. */
-function PageGuidesLink() {
+export function PageGuidesLink() {
   const { pathname } = useLocation()
   const { can } = useMe()
   const route = guideRouteOf(pathname)

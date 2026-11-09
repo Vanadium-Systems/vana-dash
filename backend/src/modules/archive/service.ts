@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
-import { and, asc, desc, eq, ilike, inArray, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql, type AnyColumn, type SQL } from 'drizzle-orm'
 import { zipSync } from 'fflate'
 import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
-import { archiveFiles, archiveFolderShares, archiveFolders, users } from '../../shared/db/schema/index.js'
+import { archiveFiles, archiveFolderShares, archiveFolders, archiveStars, users } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
-import { deleteFromR2, downloadFromR2, getPresignedDownloadUrl, uploadToR2 } from '../../shared/lib/r2.js'
+import { downloadFromR2, getPresignedDownloadUrl, uploadToR2 } from '../../shared/lib/r2.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { generatePdfThumbnail } from '../../shared/lib/thumbnail.js'
 import {
@@ -23,22 +23,35 @@ import {
   systemArchiveRoot,
 } from './access.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { foldedIlike } from '../../shared/lib/text.js'
+import type { FileType } from './schema.js'
 
 // Joburile de arhivare (shared/lib/financial-archive.ts, archive-export.ts) importă doar
 // service-ul arhivei, nu fișierul cu CTE-ul de acces — de aici re-exportul.
 export { systemArchiveRoot }
 
-const PAGE_SIZE = 50
-
 export class ArchiveConflictError extends Error {}
+
+/** The bucket is company-wide, so the limit is too (R2's free tier is per bucket). */
+export class ArchiveStorageFullError extends Error {
+  constructor(
+    readonly usedBytes: number,
+    readonly limitBytes: number,
+  ) {
+    super('archive storage full')
+  }
+}
 
 /**
  * Cerere pe un folder din alt spațiu. Răspunsul e 404, nu 403 — la fel ca atașamentele din
  * Mesaje: cine nu are acces n-are de ce să afle că folderul există.
  */
 export class ArchiveNotFoundError extends Error {
-  constructor() {
-    super(tr('errors.archive.folderNotFound'))
+  /** The item a bulk request failed on, so the client can point at it. */
+  readonly itemId?: string
+  constructor(itemId?: string, message?: string) {
+    super(message ?? tr('errors.archive.folderNotFound'))
+    this.itemId = itemId
   }
 }
 
@@ -47,7 +60,7 @@ async function assertAccess(me: SessionUser, folderId: string, min: 1 | 2): Prom
   if (level < min) throw new ArchiveNotFoundError()
 }
 
-async function wouldCreateCycle(folderId: string, candidateParentId: string): Promise<boolean> {
+export async function wouldCreateCycle(folderId: string, candidateParentId: string): Promise<boolean> {
   // Urcă din candidateParentId spre rădăcină; dacă întâlnește folderId pe drum,
   // folderId ar deveni propriul lui strămoș — ciclu invalid.
   const rows = await db.execute<{ id: string }>(sql`
@@ -119,8 +132,11 @@ export interface ArchiveFolderRow {
   createdAt: Date
   autoMonthlySubfolders: boolean
   ownerUserId: string
+  color: number | null
+  starred: boolean
   fileCount: number
   subfolderCount: number
+  itemCount: number
   /** Nivelul omului pe folder — UI-ul ascunde scrierea pe „vede". */
   level: 'view' | 'edit'
   /** Proprietarul sau adminul: doar ei văd „Partajează". */
@@ -146,6 +162,7 @@ export async function listFolders(
       createdAt: archiveFolders.createdAt,
       autoMonthlySubfolders: archiveFolders.autoMonthlySubfolders,
       ownerUserId: archiveFolders.ownerUserId,
+      color: archiveFolders.color,
     })
     .from(archiveFolders)
     .where(and(sql`${archiveFolders.deletedAt} IS NULL`, sql`${archiveFolders.parentId} = ${currentId}`))
@@ -166,7 +183,7 @@ export async function listFolders(
   // alias-ul DIN subquery, nu de rândul exterior (bug confirmat empiric — fileCount/
   // subfolderCount ieșeau mereu 0 indiferent de conținutul real).
   const ids = folders.map((f) => f.id)
-  const [fileCounts, subfolderCounts, levels] = await Promise.all([
+  const [fileCounts, subfolderCounts, levels, stars] = await Promise.all([
     db
       .select({ folderId: archiveFiles.folderId, count: sql<number>`COUNT(*)::int` })
       .from(archiveFiles)
@@ -184,24 +201,35 @@ export async function listFolders(
         sql`, `,
       )})
     `),
+    db
+      .select({ itemId: archiveStars.itemId })
+      .from(archiveStars)
+      .where(and(eq(archiveStars.userId, me.id), eq(archiveStars.itemType, 'folder'), inArray(archiveStars.itemId, ids))),
   ])
+  const starredIds = new Set(stars.map((r) => r.itemId))
   const levelByFolder = new Map(levels.map((r) => [r.id, r.lvl]))
   const fileCountByFolder = new Map(fileCounts.map((r) => [r.folderId, r.count]))
   const subfolderCountByParent = new Map(subfolderCounts.map((r) => [r.parentId, r.count]))
 
-  return folders.map((f) => ({
-    ...f,
-    fileCount: fileCountByFolder.get(f.id) ?? 0,
-    subfolderCount: subfolderCountByParent.get(f.id) ?? 0,
-    level: (levelByFolder.get(f.id) ?? 0) >= EDIT_ACCESS ? ('edit' as const) : ('view' as const),
-    canShare: canShareFolder(me, f.ownerUserId),
-  }))
+  return folders.map((f) => {
+    const fileCount = fileCountByFolder.get(f.id) ?? 0
+    const subfolderCount = subfolderCountByParent.get(f.id) ?? 0
+    return {
+      ...f,
+      starred: starredIds.has(f.id),
+      fileCount,
+      subfolderCount,
+      itemCount: fileCount + subfolderCount,
+        level: (levelByFolder.get(f.id) ?? 0) >= EDIT_ACCESS ? ('edit' as const) : ('view' as const),
+      canShare: canShareFolder(me, f.ownerUserId),
+    }
+  })
 }
 
 export async function updateFolder(
   me: SessionUser,
   id: string,
-  input: { name?: string; parentId?: string | null; autoMonthlySubfolders?: boolean },
+  input: { name?: string; parentId?: string | null; autoMonthlySubfolders?: boolean; color?: number | null },
 ) {
   const folder = await requireFolder(me, id, EDIT_ACCESS)
   if (input.parentId !== undefined && input.parentId !== null) {
@@ -212,6 +240,9 @@ export async function updateFolder(
     // Mutarea e permisă doar într-un folder unde omul are drept de editare: altfel ar muta
     // conținut într-un spațiu în care nu-l poate atinge nici apoi.
     await assertAccess(me, input.parentId, EDIT_ACCESS)
+    // Moving a folder takes it out of its parent, so it needs the right there too (as deleting
+    // does): a share on the folder itself is for working inside it.
+    if (folder.parentId && folder.parentId !== input.parentId) await assertAccess(me, folder.parentId, EDIT_ACCESS)
   }
   // Mutarea în afara spațiului deținut de altcineva ar decupla subarborele de rădăcina lui;
   // owner_user_id rămâne al celui care mută, deci mutarea e interzisă (owner-ul se schimbă
@@ -228,30 +259,11 @@ export async function updateFolder(
     .set(patch)
     .where(and(eq(archiveFolders.id, id), sql`${archiveFolders.deletedAt} IS NULL`))
     .returning()
-  return row
-}
-
-export async function deleteFolder(me: SessionUser, id: string) {
-  await requireFolder(me, id, EDIT_ACCESS)
-  const [[subfolders], [files]] = await Promise.all([
-    db
-      .select({ count: sql<number>`COUNT(*)::int` })
-      .from(archiveFolders)
-      .where(and(eq(archiveFolders.parentId, id), sql`${archiveFolders.deletedAt} IS NULL`)),
-    db
-      .select({ count: sql<number>`COUNT(*)::int` })
-      .from(archiveFiles)
-      .where(and(eq(archiveFiles.folderId, id), sql`${archiveFiles.deletedAt} IS NULL`)),
-  ])
-  if ((subfolders?.count ?? 0) > 0 || (files?.count ?? 0) > 0) {
-    throw new ArchiveConflictError(tr('errors.archive.folderNotEmpty'))
-  }
-  const [row] = await db.update(archiveFolders).set({ deletedAt: new Date() }).where(eq(archiveFolders.id, id)).returning()
-  return row
+  return row ? { ...row, previousName: folder.name, previousParentId: folder.parentId } : row
 }
 
 /** Folderul, cu verificarea de acces făcută într-un singur loc — 404 dacă nu-l are. */
-async function requireFolder(me: SessionUser, folderId: string, min: 1 | 2) {
+export async function requireFolder(me: SessionUser, folderId: string, min: 1 | 2) {
   const [folder] = await db
     .select({
       id: archiveFolders.id,
@@ -322,35 +334,98 @@ function tagsContainSql(tagList: string[]) {
   )}]::text[]`
 }
 
+// mime_type patterns per category; `like` entries use LIKE, the rest match exactly.
+const FILE_TYPE_MIMES: Record<Exclude<FileType, 'other'>, { exact: string[]; like: string[] }> = {
+  pdf: { exact: ['application/pdf'], like: [] },
+  image: { exact: [], like: ['image/%'] },
+  document: {
+    exact: ['application/msword', 'application/rtf', 'text/rtf', 'text/plain', 'application/vnd.oasis.opendocument.text'],
+    like: ['%officedocument.wordprocessingml%'],
+  },
+  spreadsheet: {
+    exact: ['application/vnd.ms-excel', 'application/vnd.oasis.opendocument.spreadsheet', 'text/csv'],
+    like: ['%officedocument.spreadsheetml%'],
+  },
+  archive: {
+    exact: [
+      'application/zip',
+      'application/x-zip-compressed',
+      'application/x-rar-compressed',
+      'application/vnd.rar',
+      'application/x-7z-compressed',
+      'application/gzip',
+      'application/x-gzip',
+      'application/x-tar',
+    ],
+    like: [],
+  },
+}
+
+/** SQL condition on a mime_type column for one file category; `other` is everything else. */
+function fileTypeCondition(type: FileType, mimeColumn: AnyColumn | SQL): SQL {
+  const match = (t: Exclude<FileType, 'other'>) => {
+    const { exact, like } = FILE_TYPE_MIMES[t]
+    const parts = [
+      ...exact.map((m) => sql`${mimeColumn} = ${m}`),
+      ...like.map((p) => sql`${mimeColumn} LIKE ${p}`),
+    ]
+    return sql`(${sql.join(parts, sql` OR `)})`
+  }
+  if (type !== 'other') return match(type)
+  const known = (Object.keys(FILE_TYPE_MIMES) as Exclude<FileType, 'other'>[]).map(match)
+  return sql`NOT (${sql.join(known, sql` OR `)})`
+}
+
 const FILE_SORT_ORDER = {
-  recent: desc(archiveFiles.createdAt),
-  oldest: asc(archiveFiles.createdAt),
-  name: asc(archiveFiles.name),
+  recent: [desc(archiveFiles.createdAt), asc(archiveFiles.id)],
+  oldest: [asc(archiveFiles.createdAt), asc(archiveFiles.id)],
+  name: [asc(archiveFiles.name), asc(archiveFiles.id)],
 }
 
 export async function listFiles(
   me: SessionUser,
-  query: { folderId?: string; q?: string; tags?: string; page: number; sort?: 'recent' | 'oldest' | 'name' },
+  query: {
+    folderId?: string
+    q?: string
+    tags?: string
+    type?: FileType
+    modifiedAfter?: Date
+    page: number
+    pageSize?: number
+    sort?: 'recent' | 'oldest' | 'name'
+  },
 ) {
   const folderId = query.folderId ?? (await ensureSpaceRoot(me))
   await assertAccess(me, folderId, VIEW_ACCESS)
+  const pageSize = query.pageSize ?? 50
   const filters: SQL[] = [sql`${archiveFiles.deletedAt} IS NULL`, sql`${archiveFiles.folderId} = ${folderId}`]
-  if (query.q) filters.push(ilike(archiveFiles.name, `%${query.q}%`))
+  if (query.q) filters.push(foldedIlike(archiveFiles.name, query.q))
+  if (query.type) filters.push(fileTypeCondition(query.type, archiveFiles.mimeType))
+  if (query.modifiedAfter) filters.push(sql`${archiveFiles.updatedAt} >= ${query.modifiedAfter.toISOString()}`)
   const tagList = parseTagsFilter(query.tags)
   if (tagList.length > 0) filters.push(sql`${archiveFiles.tags} @> ${tagsContainSql(tagList)}`)
 
-  const rows = await db
-    .select()
-    .from(archiveFiles)
-    .where(and(...filters))
-    .orderBy(FILE_SORT_ORDER[query.sort ?? 'recent'])
-    .limit(PAGE_SIZE)
-    .offset((query.page - 1) * PAGE_SIZE)
-  return withPreviewUrl(rows)
+  const [rows, [counted]] = await Promise.all([
+    db
+      .select()
+      .from(archiveFiles)
+      .where(and(...filters))
+      .orderBy(...FILE_SORT_ORDER[query.sort ?? 'recent'])
+      .limit(pageSize)
+      .offset((query.page - 1) * pageSize),
+    db
+      .select({ total: sql<number>`COUNT(*)::int` })
+      .from(archiveFiles)
+      .where(and(...filters)),
+  ])
+  return { items: await withPreviewUrl(rows), total: counted?.total ?? 0, page: query.page, pageSize }
 }
 
-export interface ArchiveSearchResult {
+export interface ArchiveSearchFile {
+  kind: 'file'
   id: string
+  /** The person's level on the file's folder, so lists outside a folder show only allowed actions. */
+  level: 'view' | 'edit'
   name: string
   mimeType: string
   sizeBytes: number
@@ -358,52 +433,324 @@ export interface ArchiveSearchResult {
   folderId: string
   folderPath: { id: string; name: string }[]
   previewUrl: string | null
+  updatedAt: Date
 }
 
-// Căutare pe toată arhiva (ignoră folderId — spre deosebire de listFiles), cu path-ul complet
-// al folderului fiecărui rezultat (CTE recursiv, ca wouldCreateCycle mai sus) și filtrul de
-// acces pe același CTE — deci un fișier din alt spațiu nu apare nici la căutare.
-export async function searchFiles(me: SessionUser, q: string, tags?: string): Promise<ArchiveSearchResult[]> {
-  const tagList = parseTagsFilter(tags)
-  const tagsFilter = tagList.length > 0 ? sql`AND af.tags @> ${tagsContainSql(tagList)}` : sql``
+export interface ArchiveSearchFolder {
+  kind: 'folder'
+  id: string
+  level: 'view' | 'edit'
+  name: string
+  color: number | null
+  /** Null for the top of a space the person can see. */
+  folderId: string | null
+  /** The parent's path, without the folder itself. */
+  folderPath: { id: string; name: string }[]
+}
 
-  const rows = await db.execute<{
-    id: string
-    name: string
-    mimeType: string
-    sizeBytes: number
-    tags: string[]
-    folderId: string
-    thumbnailR2Key: string | null
-    r2Key: string
-    folderPathIds: string[] | null
-    folderPathNames: string[] | null
-  }>(sql`
+const SEARCH_LIMIT = 50
+
+type FileRawRow = {
+  id: string
+  name: string
+  mimeType: string
+  sizeBytes: number
+  tags: string[]
+  folderId: string
+  thumbnailR2Key: string | null
+  r2Key: string
+  folderPathIds: string[] | null
+  folderPathNames: string[] | null
+  lvl: number
+  updatedAt: Date
+}
+
+const levelOf = (lvl: number) => (lvl >= EDIT_ACCESS ? ('edit' as const) : ('view' as const))
+
+function pathOf(ids: string[] | null, names: string[] | null) {
+  return (ids ?? []).map((id, i) => ({ id, name: names?.[i] ?? '' }))
+}
+
+async function toSearchFile(r: FileRawRow): Promise<ArchiveSearchFile> {
+  return {
+    kind: 'file',
+    id: r.id,
+    level: levelOf(r.lvl),
+    name: r.name,
+    mimeType: r.mimeType,
+    sizeBytes: Number(r.sizeBytes),
+    tags: r.tags,
+    folderId: r.folderId,
+    folderPath: pathOf(r.folderPathIds, r.folderPathNames),
+    previewUrl: await computePreviewUrl(r),
+    updatedAt: r.updatedAt,
+  }
+}
+
+// Visible files across the whole archive (ignores folderId, unlike listFiles), with the full
+// path of each file's folder. Access is filtered by the same CTE, so a file in another space
+// never shows up.
+async function searchFileRows(
+  me: SessionUser,
+  filter: { q: string; tags?: string; type?: FileType; modifiedAfter?: Date },
+  limit: number,
+): Promise<ArchiveSearchFile[]> {
+  const tagList = parseTagsFilter(filter.tags)
+  const extra: SQL[] = []
+  if (tagList.length > 0) extra.push(sql`af.tags @> ${tagsContainSql(tagList)}`)
+  if (filter.type) extra.push(fileTypeCondition(filter.type, sql`af.mime_type`))
+  if (filter.modifiedAfter) extra.push(sql`af.updated_at >= ${filter.modifiedAfter.toISOString()}`)
+
+  const rows = await db.execute<FileRawRow>(sql`
     ${accessiblePathsCte(me)}
     SELECT
       af.id, af.name, af.mime_type AS "mimeType", af.size_bytes AS "sizeBytes", af.tags,
       af.folder_id AS "folderId", af.thumbnail_r2_key AS "thumbnailR2Key", af.r2_key AS "r2Key",
-      fp.path_ids AS "folderPathIds", fp.path_names AS "folderPathNames"
+      af.updated_at AS "updatedAt", fp.path_ids AS "folderPathIds", fp.path_names AS "folderPathNames", a.lvl
     FROM archive_files af
     JOIN folder_paths fp ON af.folder_id = fp.id
-    WHERE af.deleted_at IS NULL AND af.name ILIKE ${`%${q}%`}
-      ${tagsFilter}
+    JOIN access a ON a.id = af.folder_id
+    WHERE af.deleted_at IS NULL AND ${foldedIlike(sql`af.name`, filter.q)}
+      ${sql.join(
+        extra.map((c) => sql`AND ${c}`),
+        sql` `,
+      )}
     ORDER BY af.name
-    LIMIT 30
+    LIMIT ${limit}
   `)
+  return Promise.all(rows.map(toSearchFile))
+}
 
+/** Files only: the global search and the assistant have no use for folders. */
+export async function searchFiles(me: SessionUser, q: string, tags?: string): Promise<ArchiveSearchFile[]> {
+  return searchFileRows(me, { q, tags }, 30)
+}
+
+/**
+ * Files and folders, folders first, 50 results in all. The type, date and tag filters only
+ * describe files, so with any of them set folders drop out.
+ */
+export async function searchArchive(
+  me: SessionUser,
+  filter: { q: string; tags?: string; type?: FileType; modifiedAfter?: Date },
+): Promise<(ArchiveSearchFolder | ArchiveSearchFile)[]> {
+  const folderRows = parseTagsFilter(filter.tags).length > 0 || filter.type || filter.modifiedAfter
+    ? []
+    : await db.execute<{
+        id: string
+        name: string
+        color: number | null
+        parentId: string | null
+        pathIds: string[]
+        pathNames: string[]
+        lvl: number
+      }>(sql`
+        ${accessiblePathsCte(me)}
+        SELECT f.id, f.name, f.color, f.parent_id AS "parentId", fp.path_ids AS "pathIds", fp.path_names AS "pathNames", a.lvl
+          FROM archive_folders f
+          JOIN folder_paths fp ON fp.id = f.id
+          JOIN access a ON a.id = f.id
+         WHERE f.deleted_at IS NULL AND ${foldedIlike(sql`f.name`, filter.q)}
+         ORDER BY f.name
+         LIMIT ${SEARCH_LIMIT}
+      `)
+  const folders: ArchiveSearchFolder[] = folderRows.map((r) => ({
+    kind: 'folder',
+    id: r.id,
+    level: levelOf(r.lvl),
+    name: r.name,
+    color: r.color,
+    // A top-level folder's path is just itself, so the parent is not visible to the person.
+    folderId: r.pathIds.length > 1 ? r.parentId : null,
+    folderPath: pathOf(r.pathIds.slice(0, -1), r.pathNames.slice(0, -1)),
+  }))
+  const files = await searchFileRows(me, filter, SEARCH_LIMIT - folders.length)
+  return [...folders, ...files]
+}
+
+const FILE_RAW_COLUMNS = sql`
+  af.id, af.name, af.mime_type AS "mimeType", af.size_bytes AS "sizeBytes", af.tags,
+  af.folder_id AS "folderId", af.thumbnail_r2_key AS "thumbnailR2Key", af.r2_key AS "r2Key",
+  af.created_at AS "createdAt", af.updated_at AS "updatedAt"`
+
+/** The last 20 files changed in folders the person can see. */
+export async function listRecent(me: SessionUser) {
+  const rows = await db.execute<FileRawRow & { createdAt: Date; updatedAt: Date }>(sql`
+    ${accessiblePathsCte(me)}
+    SELECT ${FILE_RAW_COLUMNS}, fp.path_ids AS "folderPathIds", fp.path_names AS "folderPathNames", a.lvl
+      FROM archive_files af
+      JOIN folder_paths fp ON af.folder_id = fp.id
+      JOIN access a ON a.id = af.folder_id
+     WHERE af.deleted_at IS NULL
+     ORDER BY af.updated_at DESC
+     LIMIT 20
+  `)
   return Promise.all(
-    rows.map(async (r) => ({
-      id: r.id,
-      name: r.name,
-      mimeType: r.mimeType,
+    rows.map(async ({ folderPathIds, folderPathNames, lvl, ...r }) => ({
+      ...r,
+      level: levelOf(lvl),
       sizeBytes: Number(r.sizeBytes),
-      tags: r.tags,
-      folderId: r.folderId,
-      folderPath: (r.folderPathIds ?? []).map((id, i) => ({ id, name: r.folderPathNames?.[i] ?? '' })),
+      folderPath: pathOf(folderPathIds, folderPathNames),
       previewUrl: await computePreviewUrl(r),
     })),
   )
+}
+
+// ── Stele ────────────────────────────────────────────────────────────────
+
+export async function setStar(me: SessionUser, type: 'file' | 'folder', id: string) {
+  if (type === 'file') await requireFile(me, id, VIEW_ACCESS)
+  else await requireFolder(me, id, VIEW_ACCESS)
+  await db
+    .insert(archiveStars)
+    .values({ userId: me.id, itemType: type, itemId: id })
+    .onConflictDoNothing()
+  return { starred: true }
+}
+
+// No visibility check: removing your own star on something you can no longer see is harmless.
+export async function removeStar(me: SessionUser, type: 'file' | 'folder', id: string) {
+  await db
+    .delete(archiveStars)
+    .where(and(eq(archiveStars.userId, me.id), eq(archiveStars.itemType, type), eq(archiveStars.itemId, id)))
+  return { starred: false }
+}
+
+/** Starred items that are still visible to the person and not in the Trash. */
+export async function listStars(me: SessionUser) {
+  const [folders, fileRows] = await Promise.all([
+    db.execute<{ id: string; name: string; color: number | null; parentId: string | null; lvl: number }>(sql`
+      ${accessibleFoldersCte(me)}
+      SELECT f.id, f.name, f.color, f.parent_id AS "parentId", a.lvl
+        FROM archive_stars st
+        JOIN archive_folders f ON f.id = st.item_id
+        JOIN access a ON a.id = f.id AND a.lvl >= 1
+       WHERE st.user_id = ${me.id} AND st.item_type = 'folder' AND f.deleted_at IS NULL
+       ORDER BY f.name
+    `),
+    db.execute<Omit<FileRawRow, 'folderPathIds' | 'folderPathNames'> & { createdAt: Date; updatedAt: Date }>(sql`
+      ${accessibleFoldersCte(me)}
+      SELECT ${FILE_RAW_COLUMNS}, a.lvl
+        FROM archive_stars st
+        JOIN archive_files af ON af.id = st.item_id
+        JOIN archive_folders fo ON fo.id = af.folder_id AND fo.deleted_at IS NULL
+        JOIN access a ON a.id = af.folder_id AND a.lvl >= 1
+       WHERE st.user_id = ${me.id} AND st.item_type = 'file' AND af.deleted_at IS NULL
+       ORDER BY af.name
+    `),
+  ])
+  const files = await withPreviewUrl(fileRows.map(({ lvl, ...r }) => ({ ...r, level: levelOf(lvl), sizeBytes: Number(r.sizeBytes) })))
+  return { folders: folders.map(({ lvl, ...f }) => ({ ...f, level: levelOf(lvl) })), files }
+}
+
+async function isStarred(me: SessionUser, type: 'file' | 'folder', id: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: archiveStars.id })
+    .from(archiveStars)
+    .where(and(eq(archiveStars.userId, me.id), eq(archiveStars.itemType, type), eq(archiveStars.itemId, id)))
+  return Boolean(row)
+}
+
+async function personRef(userId: string | null): Promise<{ id: string; name: string } | null> {
+  if (!userId) return null
+  const [row] = await db
+    .select({ id: users.id, name: sql<string>`COALESCE(NULLIF(${users.displayName}, ''), ${users.email})` })
+    .from(users)
+    .where(eq(users.id, userId))
+  return row ?? null
+}
+
+// Shares on the folder and on every ancestor, one row per person: the strongest level wins,
+// and on a tie the nearest folder. The ancestor walk carries a path guard (a cycle in
+// parent_id must not loop).
+// `visibleIds` = the folders on the path the reader can open. A share on a folder above them still
+// gives access here, so the row stays, but the name of a folder the reader cannot open does not.
+async function folderAccessList(folderId: string, visibleIds: string[]) {
+  const rows = await db.execute<{
+    userId: string
+    name: string
+    level: 'view' | 'edit'
+    fromId: string
+    fromName: string
+    depth: number
+  }>(sql`
+    WITH RECURSIVE up AS (
+      SELECT id, parent_id, ARRAY[id] AS path FROM archive_folders WHERE id = ${folderId}
+      UNION ALL
+      SELECT f.id, f.parent_id, up.path || f.id
+        FROM archive_folders f
+        JOIN up ON f.id = up.parent_id
+       WHERE NOT (f.id = ANY(up.path))
+    )
+    SELECT DISTINCT ON (s.user_id)
+           s.user_id AS "userId", COALESCE(NULLIF(u.display_name, ''), u.email) AS name, s.level,
+           up.id AS "fromId", fo.name AS "fromName", cardinality(up.path) AS depth
+      FROM up
+      JOIN archive_folder_shares s ON s.folder_id = up.id AND s.deleted_at IS NULL
+      JOIN users u ON u.id = s.user_id AND u.deleted_at IS NULL
+      JOIN archive_folders fo ON fo.id = up.id
+     ORDER BY s.user_id, (s.level = 'edit') DESC, cardinality(up.path) ASC
+  `)
+  return rows.map((r) => ({
+    userId: r.userId,
+    name: r.name,
+    level: r.level,
+    inherited: r.fromId !== folderId,
+    inheritedFrom: r.fromId !== folderId && visibleIds.includes(r.fromId) ? { id: r.fromId, name: r.fromName } : null,
+  }))
+}
+
+export async function getFolderDetails(me: SessionUser, id: string) {
+  await requireFolder(me, id, VIEW_ACCESS)
+  const [folder] = await db.select().from(archiveFolders).where(eq(archiveFolders.id, id))
+  if (!folder) throw new ArchiveNotFoundError()
+  const location = await getFolderPath(me, id)
+  const [starred, access, owner] = await Promise.all([
+    isStarred(me, 'folder', id),
+    folderAccessList(id, location.path.map((p) => p.id)),
+    personRef(folder.ownerUserId),
+  ])
+  return {
+    id: folder.id,
+    name: folder.name,
+    color: folder.color,
+    createdAt: folder.createdAt,
+    updatedAt: folder.updatedAt,
+    path: location.path,
+    createdBy: null,
+    updatedBy: null,
+    owner,
+    starred,
+    access,
+  }
+}
+
+export async function getFileDetails(me: SessionUser, id: string) {
+  const file = await requireFile(me, id, VIEW_ACCESS)
+  const location = await getFolderPath(me, file.folderId)
+  const [starred, access, owner, createdBy, updatedBy] = await Promise.all([
+    isStarred(me, 'file', id),
+    folderAccessList(file.folderId, location.path.map((p) => p.id)),
+    personRef(location.ownerUserId),
+    personRef(file.createdByUserId),
+    personRef(file.updatedByUserId),
+  ])
+  return {
+    id: file.id,
+    name: file.name,
+    mimeType: file.mimeType,
+    sizeBytes: file.sizeBytes,
+    tags: file.tags,
+    folderId: file.folderId,
+    createdAt: file.createdAt,
+    updatedAt: file.updatedAt,
+    path: location.path,
+    createdBy,
+    updatedBy,
+    owner,
+    starred,
+    access,
+  }
 }
 
 // Lanțul de strămoși pt. breadcrumb (folder accesibil → folder curent), inclusiv. Pornește de la
@@ -609,6 +956,17 @@ export async function getStorageUsage(me: SessionUser): Promise<StorageUsage> {
   return result
 }
 
+/**
+ * Throws when `extraBytes` more would pass the bucket limit. Counts every row, soft-deleted
+ * ones too: their objects stay in R2 until the Trash purges them.
+ */
+export async function assertStorageAvailable(extraBytes: number): Promise<void> {
+  const [row] = await db.select({ total: sql<number>`COALESCE(SUM(${archiveFiles.sizeBytes}), 0)::bigint` }).from(archiveFiles)
+  const usedBytes = Number(row?.total ?? 0)
+  const limitBytes = config.r2.freeTierLimitGb * 1024 ** 3
+  if (usedBytes + extraBytes > limitBytes) throw new ArchiveStorageFullError(usedBytes, limitBytes)
+}
+
 export async function findFileByName(folderId: string, name: string) {
   const [row] = await db
     .select({ id: archiveFiles.id })
@@ -715,7 +1073,7 @@ export async function getFileForDownload(me: SessionUser, id: string) {
 
 /** Fișierul, cu verificarea de acces pe folderul lui — 404 dacă e din alt spațiu (un id
  *  cunoscut direct, ca la atașamentele din Mesaje, nu trebuie să dea 403). */
-async function requireFile(me: SessionUser, id: string, min: 1 | 2) {
+export async function requireFile(me: SessionUser, id: string, min: 1 | 2) {
   const [file] = await db
     .select()
     .from(archiveFiles)
@@ -748,7 +1106,7 @@ export async function getFileBufferForDownload(
 }
 
 export async function updateFile(me: SessionUser, id: string, input: { name?: string; folderId?: string; tags?: string[] }) {
-  await requireFile(me, id, EDIT_ACCESS)
+  const before = await requireFile(me, id, EDIT_ACCESS)
   if (input.folderId) await assertAccess(me, input.folderId, EDIT_ACCESS)
   const patch: Partial<typeof archiveFiles.$inferInsert> = { updatedAt: new Date() }
   if (input.name !== undefined) patch.name = input.name
@@ -759,22 +1117,8 @@ export async function updateFile(me: SessionUser, id: string, input: { name?: st
     .set(patch)
     .where(and(eq(archiveFiles.id, id), sql`${archiveFiles.deletedAt} IS NULL`))
     .returning()
-  return row
-}
-
-export async function deleteFile(me: SessionUser, id: string, permanent: boolean) {
-  const file = await db.select().from(archiveFiles).where(eq(archiveFiles.id, id))
-  const row = file[0]
-  if (!row) return null
-  if ((await folderAccessLevel(me, row.folderId)) < EDIT_ACCESS) throw new ArchiveNotFoundError()
-  if (permanent) {
-    await deleteFromR2(row.r2Key)
-    if (row.thumbnailR2Key) await deleteFromR2(row.thumbnailR2Key).catch(() => {})
-    await db.delete(archiveFiles).where(eq(archiveFiles.id, id))
-  } else {
-    await db.update(archiveFiles).set({ deletedAt: new Date() }).where(eq(archiveFiles.id, id))
-  }
-  return row
+  // The previous name and folder let the client undo the change with one more PATCH.
+  return row ? { ...row, previousName: before.name, previousFolderId: before.folderId } : row
 }
 
 // ── Spațiile și partajarea ──────────────────────────────────────────────

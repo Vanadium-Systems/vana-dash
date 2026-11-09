@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { CompleteGoalSchema, CreatePlanGoalSchema, ReorderGoalsSchema, UpdatePlanGoalSchema } from './schema.js'
+import { CompleteGoalSchema, CreatePlanGoalSchema, ReorderGoalsSchema, MoveGoalSchema, UpdatePlanGoalSchema } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -66,6 +66,16 @@ export async function planRoutes(app: FastifyInstance) {
         }
         throw err
       }
+    },
+  )
+
+  server.patch(
+    '/api/plan/:id/move',
+    { preHandler: [app.authenticate], schema: { body: MoveGoalSchema } },
+    async (req, reply) => {
+      const row = await service.moveGoal(req.me, (req.params as { id: string }).id, req.body.tier, req.body.position)
+      if (!row) return reply.code(404).send({ success: false, error: tr('errors.plan.goalNotFound') })
+      return { success: true, data: row }
     },
   )
 }

@@ -1,13 +1,132 @@
 {
-  "updated": "Note updated",
-  "created": "Note created",
-  "deleted": "Note deleted",
-  "editTitle": "Edit the note",
-  "deleteTitle": "Delete the note “{{title}}”",
-  "deleteConfirm": "Delete the note",
-  "searchPlaceholder": "Search in title or content…",
+  "newNote": "New note",
+  "editTitle": "Note",
+  "untitled": "Untitled note",
+  "titlePlaceholder": "Title",
+  "searchPlaceholder": "Search notes…",
   "noneFound": "No note found.",
-  "empty": "No note yet. Create the first one.",
+  "empty": {
+    "active": "No notes yet. Write the first one in the bar above.",
+    "archived": "The archive is empty.",
+    "trash": "The trash is empty."
+  },
+  "views": {
+    "active": "Notes",
+    "archived": "Archive",
+    "trash": "Trash"
+  },
+  "sections": {
+    "pinned": "Pinned",
+    "others": "Others"
+  },
+  "pin": "Pin",
   "unpin": "Unpin",
-  "pin": "Pin"
+  "archive": "Archive",
+  "unarchive": "Unarchive",
+  "restore": "Restore",
+  "moveToTrash": "Move to Trash",
+  "copyLink": "Copy link",
+  "color": "Color",
+  "select": "Select note",
+  "done": "Done",
+  "notFound": "This note does not exist.",
+  "saveFailed": "The note could not be saved.",
+  "emptyDiscarded": "Empty note discarded",
+  "trashBanner": "In the Trash. Deleted for good after 30 days.",
+  "status": {
+    "saving": "Saving…",
+    "error": "Not saved, retrying",
+    "editedNow": "Edited just now",
+    "editedAt": "Edited {{time}}"
+  },
+  "conflict": {
+    "message": "This note changed in another tab.",
+    "reload": "Reload",
+    "keepMine": "Keep my version"
+  },
+  "composer": {
+    "placeholder": "Take a note…",
+    "list": "New list"
+  },
+  "fab": {
+    "note": "Note",
+    "list": "List"
+  },
+  "editor": {
+    "label": "Note content",
+    "placeholder": "Write something, or press / for blocks",
+    "toolbar": "Formatting",
+    "bold": "Bold (Ctrl+B)",
+    "italic": "Italic (Ctrl+I)",
+    "underline": "Underline (Ctrl+U)",
+    "link": "Link",
+    "linkPlaceholder": "Paste a link, Enter",
+    "heading": "Heading",
+    "bulletList": "List",
+    "taskList": "Checklist",
+    "undo": "Undo",
+    "redo": "Redo"
+  },
+  "slash": {
+    "label": "Blocks",
+    "none": "No block",
+    "text": "Text",
+    "h1": "Heading 1",
+    "h2": "Heading 2",
+    "h3": "Heading 3",
+    "bullet": "Bulleted list",
+    "ordered": "Numbered list",
+    "task": "Checklist",
+    "quote": "Quote",
+    "code": "Code"
+  },
+  "label": {
+    "add": "Label",
+    "newPlaceholder": "New label",
+    "remove": "Remove the label {{label}}",
+    "manage": "Manage labels",
+    "manageHint": "Renaming or deleting applies to all your notes.",
+    "none": "No labels yet.",
+    "rename": "Rename the label {{label}}",
+    "delete": "Delete the label {{label}}",
+    "deleteTitle": "Delete the label “{{label}}”",
+    "deleteConsequence_one": "The label is removed from one note. The note stays.",
+    "deleteConsequence_other": "The label is removed from {{count}} notes. The notes stay.",
+    "deleteConfirm": "Delete the label"
+  },
+  "trash": {
+    "hint": "Notes in the Trash are deleted for good after 30 days.",
+    "empty": "Empty the Trash",
+    "emptyTitle": "Empty the Trash?",
+    "emptyConsequence_one": "One note is deleted for good, with no way back.",
+    "emptyConsequence_other": "{{count}} notes are deleted for good, with no way back."
+  },
+  "versions": {
+    "action": "Versions",
+    "title": "Versions",
+    "none": "No saved version yet. One is saved at most every 10 minutes of editing.",
+    "hint": "Pick a version to see it.",
+    "restore": "Restore this version",
+    "restored": "Version restored"
+  },
+  "toast": {
+    "archived_one": "1 note archived",
+    "archived_other": "{{count}} notes archived",
+    "unarchived_one": "1 note unarchived",
+    "unarchived_other": "{{count}} notes unarchived",
+    "trashed_one": "1 note moved to Trash",
+    "trashed_other": "{{count}} notes moved to Trash",
+    "restored_one": "1 note restored",
+    "restored_other": "{{count}} notes restored",
+    "pinned_one": "1 note pinned",
+    "pinned_other": "{{count}} notes pinned",
+    "unpinned_one": "1 note unpinned",
+    "unpinned_other": "{{count}} notes unpinned",
+    "colored_one": "Color changed on 1 note",
+    "colored_other": "Color changed on {{count}} notes",
+    "labeled_one": "Label “{{label}}” added to 1 note",
+    "labeled_other": "Label “{{label}}” added to {{count}} notes",
+    "unlabeled_one": "Label “{{label}}” removed from 1 note",
+    "unlabeled_other": "Label “{{label}}” removed from {{count}} notes"
+  }
 }

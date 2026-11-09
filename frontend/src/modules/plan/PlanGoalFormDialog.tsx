@@ -21,10 +21,12 @@ interface PlanGoalFormProps {
   /** Pista curentă din PlanPage — preselectată la creare, fixă la editare. */
   scope: PlanScope
   onDone: () => void
+  /** Enter in the title of an existing goal saves it and adds an empty one under it, in the same tier. */
+  onAddedBelow?: (created: PlanGoal) => void
 }
 
 // Remounted per goal (key), so the fields start from the goal and need no reset effect.
-export function PlanGoalForm({ goal, scope, onDone }: PlanGoalFormProps) {
+export function PlanGoalForm({ goal, scope, onDone, onAddedBelow }: PlanGoalFormProps) {
   const confirm = useConfirm()
   const queryClient = useQueryClient()
   const [title, setTitle] = useState(goal?.title ?? '')
@@ -37,19 +39,21 @@ export function PlanGoalForm({ goal, scope, onDone }: PlanGoalFormProps) {
   const [targetPriceCurrency, setTargetPriceCurrency] = useState<PlanTargetPriceCurrency>(goal?.targetPriceCurrency ?? 'EUR')
   const [targetDate, setTargetDate] = useState(goal?.targetDate ?? '')
 
+  const buildBody = () => ({
+    title,
+    note: note || undefined,
+    tier: scope === 'firma' ? tier : undefined,
+    thresholdType,
+    thresholdValue: thresholdType === 'mrr_ron' && thresholdValue ? parseRoDecimal(thresholdValue) : undefined,
+    monthlyCostRon: monthlyCostRon ? parseRoDecimal(monthlyCostRon) : goal ? null : undefined,
+    targetPriceAmount: targetPriceAmount ? parseRoDecimal(targetPriceAmount) : goal ? null : undefined,
+    targetPriceCurrency: targetPriceAmount ? targetPriceCurrency : goal ? null : undefined,
+    targetDate: targetDate ? targetDate : goal ? null : undefined,
+  })
+
   const save = useMutation({
     mutationFn: () => {
-      const body = {
-        title,
-        note: note || undefined,
-        tier: scope === 'firma' ? tier : undefined,
-        thresholdType,
-        thresholdValue: thresholdType === 'mrr_ron' && thresholdValue ? parseRoDecimal(thresholdValue) : undefined,
-        monthlyCostRon: monthlyCostRon ? parseRoDecimal(monthlyCostRon) : goal ? null : undefined,
-        targetPriceAmount: targetPriceAmount ? parseRoDecimal(targetPriceAmount) : goal ? null : undefined,
-        targetPriceCurrency: targetPriceAmount ? targetPriceCurrency : goal ? null : undefined,
-        targetDate: targetDate ? targetDate : goal ? null : undefined,
-      }
+      const body = buildBody()
       return goal
         ? api.patch<PlanGoal>(`/api/plan/${goal.id}`, body)
         : api.post<PlanGoal>('/api/plan', { ...body, scope })
@@ -58,6 +62,22 @@ export function PlanGoalForm({ goal, scope, onDone }: PlanGoalFormProps) {
       void queryClient.invalidateQueries({ queryKey: ['plan'] })
       toast.success(goal ? t('plan:step.updated') : t('plan:step.added'))
       onDone()
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  const addBelow = useMutation({
+    mutationFn: async () => {
+      if (!goal) throw new Error('addBelow needs a saved goal')
+      await api.patch<PlanGoal>(`/api/plan/${goal.id}`, buildBody())
+      const nextTier = scope === 'firma' ? tier : 1
+      const created = await api.post<PlanGoal>('/api/plan', { scope, tier: nextTier, title: t('plan:step.untitled') })
+      // New goals land at the end of the tier; this puts it right under the one being edited.
+      return api.patch<PlanGoal>(`/api/plan/${created.id}/move`, { tier: nextTier, position: nextTier === goal.tier ? goal.position + 1 : 9999 })
+    },
+    onSuccess: async (created) => {
+      await queryClient.invalidateQueries({ queryKey: ['plan'] })
+      onAddedBelow?.(created)
     },
     onError: (err) => toast.error(err.message),
   })
@@ -82,7 +102,19 @@ export function PlanGoalForm({ goal, scope, onDone }: PlanGoalFormProps) {
     >
       <div className="space-y-2">
         <Label htmlFor="pg-title">{t('common:labels.title')}</Label>
-        <Input id="pg-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <Input
+          id="pg-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          autoFocus={goal?.title === t('plan:step.untitled')}
+          onFocus={(e) => goal?.title === t('plan:step.untitled') && e.currentTarget.select()}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' || e.nativeEvent.isComposing || !goal || !onAddedBelow || !title.trim() || addBelow.isPending) return
+            e.preventDefault()
+            addBelow.mutate()
+          }}
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="pg-note">{t('plan:step.note')}</Label>

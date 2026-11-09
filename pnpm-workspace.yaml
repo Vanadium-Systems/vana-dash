@@ -39,6 +39,10 @@ overrides:
   postcss-selector-parser: ^7.1.6
   # workbox-build's jake>filelist>minimatch@5 chain stays on brace-expansion@2.
   'minimatch@5>brace-expansion': ^2.1.7
+  # prosemirror-view resolved its own prosemirror-model next to the one @tiptap/pm
+  # uses; two copies make every DOM-read keystroke throw "multiple versions of
+  # prosemirror-model" and the typed text is dropped.
+  prosemirror-model: ^1.25.12
 audit:
   ignore:
     # brace-expansion DoS, only reachable via vite-plugin-pwa's build-time

@@ -337,6 +337,111 @@ const SOURCES: GuideSource[] = [
     ],
   },
   {
+    id: 'arhiva-fisiere',
+    route: '/archive',
+    feature: 'arhiva.view',
+    title: {
+      ro: 'Găsești, muți și ștergi fișiere în Arhivă',
+      en: 'Finding, moving and deleting files in the Archive',
+    },
+    summary: {
+      ro: 'Ce ștergi nu dispare pe loc: stă 30 de zile în Coș și îl poți aduce înapoi.',
+      en: 'What you delete does not vanish at once: it stays in the Trash for 30 days and you can bring it back.',
+    },
+    steps: [
+      {
+        ro: 'Click pe un fișier îl deschide peste pagină, cu ← → între fișierele folderului. „Detalii” arată unde e, cine l-a creat și cine are acces.',
+        en: 'Click a file to open it over the page, with ← → between the files of the folder. “Details” shows where it is, who created it and who has access.',
+      },
+      {
+        ro: 'Ca să alegi mai multe, folosește Ctrl sau Shift + click (pe telefon, apasă lung). Bara de sus te lasă să le descarci, să le muți, să le pui o stea sau să le ștergi; le poți și trage peste un folder.',
+        en: 'To pick several, use Ctrl or Shift + click (on a phone, long-press). The bar on top lets you download, move, star or delete them; you can also drag them onto a folder.',
+      },
+      {
+        ro: 'După ștergere, mutare sau redenumire apare „Anulează” câteva secunde. Nu se cere confirmare.',
+        en: 'After a delete, move or rename, “Undo” shows for a few seconds. Nothing asks for confirmation.',
+      },
+      {
+        ro: 'Ce ai șters e în „Coș”: „Restaurează” îl pune înapoi în folderul lui, „Șterge definitiv” îl elimină pe loc. După 30 de zile dispare singur. Un folder șters se duce cu tot ce are în el. Fișierele șterse înainte de această actualizare sunt și ele în Coș, pentru 30 de zile.',
+        en: 'What you deleted is in “Trash”: “Restore” puts it back in its folder, “Delete permanently” removes it at once. After 30 days it goes by itself. A deleted folder goes with everything in it. Files deleted before this update are in the Trash too, for 30 days.',
+      },
+      {
+        ro: 'Fișierele încărcate apar într-un panou jos, cu progres pe fiecare; unul care a eșuat are „Reîncearcă”. Dacă Arhiva e plină, panoul spune asta.',
+        en: 'Uploaded files show in a panel at the bottom, with progress on each; one that failed has “Retry”. If the Archive is full, the panel says so.',
+      },
+      {
+        ro: 'Culoarea unui folder o schimbi din meniul lui. „Recente” arată ultimele 20 de fișiere, iar „Cu stea” ce ai marcat cu S.',
+        en: 'You change a folder’s color from its menu. “Recent” shows the last 20 files, and “Starred” what you marked with S.',
+      },
+    ],
+  },
+  {
+    id: 'notite-editor',
+    route: '/notes',
+    feature: 'notite.view',
+    title: {
+      ro: 'Scrii și organizezi notițe',
+      en: 'Writing and organizing notes',
+    },
+    summary: {
+      ro: 'Notițele sunt doar ale tale. Se salvează singure, deci nu există buton de salvare.',
+      en: 'Notes are yours alone. They save on their own, so there is no Save button.',
+    },
+    steps: [
+      {
+        ro: 'Scrie în bara „Creează o notiță…”. Apasă / ca să alegi un bloc (titlu, listă, listă de bifat, citat, cod); selectează text ca să-l faci aldin, cursiv sau link. „Listă nouă” pornește direct cu o listă de bifat.',
+        en: 'Write in the “Create a note…” bar. Press / to pick a block (heading, list, checklist, quote, code); select text to make it bold, italic or a link. “New list” starts straight with a checklist.',
+      },
+      {
+        ro: 'Notița deschisă are linkul ei; „Copiază linkul” din ⋯ îl dă mai departe. O notiță goală, închisă, nu se păstrează.',
+        en: 'An open note has its own link; “Copy link” in ⋯ hands it on. An empty note you close is not kept.',
+      },
+      {
+        ro: 'Fixează notițele importante, dă-le o culoare și etichete, apoi filtrează după etichetă. „Gestionează etichetele” le redenumește sau le șterge pe toate notițele odată.',
+        en: 'Pin the important notes, give them a color and labels, then filter by label. “Manage labels” renames or removes them on all notes at once.',
+      },
+      {
+        ro: '„Arhivează” scoate notița din vedere fără s-o șteargă. Ștearsa stă 30 de zile în „Coș”, de unde o restaurezi. După fiecare acțiune apare „Anulează”.',
+        en: '“Archive” takes a note out of sight without deleting it. A deleted one stays 30 days in “Trash”, from where you restore it. “Undo” appears after every action.',
+      },
+      {
+        ro: 'Din ⋯ → „Versiuni” vezi cum arăta notița înainte și o restaurezi. Se păstrează o versiune la cel mult 10 minute de editare.',
+        en: 'From ⋯ → “Versions” you see how the note looked before and restore it. One version is kept per 10 minutes of editing at most.',
+      },
+      {
+        ro: 'Bifează mai multe notițe ca să le arhivezi, să le colorezi sau să le pui o etichetă deodată. Le găsești și cu Ctrl K.',
+        en: 'Tick several notes to archive, color or label them at once. You also find them with Ctrl K.',
+      },
+    ],
+  },
+  {
+    id: 'plan-obiective',
+    route: '/notes',
+    feature: 'notite.view',
+    title: {
+      ro: 'Muți obiectivele între niveluri în Plan',
+      en: 'Moving goals between tiers in Plan',
+    },
+    summary: {
+      ro: 'Planul e pe patru niveluri; un obiectiv poate trece dintr-unul în altul fără să-l scrii din nou.',
+      en: 'The plan has four tiers; a goal can move from one to another without writing it again.',
+    },
+    steps: [
+      {
+        ro: 'Pe tabul „Plan”, ia obiectivul de mâner (apare când treci cu mouse-ul peste el; pe telefon, apasă lung) și lasă-l în alt nivel sau în alt loc din același nivel.',
+        en: 'On the “Plan” tab, take the goal by its handle (it shows when you hover; on a phone, long-press) and drop it in another tier or another place in the same tier.',
+      },
+      {
+        ro: 'Fără mouse: Space sau Enter pe mâner ca să iei obiectivul, săgețile îl mută, Space îl lasă jos, Esc anulează.',
+        en: 'Without a mouse: Space or Enter on the handle to pick the goal up, arrows move it, Space drops it, Esc cancels.',
+      },
+      {
+        ro: 'Într-un obiectiv deschis, Enter în titlu adaugă unul nou chiar sub el, în același nivel, ca să scrii mai multe la rând.',
+        en: 'In an open goal, Enter in the title adds a new one right under it, in the same tier, so you can write several in a row.',
+      },
+    ],
+  },
+  {
     id: 'clienti-prospecti',
     route: '/pricing',
     feature: 'clienti.prospectare',

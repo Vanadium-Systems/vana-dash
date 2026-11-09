@@ -4,6 +4,7 @@ import { emailThreads, financialRecords, prospectArchives, prospects } from '../
 import { getCompanyTimeZone } from '../../shared/lib/company.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { searchFiles } from '../archive/service.js'
+import { searchOwnNotes } from '../notes/service.js'
 import { searchEvents } from '../calendar/service.js'
 import { mailboxAddresses, threadVisibleTo } from '../email/mailboxes.js'
 import { tr } from '../../shared/lib/i18n.js'
@@ -152,6 +153,22 @@ async function searchArchive(me: SessionUser, term: string, limit: number): Prom
   }
 }
 
+// Notes are personal: the filter on the owner lives in the notes module, next to the query.
+async function searchNotes(me: SessionUser, term: string, limit: number): Promise<SearchGroup | null> {
+  const rows = await searchOwnNotes(me, term, limit)
+  if (rows.length === 0) return null
+  return {
+    group: tr('search.groups.notes'),
+    feature: 'notite.view',
+    items: rows.map((r) => ({
+      id: r.id,
+      label: r.title || r.snippet || tr('search.untitledNote'),
+      sublabel: r.title ? r.snippet || null : null,
+      to: `/notes?note=${r.id}`,
+    })),
+  }
+}
+
 async function searchCalendar(me: SessionUser, term: string, limit: number): Promise<SearchGroup | null> {
   const rows = await searchEvents(me, term, limit)
   if (rows.length === 0) return null
@@ -191,6 +208,7 @@ export async function search(me: SessionUser, q: string, options: SearchOptions 
     me.features.includes('email.view') ? searchThreads(me, term, limit) : null,
     me.features.includes('arhiva.view') ? searchArchive(me, term, limit) : null,
     me.features.includes('calendar.view') ? searchCalendar(me, term, limit) : null,
+    me.features.includes('notite.view') ? searchNotes(me, term, limit) : null,
   ])
   return groups.filter((g): g is SearchGroup => g !== null)
 }

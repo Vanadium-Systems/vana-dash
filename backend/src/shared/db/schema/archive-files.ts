@@ -31,10 +31,15 @@ export const archiveFiles = pgTable(
     // null dacă poppler-utils lipsește sau PDF-ul e corupt/criptat — nu blochează upload-ul.
     thumbnailR2Key: text('thumbnail_r2_key'),
     tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
+    // Every row soft-deleted by one action shares the batch id, so the Trash restores or purges
+    // the whole action at once (archive-trash-batches.ts).
+    deletedBatchId: uuid('deleted_batch_id'),
   },
   (t) => [
     uniqueIndex('uq_archive_files_r2_key').on(t.r2Key),
     index('idx_archive_files_folder').on(t.folderId),
     index('idx_archive_files_tags').using('gin', t.tags),
+    index('idx_archive_files_batch').on(t.deletedBatchId).where(sql`${t.deletedBatchId} IS NOT NULL`),
+    index('idx_archive_files_updated').on(t.updatedAt.desc()).where(sql`${t.deletedAt} IS NULL`),
   ],
 )

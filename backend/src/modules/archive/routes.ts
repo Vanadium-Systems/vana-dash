@@ -6,17 +6,22 @@ import { deleteFromR2, uploadToR2 } from '../../shared/lib/r2.js'
 import {
   AssignFolderSchema,
   AssignSpacesSchema,
+  BulkDeleteSchema,
+  BulkMoveSchema,
   CreateFolderSchema,
-  DeleteFileQuerySchema,
   ListFilesQuerySchema,
   ListFoldersQuerySchema,
+  PutBackSchema,
   SearchFilesQuerySchema,
   ShareSchema,
+  StarParamsSchema,
   UpdateFileSchema,
   UpdateFolderSchema,
 } from './schema.js'
 import * as service from './service.js'
-import { ArchiveConflictError, ArchiveNotFoundError } from './service.js'
+import * as trash from './trash.js'
+import { bulkMove, putBack } from './bulk.js'
+import { ArchiveConflictError, ArchiveNotFoundError, ArchiveStorageFullError } from './service.js'
 import { ensureSpaceRoot } from './access.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { contentDisposition } from '../../shared/lib/text.js'
@@ -32,10 +37,20 @@ export async function archiveRoutes(app: FastifyInstance) {
 
   server.setErrorHandler((error, _req, reply) => {
     if (error instanceof ArchiveNotFoundError) {
-      return reply.code(404).send({ success: false, error: error.message })
+      return reply.code(404).send({ success: false, error: error.message, itemId: error.itemId })
     }
     if (error instanceof ArchiveConflictError) {
       return reply.code(409).send({ success: false, error: error.message })
+    }
+    if (error instanceof ArchiveStorageFullError) {
+      const gb = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(1)} GB`
+      return reply.code(413).send({
+        success: false,
+        error: tr('errors.archive.storageFull', { used: gb(error.usedBytes), limit: gb(error.limitBytes) }),
+        code: 'STORAGE_FULL',
+        usedBytes: error.usedBytes,
+        limitBytes: error.limitBytes,
+      })
     }
     throw error
   })
@@ -77,10 +92,11 @@ export async function archiveRoutes(app: FastifyInstance) {
     },
   )
 
-  server.delete('/api/archive/folders/:id', { preHandler: [app.authenticate] }, async (req) => {
-    await service.deleteFolder(req.me, (req.params as { id: string }).id)
-    return { success: true }
-  })
+  // A folder goes to the Trash with everything in it; the answer is what the undo toast needs.
+  server.delete('/api/archive/folders/:id', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await trash.trashFolder(req.me, (req.params as { id: string }).id),
+  }))
 
   // Share pe folder — listă / adaugă (sau schimbă nivelul) / scoate. Dreptul îl are doar
   // proprietarul folderului sau adminul (service::assertCanShare).
@@ -165,6 +181,7 @@ export async function archiveRoutes(app: FastifyInstance) {
       if (data.file.truncated) {
         return reply.code(413).send({ success: false, error: tr('errors.archive.fileTooLarge') })
       }
+      await service.assertStorageAvailable(buffer.byteLength)
       try {
         const row = await service.uploadFile(req.me, {
           folderId,
@@ -179,6 +196,9 @@ export async function archiveRoutes(app: FastifyInstance) {
       }
     }
 
+    // The size of a streamed part is unknown up front: refuse when the bucket is already full,
+    // and check again with the real size once the upload is done.
+    await service.assertStorageAvailable(1)
     const safeName = data.filename.replace(/[/\\]/g, '_')
     const r2Key = `archive/${randomUUID()}-${safeName}`
     try {
@@ -193,6 +213,10 @@ export async function archiveRoutes(app: FastifyInstance) {
       await deleteFromR2(r2Key).catch(() => {})
       return reply.code(413).send({ success: false, error: tr('errors.archive.fileTooLarge') })
     }
+    await service.assertStorageAvailable(data.file.bytesRead).catch(async (err) => {
+      await deleteFromR2(r2Key).catch(() => {})
+      throw err
+    })
 
     const row = await service.createFileRecord(req.me, {
       folderId,
@@ -209,8 +233,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     '/api/archive/files',
     { preHandler: [app.authenticate], schema: { querystring: ListFilesQuerySchema } },
     async (req) => {
-      const rows = await service.listFiles(req.me, req.query)
-      return { success: true, data: rows }
+      return { success: true, data: await service.listFiles(req.me, req.query) }
     },
   )
 
@@ -218,10 +241,41 @@ export async function archiveRoutes(app: FastifyInstance) {
     '/api/archive/search',
     { preHandler: [app.authenticate], schema: { querystring: SearchFilesQuerySchema } },
     async (req) => {
-      const rows = await service.searchFiles(req.me, req.query.q, req.query.tags)
-      return { success: true, data: rows }
+      return { success: true, data: await service.searchArchive(req.me, req.query) }
     },
   )
+
+  server.get('/api/archive/recent', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await service.listRecent(req.me),
+  }))
+
+  server.get('/api/archive/stars', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await service.listStars(req.me),
+  }))
+
+  server.put(
+    '/api/archive/stars/:type/:id',
+    { preHandler: [app.authenticate], schema: { params: StarParamsSchema } },
+    async (req) => ({ success: true, data: await service.setStar(req.me, req.params.type, req.params.id) }),
+  )
+
+  server.delete(
+    '/api/archive/stars/:type/:id',
+    { preHandler: [app.authenticate], schema: { params: StarParamsSchema } },
+    async (req) => ({ success: true, data: await service.removeStar(req.me, req.params.type, req.params.id) }),
+  )
+
+  server.get('/api/archive/files/:id/details', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await service.getFileDetails(req.me, (req.params as { id: string }).id),
+  }))
+
+  server.get('/api/archive/folders/:id/details', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await service.getFolderDetails(req.me, (req.params as { id: string }).id),
+  }))
 
   server.get(
     '/api/archive/files/:id/download-url',
@@ -254,14 +308,43 @@ export async function archiveRoutes(app: FastifyInstance) {
     },
   )
 
-  server.delete(
-    '/api/archive/files/:id',
-    { preHandler: [app.authenticate], schema: { querystring: DeleteFileQuerySchema } },
-    async (req, reply) => {
-      const row = await service.deleteFile(req.me, (req.params as { id: string }).id, req.query.permanent)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.archive.fileNotFound') })
-      return { success: true }
-    },
+  // Permanent deletion happens only from the Trash (DELETE /api/archive/trash/:batchId).
+  server.delete('/api/archive/files/:id', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await trash.trashFile(req.me, (req.params as { id: string }).id),
+  }))
+
+  server.get('/api/archive/trash', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await trash.listTrash(req.me),
+  }))
+
+  server.post('/api/archive/trash/:batchId/restore', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await trash.restoreBatch(req.me, (req.params as { batchId: string }).batchId),
+  }))
+
+  server.delete('/api/archive/trash/:batchId', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await trash.purgeBatchNow(req.me, (req.params as { batchId: string }).batchId),
+  }))
+
+  server.post(
+    '/api/archive/bulk/move',
+    { preHandler: [app.authenticate], schema: { body: BulkMoveSchema } },
+    async (req) => ({ success: true, data: await bulkMove(req.me, req.body.items, req.body.targetFolderId) }),
+  )
+
+  server.post(
+    '/api/archive/bulk/delete',
+    { preHandler: [app.authenticate], schema: { body: BulkDeleteSchema } },
+    async (req) => ({ success: true, data: await trash.trashMany(req.me, req.body.items) }),
+  )
+
+  server.post(
+    '/api/archive/bulk/put-back',
+    { preHandler: [app.authenticate], schema: { body: PutBackSchema } },
+    async (req) => ({ success: true, data: await putBack(req.me, req.body.previous) }),
   )
 
   server.get(

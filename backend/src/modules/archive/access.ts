@@ -94,9 +94,14 @@ export function accessiblePathsCte(me: SessionUser): SQL {
 
 /** Nivelul efectiv al omului pe un folder anume — pt. cereri directe după id (mutare, download). */
 export async function folderAccessLevel(me: SessionUser, folderId: string): Promise<AccessLevel> {
+  // `granted` keeps the owner's deleted folders (it does not filter `deleted_at`), so the live
+  // check is here: a folder in the Trash grants nothing, or uploads and moves could land in it.
   const rows = await db.execute<{ lvl: number }>(sql`
     ${accessibleFoldersCte(me)}
-    SELECT COALESCE((SELECT a.lvl FROM access a WHERE a.id = ${folderId}), 0)::int AS lvl
+    SELECT COALESCE((
+      SELECT a.lvl FROM access a JOIN "archive_folders" f ON f."id" = a.id
+       WHERE a.id = ${folderId} AND f."deleted_at" IS NULL
+    ), 0)::int AS lvl
   `)
   return (rows[0]?.lvl ?? 0) as AccessLevel
 }
@@ -124,6 +129,16 @@ async function findOrCreateRoot(owner: { id: string; displayName: string | null;
     .returning({ id: archiveFolders.id, ownerUserId: archiveFolders.ownerUserId })
   if (!created) throw new Error(tr('errors.archive.spaceNotCreated'))
   return created
+}
+
+/** The space root of any person, for restoring from the Trash into a space whose folder is gone. */
+export async function ensureSpaceRootOf(ownerUserId: string): Promise<string> {
+  const [owner] = await db
+    .select({ id: users.id, displayName: users.displayName, email: users.email })
+    .from(users)
+    .where(eq(users.id, ownerUserId))
+  if (!owner) throw new Error(`archive: owner ${ownerUserId} not found`)
+  return (await findOrCreateRoot(owner)).id
 }
 
 /** Rădăcina spațiului omului, creată la prima atingere (nu la invite — un user nou fără

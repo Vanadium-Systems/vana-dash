@@ -1,5 +1,5 @@
 import type { Readable } from 'node:stream'
-import { DeleteObjectCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { config } from '../config.js'
@@ -69,4 +69,22 @@ export async function getPresignedDownloadUrl(
 
 export async function deleteFromR2(key: string): Promise<void> {
   await r2Client().send(new DeleteObjectCommand({ Bucket: config.r2.bucketName, Key: key }))
+}
+
+/** Deletes up to any number of keys, 1,000 per request (the S3 limit). Throws on the first batch
+ *  R2 reports errors for, so the caller keeps the rows and retries later. */
+export async function deleteManyFromR2(keys: string[]): Promise<void> {
+  for (let i = 0; i < keys.length; i += 1000) {
+    const chunk = keys.slice(i, i + 1000)
+    const res = await r2Client().send(
+      new DeleteObjectsCommand({
+        Bucket: config.r2.bucketName,
+        Delete: { Objects: chunk.map((Key) => ({ Key })), Quiet: true },
+      }),
+    )
+    if (res.Errors?.length) {
+      const first = res.Errors[0]
+      throw new Error(`R2 DeleteObjects: ${res.Errors.length} failed, first ${first?.Key}: ${first?.Code}`)
+    }
+  }
 }

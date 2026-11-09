@@ -70,7 +70,12 @@
     "folderNotCreated": "The folder \"{{name}}\" could not be created",
     "fileNotCreated": "The file was not created",
     "shareWithSelf": "You cannot share the space with yourself",
-    "spaceName": "Space of {{name}}"
+    "spaceName": "Space of {{name}}",
+    "spaceRootDelete": "A space root cannot be deleted",
+    "trashNotFound": "The item is no longer in the Trash",
+    "restoredSuffix": "(restored)",
+    "storageFull": "Storage is full: {{used}} of {{limit}}",
+    "bulkTooMany": "Too many items at once"
   },
   "calendar": {
     "eventNotFound": "The event does not exist",
@@ -108,7 +113,11 @@
     "ticketNotFound": "The ticket does not exist"
   },
   "notes": {
-    "notFound": "The note does not exist"
+    "notFound": "The note does not exist",
+    "empty": "The note is empty",
+    "changed": "The note changed in the meantime",
+    "invalidBody": "The note content is not valid",
+    "labelNotFound": "The label does not exist"
   },
   "plan": {
     "goalNotFound": "The goal does not exist",

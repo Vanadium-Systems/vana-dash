@@ -34,5 +34,9 @@
     "inList": "In the list"
   },
   "markBought": "Mark as bought",
-  "addAsExpense": "Also add as an expense in Invoices ({{amount}})"
+  "addAsExpense": "Also add as an expense in Invoices ({{amount}})",
+  "filter": {
+    "scope": "Personal or company",
+    "category": "Type"
+  }
 }

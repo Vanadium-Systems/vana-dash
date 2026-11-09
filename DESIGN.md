@@ -86,6 +86,12 @@ sit under one "Investiții" item with a switch in the header. The old routes red
 are in `shared/components/layout/PageSection.tsx`: they give the section title and the tabs
 through `PageHeader`, and the modules do not import one another.
 
+**Tabs have two looks, one component.** The page's own tabs use the sliding line
+(`<TabsList>`); views of the same list inside a page use `<TabsList variant="segmented">`
+(Notes / Archive / Trash, Personal / Company, the Archive views), so two rows of tabs never look
+alike. Choices that only narrow a list (Personal / Company, Needs / Wants in Wishlist) are not
+tabs at all: they go in the "Filtru" menu with removable chips (`ui/filter-chip.tsx`).
+
 **Help** (Support, Guides, What's new) has no nav items. They are pages opened rarely, so they
 live in the account menu at the bottom of the sidebar, each with its unread count and with a
 dot on the avatar. The "?" next to a page title shows only where there are guides for the

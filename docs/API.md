@@ -120,7 +120,7 @@ The Modules page. Every route except the catalog needs `echipa.administrare`.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/search` | Query: `q` (2-120 characters), `limit?` (1-10, default 5) → `[{ group, feature, items: [{ id, label, sublabel, to }] }]`. Groups: invoices, clients, email, archive, calendar. A group is queried only if the person has its feature, and email, archive and calendar go through their module's per-person filter |
+| GET | `/api/search` | Query: `q` (2-120 characters), `limit?` (1-10, default 5) → `[{ group, feature, items: [{ id, label, sublabel, to }] }]`. Groups: invoices, clients, email, archive, calendar, notes. A group is queried only if the person has its feature, and email, archive, calendar and notes go through their module's per-person filter. Notes match title and body without diacritics, only the person's own, not archived or deleted, and link to `/notes?note=<id>` |
 
 ## Messages
 
@@ -410,10 +410,10 @@ subfolders, the financial archive, the quarterly package) write into the platfor
 |---|---|---|
 | GET | `/api/archive/spaces` | `{ own: { id, name }, shared: [...], spaces: [...] \| null }`. `shared` are the folders received through a share (the top ones only); `spaces` are everyone's roots, only with `arhiva.administrare`. Entries: `{ id, name, kind, level, ownerUserId, ownerName }` |
 | POST | `/api/archive/folders` | `{ name, parentId? }`. Without `parentId`, in the person's space. Needs `edit` on the parent |
-| GET | `/api/archive/folders` | Query: `parentId?` (missing = the root of the person's space), `sort?` (`recent`/`oldest`/`name`) → `[{ id, name, parentId, ownerUserId, fileCount, subfolderCount, autoMonthlySubfolders, level, canShare }]` |
+| GET | `/api/archive/folders` | Query: `parentId?` (missing = the root of the person's space), `sort?` (`recent`/`oldest`/`name`) → `[{ id, name, parentId, ownerUserId, color, starred, fileCount, subfolderCount, itemCount, autoMonthlySubfolders, level, canShare }]`. Not paginated |
 | GET | `/api/archive/folders/:id/path` | `{ path: [{ id, name }], level, canShare, ownerUserId, ownerName }`. The path starts at the topmost folder the person can access, so a shared folder does not show its ancestors |
-| PATCH | `/api/archive/folders/:id` | `{ name?, parentId?, autoMonthlySubfolders? }`. 409 on a cycle in the tree. Moving also needs `edit` on the destination |
-| DELETE | `/api/archive/folders/:id` | Soft delete. 409 if it is not empty |
+| PATCH | `/api/archive/folders/:id` | `{ name?, parentId?, autoMonthlySubfolders?, color? }` (`color` 1-8 or `null`). 409 on a cycle in the tree. Moving also needs `edit` on the destination. Answers with `previousName` and `previousParentId`, which is what the client needs to undo a rename or a move |
+| DELETE | `/api/archive/folders/:id` | Moves the folder and everything under it to the Trash (see below), whether or not it is empty. Needs `edit` on the parent folder. → `{ batchId, itemCount, totalBytes }` |
 | GET | `/api/archive/folders/:id/download` | A zip of the whole subtree |
 | GET | `/api/archive/folders/:id/shares` | `[{ id, userId, level, displayName, email }]`. Owner or admin |
 | POST | `/api/archive/folders/:id/shares` | `{ userId, level: 'view'\|'edit' }`, adds or changes the level. Audited |
@@ -421,13 +421,27 @@ subfolders, the financial archive, the quarterly package) write into the platfor
 | POST | `/api/archive/folders/:id/assign` | `{ ownerUserId }`, moves the whole subtree to another person. `arhiva.administrare` |
 | POST | `/api/archive/spaces/:ownerUserId/assign` | `{ toUserId }` → `{ moved }`, all of a person's folders in one call. `arhiva.administrare` |
 | POST | `/api/archive/files` | `multipart/form-data`, with `folderId`/`tags` before `file`. Without `folderId`, the root of the person's space. 200 MB at most |
-| GET | `/api/archive/files` | Query: `folderId?`, `q?`, `tags?` (all of them), `sort?`, `page?` (50 per page) |
-| GET | `/api/archive/search` | Query: `q`, `tags?` → results from everything the person can see, with `folderPath` |
+| GET | `/api/archive/files` | Query: `folderId?` (missing = the root of the person's space), `q?` (name, no diacritics), `tags?` (all of them), `type?` (`pdf`/`image`/`document`/`spreadsheet`/`archive`/`other`), `modifiedAfter?`, `sort?` (`recent`/`oldest`/`name`), `page?`, `pageSize?` (10, 25 or 50; default 50) → `{ items, total, page, pageSize }`. Items carry `previewUrl` |
+| GET | `/api/archive/search` | Query: `q`, `tags?`, `type?`, `modifiedAfter?` → up to 50 results from everything the person can see, folders and files, each with `kind` (`folder`/`file`) and `folderPath`. No diacritics; `%`, `_` and `\` in `q` are literal. With a `tags`, `type` or `modifiedAfter` filter only files come back |
 | GET | `/api/archive/files/:id/download-url` | `{ url, expiresAt }`, a presigned R2 URL valid 15 minutes. For navigation, not for `fetch()` (R2 does not apply CORS to presigned URLs) |
 | GET | `/api/archive/files/:id/download` | Same-origin streaming through the backend, for code that has to read the bytes in JS |
-| PATCH | `/api/archive/files/:id` | `{ name?, folderId?, tags? }` |
-| DELETE | `/api/archive/files/:id` | Query: `permanent?` (`true` also deletes from R2) |
+| PATCH | `/api/archive/files/:id` | `{ name?, folderId?, tags? }`. Answers with `previousName` and `previousFolderId` for undo |
+| DELETE | `/api/archive/files/:id` | Moves the file to the Trash; there is no `permanent` flag any more, a permanent delete happens only from the Trash. Needs `edit` on the folder. → `{ batchId, itemCount, totalBytes }` |
+| GET | `/api/archive/files/:id/details`, `/api/archive/folders/:id/details` | `{ id, name, …, path: [{ id, name }], owner, createdBy, updatedBy, starred, access: [{ userId, name, level, inherited, inheritedFrom: { id, name } \| null }] }`. `access` is one row per person, from the shares on the item's folder and its ancestors. The name of an ancestor the reader cannot open is left out (`inheritedFrom: null`) |
+| GET | `/api/archive/recent` | The last 20 files changed, from folders the person can see |
+| GET | `/api/archive/stars` | `{ folders, files }` the person starred and can still see |
+| PUT/DELETE | `/api/archive/stars/:type/:id` | `type` is `file` or `folder`. Idempotent; the item has to be visible, else 404 → `{ starred }`. Stars are per person |
+| GET | `/api/archive/trash` | One entry per deletion (a batch): `{ id, rootType, rootId, rootName, mimeType, parentId, parentName, itemCount, totalBytes, deletedBy: { id, name }, deletedAt, purgeAfter }`. Visible to the owner of the space it was deleted from and to anyone who still has `edit` on the folder it was deleted from |
+| POST | `/api/archive/trash/:batchId/restore` | Puts the batch back where it was. If that folder is itself in the Trash, it goes to the root of the same space; a live item with the same name gets a "(restored)" suffix → `{ restoredTo: { id, name }, name }` |
+| DELETE | `/api/archive/trash/:batchId` | Deletes the batch for good. The rows and the R2 objects (with thumbnails) are removed right after the response → `{ itemCount, totalBytes }` |
+| POST | `/api/archive/bulk/move` | `{ items: [{ type, id }] (1-500), targetFolderId }` → `{ moved, previous: [{ type, id, folderId }] }`. All or nothing: one item without `edit` → 404 with its `itemId` and nothing moves. Between spaces is refused |
+| POST | `/api/archive/bulk/delete` | `{ items }` → `{ batches: [{ batchId, itemCount, totalBytes }] }`, one batch per item |
+| POST | `/api/archive/bulk/put-back` | `{ previous }` (the `previous` of a `bulk/move`) → same shape as `bulk/move`. Undoes a move |
 | GET | `/api/archive/storage` | `{ usedBytes, limitBytes, totalUsedBytes }`, the space the person uses; `totalUsedBytes` only with `arhiva.administrare`, otherwise `null` |
+
+**Trash.** A delete is a soft delete: the item (a folder with its whole subtree) gets a `deleted_batch_id` and a row in `archive_trash_batches` with `purge_after` 30 days ahead. The rows stay in the database and the objects stay in R2 until the batch is purged, by the nightly `jobs/trash-purge.ts` or by `DELETE /api/archive/trash/:batchId`. Features: `arhiva.view` to list, `arhiva.editare` to restore and purge.
+
+**Storage limit.** Uploads count every file row, deleted ones included, because their objects are still in R2. Over the limit, `POST /api/archive/files` answers `413` with `code: 'STORAGE_FULL'`, `usedBytes` and `limitBytes`. A file over the size cap answers `413` without that code.
 
 ## Calendar
 
@@ -455,15 +469,29 @@ An event's reminder reaches the owner and, for a common event, each attendee.
 
 ## Notes
 
-One table (`notes`), plain text, no markdown. Each note belongs to the person who wrote it
-(`owner_user_id`); the same goes for the wishlist and the plan.
+Each note belongs to the person who wrote it (`owner_user_id`), and every route filters on it: someone else's note, by id or inside `bulk` or `versions`, is a 404. Feature: `notite.view`.
+
+A note is `{ id, title, body, bodyFormat, bodyJson, pinned, color, labels, archivedAt, deletedAt, createdAt, updatedAt }`. `bodyFormat` is `plain` (old notes, the assistant) or `rich`. `bodyJson` is the editor's document (a tiptap tree); the server keeps `body` as its plain text, recomputed on every save, and search, Ctrl K and message cards read that. A `bodyJson` that is not a document, deeper than 30 levels or larger than 1 MB is `400 INVALID_BODY`; link marks whose address is not `http(s)`, `mailto` or `tel` are dropped on save. `title` is optional; a note with no title and no text is `400 EMPTY_NOTE`. `color` is 1-8 or `null`.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/notes` | Query: `search?` (title and body), `pinned?` → pinned first, then by `updated_at` descending |
-| POST | `/api/notes` | `{ title, body? }` |
-| PATCH | `/api/notes/:id` | `{ title?, body?, pinned? }`. 404 if missing |
-| DELETE | `/api/notes/:id` | Soft delete |
+| GET | `/api/notes` | Query: `view?` (`active` default, `archived`, `trash`), `q?` (title and body, no diacritics), `label?`, `color?`, `pinned?` → an array, no cursor. Pinned first, then by `updated_at` descending; `trash` by deletion time, only the last 30 days |
+| GET | `/api/notes/:id` | One note, also one in the Trash (the client opens it read-only) |
+| POST | `/api/notes` | `{ title?, body?, bodyJson?, color?, labels?, pinned? }` → 201 |
+| PATCH | `/api/notes/:id` | Partial update, same fields, plus `expectedUpdatedAt`. If the note changed since then: `409` with `code: 'NOTE_CHANGED'` and the current note in `data`. A save with `bodyJson` makes the note `rich` and may write a version |
+| PATCH | `/api/notes/:id/archive`, `/unarchive` | Sets or clears `archivedAt` |
+| DELETE | `/api/notes/:id` | Moves to the Trash (soft delete) |
+| POST | `/api/notes/:id/restore` | From the Trash, within 30 days; later it is a 404 |
+| DELETE | `/api/notes/trash` | Empties the person's Trash for good |
+| POST | `/api/notes/bulk` | `{ ids (1-200), action, value? }`; `action` is `archive`, `unarchive`, `delete`, `restore`, `pin`, `unpin`, `color` (`value` 1-8 or `null`), `addLabel` or `removeLabel` (`value` is the label) → `{ updated }`. All the ids belong to the person or nothing changes |
+| GET | `/api/notes/labels` | `[{ name, count }]`, the person's labels |
+| PATCH | `/api/notes/labels/:name` | `{ newName }`, renames the label on all the person's notes in one transaction |
+| DELETE | `/api/notes/labels/:name` | Removes the label from all the person's notes |
+| GET | `/api/notes/:id/versions` | `[{ id, createdAt, title, excerpt }]`, newest first |
+| GET | `/api/notes/:id/versions/:vid` | The whole version |
+| POST | `/api/notes/:id/versions/:vid/restore` | Makes the version current; the state it replaces is first kept as a version |
+
+**Versions.** A save that changes the content writes the state from before the change as a version, but only when the last version is older than 10 minutes (or there is none). 50 are kept per note. The nightly `jobs/trash-purge.ts` also deletes notes that have been in the Trash for over 30 days, 200 per run; their versions go with them.
 
 ## Wishlist
 
@@ -514,6 +542,7 @@ to `(scope, tier)`.
 | PATCH | `/api/plan/:id` | Partial update. Switching to `thresholdType='manual'` clears `thresholdValue`; switching to `mrr_ron` without a `thresholdValue` → 400. 404 if missing |
 | DELETE | `/api/plan/:id` | Soft delete |
 | PATCH | `/api/plan/:id/complete` | `{ completed }`, sets or clears `completedAt` |
+| PATCH | `/api/plan/:id/move` | `{ tier (1-4), position (1-based) }`. Moves the goal to that place in that tier, which may be its own, and renumbers both tiers in one transaction. Only the person's own goal, else 404 |
 | POST | `/api/plan/reorder` | `{ scope, tier, orderedIds }`, rewrites the positions of one `(scope, tier)` in a transaction. `orderedIds` has to match the existing goals of that tier exactly, otherwise 400 |
 
 ## Alerts

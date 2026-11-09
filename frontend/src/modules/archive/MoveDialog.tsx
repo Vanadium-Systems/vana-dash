@@ -9,7 +9,7 @@ interface MoveDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   itemName: string
-  onConfirm: (targetFolderId: string | null) => void
+  onConfirm: (target: { id: string | null; name: string }) => void
   isPending: boolean
 }
 
@@ -26,7 +26,7 @@ export function MoveDialog({ open, onOpenChange, itemName, onConfirm, isPending 
           <DialogTitle>{t('archive:move.title', { itemName })}</DialogTitle>
         </DialogHeader>
         <FolderPicker trail={trail} onNavigate={setTrail} />
-        <Button className="w-full" disabled={isPending} onClick={() => onConfirm(trail[trail.length - 1]!.id)}>
+        <Button className="w-full" disabled={isPending} onClick={() => onConfirm(trail[trail.length - 1]!)}>
           {isPending ? t('archive:move.moving') : t('archive:move.here', { name: trail[trail.length - 1]!.name })}
         </Button>
       </DialogContent>

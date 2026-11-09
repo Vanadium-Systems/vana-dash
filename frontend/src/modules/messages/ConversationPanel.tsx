@@ -185,7 +185,7 @@ function InfoPanel({
       </label>
 
       <Tabs defaultValue="image">
-        <TabsList>
+        <TabsList variant="segmented">
           <TabsTrigger value="image">{t('messages:panel.media')}</TabsTrigger>
           <TabsTrigger value="file">{t('messages:panel.files')}</TabsTrigger>
         </TabsList>

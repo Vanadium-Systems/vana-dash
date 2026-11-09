@@ -1,0 +1,97 @@
+/* Body of a note, in the editor and in the read-only preview. Tokens only. */
+.note-prose {
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  overflow-wrap: anywhere;
+}
+.note-prose > * + * {
+  margin-top: 0.5rem;
+}
+.note-prose h1 {
+  font-size: 1.375rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+}
+.note-prose h2 {
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  font-weight: 650;
+}
+.note-prose h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.note-prose ul,
+.note-prose ol {
+  padding-left: 1.25rem;
+}
+.note-prose ul {
+  list-style: disc;
+}
+.note-prose ol {
+  list-style: decimal;
+}
+.note-prose ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+.note-prose ul[data-type='taskList'] li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.note-prose ul[data-type='taskList'] li > label {
+  flex: none;
+  padding-top: 0.2rem;
+}
+.note-prose ul[data-type='taskList'] li > label input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: hsl(var(--primary));
+}
+.note-prose ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+}
+.note-prose ul[data-type='taskList'] li[data-checked='true'] > div {
+  text-decoration: line-through;
+  color: hsl(var(--muted-foreground));
+}
+.note-prose blockquote {
+  border-left: 2px solid hsl(var(--border));
+  padding-left: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+.note-prose pre {
+  border-radius: var(--radius);
+  background: hsl(var(--muted));
+  padding: 0.5rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+}
+.note-prose code {
+  border-radius: 0.25rem;
+  background: hsl(var(--muted));
+  padding: 0.05rem 0.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;
+}
+.note-prose pre code {
+  background: none;
+  padding: 0;
+}
+.note-prose a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+.note-prose .ProseMirror {
+  outline: none;
+}
+.note-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: hsl(var(--muted-foreground));
+}

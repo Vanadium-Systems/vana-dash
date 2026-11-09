@@ -4,10 +4,12 @@
     "clients": "Clients",
     "email": "Email",
     "archive": "Archive",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "notes": "Notes"
   },
   "invoice": {
     "issued": "issued",
     "received": "received"
-  }
+  },
+  "untitledNote": "Untitled note"
 }

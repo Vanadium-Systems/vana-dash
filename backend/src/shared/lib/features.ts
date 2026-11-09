@@ -319,12 +319,21 @@ export const FEATURES: FeatureDef[] = [
       ...read('/api/archive/search'),
       ...read('/api/archive/storage'),
       ...read('/api/archive/spaces'),
+      ...read('/api/archive/trash'),
+      ...read('/api/archive/recent'),
+      // A star is personal, so setting one is part of viewing, not of editing the archive.
+      ...whole('/api/archive/stars'),
     ],
   },
   {
     key: 'arhiva.editare',
     page: 'arhiva',
-    routes: [...write('/api/archive/files'), ...write('/api/archive/folders')],
+    routes: [
+      ...write('/api/archive/files'),
+      ...write('/api/archive/folders'),
+      ...write('/api/archive/trash'),
+      ...write('/api/archive/bulk'),
+    ],
   },
   {
     // Vede conținutul tuturor spațiilor și poate atribui folderele (decizie Stefan 2026-09-30).

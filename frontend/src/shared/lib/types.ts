@@ -1026,6 +1026,10 @@ export interface ArchiveFolder {
   level: AccessLevel
   /** Proprietarul sau adminul — doar ei văd „Partajează". */
   canShare: boolean
+  /** 1..8 from the `--tag-*` palette, null = no color. */
+  color: number | null
+  starred: boolean
+  itemCount: number
 }
 
 export type AccessLevel = 'view' | 'edit'
@@ -1081,10 +1085,94 @@ export interface ArchiveFile {
   r2Key: string
   tags: string[]
   createdAt: string
+  updatedAt: string
   previewUrl: string | null
 }
 
+export interface ArchiveFilesPage {
+  items: ArchiveFile[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+/** `GET /api/archive/recent`: files with the path of their folder. */
+/** `level` = the person's right on the folder holding the item, for lists outside a folder. */
+type WithLevel = { level: 'view' | 'edit' }
+
+export interface ArchiveRecentFile extends ArchiveFile, WithLevel {
+  folderPath: { id: string; name: string }[]
+}
+
+export interface ArchiveStars {
+  folders: ({ id: string; name: string; color: number | null; parentId: string | null } & WithLevel)[]
+  files: (ArchiveFile & WithLevel)[]
+}
+
+export type ArchiveSearchHit =
+  | (ArchiveSearchResult & WithLevel & { kind: 'file' })
+  | ({ kind: 'folder'; id: string; name: string; color: number | null; folderId: string | null; folderPath: { id: string; name: string }[] } & WithLevel)
+
+export interface ArchivePerson {
+  id: string
+  name: string
+}
+
+/** `GET /api/archive/{files,folders}/:id/details`. `inheritedFrom` null with `inherited` = a folder above that the reader cannot open. */
+export interface ArchiveDetails {
+  id: string
+  name: string
+  mimeType?: string
+  sizeBytes?: number
+  tags?: string[]
+  folderId?: string
+  color?: number | null
+  createdAt: string
+  updatedAt: string
+  path: ArchiveFolderPathEntry[]
+  createdBy: ArchivePerson | null
+  updatedBy: ArchivePerson | null
+  owner: ArchivePerson | null
+  starred: boolean
+  access: {
+    userId: string
+    name: string
+    level: AccessLevel
+    inherited: boolean
+    inheritedFrom: ArchiveFolderPathEntry | null
+  }[]
+}
+
+export interface ArchiveTrashEntry {
+  id: string
+  rootType: 'file' | 'folder'
+  rootId: string
+  rootName: string
+  mimeType: string | null
+  parentId: string
+  parentName: string
+  itemCount: number
+  totalBytes: number
+  deletedBy: ArchivePerson
+  deletedAt: string
+  purgeAfter: string
+}
+
+export interface ArchiveTrashResult {
+  batchId: string
+  itemCount: number
+  totalBytes: number
+}
+
+export interface ArchiveBulkPrevious {
+  type: 'file' | 'folder'
+  id: string
+  folderId: string
+}
+
 export interface ArchiveSearchResult {
+  /** The search also returns folders; the file-only callers filter them out. */
+  kind?: 'file' | 'folder'
   id: string
   name: string
   mimeType: string
@@ -1093,6 +1181,7 @@ export interface ArchiveSearchResult {
   folderId: string | null
   folderPath: { id: string; name: string }[]
   previewUrl: string | null
+  updatedAt: string
 }
 
 export interface ArchiveDownloadUrl {
@@ -1159,13 +1248,49 @@ export interface CalendarsPayload {
 
 // ── Notițe ───────────────────────────────────────────────────────────────────
 
+/** A tiptap document as stored in `notes.body_json`. */
+export interface NoteDoc {
+  type: 'doc'
+  content?: NoteNode[]
+}
+
+export interface NoteNode {
+  type: string
+  attrs?: Record<string, unknown>
+  content?: NoteNode[]
+  text?: string
+  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>
+}
+
 export interface Note {
   id: string
   title: string
+  /** Plain text derived by the server from the document; what search and old notes use. */
   body: string
+  bodyFormat: 'plain' | 'rich'
+  bodyJson: NoteDoc | null
   pinned: boolean
+  color: number | null
+  labels: string[]
+  archivedAt: string | null
+  deletedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface NoteVersionSummary {
+  id: string
+  createdAt: string
+  title: string
+  excerpt: string
+}
+
+export interface NoteVersion {
+  id: string
+  createdAt: string
+  title: string
+  body: string
+  bodyJson: NoteDoc | null
 }
 
 // ── Wishlist ─────────────────────────────────────────────────────────────────

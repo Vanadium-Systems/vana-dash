@@ -1,7 +1,16 @@
 {
-  "sort": {
+  "tabs": {
     "recent": "Recent",
-    "old": "Oldest"
+    "starred": "Starred",
+    "trash": "Trash"
+  },
+  "header": {
+    "path": "Path to here"
+  },
+  "sort": {
+    "newest": "Newest",
+    "oldest": "Oldest",
+    "name": "Name (A-Z)"
   },
   "storage": {
     "hint": "Space used out of the Cloudflare R2 free plan"
@@ -11,7 +20,20 @@
     "owner": "Owner",
     "access": "Access",
     "location": "Location",
-    "tags": "Tags"
+    "tags": "Labels",
+    "modified": "Modified",
+    "size": "Size"
+  },
+  "types": {
+    "pdf": "PDF",
+    "image": "Image",
+    "document": "Document",
+    "spreadsheet": "Spreadsheet",
+    "archive": "Archive",
+    "video": "Video",
+    "audio": "Audio",
+    "other": "Other",
+    "folder": "Folder"
   },
   "spaces": {
     "sharedWithMe": "Shared with me",
@@ -26,23 +48,19 @@
     "monthlyOn": "A monthly subfolder (MM-YYYY) will be created automatically on the 1st of the month",
     "monthlyOff": "Automatic monthly subfolder switched off",
     "folderCreated": "Folder created",
-    "folderRenamed": "Folder renamed",
-    "folderDeleted": "Folder deleted",
-    "fileRenamed": "File renamed",
-    "fileDeleted": "File deleted",
-    "fileMoved": "File moved",
-    "folderMoved": "Folder moved",
-    "fileUploaded": "File uploaded",
-    "uploadFailed": "Upload failed",
-    "filesUploaded_one": "{{count}} file uploaded",
-    "filesUploaded_other": "{{count}} files uploaded",
-    "allFailed_one": "The file failed",
-    "allFailed_other": "All {{count}} files failed",
-    "partlyUploaded": "{{done}} of {{total}} files uploaded, {{failed}} failed"
-  },
-  "files": {
-    "deleteTitle": "Delete the file “{{name}}”",
-    "deleteConfirm": "Delete the file"
+    "trashed": "“{{name}}” moved to Trash",
+    "trashedWith_one": "“{{name}}” and {{count}} more item moved to Trash",
+    "trashedWith_other": "“{{name}}” and {{count}} more items moved to Trash",
+    "trashedMany_one": "{{count}} item moved to Trash",
+    "trashedMany_other": "{{count}} items moved to Trash",
+    "moved": "“{{name}}” moved to “{{folder}}”",
+    "movedMany_one": "{{count}} item moved to “{{folder}}”",
+    "movedMany_other": "{{count}} items moved to “{{folder}}”",
+    "renamed": "“{{from}}” renamed to “{{to}}”",
+    "starred_one": "Star added",
+    "starred_other": "Star added to {{count}} items",
+    "unstarred_one": "Star removed",
+    "unstarred_other": "Star removed from {{count}} items"
   },
   "actions": {
     "downloadZip": "Download (.zip)",
@@ -51,32 +69,121 @@
   "folders": {
     "monthlyDisable": "Switch off the monthly subfolder",
     "monthlyEnable": "Switch on the monthly subfolder",
-    "deleteTitle": "Delete the folder “{{name}}”",
-    "deleteBody": "Works only if the folder is empty.",
-    "deleteConfirm": "Delete the folder",
     "new": "New folder",
-    "open": "Open the folder",
+    "open": "Open folder",
     "root": "Archive (root)"
   },
+  "menu": {
+    "preview": "Preview",
+    "color": "Color",
+    "details": "Details",
+    "star": "Add star",
+    "unstar": "Remove star",
+    "starred": "Starred",
+    "showLocation": "Show folder"
+  },
+  "color": {
+    "title": "Color of “{{name}}”"
+  },
   "search": {
-    "placeholder": "Search the whole archive…",
-    "tagFilter": "Tag filter (comma separated)"
+    "label": "Search the Archive",
+    "placeholder": "Search files and folders…"
+  },
+  "filters": {
+    "add": "Filter",
+    "noTags": "None of the files in the list has a label.",
+    "remove": "Remove filter",
+    "removeNamed": "Remove the {{name}} filter"
   },
   "view": {
     "sortFiles": "Sort files",
     "list": "List view",
     "grid": "Grid view"
   },
+  "selection": {
+    "count_one": "{{count}} item",
+    "count_other": "{{count}} items"
+  },
+  "shortcuts": {
+    "next": "Next item",
+    "previous": "Previous item",
+    "open": "Open",
+    "preview": "Preview",
+    "search": "Search the Archive"
+  },
+  "fab": {
+    "label": "Add",
+    "camera": "Take a photo"
+  },
   "upload": {
-    "dropHere": "Drop the files here"
+    "dropTo": "Upload to “{{folder}}”"
+  },
+  "drag": {
+    "moveTo": "Move to “{{folder}}”"
+  },
+  "uploadPanel": {
+    "label": "Uploads",
+    "uploading_one": "Uploading {{count}} file",
+    "uploading_other": "Uploading {{count}} files",
+    "failed_one": "{{count}} file did not upload",
+    "failed_other": "{{count}} files did not upload",
+    "finished_one": "{{count}} file uploaded",
+    "finished_other": "{{count}} files uploaded",
+    "waiting": "Waiting",
+    "progress": "{{loaded}} of {{size}} · {{percent}}%",
+    "done": "Uploaded",
+    "canceled": "Canceled",
+    "expand": "Show the list",
+    "collapse": "Collapse the list",
+    "storageFull": "The Archive is full ({{used}} of {{limit}}). Delete files from the Trash for good to make room.",
+    "tooLarge": "The file is over 200 MB."
   },
   "empty": {
     "nothingShared": "Nobody has shared a folder with you yet",
     "noSpace": "No space",
     "sharedHint": "When a colleague gives you access to a folder, it shows up here.",
-    "noFileFound": "No file found.",
-    "folderWithActions": "Empty folder. Create a subfolder or upload a file.",
-    "folder": "Empty folder."
+    "noFileFound": "Nothing found.",
+    "spaceEmpty": "Your space is empty",
+    "folderTitle": "This folder is empty",
+    "folderHint": "Drag files here or upload.",
+    "folder": "There is nothing here.",
+    "recentTitle": "Nothing recent",
+    "recentHint": "The last 20 files uploaded or changed show up here.",
+    "starredTitle": "Nothing starred",
+    "starredHint": "Press S on a file or folder, or choose “Add star” from its menu."
+  },
+  "viewer": {
+    "gone": "The file no longer exists."
+  },
+  "details": {
+    "title": "Details",
+    "gone": "The item no longer exists, or you no longer have access to it.",
+    "created": "Created",
+    "modified": "Modified",
+    "byAt": "{{name}}, {{date}}",
+    "access": "Who has access",
+    "owner": "Owner",
+    "onlyOwner": "Only the owner has access.",
+    "inheritedFrom": "inherited from “{{folder}}”",
+    "inheritedAbove": "inherited from a folder above",
+    "readOnly": "You have read-only access, given by {{name}}."
+  },
+  "trash": {
+    "emptyTitle": "The Trash is empty",
+    "emptyHint": "What you delete stays here for 30 days, then it is deleted for good.",
+    "content": "Contents",
+    "deleted": "Deleted by",
+    "purgeHead": "Disappears",
+    "from": "from “{{folder}}”",
+    "contents_one": "{{count}} item · {{size}}",
+    "contents_other": "{{count}} items · {{size}}",
+    "purgeOn": "Deleted for good on {{date}}",
+    "restored": "“{{name}}” restored to “{{folder}}”",
+    "purged": "“{{name}}” deleted for good",
+    "purgeTitle": "Delete “{{name}}” for good?",
+    "purgeBody_one": "{{count}} item ({{size}}) will be deleted for good. It cannot be recovered.",
+    "purgeBody_other": "{{count}} items ({{size}}) will be deleted for good. They cannot be recovered.",
+    "purgeConfirm": "Delete for good"
   },
   "share": {
     "title": "Share “{{name}}”",
@@ -88,7 +195,8 @@
   "move": {
     "title": "Move “{{itemName}}”",
     "moving": "Moving…",
-    "here": "Move here ({{name}})"
+    "here": "Move here ({{name}})",
+    "noSpace": "Could not find your space."
   },
   "save": {
     "saved": "Saved to the Archive",

@@ -4,10 +4,12 @@
     "clients": "Clienți",
     "email": "Email",
     "archive": "Arhivă",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "notes": "Notițe"
   },
   "invoice": {
     "issued": "emisă",
     "received": "primită"
-  }
+  },
+  "untitledNote": "Notiță fără titlu"
 }

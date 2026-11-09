@@ -179,3 +179,39 @@ export async function reorderGoals(me: SessionUser, scope: PlanScope, tier: numb
       .orderBy(asc(planGoals.position))
   })
 }
+
+/**
+ * Moves a goal to `position` (1-based) in `tier`, which may be its own tier, and renumbers both
+ * tiers in one transaction so neither is left with a gap or a duplicate.
+ */
+export async function moveGoal(me: SessionUser, id: string, tier: number, position: number) {
+  return db.transaction(async (tx) => {
+    const [goal] = await tx
+      .select()
+      .from(planGoals)
+      .where(and(eq(planGoals.id, id), eq(planGoals.ownerUserId, me.id), isNull(planGoals.deletedAt)))
+      .for('update')
+    if (!goal) return null
+    const tierIds = async (t: number) =>
+      (
+        await tx
+          .select({ id: planGoals.id })
+          .from(planGoals)
+          .where(and(eq(planGoals.scope, goal.scope), eq(planGoals.tier, t), isNull(planGoals.deletedAt), eq(planGoals.ownerUserId, me.id)))
+          .orderBy(asc(planGoals.position))
+      )
+        .map((r) => r.id)
+        .filter((gid) => gid !== id)
+    const target = await tierIds(tier)
+    target.splice(Math.min(Math.max(position, 1), target.length + 1) - 1, 0, id)
+    const renumber = async (ids: string[], t: number) => {
+      for (let i = 0; i < ids.length; i++) {
+        await tx.update(planGoals).set({ tier: t, position: i + 1, updatedAt: new Date() }).where(eq(planGoals.id, ids[i]!))
+      }
+    }
+    if (goal.tier !== tier) await renumber(await tierIds(goal.tier), goal.tier)
+    await renumber(target, tier)
+    const [row] = await tx.select().from(planGoals).where(eq(planGoals.id, id))
+    return row ?? null
+  })
+}
