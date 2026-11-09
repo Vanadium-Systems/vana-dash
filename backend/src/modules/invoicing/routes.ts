@@ -31,7 +31,7 @@ function slugify(name: string): string {
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .replace(/^-|-$/g, '')
 }
 
 export async function invoicingRoutes(app: FastifyInstance) {

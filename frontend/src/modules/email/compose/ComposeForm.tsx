@@ -29,6 +29,7 @@ import { identityOptionLabel } from '../identity'
 import type { ComposeInit } from './compose-store'
 import { isValidAddress, RecipientField } from './RecipientField'
 import { trackScheduledSend, type SendFlowHandlers } from './send-flow'
+import { htmlHasContent } from '../html-content'
 
 const MAX_ATTACHMENTS = 5
 const AUTOSAVE_MS = 1500
@@ -45,10 +46,6 @@ function identityKeyForAddress(address: string, identities: EmailIdentity[] | nu
 }
 
 const splitList = (value: string): string[] => value.split(/[,;\s]+/).map((a) => a.trim()).filter(Boolean)
-
-function bodyIsEmpty(html: string): boolean {
-  return html.replace(/<img\b/gi, 'x').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() === ''
-}
 
 function modeOf(init: ComposeInit): EmailDraftMode {
   if (init.kind === 'draft') return init.draft.mode
@@ -155,7 +152,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
     return company ? (company[sendingFromKey] ?? company['contact'] ?? '') : ''
   }, [mySettings.data, senderOptions.data, sendingFromKey])
 
-  const hasContent = !bodyIsEmpty(body) || attachments.length > 0 || (isNew && (to.length > 0 || subject.trim() !== '')) || (mode === 'forward' && to.length > 0)
+  const hasContent = htmlHasContent(body) || attachments.length > 0 || (isNew && (to.length > 0 || subject.trim() !== '')) || (mode === 'forward' && to.length > 0)
 
   const title = isReply ? t('common:actions.reply') : mode === 'forward' ? subject : subject.trim() || t('email:compose.newMessage')
   useEffect(() => onTitle?.(title), [onTitle, title])

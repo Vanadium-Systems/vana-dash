@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-09T21:00:00+02:00',
+    title: {
+      ro: 'Pe telefon, meniul „Mai mult” se derulează până jos',
+      en: 'On the phone, the “More” menu scrolls all the way down',
+    },
+    body: {
+      ro: 'Meniul deschis din „Mai mult” nu se derula când țineai degetul pe listă, așa că paginile de la final, ca Setările, nu se vedeau. Acum se derulează de oriunde.',
+      en: 'The menu opened from “More” did not scroll with a finger on the list, so the pages at the end, such as Settings, were out of reach. It now scrolls from anywhere.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-09T20:02:00+02:00',
     title: {
       ro: 'Echipă: ștergi un om invitat sau dezactivat, vezi invitațiile expirate',

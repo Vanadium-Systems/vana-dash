@@ -39,9 +39,18 @@ export function tiptapToText(doc: TiptapNode): string {
   walk(doc, out, '- ')
   return out
     .join('')
-    .replace(/[ \t]+\n/g, '\n')
+    .split('\n')
+    .map(trimTrailingBlanks)
+    .join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
+}
+
+// A loop, not /[ \t]+\n/: that regex goes quadratic on a long run of tabs (CodeQL js/polynomial-redos).
+function trimTrailingBlanks(line: string): string {
+  let end = line.length
+  while (end > 0 && (line[end - 1] === ' ' || line[end - 1] === '\t')) end--
+  return line.slice(0, end)
 }
 
 function check(node: unknown, depth: number): TiptapNode {

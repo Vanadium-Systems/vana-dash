@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { RichTextEditor } from '@/shared/components/RichTextEditor'
 import { t } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
+import { htmlHasContent } from './html-content'
 
 // Settings read top to bottom as rows: what it is and why on the left, the controls on the right.
 // No card per setting; a hairline between rows is the only separation, so a long page does not
@@ -28,8 +29,6 @@ export function SettingsSection({ title, description, children }: { title: strin
     </div>
   )
 }
-
-const plainText = (html: string) => html.replace(/<img\b/gi, 'x').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
 
 export interface SignatureMailbox {
   key: string
@@ -59,13 +58,13 @@ export function SignatureEditor({
   const mailbox = mailboxes.find((m) => m.key === current) ?? mailboxes[0]
   if (!mailbox) return null
   const value = values[mailbox.key] ?? ''
-  const usesFallback = !plainText(value) && Boolean(mailbox.fallback && plainText(mailbox.fallback))
+  const usesFallback = !htmlHasContent(value) && Boolean(mailbox.fallback && htmlHasContent(mailbox.fallback))
 
   return (
     <div className="space-y-3">
       <div role="tablist" aria-label={t('email:settings.signatureMailbox')} className="flex flex-wrap gap-1.5">
         {mailboxes.map((m) => {
-          const own = Boolean(plainText(values[m.key] ?? ''))
+          const own = htmlHasContent(values[m.key] ?? '')
           return (
             <button
               key={m.key}

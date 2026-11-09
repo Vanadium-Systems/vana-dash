@@ -324,7 +324,7 @@ export async function purgeBatchNow(me: SessionUser, batchId: string) {
     changes: { elemente: [batch.itemCount, null] },
   })
   setImmediate(() => {
-    purgeBatches([batchId]).catch((err) => console.error(`[archive-trash] purge ${batchId} failed:`, err))
+    purgeBatches([batchId]).catch((err) => console.error('[archive-trash] purge failed:', batchId, err))
   })
   return { itemCount: batch.itemCount, totalBytes: Number(batch.totalBytes) }
 }

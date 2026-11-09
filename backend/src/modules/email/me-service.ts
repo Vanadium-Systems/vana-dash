@@ -24,6 +24,17 @@ export class MailboxNotMine extends Error {
 // Rendering sanitizes on the client (DOMPurify); this only keeps a signature from carrying
 // active content into the emails it is appended to.
 export function stripActiveHtml(html: string): string {
+  // Repeated until nothing changes: removing `<scr<script>ipt>` once leaves a `<script>` behind.
+  let previous: string
+  let current = html
+  do {
+    previous = current
+    current = stripActiveHtmlOnce(previous)
+  } while (current !== previous)
+  return current
+}
+
+function stripActiveHtmlOnce(html: string): string {
   return html
     .replace(/<(script|style|iframe|object|embed|form|link|meta)\b[\s\S]*?(<\/\1\s*>|$)/gi, '')
     .replace(/<(script|style|iframe|object|embed|form|link|meta)\b[^>]*\/?>/gi, '')

@@ -71,7 +71,10 @@ function SidebarNav({
   const groups = NAV_GROUP_ORDER.map((group) => [group, items.filter((i) => i.group === group)] as const)
 
   return (
-    <nav className="flex-1 overflow-y-auto overscroll-contain px-2 py-2">
+    // Only the sidebar scrolls its own list. In the "More" sheet (onNavigate set) the sheet scrolls:
+    // an inner scroller with overscroll-contain that never overflows swallows the touch, so the
+    // sheet could not be scrolled down to Settings.
+    <nav className={cn('px-2 py-2', !onNavigate && 'flex-1 overflow-y-auto overscroll-contain')}>
       {groups
         .filter(([, groupItems]) => groupItems.length > 0)
         .map(([group, groupItems], sectionIndex) => (
