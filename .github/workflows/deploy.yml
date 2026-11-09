@@ -61,7 +61,8 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile --filter @vana-dash/frontend...
+      # The whole workspace: the SPA imports shared code from backend/src (pricing calc), whose types need backend deps.
+      - run: pnpm install --frozen-lockfile
 
       - run: pnpm --filter @vana-dash/frontend build
 
