@@ -25,6 +25,42 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-09T20:02:00+02:00',
+    title: {
+      ro: 'Echipă: ștergi un om invitat sau dezactivat, vezi invitațiile expirate',
+      en: 'Team: delete an invited or disabled person, see expired invitations',
+    },
+    body: {
+      ro: 'Din meniul unui om invitat sau dezactivat ai acum Șterge: dispare din echipă, iar adresa lui poate fi invitată din nou. Un om activ se dezactivează întâi. Cine n-a intrat la timp apare cu „Invitație expirată” și primește alt link din „Retrimite invitația”.',
+      en: 'The menu of an invited or disabled person now has Delete: they leave the team and their address can be invited again. An active person is disabled first. Someone who did not sign in in time shows as “Invitation expired” and gets a new link from “Resend invitation”.',
+    },
+    features: ['echipa.administrare'],
+  },
+  {
+    publishedAt: '2026-11-09T20:01:00+02:00',
+    title: {
+      ro: 'Email: fiecare vede doar mesajele de pe cutiile lui, chiar dacă subiectul e același',
+      en: 'Email: everyone sees only the messages on their own mailboxes, even with the same subject',
+    },
+    body: {
+      ro: 'Două emailuri de la același expeditor, cu același subiect, trimise pe cutiile a doi colegi, ajungeau în același fir și fiecare îl vedea și pe al celuilalt. Acum sunt fire separate, iar un fir deschis arată doar mesajele de pe cutiile tale.',
+      en: 'Two emails from the same sender with the same subject, sent to two colleagues\' mailboxes, ended up in one thread and each saw the other\'s. They are now separate threads, and an open thread shows only the messages on your mailboxes.',
+    },
+    features: ['email.view'],
+  },
+  {
+    publishedAt: '2026-11-09T20:00:00+02:00',
+    title: {
+      ro: 'Aplicația Android se actualizează din Setări',
+      en: 'The Android app updates from Settings',
+    },
+    body: {
+      ro: 'În aplicație, Setări are acum cardul Aplicație Android cu versiunea instalată și butonul „Actualizează aplicația”, care descarcă versiunea nouă în browser. Nu mai trebuie să deschizi site-ul separat.',
+      en: 'In the app, Settings now has the Android app card with the installed version and an “Update the app” button that downloads the new version in the browser. No need to open the site separately anymore.',
+    },
+    features: ['setari.view'],
+  },
+  {
     publishedAt: '2026-11-09T18:00:00+02:00',
     title: {
       ro: 'Calendar: vederi Zi și Program, tragi ca să muți sau să creezi, o ocurență a unei serii se mută sau se anulează singură',

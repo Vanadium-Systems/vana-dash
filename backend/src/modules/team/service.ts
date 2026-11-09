@@ -166,6 +166,49 @@ export async function updateMember(actor: SessionUser, userId: string, input: { 
   return { id: userId }
 }
 
+/**
+ * Removes someone who is not active: an invitation nobody accepted, or a disabled account.
+ * Soft delete, because messages, notes and archive folders still point at the user; the email
+ * is freed so the same address can be invited again.
+ */
+export async function deleteMember(actor: SessionUser, userId: string) {
+  if (userId === actor.id) throw new AccessError('DELETE_SELF', 409, tr('errors.team.deleteSelf'))
+  await assertCanManage(actor, userId)
+  const [target] = await db
+    .select({ email: users.email, status: users.status })
+    .from(users)
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+  if (!target) throw new AccessError('USER_NOT_FOUND', 404, tr('errors.team.userNotFound'))
+  if (target.status === 'active') throw new AccessError('DELETE_ACTIVE', 409, tr('errors.team.deleteActive'))
+
+  const now = new Date()
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({
+        deletedAt: now,
+        updatedAt: now,
+        status: 'disabled',
+        email: `deleted-${userId}@deleted.invalid`,
+        sessionVersion: sql`${users.sessionVersion} + 1` as unknown as number,
+      })
+      .where(eq(users.id, userId))
+    await tx
+      .update(userTokens)
+      .set({ usedAt: now, updatedAt: now })
+      .where(and(eq(userTokens.userId, userId), isNull(userTokens.usedAt)))
+    await tx.delete(userMailboxes).where(eq(userMailboxes.userId, userId))
+  })
+
+  await recordAudit({
+    action: 'echipa.stergere',
+    entityType: 'user',
+    entityId: userId,
+    changes: { email: [target.email, null], status: [target.status, null] },
+  })
+  return { id: userId }
+}
+
 async function roleName(roleId: string) {
   const [role] = await db.select({ name: roles.name }).from(roles).where(eq(roles.id, roleId))
   return role?.name ?? null

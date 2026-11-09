@@ -31,7 +31,8 @@
   },
   "status": {
     "invited": "Invited",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "inviteExpired": "Invitation expired"
   },
   "members": {
     "neverSignedIn": "never signed in",
@@ -58,7 +59,8 @@
     "inviteResent": "The invitation was sent again.",
     "inviteNotSent": "The invitation was not sent.",
     "disabled": "{{value}} can no longer sign in.",
-    "reactivated": "The person is active again."
+    "reactivated": "The person is active again.",
+    "deleted": "The person was removed from the team."
   },
   "loadFailed": "The team could not be loaded.",
   "description": "Who works here, with what role and on which mailboxes.",
@@ -98,5 +100,10 @@
     "saved": "The changes are saved.",
     "notSaved": "The changes were not saved.",
     "adminNote": "The admin has everything the company has: neither the role nor the mailboxes change."
+  },
+  "delete": {
+    "title": "Delete {{name}}?",
+    "invitedBody": "The invitation can no longer be used. The address can be invited again at any time.",
+    "disabledBody": "They leave the team and cannot be reactivated. Their messages and folders stay; assign their folders first if colleagues need them. The address can be invited again."
   }
 }

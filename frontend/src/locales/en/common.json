@@ -423,6 +423,7 @@
       "inviteResent": "invitation resent",
       "mailboxesChanged": "mailboxes changed",
       "personDisabled": "person disabled",
+      "personDeleted": "person deleted",
       "personChanged": "person changed",
       "passwordReset": "password reset",
       "passwordChanged": "password changed",

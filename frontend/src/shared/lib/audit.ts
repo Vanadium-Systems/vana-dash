@@ -30,6 +30,7 @@ const ACTION_LABEL: Record<string, string> = {
   'echipa.invitare.retrimisa': t('common:audit.actions.inviteResent'),
   'echipa.cutii.schimbate': t('common:audit.actions.mailboxesChanged'),
   'echipa.dezactivare': t('common:audit.actions.personDisabled'),
+  'echipa.stergere': t('common:audit.actions.personDeleted'),
   'echipa.actualizare': t('common:audit.actions.personChanged'),
   'echipa.parola.resetare': t('common:audit.actions.passwordReset'),
   'parola.resetata': t('common:audit.actions.passwordReset'),

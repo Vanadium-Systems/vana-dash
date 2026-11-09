@@ -122,6 +122,9 @@
   "android": {
     "title": "Aplicație Android",
     "hint": "Shell nativ cu update automat la deploy — conținutul nou ajunge la redeschiderea aplicației, fără reinstalare. Reinstalarea e necesară doar la schimbări de plugin-uri native.",
-    "download": "Descarcă / actualizează APK"
+    "download": "Descarcă / actualizează APK",
+    "hintInApp": "Paginile se actualizează singure la redeschidere. Versiune nouă de aplicație e nevoie doar când se schimbă partea nativă: butonul o descarcă în browser, apoi o instalezi peste cea veche.",
+    "installed": "Versiunea instalată: {{version}}",
+    "update": "Actualizează aplicația"
   }
 }

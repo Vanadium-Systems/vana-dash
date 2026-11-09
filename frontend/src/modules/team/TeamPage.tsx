@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Checkbox } from '@/shared/components/ui/checkbox'
+import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { EmptyState } from '@/shared/components/ui/empty-state'
@@ -18,7 +19,7 @@ import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
 import { Tooltip } from '@/shared/components/ui/tooltip'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { useMe } from '@/shared/hooks/use-me'
-import { memberName, TEAM_QUERY_KEY, useTeamMembers, type TeamMember } from '@/shared/hooks/use-team'
+import { inviteExpired, memberName, TEAM_QUERY_KEY, useTeamMembers, type TeamMember } from '@/shared/hooks/use-team'
 import { api, ApiError } from '@/shared/lib/api'
 import type { EmailIdentity, EmailSettings } from '@/shared/lib/types'
 import { cn, normalizeForSearch } from '@/shared/lib/utils'
@@ -35,6 +36,13 @@ const STATUS: Record<TeamMember['status'], { label: string; tone: StateTone }> =
   active: { label: t('common:states.active'), tone: 'success' },
   invited: { label: t('team:status.invited'), tone: 'warning' },
   disabled: { label: t('team:status.disabled'), tone: 'critical' },
+}
+
+const INVITE_EXPIRED = { label: t('team:status.inviteExpired'), tone: 'critical' as StateTone }
+
+function MemberState({ member }: { member: TeamMember }) {
+  const state = inviteExpired(member) ? INVITE_EXPIRED : STATUS[member.status]
+  return <StatePill tone={state.tone}>{state.label}</StatePill>
 }
 
 const MAILBOX_QUERY_KEY = ['email', 'settings'] as const
@@ -126,6 +134,7 @@ export function TeamPage() {
   const [search, setSearch] = useState('')
   const [inviting, setInviting] = useState(false)
   const [editing, setEditing] = useState<TeamMember | null>(null)
+  const [deleting, setDeleting] = useState<TeamMember | null>(null)
   const [sentReset, setSentReset] = useState<{ id: string; email: string } | null>(null)
   const debouncedSearch = useDebounced(search, 200)
 
@@ -177,7 +186,10 @@ export function TeamPage() {
 
   const resendInvite = useMutation({
     mutationFn: (id: string) => api.post(`/api/team/members/${id}/resend-invite`),
-    onSuccess: () => toast.success(t('team:toasts.inviteResent')),
+    onSuccess: () => {
+      refresh()
+      toast.success(t('team:toasts.inviteResent'))
+    },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t('team:toasts.inviteNotSent')),
   })
 
@@ -194,6 +206,15 @@ export function TeamPage() {
       } else {
         toast.success(t('team:toasts.reactivated'))
       }
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('common:states.changeNotSaved')),
+  })
+
+  const deleteMember = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/team/members/${id}`),
+    onSuccess: () => {
+      refresh()
+      toast.success(t('team:toasts.deleted'))
     },
     onError: (error) => toast.error(error instanceof ApiError ? error.message : t('common:states.changeNotSaved')),
   })
@@ -301,7 +322,7 @@ export function TeamPage() {
                           </div>
                           <div className="tbl-narrow-only truncate text-xs text-muted-foreground">{member.email}</div>
                           <div className="tbl-narrow-only mt-1">
-                            <StatePill tone={STATUS[member.status].tone}>{STATUS[member.status].label}</StatePill>
+                            <MemberState member={member} />
                           </div>
                         </td>
                         <td className="tbl-md max-w-[16rem] truncate py-2 pr-3 text-muted-foreground">{member.email}</td>
@@ -316,7 +337,7 @@ export function TeamPage() {
                         </td>
                         <td className="tbl-lg py-2 pr-3 text-muted-foreground">{isAdmin ? t('common:labels.all') : boxes.length > 0 ? boxes.join(', ') : t('team:members.none')}</td>
                         <td className="tbl-md py-2 pr-3">
-                          <StatePill tone={STATUS[member.status].tone}>{STATUS[member.status].label}</StatePill>
+                          <MemberState member={member} />
                         </td>
                         <td className="tbl-lg py-2 pr-3">
                           {sentReset?.id === member.id ? (
@@ -368,6 +389,11 @@ export function TeamPage() {
                                         {t('common:actions.disable')}
                                       </DropdownMenuItem>
                                     )}
+                                    {member.status !== 'active' ? (
+                                      <DropdownMenuItem destructive onClick={() => setDeleting(member)}>
+                                        {t('common:actions.delete')}
+                                      </DropdownMenuItem>
+                                    ) : null}
                                   </>
                                 ) : null}
                               </DropdownMenuContent>
@@ -387,6 +413,15 @@ export function TeamPage() {
       <InviteDialog open={inviting} onOpenChange={setInviting} roleOptions={roleOptions} onInvited={refresh} />
       <EditMemberDialog member={editing} onClose={() => setEditing(null)} roleOptions={roleOptions} onSaved={refresh} />
       <AssignFoldersDialog from={assigning} members={list} onClose={() => setAssigning(null)} />
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={t('team:delete.title', { name: deleting ? memberName(deleting) : '' })}
+        consequence={deleting?.status === 'invited' ? t('team:delete.invitedBody') : t('team:delete.disabledBody')}
+        confirmLabel={t('common:actions.delete')}
+        destructive
+        onConfirm={() => deleting && deleteMember.mutate(deleting.id)}
+      />
     </div>
   )
 }

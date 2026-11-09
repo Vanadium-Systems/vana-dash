@@ -15,7 +15,7 @@ import { and, eq, inArray, ne } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
-import { auditLog, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
+import { auditLog, roles, userMailboxes, userTokens, users } from '../../shared/db/schema/index.js'
 import { effectiveFeatures } from '../../shared/lib/session.js'
 import { config } from '../../shared/config.js'
 import { getCatalog } from './service.js'
@@ -68,6 +68,7 @@ afterAll(async () => {
   await db.delete(auditLog).where(eq(auditLog.action, 'echipa.actualizare'))
   await db.delete(auditLog).where(eq(auditLog.action, 'echipa.cutii.schimbate'))
   await db.delete(auditLog).where(eq(auditLog.action, 'echipa.dezactivare'))
+  await db.delete(auditLog).where(eq(auditLog.action, 'echipa.stergere'))
   for (const id of created) await db.delete(users).where(eq(users.id, id))
   for (const id of createdRoles) await db.delete(roles).where(eq(roles.id, id))
   await app.close()
@@ -472,5 +473,42 @@ describe('echipa', () => {
     })
     expect(res.statusCode).toBe(403)
     expect(res.json().error.feature).toBe('email.cutii')
+  })
+})
+
+describe('ștergerea unui om și invitația expirată', () => {
+  const members = async () => (await get('/api/team/members', stefan.cookie)).json().data as Array<{ id: string; status: string; inviteExpiresAt: string | null }>
+  const del = (id: string, cookie = stefan.cookie) => app.inject({ method: 'DELETE', url: `/api/team/members/${id}`, cookies: { vana_session: cookie } })
+
+  it('the member list carries when the invitation link expires, and nothing once it is burned', async () => {
+    const om = await createUser('qa-invited@test.local', { kind: 'custom', features: [] })
+    await db.update(users).set({ status: 'invited' }).where(eq(users.id, om.id))
+    const expiresAt = new Date(Date.now() - 60_000)
+    await db.insert(userTokens).values({ userId: om.id, kind: 'invite', tokenHash: `qa-${om.id}`, expiresAt })
+    const listed = (await members()).find((m) => m.id === om.id)?.inviteExpiresAt
+    expect(new Date(listed!).getTime()).toBe(expiresAt.getTime())
+
+    await db.update(userTokens).set({ usedAt: new Date() }).where(eq(userTokens.userId, om.id))
+    expect((await members()).find((m) => m.id === om.id)?.inviteExpiresAt).toBeNull()
+  })
+
+  it('refuses to delete an active person or yourself', async () => {
+    const activ = await createUser('qa-active-del@test.local', { kind: 'custom', features: [] })
+    expect((await del(activ.id)).json().error.code).toBe('DELETE_ACTIVE')
+    expect((await del(stefan.id)).json().error.code).toBe('DELETE_SELF')
+  })
+
+  it('deletes a disabled person: gone from the list, links burned, address free for a new invite', async () => {
+    const om = await createUser('qa-disabled-del@test.local', { kind: 'custom', features: [] })
+    await db.update(users).set({ status: 'disabled' }).where(eq(users.id, om.id))
+    await db.insert(userTokens).values({ userId: om.id, kind: 'reset', tokenHash: `qa-${om.id}`, expiresAt: new Date(Date.now() + 3_600_000) })
+
+    expect((await del(om.id)).statusCode).toBe(200)
+    expect((await members()).some((m) => m.id === om.id)).toBe(false)
+    const tokens = await db.select().from(userTokens).where(eq(userTokens.userId, om.id))
+    expect(tokens.every((tok) => tok.usedAt !== null)).toBe(true)
+    const [row] = await db.select().from(users).where(eq(users.id, om.id))
+    expect(row!.email).not.toBe(om.email)
+    expect((await del(om.id)).statusCode).toBe(404)
   })
 })

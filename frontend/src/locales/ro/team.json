@@ -31,7 +31,8 @@
   },
   "status": {
     "invited": "Invitat",
-    "disabled": "Dezactivat"
+    "disabled": "Dezactivat",
+    "inviteExpired": "Invitație expirată"
   },
   "members": {
     "neverSignedIn": "nu a intrat niciodată",
@@ -58,7 +59,8 @@
     "inviteResent": "Invitația a plecat din nou.",
     "inviteNotSent": "Invitația nu a plecat.",
     "disabled": "{{value}} nu mai poate intra.",
-    "reactivated": "Omul e din nou activ."
+    "reactivated": "Omul e din nou activ.",
+    "deleted": "Omul a fost șters din echipă."
   },
   "loadFailed": "Nu am putut încărca echipa.",
   "description": "Cine lucrează aici, cu ce rol și pe ce cutii de email.",
@@ -98,5 +100,10 @@
     "saved": "Schimbările sunt salvate.",
     "notSaved": "Schimbările nu s-au salvat.",
     "adminNote": "Adminul are tot ce are firma: nu i se schimbă nici rolul, nici cutiile."
+  },
+  "delete": {
+    "title": "Ștergi pe {{name}}?",
+    "invitedBody": "Invitația nu mai poate fi folosită. Adresa poate fi invitată din nou oricând.",
+    "disabledBody": "Dispare din echipă și nu mai poate fi reactivat. Mesajele și folderele lui rămân; mută-i întâi folderele dacă au nevoie de ele colegii. Adresa poate fi invitată din nou."
   }
 }

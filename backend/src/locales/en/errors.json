@@ -19,6 +19,8 @@
     "giveOwnRolesOnly": "You can give only roles you created",
     "alreadyActive": "The person already set a password; no link is needed anymore",
     "stillInvited": "The person has not accepted the invitation yet; resend the invitation",
+    "deleteActive": "Disable the account first, then you can delete it",
+    "deleteSelf": "You cannot delete your own account",
     "mailboxNotYours": "You do not have the mailbox {{value}}, so you cannot give it to someone else"
   },
   "access": {

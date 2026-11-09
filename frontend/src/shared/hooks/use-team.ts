@@ -12,7 +12,14 @@ export interface TeamMember {
   email: string
   status: 'invited' | 'active' | 'disabled'
   lastSeenAt: string | null
+  /** Only while `invited`: when the newest invitation link stops working (null = none left). */
+  inviteExpiresAt: string | null
   role: SessionRole | null
+}
+
+/** Invited, but the link is past or burned: the person cannot get in until it is resent. */
+export function inviteExpired(member: Pick<TeamMember, 'status' | 'inviteExpiresAt'>): boolean {
+  return member.status === 'invited' && (!member.inviteExpiresAt || new Date(member.inviteExpiresAt).getTime() <= Date.now())
 }
 
 export const TEAM_QUERY_KEY = ['team', 'members'] as const

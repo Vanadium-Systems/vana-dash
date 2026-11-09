@@ -1,11 +1,12 @@
-import { useMutation } from '@tanstack/react-query'
+import { App } from '@capacitor/app'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Loader2, Smartphone } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { useMe } from '@/shared/hooks/use-me'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
-import { downloadApk, isNative } from '@/shared/lib/native'
+import { downloadApk, isNative, openApkInBrowser } from '@/shared/lib/native'
 import { AssistantProvidersCard } from './AssistantProvidersCard'
 import { CryptoSettingsCard } from '@/modules/crypto/CryptoSettingsCard'
 import { AssetsSettingsCard } from '@/modules/assets/AssetsSettingsCard'
@@ -19,6 +20,7 @@ function MobileAppCard() {
     onSuccess: () => toast.success(t('common:shell.apkDownloaded')),
     onError: (err) => toast.error(err.message),
   })
+  const installed = useQuery({ queryKey: ['native', 'app-info'], queryFn: () => App.getInfo(), enabled: isNative, staleTime: Infinity })
 
   return (
     <Card>
@@ -28,12 +30,19 @@ function MobileAppCard() {
           <CardTitle className="text-base">{t('settings:android.title')}</CardTitle>
         </div>
         <p className="text-sm text-muted-foreground">
-          {t('settings:android.hint')}
+          {t(isNative ? 'settings:android.hintInApp' : 'settings:android.hint')}
         </p>
-        <Button disabled={download.isPending} onClick={() => download.mutate()}>
-          {download.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {t('settings:android.download')}
-        </Button>
+        {installed.data ? (
+          <p className="text-sm text-muted-foreground">{t('settings:android.installed', { version: installed.data.version })}</p>
+        ) : null}
+        {isNative ? (
+          <Button onClick={openApkInBrowser}>{t('settings:android.update')}</Button>
+        ) : (
+          <Button disabled={download.isPending} onClick={() => download.mutate()}>
+            {download.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {t('settings:android.download')}
+          </Button>
+        )}
       </CardContent>
     </Card>
   )
@@ -55,7 +64,7 @@ export function SettingsPage() {
           <AssetsSettingsCard />
         </>
       ) : null}
-      {!isNative ? <MobileAppCard /> : null}
+      <MobileAppCard />
     </div>
   )
 }

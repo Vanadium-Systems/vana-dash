@@ -22,6 +22,14 @@ export async function downloadApk() {
   URL.revokeObjectURL(url)
 }
 
+// The WebView has no download manager, so in the app the APK goes to the phone's browser, which
+// downloads it and offers to install. Capacitor hands a URL to the system only when its scheme or
+// host differs from the app's: plain http on the same host does that, and the server redirects it
+// to https.
+export function openApkInBrowser() {
+  window.location.assign(`http://${window.location.host}/vanadash.apk`)
+}
+
 // Blob → base64 (fără prefixul data:) — Filesystem.writeFile acceptă doar string base64
 // pentru conținut binar.
 export function blobToBase64(blob: Blob): Promise<string> {

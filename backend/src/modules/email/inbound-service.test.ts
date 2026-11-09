@@ -121,6 +121,28 @@ describe('findOrCreateThread — same subject, different people', () => {
     )
     expect(counts.sort()).toEqual([1, 2])
   })
+
+  it('keeps one sender writing the same subject to two of our mailboxes in separate threads (invites to two colleagues)', async () => {
+    const [first, second] = await getIdentities()
+    expect(second).toBeDefined()
+    const inviteSubject = `${subject} invite`
+    for (const to of [first!.fromAddress, second!.fromAddress]) {
+      await ingestCloudflareInboundEmail({
+        from: 'no-reply@example.com',
+        to,
+        subject: inviteSubject,
+        text: 'link',
+        html: null,
+        messageId: `<${Math.random().toString(36).slice(2)}@example.com>`,
+        attachments: [],
+      })
+    }
+
+    const threads = await db.select().from(emailThreads).where(eq(emailThreads.subject, inviteSubject))
+    await db.delete(emailMessages).where(inArray(emailMessages.threadId, threads.map((t) => t.id)))
+    await db.delete(emailThreads).where(inArray(emailThreads.id, threads.map((t) => t.id)))
+    expect(threads).toHaveLength(2)
+  })
 })
 
 /**

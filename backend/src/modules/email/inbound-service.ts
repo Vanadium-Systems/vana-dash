@@ -71,6 +71,10 @@ export async function findOrCreateThread(rawSubject: string, participants: strin
   const external = bare.filter((a) => !ownAddresses.has(a))
   const matchOn = external.length > 0 ? external : bare
   if (matchOn.length === 0) return createThread(normalized, participants)
+  // The outside party alone is not enough either: one sender writing the same subject to two of
+  // our mailboxes (a no-reply invite sent to each new colleague) is two conversations, and a
+  // shared thread is visible to everyone holding either mailbox.
+  const own = external.length > 0 ? bare.filter((a) => ownAddresses.has(a)) : []
 
   const [existing] = await db
     .select()
@@ -79,8 +83,8 @@ export async function findOrCreateThread(rawSubject: string, participants: strin
       and(
         isNull(emailThreads.deletedAt),
         eq(emailThreads.subject, normalized),
-        sql`EXISTS (SELECT 1 FROM unnest(${emailThreads.participants}) p
-          WHERE lower(trim(coalesce(substring(p from '<([^<>]+)>'), p))) = ANY(ARRAY[${sql.join(matchOn.map((a) => sql`${a}`), sql`, `)}]::text[]))`,
+        participantIn(matchOn),
+        own.length > 0 ? participantIn(own) : undefined,
       ),
     )
     .orderBy(desc(emailThreads.lastMessageAt))
@@ -89,6 +93,10 @@ export async function findOrCreateThread(rawSubject: string, participants: strin
   if (existing) return existing
   return createThread(normalized, participants)
 }
+
+const participantIn = (addresses: string[]) =>
+  sql`EXISTS (SELECT 1 FROM unnest(${emailThreads.participants}) p
+    WHERE lower(trim(coalesce(substring(p from '<([^<>]+)>'), p))) = ANY(ARRAY[${sql.join(addresses.map((a) => sql`${a}`), sql`, `)}]::text[]))`
 
 async function createThread(normalized: string, participants: string[]): Promise<EmailThreadRow> {
   const [created] = await db
@@ -716,18 +724,20 @@ export async function getThreadWithMessages(
   me: SessionUser,
   id: string,
 ): Promise<{ thread: EmailThreadRow; messages: (EmailMessageRow & { attachments: EmailAttachmentRow[] })[] } | null> {
-  const visible = threadVisibleTo(await mailboxAddresses(me))
+  const mailboxScope = await mailboxAddresses(me)
   const [thread] = await db
     .select()
     .from(emailThreads)
-    .where(and(eq(emailThreads.id, id), isNull(emailThreads.deletedAt), visible))
+    .where(and(eq(emailThreads.id, id), isNull(emailThreads.deletedAt), threadVisibleTo(mailboxScope)))
   // Fir pe o cutie străină → 404, ca unul inexistent: nu confirmăm că există.
   if (!thread) return null
 
+  // A thread that also holds messages on someone else's mailbox shows only this person's
+  // (same rule as attachments): threads merged before the threading fix exist on prod.
   const messages = await db
     .select()
     .from(emailMessages)
-    .where(and(eq(emailMessages.threadId, id), isNull(emailMessages.deletedAt)))
+    .where(and(eq(emailMessages.threadId, id), isNull(emailMessages.deletedAt), messageVisibleTo(mailboxScope)))
     .orderBy(desc(emailMessages.createdAt))
 
   // Deschiderea firului marchează citit pentru omul ăsta și numai pentru el.

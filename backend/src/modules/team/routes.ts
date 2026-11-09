@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { AccessError } from '../access/service.js'
 import { InviteMemberSchema, MemberMailboxesSchema, UpdateMemberSchema } from '../access/schema.js'
 import {
+  deleteMember,
   getMemberMailboxes,
   inviteMember,
   listMembers,
@@ -36,6 +37,11 @@ export async function teamRoutes(app: FastifyInstance) {
   server.patch('/api/team/members/:id', { preHandler: [app.authenticate], schema: { body: UpdateMemberSchema } }, async (req) => ({
     success: true,
     data: await updateMember(req.me, (req.params as { id: string }).id, req.body),
+  }))
+
+  server.delete('/api/team/members/:id', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: await deleteMember(req.me, (req.params as { id: string }).id),
   }))
 
   server.post('/api/team/members/:id/resend-invite', { preHandler: [app.authenticate] }, async (req) => ({

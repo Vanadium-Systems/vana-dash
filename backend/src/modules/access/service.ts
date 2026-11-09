@@ -199,6 +199,10 @@ export async function listMembers() {
       email: users.email,
       status: users.status,
       lastSeenAt: users.lastSeenAt,
+      // The newest unused invitation link: once it is past, the person can no longer get in
+      // until someone resends it.
+      inviteExpiresAt: sql<string | null>`(SELECT max(t.expires_at) FROM user_tokens t
+        WHERE t.user_id = ${users.id} AND t.kind = 'invite' AND t.used_at IS NULL AND t.deleted_at IS NULL)`,
       roleId: roles.id,
       roleName: roles.name,
       roleKind: roles.kind,
@@ -214,6 +218,7 @@ export async function listMembers() {
     email: row.email,
     status: row.status,
     lastSeenAt: row.lastSeenAt,
+    inviteExpiresAt: row.status === 'invited' ? row.inviteExpiresAt : null,
     role: row.roleId
       ? { id: row.roleId, name: row.roleName as string, kind: row.roleKind as 'admin' | 'manager' | 'custom' }
       : null,

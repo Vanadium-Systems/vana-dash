@@ -19,6 +19,8 @@
     "giveOwnRolesOnly": "Poți da doar roluri create de tine",
     "alreadyActive": "Omul și-a pus deja parola — nu mai e nevoie de link",
     "stillInvited": "Omul n-a acceptat invitația încă — retrimite-i invitația",
+    "deleteActive": "Dezactivează mai întâi contul, apoi îl poți șterge",
+    "deleteSelf": "Nu îți poți șterge propriul cont",
     "mailboxNotYours": "Nu ai cutia {{value}}, deci nu o poți da altcuiva"
   },
   "access": {

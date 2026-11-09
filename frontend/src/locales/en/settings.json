@@ -122,6 +122,9 @@
   "android": {
     "title": "Android app",
     "hint": "A native shell that updates on deploy: new content arrives when the app is reopened, with no reinstall. A reinstall is needed only when native plugins change.",
-    "download": "Download / update the APK"
+    "download": "Download / update the APK",
+    "hintInApp": "Pages update on their own when you reopen the app. A new app version is only needed when the native part changes: the button downloads it in the browser, then you install it over the old one.",
+    "installed": "Installed version: {{version}}",
+    "update": "Update the app"
   }
 }
