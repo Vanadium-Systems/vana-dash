@@ -4,6 +4,15 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-09: Archive spaces created twice
+
+### Fixed
+- The requests of a first visit to the Archive each created a space root, so some people got
+  two or three identical spaces. The root is now found or created under a per-person advisory
+  lock. Migration 0082 merges same-name duplicate roots into the oldest one (subfolders, files,
+  shares, stars and Trash batches move with it). A space handed over with "Assign all their
+  spaces" keeps its own name and is left alone.
+
 ## 2026-11-09: Archive Trash, Notes editor, Plan drag between tiers
 
 ### Archive

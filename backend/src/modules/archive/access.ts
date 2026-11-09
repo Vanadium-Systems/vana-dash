@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql, type SQL } from 'drizzle-orm'
+import { and, asc, eq, isNull, sql, type SQL } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { archiveFolderShares, archiveFolders, users } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
@@ -115,20 +115,29 @@ function spaceRootName(user: { displayName: string | null; email: string }) {
 }
 
 async function findOrCreateRoot(owner: { id: string; displayName: string | null; email: string }) {
-  const [existing] = await db
-    .select({ id: archiveFolders.id, ownerUserId: archiveFolders.ownerUserId })
-    .from(archiveFolders)
-    .where(
-      and(eq(archiveFolders.ownerUserId, owner.id), isNull(archiveFolders.parentId), isNull(archiveFolders.deletedAt)),
-    )
-  if (existing) return existing
+  // The requests of a first visit arrive together; without the lock each saw no root and made
+  // one (2026-11-09: three spaces per colleague). A unique index is not an option: "Assign all
+  // their spaces" gives a person a second root on purpose. Oldest first, so the person's own
+  // space wins over one handed to them later.
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('archive-space-root'), hashtext(${owner.id}))`)
+    const [existing] = await tx
+      .select({ id: archiveFolders.id, ownerUserId: archiveFolders.ownerUserId })
+      .from(archiveFolders)
+      .where(
+        and(eq(archiveFolders.ownerUserId, owner.id), isNull(archiveFolders.parentId), isNull(archiveFolders.deletedAt)),
+      )
+      .orderBy(asc(archiveFolders.createdAt))
+      .limit(1)
+    if (existing) return existing
 
-  const [created] = await db
-    .insert(archiveFolders)
-    .values({ name: spaceRootName(owner), ownerUserId: owner.id })
-    .returning({ id: archiveFolders.id, ownerUserId: archiveFolders.ownerUserId })
-  if (!created) throw new Error(tr('errors.archive.spaceNotCreated'))
-  return created
+    const [created] = await tx
+      .insert(archiveFolders)
+      .values({ name: spaceRootName(owner), ownerUserId: owner.id })
+      .returning({ id: archiveFolders.id, ownerUserId: archiveFolders.ownerUserId })
+    if (!created) throw new Error(tr('errors.archive.spaceNotCreated'))
+    return created
+  })
 }
 
 /** The space root of any person, for restoring from the Trash into a space whose folder is gone. */

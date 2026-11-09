@@ -75,6 +75,20 @@ afterAll(async () => {
   await cleanupTestUsers(userIds)
 })
 
+describe('space root', () => {
+  it('parallel first visits create one root, not one per request', async () => {
+    const { ensureSpaceRoot } = await import('./access.js')
+    const dana = await createTestUser('spații dana', userIds)
+    const ids = await Promise.all(Array.from({ length: 6 }, () => ensureSpaceRoot(dana)))
+    expect(new Set(ids).size).toBe(1)
+    const roots = await db
+      .select({ id: archiveFolders.id })
+      .from(archiveFolders)
+      .where(sql`${archiveFolders.ownerUserId} = ${dana.id} AND ${archiveFolders.parentId} IS NULL AND ${archiveFolders.deletedAt} IS NULL`)
+    expect(roots).toHaveLength(1)
+  })
+})
+
 describe('listSpaces — ecranul de sus', () => {
   it('omul vede doar spațiul lui, gol la început', async () => {
     const spaces = await service.listSpaces(ana)
