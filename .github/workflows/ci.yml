@@ -15,10 +15,50 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: typecheck, lint, test, build
+  # Split so the slow part runs side by side: the backend suite is sequential (its files share one
+  # database), 3 minutes in a single job. Each shard below gets its own Postgres instead.
+  static:
+    name: typecheck, lint, build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+
+  test-frontend:
+    name: test (frontend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @vana-dash/frontend test
+
+  test-backend:
+    name: test (backend ${{ matrix.shard }}/3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
 
     services:
       postgres:
@@ -58,9 +98,6 @@ jobs:
       # pdftoppm renders the PDF thumbnails in the Archive; one test exercises it for real.
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
       - run: pnpm db:migrate
       - run: pnpm db:seed
-      - run: pnpm test
-      - run: pnpm build
+      - run: pnpm --filter @vana-dash/backend exec vitest run --shard=${{ matrix.shard }}/3
