@@ -589,6 +589,34 @@
       "when": 1794224991874,
       "tag": "0083_calendar_series",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1794287655886,
+      "tag": "0084_prospects_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1794287725782,
+      "tag": "0085_prospects_team",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1794287768678,
+      "tag": "0086_prospecting",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1794287836179,
+      "tag": "0087_prospect_automation",
+      "breakpoints": true
     }
   ]
 }

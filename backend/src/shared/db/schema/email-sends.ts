@@ -60,6 +60,9 @@ export const emailSends = pgTable(
     // What the dispatcher needs that the columns above do not hold (thread, source message,
     // attachments, cc, reply headers). Only set on scheduled rows.
     payload: jsonb('payload'),
+    // Which sequence step and A/B variant produced this send (sequence diagnostics).
+    sequenceStepId: uuid('sequence_step_id'),
+    variant: text('variant', { enum: ['A', 'B'] }),
   },
   (t) => [
     // dedup lookup la bulk send: (recipient, templateId) deja trimis?
@@ -67,6 +70,8 @@ export const emailSends = pgTable(
     // lookup la webhook-ul de status livrare, pe email_id
     index('idx_email_sends_resend_email_id').on(t.resendEmailId),
     index('idx_email_sends_scheduled').on(t.sendAfter).where(sql`${t.status} = 'scheduled'`),
+    check('ck_email_sends_variant', sql`${t.variant} IS NULL OR ${t.variant} IN ('A', 'B')`),
+    index('idx_email_sends_sequence_step').on(t.sequenceStepId).where(sql`${t.sequenceStepId} IS NOT NULL`),
     check('ck_email_sends_kind', sql`${t.kind} IN ('single', 'reply', 'forward', 'draft', 'bulk', 'sequence')`),
   ],
 )

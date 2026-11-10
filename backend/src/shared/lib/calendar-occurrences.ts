@@ -285,7 +285,6 @@ function hydrate(row: CalendarEventRow & Partial<OccurrenceMeta>): CalendarEvent
     startAt: date('startAt'),
     endAt: date('endAt'),
     recurrenceEndAt: dateOrNull('recurrenceEndAt'),
-    reminderSentAt: dateOrNull('reminderSentAt'),
   }
 }
 
@@ -430,8 +429,6 @@ export async function listOccurrences(
            e."start_at" AS "startAt", e."end_at" AS "endAt",
            e."all_day" AS "allDay", e."recurrence_rule" AS "recurrenceRule",
            e."recurrence_end_at" AS "recurrenceEndAt", e."color",
-           e."reminder_minutes_before" AS "reminderMinutesBefore",
-           e."reminder_sent_at" AS "reminderSentAt",
            e."source",
            COALESCE(NULLIF(u."display_name", ''), u."email") AS "ownerName",
            COALESCE((
@@ -486,8 +483,6 @@ export async function listOccurrencesForOwner(ownerUserId: string, from: Date, t
            e."start_at" AS "startAt", e."end_at" AS "endAt",
            e."all_day" AS "allDay", e."recurrence_rule" AS "recurrenceRule",
            e."recurrence_end_at" AS "recurrenceEndAt", e."color",
-           e."reminder_minutes_before" AS "reminderMinutesBefore",
-           e."reminder_sent_at" AS "reminderSentAt",
            e."source",
            COALESCE(NULLIF(u."display_name", ''), u."email") AS "ownerName",
            '[]'::json AS attendees

@@ -201,7 +201,7 @@ export async function getSequenceStats(sequenceId: string): Promise<SequenceStat
       .orderBy(asc(emailSequenceSteps.stepOrder)),
   ])
 
-  const byStatus: SequenceStats['byStatus'] = { active: 0, replied: 0, unsubscribed: 0, completed: 0, failed: 0 }
+  const byStatus: SequenceStats['byStatus'] = { active: 0, replied: 0, unsubscribed: 0, completed: 0, failed: 0, meeting: 0, won_lost: 0, bounced: 0 }
   let total = 0
   for (const row of statusRows) {
     byStatus[row.status] = row.count

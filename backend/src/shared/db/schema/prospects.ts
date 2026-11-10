@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { index, integer, numeric, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { type AnyPgColumn, boolean, jsonb, date, index, integer, numeric, pgTable, primaryKey, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { auditColumns, users } from './users.js'
 import { platforms } from './platforms.js'
@@ -41,12 +41,33 @@ export const prospects = pgTable(
     lastContactedAt: timestamp('last_contacted_at', { withTimezone: true }),
     // The colleague working this prospect, so two salespeople do not call the same company.
     assignedUserId: uuid('assigned_user_id').references(() => users.id),
+    lostReason: text('lost_reason'),
+    statusChangedAt: timestamp('status_changed_at', { withTimezone: true }).notNull().defaultNow(),
+    valueAmount: numeric('value_amount', { precision: 14, scale: 2 }),
+    valueCurrency: text('value_currency'),
+    expectedCloseAt: date('expected_close_at'),
+    // Since when the current owner holds it; the automatic release counts idle days from here.
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    // Any activity: note, task done, call, email sent.
+    lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
+    // false = struck off the register; the score reads it on every recalculation.
+    isActive: boolean('is_active'),
+    cifNormalized: text('cif_normalized').generatedAlwaysAs(sql`upper(regexp_replace(coalesce(cif, ''), '^[[:space:]]*RO|[[:space:]]', '', 'gi'))`),
+    // Previous year's revenue and the year of `revenue`, for the growth signal.
+    revenuePrev: numeric('revenue_prev', { precision: 14, scale: 2 }),
+    revenueYear: smallint('revenue_year'),
+    // Financial score before criteria; `score` is the final, normalized one.
+    scoreBase: numeric('score_base', { precision: 5, scale: 1 }),
+    // Set when merged into another prospect; old links follow it.
+    mergedIntoId: uuid('merged_into_id').references((): AnyPgColumn => prospects.id),
   },
   (t) => [
     index('idx_prospects_score').on(t.score.desc()),
     index('idx_prospects_status').on(t.status),
     index('idx_prospects_assigned_user').on(t.assignedUserId),
     uniqueIndex('idx_prospects_cif').on(t.tenantId, t.cif).where(sql`${t.cif} IS NOT NULL`),
+    index('idx_prospects_cif_normalized').on(t.tenantId, t.cifNormalized),
+    index('idx_prospects_owner_activity').on(t.tenantId, t.assignedUserId, t.lastActivityAt),
   ],
 )
 
@@ -83,4 +104,7 @@ export const prospectScoringConfig = pgTable('prospect_scoring_config', {
   hotThreshold: numeric('hot_threshold', { precision: 5, scale: 1 }).notNull().default('65'),
   warmThreshold: numeric('warm_threshold', { precision: 5, scale: 1 }).notNull().default('50'),
   nurtureThreshold: numeric('nurture_threshold', { precision: 5, scale: 1 }).notNull().default('35'),
+  baseWeight: numeric('base_weight', { precision: 3, scale: 2 }).notNull().default('1'),
+  criteria: jsonb('criteria').notNull().default([]),
+  labels: jsonb('labels'),
 })

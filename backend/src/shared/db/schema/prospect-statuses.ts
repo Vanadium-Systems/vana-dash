@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core'
+import { boolean, check, integer, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { tenantColumns } from './tenant-column.js'
 
@@ -18,8 +18,13 @@ export const prospectStatuses = pgTable(
     colorToken: text('color_token').notNull(),
     sortOrder: integer('sort_order').notNull().default(0),
     isDefault: boolean('is_default').notNull().default(false),
+    // What reaching this stage means: still open, won or lost (board, funnel, won/lost buttons).
+    kind: text('kind', { enum: ['open', 'won', 'lost'] }).notNull().default('open'),
   },
   // Parțial (nu pe toate rândurile): un status șters (soft-delete) eliberează `key`-ul,
   // ca să poată fi recreat — la fel ca `idx_prospects_cif` (pattern existent).
-  (t) => [uniqueIndex('uq_prospect_statuses_key').on(t.tenantId, t.key).where(sql`${t.deletedAt} IS NULL`)],
+  (t) => [
+    uniqueIndex('uq_prospect_statuses_key').on(t.tenantId, t.key).where(sql`${t.deletedAt} IS NULL`),
+    check('ck_prospect_statuses_kind', sql`${t.kind} IN ('open', 'won', 'lost')`),
+  ],
 )

@@ -150,7 +150,7 @@ async function advanceEnrollment(enrollment: EnrollmentRow, fromIdentity: FromId
   const { result } = await sendCampaignEmail({
     to: enrollment.recipientEmail,
     nume: enrollment.recipientName ?? undefined,
-    templateId: step.templateId,
+    templateId: step.templateId!,
     from: fromIdentity,
     sequenceEnrollmentId: enrollment.id,
   })
