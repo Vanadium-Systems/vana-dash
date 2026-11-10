@@ -11,7 +11,7 @@ import {
   prospectSignalHits,
   prospectTasks,
 } from '../../shared/db/schema/index.js'
-import { escapeLike, visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
+import { escapeLike, foldDiacritics, PROSPECT_ID, visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 
 // The one filter compiler (list, count, board, aggregates, export, lists from search, view alerts,
@@ -119,7 +119,7 @@ function existsOp(op: 'in' | 'not_in', inner: SQL): SQL {
 }
 
 const peopleOf = (extra: SQL) =>
-  sql`SELECT 1 FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${prospects.id} AND pp."deleted_at" IS NULL AND ${extra}`
+  sql`SELECT 1 FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${PROSPECT_ID} AND pp."deleted_at" IS NULL AND ${extra}`
 
 function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
   const empty = f.op === 'is_empty'
@@ -178,7 +178,7 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
     }
     case 'nextTask': {
       if (f.op !== 'in' && f.op !== 'not_in') break
-      const open = sql`t."prospect_id" = ${prospects.id} AND t."done_at" IS NULL AND t."skipped_at" IS NULL AND t."deleted_at" IS NULL`
+      const open = sql`t."prospect_id" = ${PROSPECT_ID} AND t."done_at" IS NULL AND t."skipped_at" IS NULL AND t."deleted_at" IS NULL`
       const today = sql`(now() AT TIME ZONE ${ctx.timeZone})::date`
       const day = sql`(t."due_at" AT TIME ZONE ${ctx.timeZone})::date`
       const parts = f.value.map((v) => {
@@ -196,15 +196,15 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
         if (ids.length === 0) return f.op === 'in' ? sql`false` : sql`true`
         return existsOp(
           f.op,
-          sql`SELECT 1 FROM ${prospectListMembers} m WHERE m."prospect_id" = ${prospects.id} AND m."deleted_at" IS NULL AND m."list_id" IN (${sql.join(
+          sql`SELECT 1 FROM ${prospectListMembers} m WHERE m."prospect_id" = ${PROSPECT_ID} AND m."deleted_at" IS NULL AND m."list_id" IN (${sql.join(
             ids.map((v) => sql`${v}`),
             sql`, `,
           )})`,
         )
       }
-      return existsOp(empty ? 'not_in' : 'in', sql`SELECT 1 FROM ${prospectListMembers} m WHERE m."prospect_id" = ${prospects.id} AND m."deleted_at" IS NULL`)
+      return existsOp(empty ? 'not_in' : 'in', sql`SELECT 1 FROM ${prospectListMembers} m WHERE m."prospect_id" = ${PROSPECT_ID} AND m."deleted_at" IS NULL`)
     case 'sequence': {
-      const active = sql`e."prospect_id" = ${prospects.id} AND e."deleted_at" IS NULL AND e."status" = 'active'`
+      const active = sql`e."prospect_id" = ${PROSPECT_ID} AND e."deleted_at" IS NULL AND e."status" = 'active'`
       if (f.op === 'in' || f.op === 'not_in') {
         const ids = f.value.filter((v) => z.string().uuid().safeParse(v).success)
         if (ids.length === 0) return f.op === 'in' ? sql`false` : sql`true`
@@ -223,15 +223,15 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
       // Email activity reaches a prospect through its email contact points.
       const toProspect = sql`SELECT 1 FROM ${emailSends} s JOIN ${prospectContactPoints} cp
         ON cp."kind" = 'email' AND cp."deleted_at" IS NULL AND cp."value_normalized" = lower(s."recipient")
-        WHERE cp."prospect_id" = ${prospects.id} AND s."deleted_at" IS NULL`
+        WHERE cp."prospect_id" = ${PROSPECT_ID} AND s."deleted_at" IS NULL`
       const parts = f.value.map((v) => {
         if (v === 'opened') return exists(sql`${toProspect} AND s."opened_at" IS NOT NULL`)
         if (v === 'clicked') return exists(sql`${toProspect} AND s."clicked_at" IS NOT NULL`)
         if (v === 'bounced') return exists(sql`${toProspect} AND s."status" = 'bounced'`)
         if (v === 'replied')
-          return exists(sql`SELECT 1 FROM ${emailSequenceEnrollments} e WHERE e."prospect_id" = ${prospects.id} AND e."status" = 'replied'`)
+          return exists(sql`SELECT 1 FROM ${emailSequenceEnrollments} e WHERE e."prospect_id" = ${PROSPECT_ID} AND e."status" = 'replied'`)
         if (v === 'unsubscribed')
-          return exists(sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${prospects.id} AND cp."status" = 'unsubscribed' AND cp."deleted_at" IS NULL`)
+          return exists(sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."status" = 'unsubscribed' AND cp."deleted_at" IS NULL`)
         return sql`false`
       })
       return f.op === 'in' ? or(parts) : sql`NOT ${or(parts)}`
@@ -245,7 +245,7 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
       break
     case 'archived': {
       // Archiving is per person: ['yes'] = only mine archived, ['any'] = archived or not.
-      const mine = sql`EXISTS (SELECT 1 FROM ${prospectArchives} a WHERE a."prospect_id" = ${prospects.id} AND a."user_id" = ${ctx.me.id})`
+      const mine = sql`EXISTS (SELECT 1 FROM ${prospectArchives} a WHERE a."prospect_id" = ${PROSPECT_ID} AND a."user_id" = ${ctx.me.id})`
       if (f.op === 'in' && f.value.includes('any')) return sql`true`
       if (f.op === 'in' && f.value.includes('yes')) return mine
       return sql`NOT ${mine}`
@@ -256,7 +256,7 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
         if (ids.length === 0) return f.op === 'in' ? sql`false` : sql`true`
         return existsOp(
           f.op,
-          sql`SELECT 1 FROM ${prospectSignalHits} h WHERE h."prospect_id" = ${prospects.id} AND h."deleted_at" IS NULL AND h."signal_id" IN (${sql.join(
+          sql`SELECT 1 FROM ${prospectSignalHits} h WHERE h."prospect_id" = ${PROSPECT_ID} AND h."deleted_at" IS NULL AND h."signal_id" IN (${sql.join(
             ids.map((v) => sql`${v}`),
             sql`, `,
           )})`,
@@ -265,7 +265,7 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
       break
     case 'phone':
     case 'email': {
-      const has = sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${prospects.id} AND cp."deleted_at" IS NULL AND cp."kind" = ${f.field} AND cp."status" = 'ok'`
+      const has = sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."deleted_at" IS NULL AND cp."kind" = ${f.field} AND cp."status" = 'ok'`
       if (f.op === 'is_empty') return sql`NOT ${exists(has)}`
       if (f.op === 'not_empty') return exists(has)
       break
@@ -274,7 +274,7 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
       if (f.op === 'in' || f.op === 'not_in') {
         return existsOp(
           f.op,
-          sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${prospects.id} AND cp."deleted_at" IS NULL AND cp."status" IN (${sql.join(
+          sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."deleted_at" IS NULL AND cp."status" IN (${sql.join(
             f.value.map((v) => sql`${v}`),
             sql`, `,
           )})`,
@@ -321,7 +321,7 @@ export function compileProspectFilters(filters: ProspectFilter[], ctx: FilterCon
 
 /** Free-text search: no diacritics, LIKE wildcards escaped, across names, CIF, people and contact points. */
 export function searchWhere(term: string): SQL {
-  const fold = (s: SQL) => sql`translate(lower(${s}), 'ăâîșşțţ', 'aaisstt')`
+  const fold = foldDiacritics
   const like = '%' + escapeLike(term.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')) + '%'
   const digits = term.replace(/\D/g, '')
   const parts: SQL[] = [
@@ -329,7 +329,7 @@ export function searchWhere(term: string): SQL {
     sql`${prospects.cifNormalized} LIKE ${'%' + escapeLike(term.toUpperCase().replace(/^\s*RO|\s/gi, '')) + '%'}`,
     exists(peopleOf(sql`${fold(sql`pp."name"`)} LIKE ${like}`)),
     exists(
-      sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${prospects.id} AND cp."deleted_at" IS NULL
+      sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."deleted_at" IS NULL
           AND (cp."value_normalized" LIKE ${like}${digits.length >= 4 ? sql` OR regexp_replace(cp."value_normalized", '[^0-9]', '', 'g') LIKE ${'%' + digits + '%'}` : sql``})`,
     ),
   ]

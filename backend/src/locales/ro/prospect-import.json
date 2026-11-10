@@ -1,0 +1,98 @@
+{
+  "sheetData": "Prospecți",
+  "sheetGuide": "Cum completez",
+  "guideColumn": "Coloană",
+  "guideRequired": "Obligatoriu?",
+  "guideFormat": "Format",
+  "required": "Obligatoriu",
+  "optional": "Opțional",
+  "columns": {
+    "name": {
+      "header": "Nume firmă",
+      "example": "Acme SRL",
+      "help": "Denumirea firmei. Fără ea un rând nou nu se creează."
+    },
+    "cui": {
+      "header": "CUI",
+      "example": "12345678",
+      "help": "Cu sau fără „RO”. Cu el găsim firmele care există deja și le completăm în loc să le dublăm."
+    },
+    "phone": {
+      "header": "Telefon",
+      "example": "0722 111 222",
+      "help": "Mai multe numere se despart prin / , sau ;. Formatează coloana ca text, ca să nu se piardă zeroul de la început."
+    },
+    "email": {
+      "header": "Email",
+      "example": "office@example.com",
+      "help": "Mai multe adrese se despart prin / , sau ;."
+    },
+    "contact": {
+      "header": "Persoană de contact",
+      "example": "Ion Popescu",
+      "help": "Numele omului de la firmă, ca text."
+    },
+    "website": {
+      "header": "Website",
+      "example": "example.com",
+      "help": "Adresa site-ului, cu sau fără https://."
+    },
+    "caen": {
+      "header": "CAEN",
+      "example": "6201",
+      "help": "Codul CAEN, doar cifre."
+    },
+    "employees": {
+      "header": "Angajați",
+      "example": "12",
+      "help": "Număr întreg."
+    },
+    "revenue": {
+      "header": "Cifră de afaceri",
+      "example": "1500000",
+      "help": "Număr, fără monedă. Merge și 1.500.000,50."
+    },
+    "year": {
+      "header": "An",
+      "example": "2025",
+      "help": "Anul la care se referă cifra de afaceri, 4 cifre."
+    },
+    "status": {
+      "header": "Status",
+      "example": "Necontactat",
+      "help": "Un status din catalog. Dacă nu îl găsim, rândul nou primește statusul implicit."
+    },
+    "notes": {
+      "header": "Notițe",
+      "example": "Au cerut o ofertă în martie",
+      "help": "Text liber. Devine o notiță pe fișa firmei."
+    },
+    "owner": {
+      "header": "Responsabil (email)",
+      "example": "coleg@example.com",
+      "help": "Emailul unui coleg activ. Se ține cont de el doar dacă ai dreptul de repartizare."
+    }
+  },
+  "export": {
+    "sheet": "Prospecți",
+    "columns": {
+      "name": "Nume",
+      "cui": "CUI",
+      "status": "Status",
+      "owner": "Responsabil",
+      "score": "Scor",
+      "priority": "Prioritate",
+      "phone": "Telefon principal",
+      "email": "Email principal",
+      "person": "Persoană principală",
+      "caen": "CAEN",
+      "employees": "Angajați",
+      "revenue": "Cifră de afaceri",
+      "value": "Valoare",
+      "currency": "Monedă",
+      "expectedClose": "Data estimată",
+      "lastActivity": "Ultima activitate",
+      "source": "Sursa"
+    }
+  }
+}

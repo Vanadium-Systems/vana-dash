@@ -649,6 +649,8 @@ const KNOWN_PREFIXES: Array<{
   { prefix: '/api/support', kind: 'self' },
   // Text snippets belong to the person (and the shared ones to the whole team), not to a role.
   { prefix: '/api/snippets', kind: 'self' },
+  // The bell belongs to the person: mentions, transfers, releases.
+  { prefix: '/api/notifications', kind: 'self' },
   { prefix: '/api/platform/support', kind: 'self' },
   { prefix: '/api/platform/tenants', kind: 'self' },
   { prefix: '/api/email/unsubscribe', kind: 'public' },

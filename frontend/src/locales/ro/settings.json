@@ -100,7 +100,8 @@
       "email": "Email nou primit",
       "anaf": "Status factură ANAF (validată/respinsă)",
       "calendar": "Reminder-e calendar",
-      "payment": "Plată matchuită / marcată plătită"
+      "payment": "Plată matchuită / marcată plătită",
+      "clienti": "Clienți: mențiuni, transferuri, eliberări"
     },
     "enabled": "Notificările push sunt active pe acest device",
     "enableFailed": "Activare eșuată",

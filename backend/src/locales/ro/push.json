@@ -33,5 +33,34 @@
   "email": {
     "newFrom": "Email nou de la {{from}}",
     "noSubject": "(fără subiect)"
+  },
+  "clienti": {
+    "aColleague": "Un coleg",
+    "mention": "{{author}} te-a menționat la {{company}}",
+    "transferOne": "{{company}} de la {{from}}",
+    "transferMany": {
+      "one": "{{count}} prospect de la {{from}}",
+      "few": "{{count}} prospecți de la {{from}}",
+      "other": "{{count}} de prospecți de la {{from}}"
+    },
+    "requestTransfer": "{{who}} cere prospectul {{company}}",
+    "requestAccess": "{{who}} cere acces la {{company}}",
+    "requestAccepted": "Cererea ta pentru {{company}} a fost acceptată",
+    "requestRefused": "Cererea ta pentru {{company}} a fost refuzată",
+    "requestCancelled": "{{who}} și-a retras cererea pentru {{company}}",
+    "handedOver": "{{company}} a trecut la {{to}}",
+    "collaborator": "{{who}} ți-a dat acces la {{company}}",
+    "releaseWarning": {
+      "one": "{{company}} se eliberează în {{count}} zi fără activitate",
+      "few": "{{company}} se eliberează în {{count}} zile fără activitate",
+      "other": "{{company}} se eliberează în {{count}} de zile fără activitate"
+    },
+    "released": "{{company}} a fost eliberat: nicio activitate de {{count}} zile",
+    "tasksTaken": {
+      "one": "{{count}} task preluat de la {{name}}",
+      "few": "{{count}} taskuri preluate de la {{name}}",
+      "other": "{{count}} de taskuri preluate de la {{name}}"
+    },
+    "handoverNote": "Predare: {{note}}"
   }
 }

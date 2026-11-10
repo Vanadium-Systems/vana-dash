@@ -41,6 +41,7 @@ import {
   editableProspectsWhere,
   findVisibleProspect,
   ownerNameOf,
+  PROSPECT_ID,
   requireEditableProspect,
   visibleProspectsWhere,
 } from '../../shared/lib/prospect-access.js'
@@ -215,7 +216,7 @@ const SORTS = {
   value: sql`${prospects.valueAmount}`,
   expectedCloseAt: sql`${prospects.expectedCloseAt}`,
   daysInStage: sql`${prospects.statusChangedAt}`,
-  nextTask: sql`(SELECT min(t."due_at") FROM ${prospectTasks} t WHERE t."prospect_id" = ${prospects.id} AND t."done_at" IS NULL AND t."skipped_at" IS NULL AND t."deleted_at" IS NULL)`,
+  nextTask: sql`(SELECT min(t."due_at") FROM ${prospectTasks} t WHERE t."prospect_id" = ${PROSPECT_ID} AND t."done_at" IS NULL AND t."skipped_at" IS NULL AND t."deleted_at" IS NULL)`,
 } as const
 export type ProspectSort = keyof typeof SORTS
 export const PROSPECT_SORTS = Object.keys(SORTS) as ProspectSort[]
@@ -267,15 +268,15 @@ function rowColumns(ctx: FilterContext) {
     lastContactedAt: prospects.lastContactedAt,
     createdAt: prospects.createdAt,
     updatedAt: prospects.updatedAt,
-    archivedAt: sql<Date | null>`(SELECT a."archived_at" FROM ${prospectArchives} a WHERE a."prospect_id" = ${prospects.id} AND a."user_id" = ${ctx.me.id})`,
+    archivedAt: sql<Date | null>`(SELECT a."archived_at" FROM ${prospectArchives} a WHERE a."prospect_id" = ${PROSPECT_ID} AND a."user_id" = ${ctx.me.id})`,
     canEdit: sql<boolean>`(${editableProspectsWhere(ctx.me)})`,
-    primaryPhone: sql<string | null>`(SELECT cp."value" FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${prospects.id} AND cp."kind" = 'phone' AND cp."deleted_at" IS NULL AND cp."status" <> 'invalid' ORDER BY cp."is_primary" DESC, cp."created_at" LIMIT 1)`,
-    primaryEmail: sql<string | null>`(SELECT cp."value" FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${prospects.id} AND cp."kind" = 'email' AND cp."deleted_at" IS NULL AND cp."status" = 'ok' ORDER BY cp."is_primary" DESC, cp."created_at" LIMIT 1)`,
-    primaryPerson: sql<string | null>`(SELECT pp."name" FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${prospects.id} AND pp."deleted_at" IS NULL ORDER BY pp."is_decision_maker" DESC, pp."position", pp."created_at" LIMIT 1)`,
-    note: sql<{ id: string; body: string } | null>`(SELECT json_build_object('id', n."id", 'body', n."body") FROM ${prospectNotes} n WHERE n."prospect_id" = ${prospects.id} AND n."deleted_at" IS NULL ORDER BY n."pinned" DESC, n."created_at" DESC LIMIT 1)`,
+    primaryPhone: sql<string | null>`(SELECT cp."value" FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."kind" = 'phone' AND cp."deleted_at" IS NULL AND cp."status" <> 'invalid' ORDER BY cp."is_primary" DESC, cp."created_at" LIMIT 1)`,
+    primaryEmail: sql<string | null>`(SELECT cp."value" FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."kind" = 'email' AND cp."deleted_at" IS NULL AND cp."status" = 'ok' ORDER BY cp."is_primary" DESC, cp."created_at" LIMIT 1)`,
+    primaryPerson: sql<string | null>`(SELECT pp."name" FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${PROSPECT_ID} AND pp."deleted_at" IS NULL ORDER BY pp."is_decision_maker" DESC, pp."position", pp."created_at" LIMIT 1)`,
+    note: sql<{ id: string; body: string } | null>`(SELECT json_build_object('id', n."id", 'body', n."body") FROM ${prospectNotes} n WHERE n."prospect_id" = ${PROSPECT_ID} AND n."deleted_at" IS NULL ORDER BY n."pinned" DESC, n."created_at" DESC LIMIT 1)`,
     nextTask: sql<NextTask | null>`(SELECT json_build_object('id', t."id", 'kind', t."kind", 'title', t."title", 'dueAt', t."due_at", 'assigneeUserId', t."assignee_user_id",
         'assigneeName', (SELECT coalesce(nullif(u."display_name", ''), u."email") FROM ${users} u WHERE u."id" = t."assignee_user_id"))
-      FROM ${prospectTasks} t WHERE t."prospect_id" = ${prospects.id} AND t."done_at" IS NULL AND t."skipped_at" IS NULL AND t."deleted_at" IS NULL
+      FROM ${prospectTasks} t WHERE t."prospect_id" = ${PROSPECT_ID} AND t."done_at" IS NULL AND t."skipped_at" IS NULL AND t."deleted_at" IS NULL
       ORDER BY t."due_at" LIMIT 1)`,
   }
 }
@@ -323,6 +324,38 @@ export async function listProspects(me: Me, input: ListInput) {
     db.select({ total: sql<number>`count(*)::int` }).from(prospects).where(where),
   ])
   return { rows, total, page, pageSize }
+}
+
+/** The rows of the export: the list's own filters and visibility, name order, a few columns only. */
+export async function listForExport(me: Me, input: Pick<ListInput, 'f' | 'q'>, limit: number) {
+  const c = rowColumns(await filterContext(me))
+  const contact = (kind: 'phone' | 'email') =>
+    sql<string | null>`(SELECT cp."value" FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."kind" = ${kind} AND cp."deleted_at" IS NULL AND cp."status" ${sql.raw(kind === 'phone' ? "<> 'invalid'" : "= 'ok'")} ORDER BY cp."is_primary" DESC, cp."created_at" LIMIT 1)`
+  return db
+    .select({
+      name: c.name,
+      cif: c.cif,
+      status: c.status,
+      statusLabel: sql<string | null>`(SELECT s."label" FROM ${prospectStatuses} s WHERE s."key" = ${sql.raw('"prospects"."status"')} AND s."deleted_at" IS NULL LIMIT 1)`,
+      ownerName: c.ownerName,
+      score: c.score,
+      priority: c.priority,
+      primaryPhone: contact('phone'),
+      primaryEmail: contact('email'),
+      primaryPerson: sql<string | null>`(SELECT pp."name" FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${PROSPECT_ID} AND pp."deleted_at" IS NULL ORDER BY pp."is_decision_maker" DESC, pp."position", pp."created_at" LIMIT 1)`,
+      caenCode: c.caenCode,
+      employeeCount: c.employeeCount,
+      revenue: c.revenue,
+      valueAmount: c.valueAmount,
+      valueCurrency: c.valueCurrency,
+      expectedCloseAt: c.expectedCloseAt,
+      lastActivityAt: c.lastActivityAt,
+      source: c.source,
+    })
+    .from(prospects)
+    .where(await prospectWhere(me, input))
+    .orderBy(orderBy('name', 'asc'))
+    .limit(limit)
 }
 
 async function listPeople(me: Me, input: ListInput, page: number, pageSize: number) {
@@ -891,32 +924,54 @@ export async function markProspectUnsubscribedByEmail(email: string) {
   return rows[0] ?? null
 }
 
+/** A prospect row plus the contact flags the base score reads. */
+function scoringRows(where: SQL) {
+  return db
+    .select({
+      ...getTableColumns(prospects),
+      hasPhone: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."kind" = 'phone' AND cp."deleted_at" IS NULL)`,
+      hasEmail: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."kind" = 'email' AND cp."deleted_at" IS NULL)`,
+      hasContactName: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${PROSPECT_ID} AND pp."deleted_at" IS NULL)`,
+    })
+    .from(prospects)
+    .where(where)
+}
+
+async function writeBaseScores(batch: Awaited<ReturnType<typeof scoringRows>>, weights: ScoringWeights) {
+  const values = batch.map((p) => sql`(${p.id}::uuid, ${String(baseScore(p, p, weights))}::numeric)`)
+  await db.execute(sql`
+    UPDATE ${prospects} SET "score_base" = v.score, "score" = v.score
+      FROM (VALUES ${sql.join(values, sql`, `)}) AS v(id, score)
+     WHERE ${PROSPECT_ID} = v.id`)
+}
+
 /** Recomputes every base score with the current config, in SQL batches of 1,000. */
 export async function recalculateAllScores() {
   const weights = toScoringWeights(await getScoringConfig())
   let done = 0
   let after = '00000000-0000-0000-0000-000000000000'
   for (;;) {
-    const batch = await db
-      .select({
-        ...getTableColumns(prospects),
-        hasPhone: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${prospects.id} AND cp."kind" = 'phone' AND cp."deleted_at" IS NULL)`,
-        hasEmail: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${prospects.id} AND cp."kind" = 'email' AND cp."deleted_at" IS NULL)`,
-        hasContactName: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${prospects.id} AND pp."deleted_at" IS NULL)`,
-      })
-      .from(prospects)
-      .where(and(isNull(prospects.deletedAt), sql`${prospects.id} > ${after}`))
+    const batch = await scoringRows(and(isNull(prospects.deletedAt), sql`${prospects.id} > ${after}`)!)
       .orderBy(prospects.id)
       .limit(1000)
     if (batch.length === 0) break
-    const values = batch.map((p) => sql`(${p.id}::uuid, ${String(baseScore(p, p, weights))}::numeric)`)
-    await db.execute(sql`
-      UPDATE ${prospects} SET "score_base" = v.score, "score" = v.score
-        FROM (VALUES ${sql.join(values, sql`, `)}) AS v(id, score)
-       WHERE ${prospects.id} = v.id`)
+    await writeBaseScores(batch, weights)
     done += batch.length
     after = batch.at(-1)!.id
   }
   await scoreHooks.afterAll()
   return done
+}
+
+/** The same recalculation for a known set of prospects (an import touched them), 1,000 at a time. */
+export async function recalculateScores(ids: string[]) {
+  if (ids.length === 0) return 0
+  const weights = toScoringWeights(await getScoringConfig())
+  for (let i = 0; i < ids.length; i += 1000) {
+    const batch = await scoringRows(and(isNull(prospects.deletedAt), inArray(prospects.id, ids.slice(i, i + 1000)))!)
+    if (batch.length === 0) continue
+    await writeBaseScores(batch, weights)
+    for (const p of batch) await scoreHooks.afterBase(p.id)
+  }
+  return ids.length
 }

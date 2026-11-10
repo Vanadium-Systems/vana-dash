@@ -1,7 +1,10 @@
 import multipart from '@fastify/multipart'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { importProspects } from './import-service.js'
+import { buildImportTemplate } from './import-template.js'
+import { commitImport, ImportError, previewImport } from './import-service.js'
+import { ExportTooManyError, exportProspects } from './export-service.js'
+import { ExportQuerySchema, ImportCommitSchema } from './import-schema.js'
 import {
   AggregateQuerySchema,
   BulkProspectIdsSchema,
@@ -10,7 +13,6 @@ import {
   CountQuerySchema,
   CreateProspectSchema,
   CreateProspectStatusSchema,
-  ImportProspectsSchema,
   ListProspectsQuerySchema,
   NeighborsQuerySchema,
   PromoteProspectSchema,
@@ -42,6 +44,13 @@ export function prospectErrorReply(reply: FastifyReply, err: unknown) {
     return reply.code(400).send({ success: false, error: err.message })
   }
   throw err
+}
+
+/** Import errors carry their own status and code; a bad assignee is the same 400 the rest of the module gives. */
+function importErrorReply(reply: FastifyReply, err: unknown) {
+  if (err instanceof ImportError) return reply.code(err.status).send({ success: false, error: err.message, code: err.code })
+  if (err instanceof service.InvalidAssigneeError) return reply.code(400).send({ success: false, error: tr('errors.prospects.assigneeInvalid') })
+  return prospectErrorReply(reply, err)
 }
 
 const MAX_CSV_SIZE = 10 * 1024 * 1024 // 10MB — export de firme, nu fișiere media
@@ -160,33 +169,41 @@ export async function prospectsRoutes(app: FastifyInstance) {
     }
   })
 
-  // multipart/form-data (câmp "file") SAU JSON { csv, source } — formularul din UI trimite fișier
-  // brut, dar rămâne util să poți lipi CSV direct (ex. curl/testare).
-  server.post('/api/prospects/import', { preHandler: [app.authenticate] }, async (req, reply) => {
-    const contentType = req.headers['content-type'] ?? ''
-    let csvText: string
-    let source: string | undefined
-
-    if (contentType.includes('multipart/form-data')) {
-      const data = await req.file()
-      if (!data) return reply.code(400).send({ success: false, error: tr('errors.prospects.csvMissing') })
-      const buffer = await data.toBuffer()
-      if (data.file.truncated) return reply.code(413).send({ success: false, error: tr('errors.prospects.fileTooLarge') })
-      csvText = buffer.toString('utf-8')
-      const sourceField = data.fields?.source
-      source = sourceField && 'value' in sourceField ? String(sourceField.value) : data.filename
-    } else {
-      const parsed = ImportProspectsSchema.safeParse(req.body)
-      if (!parsed.success) return reply.code(400).send({ success: false, error: tr('errors.prospects.invalidBody') })
-      csvText = parsed.data.csv
-      source = parsed.data.source
-    }
-
+  server.post('/api/prospects/import/preview', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const upload = await req.file()
+    if (!upload) return reply.code(400).send({ success: false, error: tr('errors.prospects.csvMissing') })
+    const buffer = await upload.toBuffer()
+    if (upload.file.truncated) return reply.code(413).send({ success: false, error: tr('errors.prospects.fileTooLarge') })
+    const sourceField = upload.fields?.source
+    const source = sourceField && 'value' in sourceField ? String(sourceField.value) : undefined
     try {
-      const result = await importProspects(csvText, source)
-      return { success: true, data: result }
+      return { success: true, data: await previewImport(req.me, buffer, upload.filename, source) }
     } catch (err) {
-      return reply.code(400).send({ success: false, error: tr('errors.prospects.importFailed', { err: String(err) }) })
+      return importErrorReply(reply, err)
+    }
+  })
+
+  server.post('/api/prospects/import/commit', { preHandler: [app.authenticate], schema: { body: ImportCommitSchema } }, async (req, reply) => {
+    try {
+      return { success: true, data: await commitImport(req.me, req.body.token, req.body.distribution) }
+    } catch (err) {
+      return importErrorReply(reply, err)
+    }
+  })
+
+  server.get('/api/prospects/import/template.xlsx', { preHandler: [app.authenticate] }, async (_req, reply) => {
+    reply.header('Content-Disposition', 'attachment; filename="prospects-template.xlsx"')
+    return reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').send(await buildImportTemplate())
+  })
+
+  server.get('/api/prospects/export', { preHandler: [app.authenticate], schema: { querystring: ExportQuerySchema } }, async (req, reply) => {
+    try {
+      const file = await exportProspects(req.me, req.query)
+      reply.header('Content-Disposition', `attachment; filename="${file.filename}"`)
+      return reply.type(file.contentType).send(file.body)
+    } catch (err) {
+      if (err instanceof ExportTooManyError) return reply.code(400).send({ success: false, error: err.message, code: err.code })
+      return prospectErrorReply(reply, err)
     }
   })
 

@@ -36,7 +36,7 @@ const guard = app.featureGuard
 // `calendar.comune` și `calendar.administrare` lărgesc ce face service-ul pe rutele lui
 // `calendar.view` / `calendar.editare` (participanți, toate calendarele), fără rute proprii.
 // Features checked inside the service (object rights), not by a route of their own.
-const WITHOUT_ROUTES = new Set(['setari.view', 'calendar.comune', 'calendar.administrare', 'clienti.toti', 'clienti.repartizare', 'clienti.export'])  // clienti.export: the export route lands in BE5; remove it from here then
+const WITHOUT_ROUTES = new Set(['setari.view', 'calendar.comune', 'calendar.administrare', 'clienti.toti', 'clienti.repartizare'])
 
 /**
  * Rute care ar ieși în exterior cu parametrii plini, deci niciun request la ele în test.

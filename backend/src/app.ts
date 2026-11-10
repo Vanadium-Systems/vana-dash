@@ -46,11 +46,13 @@ import { sentryWebhookRoutes } from './modules/webhooks/sentry-routes.js'
 import { vanagreenAlertRoutes } from './modules/webhooks/vanagreen-routes.js'
 import { vanagreenIngestRoutes } from './modules/vanagreen-ingest/routes.js'
 import { notesRoutes } from './modules/notes/routes.js'
+import { notificationsRoutes } from './modules/notifications/routes.js'
 import { planRoutes } from './modules/plan/routes.js'
 import { platformRoutes } from './modules/platforms/routes.js'
 import { pricingRoutes } from './modules/pricing/routes.js'
 import { prospectsRoutes } from './modules/prospects/routes.js'
 import { prospectCrmRoutes } from './modules/prospects/crm-routes.js'
+import { prospectTeamRoutes } from './modules/prospects/team-routes.js'
 import { snippetsRoutes } from './modules/snippets/routes.js'
 import { pushRoutes } from './modules/push/routes.js'
 import { reconciliationRoutes } from './modules/reconciliation/routes.js'
@@ -147,6 +149,8 @@ export async function buildServer() {
   await app.register(pricingRoutes)
   await app.register(prospectsRoutes)
   await app.register(prospectCrmRoutes)
+  await app.register(prospectTeamRoutes)
+  await app.register(notificationsRoutes)
   await app.register(snippetsRoutes)
   await app.register(emailRoutes)
   await app.register(emailImagesRoutes)

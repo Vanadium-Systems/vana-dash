@@ -19,6 +19,7 @@ export const UpdatePreferencesSchema = z.object({
   invoiceStatus: z.boolean().optional(),
   calendarReminder: z.boolean().optional(),
   paymentMatch: z.boolean().optional(),
+  clienti: z.boolean().optional(),
 })
 
 // Token FCM al APK-ului (Contract C) — lungime generoasă, Firebase token-urile au ~150-160 chars.

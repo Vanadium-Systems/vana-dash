@@ -7,9 +7,18 @@ import type { SessionUser } from './session.js'
 // Messages card, export, board, lists, alerts) goes through `visibleProspectsWhere`; every write
 // through `canEditProspect`. Lives in shared/ because search and email need it too.
 
+/** The outer prospect row inside a correlated subquery. In a single-table select Drizzle prints
+ *  `${prospects.id}` as a bare "id", which a subquery binds to its own table's id. */
+export const PROSPECT_ID = sql.raw('"prospects"."id"')
+
+/** Lowercase, no diacritics (both the comma and the cedilla forms of s and t), for LIKE matching.
+ *  Written as a Postgres unicode escape so the source holds no Romanian letters. */
+export const foldDiacritics = (col: SQL): SQL =>
+  sql`translate(lower(${col}), ${sql.raw("U&'\\0103\\00E2\\00EE\\0219\\015F\\021B\\0163'")}, 'aaisstt')`
+
 const isCollaborator = (userId: string, level?: 'edit') =>
   sql`EXISTS (SELECT 1 FROM ${prospectCollaborators} pc
-               WHERE pc."prospect_id" = ${prospects.id} AND pc."user_id" = ${userId} AND pc."deleted_at" IS NULL
+               WHERE pc."prospect_id" = ${PROSPECT_ID} AND pc."user_id" = ${userId} AND pc."deleted_at" IS NULL
                ${level ? sql`AND pc."level" = ${level}` : sql``})`
 
 /** `clienti.toti` sees everything; otherwise: mine, unassigned, and where I am a collaborator. */

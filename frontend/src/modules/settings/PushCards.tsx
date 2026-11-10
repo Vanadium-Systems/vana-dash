@@ -24,6 +24,7 @@ interface PushPreferences {
   invoiceStatus: boolean
   calendarReminder: boolean
   paymentMatch: boolean
+  clienti: boolean
 }
 
 const PREFERENCE_LABELS: { key: keyof PushPreferences; label: string }[] = [
@@ -32,6 +33,7 @@ const PREFERENCE_LABELS: { key: keyof PushPreferences; label: string }[] = [
   { key: 'invoiceStatus', label: t('settings:push.types.anaf') },
   { key: 'calendarReminder', label: t('settings:push.types.calendar') },
   { key: 'paymentMatch', label: t('settings:push.types.payment') },
+  { key: 'clienti', label: t('settings:push.types.clienti') },
 ]
 
 export function PushSubscriptionCard() {

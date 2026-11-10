@@ -5,8 +5,9 @@ import errors from './errors.json' with { type: 'json' }
 import features from './features.json' with { type: 'json' }
 import monitoring from './monitoring.json' with { type: 'json' }
 import pricing from './pricing.json' with { type: 'json' }
+import prospectImport from './prospect-import.json' with { type: 'json' }
 import push from './push.json' with { type: 'json' }
 import search from './search.json' with { type: 'json' }
 import validation from './validation.json' with { type: 'json' }
 
-export default { alerts, audit, emails, errors, features, monitoring, pricing, push, search, validation }
+export default { alerts, audit, emails, errors, features, monitoring, pricing, prospectImport, push, search, validation }

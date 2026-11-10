@@ -10,7 +10,7 @@ import type { Locale } from './locale.js'
 // fluxul principal la punctele de integrare. Cheia privată VAPID nu ajunge NICIODATĂ în vreun
 // response — doar cea publică, expusă prin GET /api/push/vapid-public-key.
 
-export type PushEventType = 'alerts' | 'email' | 'invoiceStatus' | 'calendarReminder' | 'paymentMatch' | 'mesaje' | 'suport'
+export type PushEventType = 'alerts' | 'email' | 'invoiceStatus' | 'calendarReminder' | 'paymentMatch' | 'mesaje' | 'suport' | 'clienti'
 
 export interface PushPreferences {
   alerts: boolean
@@ -20,6 +20,7 @@ export interface PushPreferences {
   paymentMatch: boolean
   mesaje: boolean
   suport: boolean
+  clienti: boolean
 }
 
 const DEFAULT_PREFERENCES: PushPreferences = {
@@ -33,6 +34,7 @@ const DEFAULT_PREFERENCES: PushPreferences = {
   // opri definitiv pushul pentru oameni, fără niciun semn de ce.
   mesaje: true,
   suport: true,
+  clienti: true,
 }
 
 const PREFERENCES_KEY = 'push_preferences'

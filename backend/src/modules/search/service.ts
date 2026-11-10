@@ -1,7 +1,7 @@
-import { and, desc, ilike, isNull, or, sql, type SQL } from 'drizzle-orm'
+import { and, desc, ilike, isNull, or, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { emailThreads, financialRecords, prospectArchives, prospectContactPoints, prospectPeople, prospects, users } from '../../shared/db/schema/index.js'
-import { escapeLike, visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
+import { escapeLike, foldDiacritics, PROSPECT_ID, visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import { getCompanyTimeZone } from '../../shared/lib/company.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { searchFiles } from '../archive/service.js'
@@ -70,7 +70,7 @@ async function searchInvoices(term: string, limit: number): Promise<SearchGroup 
 
 async function searchProspects(me: SessionUser, term: string, limit: number): Promise<SearchGroup | null> {
   const like = `%${escapeLike(term.toLowerCase())}%`
-  const fold = (col: SQL) => sql`translate(lower(${col}), 'ăâîșşțţ', 'aaisstt')`
+  const fold = foldDiacritics
   const folded = `%${escapeLike(term.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))}%`
   const rows = await db
     .select({
@@ -79,18 +79,18 @@ async function searchProspects(me: SessionUser, term: string, limit: number): Pr
       cif: prospects.cif,
       status: prospects.status,
       ownerName: sql<string | null>`(SELECT coalesce(nullif(u."display_name", ''), u."email") FROM ${users} u WHERE u."id" = ${prospects.assignedUserId})`,
-      person: sql<string | null>`(SELECT pp."name" FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${prospects.id} AND pp."deleted_at" IS NULL AND ${fold(sql`pp."name"`)} LIKE ${folded} LIMIT 1)`,
+      person: sql<string | null>`(SELECT pp."name" FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${PROSPECT_ID} AND pp."deleted_at" IS NULL AND ${fold(sql`pp."name"`)} LIKE ${folded} LIMIT 1)`,
     })
     .from(prospects)
     .where(
       and(
         isNull(prospects.deletedAt),
         visibleProspectsWhere(me),
-        sql`NOT EXISTS (SELECT 1 FROM ${prospectArchives} WHERE ${prospectArchives.prospectId} = ${prospects.id} AND ${prospectArchives.userId} = ${me.id})`,
+        sql`NOT EXISTS (SELECT 1 FROM ${prospectArchives} WHERE ${prospectArchives.prospectId} = ${PROSPECT_ID} AND ${prospectArchives.userId} = ${me.id})`,
         sql`(${fold(sql`${prospects.name}`)} LIKE ${folded}
           OR ${prospects.cifNormalized} LIKE ${'%' + escapeLike(term.toUpperCase().replace(/^\s*RO|\s/gi, '')) + '%'}
-          OR EXISTS (SELECT 1 FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${prospects.id} AND pp."deleted_at" IS NULL AND ${fold(sql`pp."name"`)} LIKE ${folded})
-          OR EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${prospects.id} AND cp."deleted_at" IS NULL AND cp."value_normalized" LIKE ${like}))`,
+          OR EXISTS (SELECT 1 FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${PROSPECT_ID} AND pp."deleted_at" IS NULL AND ${fold(sql`pp."name"`)} LIKE ${folded})
+          OR EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."deleted_at" IS NULL AND cp."value_normalized" LIKE ${like}))`,
       ),
     )
     .orderBy(desc(prospects.updatedAt))

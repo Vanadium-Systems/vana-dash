@@ -100,7 +100,8 @@
       "email": "New email received",
       "anaf": "ANAF invoice status (validated/rejected)",
       "calendar": "Calendar reminders",
-      "payment": "Payment matched / marked as paid"
+      "payment": "Payment matched / marked as paid",
+      "clienti": "Clients: mentions, transfers, releases"
     },
     "enabled": "Push notifications are on for this device",
     "enableFailed": "Switching on failed",

@@ -24,6 +24,7 @@ describe('push preferences', () => {
       paymentMatch: true,
       mesaje: true,
       suport: true,
+      clienti: true,
     })
   })
 

@@ -1,0 +1,98 @@
+{
+  "sheetData": "Prospects",
+  "sheetGuide": "How to fill in",
+  "guideColumn": "Column",
+  "guideRequired": "Required?",
+  "guideFormat": "Format",
+  "required": "Required",
+  "optional": "Optional",
+  "columns": {
+    "name": {
+      "header": "Company name",
+      "example": "Acme SRL",
+      "help": "The name of the company. A new row is not created without it."
+    },
+    "cui": {
+      "header": "Tax ID",
+      "example": "12345678",
+      "help": "With or without the country prefix. It finds companies that already exist so they are filled in, not duplicated."
+    },
+    "phone": {
+      "header": "Phone",
+      "example": "0722 111 222",
+      "help": "Separate several numbers with / , or ;. Format the column as text so a leading zero is kept."
+    },
+    "email": {
+      "header": "Email",
+      "example": "office@example.com",
+      "help": "Separate several addresses with / , or ;."
+    },
+    "contact": {
+      "header": "Contact person",
+      "example": "John Smith",
+      "help": "The name of the person at the company, as text."
+    },
+    "website": {
+      "header": "Website",
+      "example": "example.com",
+      "help": "The site address, with or without https://."
+    },
+    "caen": {
+      "header": "NACE code",
+      "example": "6201",
+      "help": "The activity code, digits only."
+    },
+    "employees": {
+      "header": "Employees",
+      "example": "12",
+      "help": "A whole number."
+    },
+    "revenue": {
+      "header": "Revenue",
+      "example": "1500000",
+      "help": "A number with no currency. 1,500,000.50 style also works."
+    },
+    "year": {
+      "header": "Year",
+      "example": "2025",
+      "help": "The year the revenue refers to, 4 digits."
+    },
+    "status": {
+      "header": "Status",
+      "example": "Not contacted",
+      "help": "A status from the catalog. If we cannot find it, a new row gets the default status."
+    },
+    "notes": {
+      "header": "Notes",
+      "example": "They asked for a quote in March",
+      "help": "Free text. It becomes a note on the company."
+    },
+    "owner": {
+      "header": "Owner (email)",
+      "example": "colleague@example.com",
+      "help": "The email of an active colleague. It is used only if you have the assign permission."
+    }
+  },
+  "export": {
+    "sheet": "Prospects",
+    "columns": {
+      "name": "Name",
+      "cui": "Tax ID",
+      "status": "Status",
+      "owner": "Owner",
+      "score": "Score",
+      "priority": "Priority",
+      "phone": "Main phone",
+      "email": "Main email",
+      "person": "Main contact",
+      "caen": "NACE code",
+      "employees": "Employees",
+      "revenue": "Revenue",
+      "value": "Value",
+      "currency": "Currency",
+      "expectedClose": "Expected close",
+      "lastActivity": "Last activity",
+      "source": "Source"
+    }
+  }
+}

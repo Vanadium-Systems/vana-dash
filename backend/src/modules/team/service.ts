@@ -4,6 +4,8 @@ import { db } from '../../shared/db/client.js'
 import { roles, userMailboxes, userTokens, users } from '../../shared/db/schema/index.js'
 import { config } from '../../shared/config.js'
 import { recordAudit } from '../../shared/lib/audit.js'
+import { notify } from '../../shared/lib/notify.js'
+import { handOverDepartingUser } from '../../shared/lib/prospect-handover.js'
 import { sendEmail } from '../../shared/lib/email.js'
 import { effectiveFeatures, type SessionUser } from '../../shared/lib/session.js'
 import { createUserToken } from '../../shared/lib/user-tokens.js'
@@ -142,15 +144,27 @@ export async function updateMember(actor: SessionUser, userId: string, input: { 
     patch.status = input.status
     if (input.status === 'disabled') patch.sessionVersion = sql`${users.sessionVersion} + 1` as unknown as number
   }
-  await db.update(users).set(patch).where(eq(users.id, userId))
+  const leaving = input.status === 'disabled' && before.status !== 'disabled'
+  const handover = await db.transaction(async (tx) => {
+    await tx.update(users).set(patch).where(eq(users.id, userId))
 
-  // Dezactivarea arde și linkurile nefolosite ale omului (invitație, resetare): altfel un
-  // token vechi rămâne o poartă de intrare într-un cont oprit.
-  if (input.status === 'disabled') {
-    await db
-      .update(userTokens)
-      .set({ usedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(userTokens.userId, userId), isNull(userTokens.usedAt)))
+    // Dezactivarea arde și linkurile nefolosite ale omului (invitație, resetare): altfel un
+    // token vechi rămâne o poartă de intrare într-un cont oprit.
+    if (input.status === 'disabled') {
+      await tx
+        .update(userTokens)
+        .set({ usedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(userTokens.userId, userId), isNull(userTokens.usedAt)))
+    }
+    // Same transaction: a half-disabled account would keep prospects nobody can work.
+    return leaving ? handOverDepartingUser(tx, userId, actor.id) : null
+  })
+  if (handover && handover.taskCount > 0) {
+    await notify([actor.id], {
+      kind: 'clienti.tasks_taken',
+      title: tr('push.clienti.tasksTaken', { count: handover.taskCount, name: before.displayName ?? tr('push.clienti.aColleague') }),
+      url: '/clients',
+    })
   }
 
   await recordAudit({

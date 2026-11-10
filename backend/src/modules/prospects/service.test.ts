@@ -18,6 +18,7 @@ import { ProspectNotYoursError } from '../../shared/lib/prospect-access.js'
 import { cleanupTestUsers, createTestUser } from '../../shared/testing/users.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import type { ProspectFilter } from './filters.js'
+import * as crm from './crm-service.js'
 import * as service from './service.js'
 import { cardsForTest } from './refs.js'
 
@@ -163,6 +164,72 @@ describe('data', () => {
 
   it('next-task filter: a prospect without tasks is "none"', async () => {
     expect(await listIds(a, [{ field: 'nextTask', op: 'in', value: ['none'] }])).toContain(mine)
+  })
+})
+
+describe('correlated columns', () => {
+  let full: string
+  let bare: string
+
+  type Row = { id: string; primaryPhone: string | null; primaryEmail: string | null; primaryPerson: string | null; note: { body: string } | null; nextTask: unknown; canEdit: boolean }
+  const rowsOf = async (me: SessionUser, f: ProspectFilter[] = []) => (await service.listProspects(me, { f, pageSize: 100 })).rows as Row[]
+
+  beforeAll(async () => {
+    full = (await service.createProspect(a, { name: 'QA Full SRL', cif: '99000011', phone: '0733 111 222', email: 'full@full.example', contactName: 'Maria Zorila' })).id
+    bare = (await service.createProspect(a, { name: 'QA Bare SRL', cif: '99000012' })).id
+    prospectIds.push(full, bare)
+    await crm.createNote(a, full, { body: 'qa note body' })
+    await crm.createProspectTask(a, full, { kind: 'call', title: 'qa task', dueAt: new Date(Date.now() + 3 * 86400_000) })
+  })
+
+  it('the list computes phone, email, person, note and next task per row', async () => {
+    const rows = await rowsOf(a)
+    const f = rows.find((r) => r.id === full)!
+    const bareRow = rows.find((r) => r.id === bare)!
+    expect(f.primaryPhone).toBe('0733 111 222')
+    expect(f.primaryEmail).toBe('full@full.example')
+    expect(f.primaryPerson).toBe('Maria Zorila')
+    expect(f.note?.body).toBe('qa note body')
+    expect(f.nextTask).toBeTruthy()
+    for (const key of ['primaryPhone', 'primaryEmail', 'primaryPerson', 'note', 'nextTask'] as const) expect(bareRow[key]).toBeNull()
+  })
+
+  it('canEdit is true for the owner and false for someone else with everything', async () => {
+    const asOwner = (await rowsOf(a)).find((r) => r.id === full)!
+    const asOther = (await rowsOf(b)).find((r) => r.id === full)!
+    expect(asOwner.canEdit).toBe(true)
+    expect(asOther.canEdit).toBe(false)
+  })
+
+  it('next-task filter splits the prospects with and without an open task', async () => {
+    const none = await listIds(a, [{ field: 'nextTask', op: 'in', value: ['none'] }])
+    expect(none).toContain(bare)
+    expect(none).not.toContain(full)
+    const future = await listIds(a, [{ field: 'nextTask', op: 'in', value: ['future'] }])
+    expect(future).toContain(full)
+    expect(future).not.toContain(bare)
+  })
+
+  it('phone not_empty keeps only the prospect with a phone', async () => {
+    const ids = await listIds(a, [{ field: 'phone', op: 'not_empty' }])
+    expect(ids).toContain(full)
+    expect(ids).not.toContain(bare)
+  })
+
+  it('free text finds a prospect by the name of its contact person', async () => {
+    const ids = await listIds(a, [], 'zorila')
+    expect(ids).toContain(full)
+    expect(ids).not.toContain(bare)
+  })
+
+  it('a collaborator makes a foreign prospect visible, and removing them hides it again', async () => {
+    const other = (await service.createProspect(b, { name: 'QA Other SRL', cif: '99000013' })).id
+    prospectIds.push(other)
+    expect(await listIds(a)).not.toContain(other)
+    await db.insert(prospectCollaborators).values({ prospectId: other, userId: a.id, level: 'view' })
+    expect(await listIds(a)).toContain(other)
+    await db.delete(prospectCollaborators).where(eq(prospectCollaborators.prospectId, other))
+    expect(await listIds(a)).not.toContain(other)
   })
 })
 

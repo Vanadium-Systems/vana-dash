@@ -33,5 +33,31 @@
   "email": {
     "newFrom": "New email from {{from}}",
     "noSubject": "(no subject)"
+  },
+  "clienti": {
+    "aColleague": "A colleague",
+    "mention": "{{author}} mentioned you at {{company}}",
+    "transferOne": "{{company}} from {{from}}",
+    "transferMany": {
+      "one": "{{count}} prospect from {{from}}",
+      "other": "{{count}} prospects from {{from}}"
+    },
+    "requestTransfer": "{{who}} asks for {{company}}",
+    "requestAccess": "{{who}} asks for access to {{company}}",
+    "requestAccepted": "Your request for {{company}} was accepted",
+    "requestRefused": "Your request for {{company}} was refused",
+    "requestCancelled": "{{who}} withdrew the request for {{company}}",
+    "handedOver": "{{company}} moved to {{to}}",
+    "collaborator": "{{who}} gave you access to {{company}}",
+    "releaseWarning": {
+      "one": "{{company}} is released in {{count}} day without activity",
+      "other": "{{company}} is released in {{count}} days without activity"
+    },
+    "released": "{{company}} was released: no activity for {{count}} days",
+    "tasksTaken": {
+      "one": "{{count}} task taken over from {{name}}",
+      "other": "{{count}} tasks taken over from {{name}}"
+    },
+    "handoverNote": "Handover: {{note}}"
   }
 }

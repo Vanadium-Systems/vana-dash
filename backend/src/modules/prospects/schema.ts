@@ -140,11 +140,6 @@ export const BulkProspectIdsSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(1000),
 })
 
-export const ImportProspectsSchema = z.object({
-  csv: z.string().min(1),
-  source: z.string().trim().max(255).optional(),
-})
-
 // ── People, contact points, notes, tasks ─────────────────────────────────────
 
 export const ProspectParamsSchema = z.object({ id: z.string().uuid() })

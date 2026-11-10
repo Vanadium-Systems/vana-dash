@@ -5,7 +5,7 @@
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { emailMessages, emailThreads, financialRecords, prospects, userMailboxes, users } from '../../shared/db/schema/index.js'
+import { emailMessages, emailThreads, financialRecords, prospectPeople, prospects, userMailboxes, users } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { getIdentities } from '../email/settings-service.js'
 import { search } from './service.js'
@@ -127,6 +127,19 @@ async function seed() {
 await seed()
 
 describe('search', () => {
+  it('prospect search by the contact person name finds only that prospect', async () => {
+    const personName = `Zorila${marker.slice(-6)}`
+    const [withPerson, without] = await db
+      .insert(prospects)
+      .values([{ name: 'QA Person SRL' }, { name: 'QA No Person SRL' }])
+      .returning()
+    prospectIds.push(withPerson!.id, without!.id)
+    await db.insert(prospectPeople).values({ prospectId: withPerson!.id, name: personName })
+    const clients = (await search(adminSession, personName)).find((g) => g.group === 'Clienți')!
+    expect(clients.items).toHaveLength(1)
+    expect(clients.items[0]!.id).toBe(withPerson!.id)
+  })
+
   it('grupa fără funcționalitate nu apare deloc, nici goală', async () => {
     const withoutInvoices = { ...colleagueSession, features: ['cautare.view', 'clienti.view', 'email.view'] }
     const groups = await search(withoutInvoices, marker)
