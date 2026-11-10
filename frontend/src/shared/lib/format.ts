@@ -95,6 +95,15 @@ export function formatDateTime(value: DateInput): string {
   return formatDate(value, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+/** A length of audio as a clock: 4:07, or 1:02:03 past an hour. */
+export function formatDuration(totalSeconds: number): string {
+  const whole = Math.max(0, Math.round(totalSeconds))
+  const hours = Math.floor(whole / 3600)
+  const minutes = Math.floor((whole % 3600) / 60)
+  const seconds = String(whole % 60).padStart(2, '0')
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${seconds}` : `${minutes}:${seconds}`
+}
+
 /**
  * "2 hours ago", "3 days ago", then the full date past a week, so two screens do not each
  * write their own format.

@@ -29,6 +29,7 @@ import { CollaboratorsDialog, ContactCheckDialog, DiscussDialog, RequestDialog, 
 import { TeamBanner } from './TeamBanner'
 import type { ProspectSheet } from './types'
 import { useNotes, useTasks, useTimeline, useWrite } from './use-sheet'
+import { useVoiceNotes } from './voice/voice-api'
 import { useTeamActions } from './use-team-actions'
 
 type TabKey = 'activity' | 'notes' | 'tasks' | 'emails' | 'calls' | 'discussed'
@@ -42,6 +43,7 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
   const team = useTeamActions(sheet.id)
   const statuses = useStatuses().data ?? []
   const notes = useNotes(sheet.id)
+  const voices = useVoiceNotes(sheet.id)
   const tasks = useTasks(sheet.id)
   const timeline = useTimeline(sheet.id)
 
@@ -110,7 +112,7 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
   }
   const tabs: Array<{ key: TabKey; label: string; count?: string; show: boolean }> = [
     { key: 'activity', label: t('clients:sheet.tabs.activity'), show: true },
-    { key: 'notes', label: t('clients:sheet.tabs.notes'), count: String(notes.data?.length ?? 0), show: true },
+    { key: 'notes', label: t('clients:sheet.tabs.notes'), count: String((notes.data?.length ?? 0) + (voices.data?.length ?? 0)), show: true },
     { key: 'tasks', label: t('clients:sheet.tabs.tasks'), count: String(tasks.data?.filter(isOpenTask).length ?? 0), show: true },
     { key: 'emails', label: t('clients:sheet.tabs.emails'), count: countOf('email'), show: true },
     { key: 'calls', label: t('clients:sheet.tabs.calls'), count: countOf('call'), show: true },

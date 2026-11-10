@@ -437,11 +437,11 @@ describe('getStorageUsage (avertisment plafon R2)', () => {
     expect(after.limitBytes).toBeGreaterThan(0)
   })
 
-  it('nu numără fișierele soft-șterse', async () => {
+  it('counts a file in the Trash until it is purged: the object still takes up R2', async () => {
     const file = await makeFile({ sizeBytes: 999_999 })
     const before = await service.getStorageUsage(qa)
     await trash.trashFile(qa, file.id)
     const after = await service.getStorageUsage(qa)
-    expect(after.usedBytes).toBe(before.usedBytes - 999_999)
+    expect(after.usedBytes).toBe(before.usedBytes)
   })
 })

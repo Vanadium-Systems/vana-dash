@@ -68,7 +68,7 @@ export interface ProspectSheet extends ProspectRow {
   offer: StoredOffer | null
 }
 
-export type TimelineKind = 'audit' | 'note' | 'task' | 'stage' | 'call' | 'email' | 'sequence'
+export type TimelineKind = 'audit' | 'note' | 'task' | 'stage' | 'call' | 'email' | 'sequence' | 'voice'
 
 export interface TimelineRow {
   id: string
@@ -91,6 +91,20 @@ export interface SheetNote {
   mentions: string[]
   pinned: boolean
   createdAt: string
+}
+
+export interface VoiceNote {
+  id: string
+  taskId: string | null
+  mime: string
+  sizeBytes: number
+  durationSeconds: number
+  caption: string | null
+  createdAt: string
+  authorUserId: string | null
+  authorName: string | null
+  authorEmail: string | null
+  canManage: boolean
 }
 
 export interface SheetTask {

@@ -2,7 +2,8 @@
   "tabs": {
     "recent": "Recente",
     "starred": "Cu stea",
-    "trash": "Coș"
+    "trash": "Coș",
+    "space": "Spațiu de stocare"
   },
   "header": {
     "path": "Drumul până aici"
@@ -232,5 +233,36 @@
     "newFolderTitle": "Folder nou",
     "label": "Nume",
     "required": "Scrie un nume."
+  },
+  "space": {
+    "title": "Spațiu de stocare",
+    "used": "{{used}} din {{limit}}",
+    "percent": "{{percent}} folosit",
+    "source": "Pe surse",
+    "byPerson": "Pe oameni",
+    "topFolders": "Cele mai mari foldere",
+    "sources": {
+      "arhiva": "Arhivă",
+      "note_vocale": "Note vocale",
+      "mesaje": "Mesaje"
+    },
+    "files_one": "{{count}} fișier",
+    "files_few": "{{count}} fișiere",
+    "files_other": "{{count}} de fișiere",
+    "person": "Om",
+    "total": "Total",
+    "share": "Pondere",
+    "split": "Pe surse",
+    "owner": "Al cui",
+    "folder": "Folder",
+    "filesCol": "Fișiere",
+    "size": "Mărime",
+    "system": "Sistem",
+    "uncounted": {
+      "quarterly-packages": "Pachetul trimestrial pentru contabilitate nu e numărat aici."
+    },
+    "empty": "Nimic stocat încă.",
+    "emptyPeople": "Niciun om cu fișiere.",
+    "emptyFolders": "Niciun folder cu fișiere."
   }
 }

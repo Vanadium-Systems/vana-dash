@@ -1105,6 +1105,17 @@ export interface StorageUsage {
   limitBytes: number
 }
 
+export type StorageSource = 'arhiva' | 'note_vocale' | 'mesaje'
+
+export interface StorageUsageDetails {
+  limitBytes: number
+  usedBytes: number
+  uncounted: string[]
+  bySource: { source: StorageSource; bytes: number; files: number }[]
+  byPerson: { userId: string | null; name: string | null; bytes: number; bySource: Record<StorageSource, number> }[]
+  topFolders: { folderId: string; name: string; ownerName: string | null; bytes: number; files: number }[]
+}
+
 export interface ArchiveFolderPathEntry {
   id: string
   name: string

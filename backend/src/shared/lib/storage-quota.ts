@@ -103,3 +103,16 @@ export async function assertStorageAvailable(extraBytes: number): Promise<void> 
   const limitBytes = config.r2.freeTierLimitGb * 1024 ** 3
   if (usedBytes + extraBytes > limitBytes) throw new StorageFullError(usedBytes, limitBytes)
 }
+
+/** What one person takes up (`userBytes`) and the whole bucket (`totalBytes`), on the same rows as
+ *  the quota, so the header indicator and the admin panel never disagree. */
+export async function storageTotals(userId: string): Promise<{ userBytes: number; totalBytes: number }> {
+  const [row] = Array.from(
+    await db.execute<{ userBytes: string; totalBytes: string }>(sql`
+      WITH r AS (${STORAGE_ROWS})
+      SELECT COALESCE(SUM(bytes) FILTER (WHERE user_id = ${userId}), 0)::bigint AS "userBytes",
+             COALESCE(SUM(bytes), 0)::bigint AS "totalBytes"
+      FROM r`),
+  )
+  return { userBytes: Number(row?.userBytes ?? 0), totalBytes: Number(row?.totalBytes ?? 0) }
+}

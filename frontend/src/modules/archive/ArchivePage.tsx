@@ -54,12 +54,13 @@ import { canShareFiles, shareFileNatively } from './native-share'
 import { useRowActivation } from './row-activation'
 import { SaveShareDialog } from './SaveShareDialog'
 import { SpacesTable } from './SpacesTable'
+import { StoragePanel } from './StoragePanel'
 import { TrashView } from './TrashView'
 import { UploadPanel } from './UploadPanel'
 import { enqueueUploads, useUploads } from './uploads'
 
 const VIEW_MODE_KEY = 'archive-view-mode'
-const VIEWS: ArchiveView[] = ['own', 'shared', 'all', 'recent', 'starred', 'trash']
+const VIEWS: ArchiveView[] = ['own', 'shared', 'all', 'recent', 'starred', 'trash', 'space']
 
 function parseView(value: string | null): ArchiveView {
   return VIEWS.includes(value as ArchiveView) && value !== 'own' ? (value as ArchiveView) : 'own'
@@ -120,7 +121,7 @@ export function ArchivePage() {
     if (debouncedDraft !== q) setQ(debouncedDraft)
     // `q` is left out on purpose: a change that came from the URL must not be overwritten by the older draft.
   }, [debouncedDraft])
-  const searching = view !== 'recent' && view !== 'starred' && view !== 'trash' && q.trim().length > 0
+  const searching = view !== 'recent' && view !== 'starred' && view !== 'trash' && view !== 'space' && q.trim().length > 0
   const searchRef = useRef<HTMLInputElement>(null)
 
   const [viewMode, setViewModeState] = useState<ViewMode>(() => (localStorage.getItem(VIEW_MODE_KEY) === 'grid' ? 'grid' : 'list'))
@@ -159,7 +160,7 @@ export function ArchivePage() {
     })
   }
   // A folder opened from Recent, Starred or the Trash is browsed in the person's own tab.
-  const openFolder = (id: string | null) => navigateTo(id, view === 'recent' || view === 'starred' || view === 'trash' ? 'own' : view)
+  const openFolder = (id: string | null) => navigateTo(id, view === 'recent' || view === 'starred' || view === 'trash' || view === 'space' ? 'own' : view)
 
   const spaces = useQuery({
     queryKey: ['archive', 'spaces'],
@@ -412,6 +413,7 @@ export function ArchivePage() {
     { value: 'recent', label: t('archive:tabs.recent') },
     { value: 'starred', label: t('archive:tabs.starred') },
     ...(canEdit ? [{ value: 'trash' as const, label: t('archive:tabs.trash') }] : []),
+    ...(can('arhiva.spatiu') ? [{ value: 'space' as const, label: t('archive:tabs.space') }] : []),
   ]
 
   const trail: Crumb[] = !browsing
@@ -518,7 +520,7 @@ export function ArchivePage() {
       { keys: 'u', label: t('archive:actions.upload'), onKey: () => canWriteHere && pickFiles() },
       { keys: 'shift+n', label: t('archive:folders.new'), onKey: () => canWriteHere && newFolder() },
     ],
-    { enabled: view !== 'trash' && !listingSpaces && !viewerOpen && !dialogOpen },
+    { enabled: view !== 'trash' && view !== 'space' && !listingSpaces && !viewerOpen && !dialogOpen },
   )
 
   const env: ListEnv = {
@@ -666,6 +668,7 @@ export function ArchivePage() {
 
   function body() {
     if (view === 'trash') return <TrashView onOpenFolder={openFolder} />
+    if (view === 'space') return can('arhiva.spatiu') ? <StoragePanel onOpenFolder={openFolder} /> : null
     if (listingSpaces) {
       if (spaces.isPending) return <ListSkeleton rows={4} />
       return spaceEntries.length ? (

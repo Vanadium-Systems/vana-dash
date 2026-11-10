@@ -1,16 +1,22 @@
-import { Pencil, Pin, PinOff, Trash2 } from 'lucide-react'
+import { Mic, Pencil, Pin, PinOff, Trash2, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { SnippetTextarea } from '../tasks/SnippetTextarea'
+import { Alert } from '@/shared/components/ui/alert'
 import { Button } from '@/shared/components/ui/button'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { useMe } from '@/shared/hooks/use-me'
 import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
 import { formatDateTime, formatRelativeTime } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
-import type { SheetNote } from './types'
+import type { SheetNote, VoiceNote } from './types'
 import { useNotes, useWrite } from './use-sheet'
+import { useVoiceNotes, useVoiceStorageOff } from './voice/voice-api'
+import { VoiceNoteRow } from './voice/VoiceNoteRow'
+import { VoiceRecorder } from './voice/VoiceRecorder'
+import { VoiceUploadPanel } from './voice/VoiceUploadPanel'
 
 /** The text after the last `@` when it is still being typed (no space yet), else null. */
 function mentionFragment(body: string): string | null {
@@ -92,22 +98,62 @@ function NoteEditor({ prospectId, note, onDone }: { prospectId: string; note?: S
   )
 }
 
+export type NoteEntry = { kind: 'note'; note: SheetNote } | { kind: 'voice'; voice: VoiceNote }
+
+/** Pinned text notes stay on top as the server sends them; the rest, text and voice, newest first. */
+export function mixNotes(notes: SheetNote[], voices: VoiceNote[]): NoteEntry[] {
+  const pinned = notes.filter((note) => note.pinned).map<NoteEntry>((note) => ({ kind: 'note', note }))
+  const rest = [...notes.filter((note) => !note.pinned).map<NoteEntry>((note) => ({ kind: 'note', note })), ...voices.map<NoteEntry>((voice) => ({ kind: 'voice', voice }))]
+  const at = (entry: NoteEntry) => Date.parse(entry.kind === 'note' ? entry.note.createdAt : entry.voice.createdAt)
+  return [...pinned, ...rest.sort((a, b) => at(b) - at(a))]
+}
+
 export function NotesTab({ prospectId }: { prospectId: string }) {
   const { session } = useMe()
   const confirm = useConfirm()
   const write = useWrite()
   const notes = useNotes(prospectId)
+  const voices = useVoiceNotes(prospectId)
+  const storageOff = useVoiceStorageOff()
   const [editing, setEditing] = useState<string | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [recorderBusy, setRecorderBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const meId = session?.user.id
+  const entries = mixNotes(notes.data ?? [], voices.data ?? [])
 
   return (
     <div className="space-y-4">
       <NoteEditor prospectId={prospectId} />
-      {notes.isPending ? (
+      {storageOff ? (
+        <Alert tone="warning">{t('clients:voice.storageOff')}</Alert>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => setRecording(true)}>
+            <Mic aria-hidden="true" /> {t('clients:voice.button')}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setUploading(true)}>
+            <Upload aria-hidden="true" /> {t('clients:voice.uploadButton')}
+          </Button>
+        </div>
+      )}
+      {/* A take that is not saved yet is lost when the dialog closes, so only "Renunță" closes it then. */}
+      <Dialog open={recording} onOpenChange={(open) => (open || !recorderBusy) && setRecording(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('clients:voice.recorderTitle')}</DialogTitle>
+          </DialogHeader>
+          <VoiceRecorder prospectId={prospectId} onBusyChange={setRecorderBusy} onSaved={() => setRecording(false)} onClose={() => setRecording(false)} />
+        </DialogContent>
+      </Dialog>
+      {uploading ? <VoiceUploadPanel prospectId={prospectId} onClose={() => setUploading(false)} /> : null}
+      {notes.isPending || voices.isPending ? (
         <ListSkeleton rows={3} />
-      ) : notes.data && notes.data.length > 0 ? (
+      ) : entries.length > 0 ? (
         <ul className="space-y-4">
-          {notes.data.map((note) => {
+          {entries.map((entry) => {
+            if (entry.kind === 'voice') return <VoiceNoteRow key={`voice-${entry.voice.id}`} prospectId={prospectId} note={entry.voice} />
+            const note = entry.note
             const own = note.authorUserId === meId
             return (
               <li key={note.id} className="group space-y-1">

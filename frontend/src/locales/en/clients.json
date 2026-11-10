@@ -315,7 +315,8 @@
       "emailOut": "email sent: {{subject}}",
       "emailIn": "email received: {{subject}}",
       "opened": "opened",
-      "sequence": "enrolled in a sequence: {{sequence}}, step {{step}}"
+      "sequence": "enrolled in a sequence: {{sequence}}, step {{step}}",
+      "voice": "left a voice note ({{duration}})"
     },
     "emails": {
       "empty": "No emails yet."
@@ -479,6 +480,44 @@
     "cardActions": {
       "requestAccess": "Request access"
     }
+  },
+  "voice": {
+    "button": "Voice note",
+    "uploadButton": "Upload files",
+    "recorderTitle": "Voice note",
+    "recorderHint": "A note about the call, not a recording of the call.",
+    "start": "Start recording",
+    "requesting": "Asking for microphone access…",
+    "recording": "Recording",
+    "stop": "Stop",
+    "limitSoon": "Stops by itself at {{max}} ({{remaining}} left).",
+    "limitHit": "Recording stopped at the {{max}} limit.",
+    "listen": "Listen before saving",
+    "caption": "Caption",
+    "discard": "Discard",
+    "uploading": "Uploading… {{percent}}%",
+    "denied": "Microphone access is blocked. Allow it in the browser settings, or upload a file instead.",
+    "noMic": "No microphone found. You can upload a file instead.",
+    "unsupported": "This browser cannot record. You can upload a file instead.",
+    "micFailed": "The microphone does not start. You can upload a file instead.",
+    "storageOff": "File storage is not set up, so voice notes do not work yet.",
+    "uploadTitle": "Upload recordings",
+    "dropHere": "Drop audio files here or",
+    "choose": "Choose files",
+    "queueLabel": "Files to upload",
+    "waiting": "Waiting",
+    "progress": "{{loaded}} of {{size}} · {{percent}}%",
+    "done": "Uploaded",
+    "tooLarge": "The file is over {{max}}.",
+    "unknownAuthor": "Former colleague",
+    "audioLabel": "Voice note from {{author}}",
+    "durationLabel": "Length {{duration}}",
+    "editCaption": "Edit caption",
+    "deleteTitle": "Delete the voice note",
+    "deleteBody": "The recording disappears from the sheet and from storage.",
+    "callNote": "Voice note about the call",
+    "callSaved": "Voice note saved.",
+    "blocksNext": "Save or discard the voice note, then move on."
   },
   "layout": {
     "label": "Layout",
@@ -709,7 +748,8 @@
         "stage": "Stage",
         "call": "Call",
         "email": "Email",
-        "sequence": "Sequence"
+        "sequence": "Sequence",
+        "voice": "Voice note"
       },
       "nextTask": "Next",
       "skip": "Skip",

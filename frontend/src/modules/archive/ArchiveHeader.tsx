@@ -12,7 +12,7 @@ import { t } from '@/shared/lib/i18n'
 import type { StorageUsage } from '@/shared/lib/types'
 import { cn, formatBytes } from '@/shared/lib/utils'
 
-export type ArchiveView = 'own' | 'shared' | 'all' | 'recent' | 'starred' | 'trash'
+export type ArchiveView = 'own' | 'shared' | 'all' | 'recent' | 'starred' | 'trash' | 'space'
 
 export interface Crumb {
   id: string | null

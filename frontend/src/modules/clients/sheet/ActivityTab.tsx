@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui/button'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Timeline, type TimelineEntry } from '@/shared/components/Timeline'
-import { formatDateTime } from '@/shared/lib/format'
+import { formatDateTime, formatDuration } from '@/shared/lib/format'
 import { t, type TKey } from '@/shared/lib/i18n'
 import { useStatuses } from '../prospects/use-prospect-data'
 import type { ProspectStatusEntry } from '@/shared/lib/types'
@@ -91,6 +91,13 @@ function describe(row: TimelineRow, statuses: ProspectStatusEntry[]): ReactNode 
         <>
           {t(data.kind === 'received' ? 'clients:sheet.activity.emailIn' : 'clients:sheet.activity.emailOut', { subject: text(data.subject) })}
           <span className="block text-muted-foreground">{[text(data.recipient), data.openedAt ? t('clients:sheet.activity.opened') : ''].filter(Boolean).join(' · ')}</span>
+        </>
+      )
+    case 'voice':
+      return (
+        <>
+          {t('clients:sheet.activity.voice', { duration: formatDuration(typeof data.durationSeconds === 'number' ? data.durationSeconds : 0) })}
+          {text(data.caption) ? <Quote>{text(data.caption)}</Quote> : null}
         </>
       )
     case 'sequence':

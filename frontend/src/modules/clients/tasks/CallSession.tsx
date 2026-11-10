@@ -11,6 +11,7 @@ import { t, type TKey } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
 import { useNotes, useSheet, useSheetRefresh, useTimeline } from '../sheet/use-sheet'
 import { buildCompleteBody, emptyDraft, type CompletionDraft } from './completion'
+import { CallVoiceNote } from '../sheet/voice/CallVoiceNote'
 import { CompletionFields, OUTCOME_LABEL } from './CompletionFields'
 import { CALL_OUTCOMES, type CallOutcome, type TaskRow, type TaskScope } from './types'
 import { useTaskList } from './use-tasks-data'
@@ -26,6 +27,7 @@ const KIND_LABEL: Record<string, TKey> = {
   call: 'clients:tasks.session.activity.call',
   email: 'clients:tasks.session.activity.email',
   sequence: 'clients:tasks.session.activity.sequence',
+  voice: 'clients:tasks.session.activity.voice',
 }
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
@@ -140,6 +142,8 @@ export function CallSession() {
   const [tally, setTally] = useState<Partial<Record<CallOutcome, number>>>({})
   const [summary, setSummary] = useState(false)
   const [saving, setSaving] = useState(false)
+  // An unsaved voice take would be lost by moving to the next call.
+  const [voiceBusy, setVoiceBusy] = useState(false)
 
   // Skipped tasks go behind the rest, in the order they were skipped.
   const queue = useMemo(() => {
@@ -162,7 +166,7 @@ export function CallSession() {
   }, [])
 
   const submit = useCallback(async () => {
-    if (!current || !draft.outcome || saving) return
+    if (!current || !draft.outcome || saving || voiceBusy) return
     setSaving(true)
     try {
       await api.post(`/api/prospects/tasks/${current.id}/done`, buildCompleteBody({ ...draft, contactPointId: phoneId }, current.prospectName, companyTimeZone()))
@@ -175,13 +179,13 @@ export function CallSession() {
     } finally {
       setSaving(false)
     }
-  }, [current, draft, phoneId, saving, refresh, next])
+  }, [current, draft, phoneId, saving, voiceBusy, refresh, next])
 
   const skip = useCallback(() => {
-    if (!current || queue.length < 2) return
+    if (!current || queue.length < 2 || voiceBusy) return
     setSkipped((ids) => [...ids.filter((id) => id !== current.id), current.id])
     next()
-  }, [current, queue.length, next])
+  }, [current, queue.length, voiceBusy, next])
 
   const leave = useCallback(() => navigate('/clients?tab=taskuri'), [navigate])
 
@@ -283,15 +287,17 @@ export function CallSession() {
 
           <aside className="min-h-0 space-y-4 overflow-y-auto border-t p-4 md:p-6 lg:border-l lg:border-t-0">
             <CompletionFields draft={draft} onChange={setDraft} isCall keyHints />
+            {current && draft.outcome ? <CallVoiceNote key={current.id} prospectId={current.prospectId} taskId={current.id} onBusyChange={setVoiceBusy} /> : null}
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" disabled={!draft.outcome || saving} onClick={() => void submit()}>
+              <Button type="button" disabled={!draft.outcome || saving || voiceBusy} onClick={() => void submit()}>
                 {t('clients:tasks.session.nextTask')} <ArrowRight aria-hidden="true" />
                 <kbd className="font-sans text-xs opacity-70">{KEY_ENTER}</kbd>
               </Button>
-              <Button type="button" variant="outline" disabled={queue.length < 2} onClick={skip}>
+              <Button type="button" variant="outline" disabled={queue.length < 2 || voiceBusy} onClick={skip}>
                 <SkipForward aria-hidden="true" /> {t('clients:tasks.session.skip')} <kbd className="font-sans text-xs text-muted-foreground">S</kbd>
               </Button>
             </div>
+            {voiceBusy ? <p className="text-xs text-muted-foreground">{t('clients:voice.blocksNext')}</p> : null}
             <p className="text-xs text-muted-foreground">{t('clients:tasks.session.keys')}</p>
           </aside>
         </div>

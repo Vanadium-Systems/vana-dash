@@ -437,6 +437,7 @@ subfolders, the financial archive, the quarterly package) write into the platfor
 | DELETE | `/api/archive/folders/:id/shares/:userId` | Removes the access. Audited |
 | POST | `/api/archive/folders/:id/assign` | `{ ownerUserId }`, moves the whole subtree to another person. `arhiva.administrare` |
 | POST | `/api/archive/spaces/:ownerUserId/assign` | `{ toUserId }` → `{ moved }`, all of a person's folders in one call. `arhiva.administrare` |
+| GET | `/api/archive/storage-usage` | `arhiva.spatiu`. What takes up the storage: `{ limitBytes, usedBytes, uncounted, bySource: [{ source: 'arhiva'\|'note_vocale'\|'mesaje', bytes, files }], byPerson: [{ userId, name, bytes, bySource }], topFolders }` (the ten largest folders). A person is the space owner for Archive files, the uploader for message attachments and the author for voice notes; `userId: null` = nobody. Files in the Trash count until it is emptied. The quarterly package has no size in the database and is listed in `uncounted` |
 | POST | `/api/archive/files` | `multipart/form-data`, with `folderId`/`tags` before `file`. Without `folderId`, the root of the person's space. 200 MB at most |
 | GET | `/api/archive/files` | Query: `folderId?` (missing = the root of the person's space), `q?` (name, no diacritics), `tags?` (all of them), `type?` (`pdf`/`image`/`document`/`spreadsheet`/`archive`/`other`), `modifiedAfter?`, `sort?` (`recent`/`oldest`/`name`), `page?`, `pageSize?` (10, 25 or 50; default 50) → `{ items, total, page, pageSize }`. Items carry `previewUrl` |
 | GET | `/api/archive/search` | Query: `q`, `tags?`, `type?`, `modifiedAfter?` → up to 50 results from everything the person can see, folders and files, each with `kind` (`folder`/`file`) and `folderPath`. No diacritics; `%`, `_` and `\` in `q` are literal. With a `tags`, `type` or `modifiedAfter` filter only files come back |
@@ -782,10 +783,25 @@ person's calendar.
 | GET | `/api/prospects/tasks` | The cross-prospect page. Query: `tab?` (`all` \| `call` \| `email` \| `linkedin` \| `today` \| `overdue`), `scope?` (`mine` \| `team`; `team` is honored only with `clienti.repartizare`), `page?`, `pageSize?` |
 | GET | `/api/prospects/tasks/counts` | The numbers per tab (the badge in the menu) |
 | POST | `/api/prospects/tasks/:taskId/done` | `{ outcome?, outcomeNote?, contactPointId?, nextTask?: { kind, title, dueAt, priority?, addToCalendar? } }`. For a call `outcome` is `answered` \| `no_answer` \| `voicemail` \| `wrong_number` \| `callback`; `wrong_number` marks `contactPointId` invalid. Emits `task.done` |
-| GET/POST | `/api/prospects/:id/tasks` | The prospect's tasks; create `{ kind, title, description?, dueAt, priority?, assigneeUserId?, personId?, addToCalendar? }` |
-| PATCH/DELETE | `/api/prospects/:id/tasks/:taskId` | Edit or remove |
+| GET/POST | `/api/prospects/:id/tasks` | The prospect's tasks; create `{ kind, title, description?, dueAt, priority?, assigneeUserId?, personId?, addToCalendar? }`. A `meeting` also takes `durationMinutes?` (15-480, default 30), `location?`, `attendeeUserIds?` (colleagues, up to 20; they become attendees of the calendar event and are notified; needs `calendar.comune`, else 403 `CALENDAR_COMUNE_REQUIRED`) and `invitees?` (up to 10 addresses, only email contact points of this prospect and not of a person marked Do not contact, else 400 `INVITEE_NOT_ALLOWED`). Meeting rows also carry `invitees`, `inviteSequence`, `durationMinutes`, `location`, `attendeeUserIds` |
+| PATCH/DELETE | `/api/prospects/:id/tasks/:taskId` | Edit or remove. On a meeting with invitees, a change of time or place and a delete raise `inviteSequence`, so the next `.ics` replaces the first one |
+| GET | `/api/prospects/:id/tasks/:taskId/invite.ics` | Query: `method` = `request` (a live meeting) \| `cancel` (a removed one), `from?` = the mailbox the invitation goes out from (it becomes the `ORGANIZER`; one that isn't the person's falls back to their own address). → `{ filename, content (base64), uid, sequence }`, ready to attach to `POST /api/email/send`. The prospects module does not send email itself |
 | GET/POST | `/api/snippets` | Text snippets (`self`: every person's own, plus the shared ones). `{ name, body, shared? }` |
 | PATCH/DELETE | `/api/snippets/:id` | Only the author |
+
+### Voice notes
+
+Source: `voice-notes-routes.ts`, `voice-notes-service.ts`. The audio sits on R2 and counts
+against the same storage limit as the Archive. Who hears a note follows the prospect's visibility;
+a prospect the person cannot see → `404`.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/prospects/:id/voice-notes` | `[{ id, taskId, mime, sizeBytes, durationSeconds, caption, createdAt, authorUserId, authorName, canManage }]` |
+| POST | `/api/prospects/:id/voice-notes` | `multipart/form-data`, fields `durationSeconds`, `caption?`, `taskId?` before the file. 25 MB at most. The type is read from the first bytes (WebM, Ogg, MP4/M4A, MP3, WAV), not from the declared one: anything else → 415 `VOICE_UNSUPPORTED`. Over the size or the storage limit → 413. Storage not configured → 503 `VOICE_STORAGE_OFF` |
+| PATCH | `/api/prospects/:id/voice-notes/:vid` | `{ caption }`. The author or an admin, else 403 `VOICE_NOT_YOURS` |
+| DELETE | `/api/prospects/:id/voice-notes/:vid` | The author or an admin. Removes the row and the object from R2 |
+| GET | `/api/prospects/:id/voice-notes/:vid/audio` | 302 to a presigned R2 link (one hour), which serves `Range`, so seeking works in `<audio>` |
 
 ### Team: claim, release, transfer, requests, collaborators
 

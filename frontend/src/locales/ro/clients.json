@@ -327,7 +327,8 @@
       "emailOut": "email trimis: {{subject}}",
       "emailIn": "email primit: {{subject}}",
       "opened": "deschis",
-      "sequence": "înscris într-o secvență: {{sequence}}, pasul {{step}}"
+      "sequence": "înscris într-o secvență: {{sequence}}, pasul {{step}}",
+      "voice": "a lăsat o notă vocală ({{duration}})"
     },
     "emails": {
       "empty": "Niciun email încă."
@@ -493,6 +494,44 @@
     "cardActions": {
       "requestAccess": "Cere acces"
     }
+  },
+  "voice": {
+    "button": "Notă vocală",
+    "uploadButton": "Încarcă fișiere",
+    "recorderTitle": "Notă vocală",
+    "recorderHint": "Notă despre apel, nu înregistrarea apelului.",
+    "start": "Începe înregistrarea",
+    "requesting": "Se cere accesul la microfon…",
+    "recording": "Se înregistrează",
+    "stop": "Oprește",
+    "limitSoon": "Se oprește singură la {{max}} (mai ai {{remaining}}).",
+    "limitHit": "Am oprit înregistrarea la limita de {{max}}.",
+    "listen": "Ascultă înainte de salvare",
+    "caption": "Descriere",
+    "discard": "Renunță",
+    "uploading": "Se încarcă… {{percent}}%",
+    "denied": "Accesul la microfon e blocat. Permite-l din setările browserului sau încarcă un fișier în loc.",
+    "noMic": "Nu am găsit niciun microfon. Poți încărca un fișier în loc.",
+    "unsupported": "Browserul acesta nu poate înregistra. Poți încărca un fișier în loc.",
+    "micFailed": "Microfonul nu pornește. Poți încărca un fișier în loc.",
+    "storageOff": "Stocarea fișierelor nu e configurată, deci notele vocale nu merg încă.",
+    "uploadTitle": "Încarcă înregistrări",
+    "dropHere": "Trage aici fișierele audio sau",
+    "choose": "Alege fișiere",
+    "queueLabel": "Fișiere de încărcat",
+    "waiting": "În așteptare",
+    "progress": "{{loaded}} din {{size}} · {{percent}}%",
+    "done": "Încărcat",
+    "tooLarge": "Fișierul depășește {{max}}.",
+    "unknownAuthor": "Fost coleg",
+    "audioLabel": "Notă vocală de la {{author}}",
+    "durationLabel": "Durată {{duration}}",
+    "editCaption": "Editează descrierea",
+    "deleteTitle": "Șterge nota vocală",
+    "deleteBody": "Înregistrarea dispare din fișă și din stocare.",
+    "callNote": "Notă vocală despre apel",
+    "callSaved": "Nota vocală e salvată.",
+    "blocksNext": "Salvează sau renunță la nota vocală, apoi mergi mai departe."
   },
   "layout": {
     "label": "Afișare",
@@ -731,7 +770,8 @@
         "stage": "Etapă",
         "call": "Apel",
         "email": "Email",
-        "sequence": "Secvență"
+        "sequence": "Secvență",
+        "voice": "Notă vocală"
       },
       "nextTask": "Următorul",
       "skip": "Sari peste",

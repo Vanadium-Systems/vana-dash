@@ -3,7 +3,7 @@ import { Readable } from 'node:stream'
 import { and, asc, desc, eq, inArray, sql, type AnyColumn, type SQL } from 'drizzle-orm'
 import { zipSync } from 'fflate'
 import { config } from '../../shared/config.js'
-import { assertStorageAvailable, StorageFullError } from '../../shared/lib/storage-quota.js'
+import { assertStorageAvailable, StorageFullError, storageTotals } from '../../shared/lib/storage-quota.js'
 import { db } from '../../shared/db/client.js'
 import { archiveFiles, archiveFolderShares, archiveFolders, archiveStars, users } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
@@ -930,24 +930,12 @@ export interface StorageUsage {
 /** SUM SQL (regula #9 CLAUDE.md) pe fișierele active, pe spațiul omului — soft-șterse nu mai
  *  ocupă loc "vizibil" pt. om, deși obiectul R2 rămâne până la ștergerea permanentă. */
 export async function getStorageUsage(me: SessionUser): Promise<StorageUsage> {
-  const [own] = await db
-    .select({ total: sql<number>`COALESCE(SUM(${archiveFiles.sizeBytes}), 0)::bigint` })
-    .from(archiveFiles)
-    .innerJoin(archiveFolders, eq(archiveFolders.id, archiveFiles.folderId))
-    .where(and(sql`${archiveFiles.deletedAt} IS NULL`, eq(archiveFolders.ownerUserId, me.id)))
-  const result: StorageUsage = {
-    usedBytes: Number(own?.total ?? 0),
+  const { userBytes, totalBytes } = await storageTotals(me.id)
+  return {
+    usedBytes: userBytes,
     limitBytes: config.r2.freeTierLimitGb * 1024 ** 3,
-    totalUsedBytes: null,
+    totalUsedBytes: managesAllSpaces(me) ? totalBytes : null,
   }
-  if (managesAllSpaces(me)) {
-    const [all] = await db
-      .select({ total: sql<number>`COALESCE(SUM(${archiveFiles.sizeBytes}), 0)::bigint` })
-      .from(archiveFiles)
-      .where(sql`${archiveFiles.deletedAt} IS NULL`)
-    result.totalUsedBytes = Number(all?.total ?? 0)
-  }
-  return result
 }
 
 export async function findFileByName(folderId: string, name: string) {

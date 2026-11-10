@@ -2,7 +2,8 @@
   "tabs": {
     "recent": "Recent",
     "starred": "Starred",
-    "trash": "Trash"
+    "trash": "Trash",
+    "space": "Storage"
   },
   "header": {
     "path": "Path to here"
@@ -218,5 +219,35 @@
     "newFolderTitle": "New folder",
     "label": "Name",
     "required": "Enter a name."
+  },
+  "space": {
+    "title": "Storage",
+    "used": "{{used}} of {{limit}}",
+    "percent": "{{percent}} used",
+    "source": "By source",
+    "byPerson": "By person",
+    "topFolders": "Largest folders",
+    "sources": {
+      "arhiva": "Archive",
+      "note_vocale": "Voice notes",
+      "mesaje": "Messages"
+    },
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "person": "Person",
+    "total": "Total",
+    "share": "Share",
+    "split": "By source",
+    "owner": "Owner",
+    "folder": "Folder",
+    "filesCol": "Files",
+    "size": "Size",
+    "system": "System",
+    "uncounted": {
+      "quarterly-packages": "The quarterly accounting package is not counted here."
+    },
+    "empty": "Nothing stored yet.",
+    "emptyPeople": "No one has files.",
+    "emptyFolders": "No folder has files."
   }
 }
