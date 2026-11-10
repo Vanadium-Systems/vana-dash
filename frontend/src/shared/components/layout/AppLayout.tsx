@@ -15,6 +15,7 @@ import { ConfirmProvider } from '@/shared/components/ui/confirm-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { onForbiddenRefreshMe } from '@/shared/lib/api'
 import { useActiveAlertsCount } from '@/shared/hooks/use-active-alerts-count'
+import { useAnalytics } from '@/shared/hooks/use-analytics'
 import { useChatUnreadTotal, useClearReadChatNotifications } from '@/shared/hooks/use-chat'
 import { useAuth, useLogout } from '@/shared/hooks/use-auth'
 import { ME_QUERY_KEY, useMe } from '@/shared/hooks/use-me'
@@ -182,6 +183,7 @@ export function AppLayout() {
   const queryClient = useQueryClient()
   const { user, session } = useAuth()
   const logout = useLogout()
+  useAnalytics(session)
   const location = useLocation()
   const navigate = useNavigate()
   const [drawerOpen, setDrawerOpen] = useState(false)

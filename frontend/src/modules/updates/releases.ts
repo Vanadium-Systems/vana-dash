@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-10T23:00:00+02:00',
+    title: {
+      ro: 'Setări: analitica de utilizare cu PostHog',
+      en: 'Settings: usage analytics with PostHog',
+    },
+    body: {
+      ro: 'Pui cheia proiectului PostHog în Setări și aplicația începe să trimită click-urile fără efect, click-urile repetate, erorile și înregistrări ale sesiunilor, cu tot textul și toate câmpurile mascate. Evenimentele poartă numele și rolul omului și numele firmei. Fără cheie nu se încarcă nimic.',
+      en: 'Put the PostHog project key in Settings and the app starts sending dead clicks, rage clicks, errors and session recordings, with every text and every field masked. Events carry the person’s name and role and the company name. Without a key nothing loads.',
+    },
+    features: ['setari.analitica'],
+  },
+  {
     publishedAt: '2026-11-10T22:00:00+02:00',
     title: {
       ro: 'Clienți: fiecare prospect are un responsabil, iar lucrul pe ei e mai rapid',

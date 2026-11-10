@@ -42,3 +42,12 @@ export const OpsJobTogglesSchema = z.object({
 export const OpsJobTogglesUpdateSchema = updateSchema(OpsJobTogglesSchema)
 
 export type OpsJobToggles = z.infer<typeof OpsJobTogglesSchema>
+
+// PostHog for this company: the project key is the public `phc_` key the browser sends anyway,
+// so it is stored as is. No key = the frontend never loads PostHog.
+export const AnalyticsSettingsSchema = z.object({
+  posthogKey: z.string().trim().max(200),
+  posthogHost: z.string().trim().url().or(z.literal('')),
+})
+
+export type AnalyticsSettings = z.infer<typeof AnalyticsSettingsSchema>

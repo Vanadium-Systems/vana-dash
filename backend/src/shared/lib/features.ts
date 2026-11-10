@@ -473,6 +473,11 @@ export const FEATURES: FeatureDef[] = [
     ownerOnly: true,
     routes: all('/api/settings/ops-jobs'),
   },
+  {
+    key: 'setari.analitica',
+    page: 'setari',
+    routes: all('/api/settings/analytics'),
+  },
 
   // ── Echipă ────────────────────────────────────────────────────────────────
   {
@@ -654,6 +659,7 @@ const KNOWN_PREFIXES: Array<{
   { prefix: '/api/auth/me', kind: 'self' },
   { prefix: '/api/push', kind: 'self' },
   { prefix: '/api/settings/nav-layout', kind: 'self' },
+  { prefix: '/api/analytics/client-config', kind: 'self', methods: 'read' },
   { prefix: '/api/team/members', kind: 'self', methods: 'read' },
   // Suportul e al oricărui om activ. `/api/platform/*` cere contul de platformă în rută
   // (`platformOnly`), nu o funcționalitate de rol.

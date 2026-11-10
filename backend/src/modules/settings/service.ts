@@ -4,7 +4,7 @@ import { dashboardConfig } from '../../shared/db/schema/index.js'
 import type { z } from 'zod'
 import { availableCountries } from '../../countries/index.js'
 import { getCompany, updateCompany } from '../../shared/lib/company.js'
-import type { CompanySettingsUpdateSchema, NavLayoutUpdateSchema, OpsJobToggles } from './schema.js'
+import type { AnalyticsSettings, CompanySettingsUpdateSchema, NavLayoutUpdateSchema, OpsJobToggles } from './schema.js'
 
 // Pattern identic cu overview-config (modules/metrics/service.ts): un singur rând jsonb în
 // dashboard_config; lipsa lui = default canonic din cod (comportamentul de azi).
@@ -59,4 +59,26 @@ export async function setOpsJobToggles(patch: Partial<OpsJobToggles>): Promise<O
     .values({ key: OPS_JOB_TOGGLES_KEY, value: next })
     .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
   return next
+}
+
+const ANALYTICS_KEY = 'analytics.posthog'
+
+export async function getAnalyticsSettings(): Promise<AnalyticsSettings> {
+  const [row] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, ANALYTICS_KEY))
+  return { posthogKey: '', posthogHost: '', ...(row?.value as Partial<AnalyticsSettings> | undefined) }
+}
+
+export async function setAnalyticsSettings(input: AnalyticsSettings): Promise<AnalyticsSettings> {
+  await db
+    .insert(dashboardConfig)
+    .values({ key: ANALYTICS_KEY, value: input })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
+  return input
+}
+
+/** What the browser needs to start PostHog, or `null` when it should stay off. */
+export async function getAnalyticsClientConfig(): Promise<{ key: string; host: string } | null> {
+  const { posthogKey, posthogHost } = await getAnalyticsSettings()
+  if (!posthogKey) return null
+  return { key: posthogKey, host: posthogHost || 'https://eu.i.posthog.com' }
 }

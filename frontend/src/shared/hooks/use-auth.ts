@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { api, ApiError } from '@/shared/lib/api'
 import { unregisterNativeDeviceToken } from '@/shared/lib/native-push'
+import { resetAnalytics } from '@/shared/hooks/use-analytics'
 import { ME_QUERY_KEY, useMe } from '@/shared/hooks/use-me'
 import type { SessionPayload } from '@/shared/lib/types'
 
@@ -65,6 +66,7 @@ export function useLogout() {
     onSuccess: async () => {
       // Token-ul FCM al APK-ului nu mai primește notificări pe acest device (Contract C).
       await unregisterNativeDeviceToken().catch(() => {})
+      resetAnalytics()
       queryClient.clear()
       localStorage.removeItem(WAS_AUTHENTICATED_KEY)
       if ('caches' in window) {

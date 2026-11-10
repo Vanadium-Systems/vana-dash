@@ -824,6 +824,33 @@ const SOURCES: GuideSource[] = [
     ],
   },
   {
+    id: 'analitica',
+    route: '/settings',
+    feature: 'setari.analitica',
+    title: {
+      ro: 'Pornești analitica de utilizare',
+      en: 'Turning on usage analytics',
+    },
+    summary: {
+      ro: 'Cu PostHog vezi unde se blochează colegii: click-uri fără efect, click-uri repetate, erori și înregistrări ale sesiunilor. Textul și câmpurile sunt mascate în tot ce pleacă, deci notițele, emailurile și mesajele nu ajung la PostHog.',
+      en: 'With PostHog you see where colleagues get stuck: dead clicks, rage clicks, errors and session recordings. Text and fields are masked in everything sent, so notes, emails and messages never reach PostHog.',
+    },
+    steps: [
+      {
+        ro: 'În PostHog, la Project settings, copiezi cheia proiectului (începe cu phc_) și o pui în Setări → Analitica de utilizare.',
+        en: 'In PostHog, under Project settings, copy the project key (it starts with phc_) and paste it in Settings → Usage analytics.',
+      },
+      {
+        ro: 'Gazda rămâne goală pentru proiectele din UE; pentru unul din SUA sau găzduit de voi, pui adresa lui.',
+        en: 'Leave the host empty for EU projects; for a US or self-hosted one, enter its address.',
+      },
+      {
+        ro: 'Colegii intră în PostHog la următoarea încărcare a aplicației. Ca să oprești, ștergi cheia și salvezi.',
+        en: 'Colleagues show up in PostHog on the next app load. To stop, clear the key and save.',
+      },
+    ],
+  },
+  {
     id: 'profil-meu',
     route: '/me',
     title: {

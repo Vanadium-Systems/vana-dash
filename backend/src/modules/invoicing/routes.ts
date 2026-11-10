@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { createVanagreenTenantForClient, pushBillingCycleIfMapped, pushLegalDetailsIfMapped } from '../reconciliation/vanagreen-extension.js'
 import { runVanagreenTenantSyncJob } from '../../jobs/vanagreen-tenant-sync.js'
-import { lookupCompanyByCui } from '../../shared/lib/anaf-lookup.js'
+import { lookupCompany } from '../../countries/ro/company-lookup.js'
 import {
   CifParamsSchema,
   ClientCreateWithVanagreenSchema,
@@ -71,9 +71,11 @@ export async function invoicingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: CifParamsSchema } },
     async (req, reply) => {
       try {
-        return { success: true, data: await lookupCompanyByCui(req.params.cif) }
+        // Through the shared gate (one in flight, 2s apart, cached, paused after a 403/429).
+        return { success: true, data: await lookupCompany(req.params.cif) }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        const status = (err as { statusCode?: number }).statusCode === 503 ? 503 : 400
+        return reply.code(status).send({ success: false, error: String(err) })
       }
     },
   )

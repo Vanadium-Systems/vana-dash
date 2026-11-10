@@ -6,6 +6,7 @@ allowBuilds:
   # false = supply-chain minim, fără scripturi de build rulate.
   '@firebase/util': false
   argon2: true
+  core-js: false
   esbuild: true
   protobufjs: false
 minimumReleaseAgeExclude:

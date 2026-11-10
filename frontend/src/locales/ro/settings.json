@@ -127,5 +127,12 @@
     "hintInApp": "Paginile se actualizează singure la redeschidere. Versiune nouă de aplicație e nevoie doar când se schimbă partea nativă: butonul o descarcă în browser, apoi o instalezi peste cea veche.",
     "installed": "Versiunea instalată: {{version}}",
     "update": "Actualizează aplicația"
+  },
+  "analytics": {
+    "title": "Analitica de utilizare (PostHog)",
+    "hint": "Cu o cheie de proiect, aplicația trimite la PostHog click-urile fără efect, click-urile repetate, erorile și înregistrări ale sesiunilor, cu tot textul și toate câmpurile mascate. Fără cheie nu se încarcă nimic. Gazda implicită e cea din UE.",
+    "key": "Cheia proiectului",
+    "host": "Gazda",
+    "keyPlaceholder": "phc_…"
   }
 }

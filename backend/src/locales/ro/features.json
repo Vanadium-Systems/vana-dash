@@ -101,7 +101,8 @@
       "view": "Vede setările",
       "firma": "Profilul firmei",
       "asistent": "Furnizori AI și chei",
-      "joburi": "Joburile de sistem"
+      "joburi": "Joburile de sistem",
+      "analitica": "Analitica de utilizare (PostHog)"
     },
     "echipa": {
       "administrare": "Invită oameni și editează roluri",

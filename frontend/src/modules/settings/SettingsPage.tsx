@@ -13,6 +13,7 @@ import { AssetsSettingsCard } from '@/modules/assets/AssetsSettingsCard'
 import { CompanyProfileCard } from './CompanyProfileCard'
 import { ClientsSettings } from './clients/ClientsSettings'
 import { OpsJobsSettingsCard } from './OpsJobsSettingsCard'
+import { AnalyticsSettingsCard } from './AnalyticsSettingsCard'
 import { t } from '@/shared/lib/i18n'
 
 function MobileAppCard() {
@@ -59,6 +60,7 @@ export function SettingsPage() {
       {can('setari.firma') ? <CompanyProfileCard /> : null}
       {can('clienti.view') ? <ClientsSettings /> : null}
       {can('setari.joburi') ? <OpsJobsSettingsCard /> : null}
+      {can('setari.analitica') ? <AnalyticsSettingsCard /> : null}
       {can('setari.asistent') ? <AssistantProvidersCard /> : null}
       {can('investitii.setari') ? (
         <>

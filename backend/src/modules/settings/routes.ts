@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { CompanySettingsUpdateSchema, NavLayoutUpdateSchema, OpsJobTogglesUpdateSchema } from './schema.js'
+import { AnalyticsSettingsSchema, CompanySettingsUpdateSchema, NavLayoutUpdateSchema, OpsJobTogglesUpdateSchema } from './schema.js'
 import * as service from './service.js'
 
 export async function settingsRoutes(app: FastifyInstance) {
@@ -42,4 +42,21 @@ export async function settingsRoutes(app: FastifyInstance) {
       return { success: true, data: await service.setOpsJobToggles(req.body) }
     },
   )
+
+  server.get('/api/settings/analytics', { preHandler: [app.authenticate] }, async () => {
+    return { success: true, data: await service.getAnalyticsSettings() }
+  })
+
+  server.put(
+    '/api/settings/analytics',
+    { preHandler: [app.authenticate], schema: { body: AnalyticsSettingsSchema } },
+    async (req) => {
+      return { success: true, data: await service.setAnalyticsSettings(req.body) }
+    },
+  )
+
+  // Every signed-in person loads PostHog with the company's key, so this one is `self`.
+  server.get('/api/analytics/client-config', { preHandler: [app.authenticate] }, async () => {
+    return { success: true, data: await service.getAnalyticsClientConfig() }
+  })
 }

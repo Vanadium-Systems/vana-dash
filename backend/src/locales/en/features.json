@@ -101,7 +101,8 @@
       "view": "Sees the settings",
       "firma": "Company profile",
       "asistent": "AI providers and keys",
-      "joburi": "System jobs"
+      "joburi": "System jobs",
+      "analitica": "Usage analytics (PostHog)"
     },
     "echipa": {
       "administrare": "Invites people and edits roles",

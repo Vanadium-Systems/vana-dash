@@ -127,5 +127,12 @@
     "hintInApp": "Pages update on their own when you reopen the app. A new app version is only needed when the native part changes: the button downloads it in the browser, then you install it over the old one.",
     "installed": "Installed version: {{version}}",
     "update": "Update the app"
+  },
+  "analytics": {
+    "title": "Usage analytics (PostHog)",
+    "hint": "With a project key the app sends PostHog dead clicks, rage clicks, errors and session recordings, with every text and every field masked. Without a key nothing loads. The default host is the EU one.",
+    "key": "Project key",
+    "host": "Host",
+    "keyPlaceholder": "phc_…"
   }
 }
