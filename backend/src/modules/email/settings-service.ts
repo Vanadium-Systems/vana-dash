@@ -6,6 +6,9 @@ import { dashboardConfig } from '../../shared/db/schema/index.js'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import type { EmailSettingsUpdateSchema, LogoUploadSchema } from './settings-schema.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { defaultIdentities, getIdentities, resolveFromAddress, type EmailIdentity } from '../../shared/lib/email-identities.js'
+
+export { defaultIdentities, getIdentities, resolveFromAddress, type EmailIdentity }
 
 // Setări editabile din UI (Setări Email), stocate în dashboard_config (jsonb key/value, tabelă
 // existentă, nefolosită până la acest sprint) — .env rămâne doar fallback pt. instalări proaspete.
@@ -55,27 +58,6 @@ interface LogoValue {
   contentType: string
 }
 
-// Identități de trimitere (sprint de-hardcodare 2026-08-25) — editabile din Setări Email.
-// Seed-ul e implicit (env-urile curente), nu un rând scris în DB: prima salvare din UI
-// persistă lista, până atunci `fromAddress`-urile vin din config. `key` rămâne cheia stabilă
-// referențiată de Compose/bulk/secvențe ('stefan'/'contact'/'outreach' azi).
-export interface EmailIdentity {
-  key: string
-  label: string
-  fromAddress: string
-}
-
-export function defaultIdentities(): EmailIdentity[] {
-  return [
-    { key: 'stefan', label: 'Stefan', fromAddress: config.emailFromStefan },
-    { key: 'contact', label: 'Contact', fromAddress: config.emailFromContact },
-    { key: 'noreply', label: 'No-reply', fromAddress: config.emailFromNoreply },
-    // outreach poate fi neconfigurat din env (gol) — rândul rămâne vizibil în UI ca să poată
-    // fi completat de acolo, fără redeploy (fail-soft la trimitere cade pe contact).
-    { key: 'outreach', label: 'Outreach', fromAddress: config.emailFromOutreach },
-  ]
-}
-
 async function getValue<T>(key: string): Promise<T | null> {
   const [row] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, key))
   return row ? (row.value as T) : null
@@ -111,10 +93,6 @@ export interface EmailSettings {
   autoLoadImages: boolean
 }
 
-export async function getIdentities(): Promise<EmailIdentity[]> {
-  const stored = await getValue<EmailIdentity[]>(KEYS.identities)
-  return stored ?? defaultIdentities()
-}
 
 /**
  * Semnătura fiecărei identități, cu fallback pentru cele fără rând: `stefan` ia semnătura
@@ -219,15 +197,6 @@ export async function getLogoFile(): Promise<{ buffer: Buffer; contentType: stri
 // effective "From" address. An unknown key is a hard error (400 to the caller): we must not
 // silently send from a different identity than the one chosen. An identity configured with an
 // empty fromAddress falls back to contact (the outreach pattern).
-export async function resolveFromAddress(from: string): Promise<string> {
-  const identities = await getIdentities()
-  const identity = identities.find((i) => i.key === from)
-  if (!identity) throw new Error(tr('errors.email.unknownIdentity', { from }))
-  if (!identity.fromAddress) {
-    return identities.find((i) => i.key === 'contact' && i.fromAddress)?.fromAddress ?? config.emailFromContact
-  }
-  return identity.fromAddress
-}
 
 // ── Pauza secvențelor la bounce ──────────────────────────────────────────────
 

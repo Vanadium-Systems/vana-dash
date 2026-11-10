@@ -268,6 +268,13 @@
     "configUpsertFailed": "Upsert pricing config eșuat"
   },
   "prospects": {
+    "voiceNotFound": "Nota vocală nu există",
+    "voiceNotYours": "Poți modifica sau șterge doar notele tale vocale",
+    "voiceUnsupported": "Fișierul nu e audio acceptat (WebM, Ogg, MP4/M4A, MP3 sau WAV)",
+    "voiceTooLarge": "Nota vocală e prea mare (peste 25 MB)",
+    "voiceStorageOff": "Stocarea fișierelor nu e configurată, nota vocală nu poate fi salvată",
+    "voiceNoFile": "Lipsește fișierul audio",
+    "voiceTaskInvalid": "Task-ul ales nu aparține acestui prospect",
     "nlFiltersForbidden": "Nu ai acces la asistent, necesar pentru căutarea în limbaj natural",
     "nlFiltersNotConfigured": "Asistentul nu e configurat",
     "statusNotFound": "Status inexistent",
@@ -324,7 +331,10 @@
     "automationParams": "Parametrii nu se potrivesc regulii.",
     "scoringForbidden": "Scorul și semnalele le stabilește cine poate repartiza prospecții.",
     "signalNotFound": "Semnal inexistent",
-    "signalBuiltin": "Semnalele încorporate nu se șterg, doar se opresc."
+    "signalBuiltin": "Semnalele încorporate nu se șterg, doar se opresc.",
+    "inviteeNotAllowed": "Adresa invitată nu e un contact al prospectului sau persoana a cerut să nu fie contactată",
+    "attendeeInvalid": "Colegul invitat nu e un utilizator activ",
+    "attendeesNeedCommon": "Invitarea colegilor cere acces la evenimentele comune din calendar"
   },
   "tenders": {
     "alreadyBlocked": "SICAP a răspuns deja cu HTTP {{blockedStatus}} în rularea asta — nu mai trimit request-uri",

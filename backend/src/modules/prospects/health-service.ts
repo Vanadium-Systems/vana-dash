@@ -244,6 +244,7 @@ export async function previewMerge(me: Me, masterId: string, otherId: string) {
     people: number
     contactPoints: number
     notes: number
+    voiceNotes: number
     tasks: number
     listMemberships: number
     enrollments: number
@@ -254,6 +255,7 @@ export async function previewMerge(me: Me, masterId: string, otherId: string) {
     SELECT (SELECT count(*) FROM prospect_people WHERE prospect_id = ${o} AND deleted_at IS NULL)::int AS "people",
            (SELECT count(*) FROM prospect_contact_points WHERE prospect_id = ${o} AND deleted_at IS NULL)::int AS "contactPoints",
            (SELECT count(*) FROM prospect_notes WHERE prospect_id = ${o} AND deleted_at IS NULL)::int AS "notes",
+           (SELECT count(*) FROM prospect_voice_notes WHERE prospect_id = ${o} AND deleted_at IS NULL)::int AS "voiceNotes",
            (SELECT count(*) FROM prospect_tasks WHERE prospect_id = ${o} AND deleted_at IS NULL)::int AS "tasks",
            (SELECT count(*) FROM prospect_list_members WHERE prospect_id = ${o})::int AS "listMemberships",
            (SELECT count(*) FROM email_sequence_enrollments WHERE prospect_id = ${o} AND deleted_at IS NULL)::int AS "enrollments",
@@ -300,6 +302,7 @@ export async function mergeProspects(me: Me, masterId: string, otherId: string, 
          AND EXISTS (SELECT 1 FROM prospect_contact_points m WHERE m.prospect_id = ${M} AND m.deleted_at IS NULL AND m.is_primary AND m.kind = o.kind)`)
     await tx.execute(sql`UPDATE prospect_contact_points SET prospect_id = ${M}, updated_at = now() WHERE prospect_id = ${O}`)
     await tx.execute(sql`UPDATE prospect_notes SET prospect_id = ${M}, updated_at = now() WHERE prospect_id = ${O}`)
+    await tx.execute(sql`UPDATE prospect_voice_notes SET prospect_id = ${M}, updated_at = now() WHERE prospect_id = ${O}`)
     await tx.execute(sql`UPDATE prospect_tasks SET prospect_id = ${M}, updated_at = now() WHERE prospect_id = ${O}`)
     await tx.execute(sql`UPDATE prospect_stage_events SET prospect_id = ${M}, updated_at = now() WHERE prospect_id = ${O}`)
     await tx.execute(sql`UPDATE calls SET prospect_id = ${M}, updated_at = now() WHERE prospect_id = ${O}`)

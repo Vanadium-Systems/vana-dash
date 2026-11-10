@@ -527,7 +527,7 @@ export async function prospectNeighbors(me: Me, id: string, input: Omit<ListInpu
   return row ? { prevId: row.prev_id, nextId: row.next_id, index: row.idx, total: row.total } : null
 }
 
-export type TimelineKind = 'audit' | 'note' | 'task' | 'stage' | 'call' | 'email' | 'sequence'
+export type TimelineKind = 'audit' | 'note' | 'task' | 'stage' | 'call' | 'email' | 'sequence' | 'voice'
 
 /** Everything that happened to a prospect, newest first, cursor = ISO time of the last entry. */
 export async function prospectTimeline(me: Me, id: string, cursor?: string, limit = 50) {
@@ -555,6 +555,10 @@ export async function prospectTimeline(me: Me, id: string, cursor?: string, limi
       SELECT c."id", 'call', coalesce(c."scheduled_at", c."created_at"), NULL,
              json_build_object('title', c."title", 'status', c."status", 'durationSeconds', c."duration_seconds")
         FROM ${calls} c WHERE c."prospect_id" = ${id} AND c."deleted_at" IS NULL
+      UNION ALL
+      SELECT v."id", 'voice', v."created_at", ${name(sql`v."author_user_id"`)},
+             json_build_object('durationSeconds', v."duration_seconds", 'caption', v."caption", 'id', v."id")
+        FROM prospect_voice_notes v WHERE v."prospect_id" = ${id} AND v."deleted_at" IS NULL
       UNION ALL
       SELECT s."id", 'email', s."created_at", ${name(sql`s."sent_by_user_id"`)},
              json_build_object('subject', s."subject", 'recipient', s."recipient", 'status', s."status", 'openedAt', s."opened_at", 'kind', s."kind")

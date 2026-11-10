@@ -23,6 +23,7 @@ import * as trash from './trash.js'
 import { bulkMove, putBack } from './bulk.js'
 import { ArchiveConflictError, ArchiveNotFoundError, ArchiveStorageFullError } from './service.js'
 import { ensureSpaceRoot } from './access.js'
+import { storageUsage } from '../../shared/lib/storage-quota.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { contentDisposition } from '../../shared/lib/text.js'
 
@@ -360,6 +361,10 @@ export async function archiveRoutes(app: FastifyInstance) {
 
   server.get('/api/archive/storage', { preHandler: [app.authenticate] }, async (req) => {
     return { success: true, data: await service.getStorageUsage(req.me) }
+  })
+
+  server.get('/api/archive/storage-usage', { preHandler: [app.authenticate] }, async () => {
+    return { success: true, data: await storageUsage() }
   })
 
   server.get('/api/archive/folders/:id/path', { preHandler: [app.authenticate] }, async (req, reply) => {

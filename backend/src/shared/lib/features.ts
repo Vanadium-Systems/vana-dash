@@ -365,6 +365,15 @@ export const FEATURES: FeatureDef[] = [
     routes: [...write('/api/archive/folders/:id/assign'), ...write('/api/archive/spaces/:ownerUserId/assign')],
   },
 
+  {
+    // Cât ocupă fiecare om în bucket-ul R2 (Arhivă + note vocale + Mesaje). Oprită implicit, ca
+    // orice funcționalitate nouă; adminul o are. Prefix propriu: `/api/archive/storage` de la
+    // `arhiva.view` e altă rută (spațiul omului), nu acoperă `storage-usage`.
+    key: 'arhiva.spatiu',
+    page: 'arhiva',
+    routes: read('/api/archive/storage-usage'),
+  },
+
   // ── Notițe (personale, filtrate pe owner) ─────────────────────────────────
   {
     key: 'notite.view',

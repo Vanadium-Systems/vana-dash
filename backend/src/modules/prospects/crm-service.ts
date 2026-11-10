@@ -1,14 +1,17 @@
-import { and, asc, desc, eq, getTableColumns, isNull, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, getTableColumns, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import { getCountryPack } from '../../countries/index.js'
 import { db } from '../../shared/db/client.js'
-import { calendarEvents, prospectContactPoints, prospectNotes, prospectPeople, prospects, prospectTasks, users } from '../../shared/db/schema/index.js'
+import { calendarEventAttendees, calendarEvents, prospectContactPoints, prospectNotes, prospectPeople, prospects, prospectTasks, users } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
-import { createCalendarEvent } from '../../shared/lib/calendar-write.js'
+import { createCalendarEvent, deleteCalendarEvent, updateCalendarEvent } from '../../shared/lib/calendar-write.js'
 import { getCompany, getCompanyTimeZone } from '../../shared/lib/company.js'
 import { canEditProspect, canReassign, findVisibleProspect, ownerNameOf, ProspectNotYoursError, requireEditableProspect, visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
+import { tr } from '../../shared/lib/i18n.js'
+import { buildMeetingIcs } from '../../shared/lib/ics.js'
+import { notify } from '../../shared/lib/notify.js'
 import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
-import { loadSessionUser, type SessionUser } from '../../shared/lib/session.js'
+import { loadSessionUser, userName, type SessionUser } from '../../shared/lib/session.js'
 import type {
   CompleteTaskSchema,
   CreateContactPointSchema,
@@ -20,6 +23,7 @@ import type {
   UpdatePersonSchema,
   UpdateProspectTaskSchema,
 } from './schema.js'
+import { resolveFromAddress } from '../../shared/lib/email-identities.js'
 import { TASK_TABS } from './schema.js'
 import { InvalidAssigneeError, normalizeEmail, refreshScore } from './service.js'
 
@@ -38,7 +42,17 @@ export class ForeignRefError extends Error {
   }
 }
 
-const CALENDAR_SLOT_MS = 30 * 60 * 1000
+export class InviteeNotAllowedError extends Error {
+  readonly code = 'INVITEE_NOT_ALLOWED'
+}
+export class AttendeeInvalidError extends Error {
+  readonly code = 'ATTENDEE_INVALID'
+}
+export class AttendeesNeedCommonError extends Error {
+  readonly code = 'CALENDAR_COMUNE_REQUIRED'
+}
+
+const DEFAULT_SLOT_MINUTES = 30
 
 // ── People ───────────────────────────────────────────────────────────────────
 
@@ -321,7 +335,7 @@ const openTask = and(isNull(prospectTasks.doneAt), isNull(prospectTasks.skippedA
 
 export async function listProspectTasks(me: Me, prospectId: string) {
   if (!(await findVisibleProspect(me, prospectId))) return undefined
-  return db
+  const rows = await db
     .select({
       ...getTableColumns(prospectTasks),
       personName: prospectPeople.name,
@@ -332,6 +346,7 @@ export async function listProspectTasks(me: Me, prospectId: string) {
     .leftJoin(users, eq(users.id, prospectTasks.assigneeUserId))
     .where(and(eq(prospectTasks.prospectId, prospectId), isNull(prospectTasks.deletedAt)))
     .orderBy(sql`${prospectTasks.doneAt} IS NOT NULL`, asc(prospectTasks.dueAt))
+  return withMeetingDetails(rows)
 }
 
 /** Assigning to a colleague needs `clienti.repartizare` or owning the prospect; the colleague must be active. */
@@ -344,7 +359,98 @@ async function assertAssignee(me: Me, prospect: { assignedUserId: string | null 
   if (!row) throw new InvalidAssigneeError()
 }
 
-const slotOf = (dueAt: Date) => ({ startAt: dueAt, endAt: new Date(dueAt.getTime() + CALENDAR_SLOT_MS) })
+const slotOf = (dueAt: Date, minutes = DEFAULT_SLOT_MINUTES) => ({ startAt: dueAt, endAt: new Date(dueAt.getTime() + minutes * 60_000) })
+
+const blankToNull = (text: string | null | undefined) => text?.trim() || null
+
+/** Invitees get the .ics by email, so each address must be a live contact of this prospect whose
+ *  person did not ask not to be contacted (a company-level address has no person to object). */
+async function assertInvitees(prospectId: string, emails: string[]) {
+  if (emails.length === 0) return
+  const rows = await db
+    .select({ email: prospectContactPoints.valueNormalized, doNotContact: prospectPeople.doNotContact })
+    .from(prospectContactPoints)
+    .leftJoin(prospectPeople, and(eq(prospectPeople.id, prospectContactPoints.personId), isNull(prospectPeople.deletedAt)))
+    .where(
+      and(
+        eq(prospectContactPoints.prospectId, prospectId),
+        eq(prospectContactPoints.kind, 'email'),
+        isNull(prospectContactPoints.deletedAt),
+        inArray(prospectContactPoints.valueNormalized, emails),
+      ),
+    )
+  const allowed = new Set(rows.filter((row) => !row.doNotContact).map((row) => row.email))
+  if (emails.some((email) => !allowed.has(email))) throw new InviteeNotAllowedError()
+}
+
+/** Colleagues on a meeting make it a common event, which the calendar module gates on `calendar.comune`. */
+async function assertAttendees(me: Me, userIds: string[]) {
+  if (userIds.length === 0) return
+  if (!me.features.includes('calendar.comune')) throw new AttendeesNeedCommonError()
+  const unique = [...new Set(userIds)]
+  const active = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(inArray(users.id, unique), eq(users.status, 'active'), isNull(users.deletedAt)))
+  if (active.length !== unique.length) throw new AttendeeInvalidError()
+}
+
+async function loadEventState(eventId: string) {
+  const [event] = await db
+    .select({ startAt: calendarEvents.startAt, endAt: calendarEvents.endAt, location: calendarEvents.location, ownerUserId: calendarEvents.ownerUserId })
+    .from(calendarEvents)
+    .where(eq(calendarEvents.id, eventId))
+  if (!event) return null
+  const attendees = await db
+    .select({ userId: calendarEventAttendees.userId })
+    .from(calendarEventAttendees)
+    .where(and(eq(calendarEventAttendees.eventId, eventId), isNull(calendarEventAttendees.deletedAt)))
+  return {
+    ...event,
+    minutes: Math.round((event.endAt.getTime() - event.startAt.getTime()) / 60_000),
+    attendeeUserIds: attendees.map((a) => a.userId).filter((id) => id !== event.ownerUserId),
+  }
+}
+
+/** Duration, place and colleagues of a meeting live on its calendar event; the sheet wants them next to the task. */
+async function withMeetingDetails<T extends { kind: string; calendarEventId: string | null }>(rows: T[]) {
+  const eventIds = [...new Set(rows.filter((r) => r.kind === 'meeting' && r.calendarEventId).map((r) => r.calendarEventId!))]
+  const events = eventIds.length
+    ? await db
+        .select({ id: calendarEvents.id, startAt: calendarEvents.startAt, endAt: calendarEvents.endAt, location: calendarEvents.location, ownerUserId: calendarEvents.ownerUserId })
+        .from(calendarEvents)
+        .where(inArray(calendarEvents.id, eventIds))
+    : []
+  const attendees = eventIds.length
+    ? await db
+        .select({ eventId: calendarEventAttendees.eventId, userId: calendarEventAttendees.userId })
+        .from(calendarEventAttendees)
+        .where(and(inArray(calendarEventAttendees.eventId, eventIds), isNull(calendarEventAttendees.deletedAt)))
+    : []
+  const eventById = new Map(events.map((e) => [e.id, e]))
+  return rows.map((row) => {
+    const event = row.calendarEventId ? eventById.get(row.calendarEventId) : undefined
+    if (row.kind !== 'meeting' || !event) return { ...row, durationMinutes: null as number | null, location: null as string | null, attendeeUserIds: [] as string[] }
+    return {
+      ...row,
+      durationMinutes: Math.round((event.endAt.getTime() - event.startAt.getTime()) / 60_000),
+      location: event.location,
+      attendeeUserIds: attendees.filter((a) => a.eventId === row.calendarEventId && a.userId !== event.ownerUserId).map((a) => a.userId),
+    }
+  })
+}
+
+async function notifyMeetingAttendees(me: Me, prospect: { id: string; name: string }, userIds: string[]) {
+  if (userIds.length === 0) return
+  await notify(userIds, {
+    kind: 'clienti.meeting',
+    title: tr('push.clienti.meetingInvite', { who: userName(me), company: prospect.name }),
+    url: `/clients?prospect=${prospect.id}`,
+    entityType: 'prospect',
+    entityId: prospect.id,
+    exceptUserId: me.id,
+  })
+}
 
 // `me.id` null = created by an automation, no author.
 export async function insertTask(
@@ -352,14 +458,24 @@ export async function insertTask(
   me: { id: string | null },
   prospectId: string,
   assigneeUserId: string,
-  input: Pick<z.infer<typeof CreateProspectTaskSchema>, 'kind' | 'title' | 'dueAt' | 'priority' | 'addToCalendar'> & {
+  input: Pick<z.infer<typeof CreateProspectTaskSchema>, 'kind' | 'title' | 'dueAt' | 'priority' | 'addToCalendar' | 'durationMinutes' | 'location' | 'attendeeUserIds' | 'invitees'> & {
     description?: string | null
     personId?: string | null
   },
 ) {
   const addToCalendar = input.addToCalendar ?? (input.kind === 'call' || input.kind === 'meeting')
+  const isMeeting = input.kind === 'meeting'
   const calendarEventId = addToCalendar
-    ? await createCalendarEvent({ ownerUserId: assigneeUserId, title: input.title, description: input.description, ...slotOf(input.dueAt) }, tx)
+    ? await createCalendarEvent(
+        {
+          ownerUserId: assigneeUserId,
+          title: input.title,
+          description: input.description,
+          ...slotOf(input.dueAt, isMeeting ? input.durationMinutes : undefined),
+          ...(isMeeting ? { location: blankToNull(input.location), attendeeUserIds: input.attendeeUserIds } : {}),
+        },
+        tx,
+      )
     : null
   const [task] = await tx
     .insert(prospectTasks)
@@ -374,6 +490,7 @@ export async function insertTask(
       dueAt: input.dueAt,
       priority: input.priority ?? 'medium',
       calendarEventId,
+      invitees: isMeeting ? (input.invitees ?? []) : [],
     })
     .returning()
   if (!task) throw new Error('task insert returned nothing')
@@ -386,10 +503,18 @@ export async function createProspectTask(me: Me, prospectId: string, input: z.in
   const assigneeUserId = input.assigneeUserId ?? me.id
   await assertAssignee(me, prospect, assigneeUserId)
   await assertPersonOf(prospectId, input.personId)
-  const task = await db.transaction((tx) => insertTask(tx, me, prospectId, assigneeUserId, input))
+  const isMeeting = input.kind === 'meeting'
+  const invitees = isMeeting ? [...new Set((input.invitees ?? []).map(normalizeEmail))] : []
+  const attendeeUserIds = isMeeting ? [...new Set(input.attendeeUserIds ?? [])] : []
+  await assertInvitees(prospectId, invitees)
+  await assertAttendees(me, attendeeUserIds)
+  const task = await db.transaction((tx) => insertTask(tx, me, prospectId, assigneeUserId, { ...input, invitees, attendeeUserIds }))
   // A meeting on the books ends the sequences that stop on a meeting.
-  if (task.kind === 'meeting') emitProspectEvent('meeting.booked', { prospectId, at: task.dueAt })
-  return task
+  if (task.kind === 'meeting') {
+    emitProspectEvent('meeting.booked', { prospectId, at: task.dueAt })
+    await notifyMeetingAttendees(me, prospect, attendeeUserIds.filter((id) => id !== assigneeUserId))
+  }
+  return (await withMeetingDetails([task]))[0]!
 }
 
 export async function updateProspectTask(me: Me, prospectId: string, taskId: string, input: z.infer<typeof UpdateProspectTaskSchema>) {
@@ -403,21 +528,56 @@ export async function updateProspectTask(me: Me, prospectId: string, taskId: str
   if (input.assigneeUserId && input.assigneeUserId !== existing.assigneeUserId) await assertAssignee(me, prospect, input.assigneeUserId)
   if (input.personId) await assertPersonOf(prospectId, input.personId)
 
-  return db.transaction(async (tx) => {
-    const [updated] = await tx
+  const { durationMinutes, location, attendeeUserIds, invitees, ...taskInput } = input
+  const isMeeting = (taskInput.kind ?? existing.kind) === 'meeting'
+  const nextInvitees = isMeeting && invitees ? [...new Set(invitees.map(normalizeEmail))] : undefined
+  if (nextInvitees) await assertInvitees(prospectId, nextInvitees)
+  if (isMeeting && attendeeUserIds) await assertAttendees(me, attendeeUserIds)
+
+  const before = isMeeting && existing.calendarEventId ? await loadEventState(existing.calendarEventId) : null
+  const minutes = isMeeting ? (durationMinutes ?? before?.minutes ?? DEFAULT_SLOT_MINUTES) : DEFAULT_SLOT_MINUTES
+  const nextLocation = location !== undefined ? blankToNull(location) : (before?.location ?? null)
+  const nextAttendees = isMeeting ? (attendeeUserIds ? [...new Set(attendeeUserIds)] : (before?.attendeeUserIds ?? [])) : []
+  const effectiveInvitees = nextInvitees ?? existing.invitees
+  // A new SEQUENCE is what makes the recipients' calendars replace the earlier invitation.
+  const timeOrPlaceChanged =
+    isMeeting &&
+    ((taskInput.dueAt ?? existing.dueAt).getTime() !== existing.dueAt.getTime() ||
+      minutes !== (before?.minutes ?? DEFAULT_SLOT_MINUTES) ||
+      nextLocation !== (before?.location ?? null))
+
+  const updated = await db.transaction(async (tx) => {
+    const [row] = await tx
       .update(prospectTasks)
-      .set({ ...input, updatedAt: new Date() })
+      .set({
+        ...taskInput,
+        ...(nextInvitees ? { invitees: nextInvitees } : {}),
+        ...(timeOrPlaceChanged && effectiveInvitees.length > 0 ? { inviteSequence: existing.inviteSequence + 1 } : {}),
+        updatedAt: new Date(),
+      })
       .where(eq(prospectTasks.id, taskId))
       .returning()
     // The calendar entry follows the task, or it would keep the old time and title.
-    if (updated?.calendarEventId) {
-      await tx
-        .update(calendarEvents)
-        .set({ title: updated.title, ...slotOf(updated.dueAt), ownerUserId: updated.assigneeUserId, updatedAt: new Date() })
-        .where(eq(calendarEvents.id, updated.calendarEventId))
+    if (row?.calendarEventId) {
+      await updateCalendarEvent(
+        row.calendarEventId,
+        {
+          title: row.title,
+          ...slotOf(row.dueAt, minutes),
+          ownerUserId: row.assigneeUserId,
+          ...(isMeeting ? { location: nextLocation, attendeeUserIds: nextAttendees } : {}),
+        },
+        tx,
+      )
     }
-    return updated
+    return row
   })
+  if (!updated) return undefined
+  if (isMeeting && before) {
+    const added = nextAttendees.filter((id) => !before.attendeeUserIds.includes(id) && id !== updated.assigneeUserId)
+    await notifyMeetingAttendees(me, prospect, added)
+  }
+  return (await withMeetingDetails([updated]))[0]
 }
 
 export async function deleteProspectTask(me: Me, prospectId: string, taskId: string) {
@@ -426,10 +586,11 @@ export async function deleteProspectTask(me: Me, prospectId: string, taskId: str
   return db.transaction(async (tx) => {
     const [row] = await tx
       .update(prospectTasks)
-      .set({ deletedAt: now })
+      // The cancellation .ics carries a higher SEQUENCE than any invitation sent before it.
+      .set({ deletedAt: now, inviteSequence: sql`CASE WHEN ${prospectTasks.kind} = 'meeting' THEN ${prospectTasks.inviteSequence} + 1 ELSE ${prospectTasks.inviteSequence} END` })
       .where(and(eq(prospectTasks.id, taskId), eq(prospectTasks.prospectId, prospectId), isNull(prospectTasks.deletedAt)))
       .returning()
-    if (row?.calendarEventId) await tx.update(calendarEvents).set({ deletedAt: now }).where(eq(calendarEvents.id, row.calendarEventId))
+    if (row?.calendarEventId) await deleteCalendarEvent(row.calendarEventId, tx)
     return row
   })
 }
@@ -538,7 +699,7 @@ export async function listTasks(me: Me, input: TaskListInput) {
       .innerJoin(prospects, eq(prospects.id, prospectTasks.prospectId))
       .where(where),
   ])
-  return { rows, total, page, pageSize }
+  return { rows: await withMeetingDetails(rows), total, page, pageSize }
 }
 
 export async function taskCounts(me: Me, scope: 'mine' | 'team' | undefined) {
@@ -556,4 +717,61 @@ export async function taskCounts(me: Me, scope: 'mine' | 'team' | undefined) {
     .innerJoin(prospects, eq(prospects.id, prospectTasks.prospectId))
     .where(base)
   return row ?? { all: 0, call: 0, email: 0, linkedin: 0, today: 0, overdue: 0 }
+}
+
+// ── Meeting invitation (.ics) ────────────────────────────────────────────────
+
+/** The .ics for a meeting task. `request` is for a live task (first send or after a move),
+ *  `cancel` for a deleted one; both carry the task's current `inviteSequence`. */
+/** The address behind the mailbox the invitation goes out from, so replies reach the same box.
+ *  A mailbox that isn't the caller's, or an unknown key, falls back to the caller's own address. */
+async function organizerAddress(me: Me, fromKey: string | undefined): Promise<string> {
+  if (!fromKey || (me.mailboxes !== null && !me.mailboxes.includes(fromKey))) return me.email
+  return resolveFromAddress(fromKey).catch(() => me.email)
+}
+
+export async function meetingInvite(me: Me, prospectId: string, taskId: string, method: 'request' | 'cancel', fromKey?: string) {
+  const prospect = await findVisibleProspect(me, prospectId)
+  if (!prospect) return undefined
+  const [task] = await db
+    .select()
+    .from(prospectTasks)
+    .where(
+      and(
+        eq(prospectTasks.id, taskId),
+        eq(prospectTasks.prospectId, prospectId),
+        eq(prospectTasks.kind, 'meeting'),
+        method === 'cancel' ? isNotNull(prospectTasks.deletedAt) : isNull(prospectTasks.deletedAt),
+      ),
+    )
+  if (!task) return undefined
+
+  // The event may be soft-deleted already (cancel): its time and place are still what was invited to.
+  const event = task.calendarEventId ? await loadEventState(task.calendarEventId) : null
+  const names = task.invitees.length
+    ? await db
+        .select({ email: prospectContactPoints.valueNormalized, name: prospectPeople.name })
+        .from(prospectContactPoints)
+        .leftJoin(prospectPeople, eq(prospectPeople.id, prospectContactPoints.personId))
+        .where(and(eq(prospectContactPoints.prospectId, prospectId), eq(prospectContactPoints.kind, 'email'), inArray(prospectContactPoints.valueNormalized, task.invitees)))
+    : []
+  const nameOf = new Map(names.flatMap((row) => (row.name ? [[row.email, row.name] as const] : [])))
+
+  const uid = `${task.id}@vanadash`
+  const ics = buildMeetingIcs({
+    uid,
+    sequence: task.inviteSequence,
+    method: method === 'cancel' ? 'CANCEL' : 'REQUEST',
+    start: event?.startAt ?? task.dueAt,
+    end: event?.endAt ?? slotOf(task.dueAt).endAt,
+    summary: task.title,
+    description:
+      method === 'cancel'
+        ? tr('emails.meeting.icsCancel', { company: prospect.name })
+        : (task.description ?? tr('emails.meeting.icsRequest', { company: prospect.name, organizer: userName(me) })),
+    location: event?.location ?? null,
+    organizer: { name: userName(me), email: await organizerAddress(me, fromKey) },
+    attendees: task.invitees.map((email) => ({ email, name: nameOf.get(email) })),
+  })
+  return { filename: tr('emails.meeting.icsFilename'), content: Buffer.from(ics).toString('base64'), uid, sequence: task.inviteSequence }
 }

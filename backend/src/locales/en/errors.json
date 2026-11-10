@@ -267,6 +267,13 @@
     "configUpsertFailed": "Saving the price config failed"
   },
   "prospects": {
+    "voiceNotFound": "Voice note not found",
+    "voiceNotYours": "You can only edit or delete your own voice notes",
+    "voiceUnsupported": "Not a supported audio file (WebM, Ogg, MP4/M4A, MP3 or WAV)",
+    "voiceTooLarge": "The voice note is too large (over 25 MB)",
+    "voiceStorageOff": "File storage is not configured, the voice note cannot be saved",
+    "voiceNoFile": "The audio file is missing",
+    "voiceTaskInvalid": "The chosen task does not belong to this prospect",
     "nlFiltersForbidden": "No access to the assistant, which natural-language search needs",
     "nlFiltersNotConfigured": "The assistant is not configured",
     "statusNotFound": "The status does not exist",
@@ -322,7 +329,10 @@
     "automationParams": "The parameters do not fit the rule.",
     "scoringForbidden": "The score and the signals are set by whoever can assign prospects.",
     "signalNotFound": "Signal not found",
-    "signalBuiltin": "Built-in signals cannot be deleted, only switched off."
+    "signalBuiltin": "Built-in signals cannot be deleted, only switched off.",
+    "inviteeNotAllowed": "The invited address is not a contact of this prospect, or the person asked not to be contacted",
+    "attendeeInvalid": "The invited colleague is not an active user",
+    "attendeesNeedCommon": "Inviting colleagues needs access to common calendar events"
   },
   "tenders": {
     "alreadyBlocked": "SICAP already answered with HTTP {{blockedStatus}} in this run; no more requests are sent",

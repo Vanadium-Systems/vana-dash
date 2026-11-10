@@ -85,5 +85,10 @@
     "reauthSubject": "Revolut: re-authorization needed",
     "reauthBody1": "The Revolut refresh token for the account \"{{name}}\" has expired or was revoked ({{reason}}).\n",
     "reauthBody2": "Go to VanaDash → Reconciliation → Bank account settings and redo the OAuth consent in the browser."
+  },
+  "meeting": {
+    "icsFilename": "invitation.ics",
+    "icsRequest": "Meeting with {{company}}, organized by {{organizer}}.",
+    "icsCancel": "The meeting with {{company}} was canceled."
   }
 }

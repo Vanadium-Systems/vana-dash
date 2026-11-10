@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, check, index, pgTable, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { bigint, boolean, check, index, integer, pgTable, smallint, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
 import { prospects } from './prospects.js'
@@ -110,6 +110,10 @@ export const prospectTasks = pgTable(
     calendarEventId: uuid('calendar_event_id').references(() => calendarEvents.id, { onDelete: 'set null' }),
     outcome: text('outcome', { enum: CALL_OUTCOMES }),
     outcomeNote: text('outcome_note'),
+    // Meetings only: the addresses that got the .ics, so a move or a cancel reaches the same people
+    // with the same UID and a higher SEQUENCE.
+    invitees: text('invitees').array().notNull().default(sql`'{}'::text[]`),
+    inviteSequence: integer('invite_sequence').notNull().default(0),
   },
   (t) => [
     index('idx_prospect_tasks_open').on(t.prospectId, t.dueAt).where(sql`${t.doneAt} IS NULL AND ${t.deletedAt} IS NULL`),
@@ -173,5 +177,30 @@ export const prospectTransferRequests = pgTable(
     uniqueIndex('uq_transfer_pending').on(t.tenantId, t.prospectId, t.toUserId, t.kind).where(sql`${t.status} = 'pending'`),
     check('ck_transfer_requests_kind', sql`${t.kind} IN ('transfer', 'access')`),
     check('ck_transfer_requests_status', sql`${t.status} IN ('pending', 'accepted', 'refused', 'cancelled')`),
+  ],
+)
+
+// A recorded or uploaded voice note on a prospect. The audio sits in R2; who hears it follows the
+// prospect's visibility, like the text notes.
+export const prospectVoiceNotes = pgTable(
+  'prospect_voice_notes',
+  {
+    ...tenantColumns,
+    ...standardColumns,
+    prospectId: uuid('prospect_id')
+      .notNull()
+      .references(() => prospects.id, { onDelete: 'cascade' }),
+    authorUserId: uuid('author_user_id').references(() => users.id, { onDelete: 'set null' }),
+    // The call it follows, when recorded from the call session or a call task.
+    taskId: uuid('task_id').references(() => prospectTasks.id, { onDelete: 'set null' }),
+    r2Key: text('r2_key').notNull(),
+    mime: text('mime').notNull(),
+    sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
+    durationSeconds: integer('duration_seconds').notNull(),
+    caption: text('caption'),
+  },
+  (t) => [
+    index('idx_prospect_voice_notes_prospect').on(t.tenantId, t.prospectId, t.createdAt),
+    check('ck_prospect_voice_notes_duration', sql`${t.durationSeconds} >= 0 AND ${t.durationSeconds} <= 900`),
   ],
 )

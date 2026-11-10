@@ -10,6 +10,7 @@ import {
   CreateNoteSchema,
   CreatePersonSchema,
   CreateProspectTaskSchema,
+  MeetingInviteQuerySchema,
   NoteParamsSchema,
   PersonParamsSchema,
   ProspectParamsSchema,
@@ -28,6 +29,9 @@ function crmErrorReply(reply: FastifyReply, err: unknown) {
   if (err instanceof crm.ContactExistsError) return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.contactExists') } })
   if (err instanceof crm.NoteNotYoursError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.noteNotYours') } })
   if (err instanceof InvalidAssigneeError) return reply.code(400).send({ success: false, error: tr('errors.prospects.assigneeInvalid') })
+  if (err instanceof crm.InviteeNotAllowedError) return reply.code(400).send({ success: false, error: { code: err.code, message: tr('errors.prospects.inviteeNotAllowed') } })
+  if (err instanceof crm.AttendeeInvalidError) return reply.code(400).send({ success: false, error: { code: err.code, message: tr('errors.prospects.attendeeInvalid') } })
+  if (err instanceof crm.AttendeesNeedCommonError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.attendeesNeedCommon') } })
   if (err instanceof crm.ForeignRefError) {
     const error = tr(err.what === 'person' ? 'errors.prospects.personInvalid' : 'errors.prospects.contactPointInvalid')
     return reply.code(400).send({ success: false, error })
@@ -180,5 +184,12 @@ export async function prospectCrmRoutes(app: FastifyInstance) {
     } catch (err) {
       return crmErrorReply(reply, err)
     }
+  })
+
+  // Static suffix after `:taskId`, so it does not clash with the task PATCH / DELETE above.
+  // `from` = the mailbox the invitation goes out from; it becomes the ORGANIZER.
+  server.get('/api/prospects/:id/tasks/:taskId/invite.ics', { ...auth, schema: { params: ProspectTaskParamsSchema, querystring: MeetingInviteQuerySchema } }, async (req, reply) => {
+    const data = await crm.meetingInvite(req.me, req.params.id, req.params.taskId, req.query.method, req.query.from)
+    return data ? { success: true, data } : notFound(reply, 'errors.prospects.taskNotFound')
   })
 }

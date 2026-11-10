@@ -70,6 +70,7 @@
     },
     "autoMeetingTitle": "Prepare the meeting with {{company}}",
     "autoWon": "{{company}} won, ready to promote to client",
-    "handoverNote": "Handover: {{note}}"
+    "handoverNote": "Handover: {{note}}",
+    "meetingInvite": "{{who}} invited you to a meeting with {{company}}"
   }
 }

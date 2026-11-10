@@ -75,6 +75,7 @@
     },
     "autoMeetingTitle": "Pregătește întâlnirea cu {{company}}",
     "autoWon": "{{company}} câștigat, de promovat în client",
-    "handoverNote": "Predare: {{note}}"
+    "handoverNote": "Predare: {{note}}",
+    "meetingInvite": "{{who}} te-a invitat la o întâlnire cu {{company}}"
   }
 }

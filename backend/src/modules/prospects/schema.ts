@@ -168,6 +168,10 @@ export const PersonParamsSchema = z.object({ id: z.string().uuid(), personId: z.
 export const ContactPointParamsSchema = z.object({ id: z.string().uuid(), cpId: z.string().uuid() })
 export const NoteParamsSchema = z.object({ id: z.string().uuid(), noteId: z.string().uuid() })
 export const ProspectTaskParamsSchema = z.object({ id: z.string().uuid(), taskId: z.string().uuid() })
+export const MeetingInviteQuerySchema = z.object({
+  method: z.enum(['request', 'cancel']).default('request'),
+  from: z.string().trim().max(100).optional(),
+})
 export const TaskIdParamsSchema = z.object({ taskId: z.string().uuid() })
 
 const personFields = {
@@ -214,8 +218,16 @@ const taskFields = {
   dueAt: z.coerce.date(),
   priority: z.enum(PROSPECT_TASK_PRIORITIES).optional(),
 }
+// Meetings only; on any other kind they are ignored.
+const meetingFields = {
+  durationMinutes: z.number().int().min(15).max(480).optional(),
+  location: z.string().trim().max(500).nullable().optional(),
+  attendeeUserIds: z.array(z.string().uuid()).max(20).optional(),
+  invitees: z.array(z.string().trim().toLowerCase().email().max(255)).max(10).optional(),
+}
 export const CreateProspectTaskSchema = z.object({
   ...taskFields,
+  ...meetingFields,
   assigneeUserId: z.string().uuid().optional(),
   personId: z.string().uuid().nullable().optional(),
   addToCalendar: z.boolean().optional(),
@@ -223,6 +235,7 @@ export const CreateProspectTaskSchema = z.object({
 export const UpdateProspectTaskSchema = z
   .object({
     ...taskFields,
+    ...meetingFields,
     assigneeUserId: z.string().uuid(),
     personId: z.string().uuid().nullable(),
   })

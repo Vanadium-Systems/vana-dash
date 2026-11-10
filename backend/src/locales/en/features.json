@@ -78,7 +78,8 @@
     "arhiva": {
       "view": "Sees the files",
       "editare": "Uploads, moves, deletes",
-      "administrare": "Sees all spaces and assigns them"
+      "administrare": "Sees all spaces and assigns them",
+      "spatiu": "Sees the storage each person uses"
     },
     "notite": {
       "view": "Notes, plan and wishlist"

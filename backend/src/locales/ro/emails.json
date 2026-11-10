@@ -85,5 +85,10 @@
     "reauthSubject": "Revolut: reautentificare necesară",
     "reauthBody1": "Refresh token-ul Revolut pentru contul \"{{name}}\" a expirat sau a fost revocat ({{reason}}).\n",
     "reauthBody2": "Intră în vana-dash → Reconciliere → Setări cont bancar și refă consimțirea OAuth din browser."
+  },
+  "meeting": {
+    "icsFilename": "invitatie.ics",
+    "icsRequest": "Întâlnire cu {{company}}, organizată de {{organizer}}.",
+    "icsCancel": "Întâlnirea cu {{company}} a fost anulată."
   }
 }

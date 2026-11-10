@@ -78,7 +78,8 @@
     "arhiva": {
       "view": "Vede fișierele",
       "editare": "Încarcă, mută, șterge",
-      "administrare": "Vede toate spațiile și atribuie"
+      "administrare": "Vede toate spațiile și atribuie",
+      "spatiu": "Vede spațiul de stocare ocupat de fiecare"
     },
     "notite": {
       "view": "Notițe, plan și wishlist"

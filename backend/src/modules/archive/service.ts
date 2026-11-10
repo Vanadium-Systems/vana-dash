@@ -3,6 +3,7 @@ import { Readable } from 'node:stream'
 import { and, asc, desc, eq, inArray, sql, type AnyColumn, type SQL } from 'drizzle-orm'
 import { zipSync } from 'fflate'
 import { config } from '../../shared/config.js'
+import { assertStorageAvailable, StorageFullError } from '../../shared/lib/storage-quota.js'
 import { db } from '../../shared/db/client.js'
 import { archiveFiles, archiveFolderShares, archiveFolders, archiveStars, users } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
@@ -32,15 +33,8 @@ export { systemArchiveRoot }
 
 export class ArchiveConflictError extends Error {}
 
-/** The bucket is company-wide, so the limit is too (R2's free tier is per bucket). */
-export class ArchiveStorageFullError extends Error {
-  constructor(
-    readonly usedBytes: number,
-    readonly limitBytes: number,
-  ) {
-    super('archive storage full')
-  }
-}
+// Lives in shared/lib/storage-quota.ts (voice notes count against the same bucket).
+export { StorageFullError as ArchiveStorageFullError, assertStorageAvailable }
 
 /**
  * Cerere pe un folder din alt spațiu. Răspunsul e 404, nu 403 — la fel ca atașamentele din
@@ -954,17 +948,6 @@ export async function getStorageUsage(me: SessionUser): Promise<StorageUsage> {
     result.totalUsedBytes = Number(all?.total ?? 0)
   }
   return result
-}
-
-/**
- * Throws when `extraBytes` more would pass the bucket limit. Counts every row, soft-deleted
- * ones too: their objects stay in R2 until the Trash purges them.
- */
-export async function assertStorageAvailable(extraBytes: number): Promise<void> {
-  const [row] = await db.select({ total: sql<number>`COALESCE(SUM(${archiveFiles.sizeBytes}), 0)::bigint` }).from(archiveFiles)
-  const usedBytes = Number(row?.total ?? 0)
-  const limitBytes = config.r2.freeTierLimitGb * 1024 ** 3
-  if (usedBytes + extraBytes > limitBytes) throw new ArchiveStorageFullError(usedBytes, limitBytes)
 }
 
 export async function findFileByName(folderId: string, name: string) {
