@@ -6,6 +6,17 @@ dated rather than versioned. What users see is also listed in the app, under Upd
 
 ## 2026-11-10: Clients: team ownership, prospecting, automations
 
+### Usage analytics
+- PostHog, configured per company in Settings (`setari.analitica`, `GET/PUT /api/settings/analytics`):
+  project key and host stored in `dashboard_config`, nothing loads without a key. Signed-in shell
+  only, loaded lazily; autocapture, dead and rage clicks, exceptions and session replay with all
+  text, attributes and inputs masked. People are identified by id, name and role, the company is a
+  `company` group with its name (`GET /api/analytics/client-config`, available to every signed-in person).
+
+### Fixed
+- The ANAF company lookup in invoicing now goes through the same gate as the one in Clients (one
+  request in flight, 2 s apart, 24 h cache per tax id, one hour pause after a 403/429, `503` meanwhile).
+
 ### Voice notes, meetings, storage
 - Voice notes on a prospect: recorded in the app (sheet and call session) or uploaded, several
   files at a time; up to 25 MB and 15 minutes each, type read from the file's first bytes. Stored
@@ -29,7 +40,8 @@ dated rather than versioned. What users see is also listed in the app, under Upd
 - Claim, release, transfer (with a note), transfer and access requests, and collaborators
   (`view` / `edit`): `POST /api/prospects/:id/claim`, `/release`, `/transfer`,
   `/transfer-requests`, `PUT /api/prospects/:id/collaborators/:userId`. A transfer by someone who
-  does not own the prospect and has no `clienti.repartizare` answers 200 with `skipped: notYours`.
+  does not own the prospect and has no `clienti.repartizare` skips it (`skipped: notYours`) when
+  others in the batch move, and answers `403 PROSPECT_NOT_YOURS` with the owner's name when none do.
 - New features: `clienti.toti` (migration gives it to everyone who had `clienti.view`),
   `clienti.repartizare`, `clienti.export`.
 - Automatic release of idle prospects (`jobs/prospect-release.ts`, settings in

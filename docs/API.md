@@ -812,7 +812,7 @@ history and notifies the other person in the app.
 |---|---|---|
 | POST | `/api/prospects/:id/claim` | Takes a free prospect. 409 if it already has an owner |
 | POST | `/api/prospects/:id/release` | The owner (or `clienti.repartizare`) makes it free again |
-| POST | `/api/prospects/transfer` | `{ ids (1-200), toUserId, note? }`. → `{ transferred, skipped: [{ id, reason }] }` with status 200. `reason` is `notFound`, `alreadyThere` or `notYours` (not the person's prospect, and no `clienti.repartizare`) |
+| POST | `/api/prospects/transfer` | `{ ids (1-200), toUserId, note? }`. → `{ transferred, skipped: [{ id, reason }] }` with status 200. `reason` is `notFound`, `alreadyThere` or `notYours` (not the person's prospect, and no `clienti.repartizare`). When nothing moved and something was `notYours`: `403 PROSPECT_NOT_YOURS` with `ownerName` |
 | GET | `/api/prospects/transfer-requests` | Query: `scope` = `incoming` \| `outgoing` |
 | POST | `/api/prospects/:id/transfer-requests` | `{ kind: transfer \| access, note? }`. `access` asks to become a collaborator; both need `clienti.prospectare` |
 | PATCH | `/api/prospects/transfer-requests/:rid` | `{ action: accept \| refuse \| cancel }`. The owner or `clienti.repartizare` decides; the requester cancels |
@@ -1054,6 +1054,9 @@ with real money.
 |---|---|---|
 | GET | `/api/settings/nav-layout` | The order and visibility of the menu items; `null` means the default |
 | PUT | `/api/settings/nav-layout` | `{ items: [{ to, visible }] }`. Items that are new in the code and missing here appear at the end, visible |
+| GET | `/api/settings/analytics` | `{ posthogKey, posthogHost }`, empty strings when unset (`setari.analitica`) |
+| PUT | `/api/settings/analytics` | `{ posthogKey, posthogHost }`; host a URL or empty (EU default) |
+| GET | `/api/analytics/client-config` | Any signed-in person: `{ key, host }` or `null` when PostHog is off |
 
 ## Support
 
