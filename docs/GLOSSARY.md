@@ -97,6 +97,30 @@ CUI is written "CUI (tax ID)" the first time it appears on a screen, then "CUI".
 | notiță | note |
 | obiectiv | goal |
 
+## Clients (prospecting)
+
+| Romanian | English |
+|---|---|
+| responsabil | owner |
+| liber (prospect) | free (no owner) |
+| Îl iau eu | I'll take it (claim) |
+| eliberare, eliberare automată | release, automatic release |
+| transfer, cerere de transfer | transfer, transfer request |
+| colaborator | collaborator |
+| pasul următor | next step |
+| etapă | stage |
+| Câștigat, Pierdut | Won, Lost |
+| om de contact | contact person |
+| vedere (salvată) | view (saved) |
+| listă, dosar | list, folder |
+| prognoză, pâlnie | forecast, funnel |
+| sesiune de apeluri | call session |
+| pas de secvență | sequence step |
+| semnal | signal |
+| sănătatea datelor | data health |
+| dublură, unire | duplicate, merge |
+| Nu contacta | Do not contact |
+
 ## System
 
 | Romanian | English |

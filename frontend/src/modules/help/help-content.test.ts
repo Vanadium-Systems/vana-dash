@@ -23,7 +23,7 @@ describe('ghiduri', () => {
 
   it('omul vede doar ghidurile funcționalităților pe care le are', () => {
     const sales = visibleGuides(only('email.view', 'clienti.prospectare'))
-    expect(sales.map((g) => g.id).sort()).toEqual(['clienti-prospecti', 'email-citire', 'profil-meu'])
+    expect(sales.map((g) => g.id).sort()).toEqual(['clienti-apeluri', 'clienti-fisa', 'clienti-import', 'clienti-prospecti', 'email-citire', 'profil-meu'])
     expect(visibleGuides(only()).map((g) => g.id)).toEqual(['profil-meu'])
   })
 

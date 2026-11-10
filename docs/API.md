@@ -229,6 +229,8 @@ and imports no service of another module. The contract fields are written only t
 
 | Method | Route | Description |
 |---|---|---|
+| GET | `/api/contracts/list` | The clients with the state of their contract. Query: `q?` (client name, up to 100 characters), `state?` (comma-separated: `none`, `generated`, `signed`, `addendum`), `page?`, `pageSize?` (10, 25 or 50) |
+| GET | `/api/contracts/settings-summary` | `{ reservedNumbers, templates }`, the counts shown on the settings tab headers |
 | GET | `/api/contracts/clients/:clientId/info` | The client and the parsed, validated `contractDetails` |
 | GET | `/api/contracts/clients/:clientId/documents` | The documents generated for the client (contract, annex, addendum) |
 | POST | `/api/contracts/clients/:clientId/documents` | `{ docType: 'contract' \| 'anexa' }`. Generates the PDF (HTML → PDF). 400 with the exact list of missing fields if the client's data is incomplete |
@@ -375,13 +377,28 @@ Source: `sequences-routes.ts`, `sequences-service.ts`, `sequences-schema.ts`, an
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/email/sequences` | The sequences with their steps (`steps: [{ templateId, delayDays, stepOrder }]`) |
-| POST | `/api/email/sequences` | `{ name, fromIdentity, steps: [{ templateId, delayDays }] }`. `fromIdentity` is the key of a sending identity; `stepOrder` comes from the position in the array |
-| PATCH | `/api/email/sequences/:id` | Partial update. `steps`, if sent, **replaces** the whole list |
+| GET | `/api/email/sequences` | The sequences with their steps (`steps: [{ kind, templateId, variantBTemplateId, taskTitle, taskDescription, delayDays, stepOrder }]`) and `paused` |
+| POST | `/api/email/sequences` | `{ name, fromIdentity, stopOnMeeting?, stopOnWonLost?, steps: [...] }`. `fromIdentity` is the key of a sending identity; `stepOrder` comes from the position in the array. A step has a `kind`: `email` (default, needs `templateId`; `variantBTemplateId` makes it an A/B step) or `call`, `task`, `linkedin_connect`, `linkedin_message`, `linkedin_view`, `linkedin_engage` (need `taskTitle`, `{{firma}}` and `{{nume}}` allowed) |
+| PATCH | `/api/email/sequences/:id` | Partial update. `steps`, if sent, **replaces** the whole list. `active`, `stopOnMeeting`, `stopOnWonLost`; `paused: false` resumes a sequence paused by the bounce guard (only resuming is a person's call) |
 | DELETE | `/api/email/sequences/:id` | Soft delete |
 | GET | `/api/email/sequences/:id/enrollments` | The enrollments (status, currentStep, nextSendAt) |
-| POST | `/api/email/sequences/:id/enroll` | `{ recipients: [{ email, nume?, prospectId? }] }` (2000 at most; it only writes rows, nothing is sent in the request) → `{ enrolled, alreadyEnrolled: string[] }`. Idempotent on `(sequence_id, recipient_email)` |
+| GET | `/api/email/sequences/:id/stats` | Sends, opens, replies and bounces per step and per A/B variant |
+| GET | `/api/email/sequences/:id/diagnostics` | Why the sequence is quiet or paused: the bounce rate over the last sends against the threshold, the state per step, enrollments waiting on a task. Under the same feature as the sequences (`email.bulk`) |
+| POST | `/api/email/sequences/:id/enroll` | `{ recipients?: [{ email, nume?, prospectId? }], listId?, prospectIds? }` (at least one; 2000 at most; it only writes rows, nothing is sent in the request) → `{ enrolled, alreadyEnrolled: string[] }`. `listId` and `prospectIds` count only the prospects the person can see. Idempotent on `(sequence_id, recipient_email)`. An address that bounced or unsubscribed is not enrolled |
 | PATCH | `/api/email/sequences/:id/enrollments/:enrollmentId` | `{ status: 'unsubscribed' \| 'active' \| 'replied' }`, the manual transitions. `completed` and `failed` belong to the cron |
+
+**Multichannel runner.** A step that is not an email creates a task on the prospect and parks the
+enrollment (`waiting_task_id`) until the task is done or 7 days pass. The runner re-checks the
+address before each email. An enrollment of a prospect without an email can hold non-email steps
+only; it never sends. The A/B variant is picked by a deterministic hash of the enrollment, so a
+recipient always gets the same one. An enrollment stops on a reply, and, if set on the sequence,
+when the prospect gets a meeting in the calendar (`stopOnMeeting`) or reaches a won or lost stage
+(`stopOnWonLost`).
+
+**Pause on bounce.** A bounce marks the contact point `bounced` and stops that address's
+enrollments; it is not an unsubscribe. When the share of bounces over the last sends of a sequence
+goes above the threshold (and at least the minimum number of sends), the sequence sets
+`paused = true` and the runner skips it. `diagnostics` shows the numbers.
 
 **Warm-up cap** (`getOutreachCapStatus`): on the `outreach` identity only, checked once per
 batch or cron run. It is a manual cap, editable in Email settings (`outreachDailyCap`, default
@@ -686,26 +703,52 @@ email, the ANAF status of an invoice, calendar reminders, payment matches, chat 
 
 ## Prospects (CRM)
 
-Tables `prospects` and `prospect_scoring_config` (one row). No connector: the data is local,
-imported from CSV. Scoring is a set of pure functions (`modules/prospects/scoring.ts`). The
-priority (HOT/WARM/NURTURE/SKIP) is derived from `score` on read with the current thresholds,
+Tables `prospects`, `prospect_people`, `prospect_contact_points`, `prospect_notes`,
+`prospect_tasks`, `prospect_collaborators`, `prospect_transfer_requests`, `prospect_stage_events`,
+`prospect_views`, `prospect_lists`, `prospect_signals` and `prospect_scoring_config` (one row). No
+connector: the data is local. Scoring is a set of pure functions (`modules/prospects/scoring.ts`).
+The priority (HOT/WARM/NURTURE/SKIP) is derived from `score` on read with the current thresholds,
 not stored.
+
+**Who can use what.** Reads under `/api/prospects` need `clienti.view`, writes need
+`clienti.prospectare`; the exceptions are noted per section. **Visibility** is applied on every
+route by one function (`visibleProspectsWhere`): without `clienti.toti` a person sees their own
+prospects, the free ones (no owner) and those where they are a collaborator. An object the person
+cannot see answers `404`. **Edit rights** (`canEditProspect`): admin, `clienti.repartizare`, the
+owner, or a collaborator with `edit`; a free prospect only after claim. A refusal is `403` with
+`{ error: { code: 'PROSPECT_NOT_YOURS' }, ownerName }`.
+
+**Filters.** The list-like routes (`GET /api/prospects`, `count`, `aggregate`, `board`, `forecast`,
+`funnel`, `export`, `neighbors`, list-from-search) take the same `f` (a JSON array of
+`{ field, op, value }`, an allowlist compiled once in `filters.ts`, never concatenated into SQL)
+and `q` (free text, ignores diacritics).
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/prospects` | Query: `status?`, `priority?`, `source?`, `search?` (name or tax id), sorted by `score` descending |
-| POST | `/api/prospects` | Manual creation: `{ name, cif?, phone?, email?, website?, contactName?, caenCode?, foundingYear?, employeeCount?, revenue?, profit?, debt?, equity?, cash?, receivables?, inventory?, source?, platformId? }`; the score is computed |
-| PATCH | `/api/prospects/:id` | Partial update; recomputes the score. `assignedUserId` (an active person, or `null`) sets the owner and writes the change to the history. 404 if missing, 400 for an unknown status or owner |
-| GET | `/api/prospects/assignees` | The active people a prospect can be assigned to → `[{ id, displayName, email }]` |
+| GET | `/api/prospects` | Query: `f?`, `q?`, `kind?` (`companies` \| `people`), `sort?`, `page?`, `pageSize?` (at most 100). Rows carry `nextTask` and `daysInStage`; the answer has `rows`, `total` and the visible counts |
+| GET | `/api/prospects/count` | `{ f, q, kind }` → the number of matches (the live count in "All filters") |
+| GET | `/api/prospects/aggregate` | `{ f, q, field: score \| value \| employees \| revenue, fn: count \| sum \| avg \| min \| max }`, computed in SQL (the footer calculations) |
+| GET | `/api/prospects/:id` | The sheet: the prospect, owner, collaborators, pending requests, `canEdit` |
+| GET | `/api/prospects/:id/neighbors` | Previous and next id in the same `f` / `q` / `sort` (the sheet's arrows) |
+| GET | `/api/prospects/:id/timeline` | Per-field changes, stage events, notes, tasks, calls, sent emails and sequence steps, newest first (`cursor`, 50 per page). Received emails are not in it |
+| POST | `/api/prospects` | Manual creation: `{ name, cif?, phone?, email?, website?, contactName?, caenCode?, foundingYear?, employeeCount?, revenue?, profit?, debt?, equity?, cash?, receivables?, inventory?, source?, platformId?, address? }`; the score is computed. A CUI that already exists answers `409 PROSPECT_EXISTS` with the existing prospect |
+| GET | `/api/prospects/company-lookup` | Query: `cif`. Company data from ANAF through the country pack (`clienti.prospectare`), one request per call, behind the ANAF gate |
+| PATCH | `/api/prospects/:id` | Partial update; recomputes the score and writes each changed field to the history. `assignedUserId` is changed through `/transfer`, not here. A move to a lost stage needs `lostReason` (`400 LOST_REASON_REQUIRED`). A stage change writes a `prospect_stage_events` row |
+| PATCH | `/api/prospects/bulk` | `{ ids? \| f, q, all?, action: status \| archive \| unarchive, value?, lostReason? }`. Rows the person cannot edit are skipped and counted |
 | DELETE | `/api/prospects/:id` | Soft delete |
-| POST | `/api/prospects/import` | Multipart (`file`) or JSON `{ csv, source? }`. Tolerant of column aliases; UPSERT on `cif`, field by field, so an empty value in the new row does not erase an existing one |
-| POST | `/api/prospects/:id/promote` | `{ address, city?, county?, cif? }`, creates a `billing_client` from the prospect, links it and sets the status to `aprobat`. `cif` is required in the body only if the prospect has none |
-| GET | `/api/prospects/scoring-config` | The current weights and thresholds; creates the default row on first read |
-| PUT | `/api/prospects/scoring-config` | Updates the config and recomputes the score of every prospect → `{ config, recalculated }` |
+| POST | `/api/prospects/:id/archive`, `/unarchive` | Hides the prospect from the person's own list |
+| POST | `/api/prospects/archive-bulk`, `/unarchive-bulk` | `{ ids }` |
+| GET | `/api/prospects/assignees` | The active people a prospect can be assigned to → `[{ id, displayName, email }]` |
+| POST | `/api/prospects/:id/promote` | `{ address, city?, county?, cif? }`, creates a `billing_client` from the prospect, links it and sets the status to `aprobat`. If the prospect has a saved offer (`PUT .../offer`), it is applied on the client |
+| GET | `/api/prospects/scoring-config` | The weights, criteria, labels and thresholds; creates the default row on first read |
+| PUT | `/api/prospects/scoring-config` | Updates the config and recomputes every score in SQL batches → `{ config, recalculated }`. Needs `clienti.repartizare` (`403 SCORING_FORBIDDEN`) |
+| POST | `/api/prospects/scoring/preview` | A draft of the config (what is left out is read from the saved one) → the distribution of scores, without saving |
+| POST | `/api/prospects/nl-filters` | `{ text }` (1-300 characters) → the filters the phrase means, as chips. Read-only, so it sits under `clienti.view`; it also needs `asistent.view` (`403 ASSISTANT_FORBIDDEN`) and uses the assistant's provider and monthly cap. No personal data is sent |
 
 **Status catalog.** `prospect_statuses` (key, label, a `colorToken` from a fixed palette,
-sortOrder) is editable. `PATCH /api/prospects/:id` validates `status` against the active
-catalog.
+`kind`, sortOrder) is editable. `kind` (`open` \| `won` \| `lost` \| `invalid` \| `bounced`) is set
+by the system and is ignored on create and `PATCH`. `PATCH /api/prospects/:id` validates `status`
+against the active catalog.
 
 | Method | Route | Description |
 |---|---|---|
@@ -714,6 +757,126 @@ catalog.
 | PATCH | `/api/prospects/statuses/:id` | `{ label?, colorToken? }` |
 | DELETE | `/api/prospects/statuses/:id` | Soft delete. 409 if an active prospect still uses the status |
 | POST | `/api/prospects/statuses/reorder` | `{ orderedIds }`. 400 if it does not match the active statuses exactly |
+
+### People, contact points and notes
+
+All need edit rights on the prospect (reads: visibility).
+
+| Method | Route | Description |
+|---|---|---|
+| GET/POST | `/api/prospects/:id/people` | Contact people, each with `contactPoints[]`; create `{ name, role?, isDecisionMaker?, doNotContact?, doNotContactReason?, position? }` |
+| PATCH/DELETE | `/api/prospects/:id/people/:personId` | `{ name, role?, isDecisionMaker?, doNotContact?, doNotContactReason?, position? }` |
+| POST | `/api/prospects/:id/contact-points` | `{ personId?, kind, value, label?, isPrimary? }` (`kind` is a phone or an email). Phones are stored as E.164 |
+| PATCH/DELETE | `/api/prospects/:id/contact-points/:cpId` | `{ personId?, value?, label?, isPrimary?, status?: ok \| invalid }`; `bounced` and `unsubscribed` are set by the system |
+| GET/POST | `/api/prospects/:id/notes` | `{ body, pinned?, mentions? }` (`mentions` are user ids; each one is notified) |
+| PATCH/DELETE | `/api/prospects/:id/notes/:noteId` | Only the author edits or deletes |
+| GET | `/api/prospects/:id/contact-check` | Who has the prospect and who touched it last → `{ ownerName, claimedAt, lastActivityAt, lastActivityKind, lastActivityBy }`. It reads only visible prospects |
+
+### Tasks
+
+Source: `crm-routes.ts`, `crm-service.ts`. A task with a due time also writes an event in the
+person's calendar.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/prospects/tasks` | The cross-prospect page. Query: `tab?` (`all` \| `call` \| `email` \| `linkedin` \| `today` \| `overdue`), `scope?` (`mine` \| `team`; `team` is honored only with `clienti.repartizare`), `page?`, `pageSize?` |
+| GET | `/api/prospects/tasks/counts` | The numbers per tab (the badge in the menu) |
+| POST | `/api/prospects/tasks/:taskId/done` | `{ outcome?, outcomeNote?, contactPointId?, nextTask?: { kind, title, dueAt, priority?, addToCalendar? } }`. For a call `outcome` is `answered` \| `no_answer` \| `voicemail` \| `wrong_number` \| `callback`; `wrong_number` marks `contactPointId` invalid. Emits `task.done` |
+| GET/POST | `/api/prospects/:id/tasks` | The prospect's tasks; create `{ kind, title, description?, dueAt, priority?, assigneeUserId?, personId?, addToCalendar? }` |
+| PATCH/DELETE | `/api/prospects/:id/tasks/:taskId` | Edit or remove |
+| GET/POST | `/api/snippets` | Text snippets (`self`: every person's own, plus the shared ones). `{ name, body, shared? }` |
+| PATCH/DELETE | `/api/snippets/:id` | Only the author |
+
+### Team: claim, release, transfer, requests, collaborators
+
+Source: `team-routes.ts`, `team-service.ts`, `release-service.ts`. Every step writes to the
+history and notifies the other person in the app.
+
+| Method | Route | Description |
+|---|---|---|
+| POST | `/api/prospects/:id/claim` | Takes a free prospect. 409 if it already has an owner |
+| POST | `/api/prospects/:id/release` | The owner (or `clienti.repartizare`) makes it free again |
+| POST | `/api/prospects/transfer` | `{ ids (1-200), toUserId, note? }`. → `{ transferred, skipped: [{ id, reason }] }` with status 200. `reason` is `notFound`, `alreadyThere` or `notYours` (not the person's prospect, and no `clienti.repartizare`) |
+| GET | `/api/prospects/transfer-requests` | Query: `scope` = `incoming` \| `outgoing` |
+| POST | `/api/prospects/:id/transfer-requests` | `{ kind: transfer \| access, note? }`. `access` asks to become a collaborator; both need `clienti.prospectare` |
+| PATCH | `/api/prospects/transfer-requests/:rid` | `{ action: accept \| refuse \| cancel }`. The owner or `clienti.repartizare` decides; the requester cancels |
+| PUT | `/api/prospects/:id/collaborators/:userId` | `{ level: view \| edit }` |
+| DELETE | `/api/prospects/:id/collaborators/:userId` | |
+| GET | `/api/prospects/release-settings` | `{ enabled, idleDays, warnDays }` |
+| PUT | `/api/prospects/release-settings` | Same body; `warnDays` must be lower than `idleDays`. Needs `clienti.repartizare` |
+
+The daily job `jobs/prospect-release.ts` warns `warnDays` before and releases after `idleDays`
+without activity; prospects that are won or lost are skipped. Deactivating a person in Team
+releases their prospects.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/notifications` | `self`. The person's in-app notifications, newest first; `cursor` is an ISO date for the next page |
+| POST | `/api/notifications/read` | `{ ids }` (1-100) or `{ all: true }` |
+
+### Saved views, lists and folders
+
+Views and lists are personal or shared with the team (`shared`).
+
+| Method | Route | Description |
+|---|---|---|
+| GET/POST | `/api/prospects/views` | `{ name, kind, q, filters, columns, sort, calcs, layout: list \| board \| forecast, shared, notifyNew }` |
+| PATCH/DELETE | `/api/prospects/views/:id` | Only the owner |
+| PUT/DELETE | `/api/prospects/views/:id/star` | Stars a view for the person |
+| GET/POST | `/api/prospects/list-folders` | `{ name, shared }` |
+| PATCH/DELETE | `/api/prospects/list-folders/:id` | Deleting a folder keeps its lists |
+| GET/POST | `/api/prospects/lists` | `{ name, folderId?, shared }` |
+| PATCH/DELETE | `/api/prospects/lists/:id` | Deleting a list keeps the prospects |
+| POST | `/api/prospects/lists/:id/members` | Either `{ ids }` (at most 1000) or a search `{ f, q, rules?, limit? }` (at most 5000). `rules` skips prospects already in other lists of the folder, without a phone, or marked do-not-contact; the answer counts what was skipped and why |
+| DELETE | `/api/prospects/lists/:id/members` | `{ ids }`. Members are removed for good |
+
+The job `jobs/prospect-view-alerts.ts` notifies the owner of a view with `notifyNew` when new
+prospects match it.
+
+### Pipeline: board, forecast, funnel, per-agent numbers
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/prospects/board` | `{ f, q }` → the stages with count, value and the first cards |
+| GET | `/api/prospects/board/column` | `{ status, f, q, page }` → more cards of one stage |
+| GET | `/api/prospects/forecast` | `{ f, q, months (1-12) }` → open value by month of the expected close, and a bucket without a date |
+| GET | `/api/prospects/funnel` | `{ from, to, f, q }` (`YYYY-MM-DD`, at most 366 days) → how many prospects entered each stage in the period |
+| GET | `/api/prospects/stats/by-agent` | `{ from, to }` → per person: `claimed`, `contactedToday`, `withoutNextStep`, `won`. Everyone sees their own numbers; `clienti.repartizare` sees all |
+
+### Import and export
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/prospects/import/template.xlsx` | The template with the recognized columns and an example row |
+| POST | `/api/prospects/import/preview` | Multipart (`file`, `.xlsx` or `.csv`, 10 MB, 5000 rows). Writes nothing; answers `{ token, rows }` with each row as `new`, `update`, `error` or `skip`. The token lives 30 minutes, per person. Errors carry a code (`IMPORT_TOO_MANY_ROWS`, `IMPORT_NO_NAME_COLUMN`, `IMPORT_UNREADABLE`, ...) |
+| POST | `/api/prospects/import/commit` | `{ token, distribution: { mode: me \| user \| round_robin, userIds? } }`. Commits in batches of 500; a failed batch leaves the earlier ones written. `user` and `round_robin` need `clienti.repartizare` (`IMPORT_NEEDS_REASSIGN`). Match order: CUI, then phone, then email; a match fills only the empty fields and keeps its owner |
+| GET | `/api/prospects/export` | Needs `clienti.export`. Query: `f`, `q`, `format` = `csv` \| `xlsx`. At most 10,000 rows (`400` above), only prospects the person can see; each export is audited |
+
+### Data health, duplicates and merge
+
+Needs `clienti.prospectare` for reads too (`403` otherwise).
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/prospects/health` | Counts: no phone, no email, invalid or bounced contacts, struck-off companies, duplicate pairs |
+| GET | `/api/prospects/health/duplicates` | `page?`, `pageSize?`. The pairs found by the nightly job (stored in `dashboard_config` `clienti.duplicates`), with the reason (same CUI, phone, email, or name and county) |
+| GET | `/api/prospects/merge/preview` | `masterId`, `otherId` → the fields that differ and what would move (people, notes, tasks, lists, enrollments, stage events, collaborators, calls) |
+| POST | `/api/prospects/merge` | `{ masterId, otherId, fields }` (`fields[name]` = `master` \| `other`). One transaction, audited; `other` gets `merged_into_id` and its sheet URL follows it to `master`. Both must be editable by the person |
+
+### Automations, signals and offer
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/prospects/automations` | The six fixed rules (`reply_call_task`, `bounce_notify`, `no_next_step`, `meeting_stage`, `won_cleanup`, `import_list`) with their state and parameters |
+| PUT | `/api/prospects/automations/:ruleKey` | `{ enabled, params }`, validated per rule. Needs `clienti.repartizare` (`403 AUTOMATION_FORBIDDEN`). Changes made by a rule are written to the history with `via: 'automation'` |
+| GET/POST | `/api/prospects/signals` | Signals: a name, a group (`company` \| `activity` \| `contact`), the filters that define it and an optional "what to say" tip. Writes need `clienti.repartizare` |
+| PATCH/DELETE | `/api/prospects/signals/:id` | |
+| PUT | `/api/prospects/:id/offer` | The calculator inputs saved on the prospect (the same body as the client's pricing) |
+| DELETE | `/api/prospects/:id/offer` | |
+
+Automations and signals read the events emitted by `shared/lib/prospect-events.ts`
+(`prospect.created`, `prospect.stage_changed`, `task.done`, email events) and run as the company,
+never as the person who triggered them.
 
 ## Assistant
 

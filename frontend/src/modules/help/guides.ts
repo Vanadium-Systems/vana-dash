@@ -185,6 +185,45 @@ const SOURCES: GuideSource[] = [
     ],
   },
   {
+    id: 'email-secvente',
+    route: '/clients',
+    feature: 'email.bulk',
+    title: {
+      ro: 'Secvențe de outreach',
+      en: 'Outreach sequences',
+    },
+    summary: {
+      ro: 'O secvență trimite singură o serie de pași către destinatari: emailuri și, între ele, task-uri pentru tine.',
+      en: 'A sequence sends a series of steps to recipients on its own: emails and, between them, tasks for you.',
+    },
+    steps: [
+      {
+        ro: 'În Email → Secvențe, creează o secvență: alege cutia de pe care pleacă și adaugă pașii, fiecare cu întârzierea lui în zile. Ordinea se schimbă prin tragere.',
+        en: 'In Email → Sequences, create a sequence: pick the mailbox it sends from and add the steps, each with its delay in days. The order changes by dragging.',
+      },
+      {
+        ro: 'Un pas poate fi Email (cu un șablon) sau Apel, Task ori unul de LinkedIn (conectare, mesaj, vizitare profil, apreciere). Pașii care nu sunt email devin task-uri pe prospect, în pagina Task-uri, și secvența așteaptă până le faci sau până trec 7 zile.',
+        en: 'A step can be an Email (with a template) or a Call, a Task or a LinkedIn one (connect, message, view profile, like a post). The steps that are not email become tasks on the prospect, in the Tasks page, and the sequence waits until you do them or 7 days pass.',
+      },
+      {
+        ro: 'La un pas de email poți pune un al doilea șablon, B: destinatarii se împart între A și B, iar statisticile le arată separat.',
+        en: 'On an email step you can add a second template, B: recipients are split between A and B, and the statistics show them separately.',
+      },
+      {
+        ro: '„La răspuns”, „La întâlnire programată” și „La câștigat sau pierdut” spun când se oprește secvența pentru un destinatar. Un răspuns o oprește mereu.',
+        en: '“On reply”, “On scheduled meeting” and “On won or lost” say when the sequence stops for a recipient. A reply always stops it.',
+      },
+      {
+        ro: 'Înscrie destinatari din Prospectare (selecția de pe rânduri) sau o listă întreagă. Cine are emailul respins sau s-a dezabonat nu primește nimic.',
+        en: 'Enroll recipients from Prospects (the selection on the rows) or a whole list. Anyone whose address bounced or who unsubscribed gets nothing.',
+      },
+      {
+        ro: 'Dacă prea multe emailuri se întorc (bounce), secvența se pune singură pe pauză, iar Diagnosticul arată de ce și de când. O repornești cu „Repornește” după ce ai verificat lista; o poți pune pe pauză și manual.',
+        en: 'If too many emails bounce, the sequence pauses itself, and Diagnostics shows why and since when. You restart it with “Resume” after checking the list; you can also pause it by hand.',
+      },
+    ],
+  },
+  {
     id: 'email-setarile-mele',
     route: '/email',
     feature: 'email.setari_proprii',
@@ -466,33 +505,208 @@ const SOURCES: GuideSource[] = [
       en: 'Working the prospect list',
     },
     summary: {
-      ro: 'Tab-ul Prospectare ține firmele de contactat, cu scor, prioritate și status.',
-      en: 'The Prospects tab holds the companies to contact, with score, priority and status.',
+      ro: 'Tab-ul Prospectare ține firmele de contactat, cu scor, prioritate, status și responsabil. Vezi doar ce e al tău, ce e liber și unde ești colaborator; cu „Vede prospecții tuturor” în rol vezi toată lista.',
+      en: 'The Prospects tab holds the companies to contact, with score, priority, status and owner. You see what is yours, what is free and where you collaborate; with “Sees everyone’s prospects” in your role you see the whole list.',
     },
     steps: [
       {
-        ro: 'Caută după nume, CUI, telefon, email sau persoana de contact.',
-        en: 'Search by name, CUI, phone, email or contact person.',
+        ro: 'Caută după nume, CUI, telefon, email sau persoana de contact. Pentru o căutare mai fină apasă „+ Filtru” și alege câmpul, sau scrie o frază în câmpul de căutare, de pildă „firme active din Cluj fără responsabil”, și filtrele apar ca chip-uri pe care le poți corecta.',
+        en: 'Search by name, CUI, phone, email or contact person. For a finer search press “+ Filter” and pick the field, or write a phrase in the search box, for example “active companies in Cluj with no owner”, and the filters appear as chips you can correct.',
       },
       {
-        ro: 'Schimbă statusul unui prospect după fiecare discuție, ca lista să arate unde a rămas.',
-        en: 'Change the status of a prospect after each conversation, so the list shows where it stands.',
+        ro: 'Cu „Firme” și „Oameni” treci între lista de firme și cea de oameni de contact. Coloanele, sortarea și calculele din subsol (sumă, medie, minim, maxim) se aleg din antetul tabelului.',
+        en: '“Companies” and “People” switch between the list of companies and the list of contact people. The columns, the sorting and the footer calculations (sum, average, minimum, maximum) are picked from the table header.',
       },
       {
-        ro: 'Apasă „Calculează preț” pe rând ca să deschizi calculatorul cu datele lui.',
-        en: 'Press “Calculate price” on the row to open the calculator with its details.',
+        ro: '„Salvează vederea curentă” păstrează filtrele, coloanele și sortarea sub un nume. Pune o stea pe vederile pe care le folosești des, ca să-ți apară sus, și bifează „Anunță-mă când apar rezultate noi” pentru cele pe care vrei să le urmărești. O vedere partajată o văd și colegii.',
+        en: '“Save current view” keeps the filters, columns and sorting under a name. Star the views you use often so they show up on top, and tick “Notify me when new results appear” for the ones you want to follow. A shared view is seen by your colleagues too.',
       },
       {
-        ro: 'Din meniul rândului, „Trimite în Mesaje” dă prospectul unui coleg.',
-        en: 'From the row menu, “Send to Messages” passes the prospect to a colleague.',
+        ro: 'Schimbă statusul unui prospect după fiecare discuție. Editezi direct în celulă, iar săgețile te mută între rânduri. Bifează mai multe rânduri (Shift+click pentru un interval) ca să schimbi statusul, să arhivezi, să transferi sau să le pui într-o listă dintr-o dată; „Selectează toate cele N” ia tot ce se potrivește filtrelor.',
+        en: 'Change the status of a prospect after each conversation. You edit right in the cell, and the arrow keys move between rows. Tick several rows (Shift+click for a range) to change the status, archive, transfer or add them to a list in one go; “Select all N” takes everything that matches the filters.',
       },
       {
-        ro: 'Când a devenit client, apasă „Promovează”.',
-        en: 'When it has become a client, press “Promote”.',
+        ro: '„Prospect nou” cere întâi CUI-ul și aduce datele firmei de la ANAF; dacă firma există deja, te duce la fișa ei în loc să facă o dublură.',
+        en: '“New prospect” asks for the CUI first and brings the company data from ANAF; if the company already exists, it takes you to its sheet instead of making a duplicate.',
       },
       {
-        ro: '„Arhivează” din meniul rândului ascunde prospectul doar din lista ta; colegii îl văd în continuare. Îl găsești cu „Arată arhivate”.',
-        en: '“Archive” in the row menu hides the prospect only from your list; your colleagues still see it. Find it again with “Show archived”.',
+        ro: 'Apasă „Calculează preț” pe rând ca să deschizi calculatorul cu datele lui. Când a devenit client, apasă „Promovează”: oferta salvată pe prospect trece pe client.',
+        en: 'Press “Calculate price” on the row to open the calculator with its details. When it has become a client, press “Promote”: the offer saved on the prospect moves to the client.',
+      },
+      {
+        ro: 'Din meniul rândului, „Trimite în Mesaje” dă prospectul unui coleg. „Arhivează” îl ascunde doar din lista ta; îl găsești cu „Arată arhivate”.',
+        en: 'From the row menu, “Send to Messages” passes the prospect to a colleague. “Archive” hides it only from your list; find it again with “Show archived”.',
+      },
+    ],
+  },
+  {
+    id: 'clienti-fisa',
+    route: '/clients',
+    feature: 'clienti.prospectare',
+    title: {
+      ro: 'Fișa prospectului și echipa',
+      en: 'The prospect sheet and the team',
+    },
+    summary: {
+      ro: 'Un click pe un prospect deschide fișa: cine e responsabil, ce urmează și tot ce s-a întâmplat cu el.',
+      en: 'A click on a prospect opens its sheet: who owns it, what comes next and everything that happened to it.',
+    },
+    steps: [
+      {
+        ro: 'Bara etapelor arată unde e prospectul. „Câștigat” și „Pierdut” îl închid (la Pierdut te întreabă motivul), iar „Redeschide” îl aduce înapoi. Săgețile sau tastele j și k trec la prospectul următor din lista ta.',
+        en: 'The stage bar shows where the prospect stands. “Won” and “Lost” close it (Lost asks for the reason), and “Reopen” brings it back. The arrows or the j and k keys move to the next prospect in your list.',
+      },
+      {
+        ro: '„Pasul următor” e cel mai apropiat task nefăcut. „Programează” alege un apel, un email sau altceva pentru o zi anume și îl pune și în calendarul tău.',
+        en: '“Next step” is the nearest task not done. “Schedule” picks a call, an email or something else for a given day and puts it in your calendar too.',
+      },
+      {
+        ro: 'Adaugă oameni de contact, fiecare cu telefoanele și emailurile lui, și marchează cine nu mai e de contactat. În Notițe poți scrie @nume ca să anunți un coleg; „Fixează” ține o notiță sus.',
+        en: 'Add contact people, each with their phones and emails, and mark who is no longer to be contacted. In Notes you can write @name to notify a colleague; “Pin” keeps a note on top.',
+      },
+      {
+        ro: 'Un prospect liber îl iei cu „Îl iau eu”. „Eliberează” îl dă înapoi; dacă nu faci nimic pe el, se eliberează singur după numărul de zile din Setări → Clienți și primești un avertisment înainte.',
+        en: 'You take a free prospect with “I’ll take it”. “Release” gives it back; if you do nothing on it, it is released on its own after the number of days in Settings → Clients, and you get a warning before.',
+      },
+      {
+        ro: '„Transferă” îl dă unui coleg, cu o notiță, iar colegul e anunțat. Dacă prospectul e al altcuiva, „Cere transfer” sau „Cere acces” trimite o cerere; responsabilul o primește la notificări și o acceptă sau o refuză. Transferul către alții, fără cerere, cere „Repartizează prospecți și setează regulile” în rol.',
+        en: '“Transfer” gives it to a colleague, with a note, and the colleague is notified. If the prospect is someone else’s, “Ask for transfer” or “Ask for access” sends a request; the owner gets it in notifications and accepts or refuses. Transferring other people’s prospects without a request needs “Assigns prospects and sets the rules” in your role.',
+      },
+      {
+        ro: '„Colaboratori” dă acces de citire sau de editare unui coleg, fără să schimbe responsabilul.',
+        en: '“Collaborators” gives a colleague view or edit access without changing the owner.',
+      },
+    ],
+  },
+  {
+    id: 'clienti-apeluri',
+    route: '/clients',
+    feature: 'clienti.prospectare',
+    title: {
+      ro: 'Task-uri și sesiunea de apeluri',
+      en: 'Tasks and the call session',
+    },
+    summary: {
+      ro: 'Pagina Task-uri strânge ce ai de făcut pe prospecți, iar sesiunea de apeluri te duce prin ele unul câte unul.',
+      en: 'The Tasks page gathers what you have to do on prospects, and the call session takes you through them one by one.',
+    },
+    steps: [
+      {
+        ro: 'Deschide tab-ul Task-uri. Filtrează după tip (Apeluri, Email, LinkedIn) sau după Azi și Restante; „Ale mele” și „Ale echipei” schimbă cine apare. Numărul de lângă Clienți din meniu arată ce ai de făcut azi.',
+        en: 'Open the Tasks tab. Filter by type (Calls, Email, LinkedIn) or by Today and Overdue; “Mine” and “The team’s” change who shows. The number next to Clients in the menu shows what you have to do today.',
+      },
+      {
+        ro: '„Marchează făcut” cere rezultatul la un apel (Răspuns, Nu răspunde, Mesaj vocal, Număr greșit, Revino) și, dacă vrei, următorul pas: revii peste 2 zile, suni peste o săptămână sau trimiți oferta. Pasul următor se creează singur.',
+        en: '“Mark done” asks for the outcome of a call (Answered, No answer, Voicemail, Wrong number, Call back) and, if you like, the next step: call back in 2 days, call in a week or send the offer. The next step is created for you.',
+      },
+      {
+        ro: '„Pornește sesiunea” deschide apelurile de azi pe tot ecranul: vezi telefoanele, notițele fixate și ultimele activități ale prospectului. Tastele 1-5 aleg rezultatul, Enter trece la următorul, S sare peste, Esc închide.',
+        en: '“Start session” opens today’s calls full screen: you see the phones, the pinned notes and the latest activity of the prospect. Keys 1-5 pick the outcome, Enter moves on, S skips, Esc closes.',
+      },
+      {
+        ro: 'Un prospect marcat „Nu contacta” apare cu avertisment în sesiune; nu-l suna. La final vezi sumarul sesiunii.',
+        en: 'A prospect marked “Do not contact” shows a warning in the session; do not call it. At the end you see the session summary.',
+      },
+      {
+        ro: 'Scrie / într-o notiță, o descriere de task sau un email ca să inserezi un snippet; le gestionezi din butonul „Snippet-uri”.',
+        en: 'Write / in a note, a task description or an email to insert a snippet; you manage them from the “Snippets” button.',
+      },
+    ],
+  },
+  {
+    id: 'clienti-pipeline',
+    route: '/clients',
+    feature: 'clienti.view',
+    title: {
+      ro: 'Board, prognoză, liste și rapoarte',
+      en: 'Board, forecast, lists and reports',
+    },
+    summary: {
+      ro: 'Aceiași prospecți, văzuți ca etape de vânzare, ca bani așteptați într-o lună sau ca liste de lucru.',
+      en: 'The same prospects, seen as sales stages, as money expected in a month or as working lists.',
+    },
+    steps: [
+      {
+        ro: 'Cu „Afișare” treci de la Listă la Board sau Prognoză. Pe Board tragi un prospect dintr-o etapă în alta (doar cele pe care le poți edita); pe telefon vezi o etapă pe rând, glisezi lateral și folosești „Mută în etapa”.',
+        en: 'With “View” you switch from List to Board or Forecast. On the Board you drag a prospect from one stage to another (only the ones you can edit); on a phone you see one stage at a time, swipe sideways and use “Move to stage”.',
+      },
+      {
+        ro: 'Prognoza adună valoarea prospecților deschiși pe luna închiderii estimate; fără dată, ajung la „Fără dată”. Filtrele și vederea salvată se aplică și aici.',
+        en: 'The forecast adds up the value of open prospects by the month of the expected close; without a date, they land in “No date”. The filters and the saved view apply here too.',
+      },
+      {
+        ro: 'În tab-ul Liste faci liste și dosare pentru o campanie sau o rundă de apeluri. „Adaugă în listă” din selecția de pe rânduri sau „Listă din căutare” pune în listă tot ce se potrivește căutării de acum; poți sări peste cei fără telefon, cei marcați „Nu contacta” sau cei deja în alte liste din dosar.',
+        en: 'In the Lists tab you make lists and folders for a campaign or a round of calls. “Add to list” from the selection on the rows, or “List from search”, puts in a list everything that matches the current search; you can skip those without a phone, those marked “Do not contact” or those already in other lists in the folder.',
+      },
+      {
+        ro: 'Rapoarte arată pâlnia de vânzare pe un interval și numerele fiecărui agent (cu „Repartizează prospecți și setează regulile” le vezi pe toți).',
+        en: 'Reports shows the sales funnel over a period and each agent’s numbers (with “Assigns prospects and sets the rules” you see everyone’s).',
+      },
+    ],
+  },
+  {
+    id: 'clienti-import',
+    route: '/clients',
+    feature: 'clienti.prospectare',
+    title: {
+      ro: 'Import, export și sănătatea datelor',
+      en: 'Import, export and data health',
+    },
+    summary: {
+      ro: 'Aduci prospecți dintr-un fișier, îi scoți în Excel și cureți dublurile.',
+      en: 'You bring prospects from a file, take them out in Excel and clean up duplicates.',
+    },
+    steps: [
+      {
+        ro: 'La „Import” descarcă modelul, completează-l și încarcă fișierul .xlsx sau .csv (până la 5.000 de rânduri). Previzualizarea arată ce e nou, ce completează un prospect existent, ce are erori și ce e sărit; nu se scrie nimic până nu apeși „Importă”.',
+        en: 'Under “Import”, download the template, fill it in and upload the .xlsx or .csv file (up to 5,000 rows). The preview shows what is new, what fills in an existing prospect, what has errors and what is skipped; nothing is written until you press “Import”.',
+      },
+      {
+        ro: 'Alegi cui revin prospecții noi: ție, unui coleg sau pe rând între mai mulți (ultimele două cer „Repartizează prospecți și setează regulile”). Un prospect găsit după CUI rămâne al responsabilului lui, iar fișierul îi completează doar câmpurile goale.',
+        en: 'You choose who gets the new prospects: you, a colleague or in turn among several (the last two need “Assigns prospects and sets the rules”). A prospect found by CUI stays with its owner, and the file fills in only its empty fields.',
+      },
+      {
+        ro: 'Rândurile cu erori se descarcă într-o listă, ca să le corectezi și să le încarci din nou.',
+        en: 'Rows with errors download as a list, so you can fix them and upload them again.',
+      },
+      {
+        ro: '„Exportă” scoate în .xlsx sau .csv exact ce vezi cu filtrele de acum (cel mult 10.000 de rânduri). Cere „Exportă prospecți” în rol, iar fiecare export se înregistrează în Istoric.',
+        en: '“Export” writes to .xlsx or .csv exactly what you see with the current filters (at most 10,000 rows). It needs “Exports prospects” in your role, and every export is recorded in History.',
+      },
+      {
+        ro: 'Tab-ul Sănătate numără prospecții fără telefon sau email, contactele invalide sau cu bounce, firmele radiate și dublurile; un click pe card filtrează lista.',
+        en: 'The Health tab counts prospects without a phone or email, invalid or bounced contacts, struck-off companies and duplicates; a click on a card filters the list.',
+      },
+      {
+        ro: 'La o pereche de dubluri, „Unește” te lasă să alegi, câmp cu câmp, ce valoare rămâne; oamenii, notițele, task-urile și listele se mută pe fișa păstrată. Unirea nu se poate desface, iar linkurile vechi duc la fișa păstrată.',
+        en: 'For a pair of duplicates, “Merge” lets you pick, field by field, which value stays; the people, notes, tasks and lists move to the kept sheet. A merge cannot be undone, and old links lead to the kept sheet.',
+      },
+    ],
+  },
+  {
+    id: 'clienti-contracte',
+    route: '/clients',
+    feature: 'facturi.contracte',
+    title: {
+      ro: 'Lista de contracte',
+      en: 'The contracts list',
+    },
+    summary: {
+      ro: 'Tab-ul Contracte arată toți clienții cu starea contractului lor, ca să vezi ce lipsește.',
+      en: 'The Contracts tab shows all clients with the state of their contract, so you can see what is missing.',
+    },
+    steps: [
+      {
+        ro: 'Filtrează după stare: fără contract, generat, semnat sau cu act adițional, și caută după numele clientului. Lista se paginează.',
+        en: 'Filter by state: no contract, generated, signed or with an addendum, and search by client name. The list is paginated.',
+      },
+      {
+        ro: 'Un click pe rând deschide clientul într-un panou lateral, de unde generezi contractul, anexa sau actul adițional. „Contract nou” alege clientul dintr-o listă.',
+        en: 'A click on a row opens the client in a side panel, where you generate the contract, the annex or the addendum. “New contract” picks the client from a list.',
+      },
+      {
+        ro: 'Când aplici o ofertă din calculator pe un client cu contract semnat, iar prețul sau modulele diferă, aplicația propune și actul adițional.',
+        en: 'When you apply an offer from the calculator to a client with a signed contract and the price or modules differ, the app also offers the addendum.',
       },
     ],
   },
@@ -524,6 +738,14 @@ const SOURCES: GuideSource[] = [
       {
         ro: 'Apasă Calculează: vezi prețul lunar, anual și taxa de inițiere, cu reducerea de campanie scăzută dacă e activă.',
         en: 'Press Calculate: you see the monthly and yearly price and the setup fee, with the campaign discount taken off if one is active.',
+      },
+      {
+        ro: 'Pe un prospect, „Salvează oferta pe prospect” păstrează intrările calculatorului; la promovare, oferta trece pe client. Pe un client, „Aplică la client” arată ce se schimbă (abonament, plan, module, operatori, puncte de lucru, taxă) și cere confirmarea.',
+        en: 'On a prospect, “Save offer on prospect” keeps the calculator inputs; on promotion, the offer moves to the client. On a client, “Apply to client” shows what changes (subscription, plan, modules, operators, work sites, fee) and asks for confirmation.',
+      },
+      {
+        ro: 'Dacă clientul are contract semnat și se schimbă prețul sau modulele, „Aplică și generează act adițional” face și actul. „Deschide în calculator” de pe fișa clientului reia intrările; apasă „Calculează” din nou.',
+        en: 'If the client has a signed contract and the price or modules change, “Apply and generate addendum” makes the addendum too. “Open in calculator” on the client sheet reloads the inputs; press “Calculate” again.',
       },
     ],
   },

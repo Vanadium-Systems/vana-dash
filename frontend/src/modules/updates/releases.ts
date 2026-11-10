@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-10T22:00:00+02:00',
+    title: {
+      ro: 'Clienți: fiecare prospect are un responsabil, iar lucrul pe ei e mai rapid',
+      en: 'Clients: every prospect has an owner, and working them is faster',
+    },
+    body: {
+      ro: 'Un prospect liber îl iei cu „Îl iau eu”; fără activitate, se eliberează singur. Transferi, ceri transfer sau acces, adaugi colaboratori. Fișa are oameni de contact, notițe cu @mențiuni, task-uri și pasul următor. Salvezi vederi filtrate, treci între listă, board și prognoză, aduni prospecți în liste și suni din sesiunea de apeluri. Importul și exportul merg din Excel, iar dublurile se unesc din Sănătate. Secvențele de email primesc pași de apel, task și LinkedIn, variante A/B și pauză la bounce.',
+      en: 'You take a free prospect with “I’ll take it”; with no activity, it is released on its own. Transfer, ask for a transfer or access, add collaborators. The sheet has contact people, notes with @mentions, tasks and the next step. Save filtered views, switch between list, board and forecast, gather prospects in lists and call from the call session. Import and export run from Excel, and duplicates are merged from Health. Email sequences get call, task and LinkedIn steps, A/B variants and a pause on bounces.',
+    },
+    features: ['clienti.view', 'email.bulk'],
+  },
+  {
     publishedAt: '2026-11-09T21:00:00+02:00',
     title: {
       ro: 'Pe telefon, meniul „Mai mult” se derulează până jos',

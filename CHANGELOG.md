@@ -4,6 +4,65 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-10: Clients: team ownership, prospecting, automations
+
+### Team and access
+- Every prospect has an owner. Without `clienti.toti` a person sees their own prospects, the free
+  ones and those where they collaborate; one function (`visibleProspectsWhere`) applies this on
+  every route, Ctrl K and message cards included. An object the person cannot see answers `404`.
+- Claim, release, transfer (with a note), transfer and access requests, and collaborators
+  (`view` / `edit`): `POST /api/prospects/:id/claim`, `/release`, `/transfer`,
+  `/transfer-requests`, `PUT /api/prospects/:id/collaborators/:userId`. A transfer by someone who
+  does not own the prospect and has no `clienti.repartizare` answers 200 with `skipped: notYours`.
+- New features: `clienti.toti` (migration gives it to everyone who had `clienti.view`),
+  `clienti.repartizare`, `clienti.export`.
+- Automatic release of idle prospects (`jobs/prospect-release.ts`, settings in
+  `GET/PUT /api/prospects/release-settings`); deactivating a person releases their prospects.
+- In-app notifications: `GET /api/notifications`, `POST /api/notifications/read`.
+
+### Prospect sheet
+- Contact people with several phones and emails each, notes with @mentions and pinning, tasks
+  with call outcomes and a next step, text snippets, stage history (`prospect_stage_events`), a
+  timeline. The old `phone`, `email`, `contact_name` and `notes` columns on `prospects` are
+  migrated but not dropped yet.
+- Migrations 0084-0089.
+
+### Prospecting
+- One filter compiler (`filters.ts`, an allowlist) behind the list, count, aggregate, board,
+  forecast, funnel, export and list-from-search routes; the list is paginated on the server.
+- Saved views with stars, shared views and an alert for new results; static lists with folders and
+  rules for filling them from a search.
+- Board, forecast, sales funnel, per-agent numbers, a Tasks page and a full-screen call session.
+- Import from `.xlsx` or `.csv` with a preview step and a token (5,000 rows), an `.xlsx`
+  template, distribution between people, and export with an audit entry (10,000 rows).
+- Data health and duplicates: a nightly duplicate scan, a field-by-field merge in one transaction.
+- Phrase search (`POST /api/prospects/nl-filters`) over the assistant's provider.
+
+### Automations and scoring
+- Six fixed rules (reply creates a call task, bounce notifies, no next step, meeting moves the
+  stage, won cleanup, import into a list) under `clienti.repartizare`.
+- A configurable score (normalized criteria, live distribution preview) and signals, built-in
+  and custom, that show as chips with a talking tip.
+
+### Email sequences
+- Steps of kind `email`, `call`, `task` and four LinkedIn kinds; the non-email ones become
+  tasks on the prospect. A/B templates on an email step, stop rules for a meeting and for won or
+  lost, enrolling a whole list, `GET /api/email/sequences/:id/diagnostics`.
+- A bounce is no longer an unsubscribe: it marks the contact point and stops that address; a
+  sequence with too many bounces pauses itself until a person resumes it.
+- `ILIKE` patterns from user input are escaped.
+
+### Pricing and contracts
+- The calculator applies in full to a client: plan, modules, operators, work sites and setup fee,
+  with an addendum when a signed contract's price or modules change. An offer can be saved on a
+  prospect (`PUT /api/prospects/:id/offer`) and is applied on promotion.
+- `GET /api/contracts/list` (filters `q`, `state`, paged) feeds the Contracts tab.
+
+### Fixed
+- The sheet timeline answered 500 on prospects with calls (`calls` has no creator column).
+- `owner not_in` dropped free prospects.
+- Tabs on the Clients page ran off the screen at 360 px.
+
 ## 2026-11-09: Calendar series exceptions, undo, reminders, new views
 
 ### Calendar
