@@ -551,7 +551,8 @@ export async function prospectTimeline(me: Me, id: string, cursor?: string, limi
       SELECT e."id", 'stage', e."changed_at", ${name(sql`e."changed_by_user_id"`)}, json_build_object('from', e."from_status", 'to', e."to_status")
         FROM ${prospectStageEvents} e WHERE e."prospect_id" = ${id} AND e."deleted_at" IS NULL AND e."from_status" IS NOT NULL
       UNION ALL
-      SELECT c."id", 'call', coalesce(c."scheduled_at", c."created_at"), ${name(sql`c."created_by_user_id"`)},
+      -- calls have no creator column, so a call has no author in the timeline
+      SELECT c."id", 'call', coalesce(c."scheduled_at", c."created_at"), NULL,
              json_build_object('title', c."title", 'status', c."status", 'durationSeconds', c."duration_seconds")
         FROM ${calls} c WHERE c."prospect_id" = ${id} AND c."deleted_at" IS NULL
       UNION ALL

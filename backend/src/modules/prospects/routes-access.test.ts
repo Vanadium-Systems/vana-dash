@@ -9,7 +9,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
-import { auditLog, prospects, roles, users } from '../../shared/db/schema/index.js'
+import { auditLog, calls, prospects, roles, users } from '../../shared/db/schema/index.js'
 
 const app = await buildServer()
 await app.ready()
@@ -64,12 +64,23 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (prospectIds.length) {
+    await db.delete(calls).where(inArray(calls.prospectId, prospectIds))
     await db.delete(auditLog).where(inArray(auditLog.entityId, prospectIds))
     await db.delete(prospects).where(inArray(prospects.id, prospectIds))
   }
   await db.delete(auditLog).where(and(eq(auditLog.action, 'prospect.export'), inArray(auditLog.actorUserId, userIds)))
   if (userIds.length) await db.delete(users).where(inArray(users.id, userIds))
   if (roleIds.length) await db.delete(roles).where(inArray(roles.id, roleIds))
+})
+
+describe('the timeline of an own prospect', () => {
+  it('reads, a video call included (calls have no creator column)', async () => {
+    const room = randomUUID().replace(/-/g, '').slice(0, 24)
+    await db.insert(calls).values({ title: 'Demo', roomName: room, roomUrl: `https://example.com/${room}`, publicId: room, expiresAt: new Date(Date.now() + 3600_000), prospectId: mine })
+    const res = await call(a, 'GET', `/api/prospects/${mine}/timeline`)
+    expect(res.statusCode).toBe(200)
+    expect(JSON.stringify(res.json())).toContain('"call"')
+  })
 })
 
 describe('a prospect of a colleague, for an agent without clienti.toti', () => {

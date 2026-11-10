@@ -8,7 +8,7 @@ import { cn } from '@/shared/lib/utils'
 // Gazdele paginilor contopite (DESIGN.md, Navigație). Modulele rămân separate: App.tsx le dă
 // elementele de pagină, aici se alege doar ce se vede și cum arată comutatorul.
 
-const TAB_CLASS = 'inline-flex h-control-md items-center border-b-2 px-3 text-sm'
+const TAB_CLASS = 'inline-flex h-control-md items-center whitespace-nowrap border-b-2 px-3 text-sm'
 
 interface SectionTab {
   key: string
@@ -30,7 +30,7 @@ export function TabbedSection({ title, tabs }: { title: string; tabs: SectionTab
 
   const nav =
     visible.length > 1 ? (
-      <div role="tablist" aria-label={title} className="flex gap-1 border-b">
+      <div role="tablist" aria-label={title} className="flex flex-wrap gap-x-1 border-b">
         {visible.map((tab) => (
           <button
             key={tab.key}

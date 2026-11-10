@@ -30,6 +30,10 @@ import {
   conversations,
   dashboardConfig,
   emailDrafts,
+  emailSequenceEnrollments,
+  emailSequenceSteps,
+  emailSequences,
+  emailTemplates,
   emailMessages,
   emailThreads,
   emailUserSettings,
@@ -40,9 +44,25 @@ import {
   messages,
   noteVersions,
   notes,
+  notifications,
   platformMetrics,
   platforms,
+  prospectAutomationRules,
+  prospectCollaborators,
+  prospectContactPoints,
+  prospectListFolders,
+  prospectListMembers,
+  prospectLists,
+  prospectNotes,
+  prospectPeople,
+  prospectSignalHits,
+  prospectSignals,
+  prospectStageEvents,
   prospectStatuses,
+  prospectTasks,
+  prospectTransferRequests,
+  prospectViewStars,
+  prospectViews,
   prospects,
   roles,
   supportTicketReplies,
@@ -267,24 +287,69 @@ if (locale === 'en') {
 }
 
 const statusKeys = ['necontactat', 'necontactat', 'nu_a_raspuns', 'de_revenit', 'email', 'aprobat', 'respins']
+// Stages passed on the way to the current one, so the funnel has steps to count.
+const stagesBefore: Record<string, string[]> = {
+  necontactat: [],
+  nu_a_raspuns: [],
+  de_revenit: ['nu_a_raspuns'],
+  email: ['nu_a_raspuns'],
+  aprobat: ['nu_a_raspuns', 'email'],
+  respins: ['nu_a_raspuns'],
+}
+// Stage changes spread over the last ~60 days, oldest first; the last one dates `statusChangedAt`.
+const stageEventsOf = (i: number) => {
+  const path = [...(stagesBefore[statusKeys[i % statusKeys.length]!] ?? []), statusKeys[i % statusKeys.length]!]
+  const first = 58 - ((i * 7) % 30)
+  const last = (i * 3) % 10 + 1
+  const steps = [{ from: null as string | null, to: 'necontactat', at: daysAgo(first + 2) }]
+  let from = 'necontactat'
+  path.forEach((to, k) => {
+    if (to === from) return
+    steps.push({ from, to, at: daysAgo(Math.round(first - ((first - last) * (k + 1)) / path.length)) })
+    from = to
+  })
+  return steps
+}
+const anaOwned = [1, 3, 5, 8]
+const mihaiOwned = 11
+const freeProspect = 14
+const closeDate = (days: number) => new Date(now + days * DAY).toISOString().slice(0, 10)
 const prospectRows = await db.insert(prospects).values(
-  Array.from({ length: 15 }, (_, i) => ({
-    name: `Prospect ${String(i + 1).padStart(2, '0')} SRL`,
-    cif: `RO2000${String(i + 1).padStart(4, '0')}`,
-    phone: `031000${String(1000 + i)}`,
-    email: `office@prospect${i + 1}.example.com`,
-    website: `https://prospect${i + 1}.example.com`,
-    contactName: ['Andrei Pop', 'Laura Ene', 'Cristi Radu', 'Diana Luca', 'George Sima'][i % 5],
-    foundingYear: 2008 + (i % 12),
-    employeeCount: 4 + ((i * 7) % 40),
-    revenue: String(400000 + i * 310000),
-    profit: String(30000 + i * 21000),
-    score: (45 + ((i * 13) % 50)).toFixed(1),
-    status: statusKeys[i % statusKeys.length],
-    source: 'demo',
-    createdByUserId: admin.id,
-  })),
+  Array.from({ length: 15 }, (_, i) => {
+    const status = statusKeys[i % statusKeys.length]!
+    const ownerId = i === freeProspect ? null : i === mihaiOwned ? mihai!.id : anaOwned.includes(i) ? ana!.id : admin.id
+    const revenue = 400000 + i * 310000
+    return {
+      name: `Prospect ${String(i + 1).padStart(2, '0')} SRL`,
+      cif: `RO2000${String(i + 1).padStart(4, '0')}`,
+      phone: `031000${String(1000 + i)}`,
+      email: `office@prospect${i + 1}.example.com`,
+      website: `https://prospect${i + 1}.example.com`,
+      contactName: ['Andrei Pop', 'Laura Ene', 'Cristi Radu', 'Diana Luca', 'George Sima'][i % 5],
+      foundingYear: 2008 + (i % 12),
+      employeeCount: 4 + ((i * 7) % 40),
+      revenue: String(revenue),
+      // Every 4th company grew more than 20%, which is what the "revenue growth" signal looks for.
+      revenuePrev: i % 4 === 0 ? String(Math.round(revenue * 0.7)) : String(Math.round(revenue * 0.95)),
+      revenueYear: 2025,
+      profit: String(30000 + i * 21000),
+      score: (45 + ((i * 13) % 50)).toFixed(1),
+      status,
+      source: 'demo',
+      assignedUserId: ownerId,
+      claimedAt: ownerId ? daysAgo(3 + (i % 20)) : null,
+      lastActivityAt: i % 3 === 2 ? null : daysAgo(1 + ((i * 2) % 12)),
+      isActive: i === 13 ? false : null,
+      lostReason: status === 'respins' ? L({ ro: 'Au deja un partener de reciclare', en: 'They already have a recycling partner' }) : null,
+      valueAmount: status === 'respins' ? null : String(4000 + i * 1500),
+      valueCurrency: status === 'respins' ? null : i % 3 === 0 ? 'EUR' : 'RON',
+      expectedCloseAt: status === 'respins' || status === 'aprobat' ? null : closeDate(7 + i * 6),
+      statusChangedAt: stageEventsOf(i).at(-1)!.at,
+      createdByUserId: admin.id,
+    }
+  }),
 ).returning()
+const prospectAt = (i: number) => prospectRows[i]!
 
 // ── Messages ─────────────────────────────────────────────────────────────────
 
@@ -848,5 +913,293 @@ const [ticket] = await db
   .returning()
 await db.insert(supportTicketReplies).values({ ticketId: ticket!.id, authorUserId: admin.id, body: L({ ro: 'Ți-am atribuit-o acum din Echipă. Reîncarcă pagina.', en: 'I just assigned it to you from Team. Reload the page.' }), isPlatformReply: true })
 
-console.log(`Demo data added (${locale}): ${clients.length} clients, ${issued.length + received.length} invoices and expenses, 15 prospects, 90 days of metrics, notes and archive files.`)
+// ── Clients: people, notes, tasks, team, lists, views, funnel, sequences, automations, signals ──
+
+const stageEventRows = prospectRows.flatMap((prospect, i) =>
+  stageEventsOf(i).map((step) => ({
+    prospectId: prospect.id,
+    fromStatus: step.from,
+    toStatus: step.to,
+    changedByUserId: prospect.assignedUserId ?? admin.id,
+    changedAt: step.at,
+  })),
+)
+await db.insert(prospectStageEvents).values(stageEventRows)
+
+const peopleRows = await db
+  .insert(prospectPeople)
+  .values([
+    { prospectId: prospectAt(0).id, name: 'Andrei Pop', role: L({ ro: 'Director general', en: 'Managing director' }), isDecisionMaker: true, position: 0 },
+    { prospectId: prospectAt(0).id, name: 'Elena Voinea', role: L({ ro: 'Office manager', en: 'Office manager' }), position: 1 },
+    { prospectId: prospectAt(1).id, name: 'Laura Ene', role: L({ ro: 'Achiziții', en: 'Purchasing' }), isDecisionMaker: true },
+    { prospectId: prospectAt(2).id, name: 'Cristi Radu', role: L({ ro: 'Director operațiuni', en: 'Head of operations' }), isDecisionMaker: true, position: 0 },
+    {
+      prospectId: prospectAt(2).id,
+      name: 'Maria Dinu',
+      role: L({ ro: 'Contabil', en: 'Accountant' }),
+      doNotContact: true,
+      doNotContactReason: L({ ro: 'A cerut la telefon să nu mai fie contactată', en: 'Asked by phone not to be contacted again' }),
+      position: 1,
+    },
+    { prospectId: prospectAt(3).id, name: 'Diana Luca', role: L({ ro: 'Administrator', en: 'Administrator' }), isDecisionMaker: true },
+    { prospectId: prospectAt(4).id, name: 'George Sima', role: L({ ro: 'Director comercial', en: 'Sales director' }), isDecisionMaker: true },
+  ])
+  .returning()
+const personNamed = (name: string) => peopleRows.find((p) => p.name === name)!
+
+const e164 = (local: string) => `+40${local.replace(/^0/, '')}`
+const point = (prospectId: string, kind: 'phone' | 'email', value: string, extra: Partial<typeof prospectContactPoints.$inferInsert> = {}) => ({
+  prospectId,
+  kind,
+  value,
+  valueNormalized: kind === 'phone' ? e164(value) : value.toLowerCase(),
+  ...extra,
+})
+
+// Two pairs the Health tab should show: the same company under two spellings, and two firms
+// sharing a switchboard and an inbox. The hourly job finds the same pairs; its result is stored below.
+const [nordicA, nordicB, deltaA, deltaB] = await db
+  .insert(prospects)
+  .values(
+    ['Nordic Plast SRL', 'NORDIC PLAST S.R.L.', 'Delta Metal SRL', 'Delta Recycling SRL'].map((name, k) => ({
+      name,
+      status: 'necontactat',
+      source: 'demo',
+      assignedUserId: admin.id,
+      claimedAt: daysAgo(5),
+      score: (52 + k * 6).toFixed(1),
+      createdByUserId: admin.id,
+    })),
+  )
+  .returning()
+
+await db.insert(prospectContactPoints).values([
+  ...prospectRows.slice(0, 6).flatMap((p) => [
+    point(p.id, 'phone', p.phone!, { isPrimary: true, label: L({ ro: 'Centrală', en: 'Switchboard' }) }),
+    point(p.id, 'email', p.email!, { isPrimary: true }),
+  ]),
+  point(prospectAt(0).id, 'email', 'andrei.pop@prospect1.example.com', { personId: personNamed('Andrei Pop').id }),
+  point(prospectAt(1).id, 'phone', '0721000221', { personId: personNamed('Laura Ene').id, label: L({ ro: 'Mobil', en: 'Mobile' }) }),
+  point(prospectAt(6).id, 'email', prospectAt(6).email!, { isPrimary: true, status: 'bounced' }),
+  point(prospectAt(7).id, 'phone', prospectAt(7).phone!, { isPrimary: true, status: 'invalid' }),
+  point(deltaA!.id, 'phone', '0721000900', { isPrimary: true }),
+  point(deltaB!.id, 'phone', '0721000900', { isPrimary: true }),
+  point(deltaA!.id, 'email', 'contact@delta.example.com', { isPrimary: true }),
+  point(deltaB!.id, 'email', 'contact@delta.example.com', { isPrimary: true }),
+])
+
+// Same shape the job writes (`a < b`, reasons sorted), so Health has pairs before the first hourly run.
+const orderedPair = (x: string, y: string, reasons: string[]) => (x < y ? { a: x, b: y, reasons } : { a: y, b: x, reasons })
+await db
+  .insert(dashboardConfig)
+  .values({
+    key: 'clienti.duplicates',
+    value: { checkedAt: new Date().toISOString(), pairs: [orderedPair(nordicA!.id, nordicB!.id, ['name']), orderedPair(deltaA!.id, deltaB!.id, ['email', 'phone'])] },
+  })
+  .onConflictDoNothing({ target: [dashboardConfig.tenantId, dashboardConfig.key] })
+
+await db.insert(prospectNotes).values([
+  {
+    prospectId: prospectAt(1).id,
+    authorUserId: admin.id,
+    body: L({
+      ro: '@Ana Popescu îi suni tu săptămâna asta? Au cerut ofertă pentru 2 tone pe lună.',
+      en: '@Ana Popescu can you call them this week? They asked for an offer for 2 tons a month.',
+    }),
+    mentions: [ana!.id],
+  },
+  {
+    prospectId: prospectAt(0).id,
+    authorUserId: admin.id,
+    body: L({ ro: 'Decide Andrei Pop. Preferă apelurile dimineața, înainte de 11.', en: 'Andrei Pop decides. He prefers morning calls, before 11.' }),
+    pinned: true,
+  },
+  { prospectId: prospectAt(3).id, authorUserId: ana!.id, body: L({ ro: 'Au deja contract cu alt colector până în martie. Revin în februarie.', en: 'They have a contract with another collector until March. I will call back in February.' }) },
+  { prospectId: prospectAt(5).id, authorUserId: admin.id, body: L({ ro: 'Au acceptat oferta, semnăm contractul joi.', en: 'They accepted the offer, we sign the contract on Thursday.' }) },
+])
+
+const task = (assigneeUserId: string, prospectId: string, kind: 'call' | 'email' | 'meeting' | 'task', title: string, dueAt: Date, extra: Partial<typeof prospectTasks.$inferInsert> = {}) => ({
+  assigneeUserId,
+  createdByUserId: admin.id,
+  prospectId,
+  kind,
+  title,
+  dueAt,
+  ...extra,
+})
+const callTitle = (company: string) => L({ ro: `Sună ${company}`, en: `Call ${company}` })
+const taskRows = await db
+  .insert(prospectTasks)
+  .values([
+    // Ana: four calls today (a call session), one overdue, one later.
+    ...anaOwned.map((i, k) => task(ana!.id, prospectAt(i).id, 'call', callTitle(prospectAt(i).name), daysAgo(0, 7 + k * 2), { priority: k === 0 ? 'high' : 'medium' })),
+    task(ana!.id, prospectAt(1).id, 'email', L({ ro: 'Trimite oferta pentru 2 tone/lună', en: 'Send the 2 tons/month offer' }), daysAgo(2, 12), { priority: 'high' }),
+    task(ana!.id, prospectAt(8).id, 'meeting', L({ ro: 'Vizită la depozit', en: 'Visit the warehouse' }), inDays(3, 10)),
+    // Admin
+    task(admin.id, prospectAt(0).id, 'call', callTitle(prospectAt(0).name), daysAgo(3, 9), { priority: 'high' }),
+    task(admin.id, prospectAt(2).id, 'task', L({ ro: 'Pregătește contractul-cadru', en: 'Prepare the framework contract' }), daysAgo(0, 14)),
+    task(admin.id, prospectAt(6).id, 'call', callTitle(prospectAt(6).name), inDays(5, 10), { priority: 'low' }),
+    task(admin.id, prospectAt(0).id, 'call', callTitle(prospectAt(0).name), daysAgo(1, 9), {
+      doneAt: daysAgo(1, 10),
+      outcome: 'answered',
+      outcomeNote: L({ ro: 'Vor ofertă scrisă până vineri', en: 'They want a written offer by Friday' }),
+      personId: personNamed('Andrei Pop').id,
+    }),
+    // The call the sequence is waiting on (below).
+    task(admin.id, prospectAt(4).id, 'call', callTitle(prospectAt(4).name), inDays(1, 10)),
+  ])
+  .returning()
+const waitingCall = taskRows.at(-1)!
+
+// Ana helps on a prospect owned by Mihai.
+await db.insert(prospectCollaborators).values({ prospectId: prospectAt(mihaiOwned).id, userId: ana!.id, level: 'edit' })
+await db.insert(prospectTransferRequests).values({
+  prospectId: prospectAt(3).id,
+  kind: 'transfer',
+  fromUserId: ana!.id,
+  toUserId: admin.id,
+  requestedByUserId: admin.id,
+  note: L({ ro: 'Îl preiau eu, are legătură cu contractul-cadru.', en: 'I will take it, it ties in with the framework contract.' }),
+})
+
+const prospectUrl = (i: number) => `/clients?prospect=${prospectAt(i).id}`
+await db.insert(notifications).values([
+  { userId: ana!.id, kind: 'clienti.mention', title: L({ ro: `Admin te-a menționat la ${prospectAt(1).name}`, en: `Admin mentioned you on ${prospectAt(1).name}` }), url: prospectUrl(1), entityType: 'prospect', entityId: prospectAt(1).id, createdAt: daysAgo(0, 8) },
+  { userId: ana!.id, kind: 'clienti.request', title: L({ ro: `Admin cere ${prospectAt(3).name}`, en: `Admin asked for ${prospectAt(3).name}` }), body: L({ ro: 'Îl preiau eu, are legătură cu contractul-cadru.', en: 'I will take it, it ties in with the framework contract.' }), url: prospectUrl(3), entityType: 'prospect', entityId: prospectAt(3).id, createdAt: daysAgo(0, 7) },
+  { userId: ana!.id, kind: 'clienti.transfer', title: L({ ro: `${prospectAt(5).name} de la Admin`, en: `${prospectAt(5).name} from Admin` }), url: prospectUrl(5), entityType: 'prospect', entityId: prospectAt(5).id, createdAt: daysAgo(0, 6), readAt: daysAgo(0, 7) },
+  { userId: admin.id, kind: 'clienti.release_warning', title: L({ ro: `${prospectAt(0).name} se eliberează în 3 zile`, en: `${prospectAt(0).name} will be released in 3 days` }), url: prospectUrl(0), entityType: 'prospect', entityId: prospectAt(0).id, createdAt: daysAgo(0, 6) },
+  { userId: admin.id, kind: 'clienti.bounce', title: L({ ro: `Email respins la ${prospectAt(6).name}`, en: `Email bounced at ${prospectAt(6).name}` }), url: prospectUrl(6), entityType: 'prospect', entityId: prospectAt(6).id, createdAt: daysAgo(1, 9) },
+  { userId: admin.id, kind: 'clienti.no_next_step', title: L({ ro: `${prospectAt(2).name} nu are un pas următor`, en: `${prospectAt(2).name} has no next step` }), url: prospectUrl(2), entityType: 'prospect', entityId: prospectAt(2).id, createdAt: daysAgo(2, 10), readAt: daysAgo(2, 11) },
+])
+
+// ── Saved views, folders and static lists ────────────────────────────────────
+
+const viewRows = await db
+  .insert(prospectViews)
+  .values([
+    {
+      ownerUserId: admin.id,
+      name: L({ ro: 'Scor mare, necontactați', en: 'High score, not contacted' }),
+      filters: [
+        { field: 'status', op: 'in', value: ['necontactat'] },
+        { field: 'score', op: 'between', value: [65, null] },
+      ],
+      columns: ['owner', 'status', 'score', 'value'],
+      sort: { key: 'score', dir: 'desc' },
+      shared: true,
+    },
+    {
+      ownerUserId: admin.id,
+      name: L({ ro: 'În așteptarea unui răspuns', en: 'Waiting for a reply' }),
+      filters: [{ field: 'status', op: 'in', value: ['nu_a_raspuns', 'de_revenit', 'email'] }],
+      layout: 'board',
+      notifyNew: true,
+      lastNotifiedAt: daysAgo(1, 8),
+    },
+    {
+      ownerUserId: admin.id,
+      name: L({ ro: 'Estimare încasări', en: 'Expected revenue' }),
+      filters: [{ field: 'value', op: 'not_empty' }],
+      layout: 'forecast',
+    },
+  ])
+  .returning()
+await db.insert(prospectViewStars).values({ viewId: viewRows[0]!.id, userId: ana!.id })
+
+const [campaignFolder, fairFolder] = await db
+  .insert(prospectListFolders)
+  .values([
+    { ownerUserId: admin.id, name: L({ ro: 'Campanie Q4', en: 'Q4 campaign' }) },
+    { ownerUserId: admin.id, name: L({ ro: 'Târguri', en: 'Trade fairs' }), shared: false },
+  ])
+  .returning()
+const listRows = await db
+  .insert(prospectLists)
+  .values([
+    { folderId: campaignFolder!.id, ownerUserId: admin.id, name: L({ ro: 'Ofertă reciclare', en: 'Recycling offer' }) },
+    { folderId: campaignFolder!.id, ownerUserId: admin.id, name: L({ ro: 'Revenire după apel', en: 'Follow-up after call' }) },
+    { folderId: fairFolder!.id, ownerUserId: admin.id, name: L({ ro: 'Vizitatori stand', en: 'Booth visitors' }), shared: false },
+  ])
+  .returning()
+const listMembers = [[0, 1, 2, 3], [4, 5, 6], [7, 8, 9, 10]]
+await db.insert(prospectListMembers).values(listRows.flatMap((list, k) => listMembers[k]!.map((i) => ({ listId: list.id, prospectId: prospectAt(i).id, addedByUserId: admin.id }))))
+
+// ── Sequences ────────────────────────────────────────────────────────────────
+
+const [offerTemplate, offerTemplateB, reminderTemplate] = await db
+  .insert(emailTemplates)
+  .values([
+    { name: L({ ro: 'Ofertă reciclare', en: 'Recycling offer' }), subject: L({ ro: 'Colectare deșeuri pentru {{nume}}', en: 'Waste collection for {{nume}}' }), body: L({ ro: 'Bună ziua {{nume}},\n\nColectăm și reciclăm deșeurile firmei dvs., cu raport lunar. Vă trimit o ofertă?', en: 'Hello {{nume}},\n\nWe collect and recycle your company waste, with a monthly report. Shall I send an offer?' }) },
+    { name: L({ ro: 'Ofertă reciclare (varianta B)', en: 'Recycling offer (variant B)' }), subject: L({ ro: 'Cât plătiți azi pentru deșeuri, {{nume}}?', en: 'What do you pay for waste today, {{nume}}?' }), body: L({ ro: 'Bună ziua {{nume}},\n\nPuteți reduce costul de colectare cu până la 20%. Ne dați zece minute?', en: 'Hello {{nume}},\n\nYou can cut your collection cost by up to 20%. Can we have ten minutes?' }) },
+    { name: L({ ro: 'Reminder', en: 'Reminder' }), subject: L({ ro: 'Ați văzut oferta noastră?', en: 'Did you see our offer?' }), body: L({ ro: 'Bună ziua {{nume}},\n\nRevin pe scurt cu oferta de săptămâna trecută.', en: 'Hello {{nume}},\n\nA short follow-up on last week\'s offer.' }) },
+  ])
+  .returning()
+const [outreach, reengagement] = await db
+  .insert(emailSequences)
+  .values([
+    { name: L({ ro: 'Ofertă reciclare: email, apel, reminder', en: 'Recycling offer: email, call, reminder' }), fromIdentity: 'sales' },
+    // Paused by the bounce-rate guard, so the banner on the Sequences page has something to show.
+    { name: L({ ro: 'Reactivare clienți vechi', en: 'Win-back' }), fromIdentity: 'sales', pausedAt: daysAgo(3, 9), pausedReason: 'BOUNCE_RATE:0.120:25' },
+  ])
+  .returning()
+await db.insert(emailSequenceSteps).values([
+  { sequenceId: outreach!.id, stepOrder: 1, kind: 'email', templateId: offerTemplate!.id, variantBTemplateId: offerTemplateB!.id, delayDays: 0 },
+  { sequenceId: outreach!.id, stepOrder: 2, kind: 'call', taskTitle: L({ ro: 'Sună după email', en: 'Call after the email' }), taskDescription: L({ ro: 'Întreabă dacă au văzut oferta.', en: 'Ask whether they saw the offer.' }), delayDays: 2 },
+  { sequenceId: outreach!.id, stepOrder: 3, kind: 'task', taskTitle: L({ ro: 'Pregătește oferta personalizată', en: 'Prepare the tailored offer' }), delayDays: 3 },
+  { sequenceId: outreach!.id, stepOrder: 4, kind: 'email', templateId: reminderTemplate!.id, delayDays: 5 },
+  { sequenceId: reengagement!.id, stepOrder: 1, kind: 'email', templateId: reminderTemplate!.id, delayDays: 0 },
+  { sequenceId: reengagement!.id, stepOrder: 2, kind: 'email', templateId: offerTemplate!.id, delayDays: 4 },
+])
+// next_send_at stays in the future so a local run never sends anything.
+const enrollment = (i: number, currentStep: number, nextSendInDays: number, extra: Partial<typeof emailSequenceEnrollments.$inferInsert> = {}) => ({
+  sequenceId: outreach!.id,
+  prospectId: prospectAt(i).id,
+  recipientEmail: prospectAt(i).email!,
+  recipientName: prospectAt(i).contactName,
+  currentStep,
+  nextSendAt: inDays(nextSendInDays, 9),
+  enrolledAt: daysAgo(currentStep * 3 + 1),
+  lastSentAt: currentStep > 0 ? daysAgo(currentStep * 2) : null,
+  ...extra,
+})
+await db.insert(emailSequenceEnrollments).values([
+  enrollment(2, 0, 1),
+  enrollment(3, 1, 1),
+  enrollment(4, 2, 1, { waitingTaskId: waitingCall.id }),
+  enrollment(5, 3, 3),
+  enrollment(6, 1, 1, { status: 'bounced', consecutiveFailures: 3 }),
+  enrollment(7, 1, 1, { status: 'replied' }),
+])
+
+// ── Automations and signals ──────────────────────────────────────────────────
+
+await db.insert(prospectAutomationRules).values([
+  { ruleKey: 'reply_call_task', enabled: true, params: { hour: 10 }, lastRunAt: daysAgo(0, 6), lastRunCount: 2 },
+  { ruleKey: 'no_next_step', enabled: true, params: { days: 7 }, lastRunAt: daysAgo(0, 6), lastRunCount: 3 },
+])
+
+// The built-ins the app creates on first use, with their hits, so the Signals tab is not empty.
+const signalRows = await db
+  .insert(prospectSignals)
+  .values([
+    { builtinKey: 'new_company', groupKey: 'company', filters: [], name: L({ ro: 'Firmă nouă', en: 'New company' }), description: L({ ro: 'Înființată anul acesta sau anul trecut.', en: 'Founded this year or last.' }), talkingTip: L({ ro: 'Firmele noi își aleg furnizorii din prima lună.', en: 'New firms pick their suppliers in the first month.' }) },
+    { builtinKey: 'revenue_growth', groupKey: 'company', filters: [], name: L({ ro: 'Cifră de afaceri în creștere', en: 'Growing revenue' }), description: L({ ro: 'Cifra de afaceri a crescut cu peste 20% față de anul trecut.', en: 'Revenue grew more than 20% over last year.' }), talkingTip: L({ ro: 'Cresc, deci produc mai multe deșeuri: întreabă de volume.', en: 'They are growing, so they produce more waste: ask about volumes.' }) },
+    { builtinKey: 'target_caen', groupKey: 'company', filters: [], name: L({ ro: 'Cod CAEN țintă', en: 'Target CAEN code' }), description: L({ ro: 'Activitate din lista de coduri CAEN căutate.', en: 'Activity in your list of target CAEN codes.' }) },
+    { builtinKey: 'engaged', groupKey: 'activity', filters: [{ field: 'emailEvent', op: 'in', value: ['opened', 'replied'] }], name: L({ ro: 'A deschis sau a răspuns', en: 'Opened or replied' }), description: L({ ro: 'A deschis sau a răspuns la un email.', en: 'Opened or replied to an email.' }), talkingTip: L({ ro: 'Amintește emailul trimis și întreabă ce a reținut.', en: 'Mention the email you sent and ask what stood out.' }) },
+    { builtinKey: 'not_contacted', groupKey: 'activity', filters: [], name: L({ ro: 'Necontactat de 30 de zile', en: 'Not contacted for 30 days' }), description: L({ ro: 'Nicio activitate în ultimele 30 de zile.', en: 'No activity in the last 30 days.' }) },
+    { builtinKey: 'decision_maker', groupKey: 'contact', filters: [{ field: 'people.decisionMaker', op: 'in', value: ['true'] }], name: L({ ro: 'Persoană de decizie', en: 'Decision maker' }), description: L({ ro: 'Are un contact marcat ca decident.', en: 'Has a contact marked as decision maker.' }), talkingTip: L({ ro: 'Cere-l direct pe decident.', en: 'Ask for the decision maker by name.' }) },
+  ])
+  .returning()
+const signalId = (key: string) => signalRows.find((s) => s.builtinKey === key)!.id
+const hitIndexes: Record<string, number[]> = {
+  revenue_growth: [0, 4, 8, 12],
+  not_contacted: [2, 5, 8, 11, 14],
+  decision_maker: [0, 1, 2, 3, 4],
+  engaged: [5, 7],
+}
+await db.insert(prospectSignalHits).values(
+  Object.entries(hitIndexes).flatMap(([key, indexes]) => indexes.map((i) => ({ signalId: signalId(key), prospectId: prospectAt(i).id, computedAt: daysAgo(0, 6) }))),
+)
+
+console.log(`Demo data added (${locale}): ${clients.length} clients, ${issued.length + received.length} invoices and expenses, 19 prospects with people, notes, tasks, lists, views, sequences, automations and signals, 90 days of metrics, notes and archive files.`)
 await sql.end()

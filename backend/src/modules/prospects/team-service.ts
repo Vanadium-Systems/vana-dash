@@ -217,7 +217,7 @@ export async function createTransferRequest(me: Me, prospectId: string, input: z
     kind: 'clienti.request',
     title: tr(input.kind === 'transfer' ? 'push.clienti.requestTransfer' : 'push.clienti.requestAccess', { who: userName(me), company: prospect.name }),
     body: input.note,
-    url: '/clients?requests=incoming',
+    url: clientsUrl(prospectId),
     entityType: 'prospect',
     entityId: prospectId,
     exceptUserId: me.id,
@@ -276,12 +276,12 @@ export async function decideTransferRequest(me: Me, requestId: string, action: '
       await notify([prospect.assignedUserId], { kind: 'clienti.request', title: tr('push.clienti.handedOver', { company: prospect.name, to }), url: clientsUrl(prospect.id), ...target, exceptUserId: me.id })
     }
   } else if (action === 'refuse') {
-    await notify([request.toUserId], { kind: 'clienti.request', title: tr('push.clienti.requestRefused', { company: prospect.name }), url: '/clients?requests=outgoing', ...target, exceptUserId: me.id })
+    await notify([request.toUserId], { kind: 'clienti.request', title: tr('push.clienti.requestRefused', { company: prospect.name }), url: clientsUrl(prospect.id), ...target, exceptUserId: me.id })
   } else {
     await notify(prospect.assignedUserId ? [prospect.assignedUserId] : await usersWithRepartizare(), {
       kind: 'clienti.request',
       title: tr('push.clienti.requestCancelled', { who: userName(me), company: prospect.name }),
-      url: '/clients?requests=incoming',
+      url: clientsUrl(prospect.id),
       ...target,
       exceptUserId: me.id,
     })
