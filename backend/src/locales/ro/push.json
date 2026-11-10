@@ -61,6 +61,11 @@
       "few": "{{count}} taskuri preluate de la {{name}}",
       "other": "{{count}} de taskuri preluate de la {{name}}"
     },
+    "viewNew": {
+      "one": "{{count}} prospect nou în «{{name}}»",
+      "few": "{{count}} prospecți noi în «{{name}}»",
+      "other": "{{count}} de prospecți noi în «{{name}}»"
+    },
     "handoverNote": "Predare: {{note}}"
   }
 }

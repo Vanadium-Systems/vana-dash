@@ -229,7 +229,7 @@ function orderBy(sort: ProspectSort | undefined, dir: 'asc' | 'desc' | undefined
 }
 
 /** The columns every prospect row carries: list, board cards, neighbors, the sheet. */
-function rowColumns(ctx: FilterContext) {
+export function rowColumns(ctx: FilterContext) {
   return {
     id: prospects.id,
     name: prospects.name,

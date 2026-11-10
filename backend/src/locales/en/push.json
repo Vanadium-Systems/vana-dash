@@ -58,6 +58,10 @@
       "one": "{{count}} task taken over from {{name}}",
       "other": "{{count}} tasks taken over from {{name}}"
     },
+    "viewNew": {
+      "one": "{{count}} new prospect in «{{name}}»",
+      "other": "{{count}} new prospects in «{{name}}»"
+    },
     "handoverNote": "Handover: {{note}}"
   }
 }
