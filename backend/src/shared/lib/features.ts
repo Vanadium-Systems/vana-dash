@@ -165,7 +165,24 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'clienti.prospectare',
     page: 'clienti',
-    routes: [...write('/api/prospects'), ...all('/api/prospects/scoring-config')],
+    // Reading the scoring config is `clienti.view` (whoever sees a score may see where it comes from).
+    routes: [...write('/api/prospects'), ...write('/api/prospects/scoring-config'), ...all('/api/prospects/company-lookup')],
+  },
+  {
+    // Without it a colleague sees only their own prospects, the free ones and where they collaborate.
+    key: 'clienti.toti',
+    page: 'clienti',
+    routes: [],
+  },
+  {
+    key: 'clienti.repartizare',
+    page: 'clienti',
+    routes: [],
+  },
+  {
+    key: 'clienti.export',
+    page: 'clienti',
+    routes: all('/api/prospects/export'),
   },
   {
     key: 'clienti.calculator',

@@ -50,7 +50,10 @@
       "view": "Clienți și prețuri",
       "prospectare": "Prospecți și statusuri",
       "calculator": "Calculator de preț",
-      "config-pret": "Configurează prețurile VanaGreen"
+      "config-pret": "Configurează prețurile VanaGreen",
+      "toti": "Vede prospecții tuturor",
+      "repartizare": "Repartizează prospecți și setează regulile",
+      "export": "Exportă prospecți"
     },
     "email": {
       "view": "Citește inbox-ul",

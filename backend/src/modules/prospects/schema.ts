@@ -1,5 +1,8 @@
 import { z } from 'zod'
 import { lazyTr } from '../../shared/lib/i18n.js'
+import { FiltersParamSchema, ProspectFilterSchema } from './filters.js'
+
+export const PROSPECT_SORT_KEYS = ['score', 'name', 'updatedAt', 'createdAt', 'lastActivityAt', 'value', 'expectedCloseAt', 'daysInStage', 'nextTask'] as const
 
 // Paletă fixă de token-uri de culoare pt. statusuri prospect (Wave 0, sprint de-hardcodare) —
 // NU hex liber: clasele Tailwind complete trebuie să existe static în sursa frontend pt. JIT
@@ -51,6 +54,7 @@ export const CreateProspectSchema = z.object({
   foundingYear: z.number().int().min(1900).max(2100).nullable().optional(),
   employeeCount: z.number().int().nonnegative().nullable().optional(),
   ...financialFields,
+  isActive: z.boolean().optional(),
   source: z.string().trim().max(255).optional(),
   platformId: z.string().uuid().optional(),
 })
@@ -58,33 +62,57 @@ export const CreateProspectSchema = z.object({
 export const UpdateProspectSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
   cif: z.string().trim().max(20).nullable().optional(),
-  phone: z.string().trim().max(100).nullable().optional(),
-  email: z.string().trim().max(255).nullable().optional(),
   website: z.string().trim().max(500).nullable().optional(),
-  contactName: z.string().trim().max(255).nullable().optional(),
   caenCode: z.string().trim().max(20).nullable().optional(),
   foundingYear: z.number().int().min(1900).max(2100).nullable().optional(),
   employeeCount: z.number().int().nonnegative().nullable().optional(),
   ...financialFields,
-  // Validat contra catalogului activ din `prospect_statuses` la nivel de service (async, nu
-  // se poate face în Zod) — vezi service.ts#updateProspect. Aici doar shape-ul de bază.
+  // Checked against the active catalog in the service (async); here only the shape.
   status: z.string().trim().min(1).max(50).optional(),
-  contactedBy: z.string().trim().max(255).nullable().optional(),
-  notes: z.string().trim().max(5000).nullable().optional(),
+  lostReason: z.string().trim().max(500).nullable().optional(),
   source: z.string().trim().max(255).nullable().optional(),
   platformId: z.string().uuid().nullable().optional(),
-  lastContactedAt: z.coerce.date().nullable().optional(),
-  assignedUserId: z.string().uuid().nullable().optional(),
+  valueAmount: z.number().nonnegative().nullable().optional(),
+  valueCurrency: z.string().regex(/^[A-Z]{3}$/).nullable().optional(),
+  expectedCloseAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  isActive: z.boolean().nullable().optional(),
 })
 
+const listParams = {
+  f: FiltersParamSchema,
+  q: z.string().trim().max(200).optional(),
+  kind: z.enum(['companies', 'people']).optional(),
+  sort: z.enum(PROSPECT_SORT_KEYS).optional(),
+  dir: z.enum(['asc', 'desc']).optional(),
+}
+
 export const ListProspectsQuerySchema = z.object({
-  status: z.string().trim().optional(),
-  priority: z.enum(['HOT', 'WARM', 'NURTURE', 'SKIP']).optional(),
-  source: z.string().trim().optional(),
-  search: z.string().trim().optional(),
-  // implicit: doar activi. 'only' — doar arhivați (ca să-i găsești la nevoie). 'all' — toți.
-  archived: z.enum(['only', 'all']).optional(),
+  ...listParams,
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
 })
+export const NeighborsQuerySchema = z.object(listParams)
+export const CountQuerySchema = z.object({ f: FiltersParamSchema, q: listParams.q, kind: listParams.kind })
+export const AggregateQuerySchema = z.object({
+  f: FiltersParamSchema,
+  q: listParams.q,
+  field: z.enum(['score', 'value', 'employees', 'revenue']),
+  fn: z.enum(['count', 'sum', 'avg', 'min', 'max']),
+})
+
+export const BulkUpdateSchema = z
+  .object({
+    ids: z.array(z.string().uuid()).max(1000).optional(),
+    f: z.array(ProspectFilterSchema).max(40).optional(),
+    q: z.string().trim().max(200).optional(),
+    all: z.boolean().optional(),
+    action: z.enum(['status', 'archive', 'unarchive']),
+    value: z.string().max(50).optional(),
+    lostReason: z.string().trim().max(500).optional(),
+  })
+  .refine((b) => b.all || (b.ids && b.ids.length > 0), { message: 'ids or all' })
+
+export const CompanyLookupQuerySchema = z.object({ cui: z.string().trim().min(2).max(20) })
 
 export const PromoteProspectSchema = z.object({
   address: z.string().trim().min(1),

@@ -11,5 +11,8 @@
     "issued": "emisă",
     "received": "primită"
   },
-  "untitledNote": "Notiță fără titlu"
+  "untitledNote": "Notiță fără titlu",
+  "prospect": {
+    "free": "liber"
+  }
 }

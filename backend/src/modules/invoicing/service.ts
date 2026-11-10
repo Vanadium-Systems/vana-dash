@@ -91,8 +91,9 @@ function toNumericInput<T extends { subscriptionPriceLei?: number | null; subscr
   }
 }
 
-export async function createClient(input: z.infer<typeof ClientCreateSchema>) {
-  const [row] = await db
+/** `executor` lets a caller create the client inside its own transaction (promoting a prospect). */
+export async function createClient(input: z.infer<typeof ClientCreateSchema>, executor: Pick<typeof db, 'insert'> = db) {
+  const [row] = await executor
     .insert(billingClients)
     .values({ ...toNumericInput(input), ...createdByUserId(), ...updatedByUserId() })
     .returning()

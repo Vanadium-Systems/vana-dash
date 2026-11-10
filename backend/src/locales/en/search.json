@@ -11,5 +11,8 @@
     "issued": "issued",
     "received": "received"
   },
-  "untitledNote": "Untitled note"
+  "untitledNote": "Untitled note",
+  "prospect": {
+    "free": "free"
+  }
 }

@@ -304,7 +304,7 @@ describe('getSequenceStats (2026-09-03 — status agregat, tab Secvențe)', () =
     const stats = await getSequenceStats(seq.id)
 
     expect(stats.total).toBe(0)
-    expect(stats.byStatus).toEqual({ active: 0, replied: 0, unsubscribed: 0, completed: 0, failed: 0 })
+    expect(stats.byStatus).toEqual({ active: 0, replied: 0, unsubscribed: 0, completed: 0, failed: 0, meeting: 0, won_lost: 0, bounced: 0 })
     expect(stats.byStep).toEqual([{ step: 0, label: 'Neîncepuți', count: 0 }, { step: 1, label: 'Pas 1', count: 0 }])
   })
 })

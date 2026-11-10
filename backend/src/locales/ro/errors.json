@@ -286,7 +286,13 @@
       "one": "{{count}} prospect folosește încă acest status",
       "few": "{{count}} prospecți folosesc încă acest status",
       "other": "{{count}} de prospecți folosesc încă acest status"
-    }
+    },
+    "lostReasonRequired": "Scrie motivul pierderii",
+    "notYours": "Prospectul e al lui {{owner}}. Cere transfer ca să-l editezi.",
+    "notYoursFree": "Prospectul e liber. Ia-l întâi („Îl iau eu”).",
+    "exists": "Există deja: {{name}}",
+    "lookupUnavailable": "Căutarea la registru nu e disponibilă acum",
+    "promoteNeedsClients": "Promovarea creează un client: ai nevoie și de acces la Clienți activi"
   },
   "tenders": {
     "alreadyBlocked": "SICAP a răspuns deja cu HTTP {{blockedStatus}} în rularea asta — nu mai trimit request-uri",

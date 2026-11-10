@@ -27,6 +27,17 @@ export interface CountryPack {
   defaultCurrency: string
   /** Throws CompanyProfileIncompleteError when the sheet lacks what this country requires. */
   sellerAddress(office: CompanyAddress): SellerAddress
+  /** A phone number in the form duplicates and lookups compare (E.164 where the country allows). */
+  normalizePhone(raw: string): string
+  /** Company data from the country's public register, by tax id; absent where there is none. */
+  lookupCompany?: (taxId: string) => Promise<CompanyLookup>
+}
+
+export interface CompanyLookup {
+  name: string
+  address: { street: string | null; locality: string | null; county: string | null }
+  /** false = struck off or inactive. */
+  isActive: boolean
 }
 
 export type CompanyField = 'name' | 'cui' | 'county' | 'city' | 'street' | 'declarant'

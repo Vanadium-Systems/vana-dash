@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { emailSends, emailSuppressions, prospects } from '../../shared/db/schema/index.js'
+import { emailSends, emailSuppressions, prospectContactPoints, prospects } from '../../shared/db/schema/index.js'
 import { getSuppressedEmails, getSuppressionsOverview, removeSuppression, suppressEmail } from './unsubscribe-service.js'
 
 const suppressionEmails: string[] = []
@@ -34,15 +34,18 @@ describe('suppressEmail', () => {
     expect(rows).toHaveLength(1)
   })
 
-  it('also marks a matching prospect as dezabonat', async () => {
-    const [prospect] = await db.insert(prospects).values({ name: 'QA Unsub Cross-Module SRL', email: 'crossmodule@example.com' }).returning()
+  it('marks the matching prospect address as unsubscribed, not the prospect', async () => {
+    const [prospect] = await db.insert(prospects).values({ name: 'QA Unsub Cross-Module SRL' }).returning()
     prospectIds.push(prospect!.id)
+    await db.insert(prospectContactPoints).values({ prospectId: prospect!.id, kind: 'email', value: 'CrossModule@example.com', valueNormalized: 'crossmodule@example.com' })
     suppressionEmails.push('crossmodule@example.com')
 
     await suppressEmail('crossmodule@example.com')
 
+    const [point] = await db.select().from(prospectContactPoints).where(eq(prospectContactPoints.prospectId, prospect!.id))
+    expect(point?.status).toBe('unsubscribed')
     const [row] = await db.select().from(prospects).where(and(eq(prospects.id, prospect!.id), isNull(prospects.deletedAt)))
-    expect(row?.status).toBe('dezabonat')
+    expect(row?.status).not.toBe('dezabonat')
   })
 
   it('does not throw when no prospect matches the email', async () => {

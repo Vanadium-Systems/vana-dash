@@ -1,338 +1,177 @@
 /**
- * Integration test — pg real (test/setup.ts). Acoperă filtrarea listProspects (inclusiv bug-ul
- * găsit manual: Postgres nu permite referirea unui alias din SELECT în clauza WHERE — filtrul de
- * prioritate trebuia să refolosească expresia CASE WHEN brută, nu alias-ul `priority`), CRUD-ul
- * de bază și promovarea la client.
+ * Integration test on a real Postgres (test/setup.ts). Visibility and edit rights on every prospect
+ * read and write, with two agents: A without `clienti.toti`, B with it, and a manager with
+ * `clienti.repartizare`.
  */
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { auditLog, billingClients, prospects, users } from '../../shared/db/schema/index.js'
-import { runWithFreshActor } from '../../shared/lib/request-context.js'
+import {
+  billingClients,
+  prospectCollaborators,
+  prospectContactPoints,
+  prospects,
+  prospectStageEvents,
+  prospectStatuses,
+} from '../../shared/db/schema/index.js'
+import { ProspectNotYoursError } from '../../shared/lib/prospect-access.js'
+import { cleanupTestUsers, createTestUser } from '../../shared/testing/users.js'
+import type { SessionUser } from '../../shared/lib/session.js'
+import type { ProspectFilter } from './filters.js'
 import * as service from './service.js'
+import { cardsForTest } from './refs.js'
 
+const userIds: string[] = []
 const prospectIds: string[] = []
 const billingClientIds: string[] = []
+const AGENT = ['clienti.view', 'clienti.prospectare']
+
+let a: SessionUser
+let b: SessionUser
+let manager: SessionUser
+let mine: string
+let theirs: string
+let free: string
+let lostKey: string
+
+const listIds = async (me: SessionUser, f: ProspectFilter[] = [], q?: string) =>
+  (await service.listProspects(me, { f, q, pageSize: 100 })).rows.map((r) => (r as { id: string }).id)
+
+beforeAll(async () => {
+  a = await createTestUser('agent-a', userIds, { features: AGENT })
+  b = await createTestUser('agent-b', userIds, { features: [...AGENT, 'clienti.toti'] })
+  manager = await createTestUser('manager', userIds, { features: [...AGENT, 'clienti.toti', 'clienti.repartizare', 'facturi.clienti'] })
+
+  mine = (await service.createProspect(a, { name: 'QA Mine SRL', cif: 'RO99000001', phone: '0722 000 001', email: 'Office@Mine.example', contactName: 'Ion' })).id
+  theirs = (await service.createProspect(b, { name: 'QA Theirs SRL', cif: '99000002' })).id
+  const [row] = await db.insert(prospects).values({ name: 'QA Free_Percent SRL' }).returning()
+  free = row!.id
+  prospectIds.push(mine, theirs, free)
+
+  const [lost] = await db.select({ key: prospectStatuses.key }).from(prospectStatuses).where(and(eq(prospectStatuses.kind, 'lost'), isNull(prospectStatuses.deletedAt))).limit(1)
+  if (lost) lostKey = lost.key
+  else {
+    lostKey = 'qa_lost'
+    await db.insert(prospectStatuses).values({ key: lostKey, label: 'QA lost', colorToken: 'red', kind: 'lost' })
+  }
+})
 
 afterAll(async () => {
-  // Ordinea contează — prospects.billingClientId e FK către billing_clients.
   if (prospectIds.length) await db.delete(prospects).where(inArray(prospects.id, prospectIds))
   if (billingClientIds.length) await db.delete(billingClients).where(inArray(billingClients.id, billingClientIds))
+  await db.delete(prospectStatuses).where(eq(prospectStatuses.key, 'qa_lost'))
+  await cleanupTestUsers(userIds)
 })
 
-describe('listProspects — filtre', () => {
-  let hotId: string
-  let warmId: string
-
-  beforeAll(async () => {
-    const hot = await service.createProspect({
-      name: 'QA HOT FIRMA SRL',
-      cif: 'QA-SVC-1',
-      employeeCount: 10,
-      revenue: 5_000_000,
-      profit: 500_000,
-      debt: 100_000,
-      equity: 2_000_000,
-      cash: 300_000,
-      website: 'https://qa-hot.example',
-      phone: '0700000000',
-      email: 'qa@hot.example',
-      contactName: 'Ion Popescu',
-      source: 'qa-batch',
-    })
-    hotId = hot!.id
-    prospectIds.push(hotId)
-
-    const warm = await service.createProspect({
-      name: 'QA WARM FIRMA SRL',
-      cif: 'QA-SVC-2',
-      employeeCount: 2,
-      revenue: 100_000,
-      source: 'qa-batch',
-    })
-    warmId = warm!.id
-    prospectIds.push(warmId)
-
-    await service.updateProspect(hotId, { status: 'aprobat' })
+describe('visibility', () => {
+  it('agent without clienti.toti sees own and free prospects, not a colleague’s', async () => {
+    const ids = await listIds(a)
+    expect(ids).toContain(mine)
+    expect(ids).toContain(free)
+    expect(ids).not.toContain(theirs)
   })
 
-  it('filtrează după search (nume sau cif) fără să crape (bug reprodus manual: alias în WHERE)', async () => {
-    const bySearch = await service.listProspects({ search: 'QA HOT' })
-    expect(bySearch.some((p) => p.id === hotId)).toBe(true)
-
-    const byCif = await service.listProspects({ search: 'QA-SVC-2' })
-    expect(byCif.some((p) => p.id === warmId)).toBe(true)
+  it('clienti.toti sees everyone’s', async () => {
+    expect(await listIds(b)).toEqual(expect.arrayContaining([mine, theirs, free]))
   })
 
-  it('filtrează după search și pe telefon/email/persoană de contact (nu doar nume/cif)', async () => {
-    expect((await service.listProspects({ search: '0700000000' })).some((p) => p.id === hotId)).toBe(true)
-    expect((await service.listProspects({ search: 'qa@hot.example' })).some((p) => p.id === hotId)).toBe(true)
-    expect((await service.listProspects({ search: 'Ion Popescu' })).some((p) => p.id === hotId)).toBe(true)
-    expect((await service.listProspects({ search: 'nu-exista-nicaieri' })).some((p) => p.id === hotId)).toBe(false)
+  it('every read route answers "not found" for a hidden prospect', async () => {
+    expect(await service.getProspectSheet(a, theirs)).toBeUndefined()
+    expect(await service.prospectTimeline(a, theirs)).toBeUndefined()
+    expect(await service.prospectNeighbors(a, theirs, { f: [] })).toBeNull()
+    expect((await cardsForTest([theirs], a)).has(theirs)).toBe(false)
+    expect((await cardsForTest([theirs], b)).has(theirs)).toBe(true)
   })
 
-  it('filtrează după priority — folosește expresia CASE WHEN, nu alias-ul din SELECT', async () => {
-    const hotRows = await service.listProspects({ priority: 'HOT', source: 'qa-batch' })
-    expect(hotRows.map((p) => p.id)).toContain(hotId)
-    expect(hotRows.map((p) => p.id)).not.toContain(warmId)
+  it('a filter on another owner cannot get around visibility', async () => {
+    expect(await listIds(a, [{ field: 'owner', op: 'in', value: [b.id] }])).toEqual([])
+    expect(await service.countProspects(a, { f: [{ field: 'owner', op: 'in', value: [b.id] }] })).toBe(0)
   })
 
-  it('filtrează după status', async () => {
-    const approved = await service.listProspects({ status: 'aprobat', source: 'qa-batch' })
-    expect(approved.map((p) => p.id)).toEqual([hotId])
+  it('the count equals the list total on the same filters', async () => {
+    const f: ProspectFilter[] = [{ field: 'owner', op: 'in', value: ['me', 'free'] }]
+    const list = await service.listProspects(a, { f })
+    expect(await service.countProspects(a, { f })).toBe(list.total)
   })
 
-  it('filtrează după source', async () => {
-    const bySource = await service.listProspects({ source: 'qa-batch' })
-    expect(bySource).toHaveLength(2)
-  })
-
-  it('fiecare rând are câmpul priority derivat, nu stocat', async () => {
-    const rows = await service.listProspects({ source: 'qa-batch' })
-    const hotRow = rows.find((p) => p.id === hotId)
-    expect(hotRow?.priority).toBe('HOT')
+  it('a collaborator sees the prospect; a view collaborator still cannot edit it', async () => {
+    await db.insert(prospectCollaborators).values({ prospectId: theirs, userId: a.id, level: 'view' })
+    expect(await listIds(a)).toContain(theirs)
+    await expect(service.updateProspect(a, theirs, { name: 'x' })).rejects.toBeInstanceOf(ProspectNotYoursError)
+    await db.update(prospectCollaborators).set({ level: 'edit' }).where(and(eq(prospectCollaborators.prospectId, theirs), eq(prospectCollaborators.userId, a.id)))
+    expect(await service.updateProspect(a, theirs, { website: 'https://theirs.example' })).toBeTruthy()
+    await db.delete(prospectCollaborators).where(eq(prospectCollaborators.prospectId, theirs))
   })
 })
 
-describe('createProspect / updateProspect — scor recalculat', () => {
-  it('calculează scorul la creare din datele financiare', async () => {
-    const row = await service.createProspect({
-      name: 'QA SCORE FIRMA SRL',
-      cif: 'QA-SVC-3',
-      employeeCount: 10,
-      revenue: 3_000_000,
-      profit: 300_000,
-      debt: 50_000,
-      equity: 1_000_000,
-      cash: 200_000,
-      website: 'https://qa.example',
-      phone: '0700000001',
-      email: 'a@qa.example',
-      contactName: 'X',
-    })
-    prospectIds.push(row!.id)
-    expect(Number(row!.score)).toBeGreaterThan(0)
+describe('edit rights', () => {
+  it('a hidden prospect answers null (404), not 403', async () => {
+    expect(await service.updateProspect(a, theirs, { name: 'x' })).toBeNull()
+    expect(await service.deleteProspect(a, theirs)).toBeUndefined()
   })
 
-  it('actualizarea parțială (doar notes) NU resetează datele financiare și recalculează scorul la fel', async () => {
-    const created = await service.createProspect({ name: 'QA UPDATE FIRMA SRL', cif: 'QA-SVC-4', employeeCount: 10, revenue: 2_000_000 })
-    prospectIds.push(created!.id)
-    const scoreBefore = created!.score
+  it('a free prospect is edited only after claiming it', async () => {
+    await expect(service.updateProspect(a, free, { name: 'x' })).rejects.toBeInstanceOf(ProspectNotYoursError)
+  })
 
-    const updated = await service.updateProspect(created!.id, { notes: 'notă QA' })
-    expect(updated?.notes).toBe('notă QA')
-    expect(updated?.revenue).toBe(created!.revenue)
-    expect(updated?.score).toBe(scoreBefore)
+  it('seeing everything is not editing everything: 403 with the owner’s name', async () => {
+    const err = await service.updateProspect(b, mine, { name: 'x' }).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(ProspectNotYoursError)
+    expect((err as ProspectNotYoursError).ownerName).toBe('QA agent-a')
+  })
+
+  it('clienti.repartizare edits anyone’s', async () => {
+    expect(await service.updateProspect(manager, mine, { caenCode: '3811' })).toBeTruthy()
+  })
+
+  it('bulk status skips what the person cannot edit and reports it', async () => {
+    const [open] = await db.select({ key: prospectStatuses.key }).from(prospectStatuses).where(and(eq(prospectStatuses.kind, 'open'), isNull(prospectStatuses.deletedAt))).limit(1)
+    const result = await service.bulkUpdate(b, { ids: [mine, theirs], action: 'status', value: open!.key })
+    expect(result.skipped.map((s) => s.id)).toEqual([mine])
   })
 })
 
-describe('deleteProspect', () => {
-  it('soft-delete — nu mai apare în listProspects', async () => {
-    const created = await service.createProspect({ name: 'QA DELETE FIRMA SRL', cif: 'QA-SVC-5' })
-    prospectIds.push(created!.id)
+describe('data', () => {
+  it('contacts go to people and contact points, normalized', async () => {
+    const points = await db.select().from(prospectContactPoints).where(eq(prospectContactPoints.prospectId, mine))
+    expect(points.map((p) => p.valueNormalized).sort()).toEqual(['+40722000001', 'office@mine.example'])
+  })
 
-    await service.deleteProspect(created!.id)
-    const rows = await service.listProspects({ search: 'QA DELETE FIRMA' })
-    expect(rows).toHaveLength(0)
+  it('a CIF with or without RO is the same prospect', async () => {
+    const err = await service.createProspect(b, { name: 'QA Dup', cif: '99000001' }).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(service.ProspectExistsError)
+    expect((err as service.ProspectExistsError).existing.ownerName).toBe('QA agent-a')
+  })
+
+  it('a lost stage needs a reason, and the change is written to the stage history', async () => {
+    await expect(service.updateProspect(a, mine, { status: lostKey })).rejects.toBeInstanceOf(service.LostReasonRequiredError)
+    const sheet = await service.updateProspect(a, mine, { status: lostKey, lostReason: 'Price' })
+    expect(sheet?.lostReason).toBe('Price')
+    const events = await db.select().from(prospectStageEvents).where(eq(prospectStageEvents.prospectId, mine))
+    expect(events.some((e) => e.toStatus === lostKey)).toBe(true)
+  })
+
+  it('search escapes LIKE wildcards', async () => {
+    expect(await listIds(b, [], '_')).toEqual(expect.arrayContaining([free]))
+    expect(await listIds(b, [], 'QA_Mine')).not.toContain(mine)
+  })
+
+  it('people kind lists the people with their company', async () => {
+    const page = await service.listProspects(a, { f: [], kind: 'people', q: 'Mine' })
+    expect(page.rows.some((r) => (r as { prospectId: string }).prospectId === mine)).toBe(true)
+  })
+
+  it('next-task filter: a prospect without tasks is "none"', async () => {
+    expect(await listIds(a, [{ field: 'nextTask', op: 'in', value: ['none'] }])).toContain(mine)
   })
 })
 
-describe('promoteProspect', () => {
-  it('creează billing_client și leagă prospectul, status devine aprobat', async () => {
-    const created = await service.createProspect({ name: 'QA PROMOTE FIRMA SRL', cif: '11223344' })
-    prospectIds.push(created!.id)
-
-    const promoted = await service.promoteProspect(created!.id, { address: 'Str. Test nr. 1' })
-    expect(promoted?.billingClientId).toBeTruthy()
-    expect(promoted?.status).toBe('aprobat')
-    billingClientIds.push(promoted!.billingClientId!)
-
-    const [client] = await db.select().from(billingClients).where(eq(billingClients.id, promoted!.billingClientId!))
-    expect(client?.name).toBe('QA PROMOTE FIRMA SRL')
-    expect(client?.address).toBe('Str. Test nr. 1')
-  })
-
-  it('respinge promovarea dacă lipsește CIF-ul (prospect + input)', async () => {
-    const created = await service.createProspect({ name: 'QA NOCIF FIRMA SRL' })
-    prospectIds.push(created!.id)
-
-    await expect(service.promoteProspect(created!.id, { address: 'Str. Test nr. 2' })).rejects.toThrow(/CIF/)
-  })
-})
-
-describe('markProspectUnsubscribedByEmail (2026-08-11)', () => {
-  it('setează status=dezabonat pe potrivire exactă de email, case-insensitive', async () => {
-    const created = await service.createProspect({ name: 'QA UNSUB FIRMA SRL', email: 'Contact@Example.COM' })
-    prospectIds.push(created!.id)
-
-    const updated = await service.markProspectUnsubscribedByEmail('contact@example.com')
-    expect(updated?.id).toBe(created!.id)
-    expect(updated?.status).toBe('dezabonat')
-  })
-
-  it('e no-op (null) când niciun prospect nu are emailul respectiv', async () => {
-    const updated = await service.markProspectUnsubscribedByEmail('nimeni@nu-exista.example.com')
-    expect(updated).toBeNull()
-  })
-
-  it('nu atinge un prospect soft-deletat cu același email', async () => {
-    const created = await service.createProspect({ name: 'QA UNSUB DELETED SRL', email: 'deleted@example.com' })
-    prospectIds.push(created!.id)
-    await service.deleteProspect(created!.id)
-
-    const updated = await service.markProspectUnsubscribedByEmail('deleted@example.com')
-    expect(updated).toBeNull()
-  })
-})
-
-describe('scoring config', () => {
-  it('getScoringConfig creează un rând default dacă nu există niciunul', async () => {
-    const config = await service.getScoringConfig()
-    expect(config).toBeTruthy()
-    expect(Number(config.hotThreshold)).toBeGreaterThan(0)
-  })
-})
-
-describe('catalog statusuri prospect (Wave 0/1, sprint de-hardcodare 2026-08-20)', () => {
-  it('listProspectStatuses întoarce cele 10 seed-uite, ordonate după sortOrder', async () => {
-    const rows = await service.listProspectStatuses()
-    expect(rows.length).toBeGreaterThanOrEqual(10)
-    expect(rows[0]!.key).toBe('necontactat')
-    expect(rows[0]!.isDefault).toBe(true)
-    for (let i = 1; i < rows.length; i++) expect(rows[i]!.sortOrder).toBeGreaterThan(rows[i - 1]!.sortOrder)
-  })
-
-  it('createProspectStatus adaugă un status nou la finalul ordinii', async () => {
-    const before = await service.listProspectStatuses()
-    const created = await service.createProspectStatus({ key: 'qa_status_nou', label: 'QA Status Nou', colorToken: 'indigo' })
-    expect(created.sortOrder).toBe(before.length)
-
-    const updated = await service.updateProspectStatus(created.id, { label: 'QA Status Editat', colorToken: 'blue' })
-    expect(updated?.label).toBe('QA Status Editat')
-
-    const deleted = await service.deleteProspectStatus(created.id)
-    expect(deleted?.deletedAt).toBeTruthy()
-  })
-
-  it('createProspectStatus respinge un key deja folosit (409)', async () => {
-    await expect(service.createProspectStatus({ key: 'necontactat', label: 'Duplicat', colorToken: 'slate' })).rejects.toThrow(
-      service.ProspectStatusKeyTakenError,
-    )
-  })
-
-  it('deleteProspectStatus respinge (409) dacă un prospect activ mai folosește statusul', async () => {
-    const status = await service.createProspectStatus({ key: 'qa_status_in_uz', label: 'QA În uz', colorToken: 'red' })
-    const prospect = await service.createProspect({ name: 'QA STATUS IN USE SRL', cif: 'QA-STATUS-1' })
-    prospectIds.push(prospect!.id)
-    await service.updateProspect(prospect!.id, { status: 'qa_status_in_uz' })
-
-    await expect(service.deleteProspectStatus(status.id)).rejects.toThrow(service.ProspectStatusInUseError)
-
-    // curățare — reasignează prospectul, apoi șterge statusul, ca alte teste să nu vadă rândul orfan
-    await service.updateProspect(prospect!.id, { status: 'necontactat' })
-    await service.deleteProspectStatus(status.id)
-  })
-
-  it('reorderProspectStatuses rescrie sortOrder în ordinea dată', async () => {
-    const rows = await service.listProspectStatuses()
-    const reversedIds = rows.map((r) => r.id).reverse()
-    const reordered = await service.reorderProspectStatuses(reversedIds)
-    expect(reordered.map((r) => r.id)).toEqual(reversedIds)
-
-    // restaurăm ordinea originală, ca alte teste (care presupun necontactat primul) să nu pice
-    await service.reorderProspectStatuses(rows.map((r) => r.id))
-  })
-
-  it('reorderProspectStatuses respinge orderedIds care nu corespund exact statusurilor active', async () => {
-    await expect(service.reorderProspectStatuses(['00000000-0000-0000-0000-000000000000'])).rejects.toThrow(
-      service.InvalidProspectStatusError,
-    )
-  })
-
-  it('updateProspect respinge un status care nu există în catalogul activ', async () => {
-    const created = await service.createProspect({ name: 'QA BADSTATUS FIRMA SRL', cif: 'QA-STATUS-2' })
-    prospectIds.push(created!.id)
-    await expect(service.updateProspect(created!.id, { status: 'status_inexistent' })).rejects.toThrow(service.InvalidProspectStatusError)
-  })
-})
-
-describe('responsabil per prospect', () => {
-  const email = 'qa-prospect-owner@example.com'
-  let prospectId: string
-  let ownerId: string
-
-  beforeAll(async () => {
-    await db.delete(users).where(eq(users.email, email))
-    const [owner] = await db.insert(users).values({ email, passwordHash: 'x', displayName: 'QA Owner' }).returning()
-    ownerId = owner!.id
-    const prospect = await service.createProspect({ name: 'QA OWNER FIRMA SRL', cif: 'QA-SVC-OWNER' })
-    prospectId = prospect!.id
-    prospectIds.push(prospectId)
-  })
-
-  afterAll(async () => {
-    await db.delete(auditLog).where(eq(auditLog.entityId, prospectId))
-    await db.update(prospects).set({ assignedUserId: null }).where(eq(prospects.id, prospectId))
-    await db.delete(users).where(eq(users.id, ownerId))
-  })
-
-  it('assigns an active colleague and writes the change to the history', async () => {
-    const row = await service.updateProspect(prospectId, { assignedUserId: ownerId })
-    expect(row?.assignedUserId).toBe(ownerId)
-    const entries = await db
-      .select()
-      .from(auditLog)
-      .where(and(eq(auditLog.entityId, prospectId), eq(auditLog.action, 'prospect.responsabil.schimbat')))
-    expect(entries).toHaveLength(1)
-    expect(entries[0]!.changes).toEqual({ responsabil: [null, 'QA Owner'] })
-    expect((await service.listAssignees()).some((a) => a.id === ownerId)).toBe(true)
-  })
-
-  it('refuses someone who is not an active colleague', async () => {
-    await db.update(users).set({ status: 'disabled' }).where(eq(users.id, ownerId))
-    await expect(service.updateProspect(prospectId, { assignedUserId: ownerId })).rejects.toBeInstanceOf(service.InvalidAssigneeError)
-    await db.update(users).set({ status: 'active' }).where(eq(users.id, ownerId))
-  })
-})
-
-describe('archiving is per person', () => {
-  const emails = ['qa-archive-a@example.com', 'qa-archive-b@example.com']
-  let aId: string
-  let bId: string
-  let prospectId: string
-  const as = <T>(userId: string, fn: () => Promise<T>) => runWithFreshActor({ userId, ip: null }, fn)
-  const listedFor = async (userId: string, archived?: 'only') =>
-    (await as(userId, () => service.listProspects({ archived } as never))).some((p) => p.id === prospectId)
-
-  beforeAll(async () => {
-    await db.delete(users).where(inArray(users.email, emails))
-    const [a, b] = await db
-      .insert(users)
-      .values(emails.map((email) => ({ email, passwordHash: 'x' })))
-      .returning()
-    aId = a!.id
-    bId = b!.id
-    const prospect = await service.createProspect({ name: 'QA ARCHIVE FIRMA SRL', cif: 'QA-SVC-ARCH' })
-    prospectId = prospect!.id
-    prospectIds.push(prospectId)
-  })
-
-  afterAll(async () => {
-    await db.delete(users).where(inArray(users.id, [aId, bId]))
-  })
-
-  it('hides the prospect only for the person who archived it', async () => {
-    expect(await as(aId, () => service.archiveProspect(prospectId))).toBeTruthy()
-    expect(await listedFor(aId)).toBe(false)
-    expect(await listedFor(aId, 'only')).toBe(true)
-    expect(await listedFor(bId)).toBe(true)
-    expect(await listedFor(bId, 'only')).toBe(false)
-  })
-
-  it('unarchiving brings it back only for that person', async () => {
-    await as(bId, () => service.archiveProspects([prospectId]))
-    await as(aId, () => service.unarchiveProspects([prospectId]))
-    expect(await listedFor(aId)).toBe(true)
-    expect(await listedFor(bId)).toBe(false)
+describe('promote', () => {
+  it('needs edit rights and links the client in one go', async () => {
+    await expect(service.promoteProspect(b, mine, { address: 'Str. 1' })).rejects.toBeInstanceOf(ProspectNotYoursError)
+    const row = await service.promoteProspect(manager, mine, { address: 'Str. 1' })
+    expect(row?.billingClientId).toBeTruthy()
+    billingClientIds.push(row!.billingClientId!)
+    await db.update(prospects).set({ billingClientId: null }).where(eq(prospects.id, mine))
   })
 })

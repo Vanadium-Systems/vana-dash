@@ -1,6 +1,7 @@
 import { z } from 'zod/v4'
 import * as prospectsService from '../../prospects/service.js'
 import { autoTool, confirmTool, type ToolBuildContext } from './shared.js'
+import type { SessionUser } from '../../../shared/lib/session.js'
 
 export function buildProspectsTools(ctx: ToolBuildContext) {
   return [
@@ -17,15 +18,25 @@ export function buildProspectsTools(ctx: ToolBuildContext) {
         priority: z.enum(['HOT', 'WARM', 'NURTURE', 'SKIP']).optional(),
         source: z.string().optional(),
         search: z.string().optional(),
+        page: z.number().int().min(1).optional(),
       }),
-      description: 'Listă prospecți CRM, cu filtre.',
-      run: (a) => prospectsService.listProspects(a as never),
+      description: 'Listă prospecți CRM, cu filtre (25 pe pagină, cu totalul).',
+      run: (a) =>
+        prospectsService.listProspects(ctx.user, {
+          f: [
+            ...(a.status ? [{ field: 'status' as const, op: 'in' as const, value: [a.status] }] : []),
+            ...(a.priority ? [{ field: 'priority' as const, op: 'in' as const, value: [a.priority] }] : []),
+            ...(a.source ? [{ field: 'source' as const, op: 'in' as const, value: [a.source] }] : []),
+          ],
+          q: a.search,
+          page: a.page,
+        }),
     }),
     autoTool({
       name: 'get_prospect',
       inputSchema: z.object({ id: z.string() }),
       description: 'Detalii despre un prospect.',
-      run: (a) => prospectsService.getProspect(a.id),
+      run: (a) => prospectsService.getProspectSheet(ctx.user, a.id),
     }),
     autoTool({
       name: 'update_scoring_config',
@@ -55,40 +66,24 @@ export function buildProspectsTools(ctx: ToolBuildContext) {
         platformId: z.string().optional(),
       }),
       description: 'Adaugă un prospect nou în CRM. Reversibil.',
-      run: (a) => prospectsService.createProspect(a as never),
+      run: (a) => prospectsService.createProspect(ctx.user, a as never),
     }),
     autoTool({
       name: 'update_prospect',
       inputSchema: z.object({
         id: z.string(),
         name: z.string().min(1).optional(),
-        status: z
-          .enum([
-            'necontactat',
-            'nu_a_raspuns',
-            'respins',
-            'de_revenit',
-            'whatsapp',
-            'email',
-            'aprobat',
-            'testing',
-            'caz_particular',
-            'nu_e_de_interes',
-          ])
-          .optional(),
-        phone: z.string().nullable().optional(),
-        email: z.string().nullable().optional(),
-        contactedBy: z.string().nullable().optional(),
-        notes: z.string().nullable().optional(),
+        status: z.string().optional(),
+        lostReason: z.string().optional(),
       }),
-      description: 'Editează un prospect existent (status, notițe, date de contact).',
-      run: ({ id, ...rest }) => prospectsService.updateProspect(id, rest as never),
+      description: 'Editează un prospect existent (nume, status; la un status de pierdere cere motivul).',
+      run: ({ id, ...rest }) => prospectsService.updateProspect(ctx.user, id, rest as never),
     }),
     autoTool({
       name: 'delete_prospect',
       inputSchema: z.object({ id: z.string() }),
       description: 'Șterge un prospect din CRM.',
-      run: (a) => prospectsService.deleteProspect(a.id),
+      run: (a) => prospectsService.deleteProspect(ctx.user, a.id),
     }),
     autoTool({
       name: 'recalculate_all_scores',
@@ -109,16 +104,16 @@ export function buildProspectsTools(ctx: ToolBuildContext) {
       }),
       description: 'Convertește un prospect în client de facturare — schimbare de business, nu doar editare de date.',
       summarize: async (a) => {
-        const prospect = await prospectsService.getProspect(a.id)
+        const prospect = await prospectsService.getProspectSheet(ctx.user, a.id)
         return `Promovează prospectul "${(prospect as { name?: string })?.name ?? a.id}" la client de facturare (adresă: ${a.address}).`
       },
     }),
   ]
 }
 
-export const prospectsConfirmExecutors: Record<string, (input: never) => Promise<unknown>> = {
-  promote_prospect: (input: { id: string; [k: string]: unknown }) => {
+export const prospectsConfirmExecutors: Record<string, (input: never, ctx: { user: SessionUser }) => Promise<unknown>> = {
+  promote_prospect: (input: { id: string; [k: string]: unknown }, actionCtx: { user: SessionUser }) => {
     const { id, ...rest } = input
-    return prospectsService.promoteProspect(id, rest as never)
+    return prospectsService.promoteProspect(actionCtx.user, id, rest as never)
   },
 }

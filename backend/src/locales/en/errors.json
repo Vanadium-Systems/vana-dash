@@ -284,7 +284,13 @@
     "statusInUse": {
       "one": "{{count}} prospect still uses this status",
       "other": "{{count}} prospects still use this status"
-    }
+    },
+    "lostReasonRequired": "Write the reason it was lost",
+    "notYours": "This prospect belongs to {{owner}}. Request a transfer to edit it.",
+    "notYoursFree": "This prospect is free. Take it first (\"I'll take it\").",
+    "exists": "Already exists: {{name}}",
+    "lookupUnavailable": "The register lookup is not available right now",
+    "promoteNeedsClients": "Promoting creates a client: it also needs access to active clients"
   },
   "tenders": {
     "alreadyBlocked": "SICAP already answered with HTTP {{blockedStatus}} in this run; no more requests are sent",

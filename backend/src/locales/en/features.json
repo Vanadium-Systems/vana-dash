@@ -50,7 +50,10 @@
       "view": "Clients and prices",
       "prospectare": "Prospects and statuses",
       "calculator": "Price calculator",
-      "config-pret": "Configures the VanaGreen prices"
+      "config-pret": "Configures the VanaGreen prices",
+      "toti": "Sees everyone's prospects",
+      "repartizare": "Assigns prospects and sets the rules",
+      "export": "Exports prospects"
     },
     "email": {
       "view": "Reads the inbox",

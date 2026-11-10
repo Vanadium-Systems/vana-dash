@@ -1,11 +1,18 @@
 import { tr } from '../../shared/lib/i18n.js'
 import { countyNameToIsoCode } from './counties.js'
+import { lookupCompany, normalizePhone } from './company-lookup.js'
 import { CompanyProfileIncompleteError, type CompanyField, type CountryPack } from '../types.js'
 
 export const ro: CountryPack = {
   code: 'RO',
   defaultTimeZone: 'Europe/Bucharest',
   defaultCurrency: 'RON',
+  normalizePhone,
+
+  async lookupCompany(taxId) {
+    const info = await lookupCompany(taxId)
+    return { name: info.name, address: info.address, isActive: info.stare === 'activ' }
+  },
 
   sellerAddress(office) {
     const missing: CompanyField[] = []
