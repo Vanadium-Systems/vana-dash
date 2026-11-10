@@ -102,6 +102,13 @@ describe('transfer', () => {
     expect((await ownerOf(theirs)).assignedUserId).toBe(bob.id)
   })
 
+  it('only what is not yours: 403, not a silent skip', async () => {
+    const theirs = await newProspect('t-only-theirs', { assignedUserId: bob.id })
+    await db.insert(prospectCollaborators).values({ prospectId: theirs, userId: ana.id, level: 'edit' })
+    await expect(team.transferProspects(ana, { ids: [theirs], toUserId: manager.id })).rejects.toBeInstanceOf(ProspectNotYoursError)
+    expect((await ownerOf(theirs)).assignedUserId).toBe(bob.id)
+  })
+
   it('a bulk transfer sends one notification and leaves a handover note', async () => {
     const ids = await Promise.all([newProspect('bulk-1', { assignedUserId: ana.id }), newProspect('bulk-2', { assignedUserId: ana.id }), newProspect('bulk-3', { assignedUserId: ana.id })])
     const before = (await bellOf(bob.id, 'clienti.transfer')).length

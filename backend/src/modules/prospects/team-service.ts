@@ -161,6 +161,10 @@ export async function transferProspects(me: Me, input: z.infer<typeof TransferPr
     else if (row.assignedUserId !== me.id && !canReassign(me)) skipped.push({ id, reason: 'notYours' })
     else movable.push(row)
   }
+  // A bulk move keeps going past someone else's prospects; when only those were picked, saying
+  // "nothing happened" would hide that the person lacks clienti.repartizare.
+  const notYours = visible.find((row) => skipped.some((s) => s.id === row.id && s.reason === 'notYours'))
+  if (movable.length === 0 && notYours) throw new ProspectNotYoursError(await ownerNameOf(notYours.assignedUserId))
   if (movable.length === 0) return { transferred: 0, skipped }
 
   await db.transaction((tx) => applyTransfer(tx, me, movable, input.toUserId, input.note))
