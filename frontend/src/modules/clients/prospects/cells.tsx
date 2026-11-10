@@ -79,6 +79,19 @@ const Empty = () => <span className="text-muted-foreground">—</span>
  * A cell you can edit in place: Enter or a click opens the editor, Esc leaves it. When it is not
  * being edited it is a focus stop of the arrow-key grid (`data-cell-*`, see cell-grid.ts).
  */
+/** Opens the list on the click that started the edit. Without it a second click was needed, and
+ *  Chrome on Linux opens the list with the current option under the pointer, so releasing that
+ *  second click already picked a colleague. */
+function openPicker(el: HTMLSelectElement | null) {
+  if (!el) return
+  el.focus()
+  try {
+    el.showPicker()
+  } catch {
+    // No user activation left (opened from the keyboard after a delay): the focused select still works.
+  }
+}
+
 function EditableCell({ rowIndex, colIndex, label, display, editor }: { rowIndex: number; colIndex: number; label: string; display: ReactNode; editor: (stop: () => void) => ReactNode }) {
   const [editing, setEditing] = useState(false)
   const cell = useRef<HTMLDivElement>(null)
@@ -199,7 +212,7 @@ export function ColumnCell({ columnKey, colIndex, rowIndex, row, ctx }: { column
           editor={(stop) => (
             <Select
               size="sm"
-              autoFocus
+              ref={openPicker}
               className="w-36"
               aria-label={t('clients:prospects.edit.status', { name: row.name })}
               value={row.status}
@@ -221,7 +234,7 @@ export function ColumnCell({ columnKey, colIndex, rowIndex, row, ctx }: { column
       )
     }
     case 'owner': {
-      const display = text ? <span className="truncate">{text}</span> : <span className="text-muted-foreground">{t('clients:prospects.noOwner')}</span>
+      const display = text ? <span className="block max-w-[12rem] truncate" title={text}>{text}</span> : <span className="text-muted-foreground">{t('clients:prospects.noOwner')}</span>
       if (!row.canEdit) return display
       return (
         <EditableCell
@@ -232,7 +245,7 @@ export function ColumnCell({ columnKey, colIndex, rowIndex, row, ctx }: { column
           editor={(stop) => (
             <Select
               size="sm"
-              autoFocus
+              ref={openPicker}
               className="w-36"
               aria-label={t('clients:prospects.edit.owner', { name: row.name })}
               value={row.assignedUserId ?? ''}
@@ -287,7 +300,8 @@ export function ColumnCell({ columnKey, colIndex, rowIndex, row, ctx }: { column
       )
     }
     case 'score':
-      return row.score === null ? <Empty /> : <span className="tabular-nums">{text}</span>
+      // The table puts the priority badge beside it; `text` carries the priority for the details and the export.
+      return row.score === null ? <Empty /> : <span className="tabular-nums">{formatNumber(Number(row.score))}</span>
     case 'contact':
       return <ContactCell row={row} ctx={ctx} />
     case 'note':

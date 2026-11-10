@@ -48,6 +48,25 @@ describe('suppressEmail', () => {
     expect(row?.status).not.toBe('dezabonat')
   })
 
+  it('an underscore in the address matches that address only, not another prospect’s', async () => {
+    const [target, other] = await db
+      .insert(prospects)
+      .values([{ name: 'QA Unsub Underscore SRL' }, { name: 'QA Unsub Underscore Other SRL' }])
+      .returning()
+    prospectIds.push(target!.id, other!.id)
+    await db.insert(prospectContactPoints).values([
+      { prospectId: target!.id, kind: 'email', value: 'a_b@example.com', valueNormalized: 'a_b@example.com' },
+      { prospectId: other!.id, kind: 'email', value: 'axb@example.com', valueNormalized: 'axb@example.com' },
+    ])
+    suppressionEmails.push('a_b@example.com')
+
+    await suppressEmail('a_b@example.com')
+
+    const points = await db.select().from(prospectContactPoints).where(inArray(prospectContactPoints.prospectId, [target!.id, other!.id]))
+    expect(points.find((p) => p.prospectId === target!.id)?.status).toBe('unsubscribed')
+    expect(points.find((p) => p.prospectId === other!.id)?.status).toBe('ok')
+  })
+
   it('does not throw when no prospect matches the email', async () => {
     suppressionEmails.push('nomatch@example.com')
     await expect(suppressEmail('nomatch@example.com')).resolves.not.toThrow()

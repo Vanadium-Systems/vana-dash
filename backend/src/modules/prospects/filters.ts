@@ -139,7 +139,8 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
         if (v === 'free') return sql`${prospects.assignedUserId} IS NULL`
         return z.string().uuid().safeParse(v).success ? sql`${prospects.assignedUserId} = ${v}` : sql`false`
       })
-      return f.op === 'in' ? or(parts) : sql`NOT ${or(parts)}`
+      // A free prospect has a NULL owner, which `NOT (x = y)` would drop instead of keep.
+      return f.op === 'in' ? or(parts) : sql`NOT coalesce(${or(parts)}, false)`
     }
     case 'priority':
       if (f.op === 'in' || f.op === 'not_in') return inList(f.op, priorityCase(ctx.thresholds), f.value)

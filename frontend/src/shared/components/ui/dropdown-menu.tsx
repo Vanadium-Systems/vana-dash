@@ -88,6 +88,7 @@ export function MenuPanel({
   autoFocus,
   onClose,
   panelRef,
+  triggerRef,
   children,
 }: {
   position: MenuPosition
@@ -95,6 +96,9 @@ export function MenuPanel({
   autoFocus: boolean
   onClose: () => void
   panelRef: RefObject<HTMLDivElement>
+  /** A press on the trigger is left to its own click, which toggles: closing here on mousedown
+   *  and reopening on click made a second press reopen the menu instead of closing it. */
+  triggerRef?: RefObject<HTMLElement>
   children: ReactNode
 }) {
   useEffect(() => {
@@ -105,7 +109,9 @@ export function MenuPanel({
 
   useEffect(() => {
     const onPointerDown = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) onClose()
+      const target = e.target as Node
+      if (triggerRef?.current?.contains(target)) return
+      if (panelRef.current && !panelRef.current.contains(target)) onClose()
     }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -126,7 +132,7 @@ export function MenuPanel({
       window.removeEventListener('scroll', onScroll, true)
       window.removeEventListener('resize', onClose)
     }
-  }, [onClose, panelRef])
+  }, [onClose, panelRef, triggerRef])
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (!panelRef.current || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
@@ -186,6 +192,15 @@ export function DropdownMenuContent({ children, align = 'end' }: { children: Rea
     }
   }, [open, pos, triggerRef])
 
+  // A wide panel (the note editor) next to the viewport edge slides back in instead of overflowing.
+  useLayoutEffect(() => {
+    if (!open || !pos || !contentRef.current) return
+    const width = contentRef.current.offsetWidth
+    const limit = Math.max(MARGIN, window.innerWidth - MARGIN - width)
+    if (typeof pos.left === 'number' && pos.left > limit) setPos((p) => (p ? { ...p, left: limit } : p))
+    if (typeof pos.right === 'number' && pos.right > limit) setPos((p) => (p ? { ...p, right: limit } : p))
+  }, [open, pos])
+
   if (!open || !pos) return null
   const origin = `${above ? 'bottom' : 'top'} ${align === 'end' ? 'right' : 'left'}`
   return (
@@ -194,6 +209,7 @@ export function DropdownMenuContent({ children, align = 'end' }: { children: Rea
       origin={origin}
       autoFocus={openedFromKeyboard}
       panelRef={contentRef}
+      triggerRef={triggerRef}
       onClose={() => {
         if (contentRef.current?.contains(document.activeElement)) triggerRef.current?.focus()
         setOpen(false)

@@ -12,12 +12,10 @@ import {
   prospectListMembers,
   prospectPeople,
   prospects,
-  roles,
-  users,
 } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
 import { isPublicEmailDomain } from '../../shared/lib/email-domains.js'
-import { notify } from '../../shared/lib/notify.js'
+import { activeAdminIds, notify } from '../../shared/lib/notify.js'
 import { visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import type { DrizzleTx } from '../../shared/lib/sequences.js'
 import type { SessionUser } from '../../shared/lib/session.js'
@@ -510,17 +508,6 @@ export async function stopEnrollmentsForProspect(prospectId: string, reason: 'wo
     )
     .returning({ id: emailSequenceEnrollments.id })
   return rows.length
-}
-
-/** People who get the sequence's alerts: it has no owner column, so the active admins. */
-export async function activeAdminIds(): Promise<string[]> {
-  const rows = await db
-    .select({ id: users.id })
-    .from(users)
-    .innerJoin(roles, eq(roles.id, users.roleId))
-    .where(and(eq(roles.kind, 'admin'), eq(users.status, 'active'), isNull(users.deletedAt)))
-    .orderBy(asc(users.createdAt))
-  return rows.map((r) => r.id)
 }
 
 /**

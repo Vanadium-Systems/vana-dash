@@ -133,6 +133,27 @@ describe('DropdownMenu', () => {
     )
     expect(container.firstElementChild?.className).toContain('max-w-full')
   })
+
+  it('a second press on the trigger closes the menu instead of reopening it', () => {
+    render(
+      <DropdownMenu>
+        <DropdownMenuTrigger>Filters</DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onClick={() => {}}>Status</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    )
+    const trigger = container.querySelector('button')!
+    // Two acts, as in a browser: the mousedown is handled and rendered before the click arrives.
+    const press = () => {
+      act(() => void trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })))
+      act(() => void trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })))
+    }
+    press()
+    expect(document.querySelector('[role="menuitem"]')).not.toBeNull()
+    press()
+    expect(document.querySelector('[role="menuitem"]')).toBeNull()
+  })
 })
 
 describe('StatePill', () => {

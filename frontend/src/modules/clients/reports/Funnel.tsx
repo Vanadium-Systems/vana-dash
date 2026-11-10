@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import { useMediaQuery } from '@/shared/hooks/use-media-query'
+import { CHART_COLORS } from '@/shared/lib/chart-colors'
 import { formatNumber } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
 import type { FunnelStage } from './use-report-data'
+
+// `primary` is near-white on dark: a whole row of white bars glared. One series, the first chart slot.
+const BAR = CHART_COLORS[0]
 
 /** "89% · −11%": how many of the previous stage got here, and how many dropped on the way. */
 export function conversionText(stage: FunnelStage): string {
@@ -46,14 +50,14 @@ export function Funnel({ stages }: { stages: FunnelStage[] }) {
                 {vertical ? (
                   <>
                     <span className="text-center font-medium tabular-nums">{formatNumber(stage.reached)}</span>
-                    <span aria-hidden="true" className={cn('block w-full rounded-t-sm', muted ? 'bg-primary/25' : 'bg-primary')} style={{ height: `${Math.max(share, 1)}%` }} />
+                    <span aria-hidden="true" className={cn('block w-full rounded-t-sm', muted && 'opacity-30')} style={{ height: `${Math.max(share, 1)}%`, backgroundColor: BAR }} />
                     <span className="block truncate text-center text-muted-foreground">{stage.label}</span>
                   </>
                 ) : (
                   <>
                     <span className="truncate text-muted-foreground">{stage.label}</span>
                     <span aria-hidden="true" className="block h-3 rounded-sm bg-muted">
-                      <span className={cn('block h-full rounded-sm', muted ? 'bg-primary/25' : 'bg-primary')} style={{ width: `${Math.max(share, 1)}%` }} />
+                      <span className={cn('block h-full rounded-sm', muted && 'opacity-30')} style={{ width: `${Math.max(share, 1)}%`, backgroundColor: BAR }} />
                     </span>
                     <span className="text-right font-medium tabular-nums">{formatNumber(stage.reached)}</span>
                   </>

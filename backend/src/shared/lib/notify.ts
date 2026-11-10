@@ -1,5 +1,6 @@
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { notifications } from '../db/schema/index.js'
+import { notifications, roles, users } from '../db/schema/index.js'
 import { notifyPush } from './push.js'
 
 export interface NotifyInput {
@@ -36,4 +37,15 @@ export async function notifyMany(items: Array<NotifyInput & { userId: string }>)
 /** One bell row per person, the same text for all. */
 export async function notify(userIds: string[], input: NotifyInput): Promise<void> {
   await notifyMany([...new Set(userIds)].map((userId) => ({ ...input, userId })))
+}
+
+/** Who gets alerts nobody owns (sequences have no owner column, free prospects have no owner). */
+export async function activeAdminIds(): Promise<string[]> {
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .innerJoin(roles, eq(roles.id, users.roleId))
+    .where(and(eq(roles.kind, 'admin'), eq(users.status, 'active'), isNull(users.deletedAt)))
+    .orderBy(asc(users.createdAt))
+  return rows.map((r) => r.id)
 }
