@@ -10,7 +10,7 @@ import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { api } from '@/shared/lib/api'
 import { useMe } from '@/shared/hooks/use-me'
-import { NAV_ITEMS } from '@/shared/lib/nav-items'
+import { NAV_ITEMS, canOpenNavItem } from '@/shared/lib/nav-items'
 import { t } from '@/shared/lib/i18n'
 
 interface NavEntry {
@@ -49,7 +49,7 @@ export function NavSettingsCard() {
   const { can } = useMe()
   // Numai paginile pe care omul le are: o listă cu „Investiții" pentru un coleg de sales
   // ar promite ceva ce nu poate deschide.
-  const visibleItems = NAV_ITEMS.filter((item) => can(item.feature))
+  const visibleItems = NAV_ITEMS.filter((item) => canOpenNavItem(item, can))
   const [items, setItems] = useState<NavEntry[]>(visibleItems.map(({ to }) => ({ to, visible: true })))
   const [dirty, setDirty] = useState(false)
 

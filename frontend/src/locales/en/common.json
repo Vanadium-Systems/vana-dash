@@ -196,7 +196,8 @@
     "placeholder": "Search for a page, a client, an invoice, an email thread",
     "pages": "Pages",
     "searchFailed": "The search did not work. Try again.",
-    "nothingFor": "Nothing for “{{term}}”."
+    "nothingFor": "Nothing for “{{term}}”.",
+    "thisPage": "On this page"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
@@ -524,5 +525,75 @@
   "filter": {
     "add": "Filter",
     "remove": "Remove the filter {{filter}}"
+  },
+  "filterBar": {
+    "search": "Search",
+    "searchPlaceholder": "Search",
+    "addFilter": "Filter",
+    "allFilters": "All filters",
+    "pinFilter": "Pin {{field}} to the bar",
+    "unpinFilter": "Unpin {{field}} from the bar",
+    "fieldSearch": "Find a filter",
+    "back": "Back",
+    "edit": "Edit filter {{filter}}",
+    "chip": "{{field}}: {{value}}",
+    "notValue": "not {{values}}",
+    "isEmpty": "empty",
+    "notEmpty": "filled in",
+    "range": "{{from}} - {{to}}",
+    "rangeFrom": "from {{from}}",
+    "rangeTo": "up to {{to}}",
+    "is": "Is",
+    "isNot": "Is not",
+    "empty": "Empty",
+    "filled": "Filled in",
+    "interval": "Range",
+    "from": "From",
+    "to": "To",
+    "valueSearch": "Search values",
+    "addValue": "Add",
+    "valueInput": "Value",
+    "noFields": "No filter with that name",
+    "dialogTitle": "All filters",
+    "dialogHint": "You edit a copy; filters apply only on “Apply”.",
+    "results_one": "{{n}} result",
+    "results_other": "{{n}} results",
+    "resultsOver": "over {{n}} results",
+    "counting": "Counting...",
+    "clearAll": "Clear filters",
+    "period": {
+      "label": "Period",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisQuarter": "This quarter",
+      "thisYear": "This year",
+      "custom": "Custom range",
+      "any": "Any time",
+      "from": "From",
+      "to": "To"
+    },
+    "nl": {
+      "button": "Describe",
+      "label": "Describe what you are looking for",
+      "placeholder": "e.g. recycling companies in Brasov, no contact in 30 days",
+      "apply": "Search",
+      "working": "Reading…",
+      "nothing": "Nothing in this phrase could become a filter.",
+      "dropped_one": "{{count}} part was left out.",
+      "dropped_other": "{{count}} parts were left out.",
+      "failed": "The phrase could not be read.",
+      "fromPhrase": "from phrase"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "open": "Notifications",
+    "openUnread_one": "Notifications, {{n}} unread",
+    "openUnread_other": "Notifications, {{n}} unread",
+    "markAll": "Mark all as read",
+    "empty": "Nothing new.",
+    "loadFailed": "The notifications could not be loaded.",
+    "more": "Show older",
+    "unread": "Unread:"
   }
 }

@@ -14,11 +14,13 @@ interface AddendumFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   clientId: string
+  /** Old and new values from a pricing change, so the form opens with them written. */
+  prefill?: { oldPriceNote: string; newPriceNote: string; reason: string }
 }
 
 // Formular „Adaugă act adițional" — numerotarea (per client) e calculată server-side
 // (modules/contracts/service.ts createAddendum), nu se cere aici.
-export function AddendumFormDialog({ open, onOpenChange, clientId }: AddendumFormDialogProps) {
+export function AddendumFormDialog({ open, onOpenChange, clientId, prefill }: AddendumFormDialogProps) {
   const queryClient = useQueryClient()
   const [issuedAt, setIssuedAt] = useState('')
   const [oldPriceNote, setOldPriceNote] = useState('')
@@ -31,9 +33,9 @@ export function AddendumFormDialog({ open, onOpenChange, clientId }: AddendumFor
   useEffect(() => {
     if (open) {
       setIssuedAt(new Date().toISOString().slice(0, 10))
-      setOldPriceNote('')
-      setNewPriceNote('')
-      setReason('')
+      setOldPriceNote(prefill?.oldPriceNote ?? '')
+      setNewPriceNote(prefill?.newPriceNote ?? '')
+      setReason(prefill?.reason ?? '')
       setEffectiveDateNote('data semnării prezentului Act Adițional')
       setTemporary(false)
       setReversionNote('')
@@ -53,6 +55,7 @@ export function AddendumFormDialog({ open, onOpenChange, clientId }: AddendumFor
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['contract-addenda', clientId] })
+      void queryClient.invalidateQueries({ queryKey: ['contracts', 'list'] })
       toast.success(t('accounting:addendum.created'))
       onOpenChange(false)
     },

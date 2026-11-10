@@ -5,7 +5,7 @@ import { AutomationParamsSchema, UpdateAutomationSchema } from './automations-sc
 import * as automations from './automations-service.js'
 
 export function automationsErrorReply(reply: FastifyReply, err: unknown) {
-  if (err instanceof automations.AutomationForbiddenError) return reply.code(403).send({ success: false, error: tr('errors.prospects.automationForbidden'), code: err.code })
+  if (err instanceof automations.AutomationForbiddenError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.automationForbidden') } })
   throw err
 }
 

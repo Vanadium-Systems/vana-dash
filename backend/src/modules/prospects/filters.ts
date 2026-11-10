@@ -97,6 +97,10 @@ export function priorityCase(t: FilterContext['thresholds']): SQL<string> {
 const exists = (inner: SQL) => sql`EXISTS (${inner})`
 const or = (parts: SQL[]) => (parts.length === 0 ? sql`false` : sql`(${sql.join(parts, sql` OR `)})`)
 
+/** Shared with the data-health counts, so "no phone" counts what the `phone` filter would list. */
+export const hasOkContactPoint = (kind: 'phone' | 'email') =>
+  exists(sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."deleted_at" IS NULL AND cp."kind" = ${kind} AND cp."status" = 'ok'`)
+
 function inList(op: 'in' | 'not_in', column: SQL | typeof prospects.status, values: string[]): SQL {
   const list = sql.join(
     values.map((v) => sql`${v}`),
@@ -265,9 +269,8 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
       break
     case 'phone':
     case 'email': {
-      const has = sql`SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."deleted_at" IS NULL AND cp."kind" = ${f.field} AND cp."status" = 'ok'`
-      if (f.op === 'is_empty') return sql`NOT ${exists(has)}`
-      if (f.op === 'not_empty') return exists(has)
+      if (f.op === 'is_empty') return sql`NOT ${hasOkContactPoint(f.field)}`
+      if (f.op === 'not_empty') return hasOkContactPoint(f.field)
       break
     }
     case 'contactStatus':

@@ -22,7 +22,7 @@ import { visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import type { DrizzleTx } from '../../shared/lib/sequences.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { assertCanSendFrom } from './mailboxes.js'
-import { getSequenceBouncePause } from './settings-service.js'
+import { getSequenceBouncePause, type SequenceBouncePause } from './settings-service.js'
 import type { EnrollSchema, SequenceCreateSchema, SequenceUpdateSchema } from './sequences-schema.js'
 import { tr, trFor } from '../../shared/lib/i18n.js'
 
@@ -576,6 +576,8 @@ export interface SequenceDiagnostics {
     | { stepId: string; order: number; kind: Exclude<SequenceStepRow['kind'], 'email'>; reached: number }
   >
   paused: { at: string; reason: string | null } | null
+  /** The auto-pause rule, so the band can show the line a bounce rate is measured against. */
+  bouncePause: SequenceBouncePause
 }
 
 /**
@@ -656,5 +658,6 @@ export async function getSequenceDiagnostics(sequenceId: string): Promise<Sequen
       }
     }),
     paused: sequence.pausedAt ? { at: sequence.pausedAt.toISOString(), reason: sequence.pausedReason } : null,
+    bouncePause: await getSequenceBouncePause(),
   }
 }

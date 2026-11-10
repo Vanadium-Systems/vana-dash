@@ -52,6 +52,13 @@ describe('views', () => {
     expect((await views.listViews(ana)).mine.find((v) => v.id === view.id)?.name).toBe('QA shared')
   })
 
+  it('stores the search text with the view and lets the owner change it', async () => {
+    const view = await newView(ana, { name: 'QA with q', q: '  acme  ' })
+    expect(view.q).toBe('acme')
+    expect((await views.updateView(ana, view.id, { q: '' }))?.q).toBe('')
+    expect((await newView(ana, { name: 'QA no q' })).q).toBe('')
+  })
+
   it('a private view is invisible to others, also for stars', async () => {
     const view = await newView(ana, { name: 'QA private' })
     expect((await views.listViews(bob)).shared.find((v) => v.id === view.id)).toBeUndefined()

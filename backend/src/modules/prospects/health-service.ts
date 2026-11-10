@@ -13,6 +13,7 @@ import {
 } from '../../shared/lib/prospect-access.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { MERGE_FIELDS, type MergeField } from './health-schema.js'
+import { hasOkContactPoint } from './filters.js'
 import { changeStatus, getProspectSheet, refreshScore, statusKind } from './service.js'
 
 type Me = Pick<SessionUser, 'id' | 'features'> & { tenant?: SessionUser['tenant'] }
@@ -117,14 +118,11 @@ async function visiblePairs(me: Me) {
 
 // ── Counts ───────────────────────────────────────────────────────────────────
 
-const hasPoint = (kind: 'phone' | 'email', status: SQL) =>
-  sql`EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."kind" = ${kind} AND cp."deleted_at" IS NULL AND ${status})`
-
 export async function getHealth(me: Me) {
   const [counts] = await db
     .select({
-      withoutPhone: sql<number>`(count(*) FILTER (WHERE NOT ${hasPoint('phone', sql`cp."status" <> 'invalid'`)}))::int`,
-      withoutEmail: sql<number>`(count(*) FILTER (WHERE NOT ${hasPoint('email', sql`cp."status" = 'ok'`)}))::int`,
+      withoutPhone: sql<number>`(count(*) FILTER (WHERE NOT ${hasOkContactPoint('phone')}))::int`,
+      withoutEmail: sql<number>`(count(*) FILTER (WHERE NOT ${hasOkContactPoint('email')}))::int`,
       invalidOrBounced: sql<number>`(count(*) FILTER (WHERE EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."deleted_at" IS NULL AND cp."status" IN ('invalid', 'bounced'))))::int`,
       struckOff: sql<number>`(count(*) FILTER (WHERE ${prospects.isActive} = false))::int`,
     })

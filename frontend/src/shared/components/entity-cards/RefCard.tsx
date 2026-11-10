@@ -7,6 +7,7 @@ import { companyTimeZone, formatDate, formatRelativeTime } from '@/shared/lib/fo
 import { t } from '@/shared/lib/i18n'
 import type { ChatMessageRef, RefType } from '@/shared/lib/types'
 import { cn, formatBytes } from '@/shared/lib/utils'
+import { ProspectCardActions, requestableProspectId } from './ProspectCardActions'
 
 // The card of an object shared into a message: one level inside the bubble (no card in a card),
 // the type's icon, the title (a link when the reader can open it) and two or three facts on one
@@ -21,6 +22,10 @@ interface RefCardType {
   /** The facts under the title. */
   Body?: ComponentType<RefCardBodyProps>
   extra?: (card: RefCardBodyProps['card']) => LinkExtra
+  /** Buttons under the facts, for a card you can act on from the message. */
+  Actions?: ComponentType<{ refItem: ChatMessageRef }>
+  /** The card asks for access itself, so the generic "ask an administrator" link is left out. */
+  asksAccess?: (refItem: ChatMessageRef) => boolean
 }
 
 const registry = new Map<RefType, RefCardType>()
@@ -71,7 +76,7 @@ export function RefCard({
         {refItem.state === 'denied' ? (
           <p className="text-xs text-muted-foreground">
             {refItem.grantors ? t('messages:refs.deniedByRole') : t('messages:refs.denied')}
-            {onRequestAccess && (!refItem.grantors || refItem.grantors.length > 0) ? (
+            {onRequestAccess && !entry?.asksAccess?.(refItem) && (!refItem.grantors || refItem.grantors.length > 0) ? (
               <>
                 {' · '}
                 <button type="button" className="underline underline-offset-2" onClick={() => onRequestAccess(refItem)}>
@@ -85,6 +90,7 @@ export function RefCard({
         ) : entry?.Body ? (
           <entry.Body card={card} />
         ) : null}
+        {entry?.Actions && refItem.state !== 'gone' ? <entry.Actions refItem={refItem} /> : null}
       </div>
     </div>
   )
@@ -107,6 +113,8 @@ function dayInCompanyZone(iso: string): string {
 
 registerRefCard('prospect', {
   icon: UserRound,
+  Actions: ProspectCardActions,
+  asksAccess: (refItem) => requestableProspectId(refItem) !== null,
   Body: ({ card }) => (
     <Facts
       items={[

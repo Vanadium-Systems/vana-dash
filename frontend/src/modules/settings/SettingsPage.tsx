@@ -11,6 +11,7 @@ import { AssistantProvidersCard } from './AssistantProvidersCard'
 import { CryptoSettingsCard } from '@/modules/crypto/CryptoSettingsCard'
 import { AssetsSettingsCard } from '@/modules/assets/AssetsSettingsCard'
 import { CompanyProfileCard } from './CompanyProfileCard'
+import { ClientsSettings } from './clients/ClientsSettings'
 import { OpsJobsSettingsCard } from './OpsJobsSettingsCard'
 import { t } from '@/shared/lib/i18n'
 
@@ -56,6 +57,7 @@ export function SettingsPage() {
     <div className="space-y-6" data-density="comfortable">
       <PageHeader title={t('common:nav.settings')} />
       {can('setari.firma') ? <CompanyProfileCard /> : null}
+      {can('clienti.view') ? <ClientsSettings /> : null}
       {can('setari.joburi') ? <OpsJobsSettingsCard /> : null}
       {can('setari.asistent') ? <AssistantProvidersCard /> : null}
       {can('investitii.setari') ? (

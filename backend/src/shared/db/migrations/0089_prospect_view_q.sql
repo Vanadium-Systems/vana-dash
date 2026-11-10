@@ -1,0 +1,1 @@
+ALTER TABLE "prospect_views" ADD COLUMN "q" text DEFAULT '' NOT NULL;

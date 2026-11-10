@@ -121,7 +121,8 @@ describe('obiecte trimise în mesaje', () => {
     const [denied] = await readRefs(id, plainReader)
     expect(denied!.state).toBe('denied')
     expect(denied!.refId).toBeNull()
-    expect(Object.keys(denied!.card)).toEqual(['title'])
+    expect(Object.keys(denied!.card)).toEqual(['title', 'prospectId'])
+    expect(denied!.card.prospectId).toBe(prospect!.id)
     // Access to Clienți comes with a role, so the card names who manages the team, not the sender.
     expect(denied!.grantors?.length).toBeGreaterThan(0)
     expect(denied!.grantors!.some((g) => g.userId === plainReader.id)).toBe(false)

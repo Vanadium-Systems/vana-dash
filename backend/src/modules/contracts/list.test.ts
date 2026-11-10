@@ -57,7 +57,8 @@ describe('listContracts', async () => {
   })
 
   it('filters by state and searches by contract number', async () => {
-    expect((await listContracts({ ...query, state: 'signed' })).rows.map((r) => r.clientId)).toEqual([signed.id])
+    expect((await listContracts({ ...query, state: ['signed'] })).rows.map((r) => r.clientId)).toEqual([signed.id])
+    expect((await listContracts({ ...query, state: ['none', 'addendum'] })).rows.map((r) => r.clientId)).toEqual([none.id, addendum.id])
     expect((await listContracts({ ...query, q: '103' })).rows.map((r) => r.clientId)).toEqual([addendum.id])
   })
 

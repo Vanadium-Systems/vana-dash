@@ -81,16 +81,19 @@ describe('health counts', () => {
     const badPhone = await newProspect('bad-phone', { isActive: false })
     await addPoint(badPhone, 'phone', '+40711000002', { status: 'invalid' })
     await addPoint(badPhone, 'email', 'bounced@bad.example', { status: 'bounced' })
+    // Same rule as the `phone` filter: only a point with status ok counts as having a phone.
+    const bouncedPhone = await newProspect('bounced-phone')
+    await addPoint(bouncedPhone, 'phone', '+40711000003', { status: 'bounced' })
     const archived = await newProspect('archived')
     await db.insert(prospectArchives).values({ prospectId: archived, userId: ana.id })
     await newProspect('theirs', { assignedUserId: bob.id })
     await db.update(prospects).set({ deletedAt: new Date() }).where(eq(prospects.id, await newProspect('deleted')))
 
     const after = await health.getHealth(ana)
-    // empty + badPhone; complete has both. The archived, deleted and bob's are not counted for ana.
-    expect(after.withoutPhone - before.withoutPhone).toBe(2)
-    expect(after.withoutEmail - before.withoutEmail).toBe(2)
-    expect(after.invalidOrBounced - before.invalidOrBounced).toBe(1)
+    // empty + badPhone + bouncedPhone; complete has both. The archived, deleted and bob's are not counted for ana.
+    expect(after.withoutPhone - before.withoutPhone).toBe(3)
+    expect(after.withoutEmail - before.withoutEmail).toBe(3)
+    expect(after.invalidOrBounced - before.invalidOrBounced).toBe(2)
     expect(after.struckOff - before.struckOff).toBe(1)
   })
 })

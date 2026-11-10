@@ -51,7 +51,10 @@
     "hours_few": "{{count}} ore",
     "hours_other": "{{count}} de ore",
     "create": "Creează și copiază linkul",
-    "cancel": "Renunță"
+    "cancel": "Renunță",
+    "prospectLabel": "Prospect",
+    "unlinkProspect": "Desparte",
+    "titleFor": "Apel cu {{name}}"
   },
   "endConfirm": {
     "title": "Închei apelul „{{title}}”?",

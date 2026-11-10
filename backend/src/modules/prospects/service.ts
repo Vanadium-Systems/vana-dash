@@ -82,7 +82,7 @@ export async function createProspectStatus(input: CreateStatusInput) {
 
   const [row] = await db
     .insert(prospectStatuses)
-    .values({ key: input.key, label: input.label, colorToken: input.colorToken, sortOrder: maxOrder + 1 })
+    .values({ key: input.key, label: input.label, colorToken: input.colorToken, kind: input.kind, sortOrder: maxOrder + 1 })
     // Indexul unic pe `key` e PARȚIAL (WHERE deleted_at IS NULL — vezi schema) — `where` aici
     // trebuie să oglindească exact predicatul, altfel Postgres nu poate infera arbitrul de
     // conflict ("no unique or exclusion constraint matching") și insert-ul aruncă, nu face 409.
@@ -488,8 +488,9 @@ export async function getProspectSheet(me: Me, id: string) {
       .innerJoin(users, eq(users.id, prospectCollaborators.userId))
       .where(and(eq(prospectCollaborators.prospectId, row.id), isNull(prospectCollaborators.deletedAt))),
     db
-      .select()
+      .select({ ...getTableColumns(prospectTransferRequests), requesterName: sql<string>`coalesce(nullif(${users.displayName}, ''), ${users.email})` })
       .from(prospectTransferRequests)
+      .innerJoin(users, eq(users.id, prospectTransferRequests.requestedByUserId))
       .where(and(eq(prospectTransferRequests.prospectId, row.id), eq(prospectTransferRequests.status, 'pending')))
       .orderBy(desc(prospectTransferRequests.createdAt)),
   ])

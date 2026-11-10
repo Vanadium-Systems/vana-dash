@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { Calculator, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { useMe } from '@/shared/hooks/use-me'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
@@ -34,6 +36,8 @@ interface ClientsTableProps {
 }
 
 function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, onDelete }: ClientsTableProps) {
+  const navigate = useNavigate()
+  const { can } = useMe()
   return (
     <Table>
       <TableHeader>
@@ -91,6 +95,9 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
             <TableCell className="text-right">
               <RowActions
                 actions={[
+                  ...(c.contractDetails?.calc && can('clienti.calculator')
+                    ? [{ key: 'calculator', icon: Calculator, label: t('pricing:apply.reopen'), onClick: () => navigate(`/clients?tab=calculator&clientId=${c.id}`) }]
+                    : []),
                   { key: 'edit', icon: Pencil, label: t('common:actions.edit'), onClick: () => onEdit(c) },
                   { key: 'delete', icon: Trash2, label: t('common:actions.delete'), destructive: true, onClick: () => onDelete(c) },
                 ]}

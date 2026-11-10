@@ -72,7 +72,12 @@ export type ReservedNumber = z.infer<typeof ReservedNumberSchema>
 
 export const ContractListQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
-  state: z.enum(['none', 'generated', 'signed', 'addendum']).optional(),
+  // Comma-separated, like the other multi-value query params (`?state=signed,addendum`).
+  state: z
+    .string()
+    .transform((value) => value.split(',').map((s) => s.trim()).filter(Boolean))
+    .pipe(z.array(z.enum(['none', 'generated', 'signed', 'addendum'])).min(1).max(4))
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().refine((n) => [10, 25, 50].includes(n)).default(25),
 })

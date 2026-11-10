@@ -5,14 +5,22 @@ import { Loader2 } from 'lucide-react'
 import { RequireFeature } from '@/shared/components/AccessDenied'
 import { ChatStreamProvider } from '@/shared/components/chat/ChatStreamProvider'
 import { AppLayout } from '@/shared/components/layout/AppLayout'
+import { LegacyAccountingTabs, RedirectPricing } from '@/shared/components/layout/LegacyRedirects'
 import { LinkedSection, RedirectToTab, TabbedSection } from '@/shared/components/layout/PageSection'
 import { useAuth } from '@/shared/hooks/use-auth'
 import { useShareIn } from '@/shared/lib/share-in'
 import { setCompanyTimeZone } from '@/shared/lib/format'
 import { syncLocaleWithProfile, t } from '@/shared/lib/i18n'
 import { registerPageCode } from '@/shared/lib/prefetch'
+import type { FeatureKey } from '@/shared/lib/types'
 import { ShellSkeleton } from '@/shared/components/layout/ShellSkeleton'
 
+const loadClientsPage = () => import('@/modules/clients/ClientsPage')
+const ClientsPage = lazy(() => loadClientsPage().then((m) => ({ default: m.ClientsPage })))
+const FromSearchPage = lazy(() => import('@/modules/clients/lists/FromSearchPage').then((m) => ({ default: m.FromSearchPage })))
+const ImportPage = lazy(() => import('@/modules/clients/import/ImportPage').then((m) => ({ default: m.ImportPage })))
+const CallSession = lazy(() => import('@/modules/clients/tasks/CallSession').then((m) => ({ default: m.CallSession })))
+const ProspectPage = lazy(() => import('@/modules/clients/sheet/ProspectPage').then((m) => ({ default: m.ProspectPage })))
 const loadAccountingPage = () => import('@/modules/accounting/AccountingPage')
 const AccountingPage = lazy(() => loadAccountingPage().then((m) => ({ default: m.AccountingPage })))
 const loadAlertsPage = () => import('@/modules/alerts/AlertsPage')
@@ -61,8 +69,6 @@ const loadPlanPage = () => import('@/modules/plan/PlanPage')
 const PlanPage = lazy(() => loadPlanPage().then((m) => ({ default: m.PlanPage })))
 const loadPlatformsPage = () => import('@/modules/platforms/PlatformsPage')
 const PlatformsPage = lazy(() => loadPlatformsPage().then((m) => ({ default: m.PlatformsPage })))
-const loadPricingPage = () => import('@/modules/pricing/PricingPage')
-const PricingPage = lazy(() => loadPricingPage().then((m) => ({ default: m.PricingPage })))
 const loadReconciliationPage = () => import('@/modules/reconciliation/ReconciliationPage')
 const ReconciliationPage = lazy(() => loadReconciliationPage().then((m) => ({ default: m.ReconciliationPage })))
 const loadReportsPage = () => import('@/modules/reports/ReportsPage')
@@ -92,13 +98,16 @@ const UpdatesPage = lazy(() => loadUpdatesPage().then((m) => ({ default: m.Updat
 const loadWishlistPage = () => import('@/modules/wishlist/WishlistPage')
 const WishlistPage = lazy(() => loadWishlistPage().then((m) => ({ default: m.WishlistPage })))
 
+// Clienți has a tab per feature; the page opens for anyone who has one of them.
+const CLIENTS_FEATURES: FeatureKey[] = ['clienti.view', 'facturi.clienti', 'facturi.contracte', 'clienti.calculator', 'clienti.config-pret']
+
 // Hover / focus on a nav item loads the page's code ahead of the click (shared/lib/prefetch.ts).
 registerPageCode('/', loadOverviewPage)
 registerPageCode('/assistant', loadAssistantPage)
 registerPageCode('/accounting', loadAccountingPage)
 registerPageCode('/financials', loadFinancialsPage)
 registerPageCode('/reconciliation', loadReconciliationPage)
-registerPageCode('/pricing', loadPricingPage)
+registerPageCode('/clients', loadClientsPage)
 registerPageCode('/tenders', loadTendersPage)
 registerPageCode('/crypto', loadCryptoPage)
 registerPageCode('/email', loadEmailPage)
@@ -155,12 +164,14 @@ export function App() {
         <Route path="/accept-invite" element={<AcceptInvitePage />} />
         <Route path="/apel/:publicId" element={<PublicCallPage />} />
         <Route element={<RequireAuth />}>
+          {/* Full screen, so outside the shell: no sidebar, no bottom nav. */}
+          <Route path="/clients/tasks/session" element={<RequireFeature feature="clienti.view" page={t('common:nav.clients')}><CallSession /></RequireFeature>} />
           {/* Provider-ul de flux stă deasupra lui AppLayout, nu în el: AppLayout folosește
               badge-ul de mesaje necitite, iar un context nu ajunge la propria componentă — pus
               în shell, ar arunca la fiecare pagină. */}
           <Route element={<ChatStreamProvider><Outlet /></ChatStreamProvider>}>
           <Route element={<AppLayout />}>
-            <Route path="/accounting" element={<RequireFeature feature="facturi.view" page={t('common:nav.invoices')}><AccountingPage /></RequireFeature>} />
+            <Route path="/accounting" element={<RequireFeature feature="facturi.view" page={t('common:nav.invoices')}><LegacyAccountingTabs><AccountingPage /></LegacyAccountingTabs></RequireFeature>} />
             <Route path="/archive" element={<RequireFeature feature="arhiva.view" page={t('common:nav.archive')}><ArchivePage /></RequireFeature>} />
             <Route path="/" element={<OverviewPage />} />
             <Route path="/assistant" element={<RequireFeature feature="asistent.view" page={t('common:nav.assistant')}><AssistantPage /></RequireFeature>} />
@@ -184,7 +195,11 @@ export function App() {
             <Route path="/crypto/coin/:id" element={<RequireFeature feature="investitii.view" page={t('common:nav.investments')}><CoinDetailPage /></RequireFeature>} />
             <Route path="/assets" element={<RequireFeature feature="investitii.view" page={t('common:nav.investments')}><LinkedSection title={t('common:nav.investments')} links={INVESTMENT_LINKS}><AssetsPage /></LinkedSection></RequireFeature>} />
             <Route path="/assets/:category/:symbol" element={<RequireFeature feature="investitii.view" page={t('common:nav.investments')}><AssetDetailPage /></RequireFeature>} />
-            <Route path="/pricing" element={<RequireFeature feature="clienti.view" page={t('common:nav.clients')}><PricingPage /></RequireFeature>} />
+            <Route path="/clients" element={<RequireFeature feature={CLIENTS_FEATURES} page={t('common:nav.clients')}><ClientsPage /></RequireFeature>} />
+            <Route path="/clients/import" element={<RequireFeature feature="clienti.prospectare" page={t('common:nav.clients')}><ImportPage /></RequireFeature>} />
+            <Route path="/clients/lists/from-search" element={<RequireFeature feature="clienti.prospectare" page={t('common:nav.clients')}><FromSearchPage /></RequireFeature>} />
+            <Route path="/clients/:id" element={<RequireFeature feature="clienti.view" page={t('common:nav.clients')}><ProspectPage /></RequireFeature>} />
+            <Route path="/pricing" element={<RedirectPricing />} />
             <Route path="/tenders" element={<RequireFeature feature="licitatii.view" page={t('common:nav.tenders')}><TendersPage /></RequireFeature>} />
             <Route path="/email" element={<RequireFeature feature="email.view" page={t('common:nav.email')}><EmailPage /></RequireFeature>} />
             <Route path="/messages" element={<RequireFeature feature="mesaje.view" page={t('common:nav.messages')}><MessagesPage /></RequireFeature>} />

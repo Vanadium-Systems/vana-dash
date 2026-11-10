@@ -304,7 +304,9 @@ async function resolveRefs(messageIds: string[], reader: SessionUser): Promise<M
       ref = { id: row.id, type: row.refType, refId: row.refId, state: 'live', canOpen: true, card: result.live ?? snapshot }
     } else if (adapter?.kind === 'firm') {
       grantors ??= await accessGrantors(reader)
-      ref = { id: row.id, type: row.refType, refId: null, state: 'denied', canOpen: false, card: { title: snapshot.title }, grantors }
+      // The prospect id alone lets the card ask for access; the name and the owner stay hidden.
+      const card: RefSnapshot = row.refType === 'prospect' ? { title: snapshot.title, prospectId: row.refId } : { title: snapshot.title }
+      ref = { id: row.id, type: row.refType, refId: null, state: 'denied', canOpen: false, card, grantors }
     } else {
       const canOpen = Boolean(result?.canOpen)
       // The folder id only builds the link to the original; whoever cannot open it does not get it.

@@ -21,13 +21,16 @@ import { ME_QUERY_KEY, useMe } from '@/shared/hooks/use-me'
 import { useEmailUnreadCounts } from '@/shared/hooks/use-email-unread-counts'
 import { useHotkeys } from '@/shared/hooks/use-hotkeys'
 import { useInstallPrompt } from '@/shared/hooks/use-install-prompt'
+import { useNotifications } from '@/shared/hooks/use-notifications'
+import { useTaskBadge } from '@/shared/hooks/use-task-badge'
 import { useNavLayout } from '@/shared/hooks/use-nav-layout'
 import { useOfflinePrefetch } from '@/shared/hooks/use-offline-prefetch'
 import { useOnline } from '@/shared/hooks/use-online'
 import { isNative } from '@/shared/lib/native'
 import { clearReadEmailNotifications, onNativeNotificationTap, registerNativeDeviceToken } from '@/shared/lib/native-push'
-import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem, navGroupLabel } from '@/shared/lib/nav-items'
+import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem, navGroupLabel, canOpenNavItem } from '@/shared/lib/nav-items'
 import { BrandMark } from '@/shared/components/BrandMark'
+import { NotificationBell } from '@/shared/components/layout/NotificationBell'
 import { ContentSkeleton } from '@/shared/components/layout/ShellSkeleton'
 import { BottomSheet } from '@/shared/components/ui/responsive-menu'
 import { prefetchPage } from '@/shared/lib/prefetch'
@@ -42,7 +45,12 @@ import { getTenantOverride, setTenantOverride } from '@/shared/lib/tenant-overri
 // user/temă/logout. Mobil (Contractul H): bottom nav fix cu 4 shortcut-uri + "Mai mult" care
 // deschide drawer-ul complet — o singură sursă NAV (nav-items.ts + config din Setări).
 
-function NavBadge({ count, compact }: { count: number; compact?: boolean }) {
+function NavBadge({ count, compact, quiet }: { count: number; compact?: boolean; quiet?: boolean }) {
+  // `quiet`: a number to work through (tasks due), not something unread to react to.
+  if (quiet) {
+    if (compact) return <span aria-hidden="true" className="absolute right-1.5 top-1 size-2 rounded-full bg-foreground/40" />
+    return <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground/10 px-1.5 tnum text-xs font-semibold text-foreground">{count > 99 ? '99+' : count}</span>
+  }
   if (compact) return <span aria-hidden="true" className="absolute right-1.5 top-1 size-2 rounded-full bg-destructive" />
   return (
     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 tnum text-xs font-semibold text-white">
@@ -56,6 +64,7 @@ function SidebarNav({
   unreadTotal,
   chatUnread,
   activeAlerts,
+  taskCount,
   onNavigate,
   compact,
 }: {
@@ -63,6 +72,7 @@ function SidebarNav({
   unreadTotal: number | undefined
   chatUnread: number | undefined
   activeAlerts: number | undefined
+  taskCount: number | undefined
   onNavigate?: () => void
   compact: boolean
 }) {
@@ -101,6 +111,7 @@ function SidebarNav({
                 <span className={compact ? 'sr-only' : 'truncate'}>{item.label}</span>
                 {item.to === '/email' && unreadTotal ? <NavBadge count={unreadTotal} compact={compact} /> : null}
                 {item.to === '/messages' && chatUnread ? <NavBadge count={chatUnread} compact={compact} /> : null}
+                {item.to === '/clients' && taskCount ? <NavBadge count={taskCount} compact={compact} quiet /> : null}
                 {item.to === '/alerts' && activeAlerts ? <NavBadge count={activeAlerts} compact={compact} /> : null}
               </NavLink>
             ))}
@@ -182,6 +193,9 @@ export function AppLayout() {
   const unreadCounts = useEmailUnreadCounts()
   const chatUnread = useChatUnreadTotal()
   const activeAlertsCount = useActiveAlertsCount()
+  const taskBadge = useTaskBadge()
+  const notifications = useNotifications()
+  const unreadNotifications = notifications.data?.pages[0]?.unread ?? 0
   // The title the page was loaded with is the app name; the unread count is a prefix on it.
   const baseTitle = useRef(document.title)
   useEffect(() => {
@@ -209,7 +223,7 @@ export function AppLayout() {
   // rămân pe max-w-6xl.
   // Wide working tables get the whole width, so a desktop shows their secondary columns too.
   // The calendar's week grid is cramped in 6xl next to the mini calendar.
-  const isFullWidthPage = ['/email', '/messages', '/pricing', '/tenders', '/calendar'].some((path) => location.pathname.startsWith(path))
+  const isFullWidthPage = ['/email', '/messages', '/clients', '/tenders', '/calendar'].some((path) => location.pathname.startsWith(path))
   // Într-o conversație, pe telefon, firul ocupă tot ecranul; bara de jos ar acoperi câmpul de scris.
   const inConversation = /^\/messages\/[^/]+/.test(location.pathname)
 
@@ -273,7 +287,7 @@ export function AppLayout() {
           {compact ? null : <span className="font-semibold">VanaDash</span>}
         </div>
       )}
-      <div className="px-2 pt-2">
+      <div className={cn('flex gap-1.5 px-2 pt-2', compact && 'flex-col items-center')}>
         <button
           type="button"
           onClick={() => {
@@ -290,12 +304,14 @@ export function AppLayout() {
           <span className={compact ? 'sr-only' : undefined}>{t('common:actions.search')}</span>
           {compact ? null : <kbd className="ml-auto hidden font-sans text-xs md:inline">{PALETTE_SHORTCUT}</kbd>}
         </button>
+        <NotificationBell />
       </div>
       <SidebarNav
         items={navItems.items}
         unreadTotal={unreadCounts.data?.total}
         chatUnread={chatUnread || undefined}
         activeAlerts={activeAlertsCount.data?.count}
+        taskCount={taskBadge}
         onNavigate={onClose}
         compact={compact}
       />
@@ -436,7 +452,7 @@ export function AppLayout() {
             const item = findNavItem(to)
             // Un shortcut fără funcționalitate nu apare; dacă omul are un singur shortcut
             // (ex. doar Azi), grila rămâne 5 coloane și el ocupă doar prima.
-            if (!item || !can(item.feature)) return null
+            if (!item || !canOpenNavItem(item, can)) return null
             const Icon = item.icon
             return (
               <NavLink
@@ -479,8 +495,13 @@ export function AppLayout() {
             className="flex h-16 w-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground"
             onClick={() => setDrawerOpen((open) => !open)}
           >
-            <Ellipsis className="h-5 w-5" strokeWidth={1.8} />
+            <span className="relative">
+              <Ellipsis className="h-5 w-5" strokeWidth={1.8} />
+              {/* The bell lives in the drawer on a phone; this tells there is something behind it. */}
+              {unreadNotifications > 0 ? <span aria-hidden="true" className="absolute -right-1 -top-1 size-2 rounded-full bg-foreground" /> : null}
+            </span>
             {t('common:actions.more')}
+            {unreadNotifications > 0 ? <span className="sr-only"> {t('common:notifications.openUnread', { count: unreadNotifications, n: unreadNotifications })}</span> : null}
           </button>
         </nav>
       </div>

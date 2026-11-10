@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CommandPalette } from './CommandPalette'
 import { ME_QUERY_KEY } from '@/shared/hooks/use-me'
+import { usePageActions } from '@/shared/lib/page-actions'
 import type { SessionPayload } from '@/shared/lib/types'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -31,7 +32,12 @@ beforeAll(() => {
   Element.prototype.scrollIntoView ??= () => {}
 })
 
-function render() {
+function PageWithActions({ run }: { run: () => void }) {
+  usePageActions([{ id: 'go-active', label: 'Mergi la: Clienți activi', run }])
+  return null
+}
+
+function render(page?: React.ReactNode) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   queryClient.setQueryData(ME_QUERY_KEY, session)
   act(() =>
@@ -41,6 +47,7 @@ function render() {
           <Routes>
             <Route path="*" element={<LocationProbe />} />
           </Routes>
+          {page}
           <CommandPalette open onOpenChange={() => {}} />
         </MemoryRouter>
       </QueryClientProvider>,
@@ -127,7 +134,7 @@ describe('CommandPalette', () => {
           {
             group: 'Clienți',
             feature: 'clienti.view',
-            items: [{ id: 'p1', label: 'Acme SRL', sublabel: 'Ion Pop · RO123', to: '/pricing?prospect=p1' }],
+            items: [{ id: 'p1', label: 'Acme SRL', sublabel: 'Ion Pop · RO123', to: '/clients?prospect=p1' }],
           },
         ],
       }),
@@ -149,7 +156,7 @@ describe('CommandPalette', () => {
     expect(items().join('|')).toContain('Acme SRL')
 
     act(() => document.querySelector('[cmdk-item]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
-    expect(currentPath).toBe('/pricing?prospect=p1')
+    expect(currentPath).toBe('/clients?prospect=p1')
   })
 
   it('without cautare.view it only lists pages and never calls the server', async () => {
@@ -164,5 +171,23 @@ describe('CommandPalette', () => {
 
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('/api/search'), expect.anything())
     expect(items().join('|')).toContain('Notițe')
+  })
+
+  it('acțiunile paginii deschise apar primele, în „Pe pagina asta”, și rulează', () => {
+    const run = vi.fn()
+    render(<PageWithActions run={run} />)
+    const groups = [...document.querySelectorAll('[cmdk-group]')]
+    expect(groups[0]?.textContent).toContain('Pe pagina asta')
+    expect(groups[0]?.textContent).toContain('Mergi la: Clienți activi')
+    const item = [...document.querySelectorAll('[cmdk-item]')].find((el) => el.textContent === 'Mergi la: Clienți activi')
+    act(() => item?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+    expect(run).toHaveBeenCalledOnce()
+  })
+
+  it('după ce pagina se demontează, acțiunile ei dispar din paletă', () => {
+    render(<PageWithActions run={() => {}} />)
+    expect(items().join('|')).toContain('Mergi la: Clienți activi')
+    render()
+    expect(items().join('|')).not.toContain('Mergi la: Clienți activi')
   })
 })

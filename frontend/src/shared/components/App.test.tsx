@@ -90,7 +90,9 @@ beforeEach(() => {
         ? { items: [], total: 0 }
         : url.includes('/api/calendar')
           ? { items: [] }
-          : []
+          : url.includes('/api/notifications')
+            ? { rows: [], nextCursor: null, unread: 0 }
+            : []
       return { ok: true, status: 200, json: async () => ({ success: true, data }) }
     }),
   )

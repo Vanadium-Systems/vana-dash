@@ -23,7 +23,7 @@ import {
 } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
-import { ProspectNotYoursError } from '../../shared/lib/prospect-access.js'
+import { ownerNameOf, ProspectNotYoursError } from '../../shared/lib/prospect-access.js'
 import { getCompany } from '../../shared/lib/company.js'
 import { getCountryPack } from '../../countries/index.js'
 import { FilterOpError } from './filters.js'
@@ -39,12 +39,12 @@ type Id = { id: string }
 export function prospectErrorReply(reply: FastifyReply, err: unknown) {
   if (err instanceof ProspectNotYoursError) {
     const error = err.ownerName ? tr('errors.prospects.notYours', { owner: err.ownerName }) : tr('errors.prospects.notYoursFree')
-    return reply.code(403).send({ success: false, error, code: err.code, ownerName: err.ownerName })
+    return reply.code(403).send({ success: false, error: { code: err.code, message: error }, ownerName: err.ownerName })
   }
   if (err instanceof service.ProspectExistsError) {
-    return reply.code(409).send({ success: false, error: tr('errors.prospects.exists', { name: err.existing.name }), code: err.code, existing: err.existing })
+    return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.exists', { name: err.existing.name }) }, existing: err.existing })
   }
-  if (err instanceof service.LostReasonRequiredError) return reply.code(400).send({ success: false, error: err.message, code: err.code })
+  if (err instanceof service.LostReasonRequiredError) return reply.code(400).send({ success: false, error: { code: err.code, message: err.message } })
   if (err instanceof service.InvalidProspectStatusError || err instanceof FilterOpError) {
     return reply.code(400).send({ success: false, error: err.message })
   }
@@ -53,7 +53,7 @@ export function prospectErrorReply(reply: FastifyReply, err: unknown) {
 
 /** Import errors carry their own status and code; a bad assignee is the same 400 the rest of the module gives. */
 function importErrorReply(reply: FastifyReply, err: unknown) {
-  if (err instanceof ImportError) return reply.code(err.status).send({ success: false, error: err.message, code: err.code })
+  if (err instanceof ImportError) return reply.code(err.status).send({ success: false, error: { code: err.code, message: err.message } })
   if (err instanceof service.InvalidAssigneeError) return reply.code(400).send({ success: false, error: tr('errors.prospects.assigneeInvalid') })
   return prospectErrorReply(reply, err)
 }
@@ -97,7 +97,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
     const existing = await service.findByCif(req.query.cui)
     try {
       const company = await pack.lookupCompany(req.query.cui)
-      return { success: true, data: { company, existing: existing ? { id: existing.id, name: existing.name } : null } }
+      return { success: true, data: { company, existing: existing ? { id: existing.id, name: existing.name, ownerName: await ownerNameOf(existing.assignedUserId) } : null } }
     } catch (err) {
       const status = (err as { statusCode?: number }).statusCode === 503 ? 503 : 400
       return reply.code(status).send({ success: false, error: err instanceof Error ? err.message : tr('errors.prospects.lookupUnavailable') })
@@ -212,7 +212,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
       reply.header('Content-Disposition', `attachment; filename="${file.filename}"`)
       return reply.type(file.contentType).send(file.body)
     } catch (err) {
-      if (err instanceof ExportTooManyError) return reply.code(400).send({ success: false, error: err.message, code: err.code })
+      if (err instanceof ExportTooManyError) return reply.code(400).send({ success: false, error: { code: err.code, message: err.message } })
       return prospectErrorReply(reply, err)
     }
   })

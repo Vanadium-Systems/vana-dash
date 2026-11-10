@@ -23,9 +23,15 @@ describe('mapEntry', () => {
     expect(mapEntry(ACME_ENTRY)).toEqual({
       name: 'ACME RECYCLING S.R.L.',
       address: { street: 'Str. Exemplu 7', locality: 'Mun. Braşov', county: 'BRAŞOV' },
+      caen: null,
       isVatPayer: false,
       stare: 'activ',
     })
+  })
+
+  it('citește codul CAEN când ANAF îl trimite', () => {
+    const entry = { ...ACME_ENTRY, date_generale: { ...ACME_ENTRY.date_generale, cod_CAEN: ' 3811 ' } }
+    expect(mapEntry(entry).caen).toBe('3811')
   })
 
   it('mapează un plătitor de TVA', () => {

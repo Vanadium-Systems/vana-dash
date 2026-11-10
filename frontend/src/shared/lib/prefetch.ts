@@ -53,7 +53,7 @@ const PAGE_DATA: Record<string, PageQuery[]> = {
       queryFn: () => api.get('/api/tenders'),
     },
   ],
-  '/pricing': [
+  '/clients': [
     { feature: 'clienti.view', queryKey: ['prospects', { search: '', showArchived: false }], queryFn: () => api.get('/api/prospects?') },
   ],
   '/reconciliation': [

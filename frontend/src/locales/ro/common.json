@@ -196,7 +196,8 @@
     "placeholder": "Caută o pagină, un client, o factură, un fir de email",
     "pages": "Pagini",
     "searchFailed": "Nu am putut căuta. Încearcă din nou.",
-    "nothingFor": "Nimic pentru „{{term}}”."
+    "nothingFor": "Nimic pentru „{{term}}”.",
+    "thisPage": "Pe pagina asta"
   },
   "shortcuts": {
     "title": "Scurtături de tastatură",
@@ -530,5 +531,78 @@
   "filter": {
     "add": "Filtru",
     "remove": "Scoate filtrul {{filter}}"
+  },
+  "filterBar": {
+    "search": "Caută",
+    "searchPlaceholder": "Caută",
+    "addFilter": "Filtru",
+    "allFilters": "Toate filtrele",
+    "pinFilter": "Fixează {{field}} în bară",
+    "unpinFilter": "Scoate {{field}} din bară",
+    "fieldSearch": "Caută un filtru",
+    "back": "Înapoi",
+    "edit": "Modifică filtrul {{filter}}",
+    "chip": "{{field}}: {{value}}",
+    "notValue": "nu {{values}}",
+    "isEmpty": "gol",
+    "notEmpty": "completat",
+    "range": "{{from}} - {{to}}",
+    "rangeFrom": "de la {{from}}",
+    "rangeTo": "până la {{to}}",
+    "is": "Este",
+    "isNot": "Nu este",
+    "empty": "Gol",
+    "filled": "Completat",
+    "interval": "Interval",
+    "from": "De la",
+    "to": "Până la",
+    "valueSearch": "Caută în valori",
+    "addValue": "Adaugă",
+    "valueInput": "Valoare",
+    "noFields": "Niciun filtru cu numele ăsta",
+    "dialogTitle": "Toate filtrele",
+    "dialogHint": "Modifici o copie; filtrele se aplică abia la „Aplică”.",
+    "results_one": "{{n}} rezultat",
+    "results_few": "{{n}} rezultate",
+    "results_other": "{{n}} de rezultate",
+    "resultsOver": "peste {{n}} de rezultate",
+    "counting": "Se numără...",
+    "clearAll": "Golește filtrele",
+    "period": {
+      "label": "Perioadă",
+      "thisMonth": "Luna asta",
+      "lastMonth": "Luna trecută",
+      "thisQuarter": "Trimestrul ăsta",
+      "thisYear": "Anul ăsta",
+      "custom": "Interval ales",
+      "any": "Oricând",
+      "from": "De la",
+      "to": "Până la"
+    },
+    "nl": {
+      "button": "Descrie",
+      "label": "Descrie ce cauți",
+      "placeholder": "ex. firme de reciclare din Brașov, fără contact în 30 de zile",
+      "apply": "Caută",
+      "working": "Se citește…",
+      "nothing": "Nimic din frază nu a putut deveni filtru.",
+      "dropped_one": "O parte a fost lăsată deoparte.",
+      "dropped_few": "{{count}} părți au fost lăsate deoparte.",
+      "dropped_other": "{{count}} de părți au fost lăsate deoparte.",
+      "failed": "Fraza nu s-a putut citi.",
+      "fromPhrase": "din frază"
+    }
+  },
+  "notifications": {
+    "title": "Notificări",
+    "open": "Notificări",
+    "openUnread_one": "Notificări, {{n}} necitită",
+    "openUnread_few": "Notificări, {{n}} necitite",
+    "openUnread_other": "Notificări, {{n}} necitite",
+    "markAll": "Marchează tot ca citit",
+    "empty": "Nimic nou.",
+    "loadFailed": "Notificările nu s-au putut încărca.",
+    "more": "Arată mai vechi",
+    "unread": "Necitit:"
   }
 }

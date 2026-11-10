@@ -9,7 +9,8 @@ import { Highlight } from '@/shared/components/Highlight'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
-import { NAV_ITEMS, navGroupLabel } from '@/shared/lib/nav-items'
+import { NAV_ITEMS, navGroupLabel, canOpenNavItem } from '@/shared/lib/nav-items'
+import { useRegisteredPageActions } from '@/shared/lib/page-actions'
 import type { FeatureKey } from '@/shared/lib/types'
 import { normalizeForSearch } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
@@ -92,15 +93,19 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     staleTime: 30_000,
   })
 
-  const go = (to: string) => {
+  const close = () => {
     onOpenChange(false)
     setSearch('')
+  }
+  const go = (to: string) => {
+    close()
     navigate(to)
   }
 
-  const pages = NAV_ITEMS.filter((item) => can(item.feature))
+  const pages = NAV_ITEMS.filter((item) => canOpenNavItem(item, can))
   const subPages = SUB_PAGES.filter((page) => can(page.feature))
   const actions = ACTIONS.filter((action) => can(action.feature))
+  const pageActions = useRegisteredPageActions().filter((action) => can(action.feature))
   const groups = (results.data ?? []).filter((group) => can(group.feature))
   const searching = canSearch && term.length >= 2
   // Cât timp răspunde serverul, arătăm doar starea de căutare, nu paginile: o listă care
@@ -133,6 +138,24 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
               />
             </div>
             <Command.List className="max-h-[min(60dvh,24rem)] overflow-y-auto overscroll-contain p-1">
+              {pageActions.length > 0 ? (
+                <Command.Group heading={t('common:palette.thisPage')} className={GROUP_CLASS}>
+                  {pageActions.map((action) => (
+                    <Command.Item
+                      key={action.id}
+                      value={action.label}
+                      onSelect={() => {
+                        close()
+                        action.run()
+                      }}
+                      className={ITEM_CLASS}
+                    >
+                      {action.icon ? <action.icon className="h-4 w-4" aria-hidden="true" /> : null}
+                      {action.label}
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              ) : null}
               {!searching || waiting ? (
                 <>
                   {actions.length > 0 ? (

@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api } from '@/shared/lib/api'
 import type { EmailSequence } from '@/shared/lib/types'
 import { SequenceEnrollmentsDialog } from './SequenceEnrollmentsDialog'
-import { SequenceFormDialog } from './SequenceFormDialog'
+import { SequenceEditor } from './sequence/SequenceEditor'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { t } from '@/shared/lib/i18n'
 
@@ -25,8 +25,8 @@ const FROM_LABEL: Record<string, string> = {
 export function SequencesTab() {
   const confirm = useConfirm()
   const queryClient = useQueryClient()
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editing, setEditing] = useState<EmailSequence | null>(null)
+  // 'new' = the editor on a blank sequence; an id = the editor on that sequence.
+  const [editorTarget, setEditorTarget] = useState<string | null>(null)
   const [viewingEnrollments, setViewingEnrollments] = useState<EmailSequence | null>(null)
 
   const sequences = useQuery({
@@ -49,15 +49,15 @@ export function SequencesTab() {
     onError: (err) => toast.error(err.message),
   })
 
+  const editing = editorTarget && editorTarget !== 'new' ? sequences.data?.find((s) => s.id === editorTarget) : undefined
+  if (editorTarget === 'new' || editing) {
+    return <SequenceEditor key={editorTarget} sequence={editing ?? null} onClose={() => setEditorTarget(null)} />
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button
-          onClick={() => {
-            setEditing(null)
-            setDialogOpen(true)
-          }}
-        >
+        <Button onClick={() => setEditorTarget('new')}>
           <Plus className="h-4 w-4" /> {t('email:sequences.new')}
         </Button>
       </div>
@@ -104,10 +104,7 @@ export function SequencesTab() {
                             key: 'edit',
                             icon: Pencil,
                             label: t('common:actions.edit'),
-                            onClick: () => {
-                              setEditing(s)
-                              setDialogOpen(true)
-                            },
+                            onClick: () => setEditorTarget(s.id),
                           },
                           {
                             key: 'delete',
@@ -128,7 +125,6 @@ export function SequencesTab() {
           )}
         </CardContent>
       </Card>
-      <SequenceFormDialog open={dialogOpen} onOpenChange={setDialogOpen} sequence={editing} />
       <SequenceEnrollmentsDialog sequence={viewingEnrollments} onOpenChange={(open) => !open && setViewingEnrollments(null)} />
     </div>
   )

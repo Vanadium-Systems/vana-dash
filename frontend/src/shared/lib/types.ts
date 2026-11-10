@@ -320,6 +320,8 @@ export interface ContractDetails {
   /** Implicit true (nesetat = Luna Gratuită inclusă, comportamentul de dinainte). */
   areLunaGratuita?: boolean
   conditiiSpeciale?: string
+  /** The calculator inputs the price came from (saved by "apply to client"). */
+  calc?: PricingCalculateInput
 }
 
 export interface SignatureRect {
@@ -803,11 +805,17 @@ export interface BulkSendResult {
 
 // ── Secvențe outreach (drip automat, 2026-08-12) ─────────────────────────────
 
+export type SequenceStepKind = 'email' | 'call' | 'task' | 'linkedin_connect' | 'linkedin_message' | 'linkedin_view' | 'linkedin_engage'
+
 export interface EmailSequenceStep {
   id: string
   sequenceId: string
   stepOrder: number
-  templateId: string
+  kind: SequenceStepKind
+  templateId: string | null
+  variantBTemplateId: string | null
+  taskTitle: string | null
+  taskDescription: string | null
   delayDays: number
 }
 
@@ -832,14 +840,40 @@ export interface EmailSequence {
   name: string
   fromIdentity: EmailFromKey
   active: boolean
+  stopOnMeeting: boolean
+  stopOnWonLost: boolean
+  /** Set by the bounce guard; `pausedReason` is `BOUNCE_RATE:<rate>:<sends>`. */
+  pausedAt: string | null
+  pausedReason: string | null
   steps: EmailSequenceStep[]
   createdAt: string
   updatedAt: string
 }
 
+export type EnrollSkipReason = 'SUPPRESSED' | 'BOUNCED' | 'UNSUBSCRIBED' | 'DO_NOT_CONTACT' | 'NO_PHONE' | 'NO_EMAIL' | 'ALREADY_ENROLLED'
+
 export interface EnrollResult {
   enrolled: number
+  skipped?: Array<{ recipient?: string; prospectId?: string; reason: EnrollSkipReason }>
   alreadyEnrolled: string[]
+}
+
+export interface SequenceDiagnosticsVariant {
+  variant: 'A' | 'B'
+  sent: number
+  opened: number
+  clicked: number
+  replied: number
+  bounced: number
+}
+
+export interface SequenceDiagnostics {
+  steps: Array<
+    | { stepId: string; order: number; kind: 'email'; variants: SequenceDiagnosticsVariant[] }
+    | { stepId: string; order: number; kind: Exclude<SequenceStepKind, 'email'>; reached: number }
+  >
+  paused: { at: string; reason: string | null } | null
+  bouncePause: { threshold: number; minSends: number; window: number }
 }
 
 export interface SequenceStats {
@@ -1498,6 +1532,7 @@ export interface ProspectStatusEntry {
   colorToken: StatusColorToken
   sortOrder: number
   isDefault: boolean
+  kind: 'open' | 'won' | 'lost'
 }
 
 export type ProspectPriority = 'HOT' | 'WARM' | 'NURTURE' | 'SKIP'

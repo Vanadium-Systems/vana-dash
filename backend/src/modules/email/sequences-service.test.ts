@@ -11,6 +11,7 @@ import {
   createSequence,
   enrollRecipients,
   getSequence,
+  getSequenceDiagnostics,
   getSequenceStats,
   listSequences,
   softDeleteSequence,
@@ -306,5 +307,18 @@ describe('getSequenceStats (2026-09-03 — status agregat, tab Secvențe)', () =
     expect(stats.total).toBe(0)
     expect(stats.byStatus).toEqual({ active: 0, replied: 0, unsubscribed: 0, completed: 0, failed: 0, meeting: 0, won_lost: 0, bounced: 0 })
     expect(stats.byStep).toEqual([{ step: 0, label: 'Neîncepuți', count: 0 }, { step: 1, label: 'Pas 1', count: 0 }])
+  })
+})
+
+describe('getSequenceDiagnostics', () => {
+  it('carries the bounce-pause rule next to the numbers', async () => {
+    const tpl = await makeTemplate()
+    const seq = await createSequence(admin, { name: 'QA diagnostics', fromIdentity: 'contact', steps: [{ templateId: tpl.id, delayDays: 0 }] })
+    sequenceIds.push(seq.id)
+
+    const diagnostics = await getSequenceDiagnostics(seq.id)
+
+    expect(diagnostics?.bouncePause).toEqual({ threshold: 0.05, minSends: 20, window: 50 })
+    expect(diagnostics?.paused).toBeNull()
   })
 })

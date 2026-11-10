@@ -18,6 +18,7 @@ export interface ProspectView {
   id: string
   name: string
   kind: 'companies' | 'people'
+  q: string
   filters: ProspectFilter[]
   columns: string[]
   sort: { key: string; dir: 'asc' | 'desc' } | null
@@ -37,6 +38,7 @@ function selectViews(me: Me, where: SQL | undefined) {
       id: prospectViews.id,
       name: prospectViews.name,
       kind: prospectViews.kind,
+      q: prospectViews.q,
       filters: prospectViews.filters,
       columns: prospectViews.columns,
       sort: prospectViews.sort,

@@ -404,7 +404,7 @@ function TodoList() {
   const emptyLinks = [
     can('email.view') && { to: '/email', label: t('common:labels.email') },
     can('calendar.view') && { to: '/calendar', label: t('common:nav.calendar') },
-    can('clienti.view') && { to: '/pricing', label: t('common:nav.clients') },
+    can('clienti.view') && { to: '/clients', label: t('common:nav.clients') },
   ].filter((link): link is { to: string; label: string } => link !== false)
 
   const items: TodoItem[] = []

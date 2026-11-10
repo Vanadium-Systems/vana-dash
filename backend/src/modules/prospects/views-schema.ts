@@ -7,6 +7,7 @@ const CALC_FUNCTIONS = ['count', 'sum', 'avg', 'min', 'max'] as const
 const viewFields = {
   name: z.string().trim().min(1).max(100),
   kind: z.enum(['companies', 'people']),
+  q: z.string().trim().max(200),
   filters: ProspectFiltersSchema,
   columns: z.array(z.string().max(60)).max(40),
   sort: z.object({ key: z.enum(PROSPECT_SORT_KEYS), dir: z.enum(['asc', 'desc']) }).nullable(),
@@ -19,6 +20,7 @@ const viewFields = {
 export const CreateViewSchema = z.object({
   ...viewFields,
   kind: viewFields.kind.default('companies'),
+  q: viewFields.q.default(''),
   filters: viewFields.filters.default([]),
   columns: viewFields.columns.default([]),
   sort: viewFields.sort.default(null),

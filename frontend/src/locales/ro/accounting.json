@@ -184,7 +184,29 @@
     "markSigned": "Marchează semnat",
     "addendaTitle": "Acte adiționale",
     "noAddenda": "Niciun act adițional încă.",
-    "generatePdf": "Generează PDF"
+    "generatePdf": "Generează PDF",
+    "list": {
+      "newTitle": "Contract nou",
+      "new": "Contract nou",
+      "settings": "Setări contracte",
+      "number": "Nr. contract",
+      "plan": "Plan",
+      "lastDocument": "Ultimul document",
+      "peekTitle": "Contract",
+      "states": {
+        "none": "Fără contract",
+        "generated": "Generat",
+        "signed": "Semnat",
+        "addendum": "Cu act adițional"
+      },
+      "reservedLine_one": "{{n}} număr rezervat",
+      "reservedLine_few": "{{n}} numere rezervate",
+      "reservedLine_other": "{{n}} de numere rezervate",
+      "loadFailed": "Nu am putut încărca contractele.",
+      "noMatch": "Niciun contract nu se potrivește filtrelor.",
+      "empty": "Niciun client încă. Contractele apar după ce adaugi clienți."
+    },
+    "documentGenerated": "{{type}} generat"
   },
   "declarations": {
     "loadFailed": "Nu am putut încărca datele pentru {{month}}.",

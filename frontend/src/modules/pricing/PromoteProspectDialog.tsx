@@ -12,7 +12,7 @@ import type { Prospect } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
 
 interface PromoteProspectDialogProps {
-  prospect: Prospect | null
+  prospect: Pick<Prospect, 'id' | 'name' | 'cif'> | null
   onOpenChange: (open: boolean) => void
 }
 
@@ -49,7 +49,7 @@ export function PromoteProspectDialog({ prospect, onOpenChange }: PromoteProspec
       // The new client lives on another page; without `facturi.clienti` that page would be a 403.
       toast.success(t('pricing:promote.done'), {
         action: can('facturi.clienti')
-          ? { label: t('common:actions.view'), onClick: () => navigate('/accounting?tab=clienti') }
+          ? { label: t('common:actions.view'), onClick: () => navigate('/clients?tab=activi') }
           : undefined,
       })
       onOpenChange(false)

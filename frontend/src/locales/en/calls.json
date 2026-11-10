@@ -49,7 +49,10 @@
     "hours_one": "{{count}} hour",
     "hours_other": "{{count}} hours",
     "create": "Create and copy the link",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "prospectLabel": "Prospect",
+    "unlinkProspect": "Unlink",
+    "titleFor": "Call with {{name}}"
   },
   "endConfirm": {
     "title": "End the call “{{title}}”?",

@@ -459,7 +459,7 @@ const SOURCES: GuideSource[] = [
   },
   {
     id: 'clienti-prospecti',
-    route: '/pricing',
+    route: '/clients',
     feature: 'clienti.prospectare',
     title: {
       ro: 'Lucrezi pe lista de prospecți',
@@ -498,7 +498,7 @@ const SOURCES: GuideSource[] = [
   },
   {
     id: 'clienti-calculator',
-    route: '/pricing',
+    route: '/clients',
     feature: 'clienti.calculator',
     title: {
       ro: 'Calculezi un preț',

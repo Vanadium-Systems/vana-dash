@@ -25,8 +25,8 @@ import {
 import { InvalidAssigneeError } from './service.js'
 
 function crmErrorReply(reply: FastifyReply, err: unknown) {
-  if (err instanceof crm.ContactExistsError) return reply.code(409).send({ success: false, error: tr('errors.prospects.contactExists'), code: err.code })
-  if (err instanceof crm.NoteNotYoursError) return reply.code(403).send({ success: false, error: tr('errors.prospects.noteNotYours'), code: err.code })
+  if (err instanceof crm.ContactExistsError) return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.contactExists') } })
+  if (err instanceof crm.NoteNotYoursError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.noteNotYours') } })
   if (err instanceof InvalidAssigneeError) return reply.code(400).send({ success: false, error: tr('errors.prospects.assigneeInvalid') })
   if (err instanceof crm.ForeignRefError) {
     const error = tr(err.what === 'person' ? 'errors.prospects.personInvalid' : 'errors.prospects.contactPointInvalid')

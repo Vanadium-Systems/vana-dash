@@ -12,13 +12,14 @@ const FETCH_TIMEOUT_MS = 5_000
 export interface AnafCompanyInfo {
   name: string
   address: { street: string | null; locality: string | null; county: string | null }
+  caen: string | null
   isVatPayer: boolean
   stare: 'activ' | 'inactiv' | 'radiat'
 }
 
 /** Exportat pt. test unitar. */
 export interface AnafFoundEntry {
-  date_generale?: { cui?: number; denumire?: string }
+  date_generale?: { cui?: number; denumire?: string; cod_CAEN?: string }
   inregistrare_scop_Tva?: { scpTVA?: boolean }
   stare_inactiv?: { statusInactivi?: boolean; dataRadiere?: string }
   adresa_sediu_social?: {
@@ -63,6 +64,7 @@ export function mapEntry(entry: AnafFoundEntry): AnafCompanyInfo {
   return {
     name,
     address: { street, locality, county },
+    caen: nonEmpty(entry.date_generale?.cod_CAEN),
     isVatPayer: entry.inregistrare_scop_Tva?.scpTVA === true,
     stare: mapStare(entry.stare_inactiv),
   }

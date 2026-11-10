@@ -21,11 +21,13 @@ export const CreateProspectStatusSchema = z.object({
     .regex(/^[a-z0-9_]+$/, lazyTr('errors.prospects.keyFormat')),
   label: z.string().trim().min(1).max(100),
   colorToken: z.enum(STATUS_COLOR_TOKENS),
+  kind: z.enum(['open', 'won', 'lost']).optional(),
 })
 
 export const UpdateProspectStatusSchema = z.object({
   label: z.string().trim().min(1).max(100).optional(),
   colorToken: z.enum(STATUS_COLOR_TOKENS).optional(),
+  kind: z.enum(['open', 'won', 'lost']).optional(),
 })
 
 export const ReorderProspectStatusesSchema = z.object({

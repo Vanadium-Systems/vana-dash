@@ -183,7 +183,28 @@
     "markSigned": "Mark as signed",
     "addendaTitle": "Addenda",
     "noAddenda": "No addendum yet.",
-    "generatePdf": "Generate PDF"
+    "generatePdf": "Generate PDF",
+    "list": {
+      "newTitle": "New contract",
+      "new": "New contract",
+      "settings": "Contract settings",
+      "number": "Contract no.",
+      "plan": "Plan",
+      "lastDocument": "Last document",
+      "peekTitle": "Contract",
+      "states": {
+        "none": "No contract",
+        "generated": "Generated",
+        "signed": "Signed",
+        "addendum": "With addendum"
+      },
+      "reservedLine_one": "{{n}} reserved number",
+      "reservedLine_other": "{{n}} reserved numbers",
+      "loadFailed": "Could not load the contracts.",
+      "noMatch": "No contract matches the filters.",
+      "empty": "No clients yet. Contracts show up once you add clients."
+    },
+    "documentGenerated": "{{type}} generated"
   },
   "declarations": {
     "loadFailed": "The data for {{month}} could not be loaded.",

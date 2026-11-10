@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/lib/api'
 import { useMe } from '@/shared/hooks/use-me'
-import { resolveNavLayout, type NavItemDef } from '@/shared/lib/nav-items'
+import { resolveNavLayout, type NavItemDef, canOpenNavItem } from '@/shared/lib/nav-items'
 
 // Ordine + vizibilitate nav din dashboard_config['nav.layout'] (Contractul F). Lipsa
 // config-ului = default canonic din cod. Invalidat de editorul din Setări (['nav-layout']).
@@ -23,6 +23,6 @@ export function useNavLayout() {
     // Nav-ul nu merită un fallback UI — până răspunde, default canonic e perfect.
     retry: 1,
   })
-  const items: NavItemDef[] = resolveNavLayout(query.data?.items).filter((item) => can(item.feature))
+  const items: NavItemDef[] = resolveNavLayout(query.data?.items).filter((item) => canOpenNavItem(item, can))
   return { items, isLoading: query.isLoading }
 }

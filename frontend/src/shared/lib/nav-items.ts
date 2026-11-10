@@ -21,13 +21,19 @@ export function navGroupLabel(group: NavGroup): string {
   return t(`common:nav.groups.${group}`)
 }
 
+type CanFn = (feature: FeatureKey | null | undefined) => boolean
+
+export function canOpenNavItem(item: Pick<NavItemDef, 'feature'>, can: CanFn): boolean {
+  return Array.isArray(item.feature) ? item.feature.some((feature) => can(feature)) : can(item.feature)
+}
+
 export interface NavItemDef {
   to: string
   label: string
   icon: LucideIcon
   group: NavGroup
-  /** Funcționalitatea care deschide pagina; absent = pagină fără poartă. */
-  feature?: FeatureKey
+  /** Funcționalitatea care deschide pagina (lista = oricare dintre ele); absent = pagină fără poartă. */
+  feature?: FeatureKey | FeatureKey[]
   /** Extra words for Ctrl K: the page name in both languages, old names, synonyms. No diacritics. */
   keywords?: string[]
   /** Alte rute pe care itemul apare activ (Investiții = /crypto + /assets). */
@@ -46,7 +52,7 @@ export const NAV_ITEMS: NavItemDef[] = [
   { to: '/accounting', label: t('common:nav.invoices'), icon: Receipt, group: 'money', feature: 'facturi.view', keywords: ['facturi', 'invoices', 'accounting', 'contabilitate', 'efactura', 'anaf'] },
   { to: '/financials', label: t('common:nav.financials'), icon: Wallet, group: 'money', feature: 'financiar.view', keywords: ['financiar', 'financials', 'rapoarte', 'reports', 'profit'] },
   { to: '/reconciliation', label: t('common:nav.reconciliation'), icon: Landmark, group: 'money', feature: 'reconciliere.view', keywords: ['reconciliere', 'reconciliation', 'banca', 'bank', 'revolut', 'tranzactii', 'transactions'] },
-  { to: '/pricing', label: t('common:nav.clients'), icon: Users, group: 'money', feature: 'clienti.view', keywords: ['clienti', 'clients', 'pricing', 'prospectare', 'prospects', 'preturi', 'prices'] },
+  { to: '/clients', label: t('common:nav.clients'), icon: Users, group: 'money', feature: ['clienti.view', 'facturi.clienti', 'facturi.contracte', 'clienti.calculator', 'clienti.config-pret'], keywords: ['clienti', 'clients', 'pricing', 'prospectare', 'prospects', 'preturi', 'prices'] },
   { to: '/tenders', label: t('common:nav.tenders'), icon: Gavel, group: 'money', feature: 'licitatii.view', keywords: ['licitatii', 'tenders', 'sicap'] },
   { to: '/crypto', label: t('common:nav.investments'), icon: LineChart, group: 'money', feature: 'investitii.view', keywords: ['investitii', 'investments', 'crypto', 'actiuni', 'stocks', 'assets', 'bursa', 'bot'], activeOn: ['/crypto', '/assets'] },
 

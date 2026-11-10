@@ -5,7 +5,7 @@ import { users } from './users.js'
 import { prospects } from './prospects.js'
 import { tenantColumns } from './tenant-column.js'
 
-// A saved prospect search: filters, columns, sort, column calculations, layout.
+// A saved prospect search: search text, filters, columns, sort, column calculations, layout.
 export const prospectViews = pgTable(
   'prospect_views',
   {
@@ -16,6 +16,7 @@ export const prospectViews = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     kind: text('kind', { enum: ['companies', 'people'] }).notNull().default('companies'),
+    q: text('q').notNull().default(''),
     filters: jsonb('filters').notNull().default([]),
     columns: jsonb('columns').notNull().default([]),
     sort: jsonb('sort'),

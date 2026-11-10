@@ -10,9 +10,10 @@ import { t } from '@/shared/lib/i18n'
 // care spune ce lipsește și cine poate da (PLAN.md C2, §5.17). Ascundem ce nu poate face
 // niciodată omul în rolul lui — aici însă omul a venit cu link, deci răspundem.
 
-export function RequireFeature({ feature, page, children }: { feature: FeatureKey; page: string; children: ReactNode }) {
-  const { can } = useMe()
-  if (can(feature)) return <>{children}</>
+// A list opens the page to anyone who has at least one of them (Clienți: its tabs have a feature each).
+export function RequireFeature({ feature, page, children }: { feature: FeatureKey | FeatureKey[]; page: string; children: ReactNode }) {
+  const { can, canAny } = useMe()
+  if (Array.isArray(feature) ? canAny(feature) : can(feature)) return <>{children}</>
   return <AccessDenied page={page} />
 }
 

@@ -5,12 +5,19 @@ import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
-import type { EmailSequence, EnrollResult, Prospect } from '@/shared/lib/types'
+import type { EmailSequence, EnrollResult } from '@/shared/lib/types'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 
+export interface SequenceTarget {
+  id: string
+  name: string
+  email: string | null
+  contactName: string | null
+}
+
 interface AddToSequenceDialogProps {
-  prospects: Prospect[]
+  prospects: SequenceTarget[]
   onOpenChange: (open: boolean) => void
 }
 

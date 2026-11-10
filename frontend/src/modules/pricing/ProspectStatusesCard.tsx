@@ -10,11 +10,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Input } from '@/shared/components/ui/input'
 import { api } from '@/shared/lib/api'
 import { STATUS_COLOR_TOKENS, type ProspectStatusEntry, type StatusColorToken } from '@/shared/lib/types'
+
+type StatusKind = ProspectStatusEntry['kind']
+const KINDS: StatusKind[] = ['open', 'won', 'lost']
+const KIND_TEXTS = {
+  open: 'clients:settings.statuses.kinds.open',
+  won: 'clients:settings.statuses.kinds.won',
+  lost: 'clients:settings.statuses.kinds.lost',
+} satisfies Record<StatusKind, TKey>
 import { cn } from '@/shared/lib/utils'
 import { StatusDot } from './status-colors'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
-import { t } from '@/shared/lib/i18n'
+import { t, type TKey } from '@/shared/lib/i18n'
 
 // Wave 0/1, sprint de-hardcodare (2026-08-20) — gestiunea catalogului de statusuri prospect,
 // înlocuiește STATUS_OPTIONS/STATUS_LABELS/STATUS_COLORS hardcodate. Pattern reorder identic
@@ -27,7 +35,7 @@ function StatusRow({ status }: { status: ProspectStatusEntry }) {
   const [label, setLabel] = useState(status.label)
 
   const update = useMutation({
-    mutationFn: (patch: { label?: string; colorToken?: StatusColorToken }) =>
+    mutationFn: (patch: { label?: string; colorToken?: StatusColorToken; kind?: StatusKind }) =>
       api.patch<ProspectStatusEntry>(`/api/prospects/statuses/${status.id}`, patch),
     onSuccess: (data) => queryClient.setQueryData<ProspectStatusEntry[]>(['prospects', 'statuses'], (rows) => rows?.map((r) => (r.id === data.id ? data : r))),
     onError: (err) => toast.error(err.message),
@@ -70,6 +78,19 @@ function StatusRow({ status }: { status: ProspectStatusEntry }) {
         {STATUS_COLOR_TOKENS.map((token) => (
           <option key={token} value={token}>
             {token}
+          </option>
+        ))}
+      </Select>
+      <Select
+        className="w-auto"
+        size="sm"
+        aria-label={t('clients:settings.statuses.kind')}
+        value={status.kind}
+        onChange={(e) => update.mutate({ kind: e.target.value as StatusKind })}
+      >
+        {KINDS.map((kind) => (
+          <option key={kind} value={kind}>
+            {t(KIND_TEXTS[kind])}
           </option>
         ))}
       </Select>
@@ -137,7 +158,8 @@ function NewStatusForm() {
   )
 }
 
-export function ProspectStatusesCard() {
+/** `embedded`: the catalog without its own card and fold, for a settings tab. */
+export function ProspectStatusesCard({ embedded = false }: { embedded?: boolean }) {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
 
@@ -170,6 +192,26 @@ export function ProspectStatusesCard() {
     reorder.mutate(nextOrder.map((r) => r.id))
   }
 
+  const body = (
+    <>
+      {statuses.isPending ? (
+        <p className="text-sm text-muted-foreground">{t('common:states.loading')}</p>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {rows.map((status) => (
+                <StatusRow key={status.id} status={status} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+      <NewStatusForm />
+    </>
+  )
+  if (embedded) return <div className="space-y-3">{body}</div>
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -178,24 +220,7 @@ export function ProspectStatusesCard() {
           {open ? t('common:actions.hide') : t('common:actions.show')}
         </Button>
       </CardHeader>
-      {open && (
-        <CardContent className="space-y-3">
-          {statuses.isPending ? (
-            <p className="text-sm text-muted-foreground">{t('common:states.loading')}</p>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-2">
-                  {rows.map((status) => (
-                    <StatusRow key={status.id} status={status} />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
-          <NewStatusForm />
-        </CardContent>
-      )}
+      {open && <CardContent className="space-y-3">{body}</CardContent>}
     </Card>
   )
 }

@@ -278,6 +278,7 @@ export type ContractState = 'none' | 'generated' | 'signed' | 'addendum'
 /** One row per live client; the state is the strongest of: addendum, signed contract, generated contract. */
 export async function listContracts(query: z.infer<typeof ContractListQuerySchema>) {
   const like = query.q ? `%${escapeLike(query.q)}%` : null
+  const states = query.state
   const rows = await db.execute<{
     client_id: string
     client_name: string
@@ -315,7 +316,7 @@ export async function listContracts(query: z.infer<typeof ContractListQuerySchem
          ORDER BY d."created_at" DESC LIMIT 1
       ) ld ON true
      WHERE (${like}::text IS NULL OR b.client_name ILIKE ${like} OR b.contract_number ILIKE ${like})
-       AND (${query.state ?? null}::text IS NULL OR b.state = ${query.state ?? null})
+       ${states ? sql`AND b.state IN (${sql.join(states.map((s) => sql`${s}`), sql`, `)})` : sql``}
      ORDER BY b.client_name, b.client_id
      LIMIT ${query.pageSize} OFFSET ${(query.page - 1) * query.pageSize}
   `)

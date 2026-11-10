@@ -3,8 +3,6 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useMe } from '@/shared/hooks/use-me'
 import type { FeatureKey } from '@/shared/lib/types'
-import { ClientsTab } from './ClientsTab'
-import { ContractsTab } from './ContractsTab'
 import { DeclarationsTab } from './DeclarationsTab'
 import { EmiseTab } from './EmiseTab'
 import { MesajeTab } from './MesajeTab'
@@ -19,8 +17,6 @@ const TABS: Array<{ key: string; label: string; feature?: FeatureKey }> = [
   { key: 'primite', label: t('accounting:tabs.received') },
   { key: 'declaratii', label: t('accounting:tabs.declarations'), feature: 'facturi.declaratii' },
   { key: 'mesaje', label: t('accounting:tabs.spvMessages'), feature: 'facturi.anaf' },
-  { key: 'clienti', label: t('common:nav.clients'), feature: 'facturi.clienti' },
-  { key: 'contracte', label: t('accounting:tabs.contracts'), feature: 'facturi.contracte' },
   { key: 'setari', label: t('common:nav.settings'), feature: 'facturi.setari' },
 ]
 
@@ -54,12 +50,6 @@ export function AccountingPage() {
         </TabsContent>
         <TabsContent value="mesaje">
           <MesajeTab />
-        </TabsContent>
-        <TabsContent value="clienti">
-          <ClientsTab />
-        </TabsContent>
-        <TabsContent value="contracte">
-          <ContractsTab />
         </TabsContent>
         <TabsContent value="setari">
           <SettingsTab />

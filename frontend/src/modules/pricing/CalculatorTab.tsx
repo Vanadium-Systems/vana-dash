@@ -14,7 +14,8 @@ import type { BillingClient, Platform, PricingCalculateInput, PricingConfigRow, 
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { formatNumber } from '@/shared/lib/format'
 import { calculatePrice } from './calc'
-import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { ApplyPricingDialog } from './ApplyPricingDialog'
+import { buildApplyBody, type PricingApplyBody, type StoredOffer } from './offer'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
@@ -55,11 +56,13 @@ interface CalculatorTabProps {
 }
 
 export function CalculatorTab({ platformId, setPlatformId, platforms }: CalculatorTabProps) {
-  const confirm = useConfirm()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [input, setInput] = useState(CALC_DEFAULTS)
   const [billingClientId, setBillingClientId] = useState('')
+  // The prospect the quote is for (opened with ?prospectId=); the param is cleared after the prefill, so it is kept here.
+  const [offerProspect, setOfferProspect] = useState<{ id: string; name: string } | null>(null)
+  const [applyTarget, setApplyTarget] = useState<{ client: { id: string; name: string }; body: PricingApplyBody } | null>(null)
   const [localResult, setLocalResult] = useState<PricingResult | null>(null)
   // Toggle-uri UI-only (Stefan, 2026-08-07) — câmpurile numerice apar doar dacă bifezi
   // "Aplicație mobilă"/"Robot SIATD" întâi; nebifat => valoarea rămâne 0, fără input vizibil.
@@ -84,17 +87,35 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
   const prospectId = searchParams.get('prospectId')
   const prospect = useQuery({
     queryKey: ['prospects', prospectId],
-    queryFn: () => api.get<Prospect>(`/api/prospects/${prospectId}`),
+    queryFn: () => api.get<Prospect & { offer?: StoredOffer | null }>(`/api/prospects/${prospectId}`),
     enabled: Boolean(prospectId),
   })
 
+  // Puts a saved set of inputs back: the checkboxes that hide a number are on when the number is not 0.
+  const restoreInputs = (saved: PricingCalculateInput) => {
+    setInput({ ...CALC_DEFAULTS, ...saved })
+    setMobilEnabled(saved.opMobil > 0)
+    setSiatdEnabled(saved.siatd > 0)
+    setCantareEnabled(saved.cantare > 0)
+    setHoursText(saved.onboardingHours === null ? '' : String(saved.onboardingHours).replace('.', ','))
+    setMarginText(saved.onboardingMarginPercent === null ? '' : String(saved.onboardingMarginPercent).replace('.', ','))
+    setPlatformId(saved.platformId)
+    calc.reset()
+    setLocalResult(null)
+  }
+
   useEffect(() => {
     if (!prospect.data) return
-    setInput((i) => ({
-      ...i,
-      opDesktop: prospect.data.employeeCount ?? i.opDesktop,
-    }))
-    if (prospect.data.platformId) setPlatformId(prospect.data.platformId)
+    setOfferProspect({ id: prospect.data.id, name: prospect.data.name })
+    if (prospect.data.offer?.calc) {
+      restoreInputs(prospect.data.offer.calc)
+    } else {
+      setInput((i) => ({
+        ...i,
+        opDesktop: prospect.data.employeeCount ?? i.opDesktop,
+      }))
+      if (prospect.data.platformId) setPlatformId(prospect.data.platformId)
+    }
     // Curățăm query param-ul după prefill, ca un refresh să nu-l repopuleze peste editările lui Stefan.
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
@@ -102,6 +123,22 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
       return next
     })
   }, [prospect.data])
+
+  // "Open in calculator" from a client row: the inputs the price was computed from come back with it.
+  const clientParam = searchParams.get('clientId')
+  useEffect(() => {
+    if (!clientParam || !clients.data) return
+    const client = clients.data.find((c) => c.id === clientParam)
+    if (client) {
+      setBillingClientId(client.id)
+      if (client.contractDetails?.calc) restoreInputs(client.contractDetails.calc)
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('clientId')
+      return next
+    })
+  }, [clientParam, clients.data])
 
   const calcInput = () => ({
     ...input,
@@ -121,20 +158,18 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
   const result = calc.data ?? localResult
   const isLocalResult = !calc.data && Boolean(localResult)
 
-  const applyToClient = useMutation({
-    mutationFn: () =>
-      api.patch(`/api/invoicing/clients/${billingClientId}`, {
-        subscriptionPriceCurrency: 'eur',
-        subscriptionPriceLei: null,
-        subscriptionPriceEur: calc.data!.totalMonthly,
-      }),
-    // prețul e afișat și în lista de clienți din acest tab (['billing-clients'])
+  const saveOffer = useMutation({
+    mutationFn: (body: PricingApplyBody) => api.put(`/api/prospects/${offerProspect!.id}/offer`, body),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
-      toast.success(t('pricing:calc.csv.appliedPrice'))
+      void queryClient.invalidateQueries({ queryKey: ['prospects'] })
+      toast.success(t('pricing:apply.offer.saved'))
     },
     onError: (err) => toast.error(err.message),
   })
+
+  // `calc.data`, not a local result: an offline estimate never reaches a client or a prospect.
+  const applyBody = (): PricingApplyBody | null =>
+    calc.data && config.data?.config ? buildApplyBody(config.data.config, { platformId, ...calcInput() }, calc.data) : null
 
   if (!platformId) {
     return <p className="text-sm text-muted-foreground">{t('pricing:noPlatform')}</p>
@@ -472,6 +507,24 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                 ))}
               </div>
 
+              {offerProspect ? (
+                <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+                  <p className="min-w-0 flex-1 text-sm text-muted-foreground">{t('pricing:apply.offer.forProspect', { name: offerProspect.name })}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={saveOffer.isPending || isLocalResult}
+                    title={isLocalResult ? t('pricing:calc.offlineCannotApply') : undefined}
+                    onClick={() => {
+                      const body = applyBody()
+                      if (body) saveOffer.mutate(body)
+                    }}
+                  >
+                    {t('pricing:apply.offer.save')}
+                  </Button>
+                </div>
+              ) : null}
+
               <div className="flex flex-wrap items-end gap-2 border-t pt-3">
                 <div className="min-w-[14rem] flex-1 space-y-1">
                   <Label htmlFor="calc-apply-client" className="text-xs">
@@ -493,10 +546,12 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={!billingClientId || applyToClient.isPending || isLocalResult}
+                  disabled={!billingClientId || isLocalResult}
                   title={isLocalResult ? t('pricing:calc.offlineCannotApply') : undefined}
                   onClick={() => {
-                    void confirm({ title: t('pricing:calc.applyTitle'), consequence: t('pricing:calc.applyBody'), confirmLabel: t('pricing:calc.applyConfirm') }).then((ok) => ok && applyToClient.mutate())
+                    const body = applyBody()
+                    const client = clients.data?.find((c) => c.id === billingClientId)
+                    if (body && client) setApplyTarget({ client: { id: client.id, name: client.name }, body })
                   }}
                 >
                   {t('pricing:calc.applyToClient')}
@@ -506,6 +561,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
           )}
         </CardContent>
       </Card>
+      <ApplyPricingDialog client={applyTarget?.client ?? null} body={applyTarget?.body ?? null} onOpenChange={(open) => !open && setApplyTarget(null)} />
     </div>
   )
 }

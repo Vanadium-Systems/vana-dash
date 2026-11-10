@@ -7,8 +7,8 @@ import { DuplicatesQuerySchema, MergeBodySchema, MergePreviewQuerySchema } from 
 import * as health from './health-service.js'
 
 function healthErrorReply(reply: FastifyReply, err: unknown) {
-  if (err instanceof health.MergeSameError) return reply.code(400).send({ success: false, error: tr('errors.prospects.mergeSame'), code: err.code })
-  if (err instanceof health.MergeAlreadyMergedError) return reply.code(409).send({ success: false, error: tr('errors.prospects.mergeAlreadyMerged'), code: err.code })
+  if (err instanceof health.MergeSameError) return reply.code(400).send({ success: false, error: { code: err.code, message: tr('errors.prospects.mergeSame') } })
+  if (err instanceof health.MergeAlreadyMergedError) return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.mergeAlreadyMerged') } })
   return prospectErrorReply(reply, err)
 }
 

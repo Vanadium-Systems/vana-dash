@@ -36,6 +36,8 @@ export interface CountryPack {
 export interface CompanyLookup {
   name: string
   address: { street: string | null; locality: string | null; county: string | null }
+  /** Main activity code as the register gives it; null when it does not. */
+  caen: string | null
   /** false = struck off or inactive. */
   isActive: boolean
 }

@@ -136,6 +136,7 @@
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-mercury: cubic-bezier(0.16, 1, 0.3, 1);
     --duration-fast: 150ms;
     --duration-standard: 200ms;
     --duration-screen: 300ms;
@@ -338,6 +339,16 @@
     @starting-style {
       opacity: 0;
       transform: translateX(var(--enter-shift));
+    }
+  }
+  /* The prospect sheet comes in from the right by 24px (3x the usual shift, so reduced motion still zeroes it). */
+  .prospect-drawer {
+    transition:
+      opacity var(--duration-fast) var(--ease-mercury),
+      transform var(--duration-fast) var(--ease-mercury);
+    @starting-style {
+      opacity: 0;
+      transform: translateX(calc(var(--enter-shift) * 3));
     }
   }
   [data-dragging] {
@@ -557,6 +568,30 @@
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+/* The prospect sheet: properties and people beside the tabs once the sheet itself (drawer or page,
+   not the screen) is wide enough; below that one column with the tabs first. */
+.sheet-root {
+  container-type: inline-size;
+}
+.sheet-split {
+  display: grid;
+  gap: 1.5rem;
+}
+@container (min-width: 46rem) {
+  .sheet-split {
+    grid-template-columns: 19rem minmax(0, 1fr);
+    align-items: start;
+  }
+  .sheet-aside {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .sheet-main {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }
 
 /* Page cross-fade (shared/lib/view-transition.ts): only the content area changes, the shell stays. */

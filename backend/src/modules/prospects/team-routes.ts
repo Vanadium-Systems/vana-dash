@@ -18,14 +18,14 @@ import * as team from './team-service.js'
 
 function teamErrorReply(reply: FastifyReply, err: unknown) {
   if (err instanceof team.ProspectTakenError) {
-    return reply.code(409).send({ success: false, error: tr('errors.prospects.taken', { owner: err.ownerName ?? '' }), code: err.code, ownerName: err.ownerName })
+    return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.taken', { owner: err.ownerName ?? '' }) }, ownerName: err.ownerName })
   }
-  if (err instanceof team.RequestExistsError) return reply.code(409).send({ success: false, error: tr('errors.prospects.requestExists'), code: err.code })
-  if (err instanceof team.RequestDecidedError) return reply.code(409).send({ success: false, error: tr('errors.prospects.requestDecided'), code: err.code })
-  if (err instanceof team.RequestNotAllowedError) return reply.code(403).send({ success: false, error: tr('errors.prospects.requestNotAllowed'), code: err.code })
-  if (err instanceof team.RequestInvalidError) return reply.code(400).send({ success: false, error: tr('errors.prospects.requestInvalid'), code: err.code })
+  if (err instanceof team.RequestExistsError) return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.requestExists') } })
+  if (err instanceof team.RequestDecidedError) return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.requestDecided') } })
+  if (err instanceof team.RequestNotAllowedError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.requestNotAllowed') } })
+  if (err instanceof team.RequestInvalidError) return reply.code(400).send({ success: false, error: { code: err.code, message: tr('errors.prospects.requestInvalid') } })
   if (err instanceof team.InvalidRecipientError) {
-    return reply.code(400).send({ success: false, error: tr(err.what === 'recipient' ? 'errors.prospects.recipientInvalid' : 'errors.prospects.collaboratorInvalid'), code: err.code })
+    return reply.code(400).send({ success: false, error: { code: err.code, message: tr(err.what === 'recipient' ? 'errors.prospects.recipientInvalid' : 'errors.prospects.collaboratorInvalid') } })
   }
   return prospectErrorReply(reply, err)
 }

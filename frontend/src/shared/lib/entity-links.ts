@@ -13,7 +13,7 @@ export interface LinkExtra {
 export function linkFor(type: RefType, id: string, extra: LinkExtra = {}): string {
   switch (type) {
     case 'prospect':
-      return `/pricing?prospect=${id}`
+      return `/clients?prospect=${id}`
     case 'invoice':
       return `/accounting?tab=${extra.tab ?? 'emise'}&record=${id}`
     case 'email_thread':
@@ -30,6 +30,8 @@ export function linkFor(type: RefType, id: string, extra: LinkExtra = {}): strin
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const PARAM_BY_PATH: Record<string, [RefType, string]> = {
+  '/clients': ['prospect', 'prospect'],
+  // Links pasted before the page moved.
   '/pricing': ['prospect', 'prospect'],
   '/accounting': ['invoice', 'record'],
   '/email': ['email_thread', 'thread'],

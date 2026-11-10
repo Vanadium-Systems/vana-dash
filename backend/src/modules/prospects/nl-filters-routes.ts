@@ -15,7 +15,7 @@ export async function nlFiltersRoutes(app: FastifyInstance) {
       try {
         return { success: true, data: await interpretPhrase(req.me, req.body.text) }
       } catch (err) {
-        if (err instanceof NlFiltersError) return reply.code(STATUS_BY_CODE[err.code]).send({ success: false, error: err.message, code: err.code })
+        if (err instanceof NlFiltersError) return reply.code(STATUS_BY_CODE[err.code]).send({ success: false, error: { code: err.code, message: err.message } })
         throw err
       }
     },

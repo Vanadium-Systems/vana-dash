@@ -19,7 +19,7 @@ export function useCalls(status: CallFilter) {
 export function useCreateCall() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { title: string; expiresInHours: number }) => api.post<CallRow>('/api/calls', body),
+    mutationFn: (body: { title: string; expiresInHours: number; prospectId?: string }) => api.post<CallRow>('/api/calls', body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: CALLS_KEY }),
   })
 }

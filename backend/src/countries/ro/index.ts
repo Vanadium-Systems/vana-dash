@@ -11,7 +11,7 @@ export const ro: CountryPack = {
 
   async lookupCompany(taxId) {
     const info = await lookupCompany(taxId)
-    return { name: info.name, address: info.address, isActive: info.stare === 'activ' }
+    return { name: info.name, address: info.address, caen: info.caen, isActive: info.stare === 'activ' }
   },
 
   sellerAddress(office) {

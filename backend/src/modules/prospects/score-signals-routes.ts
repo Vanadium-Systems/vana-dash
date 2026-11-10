@@ -6,8 +6,8 @@ import * as scoreSignals from './score-signals-service.js'
 
 /** Maps the errors of the score and signals writes; anything else goes to the app handler. */
 export function scoreSignalsErrorReply(reply: FastifyReply, err: unknown) {
-  if (err instanceof scoreSignals.ScoringForbiddenError) return reply.code(403).send({ success: false, error: tr('errors.prospects.scoringForbidden'), code: err.code })
-  if (err instanceof scoreSignals.SignalBuiltinError) return reply.code(400).send({ success: false, error: tr('errors.prospects.signalBuiltin'), code: err.code })
+  if (err instanceof scoreSignals.ScoringForbiddenError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.scoringForbidden') } })
+  if (err instanceof scoreSignals.SignalBuiltinError) return reply.code(400).send({ success: false, error: { code: err.code, message: tr('errors.prospects.signalBuiltin') } })
   throw err
 }
 
