@@ -428,6 +428,10 @@ const SOURCES: GuideSource[] = [
         ro: 'Culoarea unui folder o schimbi din meniul lui. „Recente” arată ultimele 20 de fișiere, iar „Cu stea” ce ai marcat cu S.',
         en: 'You change a folder’s color from its menu. “Recent” shows the last 20 files, and “Starred” what you marked with S.',
       },
+      {
+        ro: 'Limita de spațiu e a firmei și numără Arhiva, notele vocale de pe prospecți și fișierele din Mesaje; Coșul ocupă spațiu până îl golești. Cine are „Vede spațiul de stocare ocupat de fiecare” vede tab-ul „Spațiu de stocare”: cât e folosit, pe surse, pe oameni și cele mai mari foldere.',
+        en: 'The storage limit is the company’s and counts the Archive, the voice notes on prospects and the files in Messages; the Trash takes up space until you empty it. Whoever has “Sees the storage each person uses” gets the “Storage” tab: how much is used, by source, by person and the largest folders.',
+      },
     ],
   },
   {
@@ -575,6 +579,14 @@ const SOURCES: GuideSource[] = [
       {
         ro: '„Colaboratori” dă acces de citire sau de editare unui coleg, fără să schimbe responsabilul.',
         en: '“Collaborators” gives a colleague view or edit access without changing the owner.',
+      },
+      {
+        ro: '„Meet” programează o întâlnire: ziua, ora, durata și locul. Bifezi oamenii de contact care primesc invitația pe email, cu fișierul de calendar atașat, de pe cutia ta. Colegii aleși apar în calendarul lor. Pe rândul întâlnirii din Task-uri, „Mută” și „Anulează” îi întreabă dacă trimit invitaților actualizarea sau anularea.',
+        en: '“Meet” schedules a meeting: day, time, length and place. You tick the contact people who get the invitation by email, with the calendar file attached, from your mailbox. The colleagues you pick see it in their calendar. On the meeting row in Tasks, “Move” and “Cancel” ask whether to send the invitees the update or the cancellation.',
+      },
+      {
+        ro: 'În Notițe, „Notă vocală” înregistrează direct din aplicație, iar „Încarcă fișiere” ia una sau mai multe înregistrări pe care le ai deja (până la 25 MB și 15 minute fiecare). Le asculți pe loc. Le șterge autorul sau adminul.',
+        en: 'In Notes, “Voice note” records straight from the app, and “Upload files” takes one or more recordings you already have (up to 25 MB and 15 minutes each). You play them right there. The author or the admin can delete them.',
       },
     ],
   },

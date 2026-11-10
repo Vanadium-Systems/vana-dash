@@ -23,11 +23,13 @@ const percent = (part: number, whole: number) =>
   new Intl.NumberFormat(intlTag(), { style: 'percent', maximumFractionDigits: 1 }).format(whole > 0 ? part / whole : 0)
 
 // Color is never the only carrier: every segment has its label, size and file count in the legend.
-function SourceBar({ bytes, total, className }: { bytes: Record<StorageSource, number>; total: number; className?: string }) {
+// `scale` = what a full bar means: the bucket for the source split, the largest person in the
+// per-person table, so a person who takes up little gets a short bar, not a full one.
+function SourceBar({ bytes, scale, className }: { bytes: Record<StorageSource, number>; scale: number; className?: string }) {
   return (
     <div className={cn('flex h-2 w-full overflow-hidden rounded-full bg-muted', className)} aria-hidden="true">
       {SOURCES.map((source, i) => (
-        <span key={source} className="h-full" style={{ width: `${total > 0 ? (bytes[source] / total) * 100 : 0}%`, backgroundColor: chartColor(i) }} />
+        <span key={source} className="h-full" style={{ width: `${scale > 0 ? (bytes[source] / scale) * 100 : 0}%`, backgroundColor: chartColor(i) }} />
       ))}
     </div>
   )
@@ -81,7 +83,7 @@ export function StoragePanel({ onOpenFolder }: { onOpenFolder: (id: string) => v
         </div>
 
         <Section title={t('archive:space.source')}>
-          <SourceBar bytes={sourceBytes} total={usedBytes} className="h-3" />
+          <SourceBar bytes={sourceBytes} scale={usedBytes} className="h-3" />
           <ul className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
             {sourceStats.map((entry, i) => (
               <li key={entry.source} className="flex min-w-0 items-center gap-2">
@@ -119,7 +121,7 @@ export function StoragePanel({ onOpenFolder }: { onOpenFolder: (id: string) => v
                       </TableCell>
                       <TableCell className="tnum whitespace-nowrap text-right">{formatBytes(person.bytes)}</TableCell>
                       <TableCell priority="md">
-                        <SourceBar bytes={person.bySource} total={person.bytes} className="min-w-24" />
+                        <SourceBar bytes={person.bySource} scale={byPerson[0]?.bytes ?? 0} className="min-w-24" />
                       </TableCell>
                       <TableCell priority="lg" className="tnum whitespace-nowrap text-right text-muted-foreground">{share}</TableCell>
                     </TableRow>

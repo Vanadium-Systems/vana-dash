@@ -246,7 +246,7 @@ export function MeetDialog({ prospectId, prospectName, task, open, onOpenChange,
           </Field>
 
           <fieldset className="min-w-0 space-y-2">
-            <legend className="text-sm font-medium">{t('meetings:dialog.invitees')}</legend>
+            <legend className="text-sm font-medium">{t('meetings:dialog.invitees', { company: prospectName })}</legend>
             {rows.length === 0 ? (
               <p className="text-sm text-muted-foreground">{sheet.isPending ? t('common:states.loading') : t('meetings:dialog.inviteesEmpty')}</p>
             ) : (

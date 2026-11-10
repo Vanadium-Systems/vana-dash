@@ -6,6 +6,22 @@ dated rather than versioned. What users see is also listed in the app, under Upd
 
 ## 2026-11-10: Clients: team ownership, prospecting, automations
 
+### Voice notes, meetings, storage
+- Voice notes on a prospect: recorded in the app (sheet and call session) or uploaded, several
+  files at a time; up to 25 MB and 15 minutes each, type read from the file's first bytes. Stored
+  on R2 and played through a presigned link, so seeking works. The author or an admin deletes them.
+  Migration `0090_prospect_voice_notes`.
+- Meetings with a prospect: length, place, colleagues as attendees of the calendar event
+  (`calendar.comune`) and contact people invited by email with an `.ics` from the person's own
+  mailbox; moving or cancelling sends an update with a higher `SEQUENCE`
+  (`GET /api/prospects/:id/tasks/:taskId/invite.ics`).
+- The storage limit now counts the Archive, voice notes and message attachments together, the
+  Trash included until it is emptied. New `arhiva.spatiu` and `GET /api/archive/storage-usage`:
+  usage by source, by person and the largest folders, shown in a Storage tab in the Archive.
+- Fixed: the prospect timeline failed on any prospect with a video call; tabs wrap on narrow
+  screens instead of running off the edge; transfer and access request notifications open the
+  prospect.
+
 ### Team and access
 - Every prospect has an owner. Without `clienti.toti` a person sees their own prospects, the free
   ones and those where they collaborate; one function (`visibleProspectsWhere`) applies this on

@@ -13,7 +13,7 @@
     "locationHint": "Address, room or link; shown in the calendar and in the invitation.",
     "titleRequired": "Enter a title.",
     "dateRequired": "Pick a date.",
-    "invitees": "People from the company",
+    "invitees": "People at {{company}}",
     "inviteesEmpty": "The company's contacts have no email address.",
     "companyAddress": "Company",
     "reasons": {

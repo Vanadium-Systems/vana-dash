@@ -13,7 +13,7 @@
     "locationHint": "Adresă, sală sau link; apare în calendar și în invitație.",
     "titleRequired": "Scrie un titlu.",
     "dateRequired": "Alege data.",
-    "invitees": "Participanți din firmă",
+    "invitees": "Oameni de la {{company}}",
     "inviteesEmpty": "Contactele firmei n-au nicio adresă de email.",
     "companyAddress": "Firma",
     "reasons": {
