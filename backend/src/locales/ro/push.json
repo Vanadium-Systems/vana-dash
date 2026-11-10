@@ -66,6 +66,15 @@
       "few": "{{count}} prospecți noi în «{{name}}»",
       "other": "{{count}} de prospecți noi în «{{name}}»"
     },
+    "autoCallTitle": "Sună {{company}}: a răspuns la email",
+    "autoBounce": "Adresa {{address}} a {{company}} nu mai primește emailuri",
+    "autoNoNextStep": {
+      "one": "{{count}} prospect fără pas următor",
+      "few": "{{count}} prospecți fără pas următor",
+      "other": "{{count}} de prospecți fără pas următor"
+    },
+    "autoMeetingTitle": "Pregătește întâlnirea cu {{company}}",
+    "autoWon": "{{company}} câștigat, de promovat în client",
     "handoverNote": "Predare: {{note}}"
   }
 }

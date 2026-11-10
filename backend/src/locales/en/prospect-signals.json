@@ -1,0 +1,32 @@
+{
+  "new_company": {
+    "name": "New company",
+    "description": "Founded this year or last year.",
+    "tip": "{{firma}} is a young company: ask how they keep their books now and what they want sorted from the start."
+  },
+  "revenue_growth": {
+    "name": "Growing turnover",
+    "description": "Turnover is up more than 20% on the year before.",
+    "tip": "{{firma}} grew turnover by {{crestere_ca}}%. Start from what gets harder as they grow."
+  },
+  "target_caen": {
+    "name": "Target industry",
+    "description": "The CAEN code is in the target list. Fill in the list in the filters.",
+    "tip": "Their activity ({{caen}}) is one we know. Give an example from the field."
+  },
+  "engaged": {
+    "name": "Engaged with messages",
+    "description": "Opened or replied to an email we sent.",
+    "tip": "{{firma}} has already read our message. Call with a reference to it."
+  },
+  "not_contacted": {
+    "name": "Not contacted in 30 days",
+    "description": "No activity on the prospect in the last 30 days, or ever.",
+    "tip": "We have not talked to {{firma}} in a while. Pick up from the last conversation, if there is one."
+  },
+  "decision_maker": {
+    "name": "Has a decision maker",
+    "description": "A person is marked as the decision maker.",
+    "tip": "At {{firma}} we know who decides. Ask for them directly."
+  }
+}

@@ -233,6 +233,43 @@ describe('correlated columns', () => {
   })
 })
 
+const offer = {
+  subscriptionPriceEur: 150,
+  contractPlan: 'Standard',
+  details: { operatoriGestiune: 3, puncteLucru: 2 },
+  calc: { platformId: '00000000-0000-4000-8000-000000000001', flux: 'standard' as const, opDesktop: 3, opMobil: 0, puncte: 2, documente: 0, siatd: 0 },
+}
+
+describe('offer', () => {
+  it('is saved by an editor, read in the sheet, and refused to anyone else', async () => {
+    await expect(service.saveOffer(b, mine, offer)).rejects.toBeInstanceOf(ProspectNotYoursError)
+    await service.saveOffer(a, mine, offer)
+    const sheet = (await service.getProspectSheet(a, mine)) as { offer: { subscriptionPriceEur: number; savedAt: string } | null }
+    expect(sheet.offer?.subscriptionPriceEur).toBe(150)
+    expect(sheet.offer?.savedAt).toBeTruthy()
+    await service.saveOffer(a, mine, null)
+    expect(((await service.getProspectSheet(a, mine)) as { offer: unknown }).offer).toBeNull()
+  })
+
+  it('lands on the client at promotion; without one the client has no price', async () => {
+    await service.saveOffer(a, mine, offer)
+    const withOffer = await service.promoteProspect(manager, mine, { address: 'Str. 1' })
+    billingClientIds.push(withOffer!.billingClientId!)
+    const [client] = await db.select().from(billingClients).where(eq(billingClients.id, withOffer!.billingClientId!))
+    expect(client!.subscriptionPriceEur).toBe('150.00')
+    expect(client!.contractPlan).toBe('Standard')
+    expect(client!.contractDetails).toMatchObject({ operatoriGestiune: '3', puncteLucru: '2', calc: offer.calc })
+
+    await db.update(prospects).set({ billingClientId: null, offer: null }).where(eq(prospects.id, mine))
+    const without = await service.promoteProspect(manager, mine, { address: 'Str. 1' })
+    billingClientIds.push(without!.billingClientId!)
+    const [plain] = await db.select().from(billingClients).where(eq(billingClients.id, without!.billingClientId!))
+    expect(plain!.subscriptionPriceEur).toBeNull()
+    expect(plain!.contractPlan).toBeNull()
+    await db.update(prospects).set({ billingClientId: null }).where(eq(prospects.id, mine))
+  })
+})
+
 describe('promote', () => {
   it('needs edit rights and links the client in one go', async () => {
     await expect(service.promoteProspect(b, mine, { address: 'Str. 1' })).rejects.toBeInstanceOf(ProspectNotYoursError)

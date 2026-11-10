@@ -157,6 +157,8 @@ export const FEATURES: FeatureDef[] = [
     key: 'clienti.view',
     page: 'clienti',
     routes: read('/api/prospects').concat(
+      // Phrase search is a POST that only reads; the longer prefix beats the write rule of prospectare.
+      all('/api/prospects/nl-filters'),
       // Configul de prețuri e citit de toată pagina (nu doar de editor), de aceea read = view.
       read('/api/pricing/config'),
       read('/api/pricing/price-sheet'),

@@ -8,6 +8,7 @@ import * as reservedNumbers from './reserved-numbers-service.js'
 import {
   AddendumIdParamsSchema,
   ClientIdParamsSchema,
+  ContractListQuerySchema,
   CreateAddendumSchema,
   DocumentIdParamsSchema,
   GenerateDocumentSchema,
@@ -25,6 +26,18 @@ export async function contractsRoutes(app: FastifyInstance) {
   await app.register(multipart, { limits: { fileSize: MAX_SIGNED_PDF_SIZE, files: 1 } })
 
   const server = app.withTypeProvider<ZodTypeProvider>()
+
+  server.get(
+    '/api/contracts/list',
+    { preHandler: [app.authenticate], schema: { querystring: ContractListQuerySchema } },
+    async (req) => ({ success: true, data: await service.listContracts(req.query) }),
+  )
+
+  // Counts for the settings tab headers; templates are seeded on first read, so list them through the service.
+  server.get('/api/contracts/settings-summary', { preHandler: [app.authenticate] }, async () => {
+    const [reserved, templates] = await Promise.all([reservedNumbers.listReservedNumbers(), templatesService.listTemplates()])
+    return { success: true, data: { reservedNumbers: reserved.length, templates: templates.length } }
+  })
 
   server.get(
     '/api/contracts/clients/:clientId/documents',

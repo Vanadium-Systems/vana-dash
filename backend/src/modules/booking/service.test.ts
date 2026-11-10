@@ -6,7 +6,8 @@
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { bookingBlocks, bookings, calendarEvents, dashboardConfig, users } from '../../shared/db/schema/index.js'
+import { bookingBlocks, bookings, calendarEvents, dashboardConfig, prospectContactPoints, prospects, users } from '../../shared/db/schema/index.js'
+import { onProspectEvent } from '../../shared/lib/prospect-events.js'
 import { config } from '../../shared/config.js'
 import type { BookingSettings } from './schema.js'
 
@@ -138,6 +139,24 @@ describe('rezervare', () => {
     expect(JSON.stringify(notifyPushMock.mock.calls)).not.toContain('Ionescu')
     // Slotul ocupat dispare din lista publică.
     expect((await service.getAvailableSlots(1, NOW)).slots.map((s) => s.start)).not.toContain(MONDAY_10)
+  })
+
+  it('emite meeting.booked pentru prospectul cu exact emailul vizitatorului, nu pentru altul', async () => {
+    const [match] = await db.insert(prospects).values({ name: 'QA booking match' }).returning()
+    const [other] = await db.insert(prospects).values({ name: 'QA booking other' }).returning()
+    await db.insert(prospectContactPoints).values([
+      { prospectId: match!.id, kind: 'email', value: 'Andrei@Example.com', valueNormalized: 'andrei@example.com' },
+      { prospectId: other!.id, kind: 'email', value: 'andrei@example.com.ro', valueNormalized: 'andrei@example.com.ro' },
+    ])
+    const seen: string[] = []
+    const off = onProspectEvent('meeting.booked', ({ prospectId }) => void seen.push(prospectId))
+    try {
+      await service.createPublicBooking({ ...visitor, start: new Date(MONDAY_10) }, NOW)
+      await vi.waitFor(() => expect(seen).toEqual([match!.id]))
+    } finally {
+      off()
+      await db.delete(prospects).where(inArray(prospects.id, [match!.id, other!.id]))
+    }
   })
 
   it('refuză un slot care nu e în listă', async () => {

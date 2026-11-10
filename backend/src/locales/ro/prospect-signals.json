@@ -1,0 +1,32 @@
+{
+  "new_company": {
+    "name": "Firmă nouă",
+    "description": "Firmă înființată anul acesta sau anul trecut.",
+    "tip": "{{firma}} e o firmă tânără: întreabă cum își țin acum evidența și ce vor să pună la punct din start."
+  },
+  "revenue_growth": {
+    "name": "Cifră de afaceri în creștere",
+    "description": "Cifra de afaceri a crescut cu peste 20% față de anul anterior.",
+    "tip": "{{firma}} a crescut cu {{crestere_ca}}% cifra de afaceri. Începe de la ce se complică odată cu creșterea."
+  },
+  "target_caen": {
+    "name": "Domeniu țintă",
+    "description": "CAEN-ul se află în lista de domenii țintă. Completează lista din filtre.",
+    "tip": "Activitatea lor ({{caen}}) e una pe care o cunoaștem. Dă un exemplu din domeniu."
+  },
+  "engaged": {
+    "name": "A răspuns la mesaje",
+    "description": "A deschis sau a răspuns la un email trimis.",
+    "tip": "{{firma}} a citit deja mesajul nostru. Sună cu referire la el."
+  },
+  "not_contacted": {
+    "name": "Necontactat de 30 de zile",
+    "description": "Nicio activitate pe prospect în ultimele 30 de zile sau niciodată.",
+    "tip": "Nu am vorbit de mult cu {{firma}}. Reia de la ultima discuție, dacă există."
+  },
+  "decision_maker": {
+    "name": "Are un decident",
+    "description": "Există o persoană marcată ca decident.",
+    "tip": "La {{firma}} știm cine decide. Cere-l direct pe el."
+  }
+}

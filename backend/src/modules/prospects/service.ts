@@ -15,6 +15,8 @@ import {
   prospectPeople,
   prospects,
   prospectScoringConfig,
+  prospectSignalHits,
+  prospectSignals,
   prospectStageEvents,
   prospectStatuses,
   prospectTasks,
@@ -22,7 +24,7 @@ import {
   users,
 } from '../../shared/db/schema/index.js'
 import * as invoicingService from '../invoicing/service.js'
-import { computeScore, type ScoringWeights } from './scoring.js'
+import { computeScore, renderTalkingTip, type ScoringWeights } from './scoring.js'
 import { compileProspectFilters, priorityCase, searchWhere, type FilterContext, type ProspectFilter } from './filters.js'
 import type {
   CreateProspectSchema,
@@ -140,6 +142,11 @@ export async function getScoringConfig() {
 
 export async function updateScoringConfig(input: ScoringConfigInput) {
   const config = await getScoringConfig()
+  // The four labels are the same cut-offs as hot / warm / nurture (the list priority): one source
+  // of truth, so saving labels writes them there too.
+  const thresholds = input.labels
+    ? { hot: input.labels.excellent, warm: input.labels.good, nurture: input.labels.fit }
+    : { hot: input.hotThreshold, warm: input.warmThreshold, nurture: input.nurtureThreshold }
   const [row] = await db
     .update(prospectScoringConfig)
     .set({
@@ -147,13 +154,17 @@ export async function updateScoringConfig(input: ScoringConfigInput) {
       needWeight: String(input.needWeight),
       techWeight: String(input.techWeight),
       contactWeight: String(input.contactWeight),
-      hotThreshold: String(input.hotThreshold),
-      warmThreshold: String(input.warmThreshold),
-      nurtureThreshold: String(input.nurtureThreshold),
+      hotThreshold: String(thresholds.hot),
+      warmThreshold: String(thresholds.warm),
+      nurtureThreshold: String(thresholds.nurture),
+      ...(input.baseWeight !== undefined && { baseWeight: String(input.baseWeight) }),
+      ...(input.criteria !== undefined && { criteria: input.criteria }),
+      ...(input.labels !== undefined && { labels: input.labels }),
       updatedAt: new Date(),
     })
     .where(eq(prospectScoringConfig.id, config.id))
     .returning()
+  await recordAudit({ action: 'prospect.scor.config', entityType: 'prospect_scoring_config', entityId: config.id, changes: { config: [config, row] } })
   return row
 }
 
@@ -443,7 +454,7 @@ export async function aggregateProspects(me: Me, input: Pick<ListInput, 'f' | 'q
 export async function getProspectSheet(me: Me, id: string) {
   const ctx = await filterContext(me)
   let [row] = await db
-    .select(rowColumns(ctx))
+    .select({ ...rowColumns(ctx), offer: prospects.offer })
     .from(prospects)
     .where(and(eq(prospects.id, id), isNull(prospects.deletedAt), visibleProspectsWhere(me)))
   if (!row) {
@@ -451,7 +462,7 @@ export async function getProspectSheet(me: Me, id: string) {
     const [merged] = await db.select({ into: prospects.mergedIntoId }).from(prospects).where(eq(prospects.id, id))
     if (!merged?.into) return undefined
     ;[row] = await db
-      .select(rowColumns(ctx))
+      .select({ ...rowColumns(ctx), offer: prospects.offer })
       .from(prospects)
       .where(and(eq(prospects.id, merged.into), isNull(prospects.deletedAt), visibleProspectsWhere(me)))
     if (!row) return undefined
@@ -482,7 +493,21 @@ export async function getProspectSheet(me: Me, id: string) {
       .where(and(eq(prospectTransferRequests.prospectId, row.id), eq(prospectTransferRequests.status, 'pending')))
       .orderBy(desc(prospectTransferRequests.createdAt)),
   ])
-  return { ...row, people, contactPoints, collaborators, pendingRequests: pendingTransfer }
+  const signalRows = await db
+    .select({ id: prospectSignals.id, name: prospectSignals.name, groupKey: prospectSignals.groupKey, talkingTip: prospectSignals.talkingTip })
+    .from(prospectSignalHits)
+    .innerJoin(prospectSignals, eq(prospectSignals.id, prospectSignalHits.signalId))
+    .where(
+      and(
+        eq(prospectSignalHits.prospectId, row.id),
+        isNull(prospectSignalHits.deletedAt),
+        isNull(prospectSignals.deletedAt),
+        eq(prospectSignals.enabled, true),
+      ),
+    )
+    .orderBy(prospectSignals.groupKey, prospectSignals.name)
+  const signals = signalRows.map((s) => ({ ...s, talkingTip: s.talkingTip ? renderTalkingTip(s.talkingTip, row) : null }))
+  return { ...row, people, contactPoints, collaborators, pendingRequests: pendingTransfer, signals }
 }
 
 /** Previous / next prospect in the order of the list the sheet was opened from. */
@@ -601,8 +626,13 @@ export async function refreshScore(prospectId: string) {
 }
 
 /** Filled by the score module (criteria and signals) so this file stays the base score only. */
-export const scoreHooks: { afterBase: (prospectId: string) => Promise<void>; afterAll: () => Promise<void> } = {
+export const scoreHooks: {
+  afterBase: (prospectId: string) => Promise<void>
+  afterBatch: (prospectIds: string[]) => Promise<void>
+  afterAll: () => Promise<void>
+} = {
   afterBase: async () => {},
+  afterBatch: async () => {},
   afterAll: async () => {},
 }
 
@@ -785,6 +815,15 @@ export async function deleteProspect(me: Me, id: string) {
   return row
 }
 
+export async function saveOffer(me: Me, id: string, offer: unknown) {
+  const existing = await requireEditableProspect(me, id)
+  if (!existing) return undefined
+  const saved = offer === null ? null : { ...(offer as object), savedAt: new Date().toISOString() }
+  await db.update(prospects).set({ offer: saved, updatedAt: new Date(), ...updatedByUserId() }).where(eq(prospects.id, id))
+  await recordAudit({ action: 'prospect.oferta', entityType: 'prospect', entityId: id, changes: { offer: [existing.offer ? 'set' : null, saved ? 'set' : null] } })
+  return saved
+}
+
 // ── Archive (per person) ─────────────────────────────────────────────────────
 
 async function visibleIds(me: Me, ids: string[]): Promise<string[]> {
@@ -898,6 +937,7 @@ export async function promoteProspect(me: Me, id: string, input: PromoteInput) {
       tx,
     )
     if (!client) throw new Error(tr('errors.prospects.clientNotCreated'))
+    if (prospect.offer) await invoicingService.applyOfferToNewClient(tx, client, prospect.offer)
     const [won] = await tx
       .select({ key: prospectStatuses.key })
       .from(prospectStatuses)
@@ -910,18 +950,6 @@ export async function promoteProspect(me: Me, id: string, input: PromoteInput) {
   })
   await recordAudit({ action: 'prospect.promovat', entityType: 'prospect', entityId: id, changes: { billingClientId: [null, row.billingClientId] } })
   return row
-}
-
-// ── Email hooks (called by the email module through shared code paths) ───────
-
-/** Unsubscribe: the address's contact points become `unsubscribed`. Exact match, no LIKE. */
-export async function markProspectUnsubscribedByEmail(email: string) {
-  const rows = await db
-    .update(prospectContactPoints)
-    .set({ status: 'unsubscribed', updatedAt: new Date() })
-    .where(and(eq(prospectContactPoints.kind, 'email'), eq(prospectContactPoints.valueNormalized, normalizeEmail(email)), isNull(prospectContactPoints.deletedAt)))
-    .returning({ prospectId: prospectContactPoints.prospectId })
-  return rows[0] ?? null
 }
 
 /** A prospect row plus the contact flags the base score reads. */
@@ -971,7 +999,7 @@ export async function recalculateScores(ids: string[]) {
     const batch = await scoringRows(and(isNull(prospects.deletedAt), inArray(prospects.id, ids.slice(i, i + 1000)))!)
     if (batch.length === 0) continue
     await writeBaseScores(batch, weights)
-    for (const p of batch) await scoreHooks.afterBase(p.id)
+    await scoreHooks.afterBatch(batch.map((p) => p.id))
   }
   return ids.length
 }

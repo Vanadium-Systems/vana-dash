@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PricingCalculateSchema } from '../pricing/schema.js'
 
 // The contract fields with no column of their own on billing_clients (contactName,
 // contactTitle, phone and contractPlan are columns). They are free text specific to one
@@ -19,6 +20,8 @@ export const ContractDetailsSchema = z.object({
   // de „fals" pt. clienții fără Lună Gratuită (2026-09-21). Vezi contract-templates.ts.
   areLunaGratuita: z.boolean().optional(),
   conditiiSpeciale: z.string().trim().optional(),
+  // The calculator inputs the price came from, saved by "apply to client" so the quote can be reopened.
+  calc: PricingCalculateSchema.optional(),
 })
 export type ContractDetails = z.infer<typeof ContractDetailsSchema>
 
@@ -66,3 +69,10 @@ export const ReservedNumberSchema = z.object({
 })
 export const ReservedNumbersSchema = z.array(ReservedNumberSchema)
 export type ReservedNumber = z.infer<typeof ReservedNumberSchema>
+
+export const ContractListQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  state: z.enum(['none', 'generated', 'signed', 'addendum']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().refine((n) => [10, 25, 50].includes(n)).default(25),
+})

@@ -228,3 +228,51 @@ export function priorityForScore(score: number, thresholds: ScoringThresholds): 
   if (score >= thresholds.nurtureThreshold) return 'NURTURE'
   return 'SKIP'
 }
+
+export interface ScoreCriterion {
+  id: string
+  points: number
+}
+
+export interface FinalScoreConfig {
+  baseWeight: number
+  criteria: ScoreCriterion[]
+}
+
+/** The sum of the points of every criterion: the denominator's variable part. */
+export function maxCriteriaPoints(criteria: ScoreCriterion[]): number {
+  return criteria.reduce((sum, c) => sum + c.points, 0)
+}
+
+/**
+ * Final score = the base score and the points of the matched criteria, as a share of the most they
+ * could add up to: 100 * (base * B + matched points) / (100 * B + all points), rounded to 0.1.
+ * Without criteria it is the base score as is (also when B = 0, which would divide by zero).
+ */
+export function computeFinalScore(base: number, matched: string[], config: FinalScoreConfig): number {
+  // A struck-off company (base 0 from the viability gate) does not become a target through criteria.
+  if (base === 0) return 0
+  const maxPoints = maxCriteriaPoints(config.criteria)
+  if (maxPoints === 0) return base
+  const matchedSet = new Set(matched)
+  const points = config.criteria.filter((c) => matchedSet.has(c.id)).reduce((sum, c) => sum + c.points, 0)
+  const b = config.baseWeight
+  return Math.round(((100 * (base * b + points)) / (100 * b + maxPoints)) * 10) / 10
+}
+
+/** `{{firma}}`, `{{caen}}`, `{{crestere_ca}}` (turnover growth in %, empty when unknown), `{{angajati}}`. */
+export function renderTalkingTip(
+  tip: string,
+  prospect: { name: string; caenCode: string | null; revenue: string | null; revenuePrev: string | null; employeeCount: number | null },
+): string {
+  const revenue = Number(prospect.revenue)
+  const previous = Number(prospect.revenuePrev)
+  const growth = revenue > 0 && previous > 0 ? String(Math.round((revenue / previous - 1) * 100)) : ''
+  const values: Record<string, string> = {
+    firma: prospect.name,
+    caen: prospect.caenCode ?? '',
+    crestere_ca: growth,
+    angajati: prospect.employeeCount === null ? '' : String(prospect.employeeCount),
+  }
+  return tip.replace(/\{\{(firma|caen|crestere_ca|angajati)\}\}/g, (_, name: string) => values[name] ?? '')
+}

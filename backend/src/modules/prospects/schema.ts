@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { lazyTr } from '../../shared/lib/i18n.js'
-import { FiltersParamSchema, ProspectFilterSchema } from './filters.js'
+import { FiltersParamSchema, ProspectFilterSchema, ProspectFiltersSchema } from './filters.js'
 import { CALL_OUTCOMES, CONTACT_POINT_KINDS, PROSPECT_TASK_KINDS, PROSPECT_TASK_PRIORITIES } from '../../shared/db/schema/prospect-crm.js'
 
 export const PROSPECT_SORT_KEYS = ['score', 'name', 'updatedAt', 'createdAt', 'lastActivityAt', 'value', 'expectedCloseAt', 'daysInStage', 'nextTask'] as const
@@ -124,6 +124,22 @@ export const PromoteProspectSchema = z.object({
   platformId: z.string().uuid().optional(),
 })
 
+export const ScoreCriterionSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1).max(120),
+  filters: ProspectFiltersSchema.min(1),
+  points: z.number().min(0).max(20),
+})
+
+// Descending cut-offs for the four labels; below `fit` is "unfit".
+export const ScoreLabelsSchema = z
+  .object({
+    excellent: z.number().min(0).max(100),
+    good: z.number().min(0).max(100),
+    fit: z.number().min(0).max(100),
+  })
+  .refine((l) => l.excellent >= l.good && l.good >= l.fit)
+
 export const UpdateScoringConfigSchema = z.object({
   budgetWeight: z.number().min(0).max(1),
   needWeight: z.number().min(0).max(1),
@@ -132,6 +148,9 @@ export const UpdateScoringConfigSchema = z.object({
   hotThreshold: z.number().min(0).max(100),
   warmThreshold: z.number().min(0).max(100),
   nurtureThreshold: z.number().min(0).max(100),
+  baseWeight: z.number().min(0).max(1).optional(),
+  criteria: z.array(ScoreCriterionSchema).max(30).optional(),
+  labels: ScoreLabelsSchema.nullable().optional(),
 })
 
 // 500 → 1000 (2026-09-03, Stefan: are ~800 de clienți de arhivat dintr-o dată, „select all"

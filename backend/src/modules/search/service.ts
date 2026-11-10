@@ -69,6 +69,7 @@ async function searchInvoices(term: string, limit: number): Promise<SearchGroup 
 }
 
 async function searchProspects(me: SessionUser, term: string, limit: number): Promise<SearchGroup | null> {
+  const canCreate = me.features.includes('clienti.prospectare')
   const like = `%${escapeLike(term.toLowerCase())}%`
   const fold = foldDiacritics
   const folded = `%${escapeLike(term.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))}%`
@@ -80,6 +81,7 @@ async function searchProspects(me: SessionUser, term: string, limit: number): Pr
       status: prospects.status,
       ownerName: sql<string | null>`(SELECT coalesce(nullif(u."display_name", ''), u."email") FROM ${users} u WHERE u."id" = ${prospects.assignedUserId})`,
       person: sql<string | null>`(SELECT pp."name" FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${PROSPECT_ID} AND pp."deleted_at" IS NULL AND ${fold(sql`pp."name"`)} LIKE ${folded} LIMIT 1)`,
+      contactValue: sql<string | null>`(SELECT cp."value" FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."deleted_at" IS NULL AND cp."value_normalized" LIKE ${like} LIMIT 1)`,
     })
     .from(prospects)
     .where(
@@ -95,17 +97,20 @@ async function searchProspects(me: SessionUser, term: string, limit: number): Pr
     )
     .orderBy(desc(prospects.updatedAt))
     .limit(limit)
-  if (rows.length === 0) return null
-  return {
-    group: tr('search.groups.clients'),
-    feature: 'clienti.view',
-    items: rows.map((r) => ({
-      id: r.id,
-      label: r.name,
-      sublabel: [r.person, r.cif, r.ownerName ?? tr('search.prospect.free')].filter(Boolean).join(' · ') || null,
-      to: `/clients?prospect=${r.id}`,
-    })),
+  const items: SearchItem[] = rows.map((r) => ({
+    id: r.id,
+    label: r.name,
+    // The person or contact value that matched goes first, so it is clear why the row appeared.
+    sublabel: [r.person ?? r.contactValue, r.cif, r.ownerName ?? tr('search.prospect.free')].filter(Boolean).join(' · ') || null,
+    to: `/clients?prospect=${r.id}`,
+  }))
+  if (canCreate) {
+    const isCui = /^(RO)?\s*\d+$/i.test(term)
+    const query = isCui ? `new=${encodeURIComponent(term)}&newCui=${encodeURIComponent(term.replace(/^RO\s*/i, ''))}` : `new=${encodeURIComponent(term)}`
+    items.push({ id: 'new-prospect', label: tr('search.prospect.new', { term }), sublabel: null, to: `/clients?${query}` })
   }
+  if (items.length === 0) return null
+  return { group: tr('search.groups.clients'), feature: 'clienti.view', items }
 }
 
 // A session built without its company is the platform owner's (see SessionUser.tenant).

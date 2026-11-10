@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gte, isNotNull, isNull, lte, ne } from 'drizzle-orm'
 import type { z } from 'zod'
+import { ClientPricingSchema, planPricingApply, type ClientPricingInput } from './pricing-apply.js'
 import { anafConnector } from '../../connectors/anaf/index.js'
 import { supplierParty } from '../../connectors/anaf/supplier.js'
 import { computeTotals } from '../../connectors/anaf/xml-builder.js'
@@ -8,6 +9,7 @@ import { db } from '../../shared/db/client.js'
 import { createdByUserId, recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
 import {
   billingClients,
+  contractDocuments,
   financialRecords,
   invoiceLineItems,
   invoiceSequences,
@@ -121,6 +123,73 @@ export async function updateClient(id: string, input: z.infer<typeof ClientUpdat
     })
   }
   return row ?? null
+}
+
+async function loadPricingPlan(id: string, input: ClientPricingInput) {
+  const [client] = await db
+    .select()
+    .from(billingClients)
+    .where(and(eq(billingClients.id, id), isNull(billingClients.deletedAt)))
+  if (!client) return null
+  const [signed] = await db
+    .select({ id: contractDocuments.id })
+    .from(contractDocuments)
+    .where(
+      and(
+        eq(contractDocuments.billingClientId, id),
+        eq(contractDocuments.docType, 'contract'),
+        eq(contractDocuments.isSigned, true),
+        isNull(contractDocuments.deletedAt),
+      ),
+    )
+    .limit(1)
+  return { client, plan: planPricingApply(client, input, Boolean(signed)) }
+}
+
+export async function previewClientPricing(id: string, input: ClientPricingInput) {
+  const loaded = await loadPricingPlan(id, input)
+  if (!loaded) return null
+  return { changes: loaded.plan.changes, needsAddendum: loaded.plan.needsAddendum }
+}
+
+export async function applyClientPricing(id: string, input: ClientPricingInput) {
+  const loaded = await loadPricingPlan(id, input)
+  if (!loaded) return null
+  const { changes, contractDetails, needsAddendum } = loaded.plan
+  const [client] = await db
+    .update(billingClients)
+    .set({
+      subscriptionPriceEur: String(input.subscriptionPriceEur),
+      contractPlan: input.contractPlan,
+      contractDetails,
+      updatedAt: new Date(),
+      ...updatedByUserId(),
+    })
+    .where(and(eq(billingClients.id, id), isNull(billingClients.deletedAt)))
+    .returning()
+  if (!client) return null
+  await recordAudit({ action: 'client.pret.aplicat', entityType: 'billing_client', entityId: id, changes: Object.fromEntries(changes.map((c) => [c.field, [c.from, c.to]])) })
+  return { client, changes, needsAddendum }
+}
+
+/** Writes a prospect's saved offer on the client just created from it (no contract yet, so no addendum). */
+export async function applyOfferToNewClient(
+  executor: Pick<typeof db, 'update'>,
+  client: { id: string; subscriptionPriceEur: string | null; contractPlan: string | null; contractDetails: unknown },
+  offer: unknown,
+) {
+  const input = ClientPricingSchema.parse(offer)
+  const { contractDetails } = planPricingApply(client, input, false)
+  await executor
+    .update(billingClients)
+    .set({
+      subscriptionPriceEur: String(input.subscriptionPriceEur),
+      contractPlan: input.contractPlan,
+      contractDetails,
+      updatedAt: new Date(),
+      ...updatedByUserId(),
+    })
+    .where(eq(billingClients.id, client.id))
 }
 
 export async function softDeleteClient(id: string): Promise<boolean> {

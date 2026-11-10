@@ -62,6 +62,14 @@
       "one": "{{count}} new prospect in «{{name}}»",
       "other": "{{count}} new prospects in «{{name}}»"
     },
+    "autoCallTitle": "Call {{company}}: replied to the email",
+    "autoBounce": "The address {{address}} of {{company}} no longer receives email",
+    "autoNoNextStep": {
+      "one": "{{count}} prospect without a next step",
+      "other": "{{count}} prospects without a next step"
+    },
+    "autoMeetingTitle": "Prepare the meeting with {{company}}",
+    "autoWon": "{{company}} won, ready to promote to client",
     "handoverNote": "Handover: {{note}}"
   }
 }

@@ -27,6 +27,8 @@ import type {
   TemplateUpdateSchema,
 } from './schema.js'
 import { getCompany } from '../../shared/lib/company.js'
+import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
+import { pauseSequenceIfBouncing } from './sequences-service.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 type EmailSendRow = typeof emailSends.$inferSelect
@@ -206,6 +208,9 @@ export interface SendCampaignEmailParams {
   from: z.infer<typeof EmailFromSchema>
   batchId?: string | null
   sequenceEnrollmentId?: string | null
+  /** Which sequence step and A/B variant this send belongs to (the sequence runner only). */
+  sequenceStepId?: string | null
+  variant?: 'A' | 'B' | null
   /** Who started it: the person for bulk, null for the sequence job. */
   senderUserId?: string | null
   attachments?: z.infer<typeof EmailAttachmentSchema>[]
@@ -219,7 +224,7 @@ export interface SendCampaignEmailParams {
  * (recipient, templateId), sequence-runner pe status de enrollment).
  */
 export async function sendCampaignEmail(params: SendCampaignEmailParams): Promise<{ result: SendEmailResult; row: EmailSendRow }> {
-  const { to, nume, templateId, from, batchId = null, sequenceEnrollmentId = null, senderUserId = null, attachments } = params
+  const { to, nume, templateId, from, batchId = null, sequenceEnrollmentId = null, sequenceStepId = null, variant = null, senderUserId = null, attachments } = params
   const template = await getTemplate(templateId)
   if (!template) throw new Error(tr('errors.email.templateNotFound'))
   await assertCanDeliver({ identityKey: from, recipients: [to], senderUserId })
@@ -259,6 +264,8 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
       resendEmailId: result.id ?? null,
       batchId,
       sequenceEnrollmentId,
+      sequenceStepId,
+      variant,
       sentByUserId: senderUserId,
       kind: sequenceEnrollmentId ? 'sequence' : 'bulk',
     })
@@ -406,9 +413,11 @@ export type DeliveryStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | '
  * nu se potrivește niciunui rând — nu e o eroare, doar alt tip de mesaj (webhook-uri
  * pt. inbound routing, nu pt. o trimitere a noastră).
  *
- * Bounce sau complaint suprimă adresa (`email_suppressions`), la fel ca un click de
- * dezabonare — altfel o secvență de follow-up continuă să trimită pe o adresă moartă
- * (runner-ul verifică doar suppressions, nu `email_sends.status`, vezi email-sequence-runner.ts).
+ * Bounce sau complaint suprimă adresa (`email_suppressions`) — altfel o secvență de follow-up
+ * continuă să trimită pe o adresă moartă (runner-ul verifică doar suppressions, nu
+ * `email_sends.status`, vezi email-sequence-runner.ts). Un bounce NU e o dezabonare: punctele de
+ * contact devin `bounced`, nu `unsubscribed` (vezi suppressEmail). Un bounce al unei trimiteri din
+ * secvență poate pune secvența pe pauză (rata de bounce).
  */
 export async function updateSendStatusFromWebhook(
   emailId: string,
@@ -419,10 +428,14 @@ export async function updateSendStatusFromWebhook(
     .update(emailSends)
     .set({ status, errorMessage: reason, updatedAt: new Date() })
     .where(eq(emailSends.resendEmailId, emailId))
-    .returning({ recipient: emailSends.recipient })
+    .returning({ id: emailSends.id, recipient: emailSends.recipient, sequenceEnrollmentId: emailSends.sequenceEnrollmentId })
 
   if (updated && (status === 'bounced' || status === 'complained')) {
     await suppressEmail(updated.recipient, status === 'bounced' ? 'bounce' : 'complaint')
+  }
+  if (updated && status === 'bounced') {
+    emitProspectEvent('email.bounced', { address: updated.recipient, sendId: updated.id })
+    if (updated.sequenceEnrollmentId) await pauseSequenceIfBouncing(updated.sequenceEnrollmentId)
   }
 }
 
@@ -435,7 +448,7 @@ export async function updateSendStatusFromWebhook(
  */
 export async function recordEngagementEvent(emailId: string, type: 'opened' | 'clicked', clickedUrl: string | null): Promise<void> {
   if (type === 'opened') {
-    await db
+    const [opened] = await db
       .update(emailSends)
       .set({
         openedAt: sql`coalesce(${emailSends.openedAt}, now())`,
@@ -443,6 +456,8 @@ export async function recordEngagementEvent(emailId: string, type: 'opened' | 'c
         updatedAt: new Date(),
       })
       .where(eq(emailSends.resendEmailId, emailId))
+      .returning({ id: emailSends.id, recipient: emailSends.recipient })
+    if (opened) emitProspectEvent('email.opened', { address: opened.recipient, sendId: opened.id })
     return
   }
   await db

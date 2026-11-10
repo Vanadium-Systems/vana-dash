@@ -1,14 +1,16 @@
-import { and, desc, eq, isNull } from 'drizzle-orm'
+import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { zipSync } from 'fflate'
 import { db } from '../../shared/db/client.js'
 import { billingClients, contractAddenda, contractDocuments } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
+import { escapeLike } from '../../shared/lib/prospect-access.js'
 import { assertContractDataComplete, formatMonthlyPrice, type ContractTemplateKey } from '../../shared/lib/contract-templates.js'
 import { htmlToPdf, isPdfAvailable } from '../../shared/lib/pdf.js'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import { ContractDetailsSchema, type ContractDetails, type CreateAddendumSchema, type SignatureRectSchema } from './schema.js'
 import { renderAddendum, renderBlank, renderDocument } from './templates-service.js'
 import type { z } from 'zod'
+import type { ContractListQuerySchema } from './schema.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 // Format A4 (puncte PDF, 72dpi) — identic paginii generate de htmlToPdf (shared/lib/pdf.ts,
@@ -269,4 +271,64 @@ export async function uploadSignedDocument(documentId: string, pdfBuffer: Buffer
     changes: { sursa: [null, source.id] },
   })
   return row!
+}
+
+export type ContractState = 'none' | 'generated' | 'signed' | 'addendum'
+
+/** One row per live client; the state is the strongest of: addendum, signed contract, generated contract. */
+export async function listContracts(query: z.infer<typeof ContractListQuerySchema>) {
+  const like = query.q ? `%${escapeLike(query.q)}%` : null
+  const rows = await db.execute<{
+    client_id: string
+    client_name: string
+    contract_number: string | null
+    contract_date: string | null
+    plan: string | null
+    state: ContractState
+    doc_id: string | null
+    doc_kind: string | null
+    doc_created_at: string | null
+    total: number
+  }>(sql`
+    WITH base AS (
+      SELECT c."id" AS client_id, c."name" AS client_name,
+             c."contract_details"->>'nrContract' AS contract_number,
+             c."contract_details"->>'dataContract' AS contract_date,
+             c."contract_plan" AS plan,
+             CASE
+               WHEN EXISTS (SELECT 1 FROM ${contractAddenda} a WHERE a."billing_client_id" = c."id" AND a."deleted_at" IS NULL) THEN 'addendum'
+               WHEN EXISTS (SELECT 1 FROM ${contractDocuments} d WHERE d."billing_client_id" = c."id" AND d."doc_type" = 'contract'
+                              AND d."is_signed" AND d."deleted_at" IS NULL) THEN 'signed'
+               WHEN EXISTS (SELECT 1 FROM ${contractDocuments} d WHERE d."billing_client_id" = c."id" AND d."doc_type" = 'contract'
+                              AND d."deleted_at" IS NULL) THEN 'generated'
+               ELSE 'none'
+             END AS state
+        FROM ${billingClients} c
+       WHERE c."deleted_at" IS NULL
+    )
+    SELECT b.*, ld."id" AS doc_id, ld."doc_type" AS doc_kind, ld."created_at" AS doc_created_at,
+           count(*) OVER ()::int AS total
+      FROM base b
+      LEFT JOIN LATERAL (
+        SELECT d."id", d."doc_type", d."created_at" FROM ${contractDocuments} d
+         WHERE d."billing_client_id" = b.client_id AND d."deleted_at" IS NULL
+         ORDER BY d."created_at" DESC LIMIT 1
+      ) ld ON true
+     WHERE (${like}::text IS NULL OR b.client_name ILIKE ${like} OR b.contract_number ILIKE ${like})
+       AND (${query.state ?? null}::text IS NULL OR b.state = ${query.state ?? null})
+     ORDER BY b.client_name, b.client_id
+     LIMIT ${query.pageSize} OFFSET ${(query.page - 1) * query.pageSize}
+  `)
+  return {
+    rows: rows.map((r) => ({
+      clientId: r.client_id,
+      clientName: r.client_name,
+      contractNumber: r.contract_number,
+      contractDate: r.contract_date,
+      plan: r.plan,
+      state: r.state,
+      lastDocument: r.doc_id ? { id: r.doc_id, kind: r.doc_kind!, createdAt: new Date(r.doc_created_at!).toISOString() } : null,
+    })),
+    total: rows[0]?.total ?? 0,
+  }
 }

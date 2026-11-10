@@ -87,12 +87,26 @@ export async function emailSequencesRoutes(app: FastifyInstance) {
     },
   )
 
+  server.get(
+    '/api/email/sequences/:id/diagnostics',
+    { preHandler: [app.authenticate], schema: { params: SequenceIdParamsSchema } },
+    async (req, reply) => {
+      const data = await service.getSequenceDiagnostics(req.params.id)
+      if (!data) return reply.code(404).send({ success: false, error: tr('errors.email.sequenceNotFound') })
+      return { success: true, data }
+    },
+  )
+
   server.post(
     '/api/email/sequences/:id/enroll',
     { preHandler: [app.authenticate], schema: { params: SequenceIdParamsSchema, body: EnrollSchema } },
     async (req, reply) => {
       try {
-        const result = await service.enrollRecipients(req.params.id, req.body.recipients)
+        const result = await service.enrollRecipients(req.params.id, req.body.recipients, {
+          me: req.me,
+          listId: req.body.listId,
+          prospectIds: req.body.prospectIds,
+        })
         return { success: true, data: result }
       } catch (err) {
         return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })

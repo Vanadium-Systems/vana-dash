@@ -13,6 +13,7 @@
   },
   "untitledNote": "Notiță fără titlu",
   "prospect": {
-    "free": "liber"
+    "free": "liber",
+    "new": "Prospect nou «{{term}}»"
   }
 }

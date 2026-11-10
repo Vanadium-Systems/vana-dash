@@ -13,6 +13,7 @@
   },
   "untitledNote": "Untitled note",
   "prospect": {
-    "free": "free"
+    "free": "free",
+    "new": "New prospect «{{term}}»"
   }
 }

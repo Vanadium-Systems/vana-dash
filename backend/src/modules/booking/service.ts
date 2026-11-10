@@ -17,6 +17,8 @@ import { ensureAlertRule, raiseAlert } from '../../shared/lib/alerting.js'
 import { callPublicUrl, closeCallRoom, findBookingCall, openCallRoom } from '../../shared/lib/call-rooms.js'
 import { isDailyConfigured } from '../../shared/lib/daily.js'
 import { INTL_TAG, isLocale, type Locale } from '../../shared/lib/locale.js'
+import { findProspectIdsByAddress } from '../../shared/lib/prospect-contact-status.js'
+import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
 
 const SETTINGS_KEY = 'booking.settings'
 // Plafonul de rezervări noi pe zi (Contract D): o limită peste Turnstile și rate limit, ca un
@@ -236,8 +238,20 @@ export async function createPublicBooking(input: PublicBookingInput, now = new D
     throw err
   }
 
+  await emitMeetingBooked(booking)
   await notifyAfterBooking(booking, cancelToken)
   return { bookingId: booking.id, start: booking.startAt.toISOString(), end: booking.endAt.toISOString() }
+}
+
+/** The visitor's address matches a prospect's email exactly: that prospect has booked a meeting. After commit; a failure here never undoes the booking. */
+async function emitMeetingBooked(booking: typeof bookings.$inferSelect) {
+  if (!booking.email) return
+  try {
+    const prospectIds = await findProspectIdsByAddress(booking.email)
+    for (const prospectId of prospectIds) emitProspectEvent('meeting.booked', { prospectId, at: booking.startAt })
+  } catch (err) {
+    console.error('[booking] meeting.booked not emitted:', err)
+  }
 }
 
 /** The call room of a booking. Daily down = the booking stands and the email says the link comes later. */

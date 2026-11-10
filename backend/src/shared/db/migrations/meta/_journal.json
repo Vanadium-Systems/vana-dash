@@ -617,6 +617,13 @@
       "when": 1794287836179,
       "tag": "0087_prospect_automation",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1794292644562,
+      "tag": "0088_prospect_offer",
+      "breakpoints": true
     }
   ]
 }

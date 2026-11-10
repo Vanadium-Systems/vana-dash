@@ -20,6 +20,7 @@ import {
   SequenceUpdateSchema,
   TemplateResolveQuerySchema,
 } from './schema.js'
+import { ClientPricingSchema } from './pricing-apply.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -99,6 +100,26 @@ export async function invoicingRoutes(app: FastifyInstance) {
 
       const client = await service.createClient({ ...rest, slug, vanagreenTenantId })
       return reply.code(201).send({ success: true, data: client })
+    },
+  )
+
+  server.post(
+    '/api/invoicing/clients/:id/pricing/preview',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: ClientPricingSchema } },
+    async (req, reply) => {
+      const result = await service.previewClientPricing(req.params.id, req.body)
+      if (!result) return reply.code(404).send({ success: false, error: 'Client not found' })
+      return { success: true, data: result }
+    },
+  )
+
+  server.patch(
+    '/api/invoicing/clients/:id/pricing',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: ClientPricingSchema } },
+    async (req, reply) => {
+      const result = await service.applyClientPricing(req.params.id, req.body)
+      if (!result) return reply.code(404).send({ success: false, error: 'Client not found' })
+      return { success: true, data: result }
     },
   )
 

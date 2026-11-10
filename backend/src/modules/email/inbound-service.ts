@@ -35,6 +35,8 @@ import {
 import type { SessionUser } from '../../shared/lib/session.js'
 import { buildSignature, escapeHtml, textToHtmlParagraph } from './signature.js'
 import { trFor, tr } from '../../shared/lib/i18n.js'
+import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
+import { findProspectIdsByAddress } from '../../shared/lib/prospect-contact-status.js'
 
 // Ingest of mail received through Cloudflare Email Routing, plus the replies sent on an
 // existing thread. Threads are matched on the normalized subject and a shared outside participant.
@@ -293,7 +295,12 @@ export async function ingestCloudflareInboundEmail(data: CloudflareInboundPayloa
   // (euristica de threading e pe subiect+participanți, nu pe In-Reply-To real — mai sigur să
   // oprim larg decât să ratăm un răspuns). Failure izolat, ca marcarea unsubscribe.
   try {
-    await stopSequencesForReplyFrom(data.from)
+    const stopped = await stopSequencesForReplyFrom(data.from)
+    const enrollmentId = (stopped.find((e) => e.recipientEmail.trim().toLowerCase() === data.from.trim().toLowerCase()) ?? stopped[0])?.id
+    const prospectIds = await findProspectIdsByAddress(data.from)
+    for (const prospectId of prospectIds.length > 0 ? prospectIds : [null]) {
+      emitProspectEvent('email.replied', { prospectId, address: data.from, ...(enrollmentId ? { enrollmentId } : {}) })
+    }
   } catch (err) {
     console.error(`[email] oprire secvențe la răspuns eșuată pentru ${data.from}: ${String(err)}`)
   }

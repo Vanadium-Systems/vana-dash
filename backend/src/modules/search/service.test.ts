@@ -5,7 +5,7 @@
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { emailMessages, emailThreads, financialRecords, prospectPeople, prospects, userMailboxes, users } from '../../shared/db/schema/index.js'
+import { emailMessages, emailThreads, financialRecords, prospectContactPoints, prospectPeople, prospects, userMailboxes, users } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { getIdentities } from '../email/settings-service.js'
 import { search } from './service.js'
@@ -138,6 +138,35 @@ describe('search', () => {
     const clients = (await search(adminSession, personName)).find((g) => g.group === 'Clienți')!
     expect(clients.items).toHaveLength(1)
     expect(clients.items[0]!.id).toBe(withPerson!.id)
+  })
+
+  it('new-prospect item only with clienti.prospectare, and a CUI-like term adds newCui', async () => {
+    const term = `Nou${marker.slice(-6)}`
+    const without = (await search(adminSession, term)).find((g) => g.group === 'Clienți')
+    expect(without).toBeUndefined()
+    const creator = { ...adminSession, features: [...adminSession.features, 'clienti.prospectare'] }
+    const byName = (await search(creator, term)).find((g) => g.group === 'Clienți')!
+    const nameItem = byName.items.find((i) => i.id === 'new-prospect')!
+    expect(nameItem.label).toContain(term)
+    expect(nameItem.to).toBe(`/clients?new=${term}`)
+    const byCui = (await search(creator, 'RO12345678')).find((g) => g.group === 'Clienți')!
+    expect(byCui.items.find((i) => i.id === 'new-prospect')!.to).toBe('/clients?new=RO12345678&newCui=12345678')
+  })
+
+  it('sublabel starts with the contact person or contact value that matched', async () => {
+    const personName = `Ionescu${marker.slice(-6)}`
+    const phone = `07${marker.replace(/\D/g, '').padEnd(8, '1').slice(0, 8)}`
+    const [withPerson, withPhone] = await db
+      .insert(prospects)
+      .values([{ name: 'QA Sublabel Person SRL' }, { name: 'QA Sublabel Phone SRL' }])
+      .returning()
+    prospectIds.push(withPerson!.id, withPhone!.id)
+    await db.insert(prospectPeople).values({ prospectId: withPerson!.id, name: personName })
+    await db.insert(prospectContactPoints).values({ prospectId: withPhone!.id, kind: 'phone', value: phone, valueNormalized: phone })
+    const person = (await search(adminSession, personName)).find((g) => g.group === 'Clienți')!
+    expect(person.items[0]!.sublabel!.startsWith(personName)).toBe(true)
+    const byPhone = (await search(adminSession, phone)).find((g) => g.group === 'Clienți')!
+    expect(byPhone.items.find((i) => i.id === withPhone!.id)!.sublabel!.startsWith(phone)).toBe(true)
   })
 
   it('grupa fără funcționalitate nu apare deloc, nici goală', async () => {

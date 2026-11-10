@@ -267,6 +267,8 @@
     "configUpsertFailed": "Saving the price config failed"
   },
   "prospects": {
+    "nlFiltersForbidden": "No access to the assistant, which natural-language search needs",
+    "nlFiltersNotConfigured": "The assistant is not configured",
     "statusNotFound": "The status does not exist",
     "csvMissing": "The file is missing",
     "fileTooLarge": "The file is too large (over 10MB)",
@@ -306,13 +308,21 @@
     "recipientInvalid": "The recipient is not an active team member.",
     "collaboratorInvalid": "The collaborator is not an active team member.",
     "reassignOnly": "Only the owner or whoever assigns prospects can do this.",
+    "healthForbidden": "Data health is for people who can edit prospects.",
+    "mergeSame": "Pick two different prospects.",
+    "mergeAlreadyMerged": "One of the prospects was already merged into another.",
     "importTooManyRows": "The file has more than {{max}} rows. Split it into smaller files.",
     "importNoNameColumn": "I cannot find a company name or tax ID column. Check the headers in the first row.",
     "importUnsupportedFile": "Only .csv and .xlsx files are accepted",
     "importUnreadable": "The file cannot be read",
     "importTokenExpired": "The preview has expired. Upload the file again.",
     "importNeedsReassign": "Assigning to other colleagues needs the assign permission",
-    "exportTooMany": "There are more than {{max}} rows. Narrow the filters and try again."
+    "exportTooMany": "There are more than {{max}} rows. Narrow the filters and try again.",
+    "automationForbidden": "The automations are set by whoever can assign prospects.",
+    "automationParams": "The parameters do not fit the rule.",
+    "scoringForbidden": "The score and the signals are set by whoever can assign prospects.",
+    "signalNotFound": "Signal not found",
+    "signalBuiltin": "Built-in signals cannot be deleted, only switched off."
   },
   "tenders": {
     "alreadyBlocked": "SICAP already answered with HTTP {{blockedStatus}} in this run; no more requests are sent",
@@ -372,6 +382,7 @@
     "enrollmentNotFound": "The enrollment does not exist",
     "sequenceInsertFailed": "Inserting the sequence returned nothing",
     "sequenceNoSteps": "The sequence has no step; it cannot take enrollments",
+    "sequencePaused": "Sequence \"{{name}}\" was paused: {{percent}}% of its latest sends bounced. Check the list and resume it from Sequences.",
     "notStarted": "Not started",
     "unknownIdentity": "Unknown email identity: {{from}}",
     "templateNotFound": "The template does not exist",

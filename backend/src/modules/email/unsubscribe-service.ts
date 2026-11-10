@@ -1,7 +1,8 @@
 import { desc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { emailSends, emailSuppressions } from '../../shared/db/schema/index.js'
-import { markProspectUnsubscribedByEmail } from '../prospects/service.js'
+import { markContactAddress } from '../../shared/lib/prospect-contact-status.js'
+import { stopEnrollmentsForAddress } from './sequences-service.js'
 
 function normalize(email: string): string {
   return email.trim().toLowerCase()
@@ -21,9 +22,11 @@ export async function getSuppressedEmails(emails: string[]): Promise<Set<string>
 
 /**
  * Click pe link-ul de dezabonare (sau hard-bounce/complaint automat, vezi service.ts webhook) —
- * idempotent (upsert pe `email`, un al doilea click nu aruncă). Marchează și prospectul
- * corespunzător, dacă există (apel cross-modul explicit, ca promoteProspect din
- * prospects/service.ts) — eșecul ăsta NU trebuie să blocheze dezabonarea efectivă, izolat separat.
+ * idempotent (upsert pe `email`, un al doilea click nu aruncă). Adresa rămâne suprimată în toate
+ * cazurile (nu trimitem la o adresă moartă), dar efectul pe prospect diferă: dezabonare și
+ * complaint marchează punctele de contact `unsubscribed`, un bounce doar `bounced` (adresa e
+ * moartă, omul nu a cerut nimic). Înscrierile active pe adresă se opresc imediat cu același status.
+ * Eșecul marcării NU trebuie să blocheze suprimarea efectivă, de aceea e izolat separat.
  *
  * `source` (2026-09-03) — 'manual' (click real) vs. 'bounce'/'complaint' (automat din webhook),
  * pt. pagina „Dezabonări" din Setări Email. Pe un re-trigger (ex: bounce după un unsubscribe
@@ -36,10 +39,16 @@ export async function suppressEmail(email: string, source: 'manual' | 'bounce' |
     .values({ email: normalized, source })
     .onConflictDoUpdate({ target: [emailSuppressions.tenantId, emailSuppressions.email], set: { unsubscribedAt: sql`now()`, source } })
 
+  const status = source === 'bounce' ? 'bounced' : 'unsubscribed'
   try {
-    await markProspectUnsubscribedByEmail(normalized)
+    await markContactAddress(normalized, status)
   } catch (err) {
-    console.error('[email/unsubscribe] marcare prospect eșuată pentru %s:', normalized, err)
+    console.error('[email/unsubscribe] marcare puncte de contact eșuată pentru %s:', normalized, err)
+  }
+  try {
+    await stopEnrollmentsForAddress(normalized, status)
+  } catch (err) {
+    console.error('[email/unsubscribe] oprire înscrieri eșuată pentru %s:', normalized, err)
   }
 }
 

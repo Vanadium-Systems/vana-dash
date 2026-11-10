@@ -268,6 +268,8 @@
     "configUpsertFailed": "Upsert pricing config eșuat"
   },
   "prospects": {
+    "nlFiltersForbidden": "Nu ai acces la asistent, necesar pentru căutarea în limbaj natural",
+    "nlFiltersNotConfigured": "Asistentul nu e configurat",
     "statusNotFound": "Status inexistent",
     "csvMissing": "Fișier lipsă",
     "fileTooLarge": "Fișier prea mare (peste 10MB)",
@@ -308,13 +310,21 @@
     "recipientInvalid": "Destinatarul nu e un om activ din echipă.",
     "collaboratorInvalid": "Colaboratorul nu e un om activ din echipă.",
     "reassignOnly": "Doar responsabilul sau cine repartizează poate face asta.",
+    "healthForbidden": "Sănătatea datelor e pentru cine poate edita prospecți.",
+    "mergeSame": "Alege doi prospecți diferiți.",
+    "mergeAlreadyMerged": "Unul dintre prospecți a fost deja unit cu altul.",
     "importTooManyRows": "Fișierul are peste {{max}} de rânduri. Împarte-l în fișiere mai mici.",
     "importNoNameColumn": "Nu găsesc nicio coloană cu numele firmei sau cu CUI. Verifică antetele din primul rând.",
     "importUnsupportedFile": "Sunt acceptate doar fișierele .csv și .xlsx",
     "importUnreadable": "Nu pot citi fișierul",
     "importTokenExpired": "Previzualizarea a expirat. Încarcă fișierul din nou.",
     "importNeedsReassign": "Repartizarea pe alți colegi cere dreptul de repartizare",
-    "exportTooMany": "Sunt peste {{max}} de rânduri. Restrânge filtrele și încearcă din nou."
+    "exportTooMany": "Sunt peste {{max}} de rânduri. Restrânge filtrele și încearcă din nou.",
+    "automationForbidden": "Automatizările le stabilește cine poate repartiza prospecții.",
+    "automationParams": "Parametrii nu se potrivesc regulii.",
+    "scoringForbidden": "Scorul și semnalele le stabilește cine poate repartiza prospecții.",
+    "signalNotFound": "Semnal inexistent",
+    "signalBuiltin": "Semnalele încorporate nu se șterg, doar se opresc."
   },
   "tenders": {
     "alreadyBlocked": "SICAP a răspuns deja cu HTTP {{blockedStatus}} în rularea asta — nu mai trimit request-uri",
@@ -374,6 +384,7 @@
     "enrollmentNotFound": "Înrolare inexistentă",
     "sequenceInsertFailed": "email_sequences insert nu a returnat nimic",
     "sequenceNoSteps": "Secvență fără niciun pas — nu poate primi înrolări",
+    "sequencePaused": "Secvența „{{name}}” a fost oprită: {{percent}}% din ultimele trimiteri au dat bounce. Verifică lista și repornește-o din Secvențe.",
     "notStarted": "Neîncepuți",
     "unknownIdentity": "Identitate email necunoscută: {{from}}",
     "templateNotFound": "Template inexistent",

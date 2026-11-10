@@ -53,6 +53,7 @@ import { pricingRoutes } from './modules/pricing/routes.js'
 import { prospectsRoutes } from './modules/prospects/routes.js'
 import { prospectCrmRoutes } from './modules/prospects/crm-routes.js'
 import { prospectTeamRoutes } from './modules/prospects/team-routes.js'
+import { prospectHealthRoutes } from './modules/prospects/health-routes.js'
 import { prospectSavedRoutes } from './modules/prospects/views-routes.js'
 import { prospectPipelineRoutes } from './modules/prospects/pipeline-routes.js'
 import { snippetsRoutes } from './modules/snippets/routes.js'
@@ -152,6 +153,7 @@ export async function buildServer() {
   await app.register(prospectsRoutes)
   await app.register(prospectCrmRoutes)
   await app.register(prospectTeamRoutes)
+  await app.register(prospectHealthRoutes)
   await app.register(prospectSavedRoutes)
   await app.register(prospectPipelineRoutes)
   await app.register(notificationsRoutes)

@@ -45,6 +45,8 @@ export const prospects = pgTable(
     statusChangedAt: timestamp('status_changed_at', { withTimezone: true }).notNull().defaultNow(),
     valueAmount: numeric('value_amount', { precision: 14, scale: 2 }),
     valueCurrency: text('value_currency'),
+    // The calculator quote for this prospect; applied on the client when the prospect is promoted.
+    offer: jsonb('offer'),
     expectedCloseAt: date('expected_close_at'),
     // Since when the current owner holds it; the automatic release counts idle days from here.
     claimedAt: timestamp('claimed_at', { withTimezone: true }),

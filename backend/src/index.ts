@@ -7,7 +7,10 @@ import { startBillingCycleRolloverJob } from './jobs/billing-cycle-rollover.js'
 import { startBnrDailyFetchJob } from './jobs/bnr-daily-fetch.js'
 import { startBookingPurgeJob } from './jobs/booking-purge.js'
 import { startProspectReleaseJob } from './jobs/prospect-release.js'
+import { startProspectDuplicatesJob } from './jobs/prospect-duplicates.js'
+import { startProspectScoringJob } from './jobs/prospect-scoring.js'
 import { startProspectViewAlertsJob } from './jobs/prospect-view-alerts.js'
+import { startProspectAutomationsJob } from './jobs/prospect-automations.js'
 import { startTrashPurgeJob } from './jobs/trash-purge.js'
 import { startCallsCloseJob } from './jobs/calls-close.js'
 import { startCalendarRemindersJob } from './jobs/calendar-reminders.js'
@@ -72,7 +75,10 @@ startBnrDailyFetchJob()
 startSystemMetricsPurgeJob()
 startBookingPurgeJob()
 startProspectReleaseJob()
+startProspectDuplicatesJob()
+startProspectScoringJob()
 startProspectViewAlertsJob()
+startProspectAutomationsJob()
 startTrashPurgeJob()
 startCallsCloseJob()
 startServer1AlertsJob()

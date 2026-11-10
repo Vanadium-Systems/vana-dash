@@ -346,9 +346,10 @@ async function assertAssignee(me: Me, prospect: { assignedUserId: string | null 
 
 const slotOf = (dueAt: Date) => ({ startAt: dueAt, endAt: new Date(dueAt.getTime() + CALENDAR_SLOT_MS) })
 
-async function insertTask(
+// `me.id` null = created by an automation, no author.
+export async function insertTask(
   tx: Tx,
-  me: Me,
+  me: { id: string | null },
   prospectId: string,
   assigneeUserId: string,
   input: Pick<z.infer<typeof CreateProspectTaskSchema>, 'kind' | 'title' | 'dueAt' | 'priority' | 'addToCalendar'> & {
@@ -385,7 +386,10 @@ export async function createProspectTask(me: Me, prospectId: string, input: z.in
   const assigneeUserId = input.assigneeUserId ?? me.id
   await assertAssignee(me, prospect, assigneeUserId)
   await assertPersonOf(prospectId, input.personId)
-  return db.transaction((tx) => insertTask(tx, me, prospectId, assigneeUserId, input))
+  const task = await db.transaction((tx) => insertTask(tx, me, prospectId, assigneeUserId, input))
+  // A meeting on the books ends the sequences that stop on a meeting.
+  if (task.kind === 'meeting') emitProspectEvent('meeting.booked', { prospectId, at: task.dueAt })
+  return task
 }
 
 export async function updateProspectTask(me: Me, prospectId: string, taskId: string, input: z.infer<typeof UpdateProspectTaskSchema>) {

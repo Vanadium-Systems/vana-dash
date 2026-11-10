@@ -228,3 +228,33 @@ export async function resolveFromAddress(from: string): Promise<string> {
   }
   return identity.fromAddress
 }
+
+// ── Pauza secvențelor la bounce ──────────────────────────────────────────────
+
+const SEQUENCE_BOUNCE_PAUSE_KEY = 'email.sequence_bounce_pause'
+
+export interface SequenceBouncePause {
+  /** Bounced share of the window (0.05 = 5%) above which the sequence pauses. */
+  threshold: number
+  /** Fewer sends than this in the window and the rate says nothing yet. */
+  minSends: number
+  /** How many of the latest sends of the sequence are looked at. */
+  window: number
+}
+
+const DEFAULT_SEQUENCE_BOUNCE_PAUSE: SequenceBouncePause = { threshold: 0.05, minSends: 20, window: 50 }
+
+export async function getSequenceBouncePause(): Promise<SequenceBouncePause> {
+  const [row] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, SEQUENCE_BOUNCE_PAUSE_KEY))
+  if (!row) return DEFAULT_SEQUENCE_BOUNCE_PAUSE
+  return { ...DEFAULT_SEQUENCE_BOUNCE_PAUSE, ...(row.value as Partial<SequenceBouncePause>) }
+}
+
+export async function setSequenceBouncePause(patch: Partial<SequenceBouncePause>): Promise<SequenceBouncePause> {
+  const next = { ...(await getSequenceBouncePause()), ...patch }
+  await db
+    .insert(dashboardConfig)
+    .values({ key: SEQUENCE_BOUNCE_PAUSE_KEY, value: next })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
+  return next
+}

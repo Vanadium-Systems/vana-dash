@@ -27,6 +27,11 @@ import { ProspectNotYoursError } from '../../shared/lib/prospect-access.js'
 import { getCompany } from '../../shared/lib/company.js'
 import { getCountryPack } from '../../countries/index.js'
 import { FilterOpError } from './filters.js'
+import { assertCanConfigureScoring } from './score-signals-service.js'
+import { nlFiltersRoutes } from './nl-filters-routes.js'
+import { scoreSignalsErrorReply, scoreSignalsRoutes } from './score-signals-routes.js'
+import { automationsRoutes } from './automations-routes.js'
+import { offerRoutes } from './offer-routes.js'
 
 type Id = { id: string }
 
@@ -107,10 +112,15 @@ export async function prospectsRoutes(app: FastifyInstance) {
   server.put(
     '/api/prospects/scoring-config',
     { preHandler: [app.authenticate], schema: { body: UpdateScoringConfigSchema } },
-    async (req) => {
-      const config = await service.updateScoringConfig(req.body)
-      const recalculated = await service.recalculateAllScores()
-      return { success: true, data: { config, recalculated } }
+    async (req, reply) => {
+      try {
+        assertCanConfigureScoring(req.me)
+        const config = await service.updateScoringConfig(req.body)
+        const recalculated = await service.recalculateAllScores()
+        return { success: true, data: { config, recalculated } }
+      } catch (err) {
+        return scoreSignalsErrorReply(reply, err)
+      }
     },
   )
 
@@ -301,4 +311,9 @@ export async function prospectsRoutes(app: FastifyInstance) {
       return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
     }
   })
+
+  await app.register(scoreSignalsRoutes)
+  await app.register(automationsRoutes)
+  await app.register(nlFiltersRoutes)
+  await app.register(offerRoutes)
 }
