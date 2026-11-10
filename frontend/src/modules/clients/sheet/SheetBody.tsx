@@ -16,6 +16,7 @@ import { ActivityTab } from './ActivityTab'
 import { DiscussedTab } from './DiscussedTab'
 import { NextStep } from './NextStep'
 import { NotesTab } from './NotesTab'
+import { MeetDialog } from './meet/MeetDialog'
 import { Offer } from './Offer'
 import { PeopleSection, type ContactKind } from './PeopleSection'
 import { Properties } from './Properties'
@@ -49,6 +50,7 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
 
   const [tab, setTab] = useState<TabKey>('activity')
   const [scheduleOpen, setScheduleOpen] = useState(false)
+  const [meetOpen, setMeetOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [requestKind, setRequestKind] = useState<'transfer' | 'access' | null>(null)
   const [collaboratorsOpen, setCollaboratorsOpen] = useState(false)
@@ -130,6 +132,7 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
           onCall={() => phone && contact('call', phone.value)}
           onWrite={() => email && contact('write', email.value)}
           onSchedule={() => setScheduleOpen(true)}
+          onMeet={() => gate(() => setMeetOpen(true))}
           onClaim={() => void team.claim()}
           onCollaborators={() => setCollaboratorsOpen(true)}
           menu={<RowActions actions={[]} menu={menu} title={sheet.name} />}
@@ -181,6 +184,7 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
       </div>
 
       <ScheduleDialog sheet={sheet} open={scheduleOpen} onOpenChange={setScheduleOpen} />
+      <MeetDialog prospectId={sheet.id} prospectName={sheet.name} task={null} open={meetOpen} onOpenChange={setMeetOpen} />
       <TransferDialog sheet={sheet} open={transferOpen} onOpenChange={setTransferOpen} />
       <RequestDialog sheet={sheet} kind={requestKind ?? 'transfer'} open={requestKind !== null} onOpenChange={(open) => !open && setRequestKind(null)} />
       <CollaboratorsDialog sheet={sheet} open={collaboratorsOpen} onOpenChange={setCollaboratorsOpen} canManage={manages} />

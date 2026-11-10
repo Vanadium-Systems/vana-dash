@@ -1,0 +1,80 @@
+{
+  "button": "Meet",
+  "buttonHint": "Schedule a meeting with {{name}}",
+  "dialog": {
+    "title": "Meet with {{name}}",
+    "editTitle": "Reschedule the meeting",
+    "defaultTitle": "Meeting with {{name}}",
+    "date": "Date",
+    "time": "Time",
+    "duration": "Duration",
+    "minutes": "{{minutes}} min",
+    "location": "Place",
+    "locationHint": "Address, room or link; shown in the calendar and in the invitation.",
+    "titleRequired": "Enter a title.",
+    "dateRequired": "Pick a date.",
+    "invitees": "People from the company",
+    "inviteesEmpty": "The company's contacts have no email address.",
+    "companyAddress": "Company",
+    "reasons": {
+      "doNotContact": "Do not contact",
+      "bounced": "the address bounced",
+      "unsubscribed": "unsubscribed",
+      "invalid": "invalid address"
+    },
+    "colleagues": "Colleagues invited",
+    "colleaguesHint": "It lands in their calendar as a shared event, with a notification.",
+    "colleaguesEmpty": "There is no other active colleague.",
+    "sendInvite": "Send the invitation by email",
+    "sendInviteNeedsInvitee": "Pick at least one person to send the invitation.",
+    "noSendRight": "You are not allowed to send emails, so the meeting is created without an invitation.",
+    "noMailbox": "You have no mailbox to send the invitation from.",
+    "from": "From",
+    "subject": "Subject",
+    "message": "Message",
+    "create": "Schedule",
+    "createAndSend": "Schedule and send",
+    "save": "Save"
+  },
+  "email": {
+    "subject": "Invitation: {{title}}",
+    "body": "Hello,\n\nI would like to invite you to \"{{title}}\" on {{date}} at {{time}} ({{duration}} min){{place}}.\n\nThe calendar invitation is attached.\n\nOrganizer: {{organizer}}",
+    "place": ", at {{location}}",
+    "updateSubject": "Updated: {{title}}",
+    "updateBody": "Hello,\n\nThe meeting \"{{title}}\" has moved: {{date}} at {{time}} ({{duration}} min){{place}}.\n\nThe updated invitation is attached.\n\nOrganizer: {{organizer}}",
+    "cancelSubject": "Cancelled: {{title}}",
+    "cancelBody": "Hello,\n\nThe meeting \"{{title}}\" on {{date}} at {{time}} has been cancelled. Sorry for the change.\n\nOrganizer: {{organizer}}"
+  },
+  "saved": {
+    "created": "Meeting scheduled",
+    "updated": "Meeting saved"
+  },
+  "inviteFailed": "The meeting is saved, but the invitation did not go out: {{reason}}",
+  "updateFailed": "The meeting is saved, but the update did not go out: {{reason}}",
+  "cancelFailed": "The meeting is cancelled, but the cancellation did not go out: {{reason}}",
+  "colleaguesDenied": "You are not allowed to invite colleagues to the calendar.",
+  "row": {
+    "invitees_one": "{{count}} invitee",
+    "invitees_other": "{{count}} invitees",
+    "move": "Reschedule",
+    "cancel": "Cancel"
+  },
+  "cancel": {
+    "title": "Cancel the meeting \"{{title}}\"?",
+    "consequence": "It disappears from the calendar and from the task list.",
+    "confirm": "Cancel the meeting",
+    "done": "Meeting cancelled"
+  },
+  "notify": {
+    "updateTitle_one": "Send the update to {{count}} invitee?",
+    "updateTitle_other": "Send the update to {{count}} invitees?",
+    "cancelTitle_one": "Send the cancellation to {{count}} invitee?",
+    "cancelTitle_other": "Send the cancellation to {{count}} invitees?",
+    "updateHelp": "They get an email with the updated invitation; the time changes in their calendar by itself.",
+    "cancelHelp": "They get an email with the cancellation; the meeting leaves their calendar by itself.",
+    "sendUpdate": "Send the update",
+    "sendCancel": "Send the cancellation",
+    "skip": "Do not send",
+    "to": "To {{emails}}"
+  }
+}

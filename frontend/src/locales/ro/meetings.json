@@ -1,0 +1,83 @@
+{
+  "button": "Meet",
+  "buttonHint": "Programează o întâlnire cu {{name}}",
+  "dialog": {
+    "title": "Meet cu {{name}}",
+    "editTitle": "Mută întâlnirea",
+    "defaultTitle": "Întâlnire cu {{name}}",
+    "date": "Data",
+    "time": "Ora",
+    "duration": "Durata",
+    "minutes": "{{minutes}} min",
+    "location": "Locul",
+    "locationHint": "Adresă, sală sau link; apare în calendar și în invitație.",
+    "titleRequired": "Scrie un titlu.",
+    "dateRequired": "Alege data.",
+    "invitees": "Participanți din firmă",
+    "inviteesEmpty": "Contactele firmei n-au nicio adresă de email.",
+    "companyAddress": "Firma",
+    "reasons": {
+      "doNotContact": "Nu contacta",
+      "bounced": "adresa a respins emailul",
+      "unsubscribed": "s-a dezabonat",
+      "invalid": "adresă nevalidă"
+    },
+    "colleagues": "Colegi invitați",
+    "colleaguesHint": "Intră în calendarul lor ca eveniment comun, cu notificare.",
+    "colleaguesEmpty": "Nu e niciun alt coleg activ.",
+    "sendInvite": "Trimite invitația pe email",
+    "sendInviteNeedsInvitee": "Alege cel puțin un participant ca să poți trimite invitația.",
+    "noSendRight": "Nu ai dreptul să trimiți emailuri, deci întâlnirea se creează fără invitație.",
+    "noMailbox": "Nu ai nicio cutie de email din care să trimiți invitația.",
+    "from": "De pe",
+    "subject": "Subiect",
+    "message": "Mesaj",
+    "create": "Programează",
+    "createAndSend": "Programează și trimite",
+    "save": "Salvează"
+  },
+  "email": {
+    "subject": "Invitație: {{title}}",
+    "body": "Bună ziua,\n\nVă invit la întâlnirea „{{title}}”, pe {{date}}, la {{time}} ({{duration}} min){{place}}.\n\nInvitația pentru calendar e atașată.\n\nOrganizator: {{organizer}}",
+    "place": ", la {{location}}",
+    "updateSubject": "Actualizare: {{title}}",
+    "updateBody": "Bună ziua,\n\nÎntâlnirea „{{title}}” s-a mutat: {{date}}, la {{time}} ({{duration}} min){{place}}.\n\nInvitația actualizată e atașată.\n\nOrganizator: {{organizer}}",
+    "cancelSubject": "Anulat: {{title}}",
+    "cancelBody": "Bună ziua,\n\nÎntâlnirea „{{title}}” de pe {{date}}, ora {{time}}, a fost anulată. Ne cerem scuze pentru schimbare.\n\nOrganizator: {{organizer}}"
+  },
+  "saved": {
+    "created": "Întâlnire programată",
+    "updated": "Întâlnire salvată"
+  },
+  "inviteFailed": "Întâlnirea e salvată, dar invitația nu a plecat: {{reason}}",
+  "updateFailed": "Întâlnirea e salvată, dar actualizarea nu a plecat: {{reason}}",
+  "cancelFailed": "Întâlnirea e anulată, dar anularea nu a plecat: {{reason}}",
+  "colleaguesDenied": "Nu ai dreptul să inviți colegi în calendar.",
+  "row": {
+    "invitees_one": "{{count}} invitat",
+    "invitees_few": "{{count}} invitați",
+    "invitees_other": "{{count}} de invitați",
+    "move": "Mută",
+    "cancel": "Anulează"
+  },
+  "cancel": {
+    "title": "Anulezi întâlnirea „{{title}}”?",
+    "consequence": "Dispare din calendar și din lista de task-uri.",
+    "confirm": "Anulează întâlnirea",
+    "done": "Întâlnire anulată"
+  },
+  "notify": {
+    "updateTitle_one": "Trimit actualizarea către {{count}} invitat?",
+    "updateTitle_few": "Trimit actualizarea către {{count}} invitați?",
+    "updateTitle_other": "Trimit actualizarea către {{count}} de invitați?",
+    "cancelTitle_one": "Trimit anularea către {{count}} invitat?",
+    "cancelTitle_few": "Trimit anularea către {{count}} invitați?",
+    "cancelTitle_other": "Trimit anularea către {{count}} de invitați?",
+    "updateHelp": "Primesc un email cu invitația actualizată; calendarul lor își schimbă singur ora.",
+    "cancelHelp": "Primesc un email cu anularea; întâlnirea dispare singură din calendarul lor.",
+    "sendUpdate": "Trimite actualizarea",
+    "sendCancel": "Trimite anularea",
+    "skip": "Nu trimite",
+    "to": "Către {{emails}}"
+  }
+}

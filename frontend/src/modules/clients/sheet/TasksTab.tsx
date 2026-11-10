@@ -6,11 +6,13 @@ import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
-import { formatDateTime } from '@/shared/lib/format'
+import { formatDate, formatDateTime } from '@/shared/lib/format'
 import { t, type TKey } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
 import { CompleteTaskDialog, type CompletableTask } from '../tasks/CompleteTaskDialog'
 import { EditTaskDialog, type EditableTask } from '../tasks/EditTaskDialog'
+import { endOf, meetingOf } from './meet/meet-api'
+import { useMeetingControls } from './meet/use-meeting-controls'
 import type { SheetTask } from './types'
 import { useTasks, useWrite } from './use-sheet'
 
@@ -34,6 +36,7 @@ export function TasksTab({ prospectId, prospectName, canEdit, onSchedule }: { pr
   const tasks = useTasks(prospectId)
   const [completing, setCompleting] = useState<CompletableTask | null>(null)
   const [editing, setEditing] = useState<EditableTask | null>(null)
+  const meetings = useMeetingControls()
   if (tasks.isPending) return <ListSkeleton rows={3} />
   const rows = tasks.data ?? []
 
@@ -41,6 +44,9 @@ export function TasksTab({ prospectId, prospectName, canEdit, onSchedule }: { pr
     const open = isOpenTask(task)
     const overdue = open && new Date(task.dueAt).getTime() < Date.now()
     const canTick = canEdit || task.assigneeUserId === session?.user.id
+    const isMeeting = task.kind === 'meeting'
+    const when = isMeeting ? `${formatDateTime(task.dueAt)}–${formatDate(endOf(task), { timeStyle: 'short' })}` : formatDateTime(task.dueAt)
+    const inviteeCount = task.invitees?.length ?? 0
     return (
       <li key={task.id} className="group flex items-center gap-3 text-sm">
         <Checkbox
@@ -52,7 +58,16 @@ export function TasksTab({ prospectId, prospectName, canEdit, onSchedule }: { pr
         <div className="min-w-0 flex-1">
           <p className={cn('truncate', !open && 'text-muted-foreground line-through')}>{task.title}</p>
           <p className={cn('truncate text-xs', overdue ? 'text-destructive-text' : 'text-muted-foreground')}>
-            {[t(TASK_KIND_LABEL[task.kind] ?? 'clients:sheet.schedule.kinds.task'), formatDateTime(task.dueAt), task.assigneeName, task.personName].filter(Boolean).join(' · ')}
+            {[
+              t(TASK_KIND_LABEL[task.kind] ?? 'clients:sheet.schedule.kinds.task'),
+              when,
+              isMeeting ? task.location : null,
+              isMeeting && inviteeCount > 0 ? t('meetings:row.invitees', { count: inviteeCount }) : null,
+              task.assigneeName,
+              task.personName,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </p>
         </div>
         {canEdit && open ? (
@@ -61,9 +76,13 @@ export function TasksTab({ prospectId, prospectName, canEdit, onSchedule }: { pr
             size="icon-sm"
             variant="ghost"
             className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-            aria-label={t('common:actions.edit')}
-            title={t('common:actions.edit')}
-            onClick={() => setEditing({ id: task.id, prospectId, title: task.title, description: task.description, dueAt: task.dueAt, priority: task.priority, assigneeUserId: task.assigneeUserId })}
+            aria-label={isMeeting ? t('meetings:row.move') : t('common:actions.edit')}
+            title={isMeeting ? t('meetings:row.move') : t('common:actions.edit')}
+            onClick={() =>
+              isMeeting
+                ? meetings.move(meetingOf(task, prospectId, prospectName))
+                : setEditing({ id: task.id, prospectId, title: task.title, description: task.description, dueAt: task.dueAt, priority: task.priority, assigneeUserId: task.assigneeUserId })
+            }
           >
             <Pencil />
           </Button>
@@ -74,10 +93,12 @@ export function TasksTab({ prospectId, prospectName, canEdit, onSchedule }: { pr
             size="icon-sm"
             variant="ghost"
             className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-            aria-label={t('common:actions.delete')}
-            title={t('common:actions.delete')}
+            aria-label={isMeeting ? t('meetings:row.cancel') : t('common:actions.delete')}
+            title={isMeeting ? t('meetings:row.cancel') : t('common:actions.delete')}
             onClick={() =>
-              void confirm({ title: t('clients:sheet.tasks.deleteTitle', { title: task.title }), confirmLabel: t('common:actions.delete'), destructive: true }).then(
+              isMeeting
+                ? void meetings.cancel(meetingOf(task, prospectId, prospectName))
+                : void confirm({ title: t('clients:sheet.tasks.deleteTitle', { title: task.title }), confirmLabel: t('common:actions.delete'), destructive: true }).then(
                 (ok) => ok && write(() => api.delete(`/api/prospects/${prospectId}/tasks/${task.id}`)),
               )
             }
@@ -99,6 +120,7 @@ export function TasksTab({ prospectId, prospectName, canEdit, onSchedule }: { pr
       {rows.length === 0 ? <p className="text-sm text-muted-foreground">{t('clients:sheet.tasks.empty')}</p> : <ul className="space-y-3">{rows.map(row)}</ul>}
       <CompleteTaskDialog task={completing} onOpenChange={(open) => !open && setCompleting(null)} />
       <EditTaskDialog task={editing} onOpenChange={(open) => !open && setEditing(null)} />
+      {meetings.dialogs}
     </div>
   )
 }

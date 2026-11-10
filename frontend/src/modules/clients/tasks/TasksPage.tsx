@@ -14,10 +14,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useMe } from '@/shared/hooks/use-me'
 import { useUrlState } from '@/shared/hooks/use-url-state'
 import { api } from '@/shared/lib/api'
-import { companyTimeZone, formatDateTime, formatNumber } from '@/shared/lib/format'
+import { companyTimeZone, formatDate, formatDateTime, formatNumber } from '@/shared/lib/format'
 import { t, type TKey } from '@/shared/lib/i18n'
 import { usePageActions } from '@/shared/lib/page-actions'
 import { cn } from '@/shared/lib/utils'
+import { endOf, meetingOf } from '../sheet/meet/meet-api'
+import { useMeetingControls } from '../sheet/meet/use-meeting-controls'
 import { companyDay, daysBetween } from '../sheet/schedule-time'
 import { TASK_KIND_LABEL } from '../sheet/TasksTab'
 import { useWrite } from '../sheet/use-sheet'
@@ -47,11 +49,14 @@ function daysOverdue(dueAt: string): number {
   return Math.max(0, daysBetween(companyDay(new Date(dueAt), zone), companyDay(new Date(), zone)))
 }
 
-function DueCell({ dueAt }: { dueAt: string }) {
+function DueCell({ dueAt, endsAt }: { dueAt: string; endsAt?: Date }) {
   const late = daysOverdue(dueAt)
   return (
     <>
-      <span className={cn('block tabular-nums', late > 0 && 'text-warning-text')}>{formatDateTime(dueAt)}</span>
+      <span className={cn('block tabular-nums', late > 0 && 'text-warning-text')}>
+        {formatDateTime(dueAt)}
+        {endsAt ? `–${formatDate(endsAt, { timeStyle: 'short' })}` : ''}
+      </span>
       {late > 0 ? <span className="block text-xs text-warning-text">{t('clients:tasks.overdueDays', { count: late, n: formatNumber(late) })}</span> : null}
     </>
   )
@@ -73,6 +78,7 @@ export function TasksPageTab() {
   const [completing, setCompleting] = useState<CompletableTask | null>(null)
   const [editing, setEditing] = useState<EditableTask | null>(null)
   const [snippetsOpen, setSnippetsOpen] = useState(false)
+  const meetings = useMeetingControls()
 
   useEffect(() => setPage(0), [tab, scope, pageSize])
   const counts = useTaskCounts(scope)
@@ -158,7 +164,15 @@ export function TasksPageTab() {
                   </TableCell>
                   <TableCell className="tbl-fill">
                     <span className="block truncate font-medium">{task.title}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{t(TASK_KIND_LABEL[task.kind] ?? 'clients:sheet.schedule.kinds.task')}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {[
+                        t(TASK_KIND_LABEL[task.kind] ?? 'clients:sheet.schedule.kinds.task'),
+                        task.kind === 'meeting' ? task.location : null,
+                        task.kind === 'meeting' && task.invitees?.length ? t('meetings:row.invitees', { count: task.invitees.length }) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
                     <TableDetails items={[task.prospectName, task.personName, scope === 'team' ? task.assigneeName : null]} />
                   </TableCell>
                   <TableCell priority="md">
@@ -169,7 +183,7 @@ export function TasksPageTab() {
                   </TableCell>
                   <TableCell priority="lg">{task.personName ?? <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell>
-                    <DueCell dueAt={task.dueAt} />
+                    <DueCell dueAt={task.dueAt} endsAt={task.kind === 'meeting' ? endOf(task) : undefined} />
                   </TableCell>
                   <TableCell priority="lg">
                     <Badge variant={task.priority === 'high' ? 'warning' : 'secondary'}>{t(PRIORITY_LABEL[task.priority])}</Badge>
@@ -179,8 +193,12 @@ export function TasksPageTab() {
                       actions={[]}
                       title={task.title}
                       menu={[
-                        { key: 'edit', icon: Pencil, label: t('common:actions.edit'), onClick: () => setEditing(task) },
-                        { key: 'delete', icon: Trash2, label: t('common:actions.delete'), destructive: true, onClick: () => remove(task) },
+                        task.kind === 'meeting'
+                          ? { key: 'edit', icon: Pencil, label: t('meetings:row.move'), onClick: () => meetings.move(meetingOf(task, task.prospectId, task.prospectName)) }
+                          : { key: 'edit', icon: Pencil, label: t('common:actions.edit'), onClick: () => setEditing(task) },
+                        task.kind === 'meeting'
+                          ? { key: 'delete', icon: Trash2, label: t('meetings:row.cancel'), destructive: true, onClick: () => void meetings.cancel(meetingOf(task, task.prospectId, task.prospectName)) }
+                          : { key: 'delete', icon: Trash2, label: t('common:actions.delete'), destructive: true, onClick: () => remove(task) },
                       ]}
                     />
                   </TableCell>
@@ -195,6 +213,7 @@ export function TasksPageTab() {
       <CompleteTaskDialog task={completing} onOpenChange={(open) => !open && setCompleting(null)} />
       <EditTaskDialog task={editing} onOpenChange={(open) => !open && setEditing(null)} />
       <SnippetsDialog open={snippetsOpen} onOpenChange={setSnippetsOpen} />
+      {meetings.dialogs}
     </div>
   )
 }

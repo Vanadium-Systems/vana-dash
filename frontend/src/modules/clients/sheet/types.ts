@@ -119,6 +119,12 @@ export interface SheetTask {
   assigneeUserId: string
   assigneeName: string | null
   personName: string | null
+  // Meetings only (crm-service.ts `withMeetingDetails`); older fixtures omit them.
+  durationMinutes?: number | null
+  location?: string | null
+  invitees?: string[]
+  inviteSequence?: number
+  attendeeUserIds?: string[]
 }
 
 export interface ContactCheck {

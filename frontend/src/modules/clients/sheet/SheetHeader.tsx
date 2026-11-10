@@ -1,4 +1,4 @@
-import { CalendarClock, Check, Copy, Mail, Phone, Users } from 'lucide-react'
+import { CalendarClock, CalendarPlus, Check, Copy, Mail, Phone, Users } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/shared/components/ui/badge'
@@ -54,12 +54,13 @@ interface SheetHeaderProps {
   onCall: () => void
   onWrite: () => void
   onSchedule: () => void
+  onMeet: () => void
   onClaim: () => void
   onCollaborators: () => void
   menu: ReactNode
 }
 
-export function SheetHeader({ sheet, canClaim, canCall, canWrite, onCall, onWrite, onSchedule, onClaim, onCollaborators, menu }: SheetHeaderProps) {
+export function SheetHeader({ sheet, canClaim, canCall, canWrite, onCall, onWrite, onSchedule, onMeet, onClaim, onCollaborators, menu }: SheetHeaderProps) {
   return (
     <header className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
@@ -81,6 +82,11 @@ export function SheetHeader({ sheet, canClaim, canCall, canWrite, onCall, onWrit
           <Button type="button" variant="outline" disabled={!canWrite} title={canWrite ? undefined : t('clients:sheet.header.noEmail')} onClick={onWrite}>
             <Mail aria-hidden="true" /> {t('clients:sheet.header.write')}
           </Button>
+          {sheet.canEdit ? (
+            <Button type="button" variant="outline" title={t('meetings:buttonHint', { name: sheet.name })} onClick={onMeet}>
+              <CalendarPlus aria-hidden="true" /> {t('meetings:button')}
+            </Button>
+          ) : null}
           {sheet.canEdit ? (
             <Button type="button" onClick={onSchedule}>
               <CalendarClock aria-hidden="true" /> {t('clients:sheet.header.schedule')}

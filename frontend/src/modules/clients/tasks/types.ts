@@ -20,6 +20,11 @@ export interface TaskRow {
   prospectName: string
   personName: string | null
   assigneeName: string | null
+  durationMinutes?: number | null
+  location?: string | null
+  invitees?: string[]
+  inviteSequence?: number
+  attendeeUserIds?: string[]
 }
 
 export interface TaskPage {

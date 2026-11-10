@@ -23,7 +23,7 @@ import type {
   UpdatePersonSchema,
   UpdateProspectTaskSchema,
 } from './schema.js'
-import { resolveFromAddress } from '../../shared/lib/email-identities.js'
+import { bareAddress, resolveFromAddress } from '../../shared/lib/email-identities.js'
 import { TASK_TABS } from './schema.js'
 import { InvalidAssigneeError, normalizeEmail, refreshScore } from './service.js'
 
@@ -727,7 +727,9 @@ export async function taskCounts(me: Me, scope: 'mine' | 'team' | undefined) {
  *  A mailbox that isn't the caller's, or an unknown key, falls back to the caller's own address. */
 async function organizerAddress(me: Me, fromKey: string | undefined): Promise<string> {
   if (!fromKey || (me.mailboxes !== null && !me.mailboxes.includes(fromKey))) return me.email
-  return resolveFromAddress(fromKey).catch(() => me.email)
+  const from = await resolveFromAddress(fromKey).catch(() => me.email)
+  // A mailbox address may carry a display name; mailto: takes the bare address.
+  return bareAddress(from) || me.email
 }
 
 export async function meetingInvite(me: Me, prospectId: string, taskId: string, method: 'request' | 'cancel', fromKey?: string) {

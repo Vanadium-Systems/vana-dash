@@ -41,3 +41,8 @@ export async function resolveFromAddress(from: string): Promise<string> {
   }
   return identity.fromAddress
 }
+
+/** "Acme <office@acme.example>" → "office@acme.example"; a bare address stays as it is. */
+export function bareAddress(from: string): string {
+  return /<([^>]+)>/.exec(from)?.[1]?.trim() || from.trim()
+}

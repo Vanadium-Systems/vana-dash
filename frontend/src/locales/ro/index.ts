@@ -13,6 +13,7 @@ import crypto from './crypto.json'
 import email from './email.json'
 import financials from './financials.json'
 import help from './help.json'
+import meetings from './meetings.json'
 import messages from './messages.json'
 import monitoring from './monitoring.json'
 import notes from './notes.json'
@@ -30,4 +31,4 @@ import tenders from './tenders.json'
 import updates from './updates.json'
 import wishlist from './wishlist.json'
 
-export default { access, accounting, alerts, archive, assets, assistant, auth, calendar, calls, clients, common, crypto, email, financials, help, messages, monitoring, notes, overview, plan, platforms, pricing, reconciliation, reports, settings, support, team, tenants, tenders, updates, wishlist }
+export default { access, accounting, alerts, archive, assets, assistant, auth, calendar, calls, clients, common, crypto, email, financials, help, meetings, messages, monitoring, notes, overview, plan, platforms, pricing, reconciliation, reports, settings, support, team, tenants, tenders, updates, wishlist }
