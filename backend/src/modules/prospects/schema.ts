@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { lazyTr } from '../../shared/lib/i18n.js'
 import { FiltersParamSchema, ProspectFilterSchema } from './filters.js'
+import { CALL_OUTCOMES, CONTACT_POINT_KINDS, PROSPECT_TASK_KINDS, PROSPECT_TASK_PRIORITIES } from '../../shared/db/schema/prospect-crm.js'
 
 export const PROSPECT_SORT_KEYS = ['score', 'name', 'updatedAt', 'createdAt', 'lastActivityAt', 'value', 'expectedCloseAt', 'daysInStage', 'nextTask'] as const
 
@@ -143,3 +144,94 @@ export const ImportProspectsSchema = z.object({
   csv: z.string().min(1),
   source: z.string().trim().max(255).optional(),
 })
+
+// ── People, contact points, notes, tasks ─────────────────────────────────────
+
+export const ProspectParamsSchema = z.object({ id: z.string().uuid() })
+export const PersonParamsSchema = z.object({ id: z.string().uuid(), personId: z.string().uuid() })
+export const ContactPointParamsSchema = z.object({ id: z.string().uuid(), cpId: z.string().uuid() })
+export const NoteParamsSchema = z.object({ id: z.string().uuid(), noteId: z.string().uuid() })
+export const ProspectTaskParamsSchema = z.object({ id: z.string().uuid(), taskId: z.string().uuid() })
+export const TaskIdParamsSchema = z.object({ taskId: z.string().uuid() })
+
+const personFields = {
+  name: z.string().trim().min(1).max(255),
+  role: z.string().trim().max(255).nullable().optional(),
+  isDecisionMaker: z.boolean().optional(),
+  doNotContact: z.boolean().optional(),
+  doNotContactReason: z.string().trim().max(1000).nullable().optional(),
+  position: z.number().int().min(0).max(1000).optional(),
+}
+export const CreatePersonSchema = z.object(personFields)
+export const UpdatePersonSchema = z.object(personFields).partial()
+
+export const CreateContactPointSchema = z.object({
+  personId: z.string().uuid().nullable().optional(),
+  kind: z.enum(CONTACT_POINT_KINDS),
+  value: z.string().trim().min(1).max(255),
+  label: z.string().trim().max(100).nullable().optional(),
+  isPrimary: z.boolean().optional(),
+})
+export const UpdateContactPointSchema = z.object({
+  personId: z.string().uuid().nullable().optional(),
+  value: z.string().trim().min(1).max(255).optional(),
+  label: z.string().trim().max(100).nullable().optional(),
+  isPrimary: z.boolean().optional(),
+  status: z.enum(['ok', 'invalid']).optional(),
+})
+
+export const CreateNoteSchema = z.object({
+  body: z.string().trim().min(1).max(10000),
+  pinned: z.boolean().optional(),
+  mentions: z.array(z.string().uuid()).max(50).optional(),
+})
+export const UpdateNoteSchema = z.object({
+  body: z.string().trim().min(1).max(10000).optional(),
+  pinned: z.boolean().optional(),
+  mentions: z.array(z.string().uuid()).max(50).optional(),
+})
+
+const taskFields = {
+  kind: z.enum(PROSPECT_TASK_KINDS),
+  title: z.string().trim().min(1).max(255),
+  description: z.string().trim().max(5000).nullable().optional(),
+  dueAt: z.coerce.date(),
+  priority: z.enum(PROSPECT_TASK_PRIORITIES).optional(),
+}
+export const CreateProspectTaskSchema = z.object({
+  ...taskFields,
+  assigneeUserId: z.string().uuid().optional(),
+  personId: z.string().uuid().nullable().optional(),
+  addToCalendar: z.boolean().optional(),
+})
+export const UpdateProspectTaskSchema = z
+  .object({
+    ...taskFields,
+    assigneeUserId: z.string().uuid(),
+    personId: z.string().uuid().nullable(),
+  })
+  .partial()
+
+export const CompleteTaskSchema = z.object({
+  outcome: z.enum(CALL_OUTCOMES).optional(),
+  outcomeNote: z.string().trim().max(2000).optional(),
+  contactPointId: z.string().uuid().optional(),
+  nextTask: z
+    .object({
+      kind: z.enum(PROSPECT_TASK_KINDS),
+      title: z.string().trim().min(1).max(255),
+      dueAt: z.coerce.date(),
+      priority: z.enum(PROSPECT_TASK_PRIORITIES).optional(),
+      addToCalendar: z.boolean().optional(),
+    })
+    .optional(),
+})
+
+export const TASK_TABS = ['all', 'call', 'email', 'linkedin', 'today', 'overdue'] as const
+export const TaskListQuerySchema = z.object({
+  tab: z.enum(TASK_TABS).optional(),
+  scope: z.enum(['mine', 'team']).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+})
+export const TaskCountsQuerySchema = z.object({ scope: z.enum(['mine', 'team']).optional() })

@@ -292,7 +292,12 @@
     "notYoursFree": "Prospectul e liber. Ia-l întâi („Îl iau eu”).",
     "exists": "Există deja: {{name}}",
     "lookupUnavailable": "Căutarea la registru nu e disponibilă acum",
-    "promoteNeedsClients": "Promovarea creează un client: ai nevoie și de acces la Clienți activi"
+    "promoteNeedsClients": "Promovarea creează un client: ai nevoie și de acces la Clienți activi",
+    "contactExists": "Contactul există deja la acest prospect",
+    "noteNotYours": "Poți modifica doar notițele tale",
+    "personInvalid": "Persoana nu aparține acestui prospect",
+    "contactPointInvalid": "Punctul de contact nu aparține acestui prospect",
+    "taskNotFound": "Task inexistent"
   },
   "tenders": {
     "alreadyBlocked": "SICAP a răspuns deja cu HTTP {{blockedStatus}} în rularea asta — nu mai trimit request-uri",
@@ -463,5 +468,8 @@
     "invalidTimeZone": "Fus orar necunoscut: {{timeZone}}",
     "invalidCurrency": "Moneda se scrie ca un cod de trei litere (ex. RON, EUR)",
     "countryUnsupported": "Țara {{country}} nu are încă pachet în aplicație"
+  },
+  "snippets": {
+    "notFound": "Fragment de text inexistent"
   }
 }

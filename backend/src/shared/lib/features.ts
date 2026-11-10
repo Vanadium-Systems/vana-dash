@@ -647,6 +647,8 @@ const KNOWN_PREFIXES: Array<{
   // Suportul e al oricărui om activ. `/api/platform/*` cere contul de platformă în rută
   // (`platformOnly`), nu o funcționalitate de rol.
   { prefix: '/api/support', kind: 'self' },
+  // Text snippets belong to the person (and the shared ones to the whole team), not to a role.
+  { prefix: '/api/snippets', kind: 'self' },
   { prefix: '/api/platform/support', kind: 'self' },
   { prefix: '/api/platform/tenants', kind: 'self' },
   { prefix: '/api/email/unsubscribe', kind: 'public' },

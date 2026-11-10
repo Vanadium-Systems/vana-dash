@@ -50,6 +50,8 @@ import { planRoutes } from './modules/plan/routes.js'
 import { platformRoutes } from './modules/platforms/routes.js'
 import { pricingRoutes } from './modules/pricing/routes.js'
 import { prospectsRoutes } from './modules/prospects/routes.js'
+import { prospectCrmRoutes } from './modules/prospects/crm-routes.js'
+import { snippetsRoutes } from './modules/snippets/routes.js'
 import { pushRoutes } from './modules/push/routes.js'
 import { reconciliationRoutes } from './modules/reconciliation/routes.js'
 import { reportsRoutes } from './modules/reports/routes.js'
@@ -144,6 +146,8 @@ export async function buildServer() {
   await app.register(financialsRoutes)
   await app.register(pricingRoutes)
   await app.register(prospectsRoutes)
+  await app.register(prospectCrmRoutes)
+  await app.register(snippetsRoutes)
   await app.register(emailRoutes)
   await app.register(emailImagesRoutes)
   await app.register(emailInboundRoutes)

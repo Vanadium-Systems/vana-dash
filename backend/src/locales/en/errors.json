@@ -290,7 +290,12 @@
     "notYoursFree": "This prospect is free. Take it first (\"I'll take it\").",
     "exists": "Already exists: {{name}}",
     "lookupUnavailable": "The register lookup is not available right now",
-    "promoteNeedsClients": "Promoting creates a client: it also needs access to active clients"
+    "promoteNeedsClients": "Promoting creates a client: it also needs access to active clients",
+    "contactExists": "This contact already exists on the prospect",
+    "noteNotYours": "You can only change your own notes",
+    "personInvalid": "The person does not belong to this prospect",
+    "contactPointInvalid": "The contact point does not belong to this prospect",
+    "taskNotFound": "The task does not exist"
   },
   "tenders": {
     "alreadyBlocked": "SICAP already answered with HTTP {{blockedStatus}} in this run; no more requests are sent",
@@ -461,5 +466,8 @@
     "invalidTimeZone": "Unknown time zone: {{timeZone}}",
     "invalidCurrency": "The currency is a three-letter code (e.g. RON, EUR)",
     "countryUnsupported": "Country {{country}} has no pack in the app yet"
+  },
+  "snippets": {
+    "notFound": "The snippet does not exist"
   }
 }
