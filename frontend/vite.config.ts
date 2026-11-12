@@ -116,6 +116,12 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
   },
+  // PostHog resolves exception stacks by fetching the .map next to each bundle. Without it the
+  // SPA fallback answers with index.html and every frame stays minified. The source is public
+  // anyway, so serving the maps exposes nothing new; workbox does not precache *.map.
+  build: {
+    sourcemap: true,
+  },
   server: {
     port: 5174,
     // Ascultă pe toate interfețele — necesar în containerul de dev (port publish)
