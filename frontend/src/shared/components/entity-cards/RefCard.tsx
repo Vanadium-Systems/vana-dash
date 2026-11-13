@@ -128,7 +128,6 @@ registerRefCard('prospect', {
 
 registerRefCard('invoice', {
   icon: Receipt,
-  extra: (card) => ({ tab: card.direction === 'in' ? 'primite' : 'emise' }),
   Body: ({ card }) => (
     <p className="flex min-w-0 items-baseline gap-1 truncate text-xs text-muted-foreground">
       {str(card.clientName) ? <span className="truncate">{str(card.clientName)}</span> : null}

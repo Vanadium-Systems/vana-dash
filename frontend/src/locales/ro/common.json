@@ -604,5 +604,8 @@
     "loadFailed": "Notificările nu s-au putut încărca.",
     "more": "Arată mai vechi",
     "unread": "Necitit:"
+  },
+  "demo": {
+    "banner": "Date de demonstrație"
   }
 }

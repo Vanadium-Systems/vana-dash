@@ -54,7 +54,7 @@ export async function getQuarterlyPackageSummary(quarter: string): Promise<Quart
     db
       .select({ total: sql<number>`COALESCE(SUM(${ronAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt)}), 0)` })
       .from(financialRecords)
-      .where(and(dateFilter, eq(financialRecords.direction, 'out'))),
+      .where(and(dateFilter, eq(financialRecords.direction, 'out'), ne(financialRecords.type, 'proforma'))),
     db
       .select({ total: sql<number>`COALESCE(SUM(${ronAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt)}), 0)` })
       .from(financialRecords)

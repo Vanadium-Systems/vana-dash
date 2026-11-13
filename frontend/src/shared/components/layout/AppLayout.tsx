@@ -420,6 +420,11 @@ export function AppLayout() {
         <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top,0px)] bg-background" />
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
+        {session?.isDemo ? (
+          <div role="status" className="bg-warning/15 px-4 py-1 text-center text-xs text-warning-text" data-testid="demo-band">
+            {t('common:demo.banner')}
+          </div>
+        ) : null}
         <main ref={mainRef} className="safe-top flex-1 overflow-auto pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
           {!online ? (
             <div className="px-4 pt-4 md:px-6 md:pt-6">

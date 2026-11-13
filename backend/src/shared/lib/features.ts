@@ -68,12 +68,17 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'facturi.view',
     page: 'facturi',
-    routes: [...read('/api/accounting/records'), ...read('/api/invoicing/invoices')],
+    routes: [...read('/api/accounting/records'), ...read('/api/invoicing/invoices'), ...read('/api/invoicing/proformas')],
   },
   {
     key: 'facturi.emitere',
     page: 'facturi',
-    routes: [...write('/api/accounting/records'), ...write('/api/invoicing/invoices'), ...all('/api/invoicing/exchange-rate')],
+    routes: [
+      ...write('/api/accounting/records'),
+      ...write('/api/invoicing/invoices'),
+      ...write('/api/invoicing/proformas'),
+      ...all('/api/invoicing/exchange-rate'),
+    ],
   },
   {
     key: 'facturi.anaf',

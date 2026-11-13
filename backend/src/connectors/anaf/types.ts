@@ -43,6 +43,8 @@ export interface UblInvoiceInput {
   lines: UblInvoiceLine[]
   /** Notă liberă pe factură (opțional). */
   note?: string
+  /** The invoice a storno corrects: BT-25 (number) and BT-26 (issue date). */
+  corrects?: { documentNumber: string; issuedAt: Date }
 }
 
 export interface UblParty {

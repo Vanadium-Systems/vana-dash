@@ -98,6 +98,20 @@ function partyXml(
     </cac:${tag}>`
 }
 
+// UBL 2.1 Invoice is a strict sequence: BillingReference comes after DocumentCurrencyCode (and the
+// optional BuyerReference / InvoicePeriod / OrderReference, never emitted here) and before
+// AccountingSupplierParty.
+function billingReferenceXml(input: UblInvoiceInput): string {
+  if (!input.corrects) return ''
+  return `
+  <cac:BillingReference>
+    <cac:InvoiceDocumentReference>
+      <cbc:ID>${esc(input.corrects.documentNumber)}</cbc:ID>
+      <cbc:IssueDate>${isoDate(input.corrects.issuedAt)}</cbc:IssueDate>
+    </cac:InvoiceDocumentReference>
+  </cac:BillingReference>`
+}
+
 export function buildInvoiceXml(input: UblInvoiceInput): string {
   const totals = computeTotals(input.lines)
   const cur = input.currency
@@ -161,7 +175,7 @@ export function buildInvoiceXml(input: UblInvoiceInput): string {
   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>${
     input.note ? `\n  <cbc:Note>${esc(input.note)}</cbc:Note>` : ''
   }
-  <cbc:DocumentCurrencyCode>${cur}</cbc:DocumentCurrencyCode>${partyXml(
+  <cbc:DocumentCurrencyCode>${cur}</cbc:DocumentCurrencyCode>${billingReferenceXml(input)}${partyXml(
     'AccountingSupplierParty',
     input.supplier,
     hasVat,

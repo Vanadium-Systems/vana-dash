@@ -77,7 +77,7 @@ route refuses every request.
 |---|---|---|
 | POST | `/api/auth/login` | `{ email, password }` → sets the cookie. A deactivated or still-invited person gets 401, like a wrong password |
 | POST | `/api/auth/logout` | Clears the cookie |
-| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies, motionPref, hideAmounts }`. `mailboxes: null` means all (admin) |
+| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies, motionPref, hideAmounts, isDemo }`. `mailboxes: null` means all (admin). `isDemo` is true on a demo install and turns on the "Date de demonstrație" band |
 | GET | `/api/auth/locale` | `{ defaultLocale, enabledLocales }`, for the pages before login |
 | PATCH | `/api/auth/me` | `{ displayName?, motionPref?: 'system'\|'full'\|'reduced'\|'off', hideAmounts?: boolean, notificationPrefs?: { chat: 'all'\|'dm'\|'none', emailNew, alerts }, updatesSeenAt?, locale?: 'ro'\|'en', displayCurrency?: 'RON'\|'EUR'\|'USD' }`. `400` for a language or currency outside the lists. `updatesSeenAt` (ISO) is how far the person has read What's new; the server caps it at now |
 | POST | `/api/auth/me/password` | `{ currentPassword, newPassword }` (12 characters minimum). Logs out the other sessions |
@@ -190,10 +190,13 @@ not `platform_metrics`, so revenue is never counted twice.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/accounting/records` | Filters: `direction` (in/out), `type`, `paymentStatus`, `anafStatus`, `from`, `to`, `limit` |
+| GET | `/api/accounting/records` | Always a page: `{ items, total, totals, counts, companyCurrency }`. Filters: `direction` (in/out), `type`, `paymentStatus`, `anafStatus`, `from`, `to`, `tab` (`all`, `draft`, `open`, `overdue`, `paid`, `rejected`), `q` (number or counterparty), `page`, `pageSize` (100 at most). `totals` and `counts` follow the filters, `counts` per tab; amounts in the company currency. Proformas are not in it |
 | POST | `/api/accounting/records` | A manual record (expense, invoice, payment) |
 | GET | `/api/accounting/records/:id` | Detail and invoice lines |
-| PATCH | `/api/accounting/records/:id/payment` | `{ paymentStatus, paidAt? }` |
+| GET | `/api/accounting/records/:id/detail` | Everything the document page shows in one request: the record, lines, payments with the balance, the timeline, the storno and proforma links, the total for the same counterparty and the conversations it was shared in. `404 RECORD_NOT_FOUND` |
+| PATCH | `/api/accounting/records/:id/payment` | `{ paymentStatus, paidAt? }`. Only for records that are not issued invoices; an issued invoice answers `409 USE_PAYMENTS` (use the payments routes below) |
+| POST | `/api/accounting/records/:id/payments` | Records a payment, see Payments below |
+| DELETE | `/api/accounting/records/:id/payments/:pid` | Removes a payment, see Payments below |
 | GET | `/api/accounting/records/:id/xml` | The UBL XML as a download (issued and received) |
 | GET | `/api/accounting/records/:id/pdf` | The PDF, if one was generated |
 | GET | `/api/accounting/anaf/status` | The state of the ANAF connection. Tokens are never returned |
@@ -219,6 +222,50 @@ not `platform_metrics`, so revenue is never counted twice.
 | POST | `/api/invoicing/invoices/:id/issue` | Allocates the number (atomically, on the sequence) and generates XML, HTML and PDF |
 | POST | `/api/invoicing/invoices/:id/send-anaf` | Uploads to e-Factura → `anaf_status='pending'`; the poll job updates the state |
 | GET/PATCH | `/api/invoicing/sequence` | Numbering settings (prefix, padding, yearly reset) |
+| GET | `/api/invoicing/invoices/next-number?key=invoice\|proforma` | The number the next issue would get, without allocating it. Under `facturi.view`, so the editor's confirmation step can name it |
+| GET | `/api/invoicing/invoices/clients` | Clients for the editor's picker. Under `facturi.view`, unlike `/api/invoicing/clients` which needs `facturi.clienti` |
+| GET | `/api/invoicing/invoices/clients/:clientId/templates` | The client's invoice templates, for the editor |
+| GET | `/api/invoicing/invoices/clients/:clientId/templates/:id/resolve` | `?currency=` The template's lines priced for the client |
+| POST | `/api/invoicing/invoices/preview` | The create body → `{ html }`, the document as the PDF will show it, no number, marked as a draft. Limit of 60 per minute per person. BNR rates come from the database only, with no call out |
+| GET | `/api/invoicing/invoices/:id/preview` | The stored document as `{ html }`; the preview of a storno draft or a proforma, which cannot be rebuilt from a form body |
+| POST | `/api/invoicing/invoices/:id/duplicate` | A new draft with the same client and lines → `201` |
+
+`PATCH /api/invoicing/invoices/:id` accepts `expectedUpdatedAt` (the `updatedAt` the editor last saw);
+if the draft changed since, it answers `409 DRAFT_CHANGED` and writes nothing. The editor sends the draft
+here on every pause in typing.
+
+### Payments
+
+The same two routes under two prefixes: `/api/invoicing/invoices/:id/payments` (issued invoices only)
+and `/api/accounting/records/:id/payments`. Both need `facturi.emitere`.
+
+| Method | Route | Description |
+|---|---|---|
+| POST | `…/:id/payments` | `{ amount, currency?, paidAt, method: 'bank'\|'cash'\|'card'\|'other', reference?, note? }` → `201`, the payment plus `paymentStatus` (`unpaid`/`partial`/`paid`) and `becamePaid`. `409 ALREADY_PAID`, `400 OVERPAYMENT` (more than what is left), `400 CURRENCY_MISMATCH` (the payment's currency differs from the invoice's), `409 DRAFT_NOT_PAYABLE` (a draft has no number yet), `409 NOT_PAYABLE` (a proforma or a storno), `404 RECORD_NOT_FOUND` |
+| DELETE | `…/:id/payments/:pid` | Soft delete → `{ paymentStatus }`, recomputed from the payments left. `404 PAYMENT_NOT_FOUND` |
+
+A bank match made in Reconciliation creates the same kind of payment, linked to the transaction.
+
+### Storno
+
+| Method | Route | Description |
+|---|---|---|
+| POST | `/api/invoicing/invoices/:id/storno` | `{ mode: 'full' }` or `{ mode: 'partial', lines: [{ lineId, quantity }] }` → `201`, a draft in the invoice series with negative quantities and a reference to the original; it is issued with `/issue` like any invoice. `409 NOT_STORNABLE` (not an issued invoice, or itself a storno), `409 NOTHING_TO_STORNO` (nothing left to reverse), `400 STORNO_EXCEEDS` (a quantity above what is left on the line), `400 STORNO_LINES_REQUIRED` |
+
+### Proformas
+
+Own series (`PRO`), never sent to e-Factura and never counted in the financial routes. Read under
+`facturi.view`, the rest under `facturi.emitere`.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/invoicing/proformas` | `status?` (`draft`, `open`, `invoiced`, `cancelled`), `page`, `pageSize` |
+| POST | `/api/invoicing/proformas` | The same body as an invoice → `201`, a proforma draft |
+| POST | `/api/invoicing/proformas/preview` | → `{ html }` |
+| PATCH/DELETE | `/api/invoicing/proformas/:id` | Only while it is a draft. `404 PROFORMA_NOT_FOUND` |
+| POST | `/api/invoicing/proformas/:id/issue` | Allocates the `PRO` number |
+| POST | `/api/invoicing/proformas/:id/convert` | → `201`, an invoice draft with the proforma's lines; the proforma becomes `invoiced`. `409 PROFORMA_ALREADY_CONVERTED` / `PROFORMA_INVOICED` / `PROFORMA_CANCELLED`, `409 PROFORMA_NOT_ISSUED` before it has a number |
+| POST | `/api/invoicing/proformas/:id/cancel` | The proforma becomes `cancelled` |
 
 ## Contracts
 

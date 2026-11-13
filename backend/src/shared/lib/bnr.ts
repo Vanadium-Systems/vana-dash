@@ -125,7 +125,9 @@ export async function fetchAndStoreLatestBnrRates(currencies: string[] = ['EUR',
  * zilnic n-a rulat încă, deploy proaspăt) — un rând mai vechi existent e folosit ca
  * fallback dacă fetch-ul live eșuează (rețea/BNR jos).
  */
-export async function getRateForDate(dateIso: string, currency = 'EUR'): Promise<ExchangeRateRow> {
+// `live: false` reads the stored rates only: for callers that run on every keystroke (the editor
+// preview), so a missing row for today never turns into a request to BNR.
+export async function getRateForDate(dateIso: string, currency = 'EUR', options: { live?: boolean } = {}): Promise<ExchangeRateRow> {
   const lookup = async (): Promise<ExchangeRateRow | null> => {
     const [row] = await db
       .select()
@@ -140,7 +142,7 @@ export async function getRateForDate(dateIso: string, currency = 'EUR'): Promise
   if (existing && existing.date === dateIso) return existing
 
   const todayIso = new Date().toISOString().slice(0, 10)
-  if (dateIso === todayIso) {
+  if (dateIso === todayIso && options.live !== false) {
     try {
       await fetchAndStoreLatestBnrRate(currency)
     } catch (err) {

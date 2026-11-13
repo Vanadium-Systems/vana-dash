@@ -1,7 +1,7 @@
 import argon2 from 'argon2'
 import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
-import { users } from '../../shared/db/schema/index.js'
+import { dashboardConfig, users } from '../../shared/db/schema/index.js'
 
 // Verificarea credențialelor e identică pentru orice user; ce decide dacă poate intra e
 // starea lui (`active`), nu rolul — un coleg cu rol de Sales se loghează exact ca Stefan.
@@ -45,4 +45,10 @@ export async function verifyCredentials(email: string, password: string): Promis
     sessionVersion: user.sessionVersion,
     status: user.status,
   }
+}
+
+/** A demo install is marked by `company.demo = true` in dashboard_config; a missing key means a real one. */
+export async function isDemoInstall(): Promise<boolean> {
+  const [row] = await db.select({ value: dashboardConfig.value }).from(dashboardConfig).where(eq(dashboardConfig.key, 'company.demo'))
+  return row?.value === true
 }

@@ -1,4 +1,4 @@
-import { and, desc, ilike, isNull, or, sql } from 'drizzle-orm'
+import { and, desc, ilike, isNull, ne, or, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { emailThreads, financialRecords, prospectArchives, prospectContactPoints, prospectPeople, prospects, users } from '../../shared/db/schema/index.js'
 import { escapeLike, foldDiacritics, PROSPECT_ID, visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
@@ -50,6 +50,7 @@ async function searchInvoices(term: string, limit: number): Promise<SearchGroup 
     .where(
       and(
         isNull(financialRecords.deletedAt),
+        ne(financialRecords.type, 'proforma'),
         or(ilike(financialRecords.documentNumber, like), ilike(financialRecords.counterpartyName, like)),
       ),
     )
@@ -63,7 +64,7 @@ async function searchInvoices(term: string, limit: number): Promise<SearchGroup 
       id: r.id,
       label: r.documentNumber ?? `#${r.id.slice(0, 8)}`,
       sublabel: [r.direction === 'out' ? tr('search.invoice.issued') : tr('search.invoice.received'), r.counterpartyName].filter(Boolean).join(' · ') || null,
-      to: `/accounting?tab=${r.direction === 'out' ? 'emise' : 'primite'}&record=${r.id}`,
+      to: `/accounting/records/${r.id}`,
     })),
   }
 }

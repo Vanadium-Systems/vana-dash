@@ -3,6 +3,7 @@ import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { bankTransactions } from './bank-transactions.js'
 import { financialRecords } from './financial-records.js'
+import { invoicePayments } from './invoice-payments.js'
 import { tenantColumns } from './tenant-column.js'
 
 // Legătura tranzacție bancară ↔ factură. Match-urile auto rămân vizibile și
@@ -19,6 +20,8 @@ export const paymentMatches = pgTable(
     financialRecordId: uuid('financial_record_id')
       .notNull()
       .references(() => financialRecords.id, { onDelete: 'cascade' }),
+    // The payment this match created; deleting the payment leaves the match in place.
+    paymentId: uuid('payment_id').references(() => invoicePayments.id, { onDelete: 'set null' }),
     matchType: text('match_type', { enum: ['auto', 'manual'] }).notNull(),
     // Scor 0..1 — doar pentru match-urile auto; manual = 1.
     confidence: numeric('confidence', { precision: 4, scale: 3 }).notNull().default('1'),

@@ -70,7 +70,7 @@ export const ClientCreateWithVanagreenSchema = ClientCreateSchema.extend({
 export const IdParamsSchema = z.object({ id: z.string().uuid() })
 
 export const InvoiceLineSchema = z.object({
-  description: z.string().min(1),
+  description: z.string().min(1).max(500),
   quantity: z.number().positive(),
   unitPrice: z.number().nonnegative(),
   vatRate: z.number().min(0).max(100).default(0),
@@ -87,15 +87,34 @@ export const InvoiceCreateSchema = z.object({
   // Fără `.default('RON')` intenționat — un default aplicat de zod ar masca "clientul n-a
   // trimis currency" și ar suprascrie moneda template-ului. Default-ul 'RON' se aplică în
   // service.ts, DOAR dacă nici input, nici template nu dau o monedă.
-  currency: z.string().length(3).optional(),
+  currency: z.string().regex(/^[A-Z]{3}$/).optional(),
   issuedAt: z.coerce.date().optional(),
   dueAt: z.coerce.date().optional(),
-  note: z.string().optional(),
-  lines: z.array(InvoiceLineSchema).optional(),
+  note: z.string().max(2000).optional(),
+  lines: z.array(InvoiceLineSchema).max(200).optional(),
 })
 
 // Doar draft-urile se pot edita (înainte de alocarea numărului).
-export const InvoiceUpdateSchema = updateSchema(InvoiceCreateSchema)
+// `expectedUpdatedAt` is the updatedAt the editor last saw; if the draft moved on since, the save is refused (409).
+export const InvoiceUpdateSchema = updateSchema(InvoiceCreateSchema).extend({
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
+})
+
+// A storno reverses the whole invoice or chosen lines; `quantity` is the positive amount to reverse.
+export const StornoCreateSchema = z
+  .object({
+    mode: z.enum(['full', 'partial']),
+    lines: z.array(z.object({ lineId: z.string().uuid(), quantity: z.number().positive().max(1_000_000_000) })).max(200).optional(),
+  })
+  .refine((body) => body.mode === 'partial' || body.lines === undefined, { path: ['lines'] })
+
+export const SequenceKeyQuerySchema = z.object({ key: z.enum(['invoice', 'proforma']).default('invoice') })
+
+export const ProformaListQuerySchema = z.object({
+  status: z.enum(['open', 'invoiced', 'cancelled', 'draft']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+})
 
 export const SequenceUpdateSchema = z.object({
   prefix: z.string().max(10).optional(),
@@ -165,3 +184,22 @@ export const ExchangeRateLookupQuerySchema = z.object({
   currency: z.enum(['EUR', 'USD']),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 })
+
+// Payments on a document (shared/lib/payments.ts). No bankTransactionId: only reconciliation sets it.
+const calendarDay = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => !Number.isNaN(Date.parse(value)))
+  // One day of slack so the company's "today" is never ahead of the server's UTC date.
+  .refine((value) => Date.parse(value) <= Date.now() + 24 * 60 * 60 * 1000)
+
+export const PaymentCreateSchema = z.object({
+  // Below one cent the amount rounds to zero and would break the amount > 0 check.
+  amount: z.number().min(0.01).max(1_000_000_000),
+  currency: z.string().regex(/^[A-Z]{3}$/).optional(),
+  paidAt: calendarDay,
+  method: z.enum(['bank', 'cash', 'card', 'other']),
+  reference: z.string().trim().max(140).optional(),
+  note: z.string().trim().max(500).optional(),
+})
+export const PaymentParamsSchema = z.object({ id: z.string().uuid(), pid: z.string().uuid() })

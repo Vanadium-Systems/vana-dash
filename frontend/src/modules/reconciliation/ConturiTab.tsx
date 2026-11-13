@@ -199,7 +199,7 @@ export function ConturiTab() {
                     <TableCell priority="md" className="whitespace-nowrap">{formatDate(txn.valueDate)}</TableCell>
                     <TableCell className="font-medium tbl-fill">
                       <div className="truncate">{txn.counterpartyName ?? '—'}</div>
-                      <TableDetails items={[formatDate(txn.valueDate), txn.match?.id ? (txn.match.documentNumber ?? txn.match.financialRecordId) : null]} />
+                      <TableDetails items={[formatDate(txn.valueDate), txn.match?.id ? (txn.match.documentNumber ?? txn.match.financialRecordId) : txn.direction === 'in' ? <span key="todo" className="text-warning-text">{t('reconciliation:transactions.toMatch')}</span> : null]} />
                     </TableCell>
                     <TableCell priority="lg" className="max-w-xs truncate text-xs text-muted-foreground" title={txn.reference ?? ''}>
                       {txn.reference ?? '—'}
@@ -236,6 +236,16 @@ export function ConturiTab() {
                             )
                           </span>
                         </span>
+                      ) : txn.direction === 'in' ? (
+                        // The to-do is text on the row with its action beside it, not only an icon with a tooltip.
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs text-warning-text">{t('reconciliation:transactions.toMatch')}</span>
+                          {canMatch ? (
+                            <Button variant="outline" size="sm" onClick={() => setMatching(txn)}>
+                              <Link2 className="h-4 w-4" /> {t('reconciliation:transactions.matchAction')}
+                            </Button>
+                          ) : null}
+                        </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
@@ -254,7 +264,7 @@ export function ConturiTab() {
                             <Link2Off className="h-4 w-4" />
                           </Button>
                         ) : canMatch && txn.direction === 'in' ? (
-                          <Button variant="outline" title={t('reconciliation:match.manual')} onClick={() => setMatching(txn)}>
+                          <Button variant="outline" className="tbl-narrow-only" title={t('reconciliation:match.manual')} onClick={() => setMatching(txn)}>
                             <Link2 className="h-4 w-4" />
                           </Button>
                         ) : null}

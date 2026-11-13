@@ -50,12 +50,12 @@ const COPY = {
   },
 }
 
-// Cheltuieli/facturi primite curente + arhivă (facturi/plăți vechi, dinainte de e-Factura sau
-// prin alt canal, care nu pot veni prin sync ANAF) — un singur formular, consolidat din
-// fostele ExpenseFormDialog + PastRecordFormDialog (erau aproape identice, doar Furnizor +
-// bifa „deja achitată" lipseau din primul). Reutilizează integral endpoint-urile existente
-// (POST /records + PATCH /records/:id/payment, path-ul simplu, FĂRĂ side-effect-ul de
-// extindere abonament de la /reconciliation/mark-paid — nu are legătură cu un abonament activ).
+// Current expenses/received invoices plus archive (old invoices/payments, from before e-Factura
+// or through another channel, which cannot come through the ANAF sync): one form, merged from
+// the former ExpenseFormDialog + PastRecordFormDialog (nearly identical; only the Supplier field
+// and the "already paid" checkbox were missing from the first). Reuses the existing endpoints
+// as they are (POST /records + POST /records/:id/payments), WITHOUT the subscription-extension
+// side effect of /reconciliation/mark-paid: it has nothing to do with an active subscription.
 export function PastRecordFormDialog({ open, onOpenChange, direction }: PastRecordFormDialogProps) {
   const queryClient = useQueryClient()
   const copy = COPY[direction]
@@ -115,9 +115,11 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
           : {}),
       })
       if (paid) {
-        await api.patch<FinancialRecord>(`/api/accounting/records/${record.id}/payment`, {
-          paymentStatus: 'paid',
+        // A payment row, not a status: an issued invoice is settled only through payments.
+        await api.post<unknown>(`/api/accounting/records/${record.id}/payments`, {
+          amount: parseRoDecimal(amount),
           paidAt: paidAt || issuedAt,
+          method: 'other',
         })
       }
     },

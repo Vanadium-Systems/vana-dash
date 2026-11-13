@@ -12,7 +12,7 @@ import { sendEmail } from '../../shared/lib/email.js'
 import { consumeUserToken, createUserToken } from '../../shared/lib/user-tokens.js'
 import { loadSessionUser, DEFAULT_NOTIFICATION_PREFS, type SessionUser } from '../../shared/lib/session.js'
 import { AcceptInviteSchema, ChangePasswordSchema, ForgotPasswordSchema, LoginBodySchema, PatchMeSchema, ResetPasswordSchema } from './schema.js'
-import { verifyCredentials } from './service.js'
+import { isDemoInstall, verifyCredentials } from './service.js'
 import { withRlsBypass } from '../../shared/lib/tenancy.js'
 
 export const SESSION_COOKIE = 'vana_session'
@@ -105,7 +105,7 @@ export async function authRoutes(app: FastifyInstance) {
   server.get(
     '/api/auth/me',
     { preHandler: [app.authenticate] },
-    async (req) => ({ success: true, data: sessionPayload(req.me) }),
+    async (req) => ({ success: true, data: { ...sessionPayload(req.me), isDemo: await isDemoInstall() } }),
   )
 
   // What the pages before login need to pick a language. Nothing about the company or its people.

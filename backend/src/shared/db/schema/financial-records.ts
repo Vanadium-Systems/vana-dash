@@ -1,4 +1,5 @@
-import { index, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { type AnyPgColumn, check, index, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { billingClients } from './billing-clients.js'
@@ -14,7 +15,7 @@ export const financialRecords = pgTable(
     ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
-    type: text('type', { enum: ['invoice', 'expense', 'payment'] }).notNull(),
+    type: text('type', { enum: ['invoice', 'expense', 'payment', 'proforma'] }).notNull(),
     // in = document primit (cheltuială/factură furnizor), out = emis de Stefan
     direction: text('direction', { enum: ['in', 'out'] }).notNull().default('out'),
     amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
@@ -57,6 +58,10 @@ export const financialRecords = pgTable(
     // Prefill 21.00 (cota standard confirmată ANAF din 01.08.2025) la bifarea reverse charge,
     // editabil — niciodată hardcodat în calculul d301-builder.
     reverseChargeVatRate: numeric('reverse_charge_vat_rate', { precision: 5, scale: 2 }),
+    // Credit note (storno) -> the invoice it corrects; proforma -> the invoice issued from it.
+    correctsRecordId: uuid('corrects_record_id').references((): AnyPgColumn => financialRecords.id),
+    convertedToRecordId: uuid('converted_to_record_id').references((): AnyPgColumn => financialRecords.id),
+    proformaStatus: text('proforma_status', { enum: ['open', 'invoiced', 'cancelled'] }),
     meta: jsonb('meta'),
   },
   (t) => [
@@ -66,5 +71,7 @@ export const financialRecords = pgTable(
     // O singură factură per număr alocat (partial: doar rândurile cu număr).
     uniqueIndex('uq_financial_records_doc_number').on(t.tenantId, t.documentNumber),
     index('ix_financial_records_reverse_charge').on(t.reverseChargeType, t.issuedAt),
+    index('idx_financial_records_corrects').on(t.correctsRecordId).where(sql`${t.correctsRecordId} IS NOT NULL`),
+    check('ck_financial_records_proforma_status', sql`${t.proformaStatus} IN ('open','invoiced','cancelled')`),
   ],
 )

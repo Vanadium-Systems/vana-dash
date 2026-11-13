@@ -16,11 +16,12 @@ import {
   invoiceTemplates,
 } from '../../shared/db/schema/index.js'
 import { getAnafSession } from '../../shared/lib/anaf.js'
-import { getCompany } from '../../shared/lib/company.js'
+import { getCompany, getCompanyTimeZone } from '../../shared/lib/company.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
-import { generateInvoiceDocuments } from '../../shared/lib/documents.js'
+import { generateInvoiceDocuments, renderInvoiceHtml } from '../../shared/lib/documents.js'
+import { dayInTimeZone, recalculatePaymentStatus } from '../../shared/lib/payments.js'
 import { countyNameToIsoCode, extractBucharestSectorCode } from '../../countries/ro/counties.js'
-import { nextInvoiceNumber, type DrizzleTx } from '../../shared/lib/sequences.js'
+import { nextInvoiceNumber, sequenceDefaults, type DrizzleTx } from '../../shared/lib/sequences.js'
 import { readDocument } from '../../shared/lib/storage.js'
 import type {
   ClientCreateSchema,
@@ -34,6 +35,7 @@ import type {
   SequenceUpdateSchema,
 } from './schema.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { InvoicingError } from './errors.js'
 
 // ── Billing clients ──────────────────────────────────────────────────────────
 
@@ -45,6 +47,15 @@ import { tr } from '../../shared/lib/i18n.js'
 export async function listClients() {
   return db
     .select()
+    .from(billingClients)
+    .where(and(isNull(billingClients.deletedAt), eq(billingClients.isDemo, false), isNull(billingClients.pendingDeletionAt)))
+    .orderBy(asc(billingClients.name))
+}
+
+/** The client picker of the invoice editor: who can issue invoices sees whom to bill, not the client file. */
+export async function listClientsForInvoicing() {
+  return db
+    .select({ id: billingClients.id, name: billingClients.name, cif: billingClients.cif, paymentTermsDays: billingClients.paymentTermsDays })
     .from(billingClients)
     .where(and(isNull(billingClients.deletedAt), eq(billingClients.isDemo, false), isNull(billingClients.pendingDeletionAt)))
     .orderBy(asc(billingClients.name))
@@ -205,7 +216,7 @@ export async function softDeleteClient(id: string): Promise<boolean> {
 // Ciclu de viață: draft (fără număr) → issued (număr + XML/PDF) → pending (upload
 // ANAF) → validated/rejected. Editabil doar cât e draft.
 
-const invoiceColumns = {
+export const invoiceColumns = {
   id: financialRecords.id,
   amount: financialRecords.amount,
   currency: financialRecords.currency,
@@ -220,8 +231,15 @@ const invoiceColumns = {
   counterpartyCif: financialRecords.counterpartyCif,
   anafUploadId: financialRecords.anafUploadId,
   anafStatus: financialRecords.anafStatus,
+  type: financialRecords.type,
+  correctsRecordId: financialRecords.correctsRecordId,
+  convertedToRecordId: financialRecords.convertedToRecordId,
+  proformaStatus: financialRecords.proformaStatus,
   createdAt: financialRecords.createdAt,
+  updatedAt: financialRecords.updatedAt,
 }
+
+export type DocumentKind = 'invoice' | 'proforma'
 
 function computeAmount(lines: InvoiceLine[]): string {
   return computeTotals(lines).taxInclusiveAmount.toFixed(2)
@@ -347,6 +365,7 @@ export async function hasInvoiceForClientOnDate(billingClientId: string, dateIso
         eq(financialRecords.billingClientId, billingClientId),
         eq(financialRecords.direction, 'out'),
         eq(financialRecords.source, 'generated'),
+        ne(financialRecords.type, 'proforma'),
         isNull(financialRecords.deletedAt),
         gte(financialRecords.issuedAt, dayStart),
         lte(financialRecords.issuedAt, dayEnd),
@@ -365,12 +384,15 @@ export async function listInvoices() {
         isNull(financialRecords.deletedAt),
         eq(financialRecords.direction, 'out'),
         eq(financialRecords.source, 'generated'),
+        ne(financialRecords.type, 'proforma'),
       ),
     )
     .orderBy(desc(financialRecords.createdAt))
 }
 
-async function getGeneratedInvoice(id: string) {
+// The invoice routes and the proforma routes share the table; `kind` keeps a proforma id from
+// being edited, issued or sent to ANAF through an invoice route, and the other way around.
+export async function getGeneratedInvoice(id: string, kind: DocumentKind = 'invoice') {
   const [row] = await db
     .select()
     .from(financialRecords)
@@ -378,20 +400,28 @@ async function getGeneratedInvoice(id: string) {
       and(
         eq(financialRecords.id, id),
         eq(financialRecords.source, 'generated'),
+        eq(financialRecords.type, kind),
         isNull(financialRecords.deletedAt),
       ),
     )
   return row ?? null
 }
 
-export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSchema>) {
-  const client = await getClient(input.billingClientId)
-  if (!client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
+export class InvoiceConflictError extends Error {
+  constructor(
+    readonly code: 'DRAFT_CHANGED' | 'NOT_DUPLICABLE',
+    message: string,
+  ) {
+    super(message)
+  }
+}
 
-  // Sprint D, Track 3 — templateId opțional: serverul copiază lineItems/currency din
-  // template ca valori INIȚIALE (draft-ul rămâne editabil, nu e un link viu la template).
-  // `input.lines` explicit, dacă e prezent, câștigă peste template (cazul "factură specială"
-  // pornită dintr-un template dar cu linii proprii).
+export type DraftInput = z.infer<typeof InvoiceCreateSchema>
+type BillingClient = NonNullable<Awaited<ReturnType<typeof getClient>>>
+
+// templateId optional: the server copies lineItems/currency from the template as INITIAL values
+// (the draft stays editable, it is not a live link). Explicit `input.lines` win over the template.
+async function resolveDraftLines(client: BillingClient, input: DraftInput) {
   let lines = input.lines
   let currency = input.currency
   let discountConsumed = false
@@ -412,19 +442,32 @@ export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSche
   if (!lines || lines.length === 0) {
     throw new Error(tr('errors.invoicing.needsLine'))
   }
-  const finalLines = lines
-  const finalCurrency = currency ?? 'RON'
-  const finalIssuedAt = input.issuedAt ?? new Date()
+  return { lines, currency: currency ?? 'RON', discountConsumed }
+}
 
-  // Scadență: dacă nu vine explicit (nici din formular, nici din job-ul de facturare
-  // automată — jobs/vanagreen-billing.ts nu o trimite), calculăm issuedAt + termen de plată.
-  // Termenul e o excepție per client (contracte diferite — ex. un client are 15 zile,
-  // nu 10, vezi billing-clients.ts), cu fallback la default-ul global din invoice_sequences.
-  let finalDueAt = input.dueAt
-  if (!finalDueAt) {
-    const termsDays = client.paymentTermsDays ?? (await getSequence()).defaultPaymentTermsDays
-    finalDueAt = new Date(finalIssuedAt.getTime() + termsDays * 24 * 60 * 60 * 1000)
-  }
+// Due date when none is given: issue date + the client's payment terms (a per-client exception,
+// see billing-clients.ts), falling back to the global default on invoice_sequences.
+async function defaultDueAt(client: BillingClient, issuedAt: Date): Promise<Date> {
+  const termsDays = client.paymentTermsDays ?? (await getSequence()).defaultPaymentTermsDays
+  return new Date(issuedAt.getTime() + termsDays * 24 * 60 * 60 * 1000)
+}
+
+export interface DraftOptions {
+  kind?: DocumentKind
+  /** Where the draft was copied from: duplicate or proforma conversion. Changes the audit action. */
+  origin?: { action: 'factura.duplicata' | 'factura.din.proforma'; id: string; label: string }
+  /** Runs in the same transaction, after the insert. */
+  inTransaction?: (tx: DrizzleTx, record: { id: string }) => Promise<void>
+}
+
+export async function createDraftInvoice(input: DraftInput, options: DraftOptions = {}) {
+  const { kind = 'invoice', origin, inTransaction } = options
+  const client = await getClient(input.billingClientId)
+  if (!client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
+
+  const { lines: finalLines, currency: finalCurrency, discountConsumed } = await resolveDraftLines(client, input)
+  const finalIssuedAt = input.issuedAt ?? new Date()
+  const finalDueAt = input.dueAt ?? (await defaultDueAt(client, finalIssuedAt))
 
   return db.transaction(async (tx) => {
     const [record] = await tx
@@ -432,7 +475,7 @@ export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSche
       .values({
         ...createdByUserId(),
         ...updatedByUserId(),
-        type: 'invoice',
+        type: kind,
         direction: 'out',
         source: 'generated',
         amount: computeAmount(finalLines),
@@ -443,7 +486,9 @@ export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSche
         billingClientId: client.id,
         counterpartyName: client.name,
         counterpartyCif: client.cif,
-        anafStatus: 'draft',
+        // A proforma never reaches ANAF, so it has no ANAF state at all.
+        anafStatus: kind === 'invoice' ? 'draft' : null,
+        proformaStatus: kind === 'proforma' ? 'open' : null,
       })
       .returning(invoiceColumns)
     if (!record) throw new Error(tr('errors.invoicing.insertFailed'))
@@ -459,9 +504,22 @@ export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSche
       })),
     )
 
+    await recordAudit({
+      executor: tx,
+      action: origin ? origin.action : kind === 'proforma' ? 'proforma.ciorna.creata' : 'factura.ciorna.creata',
+      entityType: 'invoice',
+      entityId: record.id,
+      changes: {
+        client: [null, client.name],
+        suma: [null, `${record.amount} ${finalCurrency}`],
+        ...(origin ? { sursa: [origin.id, origin.label] as [unknown, unknown] } : {}),
+      },
+    })
+    await inTransaction?.(tx, record)
+
     // Consum atomic cu insert-ul de mai sus — nicio fereastră unde discountul e "consumat"
     // fără ca factura să existe, sau invers (PLAN §4).
-    if (discountConsumed) {
+    if (discountConsumed && kind === 'invoice') {
       await tx
         .update(billingClients)
         .set({
@@ -477,15 +535,27 @@ export async function createDraftInvoice(input: z.infer<typeof InvoiceCreateSche
   })
 }
 
-export async function updateDraftInvoice(id: string, input: z.infer<typeof InvoiceUpdateSchema>) {
-  const existing = await getGeneratedInvoice(id)
-  if (!existing) return null
-  if (existing.documentNumber) throw new Error(tr('errors.invoicing.issuedNoEdit'))
-
+export async function updateDraftInvoice(id: string, input: z.infer<typeof InvoiceUpdateSchema>, kind: DocumentKind = 'invoice') {
   const client = input.billingClientId ? await getClient(input.billingClientId) : null
   if (input.billingClientId && !client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
 
   return db.transaction(async (tx) => {
+    // Read under lock: the numbered check and the expectedUpdatedAt comparison must see the row the update will change.
+    const [existing] = await tx
+      .select()
+      .from(financialRecords)
+      .where(and(eq(financialRecords.id, id), eq(financialRecords.source, 'generated'), eq(financialRecords.type, kind), isNull(financialRecords.deletedAt)))
+      .for('update')
+    if (!existing) return null
+    if (existing.documentNumber) throw new Error(tr('errors.invoicing.issuedNoEdit'))
+    // The lines of a storno were checked against what is left on the invoice it corrects; its note and dates stay editable.
+    if (existing.correctsRecordId && (input.lines || input.billingClientId || input.currency)) {
+      throw new InvoicingError(400, 'STORNO_LOCKED', tr('errors.invoicing.stornoLinesLocked'))
+    }
+    if (input.expectedUpdatedAt && new Date(input.expectedUpdatedAt).getTime() !== existing.updatedAt.getTime()) {
+      throw new InvoiceConflictError('DRAFT_CHANGED', tr('errors.invoicing.draftChanged'))
+    }
+
     const changes: Record<string, unknown> = { updatedAt: new Date() }
     if (input.currency) changes.currency = input.currency
     if (input.note !== undefined) changes.description = input.note
@@ -515,37 +585,131 @@ export async function updateDraftInvoice(id: string, input: z.infer<typeof Invoi
       .set(changes)
       .where(eq(financialRecords.id, id))
       .returning(invoiceColumns)
+
+    const changed: Record<string, [unknown, unknown]> = {}
+    if (row && row.amount !== existing.amount) changed.suma = [existing.amount, row.amount]
+    if (row && row.currency !== existing.currency) changed.moneda = [existing.currency, row.currency]
+    if (row && row.counterpartyName !== existing.counterpartyName) changed.client = [existing.counterpartyName, row.counterpartyName]
+    if (row && input.dueAt !== undefined) changed.scadenta = [existing.dueAt, row.dueAt]
+    if (row && input.issuedAt) changed.dataEmiterii = [existing.issuedAt, row.issuedAt]
+    if (input.lines) changed.linii = [null, input.lines.length]
+    await recordAudit({
+      executor: tx,
+      action: kind === 'proforma' ? 'proforma.ciorna.editata' : 'factura.ciorna.editata',
+      entityType: 'invoice',
+      entityId: id,
+      changes: changed,
+    })
     return row
   })
 }
 
-export async function deleteDraftInvoice(id: string): Promise<boolean> {
-  const existing = await getGeneratedInvoice(id)
+export async function deleteDraftInvoice(id: string, kind: DocumentKind = 'invoice'): Promise<boolean> {
+  const existing = await getGeneratedInvoice(id, kind)
   if (!existing) return false
   if (existing.documentNumber) throw new Error(tr('errors.invoicing.issuedNoDelete'))
-  const [row] = await db
-    .update(financialRecords)
-    .set({ deletedAt: new Date(), updatedAt: new Date() })
-    .where(eq(financialRecords.id, id))
-    .returning({ id: financialRecords.id })
-  return Boolean(row)
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(financialRecords)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(eq(financialRecords.id, id))
+      .returning({ id: financialRecords.id })
+    if (!row) return false
+    // The proforma this draft was made from can be converted again.
+    await tx
+      .update(financialRecords)
+      .set({ convertedToRecordId: null, updatedAt: new Date() })
+      .where(and(eq(financialRecords.convertedToRecordId, id), eq(financialRecords.type, 'proforma')))
+    await recordAudit({
+      executor: tx,
+      action: kind === 'proforma' ? 'proforma.ciorna.stearsa' : 'factura.ciorna.stearsa',
+      entityType: 'invoice',
+      entityId: id,
+      changes: { client: [existing.counterpartyName, null], suma: [`${existing.amount} ${existing.currency}`, null] },
+    })
+    return true
+  })
 }
 
-async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): Promise<UblInvoiceInput> {
-  const client = record.billingClientId ? await getClient(record.billingClientId) : null
-  if (!client) throw new Error(tr('errors.invoicing.clientGone'))
+/** The calendar day of the company at noon UTC, so the date printed on the document (UTC day) is the company's day. */
+export async function companyToday(): Promise<Date> {
+  return new Date(`${dayInTimeZone(new Date(), await getCompanyTimeZone())}T12:00:00Z`)
+}
+
+/** The document HTML for a draft body, without a number and without touching the database. */
+export async function previewDraftInvoice(input: DraftInput, kind: DocumentKind = 'invoice'): Promise<string> {
+  const client = await getClient(input.billingClientId)
+  if (!client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
+  const { lines, currency } = await resolveDraftLines(client, input)
+  const issuedAt = input.issuedAt ?? (await companyToday())
+  const document: UblInvoiceInput = {
+    documentNumber: '',
+    issuedAt,
+    dueAt: input.dueAt ?? (await defaultDueAt(client, issuedAt)),
+    currency,
+    note: input.note,
+    supplier: supplierParty(await getCompany()),
+    customer: customerParty(client, false),
+    lines,
+  }
+  return renderInvoiceHtml(document, await eurRateFor(document, { live: false }), {
+    draftLabel: tr('errors.invoicing.draftBanner'),
+    proforma: kind === 'proforma',
+  })
+}
+
+/** The HTML of a stored document (a storno draft cannot go through the body-based preview, its quantities are negative). */
+export async function previewStoredDocument(id: string): Promise<string | null> {
+  const [record] = await db
+    .select()
+    .from(financialRecords)
+    .where(and(eq(financialRecords.id, id), eq(financialRecords.source, 'generated'), isNull(financialRecords.deletedAt)))
+  if (!record) return null
+  const document = await loadInvoiceInput(record, { strict: false })
+  return renderInvoiceHtml(document, await eurRateFor(document, { live: false }), {
+    draftLabel: record.documentNumber ? undefined : tr('errors.invoicing.draftBanner'),
+    proforma: record.type === 'proforma',
+  })
+}
+
+/** A new draft with the same client and lines: no number, no ANAF or payment state, today's date. */
+export async function duplicateInvoice(id: string) {
+  const source = await getGeneratedInvoice(id)
+  if (!source) return null
+  if (source.direction !== 'out' || source.type !== 'invoice' || source.correctsRecordId) {
+    throw new InvoiceConflictError('NOT_DUPLICABLE', tr('errors.invoicing.notDuplicable'))
+  }
+  if (!source.billingClientId) throw new Error(tr('errors.invoicing.clientGone'))
+
   const lines = await db
     .select()
     .from(invoiceLineItems)
-    .where(and(eq(invoiceLineItems.invoiceId, record.id), isNull(invoiceLineItems.deletedAt)))
+    .where(and(eq(invoiceLineItems.invoiceId, id), isNull(invoiceLineItems.deletedAt)))
     .orderBy(asc(invoiceLineItems.position))
+  return createDraftInvoice(
+    {
+      billingClientId: source.billingClientId,
+      currency: source.currency,
+      issuedAt: await companyToday(),
+      note: source.description ?? undefined,
+      lines: lines.map((line) => ({
+        description: line.description,
+        quantity: Number(line.quantity),
+        unitPrice: Number(line.unitPrice),
+        vatRate: Number(line.vatRate),
+      })),
+    },
+    { origin: { action: 'factura.duplicata', id, label: source.documentNumber ?? id } },
+  )
+}
 
-  const supplier = supplierParty(await getCompany())
-
+// `strict` is the issue path: a county or Bucharest sector ANAF would reject stops the issue.
+// The editor preview only shows the document, so it falls back to what the client record has.
+function customerParty(client: BillingClient, strict: boolean): UblInvoiceInput['customer'] {
   // BR-RO-110: for a buyer in Romania, CountrySubentity (the county) is mandatory in the UBL
   // XML. ANAF rejects the invoice without it.
   const customerCountyCode = client.country === 'RO' ? countyNameToIsoCode(client.county) : undefined
-  if (client.country === 'RO' && !customerCountyCode) {
+  if (strict && client.country === 'RO' && !customerCountyCode) {
     throw new Error(
       tr('errors.invoicing.countyUnknown1', { name: client.name, county: client.county ?? '—' }) +
         tr('errors.invoicing.countyUnknown2'),
@@ -558,13 +722,54 @@ async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): P
   let customerCity = client.city ?? 'N/A'
   if (customerCountyCode === 'RO-B') {
     const sector = extractBucharestSectorCode(client.city) ?? extractBucharestSectorCode(client.address)
-    if (!sector) {
+    if (!sector && strict) {
       throw new Error(
         tr('errors.invoicing.sectorUnknown1', { name: client.name, city: client.city ?? '—' }) +
           tr('errors.invoicing.sectorUnknown2'),
       )
     }
-    customerCity = sector
+    if (sector) customerCity = sector
+  }
+
+  return {
+    name: client.name,
+    cif: client.cif,
+    regCom: client.regCom ?? undefined,
+    address: client.address,
+    city: customerCity,
+    countyCode: customerCountyCode,
+    country: client.country,
+    email: client.email ?? undefined,
+    iban: client.iban ?? undefined,
+    bank: client.bank ?? undefined,
+  }
+}
+
+// `strict: false` is for documents that never reach ANAF (a proforma) and for previews: the
+// county and Bucharest sector checks only matter for e-Factura.
+export async function loadInvoiceInput(
+  record: typeof financialRecords.$inferSelect,
+  { strict = true }: { strict?: boolean } = {},
+): Promise<UblInvoiceInput> {
+  const client = record.billingClientId ? await getClient(record.billingClientId) : null
+  if (!client) throw new Error(tr('errors.invoicing.clientGone'))
+  const lines = await db
+    .select()
+    .from(invoiceLineItems)
+    .where(and(eq(invoiceLineItems.invoiceId, record.id), isNull(invoiceLineItems.deletedAt)))
+    .orderBy(asc(invoiceLineItems.position))
+
+  const supplier = supplierParty(await getCompany())
+  const customer = customerParty(client, strict)
+
+  let corrects: UblInvoiceInput['corrects']
+  if (record.correctsRecordId) {
+    const [original] = await db
+      .select({ documentNumber: financialRecords.documentNumber, issuedAt: financialRecords.issuedAt })
+      .from(financialRecords)
+      .where(eq(financialRecords.id, record.correctsRecordId))
+    if (!original?.documentNumber) throw new Error(tr('errors.invoicing.invoiceGone'))
+    corrects = { documentNumber: original.documentNumber, issuedAt: original.issuedAt }
   }
 
   return {
@@ -574,18 +779,8 @@ async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): P
     currency: record.currency,
     note: record.description ?? undefined,
     supplier,
-    customer: {
-      name: client.name,
-      cif: client.cif,
-      regCom: client.regCom ?? undefined,
-      address: client.address,
-      city: customerCity,
-      countyCode: customerCountyCode,
-      country: client.country,
-      email: client.email ?? undefined,
-      iban: client.iban ?? undefined,
-      bank: client.bank ?? undefined,
-    },
+    customer,
+    corrects,
     lines: lines.map((line) => ({
       description: line.description,
       quantity: Number(line.quantity),
@@ -595,18 +790,19 @@ async function loadInvoiceInput(record: typeof financialRecords.$inferSelect): P
   }
 }
 
+// Cosmetic: the EUR equivalent under the unit price. A BNR feed failure only drops the rate row.
+export async function eurRateFor(input: UblInvoiceInput, options: { live?: boolean } = {}) {
+  if (input.currency === 'EUR') return undefined
+  return getRateForDate(input.issuedAt.toISOString().slice(0, 10), 'EUR', options)
+    .then((r) => ({ rate: Number(r.rate), date: r.date }))
+    .catch(() => undefined)
+}
+
 /** Regenerează XML+HTML+PDF din datele curente ale clientului și le salvează pe rând.
  *  Folosit la emitere (o dată) și la retrimiterea unei facturi respinse (vezi sendInvoiceToAnaf). */
 async function regenerateInvoiceDocuments(record: typeof financialRecords.$inferSelect) {
   const input = await loadInvoiceInput(record)
-  // Cosmetic — echivalentul EUR sub prețul unitar în PDF. Eșecul feed-ului BNR nu
-  // blochează emiterea, doar sare peste rândul de curs (regula #7 CLAUDE.md, izolat).
-  const eurRate =
-    input.currency === 'EUR'
-      ? undefined
-      : await getRateForDate(input.issuedAt.toISOString().slice(0, 10), 'EUR')
-          .then((r) => ({ rate: Number(r.rate), date: r.date }))
-          .catch(() => undefined)
+  const eurRate = await eurRateFor(input)
   const paths = await generateInvoiceDocuments(record.id, input, eurRate)
   const [row] = await db
     .update(financialRecords)
@@ -616,22 +812,76 @@ async function regenerateInvoiceDocuments(record: typeof financialRecords.$infer
   return { row, xmlPath: paths.xmlPath }
 }
 
+// Quantities are positive on an invoice and negative on a storno (unit price positive in both:
+// BT-146). Only a record that corrects another may carry negative quantities.
+export function assertLineSigns(record: { correctsRecordId: string | null }, lines: UblInvoiceInput['lines']) {
+  if (record.correctsRecordId) {
+    if (lines.length === 0 || lines.some((line) => line.quantity >= 0 || line.unitPrice < 0)) {
+      throw new InvoicingError(400, 'INVALID_LINES', tr('errors.invoicing.lineSignStorno'))
+    }
+  } else if (lines.some((line) => line.quantity <= 0)) {
+    throw new InvoicingError(400, 'INVALID_LINES', tr('errors.invoicing.lineSignInvoice'))
+  }
+}
+
 /** Emitere: alocă numărul (tranzacție atomică pe secvență) și generează XML+HTML+PDF. */
 export async function issueInvoice(id: string) {
   const record = await getGeneratedInvoice(id)
   if (!record) return null
-  if (record.documentNumber) throw new Error(tr('errors.invoicing.alreadyIssued'))
 
   // Validăm intrarea completă (profil firmă, client, linii) ÎNAINTE de alocarea
   // numărului — altfel am consuma un număr pentru o emitere care pică.
-  await loadInvoiceInput(record)
+  assertLineSigns(record, (await loadInvoiceInput(record)).lines)
 
   const documentNumber = await db.transaction(async (tx) => {
+    // The row lock comes first: of two simultaneous issues the second waits here, then sees the
+    // number the first one set. Checking before the lock let both pass and the second overwrote the number.
+    const [locked] = await tx
+      .select({ documentNumber: financialRecords.documentNumber })
+      .from(financialRecords)
+      .where(and(eq(financialRecords.id, id), isNull(financialRecords.deletedAt)))
+      .for('update')
+    if (!locked) throw new Error(tr('errors.invoicing.invoiceGone'))
+    if (locked.documentNumber) throw new Error(tr('errors.invoicing.alreadyIssued'))
     const number = await nextInvoiceNumber('invoice', tx)
     await tx
       .update(financialRecords)
       .set({ documentNumber: number, updatedAt: new Date(), ...updatedByUserId() })
       .where(eq(financialRecords.id, id))
+
+    // A numbered storno lowers what the original still owes, and the original's payment state follows.
+    if (record.correctsRecordId) {
+      await recalculatePaymentStatus(record.correctsRecordId, tx)
+      await recordAudit({
+        executor: tx,
+        action: 'factura.storno.emisa',
+        entityType: 'invoice',
+        entityId: record.correctsRecordId,
+        changes: { storno: [null, number], suma: [null, `${record.amount} ${record.currency}`] },
+      })
+    }
+
+    // The proforma this invoice was made from becomes invoiced only now, not when the draft is created.
+    const converted = await tx
+      .update(financialRecords)
+      .set({ proformaStatus: 'invoiced', updatedAt: new Date() })
+      .where(
+        and(
+          eq(financialRecords.convertedToRecordId, id),
+          eq(financialRecords.type, 'proforma'),
+          eq(financialRecords.proformaStatus, 'open'),
+        ),
+      )
+      .returning({ id: financialRecords.id })
+    for (const proforma of converted) {
+      await recordAudit({
+        executor: tx,
+        action: 'proforma.facturata',
+        entityType: 'invoice',
+        entityId: proforma.id,
+        changes: { factura: [null, number] },
+      })
+    }
     return number
   })
 
@@ -674,16 +924,16 @@ export async function sendInvoiceToAnaf(id: string) {
 
 // ── Secvența de numerotare ───────────────────────────────────────────────────
 
-export async function getSequence() {
-  const [row] = await db.select().from(invoiceSequences).where(eq(invoiceSequences.key, 'invoice'))
+export async function getSequence(key = 'invoice') {
+  const [row] = await db.select().from(invoiceSequences).where(eq(invoiceSequences.key, key))
   if (row) return row
-  const [created] = await db.insert(invoiceSequences).values({ key: 'invoice' }).returning()
+  const [created] = await db.insert(invoiceSequences).values(sequenceDefaults(key)).returning()
   if (!created) throw new Error(tr('errors.invoicing.sequenceNotCreated'))
   return created
 }
 
-export async function updateSequence(input: z.infer<typeof SequenceUpdateSchema>) {
-  const existing = await getSequence()
+export async function updateSequence(input: z.infer<typeof SequenceUpdateSchema>, key = 'invoice') {
+  const existing = await getSequence(key)
   const [row] = await db
     .update(invoiceSequences)
     .set({ ...input, updatedAt: new Date() })

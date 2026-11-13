@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, type SQL } from 'drizzle-orm'
+import { and, desc, eq, isNull, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import { generateSelfSignedCertificate } from '../../connectors/revolut/certificate.js'
 import { exchangeCode } from '../../connectors/revolut/oauth.js'
@@ -14,6 +14,7 @@ import {
 import { decryptApiKey, encryptApiKey } from '../../shared/lib/crypto.js'
 import { sendPaymentConfirmationEmail } from '../../shared/lib/payment-confirmation.js'
 import { notifyPush } from '../../shared/lib/push.js'
+import { addPayment, isDraftSql, PaymentError, recalculatePaymentStatus, remainingSql, removePayment } from '../../shared/lib/payments.js'
 import { saveRevolutTokens } from '../../shared/lib/revolut.js'
 import type { BankAccountCreateSchema, BankAccountUpdateSchema, TransactionsQuerySchema } from './schema.js'
 import {
@@ -123,7 +124,7 @@ export async function listTransactions(query: z.infer<typeof TransactionsQuerySc
     .limit(query.limit)
 }
 
-/** Match manual: leagă tranzacția de factură și marchează factura plătită. */
+/** Manual match: links the transaction to the invoice and records a bank payment against the rest. */
 export async function createManualMatch(bankTransactionId: string, financialRecordId: string) {
   const [txn] = await db
     .select()
@@ -137,15 +138,27 @@ export async function createManualMatch(bankTransactionId: string, financialReco
     .where(and(eq(financialRecords.id, financialRecordId), isNull(financialRecords.deletedAt)))
   if (!record) throw new Error(tr('errors.reconciliation.recordNotFound'))
 
-  const [existing] = await db
-    .select({ id: paymentMatches.id })
-    .from(paymentMatches)
-    .where(eq(paymentMatches.bankTransactionId, bankTransactionId))
-  if (existing) throw new Error(tr('errors.reconciliation.alreadyMatched'))
-
-  // Suma poate diferi (plată parțială) — partial dacă tranzacția acoperă mai puțin.
-  const paymentStatus = Number(txn.amount) + 0.005 >= Number(record.amount) ? 'paid' : 'partial'
-  const match = await db.transaction(async (tx) => {
+  // The amount may differ (partial payment): the payment takes min(transaction, rest) and payments.ts derives the status.
+  const { match, paymentStatus } = await db.transaction(async (tx) => {
+    // Under the transaction's row lock, so two matches of one transaction at once cannot both pass.
+    await tx.select({ id: bankTransactions.id }).from(bankTransactions).where(eq(bankTransactions.id, bankTransactionId)).for('update')
+    const [existing] = await tx
+      .select({ id: paymentMatches.id })
+      .from(paymentMatches)
+      .where(eq(paymentMatches.bankTransactionId, bankTransactionId))
+    if (existing) throw new Error(tr('errors.reconciliation.alreadyMatched'))
+    const payment = await addPayment(
+      financialRecordId,
+      {
+        amount: Math.abs(Number(txn.amount)),
+        currency: txn.currency,
+        paidAt: txn.valueDate,
+        method: 'bank',
+        reference: txn.reference,
+        bankTransactionId,
+      },
+      { tx, capAtRemaining: true },
+    )
     const [inserted] = await tx
       .insert(paymentMatches)
       .values({
@@ -153,20 +166,12 @@ export async function createManualMatch(bankTransactionId: string, financialReco
         ...updatedByUserId(),
         bankTransactionId,
         financialRecordId,
+        paymentId: payment.id,
         matchType: 'manual',
         confidence: '1',
       })
       .returning()
-    await tx
-      .update(financialRecords)
-      .set({
-        paymentStatus,
-        paidAt: paymentStatus === 'paid' ? txn.valueDate : null,
-        updatedAt: new Date(),
-        ...updatedByUserId(),
-      })
-      .where(eq(financialRecords.id, financialRecordId))
-    return inserted
+    return { match: inserted, paymentStatus: payment.paymentStatus }
   })
   await recordAudit({
     action: 'reconciliere.potrivire.manuala',
@@ -193,7 +198,7 @@ export async function createManualMatch(bankTransactionId: string, financialReco
   return match
 }
 
-/** Unmatch: șterge legătura și readuce înregistrarea la unpaid. */
+/** Unmatch: deletes the link and its payment, then recomputes the invoice state from the remaining payments. */
 export async function removeMatch(bankTransactionId: string): Promise<boolean> {
   const [match] = await db
     .select()
@@ -203,15 +208,29 @@ export async function removeMatch(bankTransactionId: string): Promise<boolean> {
 
   await db.transaction(async (tx) => {
     await tx.delete(paymentMatches).where(eq(paymentMatches.id, match.id))
-    await tx
-      .update(financialRecords)
-      .set({ paymentStatus: 'unpaid', paidAt: null, updatedAt: new Date() })
-      .where(eq(financialRecords.id, match.financialRecordId))
+    if (!match.paymentId) {
+      await recalculatePaymentStatus(match.financialRecordId, tx)
+      return
+    }
+    // One payment can be referenced by several matches (backfill in migration 0091).
+    const [stillReferenced] = await tx
+      .select({ id: paymentMatches.id })
+      .from(paymentMatches)
+      .where(and(eq(paymentMatches.paymentId, match.paymentId), isNull(paymentMatches.deletedAt)))
+      .limit(1)
+    if (stillReferenced) return
+    try {
+      await removePayment(match.paymentId, { tx })
+    } catch (err) {
+      // The payment was already deleted from the UI: only the match is left, delete it.
+      if (!(err instanceof PaymentError) || err.code !== 'PAYMENT_NOT_FOUND') throw err
+      await recalculatePaymentStatus(match.financialRecordId, tx)
+    }
   })
   return true
 }
 
-/** Facturile deschise — opțiunile pentru dropdown-ul de matching manual din UI. */
+/** Numbered documents with an unpaid rest: the options of the manual-match dropdown. */
 export async function listOpenInvoices() {
   return db
     .select({
@@ -222,6 +241,7 @@ export async function listOpenInvoices() {
       currency: financialRecords.currency,
       issuedAt: financialRecords.issuedAt,
       paymentStatus: financialRecords.paymentStatus,
+      remaining: sql<number>`${remainingSql}::float8`.mapWith(Number),
     })
     .from(financialRecords)
     .where(
@@ -229,17 +249,17 @@ export async function listOpenInvoices() {
         isNull(financialRecords.deletedAt),
         eq(financialRecords.direction, 'out'),
         eq(financialRecords.type, 'invoice'),
-        isNull(financialRecords.paidAt),
+        sql`NOT ${isDraftSql}`,
+        sql`${remainingSql} > 0`,
       ),
     )
     .orderBy(desc(financialRecords.issuedAt))
 }
 
 /**
- * "Marchează plătit" manual — pt. plăți cash/alt canal, fără match bancar. Declanșează
- * exact același cod ca match-ul automat pt. extinderea abonamentului vanagreen
- * (Sprint C, Track B), cu idempotencyKey stabil pe id-ul facturii (nu există
- * payment_match în acest flux).
+ * Manual "mark as paid" for cash or other channels without a bank match: an `other` payment
+ * for the rest of the invoice. Triggers the same vanagreen subscription extension as the
+ * automatic match, with an idempotencyKey stable on the invoice id (no payment_match here).
  */
 export async function markInvoicePaidManually(financialRecordId: string) {
   const [record] = await db
@@ -249,11 +269,12 @@ export async function markInvoicePaidManually(financialRecordId: string) {
   if (!record) throw new Error(tr('errors.reconciliation.invoiceNotFound'))
   if (record.direction !== 'out' || record.type !== 'invoice') throw new Error(tr('errors.reconciliation.notIssuedInvoice'))
 
-  const [updated] = await db
-    .update(financialRecords)
-    .set({ paymentStatus: 'paid', paidAt: new Date(), updatedAt: new Date() })
-    .where(eq(financialRecords.id, financialRecordId))
-    .returning()
+  await addPayment(
+    financialRecordId,
+    { amount: Number(record.amount), paidAt: new Date(), method: 'other' },
+    { capAtRemaining: true },
+  )
+  const [updated] = await db.select().from(financialRecords).where(eq(financialRecords.id, financialRecordId))
 
   // Izolat (BUG-QA-MARKPAID-1, fixat): acțiunea primară — marcarea facturii ca plătită —
   // e deja commis-ă mai sus. O eroare la extinderea vanagreen nu trebuie să întoarcă un

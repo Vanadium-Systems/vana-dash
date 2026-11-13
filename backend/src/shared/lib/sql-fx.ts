@@ -1,6 +1,15 @@
-import { sql, type Column, type SQL } from 'drizzle-orm'
+import { Column, getTableName, is, sql, type SQL } from 'drizzle-orm'
 import { exchangeRates } from '../db/schema/index.js'
 import type { DisplayCurrency } from './locale.js'
+
+/**
+ * A column written as "table"."column". In a select from a single table drizzle writes bare
+ * names, and inside a correlated subquery a bare name binds to the inner table when it has a
+ * column of that name: `"currency" = "currency"` compares exchange_rates with itself.
+ */
+export function qualified(value: Column | SQL): SQL {
+  return is(value, Column) ? sql`${sql.identifier(getTableName(value.table))}.${sql.identifier(value.name)}` : sql`${value}`
+}
 
 /**
  * Convertește o coloană `amount` la RON, pt. agregare SQL (regula #9 CLAUDE.md — nu `.reduce()`
@@ -11,12 +20,13 @@ import type { DisplayCurrency } from './locale.js'
  * la fel cum `getRecurringRevenue` degradează azi când BNR e jos.
  */
 export function ronAmountSql(amount: Column | SQL, currency: Column | SQL, issuedAt: Column | SQL): SQL<number> {
+  const outerCurrency = qualified(currency)
   return sql<number>`(CASE WHEN ${currency} = 'RON' THEN ${amount}::numeric ELSE ${amount}::numeric * COALESCE((
-    SELECT ${exchangeRates.rate}::numeric FROM ${exchangeRates}
-    WHERE ${exchangeRates.currency} = ${currency}
-      AND ${exchangeRates.deletedAt} IS NULL
-      AND ${exchangeRates.date} <= TO_CHAR((${issuedAt}) AT TIME ZONE 'UTC', 'YYYY-MM-DD')
-    ORDER BY ${exchangeRates.date} DESC
+    SELECT er.rate::numeric FROM ${exchangeRates} er
+    WHERE er.currency = ${outerCurrency}
+      AND er.deleted_at IS NULL
+      AND er.date <= TO_CHAR((${qualified(issuedAt)}) AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+    ORDER BY er.date DESC
     LIMIT 1
   ), 1) END)`
 }

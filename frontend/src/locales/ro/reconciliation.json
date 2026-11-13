@@ -49,7 +49,9 @@
     "match": "Match",
     "auto": "auto",
     "manual": "manual",
-    "cancelMatch": "Anulează match-ul"
+    "cancelMatch": "Anulează match-ul",
+    "toMatch": "De potrivit",
+    "matchAction": "Potrivește"
   },
   "match": {
     "manual": "Match manual",

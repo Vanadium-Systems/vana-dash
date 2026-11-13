@@ -38,6 +38,7 @@ import { emailRoutes } from './modules/email/routes.js'
 import { emailSequencesRoutes } from './modules/email/sequences-routes.js'
 import { emailSettingsRoutes } from './modules/email/settings-routes.js'
 import { financialsRoutes } from './modules/financials/routes.js'
+import { paymentRoutes } from './modules/invoicing/payments.js'
 import { invoicingRoutes } from './modules/invoicing/routes.js'
 import { jeffbotRoutes } from './modules/jeffbot/routes.js'
 import { metricRoutes } from './modules/metrics/routes.js'
@@ -148,6 +149,7 @@ export async function buildServer() {
   await app.register(metricRoutes)
   await app.register(accountingRoutes)
   await app.register(invoicingRoutes)
+  await app.register(paymentRoutes)
   await app.register(reconciliationRoutes)
   await app.register(financialsRoutes)
   await app.register(pricingRoutes)

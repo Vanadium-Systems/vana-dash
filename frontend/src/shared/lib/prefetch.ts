@@ -63,7 +63,12 @@ const PAGE_DATA: Record<string, PageQuery[]> = {
     { feature: 'financiar.view', queryKey: ['financials', 'pnl', '30d'], queryFn: () => api.getWithMoney('/api/financials/pnl?period=30d') },
   ],
   '/accounting': [
-    { feature: 'facturi.view', queryKey: ['accounting', 'records', 'out'], queryFn: () => api.get('/api/accounting/records?direction=out') },
+    {
+      feature: 'facturi.view',
+      // The key mirrors `recordsKey` of the Emise list on its default view (all, first page, 10 rows).
+      queryKey: ['accounting', 'records', 'page', { direction: 'out', tab: 'all', q: '', from: null, to: null, page: 1, pageSize: 10 }],
+      queryFn: () => api.get('/api/accounting/records?direction=out&tab=all&page=1&pageSize=10'),
+    },
   ],
   '/assistant': [
     { feature: 'asistent.view', queryKey: ['assistant', 'conversations'], queryFn: () => api.get('/api/assistant/conversations') },

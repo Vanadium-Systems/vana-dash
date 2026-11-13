@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { createVanagreenTenantForClient, pushBillingCycleIfMapped, pushLegalDetailsIfMapped } from '../reconciliation/vanagreen-extension.js'
 import { runVanagreenTenantSyncJob } from '../../jobs/vanagreen-tenant-sync.js'
@@ -17,12 +17,20 @@ import {
   InvoiceUpdateSchema,
   PlatformIdParamsSchema,
   PlatformTemplateIdParamsSchema,
+  ProformaListQuerySchema,
+  SequenceKeyQuerySchema,
   SequenceUpdateSchema,
+  StornoCreateSchema,
   TemplateResolveQuerySchema,
 } from './schema.js'
 import { ClientPricingSchema } from './pricing-apply.js'
+import { InvoicingError } from './errors.js'
+import * as proforma from './proforma.js'
 import * as service from './service.js'
+import { createStornoDraft } from './storno.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { DrizzleQueryError } from 'drizzle-orm/errors'
+import { peekNextInvoiceNumber } from '../../shared/lib/sequences.js'
 
 // Sprint C, Track D — generează un slug kebab-case din numele clientului când Stefan nu
 // dă unul explicit la creare. Diacritice simple normalizate (ă/â/î/ș/ț → a/a/i/s/t).
@@ -33,6 +41,19 @@ function slugify(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
+}
+
+// Domain errors keep their status and code; anything else answers 400 as the older routes do.
+function fail(reply: FastifyReply, err: unknown) {
+  if (err instanceof InvoicingError) {
+    return reply.code(err.statusCode).send({ success: false, error: { code: err.code, message: err.message } })
+  }
+  if (err instanceof service.InvoiceConflictError) {
+    return reply.code(409).send({ success: false, error: { code: err.code, message: err.message } })
+  }
+  // A failed query carries its SQL and parameters in the message: let the global handler mask it.
+  if (err instanceof DrizzleQueryError || (err instanceof Error && err.name === 'PostgresError')) throw err
+  return reply.code(400).send({ success: false, error: String(err) })
 }
 
 export async function invoicingRoutes(app: FastifyInstance) {
@@ -158,7 +179,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
         const rate = await service.getExchangeRateForInvoicing(req.query.currency, req.query.date)
         return { success: true, data: rate }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return fail(reply, err)
       }
     },
   )
@@ -176,7 +197,58 @@ export async function invoicingRoutes(app: FastifyInstance) {
       try {
         return reply.code(201).send({ success: true, data: await service.createDraftInvoice(req.body) })
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return fail(reply, err)
+      }
+    },
+  )
+
+  // The editor's pickers live under the invoices prefix (facturi.view): the client routes need
+  // facturi.clienti, which a colleague who only issues invoices does not have.
+  server.get('/api/invoicing/invoices/clients', { preHandler: [app.authenticate] }, async () => ({
+    success: true,
+    data: await service.listClientsForInvoicing(),
+  }))
+
+  server.get(
+    '/api/invoicing/invoices/clients/:clientId/templates',
+    { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema } },
+    async (req) => ({ success: true, data: await service.listClientTemplates(req.params.clientId) }),
+  )
+
+  server.get(
+    '/api/invoicing/invoices/clients/:clientId/templates/:id/resolve',
+    { preHandler: [app.authenticate], schema: { params: ClientTemplateResolveParamsSchema, querystring: TemplateResolveQuerySchema } },
+    async (req, reply) => {
+      try {
+        return { success: true, data: await service.resolveClientTemplateLines(req.params.clientId, req.params.id, req.query.currency) }
+      } catch (err) {
+        return fail(reply, err)
+      }
+    },
+  )
+
+  // The editor's confirmation step names the number the issue will get. Under facturi.view, not
+  // the series settings, so a colleague who issues invoices can read it.
+  server.get(
+    '/api/invoicing/invoices/next-number',
+    { preHandler: [app.authenticate], schema: { querystring: SequenceKeyQuerySchema } },
+    async (req) => ({ success: true, data: await peekNextInvoiceNumber(req.query.key) }),
+  )
+
+  // The editor calls this on every pause in typing. The limit is per person and runs after
+  // authentication (preHandler) so a colleague on the same IP does not share the bucket.
+  server.post(
+    '/api/invoicing/invoices/preview',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: { max: 60, timeWindow: '1 minute', hook: 'preHandler', keyGenerator: (req) => req.me.id } },
+      schema: { body: InvoiceCreateSchema },
+    },
+    async (req, reply) => {
+      try {
+        return { success: true, data: { html: await service.previewDraftInvoice(req.body) } }
+      } catch (err) {
+        return fail(reply, err)
       }
     },
   )
@@ -190,7 +262,51 @@ export async function invoicingRoutes(app: FastifyInstance) {
         if (!invoice) return reply.code(404).send({ success: false, error: 'Invoice not found' })
         return { success: true, data: invoice }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return fail(reply, err)
+      }
+    },
+  )
+
+  server.post(
+    '/api/invoicing/invoices/:id/duplicate',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req, reply) => {
+      try {
+        const draft = await service.duplicateInvoice(req.params.id)
+        if (!draft) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        return reply.code(201).send({ success: true, data: draft })
+      } catch (err) {
+        return fail(reply, err)
+      }
+    },
+  )
+
+  // A storno is a draft invoice with negative quantities; issuing it goes through /issue like any invoice.
+  server.post(
+    '/api/invoicing/invoices/:id/storno',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: StornoCreateSchema } },
+    async (req, reply) => {
+      try {
+        const draft = await createStornoDraft(req.params.id, req.body)
+        if (!draft) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        return reply.code(201).send({ success: true, data: draft })
+      } catch (err) {
+        return fail(reply, err)
+      }
+    },
+  )
+
+  // The stored document as HTML: the only preview a storno draft or a proforma can have by id.
+  server.get(
+    '/api/invoicing/invoices/:id/preview',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req, reply) => {
+      try {
+        const html = await service.previewStoredDocument(req.params.id)
+        if (html === null) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        return { success: true, data: { html } }
+      } catch (err) {
+        return fail(reply, err)
       }
     },
   )
@@ -204,7 +320,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
         if (!deleted) return reply.code(404).send({ success: false, error: 'Invoice not found' })
         return { success: true }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return fail(reply, err)
       }
     },
   )
@@ -218,7 +334,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
         if (!invoice) return reply.code(404).send({ success: false, error: 'Invoice not found' })
         return { success: true, data: invoice }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return fail(reply, err)
       }
     },
   )
@@ -232,24 +348,115 @@ export async function invoicingRoutes(app: FastifyInstance) {
         if (!invoice) return reply.code(404).send({ success: false, error: 'Invoice not found' })
         return { success: true, data: invoice }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return fail(reply, err)
       }
     },
   )
 
   // ── Secvența de numerotare ─────────────────────────────────────────────────
 
-  server.get('/api/invoicing/sequence', { preHandler: [app.authenticate] }, async () => {
-    return { success: true, data: await service.getSequence() }
-  })
+  // `?key=proforma` is the proforma series; without it, the invoice series as before.
+  server.get(
+    '/api/invoicing/sequence',
+    { preHandler: [app.authenticate], schema: { querystring: SequenceKeyQuerySchema } },
+    async (req) => {
+      return { success: true, data: await service.getSequence(req.query.key) }
+    },
+  )
 
   server.patch(
     '/api/invoicing/sequence',
-    { preHandler: [app.authenticate], schema: { body: SequenceUpdateSchema } },
+    { preHandler: [app.authenticate], schema: { querystring: SequenceKeyQuerySchema, body: SequenceUpdateSchema } },
     async (req) => {
-      return { success: true, data: await service.updateSequence(req.body) }
+      return { success: true, data: await service.updateSequence(req.body, req.query.key) }
     },
   )
+
+  // ── Proforme ───────────────────────────────────────────────────────────────
+
+  server.get(
+    '/api/invoicing/proformas',
+    { preHandler: [app.authenticate], schema: { querystring: ProformaListQuerySchema } },
+    async (req) => {
+      return { success: true, data: await proforma.listProformas(req.query) }
+    },
+  )
+
+  server.post(
+    '/api/invoicing/proformas',
+    { preHandler: [app.authenticate], schema: { body: InvoiceCreateSchema } },
+    async (req, reply) => {
+      try {
+        return reply.code(201).send({ success: true, data: await service.createDraftInvoice(req.body, { kind: 'proforma' }) })
+      } catch (err) {
+        return fail(reply, err)
+      }
+    },
+  )
+
+  server.post(
+    '/api/invoicing/proformas/preview',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: { max: 60, timeWindow: '1 minute', hook: 'preHandler', keyGenerator: (req) => req.me.id } },
+      schema: { body: InvoiceCreateSchema },
+    },
+    async (req, reply) => {
+      try {
+        return { success: true, data: { html: await service.previewDraftInvoice(req.body, 'proforma') } }
+      } catch (err) {
+        return fail(reply, err)
+      }
+    },
+  )
+
+  server.patch(
+    '/api/invoicing/proformas/:id',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: InvoiceUpdateSchema } },
+    async (req, reply) => {
+      try {
+        const row = await service.updateDraftInvoice(req.params.id, req.body, 'proforma')
+        if (!row) return reply.code(404).send({ success: false, error: { code: 'PROFORMA_NOT_FOUND', message: tr('errors.invoicing.proformaNotFound') } })
+        return { success: true, data: row }
+      } catch (err) {
+        return fail(reply, err)
+      }
+    },
+  )
+
+  server.delete(
+    '/api/invoicing/proformas/:id',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req, reply) => {
+      try {
+        const deleted = await service.deleteDraftInvoice(req.params.id, 'proforma')
+        if (!deleted) return reply.code(404).send({ success: false, error: { code: 'PROFORMA_NOT_FOUND', message: tr('errors.invoicing.proformaNotFound') } })
+        return { success: true }
+      } catch (err) {
+        return fail(reply, err)
+      }
+    },
+  )
+
+  for (const [action, run] of [
+    ['issue', proforma.issueProforma],
+    ['convert', proforma.convertProforma],
+    ['cancel', proforma.cancelProforma],
+  ] as const) {
+    server.post(
+      `/api/invoicing/proformas/:id/${action}`,
+      { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+      async (req, reply) => {
+        try {
+          const row = await run(req.params.id)
+          if (!row) return reply.code(404).send({ success: false, error: { code: 'PROFORMA_NOT_FOUND', message: tr('errors.invoicing.proformaNotFound') } })
+          return reply.code(action === 'convert' ? 201 : 200).send({ success: true, data: row })
+        } catch (err) {
+          return fail(reply, err)
+        }
+      },
+    )
+  }
 
   // ── Template-uri de facturi per PLATFORMĂ (Sprint D, Track 3; re-scope 2026-07-18) ──
   // 2-3 template-uri per aplicație integrată, reutilizate de toți clienții ei.
@@ -270,7 +477,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
         const template = await service.createPlatformTemplate(req.params.platformId, req.body)
         return reply.code(201).send({ success: true, data: template })
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return fail(reply, err)
       }
     },
   )
@@ -316,7 +523,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
         const resolved = await service.resolveClientTemplateLines(req.params.clientId, req.params.id, req.query.currency)
         return { success: true, data: resolved }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return fail(reply, err)
       }
     },
   )

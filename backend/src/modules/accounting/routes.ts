@@ -6,8 +6,11 @@ import { triggerAnafSyncNow } from '../../jobs/sync-anaf.js'
 import { getAnafCredentialsRow, getAnafSession, saveAnafTokens } from '../../shared/lib/anaf.js'
 import { decryptApiKey } from '../../shared/lib/crypto.js'
 import { readDocument } from '../../shared/lib/storage.js'
+import { PaymentError } from '../../shared/lib/payments.js'
 import * as d301 from './d301.js'
 import * as quarterlyPackage from './quarterly-package.js'
+import { getRecordDetail } from './record-detail.js'
+import { listRecordsPage } from './records-list.js'
 import {
   AnafExchangeCodeSchema,
   DeclarationExportQuerySchema,
@@ -36,9 +39,7 @@ export async function accountingRoutes(app: FastifyInstance) {
   server.get(
     '/api/accounting/records',
     { preHandler: [app.authenticate], schema: { querystring: RecordsQuerySchema } },
-    async (req) => {
-      return { success: true, data: await service.listRecords(req.query) }
-    },
+    async (req) => ({ success: true, data: await listRecordsPage(req.query) }),
   )
 
   server.post(
@@ -60,13 +61,31 @@ export async function accountingRoutes(app: FastifyInstance) {
     },
   )
 
+  // Everything the document page shows, in one round trip.
+  server.get(
+    '/api/accounting/records/:id/detail',
+    { preHandler: [app.authenticate], schema: { params: RecordIdParamsSchema } },
+    async (req, reply) => {
+      const detail = await getRecordDetail(req.params.id)
+      if (!detail) {
+        return reply.code(404).send({ success: false, error: { code: 'RECORD_NOT_FOUND', message: tr('errors.payments.recordNotFound') } })
+      }
+      return { success: true, data: detail }
+    },
+  )
+
   server.patch(
     '/api/accounting/records/:id/payment',
     { preHandler: [app.authenticate], schema: { params: RecordIdParamsSchema, body: PaymentUpdateSchema } },
     async (req, reply) => {
-      const record = await service.updatePayment(req.params.id, req.body)
-      if (!record) return reply.code(404).send({ success: false, error: 'Record not found' })
-      return { success: true, data: record }
+      try {
+        const record = await service.updatePayment(req.params.id, req.body)
+        if (!record) return reply.code(404).send({ success: false, error: { code: 'RECORD_NOT_FOUND', message: tr('errors.payments.recordNotFound') } })
+        return { success: true, data: record }
+      } catch (err) {
+        if (!(err instanceof PaymentError)) throw err
+        return reply.code(err.statusCode).send({ success: false, error: { code: err.code, message: err.message } })
+      }
     },
   )
 

@@ -8,7 +8,7 @@
  * aplicație.
  */
 import argon2 from 'argon2'
-import { and, eq, inArray, isNull, like } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, like } from 'drizzle-orm'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../shared/lib/email.js', () => ({ sendEmail: vi.fn(async () => {}) }))
@@ -244,7 +244,12 @@ describe('actorul dincolo de request', () => {
 
 describe('pagina de istoric', () => {
   it('filtrează pe om și pe tip, și ascunde rândurile altui om', async () => {
-    const [prima] = await db.select().from(auditLog).where(eq(auditLog.action, 'echipa.invitare')).limit(1)
+    const [prima] = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, 'echipa.invitare'))
+      .orderBy(desc(auditLog.createdAt))
+      .limit(1)
     if (!prima) return
     // Rândul poate fi de la o rulare anterioară (baza de dev e comună) — nu îl ștergem.
     const intrarie = prima
@@ -260,7 +265,13 @@ describe('pagina de istoric', () => {
       expect(item.entityType).toBe(intrarie.entityType)
       expect(item.actor?.id).toBe(intrarie.actorUserId)
     }
-    const list = await app.inject({ method: 'GET', url: '/api/audit', cookies: { vana_session: admin } })
+    // Without the actor filter, but within its type: the shared dev database keeps growing, so the
+    // unfiltered first page may no longer reach this row.
+    const list = await app.inject({
+      method: 'GET',
+      url: `/api/audit?entityType=${intrarie.entityType}&limit=200`,
+      cookies: { vana_session: admin },
+    })
     const toate = list.json().data as Array<{ id: string }>
     expect(toate.some((item) => item.id === intrarie.id)).toBe(true)
     // Filtrele sunt pe server: `actorId` nu e acceptat ca listă goală, iar o limită absurdă

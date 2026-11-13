@@ -39,6 +39,8 @@ import {
   emailUserSettings,
   exchangeRates,
   financialRecords,
+  invoiceLineItems,
+  invoicePayments,
   messageReactions,
   messageRefs,
   messages,
@@ -116,6 +118,12 @@ await db
   .insert(dashboardConfig)
   .values({ key: 'ops_jobs.enabled', value: { bankSync: false, tenderWatch: false, bnrFeed: false } })
   .onConflictDoNothing({ target: [dashboardConfig.tenantId, dashboardConfig.key] })
+
+// Read by /api/auth/me as `isDemo`; the interface shows the demo banner.
+await db
+  .insert(dashboardConfig)
+  .values({ key: 'company.demo', value: true })
+  .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: true } })
 
 // ── People ───────────────────────────────────────────────────────────────────
 
@@ -266,6 +274,102 @@ const received = [
   createdByUserId: admin.id,
 }))
 const invoiceRows = await db.insert(financialRecords).values([...issued, ...received]).returning()
+
+// One invoice or document in each remaining state, so the invoice screens have something to show
+// in every filter. Inserted after the rows above: `invoiceRows.find` at the shared-invoice step
+// must still land on one of the plain unpaid ones.
+const stateRow = (
+  i: number,
+  daysBack: number,
+  amount: string,
+  over: Partial<Omit<typeof issued[number], 'documentNumber' | 'paymentStatus'>> & {
+    documentNumber: string | null
+    paymentStatus?: 'unpaid' | 'partial' | 'paid'
+    anafStatus?: 'validated' | 'rejected'
+  },
+) => ({
+  ...issued[0]!,
+  amount,
+  description: L({ ro: `Servicii de implementare ${clients[i]!.name}`, en: `Implementation services ${clients[i]!.name}` }),
+  issuedAt: daysAgo(daysBack),
+  dueAt: daysAgo(daysBack - 14),
+  paidAt: null as Date | null,
+  paymentStatus: 'unpaid' as 'unpaid' | 'partial' | 'paid',
+  billingClientId: clients[i]!.id,
+  counterpartyName: clients[i]!.name,
+  counterpartyCif: clients[i]!.cif,
+  ...over,
+})
+// Continues the series above, so the numbers never collide with the monthly invoices.
+const nextNumber = () => `DEMO-${String(++invoiceNumber).padStart(4, '0')}`
+const partialNumber = nextNumber()
+const splitNumber = nextNumber()
+const stateRows = await db
+  .insert(financialRecords)
+  .values([
+    stateRow(0, 3, '1500.00', { documentNumber: null }),
+    stateRow(1, 20, '2000.00', { documentNumber: partialNumber, paymentStatus: 'partial' }),
+    stateRow(2, 25, '900.00', { documentNumber: splitNumber, paymentStatus: 'paid', paidAt: daysAgo(12) }),
+    stateRow(0, 8, '1100.00', { documentNumber: nextNumber(), anafStatus: 'rejected' }),
+    stateRow(1, 15, '750.00', { documentNumber: nextNumber(), anafStatus: 'validated' }),
+    {
+      ...stateRow(2, 4, '600.00', { documentNumber: 'PRO-0001' }),
+      type: 'proforma' as const,
+      proformaStatus: 'open' as const,
+    },
+    {
+      // Unpaid supplier invoice past its due date: the "to pay" list.
+      ...received[0]!,
+      amount: '240.00',
+      issuedAt: daysAgo(35),
+      dueAt: daysAgo(5),
+      paidAt: null,
+      paymentStatus: 'unpaid' as const,
+      counterpartyName: 'Hosting Provider GmbH',
+    },
+  ])
+  .returning()
+const byNumber = (n: string) => stateRows.find((r) => r.documentNumber === n)!
+const partialInvoice = byNumber(partialNumber)
+const splitInvoice = byNumber(splitNumber)
+
+// A storno reverses part of an already paid invoice; its lines carry the negative quantity.
+const stornoSource = invoiceRows.find((r) => r.documentNumber === 'DEMO-0001')!
+const [storno] = await db
+  .insert(financialRecords)
+  .values({
+    ...stateRow(0, 2, '-300.00', { documentNumber: nextNumber() }),
+    description: L({ ro: 'Storno parțial abonament', en: 'Partial credit note for the subscription' }),
+    billingClientId: stornoSource.billingClientId,
+    counterpartyName: stornoSource.counterpartyName,
+    counterpartyCif: stornoSource.counterpartyCif,
+    correctsRecordId: stornoSource.id,
+  })
+  .returning()
+
+const lineOf = (record: { id: string; description: string | null }, quantity: number, unitPrice: number) => ({
+  invoiceId: record.id,
+  position: 0,
+  description: record.description ?? '',
+  quantity: String(quantity),
+  unitPrice: unitPrice.toFixed(2),
+})
+await db.insert(invoiceLineItems).values([
+  ...stateRows.filter((r) => r.direction === 'out').map((r) => lineOf(r, 1, Number(r.amount))),
+  lineOf(storno!, -1, 300),
+])
+
+// Payments written directly instead of through addPayment: that one needs a request context
+// (acting user, audit trail), and the seed sets the derived status on the records itself.
+const paidOn = (date: Date | null) => date!.toISOString().slice(0, 10)
+await db.insert(invoicePayments).values([
+  ...invoiceRows
+    .filter((r) => r.direction === 'out' && r.paymentStatus === 'paid')
+    .map((r) => ({ recordId: r.id, amount: r.amount, currency: r.currency, paidAt: paidOn(r.paidAt), method: 'bank' as const, createdByUserId: admin.id })),
+  { recordId: partialInvoice.id, amount: '800.00', currency: 'RON', paidAt: paidOn(daysAgo(10)), method: 'bank' as const, reference: 'DEMO-TX-1', createdByUserId: admin.id },
+  { recordId: splitInvoice.id, amount: '400.00', currency: 'RON', paidAt: paidOn(daysAgo(18)), method: 'cash' as const, createdByUserId: admin.id },
+  { recordId: splitInvoice.id, amount: '500.00', currency: 'RON', paidAt: paidOn(splitInvoice.paidAt), method: 'bank' as const, reference: 'DEMO-TX-2', createdByUserId: admin.id },
+])
 
 // ── Prospects ────────────────────────────────────────────────────────────────
 
@@ -1201,5 +1305,5 @@ await db.insert(prospectSignalHits).values(
   Object.entries(hitIndexes).flatMap(([key, indexes]) => indexes.map((i) => ({ signalId: signalId(key), prospectId: prospectAt(i).id, computedAt: daysAgo(0, 6) }))),
 )
 
-console.log(`Demo data added (${locale}): ${clients.length} clients, ${issued.length + received.length} invoices and expenses, 19 prospects with people, notes, tasks, lists, views, sequences, automations and signals, 90 days of metrics, notes and archive files.`)
+console.log(`Demo data added (${locale}): ${clients.length} clients, ${invoiceRows.length + stateRows.length + 1} invoices and expenses, 19 prospects with people, notes, tasks, lists, views, sequences, automations and signals, 90 days of metrics, notes and archive files.`)
 await sql.end()

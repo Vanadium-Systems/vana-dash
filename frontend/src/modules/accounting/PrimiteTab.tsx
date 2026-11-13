@@ -1,49 +1,20 @@
-import { Money } from '@/shared/components/Money'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronLeft, ChevronRight, Download, FileText, MessageSquareShare, Plus, RefreshCw } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plus, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
-import { Card, CardContent } from '@/shared/components/ui/card'
-import { EmptyState } from '@/shared/components/ui/empty-state'
-import { ListSkeleton } from '@/shared/components/ui/skeleton'
-import { RowActions } from '@/shared/components/ui/row-actions'
-import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { api } from '@/shared/lib/api'
-import type { FinancialRecord } from '@/shared/lib/types'
-import { PaymentStatusBadge, formatDate } from './badges'
-import { PastRecordFormDialog } from './PastRecordFormDialog'
-import { RecurringExpensesSection } from './RecurringExpensesSection'
-import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
-import { useFlashRow } from '@/shared/hooks/use-flash-row'
+import { useMe } from '@/shared/hooks/use-me'
 import { t } from '@/shared/lib/i18n'
-
-const PAGE_SIZE = 10
+import { PastRecordFormDialog } from './PastRecordFormDialog'
+import { RecordsList } from './RecordsList'
+import { RecurringExpensesSection } from './RecurringExpensesSection'
 
 export function PrimiteTab() {
   const queryClient = useQueryClient()
   const [pastDialogOpen, setPastDialogOpen] = useState(false)
-  const [page, setPage] = useState(0)
-  const { canShare, share, dialog: shareDialog } = useShareToMessages()
-  const focusId = useSearchParams()[0].get('record') ?? ''
-
-  const records = useQuery({
-    queryKey: ['accounting', 'records', 'in'],
-    queryFn: () => api.get<FinancialRecord[]>('/api/accounting/records?direction=in'),
-  })
-
-  const total = records.data?.length ?? 0
-  const maxPage = Math.max(0, Math.ceil(total / PAGE_SIZE) - 1)
-  const safePage = Math.min(page, maxPage)
-  const pageRecords = records.data?.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
-
-  // A shared link lands on the page that holds the record, then the row flashes.
-  const focusIndex = records.data?.findIndex((r) => r.id === focusId) ?? -1
-  useEffect(() => {
-    if (focusIndex >= 0) setPage(Math.floor(focusIndex / PAGE_SIZE))
-  }, [focusIndex])
-  useFlashRow(focusId, focusIndex >= 0 && safePage === Math.floor(focusIndex / PAGE_SIZE))
+  // Each part needs its own feature: a colleague who only records invoices must not hit a 403 here.
+  const { can } = useMe()
 
   const syncAnaf = useMutation({
     mutationFn: () => api.post<{ imported: number }>('/api/accounting/anaf/sync'),
@@ -54,119 +25,23 @@ export function PrimiteTab() {
     onError: (err) => toast.error(err.message),
   })
 
-  const markPaid = useMutation({
-    mutationFn: (id: string) =>
-      api.patch<FinancialRecord>(`/api/accounting/records/${id}/payment`, { paymentStatus: 'paid' }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['accounting'] })
-      toast.success(t('accounting:received.markedPaid'))
-    },
-    onError: (err) => toast.error(err.message),
-  })
-
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" onClick={() => setPastDialogOpen(true)}>
-          <Plus className="h-4 w-4" /> {t('accounting:received.addExpense')}
-        </Button>
-        <Button variant="outline" disabled={syncAnaf.isPending} onClick={() => syncAnaf.mutate()}>
-          <RefreshCw className={syncAnaf.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /> {t('accounting:received.syncNow')}
-        </Button>
-      </div>
-      <Card>
-        <CardContent className="pt-6">
-          {records.isPending ? (
-            <ListSkeleton rows={4} />
-          ) : !records.data?.length ? (
-            <EmptyState kind="new" title={t('accounting:received.empty')} />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('accounting:labels.supplier')}</TableHead>
-                  <TableHead priority="lg">{t('common:labels.cif')}</TableHead>
-                  <TableHead priority="md">{t('common:labels.document')}</TableHead>
-                  <TableHead priority="lg">{t('accounting:labels.issued')}</TableHead>
-                  <TableHead priority="md">{t('accounting:labels.due')}</TableHead>
-                  <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
-                  <TableHead priority="lg">{t('common:labels.source')}</TableHead>
-                  <TableHead priority="md">{t('accounting:labels.payment')}</TableHead>
-                  <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(pageRecords ?? []).map((r) => (
-                  <TableRow
-                    key={r.id}
-                    data-row-id={r.id}
-                  >
-                    <TableCell truncate className="font-medium">
-                      {r.counterpartyName ?? '—'}
-                      <TableDetails items={[r.description, formatDate(r.dueAt), <PaymentStatusBadge key="payment" status={r.paymentStatus} />]} />
-                    </TableCell>
-                    <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs">{r.counterpartyCif ?? '—'}</TableCell>
-                    <TableCell priority="md" truncate>{r.description ?? '—'}</TableCell>
-                    <TableCell priority="lg" className="whitespace-nowrap">{formatDate(r.issuedAt)}</TableCell>
-                    <TableCell priority="md" className="whitespace-nowrap">{formatDate(r.dueAt)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right text-sm tabular-nums"><Money amount={r.amount} currency={r.currency} /></TableCell>
-                    <TableCell priority="lg" className="whitespace-nowrap text-xs text-muted-foreground">
-                      {r.source === 'anaf_efactura' ? 'e-Factura' : r.source}
-                    </TableCell>
-                    <TableCell priority="md">
-                      <PaymentStatusBadge status={r.paymentStatus} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <RowActions
-                        actions={r.paymentStatus !== 'paid' ? [{ key: 'paid', icon: Check, label: t('accounting:received.markPaid'), disabled: markPaid.isPending, onClick: () => markPaid.mutate(r.id) }] : []}
-                        menu={[
-                          ...(canShare
-                            ? [{ key: 'share', icon: MessageSquareShare, label: t('messages:share.action'), onClick: () => share({ type: 'invoice', id: r.id, title: r.counterpartyName ?? r.description ?? t('common:labels.document') }) }]
-                            : []),
-                          ...(r.hasXml ? [{ key: 'xml', icon: Download, label: t('accounting:actions.downloadXml'), onClick: () => void api.download(`/api/accounting/records/${r.id}/xml`, `${r.id}.xml`) }] : []),
-                          ...(r.hasPdf ? [{ key: 'pdf', icon: FileText, label: t('common:actions.downloadPdf'), onClick: () => void api.download(`/api/accounting/records/${r.id}/pdf`, `${r.id}.pdf`) }] : []),
-                        ]}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-        {total > PAGE_SIZE ? (
-          <div className="flex items-center justify-between gap-2 border-t px-6 py-3 text-xs text-muted-foreground">
-            <span className="whitespace-nowrap">
-              {t('accounting:pagination.range', { from: safePage * PAGE_SIZE + 1, to: Math.min((safePage + 1) * PAGE_SIZE, total), total })}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="icon"
-                className="w-8"
-                title={t('common:actions.previousPage')}
-                disabled={safePage === 0}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="w-8"
-                title={t('common:actions.nextPage')}
-                disabled={safePage >= maxPage}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+        {can('facturi.emitere') ? (
+          <Button variant="outline" onClick={() => setPastDialogOpen(true)}>
+            <Plus className="h-4 w-4" /> {t('accounting:received.addExpense')}
+          </Button>
         ) : null}
-      </Card>
-      <RecurringExpensesSection />
+        {can('facturi.anaf') ? (
+          <Button variant="outline" disabled={syncAnaf.isPending} onClick={() => syncAnaf.mutate()}>
+            <RefreshCw className={syncAnaf.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} /> {t('accounting:received.syncNow')}
+          </Button>
+        ) : null}
+      </div>
+      <RecordsList direction="in" />
+      {can('facturi.cheltuieli') ? <RecurringExpensesSection /> : null}
       <PastRecordFormDialog open={pastDialogOpen} onOpenChange={setPastDialogOpen} direction="in" />
-      {shareDialog}
     </div>
   )
 }

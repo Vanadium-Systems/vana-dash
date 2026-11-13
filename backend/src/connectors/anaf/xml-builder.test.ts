@@ -118,3 +118,48 @@ describe('buildInvoiceXml — neplătitor de TVA (art. 310), toate liniile categ
     expect(xml).toContain('<cbc:CountrySubentity>RO-B</cbc:CountrySubentity>')
   })
 })
+
+describe('buildInvoiceXml — storno (code 380 with negative quantities)', () => {
+  const storno: UblInvoiceInput = {
+    ...input,
+    documentNumber: 'VAN-2026-0002',
+    corrects: { documentNumber: 'VAN-2026-0001', issuedAt: new Date('2026-07-04T10:00:00Z') },
+    lines: [
+      { description: 'Abonament vanagreen — iulie 2026', quantity: -1, unitPrice: 400, vatRate: 21 },
+      { description: 'Setup fee', quantity: -2, unitPrice: 100, vatRate: 21 },
+    ],
+  }
+  const xml = buildInvoiceXml(storno)
+
+  it('references the corrected invoice by number (BT-25) and date (BT-26)', () => {
+    expect(xml).toContain(
+      '<cac:BillingReference>\n    <cac:InvoiceDocumentReference>\n      <cbc:ID>VAN-2026-0001</cbc:ID>\n      <cbc:IssueDate>2026-07-04</cbc:IssueDate>',
+    )
+  })
+
+  it('places BillingReference after DocumentCurrencyCode and before the supplier, as UBL 2.1 requires', () => {
+    const at = (tag: string) => xml.indexOf(tag)
+    expect(at('<cbc:DocumentCurrencyCode>')).toBeGreaterThan(-1)
+    expect(at('<cac:BillingReference>')).toBeGreaterThan(at('<cbc:DocumentCurrencyCode>'))
+    expect(at('<cac:BillingReference>')).toBeLessThan(at('<cac:AccountingSupplierParty>'))
+  })
+
+  it('stays type 380 with negative quantities and amounts but a positive unit price (BT-146)', () => {
+    expect(xml).toContain('<cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>')
+    expect(xml).toContain('<cbc:InvoicedQuantity unitCode="H87">-1</cbc:InvoicedQuantity>')
+    expect(xml).toContain('<cbc:LineExtensionAmount currencyID="RON">-400.00</cbc:LineExtensionAmount>')
+    expect(xml).toContain('<cbc:PriceAmount currencyID="RON">400.00</cbc:PriceAmount>')
+    expect(xml).not.toMatch(/<cbc:PriceAmount[^>]*>-/)
+  })
+
+  it('negates the VAT and the totals', () => {
+    expect(xml).toContain('<cbc:TaxAmount currencyID="RON">-126.00</cbc:TaxAmount>')
+    expect(xml).toContain('<cbc:TaxableAmount currencyID="RON">-600.00</cbc:TaxableAmount>')
+    expect(xml).toContain('<cbc:TaxInclusiveAmount currencyID="RON">-726.00</cbc:TaxInclusiveAmount>')
+    expect(xml).toContain('<cbc:PayableAmount currencyID="RON">-726.00</cbc:PayableAmount>')
+  })
+
+  it('writes no reference on an ordinary invoice', () => {
+    expect(buildInvoiceXml(input)).not.toContain('BillingReference')
+  })
+})

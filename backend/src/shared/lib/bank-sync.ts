@@ -14,6 +14,7 @@ import { rollBillingDueDateOnPayment } from './billing-rollover.js'
 import { decryptApiKey } from './crypto.js'
 import { AUTO_MATCH_THRESHOLD, scoreMatch } from './matching.js'
 import { sendPaymentConfirmationEmail } from './payment-confirmation.js'
+import { addPayment, isDraftSql, PaymentError, remainingSql } from './payments.js'
 
 type BankAccountRow = typeof bankAccounts.$inferSelect
 
@@ -106,10 +107,10 @@ export async function runBankSync(account: BankAccountRow): Promise<void> {
 }
 
 /**
- * Matching automat: tranzacții 'in' nematchuite × facturi emise neplătite.
- * Doar peste AUTO_MATCH_THRESHOLD; restul rămân pentru matching manual.
- * Match-urile auto sunt reversibile din UI — nu marcăm 'paid' orb, dar setăm
- * paymentStatus ca să apară în dashboard; unmatch-ul îl readuce la 'unpaid'.
+ * Automatic matching: unmatched 'in' transactions x numbered issued invoices with an unpaid rest.
+ * Only above AUTO_MATCH_THRESHOLD; the rest is left for manual matching.
+ * A match creates a bank payment (payments.ts) that decides the invoice state; unmatching
+ * from the UI deletes the payment and the state is recomputed.
  */
 export async function autoMatchTransactions(): Promise<number> {
   const unmatched = await db
@@ -120,6 +121,7 @@ export async function autoMatchTransactions(): Promise<number> {
       counterpartyName: bankTransactions.counterpartyName,
       counterpartyIban: bankTransactions.counterpartyIban,
       reference: bankTransactions.reference,
+      valueDate: bankTransactions.valueDate,
     })
     .from(bankTransactions)
     .leftJoin(paymentMatches, eq(paymentMatches.bankTransactionId, bankTransactions.id))
@@ -136,7 +138,8 @@ export async function autoMatchTransactions(): Promise<number> {
   const openInvoices = await db
     .select({
       id: financialRecords.id,
-      amount: financialRecords.amount,
+      // The balance, not the invoice total: a partly paid invoice is matched by the transaction for the rest.
+      remaining: rawSql<number>`${remainingSql}::float8`.mapWith(Number),
       currency: financialRecords.currency,
       documentNumber: financialRecords.documentNumber,
       counterpartyName: financialRecords.counterpartyName,
@@ -151,7 +154,8 @@ export async function autoMatchTransactions(): Promise<number> {
         isNull(financialRecords.deletedAt),
         eq(financialRecords.direction, 'out'),
         eq(financialRecords.type, 'invoice'),
-        eq(financialRecords.paymentStatus, 'unpaid'),
+        rawSql`NOT ${isDraftSql}`,
+        rawSql`${remainingSql} > 0`,
       ),
     )
 
@@ -171,7 +175,7 @@ export async function autoMatchTransactions(): Promise<number> {
           reference: txn.reference,
         },
         {
-          amount: Number(invoice.amount),
+          amount: invoice.remaining,
           currency: invoice.currency,
           documentNumber: invoice.documentNumber,
           counterpartyName: invoice.counterpartyName,
@@ -183,19 +187,46 @@ export async function autoMatchTransactions(): Promise<number> {
       }
     }
     if (best) {
-      const [match] = await db
-        .insert(paymentMatches)
-        .values({
-          bankTransactionId: txn.id,
-          financialRecordId: best.invoiceId,
-          matchType: 'auto',
-          confidence: best.score.toFixed(3),
+      let match: typeof paymentMatches.$inferSelect | undefined
+      try {
+        match = await db.transaction(async (tx) => {
+          // A manual match of this transaction may have landed since the unmatched list was read.
+          await tx.select({ id: bankTransactions.id }).from(bankTransactions).where(eq(bankTransactions.id, txn.id)).for('update')
+          const [taken] = await tx.select({ id: paymentMatches.id }).from(paymentMatches).where(eq(paymentMatches.bankTransactionId, txn.id))
+          if (taken) return undefined
+          const payment = await addPayment(
+            best.invoiceId,
+            {
+              amount: Math.abs(Number(txn.amount)),
+              currency: txn.currency,
+              paidAt: txn.valueDate,
+              method: 'bank',
+              reference: txn.reference,
+              bankTransactionId: txn.id,
+            },
+            { tx, capAtRemaining: true },
+          )
+          const [inserted] = await tx
+            .insert(paymentMatches)
+            .values({
+              bankTransactionId: txn.id,
+              financialRecordId: best.invoiceId,
+              paymentId: payment.id,
+              matchType: 'auto',
+              confidence: best.score.toFixed(3),
+            })
+            .returning()
+          return inserted
         })
-        .returning()
-      await db
-        .update(financialRecords)
-        .set({ paymentStatus: 'paid', paidAt: new Date(), updatedAt: new Date() })
-        .where(eq(financialRecords.id, best.invoiceId))
+      } catch (err) {
+        // A payment added from the UI between the query and here can leave nothing to pay; the transaction stays for a manual match.
+        if (err instanceof PaymentError) {
+          console.error(`[bank-sync] auto-match skipped for transaction ${txn.id}: ${err.code}`)
+          continue
+        }
+        throw err
+      }
+      if (!match) continue
       claimedInvoices.add(best.invoiceId)
       matched++
 

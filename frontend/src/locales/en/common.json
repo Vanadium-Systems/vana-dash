@@ -595,5 +595,8 @@
     "loadFailed": "The notifications could not be loaded.",
     "more": "Show older",
     "unread": "Unread:"
+  },
+  "demo": {
+    "banner": "Demo data"
   }
 }

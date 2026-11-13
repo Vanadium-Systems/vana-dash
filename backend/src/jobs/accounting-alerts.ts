@@ -16,6 +16,7 @@ import {
 import { config } from '../shared/config.js'
 import { sendAlertEmail } from '../shared/lib/email.js'
 import { textFor, tl, tr, trFor, type LocalizedText } from '../shared/lib/i18n.js'
+import { remainingSql } from '../shared/lib/payments.js'
 import { notifyPush } from '../shared/lib/push.js'
 
 // Alertele de accounting (event-based, nu threshold pe metrici): reguli seed-uite
@@ -165,8 +166,10 @@ export async function checkAccountingAlerts(): Promise<void> {
         isNull(financialRecords.deletedAt),
         eq(financialRecords.direction, 'out'),
         eq(financialRecords.type, 'invoice'),
+        // A storno is not owed, and an invoice fully reversed by stornos has nothing left to collect.
+        isNull(financialRecords.correctsRecordId),
         lt(financialRecords.dueAt, now),
-        sql`${financialRecords.paymentStatus} <> 'paid'`,
+        sql`${remainingSql} > 0`,
       ),
     )
   for (const invoice of overdue) {

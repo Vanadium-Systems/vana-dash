@@ -37,6 +37,7 @@ import { buildSignature, escapeHtml, textToHtmlParagraph } from './signature.js'
 import { trFor, tr } from '../../shared/lib/i18n.js'
 import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
 import { findProspectIdsByAddress } from '../../shared/lib/prospect-contact-status.js'
+import { qualified } from '../../shared/lib/sql-fx.js'
 
 // Ingest of mail received through Cloudflare Email Routing, plus the replies sent on an
 // existing thread. Threads are matched on the normalized subject and a shared outside participant.
@@ -637,7 +638,7 @@ export async function suggestSearch(
       subject: emailThreads.subject,
       lastMessageAt: emailThreads.lastMessageAt,
       fromAddress: sql<string | null>`(SELECT m.from_address FROM email_messages m
-        WHERE m.thread_id = ${emailThreads.id} AND m.deleted_at IS NULL ORDER BY m.created_at DESC LIMIT 1)`,
+        WHERE m.thread_id = ${qualified(emailThreads.id)} AND m.deleted_at IS NULL ORDER BY m.created_at DESC LIMIT 1)`,
     })
     .from(emailThreads)
     .where(

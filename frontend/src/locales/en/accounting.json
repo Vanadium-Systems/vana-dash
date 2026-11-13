@@ -256,7 +256,6 @@
     "issuedToast": "Invoice {{documentNumber}} issued. XML generated",
     "sentToAnaf": "Sent to ANAF. The status updates automatically (polled every 10 min)",
     "draftDeleted": "Draft deleted",
-    "markedPaid": "Invoice marked as paid",
     "oldRecord": "Old invoice/payment",
     "empty": "No invoice issued yet",
     "draftMarker": "(draft)",
@@ -266,49 +265,13 @@
     "deleteDraftBody": "It does not use up an invoice number; the series stays as it is.",
     "resendToAnaf": "Resend to ANAF",
     "sendToAnaf": "Send to ANAF",
-    "markPaidManually": "Mark as paid manually",
-    "markPaidBody": "If the client is linked to VanaGreen, its subscription is extended.",
-    "markPaid": "Mark as paid",
     "downloadEfacturaPdf": "Download the eFactura PDF",
     "downloadConfirmation": "Download the confirmation",
     "deleteDraftFor": "Delete the draft for {{name}}",
-    "deleteDraftForClient": "Delete the draft for the client",
-    "markPaidTitle": "Mark {{number}} as paid",
-    "markPaidTitleNoNumber": "Mark the invoice as paid"
-  },
-  "invoiceForm": {
-    "newTitle": "New invoice",
-    "editTitle": "Edit the draft",
-    "templatePricesFailed": "The prices from the template could not be resolved",
-    "draftUpdated": "Draft updated",
-    "draftCreated": "Invoice draft created. Issue it when it is ready",
-    "pickClient": "Pick a client (or add one in the Clients tab)",
-    "rateStillLoading": "The BNR rate is still loading for a line in foreign currency. Wait a moment and try again",
-    "choose": "— choose —",
-    "template": "Template (optional)",
-    "noTemplate": "— manual (no template) —",
-    "defaultMarker": "(default)",
-    "resolvingPrices": "Computing the prices (may include the price from the client's subscription)…",
-    "templateHint": "Pick a template as a starting point; the lines stay editable below before saving.",
-    "dueOptional": "Due date (optional)",
-    "lines": "Lines",
-    "priceWithCurrency": "Price (+ currency if different)",
-    "lineDescriptionPlaceholder": "Service or product description",
-    "lineCurrencyAria": "Currency of this line's price",
-    "fetchingRate": "fetching the BNR rate…",
-    "converted": "= {{converted}} (rate {{rate}}, {{date}})",
-    "addLine": "Add a line",
-    "noteOptional": "Note (optional)",
-    "totalWithVat": "Total (with VAT):",
-    "rateLoadingInline": "(the BNR rate is still loading for a line…)",
-    "saveDraft": "Save the draft",
-    "createDraft": "Create draft"
+    "deleteDraftForClient": "Delete the draft for the client"
   },
   "actions": {
     "downloadXml": "Download XML"
-  },
-  "pagination": {
-    "range": "{{from}}–{{to}} of {{total}}"
   },
   "spv": {
     "saved": "Message saved. It stays with us even if it disappears from SPV",
@@ -357,11 +320,9 @@
   },
   "received": {
     "syncDone": "ANAF sync done: {{imported}} invoices imported",
-    "markedPaid": "Marked as paid",
     "addExpense": "Add an expense",
     "syncNow": "Sync ANAF now",
-    "empty": "No received invoice. Set up ANAF in the Settings tab, then run the sync.",
-    "markPaid": "Mark as paid"
+    "empty": "No received invoice. Set up ANAF in the Settings tab, then run the sync."
   },
   "recurring": {
     "saved": "Recurring expense saved",
@@ -460,5 +421,344 @@
     "unpaid": "Unpaid",
     "partial": "Partial",
     "paid": "Paid"
+  },
+  "records": {
+    "tabs": {
+      "out": {
+        "all": "All",
+        "draft": "Drafts",
+        "open": "To collect",
+        "overdue": "Overdue",
+        "paid": "Collected",
+        "rejected": "Rejected by ANAF"
+      },
+      "in": {
+        "all": "All",
+        "draft": "Drafts",
+        "open": "To pay",
+        "overdue": "Overdue",
+        "paid": "Paid",
+        "rejected": "Rejected by ANAF"
+      }
+    },
+    "payment": {
+      "partial": "Partial · {{rest}} left",
+      "partialWord": "Partial",
+      "out": {
+        "unpaid": "Not collected",
+        "paid": "Collected"
+      },
+      "in": {
+        "unpaid": "Unpaid",
+        "paid": "Paid"
+      }
+    },
+    "overdueBy_one": "{{count}} day overdue",
+    "overdueBy_other": "{{count}} days overdue",
+    "totals": {
+      "total": "Total",
+      "overdue": "Overdue",
+      "note": "Amounts in {{currency}}, without drafts, rejected invoices and other currencies. They follow the period and the search, not the status chosen below.",
+      "out": {
+        "open": "To collect",
+        "paid": "Collected"
+      },
+      "in": {
+        "open": "To pay",
+        "paid": "Paid"
+      }
+    },
+    "method": {
+      "bank": "Transfer",
+      "cash": "Cash",
+      "card": "Card",
+      "other": "Other"
+    },
+    "loadFailed": "Could not load the documents",
+    "loadFailedHint": "Nothing has changed. Try again; if it repeats, check the connection.",
+    "noMatch": "No document for these filters",
+    "noMatchHint": "Remove the period, search or status you chose.",
+    "todo": {
+      "pay": "To pay"
+    },
+    "recordPaymentIn": "Record payment",
+    "recordPaymentOut": "Record collection",
+    "errors": {
+      "DRAFT_NOT_PAYABLE": "A draft has no number and cannot be collected. Issue the invoice first.",
+      "OVERPAYMENT": "The amount is more than the rest to pay.",
+      "NOT_PAYABLE": "This document cannot take payments.",
+      "CURRENCY_MISMATCH": "The payment currency is not the document's.",
+      "PAYMENT_NOT_FOUND": "The payment no longer exists. Reload the page.",
+      "generic": "Could not save. Try again."
+    },
+    "pay": {
+      "titleOut": "Collection for {{name}}",
+      "titleIn": "Payment for {{name}}",
+      "rest": "{{rest}} left to pay of {{total}}",
+      "amount": "Amount",
+      "date": "Date",
+      "method": "Method",
+      "reference": "Reference",
+      "note": "Note",
+      "amountInvalid": "Enter an amount above zero, for example 790.00",
+      "amountOver": "The amount is more than the rest to pay ({{rest}})",
+      "dateRequired": "Pick the date",
+      "consequence": "Status: {{from}} → {{to}} · Rest: {{rest}}",
+      "submit": "Record",
+      "submitAmount": "Record {{amount}}",
+      "saved": "{{amount}} recorded for {{name}}"
+    },
+    "payments": {
+      "titleOut": "Collections",
+      "titleIn": "Payments",
+      "emptyOut": "No collection recorded.",
+      "emptyIn": "No payment recorded.",
+      "fromBank": "from statement",
+      "rest": "{{rest}} left to pay",
+      "settledOut": "Fully collected",
+      "settledIn": "Fully paid",
+      "removeTitle": "Delete the {{amount}} collection of {{date}}",
+      "removeBody": "The status goes from {{from}} to {{to}} and the rest to pay becomes {{rest}}.",
+      "removeConfirm": "Delete collection",
+      "removeLabel": "Delete the {{amount}} collection of {{date}}",
+      "removed": "The {{amount}} collection was deleted"
+    },
+    "page": {
+      "missing": "The document does not exist",
+      "missingHint": "It may have been deleted, or the link is wrong.",
+      "loadFailed": "Could not load the document",
+      "issue": "Issue",
+      "duplicate": "Duplicate",
+      "duplicated": "The new draft is ready to edit",
+      "proforma": "Proforma",
+      "storno": "Credit note",
+      "draft": "Draft",
+      "paidOf": "{{paid}} collected, {{rest}} left",
+      "history": "Timeline",
+      "sameClient": "Total for the same client",
+      "sameSupplier": "Total for the same supplier",
+      "sameClientLine_one": "{{total}} in one document",
+      "sameClientLine_other": "{{total}} in {{count}} documents",
+      "discussed": "Discussed in",
+      "discussedEmpty": "Not shared in any conversation.",
+      "discussedFailed": "Could not load the conversations.",
+      "discussedUntitled": "Unnamed conversation",
+      "corrects": "Reverses",
+      "correctedBy": "Reversed by",
+      "invoicedAs": "Invoiced as",
+      "lines": "Lines",
+      "quantity": "Quantity",
+      "unitPrice": "Unit price",
+      "vat": "VAT",
+      "lineTotal": "Line total",
+      "net": "Net",
+      "vatAmount": "VAT",
+      "grossTotal": "Total"
+    },
+    "timeline": {
+      "system": "System",
+      "unknown": "Change",
+      "created": "Document created",
+      "draftCreated": "Draft created",
+      "draftEdited": "Draft edited",
+      "draftDeleted": "Draft deleted",
+      "issued": "Invoice issued",
+      "sentAnaf": "Sent to ANAF",
+      "anafValidated": "Validated by ANAF",
+      "anafRejected": "Rejected by ANAF",
+      "paymentAdded": "Collection of {{amount}} recorded",
+      "paymentRemoved": "Collection of {{amount}} deleted",
+      "duplicated": "Created by duplicating",
+      "stornoCreated": "Credit note created",
+      "stornoIssued": "Credit note issued",
+      "fromProforma": "Created from a proforma",
+      "bankMatched": "Matched by hand to a bank transaction"
+    }
+  },
+  "editor": {
+    "titleNewInvoice": "New invoice",
+    "titleEditInvoice": "Invoice draft",
+    "titleNewProforma": "New proforma",
+    "titleEditProforma": "Proforma",
+    "issue": "Issue",
+    "backToList": "Back to invoices",
+    "missingDraft": "This draft does not exist",
+    "missingDraftHint": "It was deleted or issued in the meantime. The invoice list has the current state.",
+    "loadFailed": "Could not load the draft",
+    "tabs": {
+      "form": "Form",
+      "preview": "Preview"
+    },
+    "status": {
+      "saved": "Draft saved at {{time}}",
+      "unsaved": "Not saved: {{what}}",
+      "error": "Not saved"
+    },
+    "missing": {
+      "client": "pick the client",
+      "line": "complete every line",
+      "rate": "the BNR rate is still loading"
+    },
+    "conflict": {
+      "title": "The draft was changed elsewhere",
+      "body": "Reload to see the version on the server. Anything you changed here that was not saved is lost.",
+      "reload": "Reload"
+    },
+    "saveError": {
+      "title": "The draft was not saved",
+      "body": "What you typed stays here, and we try again on the next change. {{message}}"
+    },
+    "leave": {
+      "title": "Leave without saving?",
+      "body": "The latest changes did not reach the server.",
+      "confirm": "Leave"
+    },
+    "client": {
+      "search": "Search by name or tax ID",
+      "listLabel": "Clients",
+      "empty": "No client found",
+      "new": "+ New client",
+      "newNamed": "+ New client “{{name}}”",
+      "loadFailed": "The client list did not load. Reload the page."
+    },
+    "template": {
+      "label": "Template",
+      "none": "No template",
+      "defaultMarker": "(default)",
+      "resolving": "Calculating prices, including the one from the client's subscription…",
+      "hint": "Lines are filled from the template and stay editable.",
+      "failed": "Could not calculate the template prices"
+    },
+    "due": {
+      "label": "Due date",
+      "presetDays_one": "{{count}} day",
+      "presetDays_other": "{{count}} days",
+      "daysCount_one": "{{count}} day",
+      "daysCount_other": "{{count}} days",
+      "custom": "Other date",
+      "customLabel": "Due date",
+      "summary": "{{days}} · {{date}}",
+      "none": "No due date chosen: the client's or the series' term applies on issue."
+    },
+    "lines": {
+      "title": "Lines",
+      "lineNo": "Line {{n}}",
+      "priceCurrency": "Currency",
+      "add": "Add line",
+      "remove": "Remove line {{n}}",
+      "live": "{{qty}} × {{unit}} = {{net}} · VAT {{rate}}% {{vat}}",
+      "liveNoVat": "{{qty}} × {{unit}} = {{net}}",
+      "fetchingRate": "Fetching the BNR rate…",
+      "rateFailed": "The BNR rate could not be fetched; change the price currency or try later.",
+      "converted": "BNR rate {{rate}} of {{date}}"
+    },
+    "totals": {
+      "net": "Excl. VAT",
+      "vat": "VAT",
+      "total": "Total"
+    },
+    "note": "Note",
+    "preview": {
+      "title": "Document preview",
+      "missing": "For the preview: {{what}}.",
+      "failed": "The preview could not be updated."
+    },
+    "newClient": {
+      "title": "New client",
+      "name": "Name",
+      "required": "Required",
+      "addressRequired": "The address is required",
+      "lookupFailed": "Company not found: {{message}}",
+      "notActive": "ANAF lists the company as “{{stare}}”.",
+      "save": "Save client"
+    },
+    "confirm": {
+      "title": "Issue {{number}} to {{client}} · {{total}}",
+      "titleProforma": "Issue proforma {{number}} to {{client}} · {{total}}",
+      "titleNoNumber": "Issue to {{client}} · {{total}}",
+      "getsNumber": "Gets the number {{number}}",
+      "getsNumberLater": "Gets the next number in the series",
+      "pdfXml": "The PDF and the XML are generated",
+      "pdfProforma": "The PDF is generated",
+      "notFiscal": "A proforma is not a fiscal invoice and is not sent to ANAF",
+      "locked": "It cannot be edited after issue",
+      "numberFailed": "The number could not be read; you get it on issue.",
+      "failed": "Could not issue",
+      "issueAndSend": "Issue and send to ANAF",
+      "issueOnly": "Issue only",
+      "issue": "Issue",
+      "issuing": "Issuing…",
+      "issued": "{{number}} issued",
+      "anafFailed": "{{number}} is issued, but sending to ANAF failed: {{message}}"
+    }
+  },
+  "storno": {
+    "action": "Credit note",
+    "title": "Credit note for {{number}}",
+    "intro": "The credit note is created as a draft with negative values and is issued only after you check it.",
+    "modeLabel": "What to reverse",
+    "modeFull": "Whole invoice",
+    "modeFullHint": "Everything not already reversed",
+    "modePartial": "Part of it",
+    "modePartialHint": "Only the quantities you pick",
+    "invoiced": "Invoiced: {{quantity}}",
+    "toReverse": "To reverse",
+    "quantityInvalid": "Enter a quantity above 0.",
+    "quantityExceeds": "At most {{max}}, as invoiced.",
+    "pickOne": "Pick at least one line to reverse.",
+    "consequence": "A draft credit note of {{amount}} is created for {{number}}. You issue it after checking.",
+    "consequencePick": "Pick quantities to see the credit note amount.",
+    "submit": "Create credit note",
+    "created": "The credit note draft is ready",
+    "correctedFull": "Fully reversed by",
+    "correctedPartial": "Partly reversed by",
+    "errors": {
+      "NOT_STORNABLE": "This invoice cannot be reversed: only an issued invoice can have a credit note.",
+      "STORNO_EXCEEDS": "The quantity is more than what is left unreversed on the line. Check the credit notes already created.",
+      "NOTHING_TO_STORNO": "The invoice is already fully reversed.",
+      "generic": "Could not create the credit note. Try again."
+    }
+  },
+  "proformas": {
+    "tab": "Proformas",
+    "new": "New proforma",
+    "empty": "No proformas yet",
+    "emptyHint": "A proforma is a priced offer with no tax value. When the client accepts, you turn it into an invoice.",
+    "loadFailed": "Could not load the proformas",
+    "filters": {
+      "all": "All",
+      "draft": "Drafts",
+      "open": "Open",
+      "invoiced": "Invoiced",
+      "cancelled": "Cancelled"
+    },
+    "status": {
+      "draft": "Draft",
+      "open": "Open",
+      "invoiced": "Invoiced",
+      "cancelled": "Cancelled"
+    },
+    "number": "Proforma",
+    "convert": "Invoice from proforma",
+    "converted": "The invoice draft is ready, with the proforma lines",
+    "cancel": "Cancel",
+    "cancelTitle": "Cancel proforma {{number}}?",
+    "cancelBody": "It can no longer become an invoice. It stays in the list, marked as cancelled.",
+    "cancelConfirm": "Cancel proforma",
+    "cancelled": "Proforma {{number}} is cancelled",
+    "issue": "Issue",
+    "deleteDraft": "Delete the draft",
+    "deleteTitle": "Delete the proforma draft?",
+    "deleteBody": "It does not use a number from the proforma series.",
+    "deleted": "The proforma draft is deleted",
+    "invoicedHint": "The proforma has been invoiced and can no longer change.",
+    "cancelledHint": "The proforma is cancelled and can no longer change.",
+    "errors": {
+      "PROFORMA_ALREADY_CONVERTED": "The proforma was already turned into an invoice.",
+      "PROFORMA_NOT_ISSUED": "The proforma is still a draft. Issue it first.",
+      "PROFORMA_CANCELLED": "The proforma is cancelled.",
+      "PROFORMA_INVOICED": "The proforma is already invoiced.",
+      "generic": "The operation failed. Try again."
+    }
   }
 }

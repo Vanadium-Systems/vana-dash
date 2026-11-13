@@ -1,6 +1,7 @@
 import { buildInvoiceXml, computeTotals } from '../../connectors/anaf/xml-builder.js'
 import type { UblInvoiceInput } from '../../connectors/anaf/types.js'
 import { htmlToPdf, isPdfAvailable } from './pdf.js'
+import { tr } from './i18n.js'
 import { saveDocument } from './storage.js'
 
 // Generarea documentelor unei facturi emise: XML UBL (pentru ANAF), HTML (mereu)
@@ -20,16 +21,32 @@ export interface BnrRateInfo {
 }
 
 function esc(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 function money(value: number, currency: string): string {
-  return `${value.toFixed(2)} ${currency}`
+  return `${value.toFixed(2)} ${esc(currency)}`
 }
 
-export function renderInvoiceHtml(input: UblInvoiceInput, eurRate?: BnrRateInfo): string {
+export interface InvoiceHtmlOptions {
+  /** Replaces the number line with a band: an unnumbered draft shown in the editor preview. */
+  draftLabel?: string
+  /** A proforma is not a tax document: own title and a notice, no storno reference. */
+  proforma?: boolean
+}
+
+function dottedDate(date: Date): string {
+  const [year, month, day] = date.toISOString().slice(0, 10).split('-')
+  return `${day}.${month}.${year}`
+}
+
+export function renderInvoiceHtml(input: UblInvoiceInput, eurRate?: BnrRateInfo, options: InvoiceHtmlOptions = {}): string {
   const totals = computeTotals(input.lines)
   const showEur = eurRate && input.currency !== 'EUR'
+  const title = options.proforma ? tr('errors.invoicing.proformaTitle') : input.corrects ? tr('errors.invoicing.stornoTitle') : 'FACTURĂ'
+  const reference = input.corrects
+    ? tr('errors.invoicing.stornoReference', { number: input.corrects.documentNumber, date: dottedDate(input.corrects.issuedAt) })
+    : ''
   const rows = input.lines
     .map(
       (line, i) => `
@@ -50,7 +67,7 @@ export function renderInvoiceHtml(input: UblInvoiceInput, eurRate?: BnrRateInfo)
 <meta charset="utf-8">
 <style>
   body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; font-size: 12px; margin: 0; }
-  h1 { font-size: 20px; letter-spacing: 2px; margin: 0 0 2px; }
+  h1 { font-size: 20px; letter-spacing: 2px; margin: 0 0 2px; text-transform: uppercase; }
   .head { display: flex; justify-content: space-between; margin-bottom: 24px; }
   .muted { color: #666; }
   .parties { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
@@ -66,13 +83,16 @@ export function renderInvoiceHtml(input: UblInvoiceInput, eurRate?: BnrRateInfo)
   .totals .grand { font-weight: bold; font-size: 14px; border-top: 2px solid #1a1a1a; }
   .totals .rate-note { text-align: right; font-size: 10px; color: #999; padding-top: 2px; }
   .note { margin-top: 24px; font-size: 11px; color: #666; }
+  .draft-band { display: inline-block; margin-top: 4px; padding: 2px 10px; border: 1px dashed #999; border-radius: 4px; color: #666; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
 </style>
 </head>
 <body>
   <div class="head">
     <div>
-      <h1>FACTURĂ</h1>
-      <div class="muted">Seria/Nr: <strong>${esc(input.documentNumber)}</strong></div>
+      <h1>${esc(title)}</h1>
+      ${options.proforma ? `<div class="muted">${esc(tr('errors.invoicing.proformaNotice'))}</div>` : ''}
+      ${options.draftLabel ? `<div class="draft-band">${esc(options.draftLabel)}</div>` : `<div class="muted">Seria/Nr: <strong>${esc(input.documentNumber)}</strong></div>`}
+      ${reference ? `<div class="muted">${esc(reference)}</div>` : ''}
     </div>
     <div style="text-align:right">
       <div>Data emiterii: <strong>${input.issuedAt.toISOString().slice(0, 10)}</strong></div>
@@ -186,4 +206,26 @@ export async function generateInvoiceDocuments(
   }
 
   return { xmlPath, pdfPath }
+}
+
+/** A proforma gets HTML and PDF only: no XML, nothing goes to ANAF. */
+export async function generateProformaDocuments(
+  recordId: string,
+  input: UblInvoiceInput,
+  eurRate?: BnrRateInfo,
+): Promise<{ pdfPath: string | null }> {
+  const safeNumber = input.documentNumber.replace(/[^A-Za-z0-9_-]/g, '_')
+  const base = `proformas/${input.issuedAt.getUTCFullYear()}/${safeNumber}_${recordId.slice(0, 8)}`
+  const html = renderInvoiceHtml(input, eurRate, { proforma: true })
+  await saveDocument(`${base}.html`, html)
+
+  let pdfPath: string | null = null
+  if (isPdfAvailable()) {
+    try {
+      pdfPath = await saveDocument(`${base}.pdf`, await htmlToPdf(html))
+    } catch (err) {
+      console.error(`[documents] PDF generation failed for ${input.documentNumber}: ${String(err)}`)
+    }
+  }
+  return { pdfPath }
 }

@@ -158,6 +158,8 @@ async function makeRaw(overrides: Partial<typeof recurringExpenses.$inferInsert>
 }
 
 describe('updatePayment — rostogolire billingDueDate la plată confirmată', () => {
+  // The route is for received documents and expenses since sprint 7; an issued invoice is settled
+  // through payments (modules/invoicing/payments.ts), which rolls the due date on its own.
   // Bug real (Stefan, 2026-08-01): a emis + plătit factura de azi a unui client, dar
   // "Scadență curentă" rămânea neschimbată — jobs/billing-cycle-rollover.ts rulează o
   // singură dată/zi și rostogolește DOAR a doua zi (daysUntilDue < 0), intenționat. Plata
@@ -179,9 +181,9 @@ describe('updatePayment — rostogolire billingDueDate la plată confirmată', (
     const [recordRow] = await db
       .insert(financialRecords)
       .values({
-        type: 'invoice',
-        direction: 'out',
-        source: 'generated',
+        type: 'expense',
+        direction: 'in',
+        source: 'manual',
         amount: '100',
         currency: 'RON',
         issuedAt: new Date('2026-08-01T00:00:00Z'),
@@ -214,9 +216,9 @@ describe('updatePayment — rostogolire billingDueDate la plată confirmată', (
     const [recordRow] = await db
       .insert(financialRecords)
       .values({
-        type: 'invoice',
-        direction: 'out',
-        source: 'generated',
+        type: 'expense',
+        direction: 'in',
+        source: 'manual',
         amount: '50',
         currency: 'RON',
         issuedAt: new Date('2026-07-01T00:00:00Z'),
@@ -230,5 +232,28 @@ describe('updatePayment — rostogolire billingDueDate la plată confirmată', (
 
     const [updatedClient] = await db.select().from(billingClients).where(eq(billingClients.id, client.id))
     expect(updatedClient?.billingDueDate).toBe('2026-09-01')
+  })
+})
+
+describe('updatePayment — facturile emise se încasează prin plăți', () => {
+  it('answers USE_PAYMENTS on an issued invoice and leaves it unpaid', async () => {
+    const [row] = await db
+      .insert(financialRecords)
+      .values({
+        type: 'invoice',
+        direction: 'out',
+        source: 'generated',
+        amount: '10',
+        currency: 'RON',
+        issuedAt: new Date(),
+        documentNumber: `UP-${Math.random().toString(36).slice(2, 8)}`,
+        paymentStatus: 'unpaid',
+      })
+      .returning()
+    const record = track(row, recordIds)
+
+    await expect(service.updatePayment(record.id, { paymentStatus: 'paid' })).rejects.toMatchObject({ code: 'USE_PAYMENTS', statusCode: 409 })
+    const [after] = await db.select().from(financialRecords).where(eq(financialRecords.id, record.id))
+    expect(after?.paymentStatus).toBe('unpaid')
   })
 })

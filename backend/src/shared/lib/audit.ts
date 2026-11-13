@@ -1,5 +1,6 @@
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { auditLog } from '../db/schema/index.js'
+import { auditLog, users } from '../db/schema/index.js'
 import { currentActor } from './request-context.js'
 
 // „Cine a făcut ce" (PLAN.md C2). Un singur helper, chemat din service în aceeași tranzacție
@@ -28,11 +29,13 @@ export interface AuditEntry {
   changes?: Record<string, [unknown, unknown]>
   /** Explicit doar unde contextul nu e requestul (importuri, scripturi de migrare). */
   actorUserId?: string | null
+  /** The open transaction, when the audit row must commit or roll back with the change. */
+  executor?: Pick<typeof db, 'insert'>
 }
 
 export async function recordAudit(entry: AuditEntry) {
   const actor = currentActor()
-  await db.insert(auditLog).values({
+  await (entry.executor ?? db).insert(auditLog).values({
     actorUserId: entry.actorUserId !== undefined ? entry.actorUserId : actor.userId,
     action: entry.action,
     entityType: entry.entityType,
@@ -40,6 +43,43 @@ export async function recordAudit(entry: AuditEntry) {
     changes: redact(entry.changes) ?? null,
     ip: actor.ip,
   })
+}
+
+export interface EntityHistoryItem {
+  id: string
+  at: Date
+  action: string
+  actor: { id: string; name: string | null } | null
+  changes: Record<string, [unknown, unknown]> | null
+}
+
+/**
+ * The audit rows of one object, oldest first, for a history panel. An object can be logged under
+ * more than one `entityType` (an issued invoice is `invoice`, a received one `financial_record`),
+ * so the types are a list; the id alone is unique anyway.
+ */
+export async function listEntityHistory(entityTypes: string[], entityId: string, limit = 200): Promise<EntityHistoryItem[]> {
+  const rows = await db
+    .select({
+      id: auditLog.id,
+      at: auditLog.createdAt,
+      action: auditLog.action,
+      changes: auditLog.changes,
+      actorId: users.id,
+      actorName: users.displayName,
+    })
+    .from(auditLog)
+    .leftJoin(users, eq(users.id, auditLog.actorUserId))
+    .where(and(inArray(auditLog.entityType, entityTypes), eq(auditLog.entityId, entityId)))
+    .orderBy(asc(auditLog.createdAt))
+    .limit(limit)
+  return rows.map((row) => ({
+    id: row.id,
+    at: row.at,
+    action: row.action,
+    actor: row.actorId ? { id: row.actorId, name: row.actorName } : null,
+    changes: row.changes ?? null,
+  }))
 }
 
 // ── Coloanele de autor (created_by / updated_by) ────────────────────────────────────────────

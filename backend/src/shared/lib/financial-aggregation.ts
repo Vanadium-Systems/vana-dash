@@ -1,4 +1,4 @@
-import { and, eq, gte, isNotNull, isNull, lte, sql } from 'drizzle-orm'
+import { and, eq, gte, isNotNull, isNull, lte, ne, sql } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { billingClients, financialRecords } from '../db/schema/index.js'
 import { getRateForDate } from './bnr.js'
@@ -19,6 +19,8 @@ import { displayAmountSql } from './sql-fx.js'
 function baseFilters(range: PeriodRange) {
   return [
     isNull(financialRecords.deletedAt),
+    // A proforma is an offer, not revenue.
+    ne(financialRecords.type, 'proforma'),
     gte(financialRecords.issuedAt, range.from),
     lte(financialRecords.issuedAt, range.to),
   ]

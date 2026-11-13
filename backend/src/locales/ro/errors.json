@@ -170,7 +170,31 @@
     "alreadyValidated": "Factura e deja validată de ANAF",
     "sequenceNotCreated": "Nu am putut crea secvența de facturare",
     "templateInsertFailed": "Insert template eșuat",
-    "sequenceKeyNotCreated": "Secvența de facturare \"{{key}}\" nu a putut fi creată"
+    "sequenceKeyNotCreated": "Secvența de facturare \"{{key}}\" nu a putut fi creată",
+    "draftChanged": "Ciorna a fost modificată între timp. Reîncarcă-o înainte să salvezi",
+    "invoiceGone": "Factura nu mai există",
+    "notDuplicable": "Se pot duplica doar facturile emise de noi, nu proformele",
+    "draftBanner": "Ciornă",
+    "stornoTitle": "Factură storno",
+    "stornoReference": "Stornează factura {{number}} din {{date}}",
+    "proformaTitle": "Proformă",
+    "proformaNotice": "Proformă · nu este factură fiscală",
+    "notStornable": "Se pot storna doar facturile emise de noi, cu număr, care nu sunt ele însele storno",
+    "nothingToStorno": "Factura a fost deja stornată integral",
+    "stornoLinesRequired": "Alege cel puțin o linie de stornat",
+    "stornoLineUnknown": "Linia nu aparține facturii stornate",
+    "stornoLineDuplicate": "Aceeași linie apare de două ori în cerere",
+    "stornoExceeds": "Linia „{{line}}”: poți storna cel mult {{remaining}}, ai cerut {{requested}}",
+    "stornoLinesLocked": "Liniile, clientul și moneda unui storno nu se schimbă. Șterge ciorna și creează alta",
+    "lineSignInvoice": "Cantitățile unei facturi trebuie să fie pozitive",
+    "lineSignStorno": "Cantitățile unui storno trebuie să fie negative, cu preț unitar pozitiv",
+    "proformaNotFound": "Proforma nu există",
+    "proformaNotDraft": "Doar o ciornă de proformă se poate modifica sau șterge",
+    "proformaNotIssued": "Emite proforma înainte să o transformi în factură",
+    "proformaCancelled": "Proforma e anulată",
+    "proformaInvoiced": "Proforma are deja factură",
+    "proformaAlreadyConverted": "Proforma are deja o ciornă de factură",
+    "proformaNoClient": "Proforma nu are client, nu se poate face factură din ea"
   },
   "revolut": {
     "accountIncomplete": "cont Revolut incomplet: lipsește client_id, certificat sau refresh token",
@@ -221,7 +245,8 @@
     "expectedQuarterFormat": "Format așteptat: YYYY-Qn",
     "cycleMonthRequired": "cycleMonth e obligatoriu pt. cycle=\"annual\"",
     "invoiceNotFound": "Factura nu a fost găsită",
-    "invoiceNotPaid": "Factura nu e plătită încă — nu există nimic de confirmat"
+    "invoiceNotPaid": "Factura nu e plătită încă — nu există nimic de confirmat",
+    "periodReversed": "Perioada e inversată: data de început e după cea de sfârșit"
   },
   "pdf": {
     "unavailable": "Generare PDF indisponibilă (Chromium neconfigurat)",
@@ -509,5 +534,15 @@
   },
   "snippets": {
     "notFound": "Fragment de text inexistent"
+  },
+  "payments": {
+    "recordNotFound": "Documentul nu există",
+    "paymentNotFound": "Plata nu există",
+    "draftNotPayable": "O ciornă fără număr nu poate fi plătită",
+    "notPayable": "Documentul nu poate primi plăți",
+    "currencyMismatch": "Moneda plății ({{currency}}) diferă de cea a documentului ({{expected}})",
+    "overpayment": "Suma depășește restul de plată ({{remaining}} {{currency}})",
+    "alreadyPaid": "Documentul nu mai are rest de plată",
+    "useRecordPayments": "Factura emisă se încasează prin plăți, nu prin starea de plată"
   }
 }

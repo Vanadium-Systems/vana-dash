@@ -25,7 +25,7 @@ describe('entity links', () => {
   const types: RefType[] = ['prospect', 'invoice', 'email_thread', 'calendar_event', 'archive_file', 'note']
 
   it.each(types)('%s: linkFor and parseDashLink go both ways', (type) => {
-    const link = linkFor(type, ID, { date: '2026-11-03', folderId: 'f1', tab: 'emise' })
+    const link = linkFor(type, ID, { date: '2026-11-03', folderId: 'f1' })
     expect(parseDashLink(link)).toEqual({ type, id: ID })
     expect(parseDashLink(`${window.location.origin}${link}`)).toEqual({ type, id: ID })
   })

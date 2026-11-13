@@ -48,6 +48,7 @@ async function makeInvoice(overrides: Partial<typeof financialRecords.$inferInse
       amount: '100.00',
       currency: 'RON',
       issuedAt: new Date(),
+      documentNumber: `RC-${Math.random().toString(36).slice(2, 10)}`,
       paymentStatus: 'unpaid',
       ...overrides,
     })
@@ -136,15 +137,21 @@ describe('markInvoicePaidManually', () => {
     await expect(markInvoicePaidManually(invoice.id)).rejects.toThrow(/Nu e o factură emisă/)
   })
 
-  it('is idempotent-safe when called twice: second call re-marks paid (paidAt refreshed) and hook still called with the SAME sourceId both times — dedup is vanagreen-extension.ts responsibility, not this function', async () => {
+  it('a second call on a paid invoice is refused with ALREADY_PAID and does not call the hook again', async () => {
     const client = await makeClient()
     const invoice = await makeInvoice({ billingClientId: client.id })
 
     await markInvoicePaidManually(invoice.id)
-    await markInvoicePaidManually(invoice.id)
+    await expect(markInvoicePaidManually(invoice.id)).rejects.toMatchObject({ code: 'ALREADY_PAID' })
 
-    expect(maybeExtendMock).toHaveBeenCalledTimes(2)
-    expect(maybeExtendMock.mock.calls[0]![0]).toEqual(maybeExtendMock.mock.calls[1]![0])
+    expect(maybeExtendMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses a draft (no number) with DRAFT_NOT_PAYABLE and leaves it unpaid', async () => {
+    const draft = await makeInvoice({ documentNumber: null })
+    await expect(markInvoicePaidManually(draft.id)).rejects.toMatchObject({ code: 'DRAFT_NOT_PAYABLE' })
+    const [row] = await db.select().from(financialRecords).where(eq(financialRecords.id, draft.id))
+    expect(row?.paymentStatus).toBe('unpaid')
   })
 
   it('CRITICAL — isolation (BUG-QA-MARKPAID-1 fixat): if maybeExtendSubscription throws, markInvoicePaidManually still resolves — the primary action (mark paid) succeeds regardless', async () => {

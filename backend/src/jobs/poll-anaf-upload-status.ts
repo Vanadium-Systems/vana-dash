@@ -7,6 +7,7 @@ import { db } from '../shared/db/client.js'
 import { billingClients, financialRecords, invoiceLineItems } from '../shared/db/schema/index.js'
 import { getAnafSession } from '../shared/lib/anaf.js'
 import { getCompany } from '../shared/lib/company.js'
+import { recordAudit } from '../shared/lib/audit.js'
 import { generateInvoiceDocuments } from '../shared/lib/documents.js'
 import { sendAlertEmail, sendEmail } from '../shared/lib/email.js'
 import { archiveInvoiceDocuments } from '../shared/lib/financial-archive.js'
@@ -44,6 +45,7 @@ type PendingRecord = {
   dueAt: Date | null
   currency: string
   description: string | null
+  correctsRecordId: string | null
 }
 
 export async function pollAnafUploadStatuses(): Promise<void> {
@@ -62,6 +64,7 @@ export async function pollAnafUploadStatuses(): Promise<void> {
       dueAt: financialRecords.dueAt,
       currency: financialRecords.currency,
       description: financialRecords.description,
+      correctsRecordId: financialRecords.correctsRecordId,
     })
     .from(financialRecords)
     .where(
@@ -80,10 +83,21 @@ export async function pollAnafUploadStatuses(): Promise<void> {
       const status = await anafConnector.checkUploadStatus(session, record.anafUploadId!)
       if (status === 'pending') continue
 
-      await db
-        .update(financialRecords)
-        .set({ anafStatus: status, updatedAt: new Date() })
-        .where(eq(financialRecords.id, record.id))
+      // The status and its timeline entry commit together. The response of /stareMesaj carries no
+      // rejection reason through the connector, so only the new state is recorded.
+      await db.transaction(async (tx) => {
+        await tx
+          .update(financialRecords)
+          .set({ anafStatus: status, updatedAt: new Date() })
+          .where(eq(financialRecords.id, record.id))
+        await recordAudit({
+          executor: tx,
+          action: status === 'validated' ? 'factura.anaf.validata' : 'factura.anaf.respinsa',
+          entityType: 'invoice',
+          entityId: record.id,
+          changes: { anafStatus: ['pending', status] },
+        })
+      })
 
       if (status === 'rejected') {
         await sendAlertEmail(
@@ -235,12 +249,23 @@ async function buildInvoiceInputForEmail(
     .where(and(eq(invoiceLineItems.invoiceId, record.id), isNull(invoiceLineItems.deletedAt)))
     .orderBy(asc(invoiceLineItems.position))
 
+  // A storno regenerated here must keep its reference to the invoice it corrects.
+  let corrects: UblInvoiceInput['corrects']
+  if (record.correctsRecordId) {
+    const [original] = await db
+      .select({ documentNumber: financialRecords.documentNumber, issuedAt: financialRecords.issuedAt })
+      .from(financialRecords)
+      .where(eq(financialRecords.id, record.correctsRecordId))
+    if (original?.documentNumber) corrects = { documentNumber: original.documentNumber, issuedAt: original.issuedAt }
+  }
+
   return {
     documentNumber: record.documentNumber ?? 'DRAFT',
     issuedAt: record.issuedAt,
     dueAt: record.dueAt,
     currency: record.currency,
     note: record.description ?? undefined,
+    corrects,
     supplier,
     customer: {
       name: client.name,

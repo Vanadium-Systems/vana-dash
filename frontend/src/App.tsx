@@ -22,6 +22,8 @@ const ImportPage = lazy(() => import('@/modules/clients/import/ImportPage').then
 const CallSession = lazy(() => import('@/modules/clients/tasks/CallSession').then((m) => ({ default: m.CallSession })))
 const ProspectPage = lazy(() => import('@/modules/clients/sheet/ProspectPage').then((m) => ({ default: m.ProspectPage })))
 const loadAccountingPage = () => import('@/modules/accounting/AccountingPage')
+const InvoiceEditorPage = lazy(() => import('@/modules/accounting/InvoiceEditorPage').then((m) => ({ default: m.InvoiceEditorPage })))
+const RecordPage = lazy(() => import('@/modules/accounting/RecordPage').then((m) => ({ default: m.RecordPage })))
 const AccountingPage = lazy(() => loadAccountingPage().then((m) => ({ default: m.AccountingPage })))
 const loadAlertsPage = () => import('@/modules/alerts/AlertsPage')
 const AlertsPage = lazy(() => loadAlertsPage().then((m) => ({ default: m.AlertsPage })))
@@ -172,6 +174,9 @@ export function App() {
           <Route element={<ChatStreamProvider><Outlet /></ChatStreamProvider>}>
           <Route element={<AppLayout />}>
             <Route path="/accounting" element={<RequireFeature feature="facturi.view" page={t('common:nav.invoices')}><LegacyAccountingTabs><AccountingPage /></LegacyAccountingTabs></RequireFeature>} />
+            <Route path="/accounting/invoices/new" element={<RequireFeature feature="facturi.emitere" page={t('common:nav.invoices')}><InvoiceEditorPage /></RequireFeature>} />
+            <Route path="/accounting/records/:id/edit" element={<RequireFeature feature="facturi.emitere" page={t('common:nav.invoices')}><InvoiceEditorPage /></RequireFeature>} />
+            <Route path="/accounting/records/:id" element={<RequireFeature feature="facturi.view" page={t('common:nav.invoices')}><RecordPage /></RequireFeature>} />
             <Route path="/archive" element={<RequireFeature feature="arhiva.view" page={t('common:nav.archive')}><ArchivePage /></RequireFeature>} />
             <Route path="/" element={<OverviewPage />} />
             <Route path="/assistant" element={<RequireFeature feature="asistent.view" page={t('common:nav.assistant')}><AssistantPage /></RequireFeature>} />

@@ -13,6 +13,7 @@ import {
   VanagreenSettingsUpdateSchema,
   VerifyVanagreenTenantSchema,
 } from './schema.js'
+import { PaymentError } from '../../shared/lib/payments.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -137,6 +138,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
         const match = await service.createManualMatch(req.params.id, req.body.financialRecordId)
         return reply.code(201).send({ success: true, data: match })
       } catch (err) {
+        if (err instanceof PaymentError) return reply.code(err.statusCode).send({ success: false, error: { code: err.code, message: err.message } })
         return reply.code(400).send({ success: false, error: String(err) })
       }
     },
@@ -162,6 +164,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
         const data = await service.markInvoicePaidManually(req.params.id)
         return { success: true, data }
       } catch (err) {
+        if (err instanceof PaymentError) return reply.code(err.statusCode).send({ success: false, error: { code: err.code, message: err.message } })
         return reply.code(400).send({ success: false, error: String(err) })
       }
     },

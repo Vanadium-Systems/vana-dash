@@ -36,6 +36,76 @@ export interface Guide {
 
 const SOURCES: GuideSource[] = [
   {
+    id: 'facturi-emise',
+    route: '/accounting',
+    feature: 'facturi.view',
+    title: {
+      ro: 'Facturile emise: listă, pagină și încasări',
+      en: 'Issued invoices: list, page and payments',
+    },
+    summary: {
+      ro: 'Tab-ul Emise arată ce ai de încasat, iar fiecare factură are pagina ei, cu plățile și cronologia.',
+      en: 'The Issued tab shows what you still have to collect, and every invoice has its own page with its payments and timeline.',
+    },
+    steps: [
+      {
+        ro: 'Tab-urile de deasupra au număr: Toate, Ciorne, De încasat, Restante, Încasate, Respinse ANAF. Suma e prima pe rând, iar la o factură în valută, echivalentul în lei stă dedesubt. Banda de totaluri se schimbă odată cu filtrele și căutarea.',
+        en: 'The tabs above the list have counts: All, Drafts, To collect, Overdue, Paid, ANAF rejected. The amount comes first on the row, and for a foreign-currency invoice the RON equivalent sits under it. The totals band changes with the filters and the search.',
+      },
+      {
+        ro: 'Un click pe rând deschide pagina facturii. Ctrl K găsește o factură după număr sau client și o deschide tot acolo. Sus vezi starea (emisă, trimisă la ANAF, încasată), iar butoanele sunt cele care au sens pentru starea de acum: o ciornă se editează sau se emite, o factură emisă se trimite la ANAF, se încasează sau se stornează.',
+        en: 'A click on a row opens the invoice page. Ctrl K finds an invoice by number or client and opens it there. At the top you see the state (issued, sent to ANAF, paid), and the buttons are the ones that make sense in that state: a draft is edited or issued, an issued invoice is sent to ANAF, collected or reversed.',
+      },
+      {
+        ro: 'Pagina arată liniile și totalurile, plățile, cronologia (creată, editată, emisă, trimisă, plăți, storno), totalul facturat aceluiași client și conversațiile din Mesaje în care apare factura.',
+        en: 'The page shows the lines and totals, the payments, the timeline (created, edited, issued, sent, payments, reversal), the total invoiced to the same client and the Messages conversations where the invoice appears.',
+      },
+      {
+        ro: '„Înregistrează încasare” cere suma (implicit restul), data, metoda și o referință. Sub câmpuri vezi ce se întâmplă, de exemplu „Neîncasată → Parțial · Rest: 400,00 lei”. Poți înregistra mai multe plăți pe aceeași factură; o plată greșită o ștergi din lista de plăți.',
+        en: '“Record payment” asks for the amount (the balance by default), the date, the method and a reference. Under the fields you see what will happen, for example “Unpaid → Partial · Left: 400.00”. You can record several payments on one invoice; a wrong one is deleted from the payments list.',
+      },
+      {
+        ro: 'Dacă extrasul bancar are o plată pentru factură, Reconcilierea o leagă și creează plata ea. Potrivirea automată merge doar când suma din bancă e egală cu ce a rămas de plătit; pentru o plată parțială o potrivești tu. O ciornă nu poate fi marcată plătită.',
+        en: 'If the bank statement has a payment for the invoice, Reconciliation links it and creates the payment itself. Automatic matching only works when the bank amount equals what is left to pay; a partial payment you match by hand. A draft cannot be marked paid.',
+      },
+    ],
+  },
+  {
+    id: 'facturi-editor',
+    route: '/accounting',
+    feature: 'facturi.emitere',
+    title: {
+      ro: 'Emiți o factură, un storno sau o proformă',
+      en: 'Issuing an invoice, a storno or a proforma',
+    },
+    summary: {
+      ro: 'Editorul arată documentul real pe măsură ce scrii. Ciorna se salvează singură, iar numărul se alocă abia la emitere.',
+      en: 'The editor shows the real document as you type. The draft saves itself, and the number is only allocated when you issue.',
+    },
+    steps: [
+      {
+        ro: '„Factură nouă” deschide editorul. Alegi clientul sau îl creezi pe loc din CIF (datele vin de la ANAF; ai nevoie de funcționalitatea Clienți), adaugi liniile și vezi totalul fiecărei linii lângă câmpuri. Termenul de plată are valori gata (7, 15, 30, 60, 90 de zile) și arată data calculată.',
+        en: '“New invoice” opens the editor. You pick the client or create one on the spot from the tax ID (the data comes from ANAF; you need the Clients feature), add the lines and see each line’s total next to the fields. The payment term has ready values (7, 15, 30, 60, 90 days) and shows the computed date.',
+      },
+      {
+        ro: 'Documentul din dreapta se actualizează la câteva clipe după ultima tastă. Sub 1280 de pixeli e într-un tab separat. Sus scrie când a fost salvată ciorna. Dacă altcineva a modificat-o între timp, editorul te anunță în loc să-i scrie peste.',
+        en: 'The document on the right updates a moment after the last keystroke. Below 1280 pixels it sits in a separate tab. At the top it says when the draft was saved. If someone else changed it meanwhile, the editor tells you instead of writing over it.',
+      },
+      {
+        ro: '„Emite” deschide un pas de verificare cu numărul care se va aloca, clientul și totalul. „Emite și trimite la ANAF” face ambele; „Doar emite” lasă trimiterea pe mai târziu. Un număr dat nu se mai schimbă.',
+        en: '“Issue” opens a check step with the number that will be allocated, the client and the total. “Issue and send to ANAF” does both; “Issue only” leaves the sending for later. A number once given does not change.',
+      },
+      {
+        ro: 'Pentru o factură emisă, „Stornează” propune stornarea integrală sau pe linii, cu cantitatea de stornat. Stornoul e o factură în aceeași serie, cu cantități negative și trimitere la factura inițială; pe pagina inițială apare „Stornată de” sau „Stornată parțial de”, iar pe storno „Stornează”. Nu poți storna mai mult decât a rămas.',
+        en: 'For an issued invoice, “Credit note” offers a full reversal or one by lines, with the quantity to reverse. A storno is an invoice in the same series, with negative quantities and a reference to the original; the original page then says “Reversed by” or “Partly reversed by”, and the storno says “Reverses”. You cannot reverse more than what is left.',
+      },
+      {
+        ro: 'Proforma are tab-ul ei, seria PRO și mențiunea „Proformă · nu este factură fiscală”. Nu se trimite la ANAF și nu intră în încasări, declarații, rapoarte sau reconciliere. „Factură din proformă” deschide editorul cu liniile copiate; „Anulează” o scoate din lucru. Avansurile încasate pe o proformă se facturează tot de mână.',
+        en: 'A proforma has its own tab, the PRO series and the note “Proforma · not a tax invoice”. It does not go to ANAF and counts in no payments, declarations, reports or reconciliation. “Invoice from proforma” opens the editor with the lines copied; “Cancel” takes it out of play. Advances collected on a proforma are still invoiced by hand.',
+      },
+    ],
+  },
+  {
     id: 'apeluri-nou',
     route: '/calls',
     feature: 'apeluri.manage',

@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-13T16:45:00+02:00',
+    title: {
+      ro: 'Facturi: pagină pentru fiecare factură, plăți parțiale, editor cu previzualizare, storno și proformă',
+      en: 'Invoices: a page for every invoice, partial payments, an editor with preview, storno and proforma',
+    },
+    body: {
+      ro: 'Lista Emise are tab-uri cu număr (Toate, Ciorne, De încasat, Restante, Încasate, Respinse ANAF), suma pe primul loc și o bandă de totaluri care urmează filtrele. Factura are pagina ei, cu cronologie, plăți și acțiunile potrivite stării. Încasarea se înregistrează cu sumă, dată și metodă, poate fi parțială, iar înainte de salvare vezi ce stare și ce rest rezultă; din Reconciliere se creează plăți, iar ciornele nu mai pot fi marcate plătite. Editorul e o pagină cu documentul real alături, ciorna se salvează singură, clientul nou se adaugă din CIF, iar „Emite” cere o ultimă confirmare cu numărul, clientul și totalul. Stornezi o factură integral sau parțial, în aceeași serie, iar proforma are seria ei (PRO), nu merge la ANAF și nu intră în nicio sumă sau declarație. Din ea faci factura cu liniile deja copiate.',
+      en: 'The Issued list has tabs with counts (All, Drafts, To collect, Overdue, Paid, ANAF rejected), the amount first and a totals band that follows the filters. Every invoice has its own page, with a timeline, payments and the actions that fit its state. A payment is recorded with an amount, a date and a method, can be partial, and before you save you see the state and the balance it leaves; Reconciliation now creates payments, and drafts can no longer be marked paid. The editor is a page with the real document next to it, the draft saves itself, a new client is added from the tax ID, and “Issue” asks for a last confirmation naming the number, the client and the total. You reverse an invoice in full or in part, in the same series, and a proforma has its own series (PRO), does not go to ANAF and counts in no total or declaration. It turns into an invoice with the lines already copied.',
+    },
+    features: ['facturi.view'],
+  },
+  {
     publishedAt: '2026-11-10T23:00:00+02:00',
     title: {
       ro: 'Setări: analitica de utilizare cu PostHog',

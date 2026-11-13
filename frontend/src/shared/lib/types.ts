@@ -40,6 +40,8 @@ export interface SessionPayload {
   displayCurrencies: DisplayCurrency[]
   motionPref?: MotionPref
   hideAmounts?: boolean
+  /** A demo install: the shell shows a permanent band. */
+  isDemo?: boolean
 }
 
 /** Sent next to totals: the currency the figures are in and whether they were converted. */
@@ -150,7 +152,7 @@ export type AnafStatus = 'draft' | 'pending' | 'validated' | 'rejected'
 
 export interface FinancialRecord {
   id: string
-  type: 'invoice' | 'expense' | 'payment'
+  type: 'invoice' | 'expense' | 'payment' | 'proforma'
   direction: 'in' | 'out'
   amount: string
   currency: string
@@ -173,6 +175,9 @@ export interface FinancialRecord {
   hasXml: boolean
   hasPdf: boolean
   hasAnafPdf: boolean
+  /** Only on proformas: open until it is turned into an invoice or cancelled. */
+  proformaStatus?: 'open' | 'invoiced' | 'cancelled' | null
+  convertedToRecordId?: string | null
   createdAt: string
 }
 
@@ -1781,3 +1786,69 @@ export type ChatStreamEvent =
   | { type: 'presence'; userId: string; presence: 'online' | 'away'; lastSeenAt: string | null }
   | { type: 'typing'; conversationId: string; userId: string }
   | { type: 'reaction.updated'; conversationId: string; messageId: string; reactions: ChatReaction[] }
+
+export type RecordTab = 'all' | 'draft' | 'open' | 'overdue' | 'paid' | 'rejected'
+/** A client as the invoice editor's picker gets it, without the client file. */
+export type InvoicingClient = Pick<BillingClient, 'id' | 'name' | 'cif' | 'paymentTermsDays'>
+
+export type PaymentMethod = 'bank' | 'cash' | 'card' | 'other'
+
+/** A row of the paged list: the document plus what is paid and what is left, from SQL. */
+export interface RecordRow extends FinancialRecord {
+  paidAmount: number
+  remaining: number
+  isOverdue: boolean
+  /** Made here and not numbered yet; an issued document added by hand without a number is not one. */
+  isDraft: boolean
+  /** In `RecordsPage.companyCurrency` at the BNR rate of the document day; null if same currency or no rate. */
+  companyAmount: number | null
+}
+
+export interface RecordsPage {
+  items: RecordRow[]
+  total: number
+  /** In the company's currency; follow the period, search and direction, not the tab. Total = paid + open. */
+  totals: { total: number; paid: number; open: number; overdue: number }
+  counts: Record<RecordTab, number>
+  companyCurrency: string
+}
+
+export interface RecordPayment {
+  id: string
+  amount: number
+  currency: string
+  paidAt: string
+  method: PaymentMethod
+  reference: string | null
+  note: string | null
+  fromBank: boolean
+  createdAt: string
+  createdBy: { id: string; name: string | null } | null
+}
+
+export interface RecordTimelineEntry {
+  at: string
+  /** An audit action (`factura.emitata`) or `record.created`; unknown keys get a generic label. */
+  kind: string
+  actor: { id: string; name: string | null } | null
+  detail: Record<string, unknown> | null
+}
+
+export interface RecordLinkedDoc {
+  id: string
+  documentNumber: string | null
+  issuedAt: string
+}
+
+export interface RecordDetail {
+  /** `paidAmount` is money received; a storno lowers `remaining` without being paid. */
+  record: FinancialRecord & { isDraft: boolean; paidAmount: number }
+  lines: Array<{ id: string; position: number; description: string; quantity: number; unitPrice: number; vatRate: number }>
+  totals: { net: number | null; vat: number | null; gross: number }
+  payments: RecordPayment[]
+  remaining: number
+  storno: { corrects?: RecordLinkedDoc; correctedBy: Array<RecordLinkedDoc & { amount: number }> }
+  proforma?: { status: string | null; convertedTo?: RecordLinkedDoc }
+  timeline: RecordTimelineEntry[]
+  sameClient: { count: number; total: number; currency: string }
+}

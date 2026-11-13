@@ -24,6 +24,7 @@ import type {
 } from './schema.js'
 import type { z } from 'zod'
 import { tr } from '../../shared/lib/i18n.js'
+import { qualified } from '../../shared/lib/sql-fx.js'
 
 // Mesaje între oameni (PLAN.md C3). Un singur backend, deci bus-ul de evenimente e în
 // memorie (presence.ts) — dacă ajunge vreodată pe două instanțe, trece pe LISTEN/NOTIFY.
@@ -199,7 +200,7 @@ async function attachToMessages(rows: (typeof messages.$inferSelect)[], reader: 
             authorUserId: messages.authorUserId,
             body: messages.body,
             deletedAt: messages.deletedAt,
-            hasAttachment: sql<boolean>`EXISTS (SELECT 1 FROM ${messageAttachments} a WHERE a.message_id = ${messages.id} AND a.deleted_at IS NULL)`,
+            hasAttachment: sql<boolean>`EXISTS (SELECT 1 FROM ${messageAttachments} a WHERE a.message_id = ${qualified(messages.id)} AND a.deleted_at IS NULL)`,
           })
           .from(messages)
           .where(inArray(messages.id, replyIds)),

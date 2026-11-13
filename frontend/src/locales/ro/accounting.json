@@ -258,7 +258,6 @@
     "issuedToast": "Factura {{documentNumber}} emisă — XML generat",
     "sentToAnaf": "Trimisă la ANAF — starea se actualizează automat (poll la 10 min)",
     "draftDeleted": "Draft șters",
-    "markedPaid": "Factură marcată plătită",
     "oldRecord": "Factură/încasare veche",
     "empty": "Nicio factură emisă încă",
     "draftMarker": "(draft)",
@@ -268,49 +267,13 @@
     "deleteDraftBody": "Nu consumă număr de factură; seria rămâne neschimbată.",
     "resendToAnaf": "Retrimite la ANAF",
     "sendToAnaf": "Trimite la ANAF",
-    "markPaidManually": "Marchează plătit manual",
-    "markPaidBody": "Dacă clientul e legat de VanaGreen, abonamentul lui se prelungește.",
-    "markPaid": "Marchează plătită",
     "downloadEfacturaPdf": "Descarcă PDF eFactura",
     "downloadConfirmation": "Descarcă confirmarea",
     "deleteDraftFor": "Șterge draftul pentru {{name}}",
-    "deleteDraftForClient": "Șterge draftul pentru client",
-    "markPaidTitle": "Marchează {{number}} ca plătită",
-    "markPaidTitleNoNumber": "Marchează factura ca plătită"
-  },
-  "invoiceForm": {
-    "newTitle": "Factură nouă",
-    "editTitle": "Editează draftul",
-    "templatePricesFailed": "Nu am putut rezolva prețurile din template",
-    "draftUpdated": "Draft actualizat",
-    "draftCreated": "Draft de factură creat — emite-l când e gata",
-    "pickClient": "Alege un client (sau adaugă unul în tabul Clienți)",
-    "rateStillLoading": "Cursul BNR încă se încarcă pentru o linie în valută — așteaptă o clipă și încearcă din nou",
-    "choose": "— alege —",
-    "template": "Template (opțional)",
-    "noTemplate": "— manual (fără template) —",
-    "defaultMarker": "(implicit)",
-    "resolvingPrices": "Se calculează prețurile (poate include preț din abonamentul clientului)…",
-    "templateHint": "Alege un template ca punct de plecare — liniile rămân editabile mai jos înainte de salvare.",
-    "dueOptional": "Scadență (opțional)",
-    "lines": "Linii",
-    "priceWithCurrency": "Preț (+ valută dacă diferă)",
-    "lineDescriptionPlaceholder": "Descriere serviciu/produs",
-    "lineCurrencyAria": "Valuta prețului acestei linii",
-    "fetchingRate": "se ia cursul BNR…",
-    "converted": "= {{converted}} (curs {{rate}}, {{date}})",
-    "addLine": "Adaugă linie",
-    "noteOptional": "Notă (opțional)",
-    "totalWithVat": "Total (cu TVA):",
-    "rateLoadingInline": "(curs BNR încă se încarcă pt. o linie…)",
-    "saveDraft": "Salvează draftul",
-    "createDraft": "Creează draft"
+    "deleteDraftForClient": "Șterge draftul pentru client"
   },
   "actions": {
     "downloadXml": "Descarcă XML"
-  },
-  "pagination": {
-    "range": "{{from}}–{{to}} din {{total}}"
   },
   "spv": {
     "saved": "Mesaj salvat — rămâne la noi chiar dacă dispare din SPV",
@@ -359,11 +322,9 @@
   },
   "received": {
     "syncDone": "Sync ANAF rulat — {{imported}} facturi importate",
-    "markedPaid": "Marcată ca plătită",
     "addExpense": "Adaugă cheltuială",
     "syncNow": "Sync ANAF acum",
-    "empty": "Nicio factură primită. Configurează ANAF în tabul Setări, apoi rulează sync-ul.",
-    "markPaid": "Marchează plătită"
+    "empty": "Nicio factură primită. Configurează ANAF în tabul Setări, apoi rulează sync-ul."
   },
   "recurring": {
     "saved": "Cheltuială recurentă salvată",
@@ -462,5 +423,348 @@
     "unpaid": "Neplătită",
     "partial": "Parțial",
     "paid": "Plătită"
+  },
+  "records": {
+    "tabs": {
+      "out": {
+        "all": "Toate",
+        "draft": "Ciorne",
+        "open": "De încasat",
+        "overdue": "Restante",
+        "paid": "Încasate",
+        "rejected": "Respinse ANAF"
+      },
+      "in": {
+        "all": "Toate",
+        "draft": "Ciorne",
+        "open": "De plătit",
+        "overdue": "Restante",
+        "paid": "Plătite",
+        "rejected": "Respinse ANAF"
+      }
+    },
+    "payment": {
+      "partial": "Parțial · rest {{rest}}",
+      "partialWord": "Parțial",
+      "out": {
+        "unpaid": "Neîncasată",
+        "paid": "Încasată"
+      },
+      "in": {
+        "unpaid": "Neplătită",
+        "paid": "Plătită"
+      }
+    },
+    "overdueBy_one": "de {{count}} zi",
+    "overdueBy_few": "de {{count}} zile",
+    "overdueBy_other": "de {{count}} de zile",
+    "totals": {
+      "total": "Total",
+      "overdue": "Restant",
+      "note": "Sume în {{currency}}, fără ciorne, respinse și alte monede. Urmează perioada și căutarea, nu starea aleasă mai jos.",
+      "out": {
+        "open": "De încasat",
+        "paid": "Încasat"
+      },
+      "in": {
+        "open": "De plătit",
+        "paid": "Plătit"
+      }
+    },
+    "method": {
+      "bank": "Transfer",
+      "cash": "Numerar",
+      "card": "Card",
+      "other": "Altul"
+    },
+    "loadFailed": "Nu am putut încărca documentele",
+    "loadFailedHint": "Datele nu s-au schimbat. Încearcă din nou; dacă se repetă, verifică conexiunea.",
+    "noMatch": "Niciun document pentru filtrele alese",
+    "noMatchHint": "Scoate perioada, căutarea sau starea alese.",
+    "todo": {
+      "pay": "De plătit"
+    },
+    "recordPaymentIn": "Înregistrează plata",
+    "recordPaymentOut": "Înregistrează încasarea",
+    "errors": {
+      "DRAFT_NOT_PAYABLE": "O ciornă nu are număr și nu se poate încasa. Emite întâi factura.",
+      "OVERPAYMENT": "Suma depășește restul de plată.",
+      "NOT_PAYABLE": "Acest document nu poate primi plăți.",
+      "CURRENCY_MISMATCH": "Moneda plății nu este cea a documentului.",
+      "PAYMENT_NOT_FOUND": "Plata nu mai există. Reîncarcă pagina.",
+      "generic": "Nu am putut salva. Încearcă din nou."
+    },
+    "pay": {
+      "titleOut": "Încasare pentru {{name}}",
+      "titleIn": "Plată pentru {{name}}",
+      "rest": "Rest de plată {{rest}} din {{total}}",
+      "amount": "Sumă",
+      "date": "Data",
+      "method": "Metodă",
+      "reference": "Referință",
+      "note": "Notă",
+      "amountInvalid": "Introdu o sumă mai mare ca zero, de exemplu 790,00",
+      "amountOver": "Suma depășește restul de plată ({{rest}})",
+      "dateRequired": "Alege data încasării",
+      "consequence": "Stare: {{from}} → {{to}} · Rest: {{rest}}",
+      "submit": "Înregistrează",
+      "submitAmount": "Înregistrează {{amount}}",
+      "saved": "{{amount}} înregistrați pentru {{name}}"
+    },
+    "payments": {
+      "titleOut": "Încasări",
+      "titleIn": "Plăți",
+      "emptyOut": "Nicio încasare înregistrată.",
+      "emptyIn": "Nicio plată înregistrată.",
+      "fromBank": "din extras",
+      "rest": "Rest de plată {{rest}}",
+      "settledOut": "Încasată integral",
+      "settledIn": "Plătită integral",
+      "removeTitle": "Șterge încasarea de {{amount}} din {{date}}",
+      "removeBody": "Starea trece din {{from}} în {{to}}, iar restul de plată devine {{rest}}.",
+      "removeConfirm": "Șterge încasarea",
+      "removeLabel": "Șterge încasarea de {{amount}} din {{date}}",
+      "removed": "Încasarea de {{amount}} a fost ștearsă"
+    },
+    "page": {
+      "missing": "Documentul nu există",
+      "missingHint": "Poate a fost șters sau linkul e greșit.",
+      "loadFailed": "Nu am putut încărca documentul",
+      "issue": "Emite",
+      "duplicate": "Duplică",
+      "duplicated": "Ciorna nouă e gata de editat",
+      "proforma": "Proformă",
+      "storno": "Storno",
+      "draft": "Ciornă",
+      "paidOf": "{{paid}} încasați, rest {{rest}}",
+      "history": "Cronologie",
+      "sameClient": "Total la același client",
+      "sameSupplier": "Total la același furnizor",
+      "sameClientLine_one": "{{total}} într-un document",
+      "sameClientLine_few": "{{total}} în {{count}} documente",
+      "sameClientLine_other": "{{total}} în {{count}} de documente",
+      "discussed": "Discutat în",
+      "discussedEmpty": "Nu a fost trimis în nicio conversație.",
+      "discussedFailed": "Nu am putut încărca conversațiile.",
+      "discussedUntitled": "Conversație fără nume",
+      "corrects": "Stornează",
+      "correctedBy": "Stornată de",
+      "invoicedAs": "Facturată ca",
+      "lines": "Linii",
+      "quantity": "Cantitate",
+      "unitPrice": "Preț unitar",
+      "vat": "TVA",
+      "lineTotal": "Total linie",
+      "net": "Net",
+      "vatAmount": "TVA",
+      "grossTotal": "Total"
+    },
+    "timeline": {
+      "system": "Sistem",
+      "unknown": "Modificare",
+      "created": "Document creat",
+      "draftCreated": "Ciornă creată",
+      "draftEdited": "Ciornă modificată",
+      "draftDeleted": "Ciornă ștearsă",
+      "issued": "Factură emisă",
+      "sentAnaf": "Trimisă la ANAF",
+      "anafValidated": "Validată de ANAF",
+      "anafRejected": "Respinsă de ANAF",
+      "paymentAdded": "Încasare de {{amount}} înregistrată",
+      "paymentRemoved": "Încasare de {{amount}} ștearsă",
+      "duplicated": "Creată prin duplicare",
+      "stornoCreated": "Storno creat",
+      "stornoIssued": "Storno emis",
+      "fromProforma": "Creată din proformă",
+      "bankMatched": "Potrivită manual cu o tranzacție bancară"
+    }
+  },
+  "editor": {
+    "titleNewInvoice": "Factură nouă",
+    "titleEditInvoice": "Ciornă de factură",
+    "titleNewProforma": "Proformă nouă",
+    "titleEditProforma": "Proformă",
+    "issue": "Emite",
+    "backToList": "Înapoi la facturi",
+    "missingDraft": "Ciorna nu există",
+    "missingDraftHint": "A fost ștearsă sau emisă între timp. Lista facturilor are versiunea curentă.",
+    "loadFailed": "Nu am putut încărca ciorna",
+    "tabs": {
+      "form": "Formular",
+      "preview": "Previzualizare"
+    },
+    "status": {
+      "saved": "Ciornă salvată la {{time}}",
+      "unsaved": "Nesalvată: {{what}}",
+      "error": "Nesalvată"
+    },
+    "missing": {
+      "client": "alege clientul",
+      "line": "completează fiecare linie",
+      "rate": "cursul BNR încă se încarcă"
+    },
+    "conflict": {
+      "title": "Ciorna a fost modificată în altă parte",
+      "body": "Reîncarcă pentru a vedea versiunea de pe server. Ce ai schimbat aici și nu s-a salvat se pierde.",
+      "reload": "Reîncarcă"
+    },
+    "saveError": {
+      "title": "Ciorna nu s-a salvat",
+      "body": "Ce ai scris rămâne aici și încercăm din nou la următoarea modificare. {{message}}"
+    },
+    "leave": {
+      "title": "Ieși fără să salvezi?",
+      "body": "Ultimele modificări nu au ajuns pe server.",
+      "confirm": "Ieși"
+    },
+    "client": {
+      "search": "Caută după nume sau CIF",
+      "listLabel": "Clienți",
+      "empty": "Niciun client găsit",
+      "new": "+ Client nou",
+      "newNamed": "+ Client nou «{{name}}»",
+      "loadFailed": "Lista de clienți nu s-a încărcat. Reîncarcă pagina."
+    },
+    "template": {
+      "label": "Șablon",
+      "none": "Fără șablon",
+      "defaultMarker": "(implicit)",
+      "resolving": "Se calculează prețurile, inclusiv cel din abonamentul clientului…",
+      "hint": "Liniile se completează din șablon și rămân editabile.",
+      "failed": "Nu am putut calcula prețurile din șablon"
+    },
+    "due": {
+      "label": "Scadență",
+      "presetDays_one": "{{count}} zi",
+      "presetDays_few": "{{count}} zile",
+      "presetDays_other": "{{count}} de zile",
+      "daysCount_one": "{{count}} zi",
+      "daysCount_few": "{{count}} zile",
+      "daysCount_other": "{{count}} de zile",
+      "custom": "Altă dată",
+      "customLabel": "Data scadenței",
+      "summary": "{{days}} · {{date}}",
+      "none": "Nicio scadență aleasă: la emitere se aplică termenul clientului sau al seriei."
+    },
+    "lines": {
+      "title": "Linii",
+      "lineNo": "Linia {{n}}",
+      "priceCurrency": "Monedă",
+      "add": "Adaugă linie",
+      "remove": "Șterge linia {{n}}",
+      "live": "{{qty}} × {{unit}} = {{net}} · TVA {{rate}}% {{vat}}",
+      "liveNoVat": "{{qty}} × {{unit}} = {{net}}",
+      "fetchingRate": "Se ia cursul BNR…",
+      "rateFailed": "Cursul BNR nu s-a putut lua; schimbă moneda prețului sau încearcă mai târziu.",
+      "converted": "Curs BNR {{rate}} din {{date}}"
+    },
+    "totals": {
+      "net": "Fără TVA",
+      "vat": "TVA",
+      "total": "Total"
+    },
+    "note": "Notă",
+    "preview": {
+      "title": "Previzualizarea documentului",
+      "missing": "Pentru previzualizare: {{what}}.",
+      "failed": "Previzualizarea nu s-a putut actualiza."
+    },
+    "newClient": {
+      "title": "Client nou",
+      "name": "Denumire",
+      "required": "Câmp obligatoriu",
+      "addressRequired": "Adresa e obligatorie",
+      "lookupFailed": "Nu am găsit firma: {{message}}",
+      "notActive": "La ANAF firma figurează ca „{{stare}}”.",
+      "save": "Salvează clientul"
+    },
+    "confirm": {
+      "title": "Emiți {{number}} către {{client}} · {{total}}",
+      "titleProforma": "Emiți proforma {{number}} către {{client}} · {{total}}",
+      "titleNoNumber": "Emiți către {{client}} · {{total}}",
+      "getsNumber": "Primește numărul {{number}}",
+      "getsNumberLater": "Primește următorul număr din serie",
+      "pdfXml": "Se generează PDF-ul și XML-ul",
+      "pdfProforma": "Se generează PDF-ul",
+      "notFiscal": "Proforma nu e factură fiscală și nu pleacă la ANAF",
+      "locked": "După emitere nu se mai poate edita",
+      "numberFailed": "Numărul nu s-a putut citi; îl primești la emitere.",
+      "failed": "Nu s-a putut emite",
+      "issueAndSend": "Emite și trimite la ANAF",
+      "issueOnly": "Doar emite",
+      "issue": "Emite",
+      "issuing": "Se emite…",
+      "issued": "{{number}} emisă",
+      "anafFailed": "{{number}} e emisă, dar trimiterea la ANAF a eșuat: {{message}}"
+    }
+  },
+  "storno": {
+    "action": "Stornează",
+    "title": "Stornează {{number}}",
+    "intro": "Stornoul se creează ca ciornă, cu valori negative, și se emite abia după verificare.",
+    "modeLabel": "Ce stornezi",
+    "modeFull": "Integral",
+    "modeFullHint": "Tot ce nu a fost deja stornat din factură",
+    "modePartial": "Parțial",
+    "modePartialHint": "Doar cantitățile pe care le alegi",
+    "invoiced": "Facturat: {{quantity}}",
+    "toReverse": "De stornat",
+    "quantityInvalid": "Scrie o cantitate mai mare ca 0.",
+    "quantityExceeds": "Cel mult {{max}}, cât s-a facturat.",
+    "pickOne": "Alege cel puțin o linie de stornat.",
+    "consequence": "Se creează o ciornă de storno de {{amount}} pentru {{number}}. O emiți după verificare.",
+    "consequencePick": "Alege cantitățile ca să vezi suma stornoului.",
+    "submit": "Creează stornoul",
+    "created": "Ciorna de storno e gata",
+    "correctedFull": "Stornată integral de",
+    "correctedPartial": "Stornată parțial de",
+    "errors": {
+      "NOT_STORNABLE": "Această factură nu se poate storna: stornoul se face doar pe o factură emisă.",
+      "STORNO_EXCEEDS": "Cantitatea depășește ce a rămas nestornat pe linie. Verifică stornourile deja create.",
+      "NOTHING_TO_STORNO": "Factura e deja stornată în întregime.",
+      "generic": "Nu am putut crea stornoul. Încearcă din nou."
+    }
+  },
+  "proformas": {
+    "tab": "Proforme",
+    "new": "Proformă nouă",
+    "empty": "Nicio proformă încă",
+    "emptyHint": "O proformă e o ofertă cu preț, fără valoare fiscală. Când clientul acceptă, o transformi în factură.",
+    "loadFailed": "Nu am putut încărca proformele",
+    "filters": {
+      "all": "Toate",
+      "draft": "Ciorne",
+      "open": "Deschise",
+      "invoiced": "Facturate",
+      "cancelled": "Anulate"
+    },
+    "status": {
+      "draft": "Ciornă",
+      "open": "Deschisă",
+      "invoiced": "Facturată",
+      "cancelled": "Anulată"
+    },
+    "number": "Proformă",
+    "convert": "Factură din proformă",
+    "converted": "Ciorna facturii e gata, cu liniile proformei",
+    "cancel": "Anulează",
+    "cancelTitle": "Anulezi proforma {{number}}?",
+    "cancelBody": "Nu se mai poate transforma în factură. Rămâne în listă, marcată ca anulată.",
+    "cancelConfirm": "Anulează proforma",
+    "cancelled": "Proforma {{number}} e anulată",
+    "issue": "Emite",
+    "deleteDraft": "Șterge ciorna",
+    "deleteTitle": "Ștergi ciorna de proformă?",
+    "deleteBody": "Nu consumă număr din seria proformelor.",
+    "deleted": "Ciorna de proformă e ștearsă",
+    "invoicedHint": "Proforma a fost facturată și nu se mai modifică.",
+    "cancelledHint": "Proforma e anulată și nu se mai modifică.",
+    "errors": {
+      "PROFORMA_ALREADY_CONVERTED": "Proforma a fost deja transformată în factură.",
+      "PROFORMA_NOT_ISSUED": "Proforma e încă ciornă. Emite-o întâi.",
+      "PROFORMA_CANCELLED": "Proforma e anulată.",
+      "PROFORMA_INVOICED": "Proforma e deja facturată.",
+      "generic": "Operațiunea nu s-a putut face. Încearcă din nou."
+    }
   }
 }

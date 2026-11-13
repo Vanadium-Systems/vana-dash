@@ -169,7 +169,31 @@
     "alreadyValidated": "The invoice is already validated by ANAF",
     "sequenceNotCreated": "The invoice sequence could not be created",
     "templateInsertFailed": "Inserting the template failed",
-    "sequenceKeyNotCreated": "The invoice sequence \"{{key}}\" could not be created"
+    "sequenceKeyNotCreated": "The invoice sequence \"{{key}}\" could not be created",
+    "draftChanged": "The draft was changed in the meantime. Reload it before saving",
+    "invoiceGone": "The invoice no longer exists",
+    "notDuplicable": "Only invoices we issued can be duplicated, not proformas",
+    "draftBanner": "Draft",
+    "stornoTitle": "Reversal invoice",
+    "stornoReference": "Reverses invoice {{number}} dated {{date}}",
+    "proformaTitle": "Proforma",
+    "proformaNotice": "Proforma · not a tax invoice",
+    "notStornable": "Only numbered invoices we issued can be reversed, and not a reversal itself",
+    "nothingToStorno": "The invoice is already fully reversed",
+    "stornoLinesRequired": "Pick at least one line to reverse",
+    "stornoLineUnknown": "The line does not belong to the invoice being reversed",
+    "stornoLineDuplicate": "The same line appears twice in the request",
+    "stornoExceeds": "Line \"{{line}}\": at most {{remaining}} can be reversed, {{requested}} requested",
+    "stornoLinesLocked": "The lines, client and currency of a reversal do not change. Delete the draft and create another",
+    "lineSignInvoice": "Invoice quantities must be positive",
+    "lineSignStorno": "Reversal quantities must be negative, with a positive unit price",
+    "proformaNotFound": "The proforma does not exist",
+    "proformaNotDraft": "Only a draft proforma can be changed or deleted",
+    "proformaNotIssued": "Issue the proforma before turning it into an invoice",
+    "proformaCancelled": "The proforma is cancelled",
+    "proformaInvoiced": "The proforma already has an invoice",
+    "proformaAlreadyConverted": "The proforma already has a draft invoice",
+    "proformaNoClient": "The proforma has no client, an invoice cannot be made from it"
   },
   "revolut": {
     "accountIncomplete": "incomplete Revolut account: the client_id, the certificate or the refresh token is missing",
@@ -220,7 +244,8 @@
     "expectedQuarterFormat": "Expected format: YYYY-Qn",
     "cycleMonthRequired": "cycleMonth is required for cycle=\"annual\"",
     "invoiceNotFound": "The invoice was not found",
-    "invoiceNotPaid": "The invoice is not paid yet; there is nothing to confirm"
+    "invoiceNotPaid": "The invoice is not paid yet; there is nothing to confirm",
+    "periodReversed": "The period is reversed: the start date is after the end date"
   },
   "pdf": {
     "unavailable": "PDF generation is not available (Chromium not configured)",
@@ -507,5 +532,15 @@
   },
   "snippets": {
     "notFound": "The snippet does not exist"
+  },
+  "payments": {
+    "recordNotFound": "The document does not exist",
+    "paymentNotFound": "The payment does not exist",
+    "draftNotPayable": "A draft without a number cannot be paid",
+    "notPayable": "The document cannot take payments",
+    "currencyMismatch": "The payment currency ({{currency}}) differs from the document's ({{expected}})",
+    "overpayment": "The amount exceeds the remaining balance ({{remaining}} {{currency}})",
+    "alreadyPaid": "The document has nothing left to pay",
+    "useRecordPayments": "An issued invoice is settled through payments, not by setting its payment status"
   }
 }

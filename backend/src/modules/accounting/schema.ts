@@ -2,15 +2,24 @@ import { z } from 'zod'
 import { lazyTr } from '../../shared/lib/i18n.js'
 import { updateSchema } from '../../shared/lib/update-schema.js'
 
-export const RecordsQuerySchema = z.object({
-  direction: z.enum(['in', 'out']).optional(),
-  type: z.enum(['invoice', 'expense', 'payment']).optional(),
-  paymentStatus: z.enum(['unpaid', 'partial', 'paid']).optional(),
-  anafStatus: z.enum(['draft', 'pending', 'validated', 'rejected']).optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
-  limit: z.coerce.number().int().min(1).max(500).default(200),
-})
+export const RECORD_TABS = ['all', 'draft', 'open', 'overdue', 'paid', 'rejected'] as const
+export type RecordTab = (typeof RECORD_TABS)[number]
+
+export const RecordsQuerySchema = z
+  .object({
+    direction: z.enum(['in', 'out']).optional(),
+    type: z.enum(['invoice', 'expense', 'payment']).optional(),
+    paymentStatus: z.enum(['unpaid', 'partial', 'paid']).optional(),
+    anafStatus: z.enum(['draft', 'pending', 'validated', 'rejected']).optional(),
+    from: z.coerce.date().optional(),
+    to: z.coerce.date().optional(),
+    limit: z.coerce.number().int().min(1).max(500).default(200),
+    tab: z.enum(RECORD_TABS).optional(),
+    q: z.string().trim().max(100).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .refine((v) => !v.from || !v.to || v.from <= v.to, { path: ['to'], message: lazyTr('errors.accounting.periodReversed') })
 
 export const RecordIdParamsSchema = z.object({ id: z.string().uuid() })
 

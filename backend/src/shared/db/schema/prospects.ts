@@ -34,7 +34,6 @@ export const prospects = pgTable(
     score: numeric('score', { precision: 5, scale: 1 }),
     status: text('status').notNull().default('necontactat'),
     contactedBy: text('contacted_by'),
-    notes: text('notes'),
     source: text('source'),
     platformId: uuid('platform_id').references(() => platforms.id),
     billingClientId: uuid('billing_client_id').references(() => billingClients.id),

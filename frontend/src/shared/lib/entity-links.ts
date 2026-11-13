@@ -4,10 +4,9 @@ import type { RefType } from './types'
 // link pasted into the composer all go through it, so a page that moves changes only here.
 
 export interface LinkExtra {
-  /** Calendar: the event's day (YYYY-MM-DD). Archive: the file's folder. Invoice: `emise` / `primite`. */
+  /** Calendar: the event's day (YYYY-MM-DD). Archive: the file's folder. */
   date?: string
   folderId?: string
-  tab?: 'emise' | 'primite'
 }
 
 export function linkFor(type: RefType, id: string, extra: LinkExtra = {}): string {
@@ -15,7 +14,7 @@ export function linkFor(type: RefType, id: string, extra: LinkExtra = {}): strin
     case 'prospect':
       return `/clients?prospect=${id}`
     case 'invoice':
-      return `/accounting?tab=${extra.tab ?? 'emise'}&record=${id}`
+      return `/accounting/records/${id}`
     case 'email_thread':
       return `/email?thread=${id}`
     case 'calendar_event':
@@ -49,6 +48,9 @@ export function parseDashLink(raw: string): { type: RefType; id: string } | null
     return null
   }
   if (url.origin !== window.location.origin) return null
+  const record = /^\/accounting\/records\/([^/]+)\/?$/.exec(url.pathname)
+  if (record) return UUID.test(record[1]!) ? { type: 'invoice', id: record[1]! } : null
+  // The list link with `?record=` that Ctrl K and shared messages used before the page existed.
   const entry = PARAM_BY_PATH[url.pathname.replace(/\/+$/, '')]
   if (!entry) return null
   const id = url.searchParams.get(entry[1])

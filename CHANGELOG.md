@@ -4,6 +4,72 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-13: Invoices: payments, invoice page, editor, storno, proforma
+
+### Payments
+- A payment is a row (`invoice_payments`: amount, currency, date, method `bank`/`cash`/`card`/`other`,
+  reference, note), and an invoice's payment state is derived from them: unpaid, partial, paid.
+  Several payments per invoice, with the remaining balance. Migration `0091_invoice_payments`
+  backfills a payment for every invoice that was already marked paid or partial.
+- `POST/DELETE /api/invoicing/invoices/:id/payments[/:pid]` and the same under
+  `/api/accounting/records/:id/payments[/:pid]` (`facturi.emitere`). Errors: `DRAFT_NOT_PAYABLE`,
+  `NOT_PAYABLE`, `OVERPAYMENT`, `ALREADY_PAID`, `CURRENCY_MISMATCH`.
+- `PATCH /api/accounting/records/:id/payment` answers `409 USE_PAYMENTS` on issued invoices.
+- Reconciliation creates payments instead of setting "paid". Automatic matching happens only when
+  the bank amount equals what is left on the invoice; a partial payment is a manual match.
+- A draft is a generated invoice without a number (`isDraftSql` / `isDraftRecord`). It can no longer be
+  marked paid, and an issued invoice added by hand to the archive without a number is not a draft.
+
+### Invoice list and page
+- Issued: tabs with counts (all, drafts, to collect, overdue, paid, ANAF rejected), the amount first with the
+  RON equivalent under foreign-currency amounts, a totals band that follows the filters, pagination on
+  the server. `GET /api/accounting/records` always answers `{ items, total, totals, counts,
+  companyCurrency }`; the plain array is gone.
+- `/accounting/records/:id`: state badges, actions that depend on the state, lines and totals,
+  payments, a timeline, the total for the same client and the conversations the invoice was shared in
+  (`GET /api/accounting/records/:id/detail`). Ctrl K opens this page.
+
+### Editor
+- `/accounting/invoices/new` and `/accounting/records/:id/edit` are pages: the real document as a live
+  preview next to the form (a tab below 1280 px), per-line totals, a draft saved automatically with
+  conflict detection (`expectedUpdatedAt` on `PATCH /api/invoicing/invoices/:id`, `409 DRAFT_CHANGED`),
+  a new client from the tax ID, payment-term presets, and a confirmation step naming the number,
+  client and total before "Issue and send to ANAF" or "Issue only".
+- `POST /api/invoicing/invoices/preview` (60 per minute per person), `GET /api/invoicing/invoices/:id/preview`,
+  `POST /api/invoicing/invoices/:id/duplicate`, `GET /api/invoicing/invoices/next-number?key=`, and the
+  pickers `GET /api/invoicing/invoices/clients` and `.../clients/:clientId/templates[/:id/resolve]`, all under
+  `facturi.view` or `facturi.emitere`, so a colleague who issues invoices does not need the client or
+  settings features.
+- The preview reads BNR rates from the database only; it never calls out.
+
+### Storno and proforma
+- Storno, full or partial, from the invoice page: `POST /api/invoicing/invoices/:id/storno`
+  (`STORNO_EXCEEDS`, `NOT_STORNABLE`, `NOTHING_TO_STORNO`). It is a draft in the invoice series, issued
+  like any invoice: type code 380, negative quantities, positive unit price (BT-146), reference to the
+  original number and date (BT-25 / BT-26). The XML validates locally against UBL 2.1, EN16931 1.3.17
+  and CIUS-RO 1.0.9 with zero errors. Code 381 was not used.
+- Proforma: own series (`PRO`), the note "Proformă · nu este factură fiscală" on the document, never
+  sent to e-Factura and never counted in P&L, cashflow, declarations, reconciliation or reports.
+  `/api/invoicing/proformas` (list, create, edit, delete, `issue`, `convert`, `cancel`, `preview`).
+  "Invoice from proforma" copies the lines into an invoice draft. Advance invoices on a proforma stay manual.
+
+### Other
+- Demo installs show a "Date de demonstrație" band (`isDemo` on `GET /api/auth/me`).
+- Fixed: two simultaneous issues could take two numbers (the check now runs under the lock).
+- Fixed: creating, editing and deleting a draft and recording a payment were not in the audit log.
+- Fixed: a failed database query could surface its SQL text in the response.
+- Fixed: reply previews in Messages lost the attachment marker, and email quick-search suggestions
+  lost the sender (a correlated subquery column resolved to the wrong table; `qualified()` in
+  `shared/lib/sql-fx.ts`).
+- Fixed: a payment recorded from the invoice page that settles it now does what "Mark paid" does:
+  moves the client's next due date, extends a linked VanaGreen subscription (same idempotency key, so
+  it extends once) and sends the payment confirmation (`shared/lib/invoice-settled.ts`).
+- Fixed: two matches of the same bank transaction at once (manual, or manual and automatic) could both
+  pass the "already matched" check; it now runs under the transaction's row lock.
+- Fixed: the editor preview no longer calls BNR; it reads stored rates only.
+- Fixed: on Received, a colleague without the recurring-expenses or ANAF feature no longer gets a 403
+  from those sections; they are hidden.
+
 ## 2026-11-10: Clients: team ownership, prospecting, automations
 
 ### Usage analytics

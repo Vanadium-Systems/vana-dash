@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, lte, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, isNull, lte, ne, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { SpvMessage } from '../../connectors/types.js'
 import { getCompany } from '../../shared/lib/company.js'
@@ -11,6 +11,8 @@ import {
   recurringExpenses,
   spvMessages,
 } from '../../shared/db/schema/index.js'
+import { recordAudit } from '../../shared/lib/audit.js'
+import { PaymentError } from '../../shared/lib/payments.js'
 import { rollBillingDueDateOnPayment } from '../../shared/lib/billing-rollover.js'
 import { computeNextOccurrence, dayAfter, type BillingCycle } from '../../shared/lib/billing-cycle.js'
 import { renderPaymentConfirmationHtml } from '../../shared/lib/documents.js'
@@ -26,7 +28,7 @@ import type {
 import { tr } from '../../shared/lib/i18n.js'
 
 // Selecție explicită — fără meta cu XML-uri mari și fără nimic sensibil.
-const recordColumns = {
+export const recordColumns = {
   id: financialRecords.id,
   type: financialRecords.type,
   direction: financialRecords.direction,
@@ -55,7 +57,7 @@ const recordColumns = {
 }
 
 export async function listRecords(query: z.infer<typeof RecordsQuerySchema>) {
-  const conditions: SQL[] = []
+  const conditions: SQL[] = [ne(financialRecords.type, 'proforma')]
   if (query.direction) conditions.push(eq(financialRecords.direction, query.direction))
   if (query.type) conditions.push(eq(financialRecords.type, query.type))
   if (query.paymentStatus) conditions.push(eq(financialRecords.paymentStatus, query.paymentStatus))
@@ -70,16 +72,23 @@ export async function listRecords(query: z.infer<typeof RecordsQuerySchema>) {
     .orderBy(desc(financialRecords.issuedAt))
     .limit(query.limit)
 
-  // hasXml/hasPdf sunt căi interne de storage — expunem doar boolean-ul. hasAnafPdf
-  // e derivat din anafMessageId, DOAR pt. facturi emise (direction='out') — la primite,
-  // pdfStoragePath e deja PDF-ul ANAF, nu există o a doua copie distinctă de descărcat
-  // (vezi getAnafPdfPath mai jos).
-  return rows.map(({ anafMessageId, ...row }) => ({
+  return rows.map(toPublicRow)
+}
+
+// hasXml/hasPdf: storage paths are internal, only the boolean is exposed. hasAnafPdf is derived
+// from anafMessageId and only for issued invoices (direction='out'); on received ones
+// pdfStoragePath already is the ANAF PDF, there is no second copy to download
+// (see getAnafPdfPath below).
+export function toPublicRow<T extends { anafMessageId: string | null; direction: string; hasXml: string | null; hasPdf: string | null }>({
+  anafMessageId,
+  ...row
+}: T) {
+  return {
     ...row,
     hasXml: Boolean(row.hasXml),
     hasPdf: Boolean(row.hasPdf),
     hasAnafPdf: row.direction === 'out' && Boolean(anafMessageId),
-  }))
+  }
 }
 
 export async function getRecord(id: string) {
@@ -202,16 +211,39 @@ export async function createManualRecord(input: z.infer<typeof ManualRecordCreat
   return row
 }
 
+/**
+ * Sets the status of a received document or an expense by hand. An issued invoice is settled
+ * through payments (shared/lib/payments.ts), so it answers USE_PAYMENTS.
+ */
 export async function updatePayment(id: string, input: z.infer<typeof PaymentUpdateSchema>) {
-  const [row] = await db
-    .update(financialRecords)
-    .set({
-      paymentStatus: input.paymentStatus,
-      paidAt: input.paymentStatus === 'paid' ? (input.paidAt ?? new Date()) : null,
-      updatedAt: new Date(),
-    })
+  const [existing] = await db
+    .select({ direction: financialRecords.direction, type: financialRecords.type, paymentStatus: financialRecords.paymentStatus })
+    .from(financialRecords)
     .where(and(eq(financialRecords.id, id), isNull(financialRecords.deletedAt)))
-    .returning(recordColumns)
+  if (!existing) return null
+  if (existing.direction !== 'in' && existing.type !== 'expense' && existing.type !== 'payment') {
+    throw new PaymentError(409, 'USE_PAYMENTS', tr('errors.payments.useRecordPayments'))
+  }
+
+  const row = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(financialRecords)
+      .set({
+        paymentStatus: input.paymentStatus,
+        paidAt: input.paymentStatus === 'paid' ? (input.paidAt ?? new Date()) : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(financialRecords.id, id))
+      .returning(recordColumns)
+    await recordAudit({
+      executor: tx,
+      action: 'inregistrare.plata.actualizata',
+      entityType: 'financial_record',
+      entityId: id,
+      changes: { stare: [existing.paymentStatus, input.paymentStatus] },
+    })
+    return updated
+  })
 
   // Vezi shared/lib/billing-rollover.ts — aceeași logică o folosește și bank-sync.ts (auto-match).
   if (row?.paymentStatus === 'paid' && row.billingClientId) {
