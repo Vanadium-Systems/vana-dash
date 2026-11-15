@@ -12,7 +12,7 @@ dated rather than versioned. What users see is also listed in the app, under Upd
 - `POST /api/auth/confirm-password`: creating an API token and changing someone's role or status ask for the password again when it was not typed in the last 10 minutes (`403 PASSWORD_CONFIRM_REQUIRED`).
 - `POST /api/auth/upgrade-session` moves a 7-day cookie from before this change to a long session without logging in.
 - The client refreshes once on a 401 (single-flight) and retries the request.
-- Email Worker: when the app does not answer, the raw message waits in an R2 bucket, a copy goes to a fallback mailbox, an alert is sent at most once an hour, and a cron replays the waiting messages every 5 minutes.
+- Email Worker: when the app does not answer, the raw message waits in Workers KV, a copy goes to a fallback mailbox, an alert is sent at most once an hour, and a cron replays the waiting messages every 5 minutes.
 
 ### Security
 - Logout, a password change or reset, and deactivating a person end the sessions at once (the access token is checked against its session row on every request).
