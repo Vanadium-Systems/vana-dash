@@ -2,6 +2,7 @@
   "tabs": {
     "issued": "Issued",
     "received": "Received",
+    "monthClose": "Month",
     "declarations": "Declarations",
     "spvMessages": "SPV messages",
     "contracts": "Contracts"
@@ -760,5 +761,124 @@
       "PROFORMA_INVOICED": "The proforma is already invoiced.",
       "generic": "The operation failed. Try again."
     }
+  },
+  "monthClose": {
+    "title": "Month close",
+    "subtitle": "All issued, received, and expected invoices for the month, ready for the archive and the accountant.",
+    "monthLabel": "Month",
+    "closedBadge": "Month closed",
+    "closedByAt": "Closed by {{name}} on {{date}}",
+    "reopenMonth": "Reopen month",
+    "markMonthComplete": "Mark month complete",
+    "notePlaceholder": "Optional note for closing the month…",
+    "closureSaved": "The month was marked as closed",
+    "closureReopened": "The month was reopened",
+    "archiveAllMissing": "Archive all missing ({{count}})",
+    "downloadMonthPackage": "Download month package (.zip)",
+    "archiving": "Archiving…",
+    "archivedToast": "Archived {{count}} documents.",
+    "filters": {
+      "all": "All",
+      "issued": "Issued",
+      "receivedEfactura": "Received e-Factura",
+      "receivedEmailOrManual": "Received email / manual",
+      "expectedMissing": "Expected missing",
+      "unarchived": "Unarchived"
+    },
+    "columns": {
+      "counterparty": "Counterparty",
+      "document": "Document",
+      "source": "Source",
+      "efactura": "e-Factura",
+      "archive": "Archive",
+      "status": "Status",
+      "amount": "Amount"
+    },
+    "sources": {
+      "efactura": "e-Factura",
+      "email": "Email",
+      "manual": "Manual",
+      "generated": "Issued",
+      "recurring": "Recurring",
+      "expectedRecurring": "Recurring (expected)",
+      "expectedRule": "Email rule (expected)"
+    },
+    "archive": {
+      "archived": "In archive",
+      "missing": "Missing",
+      "notApplicable": "No file",
+      "openInArchive": "View in Archive"
+    },
+    "status": {
+      "needsReview": "Needs review",
+      "expectedMissing": "Expected - missing",
+      "awaitingPdf": "Awaiting invoice (PDF)"
+    },
+    "actions": {
+      "confirmReview": "Confirm",
+      "archiveNow": "Archive",
+      "uploadPdf": "Upload PDF",
+      "searchInEmail": "Search in email",
+      "openEmail": "Open email",
+      "openRecord": "View document"
+    },
+    "empty": {
+      "all": "No documents or expected expenses in this month.",
+      "filtered": "No rows match the selected filter."
+    },
+    "confirmDialog": {
+      "titleConfirm": "Confirm invoice",
+      "titleFulfill": "Upload expected invoice",
+      "titleUploadPdf": "Upload invoice PDF",
+      "descriptionConfirm": "Check the details extracted from the PDF before confirming.",
+      "documentNumber": "Document number",
+      "issuedAt": "Issue date",
+      "amount": "Amount",
+      "currency": "Currency",
+      "counterpartyName": "Supplier",
+      "counterpartyCif": "VAT / Tax ID",
+      "counterpartyCountry": "Country (ISO-2)",
+      "reverseChargeType": "Reverse charge",
+      "reverseChargeVatRate": "VAT rate (%)",
+      "pdfFile": "PDF file",
+      "submitConfirm": "Confirm document",
+      "submitFulfill": "Save and archive",
+      "confirmedToast": "The document was confirmed",
+      "uploadedToast": "The PDF was uploaded and archived"
+    }
+  },
+  "supplierRules": {
+    "title": "Supplier invoices from email",
+    "subtitle": "Rules that automatically match incoming PDF invoices from email (e.g. Anthropic, Hetzner) and file them under Received and Archive.",
+    "addRule": "Add rule",
+    "presetAnthropic": "+ Anthropic",
+    "presetHetzner": "+ Hetzner",
+    "backfillButton": "Scan last 3 months",
+    "backfillRunning": "Scanning...",
+    "backfillResult": "Scanned {{scanned}} messages: {{created}} new invoices, {{linked}} linked to recurring expenses, {{skipped}} already imported.",
+    "empty": "No supplier email rules configured yet.",
+    "senderPattern": "Sender (address or domain)",
+    "senderPatternHint": "E.g. @anthropic.com, invoice@hetzner.com, or the supplier's domain",
+    "subjectContains": "Subject contains (optional)",
+    "attachmentNamePattern": "PDF attachment name filter (optional)",
+    "attachmentNamePatternHint": "E.g. invoice*, receipt* (leave empty for any PDF)",
+    "counterpartyName": "Supplier name",
+    "counterpartyCif": "VAT / Tax ID (optional)",
+    "counterpartyCountry": "Country (ISO-2, e.g. US, DE)",
+    "currency": "Default currency",
+    "category": "Category (optional)",
+    "reverseChargeType": "Reverse charge",
+    "reverseChargeVatRate": "VAT rate (%)",
+    "recurringExpenseId": "Link to recurring expense (optional)",
+    "noRecurringLink": "- no link -",
+    "active": "Active rule",
+    "save": "Save rule",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Delete the rule for “{{name}}”",
+    "deleteConfirmDesc": "Invoices already imported stay in Accounting and Archive.",
+    "savedToast": "Supplier rule saved",
+    "deletedToast": "Supplier rule deleted"
   }
 }

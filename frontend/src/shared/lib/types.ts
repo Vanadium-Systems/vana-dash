@@ -178,7 +178,97 @@ export interface FinancialRecord {
   /** Only on proformas: open until it is turned into an invoice or cancelled. */
   proformaStatus?: 'open' | 'invoiced' | 'cancelled' | null
   convertedToRecordId?: string | null
+  needsReview?: boolean
+  archiveFileId?: string | null
+  emailMessageId?: string | null
+  emailAttachmentId?: string | null
+  supplierRuleId?: string | null
   createdAt: string
+}
+
+export interface SupplierEmailRule {
+  id: string
+  senderPattern: string
+  subjectContains: string | null
+  attachmentNamePattern: string | null
+  counterpartyName: string
+  counterpartyCif: string | null
+  counterpartyCountry: string | null
+  currency: 'RON' | 'EUR' | 'USD'
+  category: string | null
+  reverseChargeType: 'none' | 'eu_services' | 'non_eu_services'
+  reverseChargeVatRate: string | number | null
+  recurringExpenseId: string | null
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MonthCloseRecordItem {
+  kind: 'record'
+  id: string
+  direction: 'in' | 'out'
+  type: 'invoice' | 'expense' | 'payment'
+  source: string
+  counterpartyName: string | null
+  counterpartyCif: string | null
+  counterpartyCountry: string | null
+  documentNumber: string | null
+  issuedAt: string
+  amount: number
+  currency: string
+  companyAmount: number | null
+  paymentStatus: 'unpaid' | 'partial' | 'paid'
+  anafStatus: 'draft' | 'pending' | 'validated' | 'rejected' | null
+  needsReview: boolean
+  hasPdf: boolean
+  hasXml: boolean
+  archiveFileId: string | null
+  isArchived: boolean
+  emailMessageId: string | null
+  senderSearchHint: string | null
+  reverseChargeType?: 'none' | 'eu_services' | 'non_eu_services'
+  reverseChargeVatRate?: number | null
+}
+
+export interface MonthCloseExpectedItem {
+  kind: 'expected'
+  expectedId: string
+  expectedSource: 'recurring_expense' | 'supplier_rule'
+  recurringExpenseId: string | null
+  supplierRuleId: string | null
+  counterpartyName: string
+  counterpartyCif: string | null
+  counterpartyCountry: string | null
+  expectedDate: string
+  amount: number | null
+  currency: string
+  reverseChargeType: 'none' | 'eu_services' | 'non_eu_services'
+  reverseChargeVatRate?: number | null
+  senderSearchHint: string | null
+}
+
+export type MonthCloseItem = MonthCloseRecordItem | MonthCloseExpectedItem
+
+export interface MonthCloseSummary {
+  month: string
+  closure: {
+    closed: boolean
+    closedAt: string | null
+    closedBy: { id: string; name: string | null } | null
+    note: string | null
+  }
+  counts: {
+    all: number
+    issued: number
+    receivedEfactura: number
+    receivedEmailOrManual: number
+    expectedMissing: number
+    unarchived: number
+    needsReview: number
+  }
+  items: MonthCloseItem[]
+  companyCurrency: string
 }
 
 export type ReverseChargeType = 'none' | 'eu_services' | 'non_eu_services'

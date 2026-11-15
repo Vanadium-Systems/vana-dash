@@ -245,7 +245,8 @@
     "cycleMonthRequired": "cycleMonth is required for cycle=\"annual\"",
     "invoiceNotFound": "The invoice was not found",
     "invoiceNotPaid": "The invoice is not paid yet; there is nothing to confirm",
-    "periodReversed": "The period is reversed: the start date is after the end date"
+    "periodReversed": "The period is reversed: the start date is after the end date",
+    "duplicateDocumentNumber": "Invoice {{documentNumber}} already exists in the application"
   },
   "pdf": {
     "unavailable": "PDF generation is not available (Chromium not configured)",

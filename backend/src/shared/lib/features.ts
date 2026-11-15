@@ -68,7 +68,12 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'facturi.view',
     page: 'facturi',
-    routes: [...read('/api/accounting/records'), ...read('/api/invoicing/invoices'), ...read('/api/invoicing/proformas')],
+    routes: [
+      ...read('/api/accounting/records'),
+      ...read('/api/invoicing/invoices'),
+      ...read('/api/invoicing/proformas'),
+      ...read('/api/accounting/month-close'),
+    ],
   },
   {
     key: 'facturi.emitere',
@@ -78,6 +83,8 @@ export const FEATURES: FeatureDef[] = [
       ...write('/api/invoicing/invoices'),
       ...write('/api/invoicing/proformas'),
       ...all('/api/invoicing/exchange-rate'),
+      ...write('/api/accounting/month-close'),
+      ...all('/api/accounting/email-import'),
     ],
   },
   {
@@ -108,7 +115,7 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'facturi.setari',
     page: 'facturi',
-    routes: whole('/api/invoicing/sequence', '/api/invoicing/platforms'),
+    routes: whole('/api/invoicing/sequence', '/api/invoicing/platforms', '/api/accounting/supplier-rules'),
   },
 
   // ── Financiar ─────────────────────────────────────────────────────────────

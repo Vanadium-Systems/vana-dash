@@ -38,6 +38,7 @@ import { trFor, tr } from '../../shared/lib/i18n.js'
 import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
 import { findProspectIdsByAddress } from '../../shared/lib/prospect-contact-status.js'
 import { qualified } from '../../shared/lib/sql-fx.js'
+import { tryIngestSupplierEmailMessage } from '../accounting/supplier-email.js'
 
 // Ingest of mail received through Cloudflare Email Routing, plus the replies sent on an
 // existing thread. Threads are matched on the normalized subject and a shared outside participant.
@@ -288,6 +289,15 @@ export async function ingestCloudflareInboundEmail(data: CloudflareInboundPayloa
     } catch (err) {
       // Failure izolat per atașament (regula #7 CLAUDE.md) — nu blocăm salvarea mesajului.
       console.error(`[email] atașament Cloudflare "${attachment.filename}" eșuat: ${String(err)}`)
+    }
+  }
+
+  // Best-effort supplier PDF invoice ingestion against active supplier_email_rules.
+  if (data.attachments.length > 0 && folder !== 'spam' && folder !== 'trash') {
+    try {
+      await tryIngestSupplierEmailMessage(message.id)
+    } catch (err) {
+      console.error(`[email] supplier invoice ingestion failed for ${message.id}: ${String(err)}`)
     }
   }
 

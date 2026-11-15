@@ -2,6 +2,7 @@
   "tabs": {
     "issued": "Emise",
     "received": "Primite",
+    "monthClose": "Luna",
     "declarations": "Declarații",
     "spvMessages": "Mesaje SPV",
     "contracts": "Contracte"
@@ -766,5 +767,124 @@
       "PROFORMA_INVOICED": "Proforma e deja facturată.",
       "generic": "Operațiunea nu s-a putut face. Încearcă din nou."
     }
+  },
+  "monthClose": {
+    "title": "Închidere lună",
+    "subtitle": "Toate facturile emise, primite și așteptate din lună, pregătite pentru arhivă și contabilă.",
+    "monthLabel": "Luna",
+    "closedBadge": "Lună închisă",
+    "closedByAt": "Închisă de {{name}} pe {{date}}",
+    "reopenMonth": "Redeschide luna",
+    "markMonthComplete": "Marchează luna completă",
+    "notePlaceholder": "Notă opțională pentru închiderea lunii…",
+    "closureSaved": "Luna a fost marcată ca închisă",
+    "closureReopened": "Luna a fost redeschisă",
+    "archiveAllMissing": "Arhivează tot ce lipsește ({{count}})",
+    "downloadMonthPackage": "Descarcă pachetul lunii (.zip)",
+    "archiving": "Se arhivează…",
+    "archivedToast": "Am arhivat {{count}} documente.",
+    "filters": {
+      "all": "Toate",
+      "issued": "Emise",
+      "receivedEfactura": "Primite e-Factura",
+      "receivedEmailOrManual": "Primite email / manual",
+      "expectedMissing": "Așteptate lipsă",
+      "unarchived": "Nearhivate"
+    },
+    "columns": {
+      "counterparty": "Partener",
+      "document": "Document",
+      "source": "Sursă",
+      "efactura": "e-Factura",
+      "archive": "Arhivă",
+      "status": "Stare",
+      "amount": "Sumă"
+    },
+    "sources": {
+      "efactura": "e-Factura",
+      "email": "Email",
+      "manual": "Manual",
+      "generated": "Emisă",
+      "recurring": "Recurentă",
+      "expectedRecurring": "Recurentă (așteptată)",
+      "expectedRule": "Regulă email (așteptată)"
+    },
+    "archive": {
+      "archived": "În arhivă",
+      "missing": "Lipsește",
+      "notApplicable": "Fără fișier",
+      "openInArchive": "Vezi în Arhivă"
+    },
+    "status": {
+      "needsReview": "De verificat",
+      "expectedMissing": "Așteptat - lipsește",
+      "awaitingPdf": "Așteaptă factura (PDF)"
+    },
+    "actions": {
+      "confirmReview": "Confirmă",
+      "archiveNow": "Arhivează",
+      "uploadPdf": "Încarcă PDF",
+      "searchInEmail": "Caută în email",
+      "openEmail": "Deschide emailul",
+      "openRecord": "Vezi documentul"
+    },
+    "empty": {
+      "all": "Niciun document sau cheltuială așteptată în această lună.",
+      "filtered": "Niciun rând pentru filtrul selectat."
+    },
+    "confirmDialog": {
+      "titleConfirm": "Confirmă factura",
+      "titleFulfill": "Încarcă factura așteptată",
+      "titleUploadPdf": "Încarcă PDF-ul facturii",
+      "descriptionConfirm": "Verifică datele extrase din PDF înainte de confirmare.",
+      "documentNumber": "Număr document",
+      "issuedAt": "Data emiterii",
+      "amount": "Sumă",
+      "currency": "Monedă",
+      "counterpartyName": "Furnizor",
+      "counterpartyCif": "CIF / Cod TVA",
+      "counterpartyCountry": "Țară (ISO-2)",
+      "reverseChargeType": "Taxare inversă",
+      "reverseChargeVatRate": "Cotă TVA (%)",
+      "pdfFile": "Fișier PDF",
+      "submitConfirm": "Confirmă documentul",
+      "submitFulfill": "Salvează și arhivează",
+      "confirmedToast": "Documentul a fost confirmat",
+      "uploadedToast": "PDF-ul a fost încărcat și arhivat"
+    }
+  },
+  "supplierRules": {
+    "title": "Facturi furnizori din email",
+    "subtitle": "Reguli care recunosc automat facturile PDF primite pe email (ex. Anthropic, Hetzner) și le trimit în Primite și în Arhivă.",
+    "addRule": "Adaugă regulă",
+    "presetAnthropic": "+ Anthropic",
+    "presetHetzner": "+ Hetzner",
+    "backfillButton": "Caută în ultimele 3 luni",
+    "backfillRunning": "Se caută...",
+    "backfillResult": "Scanate {{scanned}} mesaje: {{created}} facturi noi, {{linked}} legate de cheltuieli recurente, {{skipped}} existente.",
+    "empty": "Nicio regulă de furnizor configurată încă.",
+    "senderPattern": "Expeditor (adresă sau domeniu)",
+    "senderPatternHint": "Ex: @anthropic.com, invoice@hetzner.com sau domeniul furnizorului",
+    "subjectContains": "Subiectul conține (opțional)",
+    "attachmentNamePattern": "Filtru nume atașament PDF (opțional)",
+    "attachmentNamePatternHint": "Ex: invoice*, receipt* (lasă gol pentru orice PDF)",
+    "counterpartyName": "Nume furnizor",
+    "counterpartyCif": "CIF / Cod TVA (opțional)",
+    "counterpartyCountry": "Țară (ISO-2, ex. US, DE)",
+    "currency": "Monedă implicită",
+    "category": "Categorie (opțional)",
+    "reverseChargeType": "Taxare inversă",
+    "reverseChargeVatRate": "Cotă TVA (%)",
+    "recurringExpenseId": "Leagă de cheltuială recurentă (opțional)",
+    "noRecurringLink": "- fără legătură -",
+    "active": "Regulă activă",
+    "save": "Salvează regula",
+    "cancel": "Anulează",
+    "edit": "Editează",
+    "delete": "Șterge",
+    "deleteConfirmTitle": "Șterge regula pentru „{{name}}”",
+    "deleteConfirmDesc": "Facturile deja importate rămân în contabilitate și în Arhivă.",
+    "savedToast": "Regulă de furnizor salvată",
+    "deletedToast": "Regulă de furnizor ștearsă"
   }
 }

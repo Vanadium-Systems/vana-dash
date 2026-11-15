@@ -8,18 +8,27 @@ import { decryptApiKey } from '../../shared/lib/crypto.js'
 import { readDocument } from '../../shared/lib/storage.js'
 import { PaymentError } from '../../shared/lib/payments.js'
 import * as d301 from './d301.js'
+import * as monthClose from './month-close.js'
 import * as quarterlyPackage from './quarterly-package.js'
 import { getRecordDetail } from './record-detail.js'
 import { listRecordsPage } from './records-list.js'
 import {
   AnafExchangeCodeSchema,
+  ConfirmRecordReviewSchema,
   DeclarationExportQuerySchema,
   DeclarationFilingBodySchema,
   DeclarationLineParamsSchema,
   DeclarationLineUpdateSchema,
   DeclarationMonthQuerySchema,
+  FulfillExpectedBodySchema,
+  ImportFromEmailBodySchema,
   ManualRecordCreateSchema,
+  MonthCloseArchiveMissingBodySchema,
+  MonthCloseArchiveMissingQuerySchema,
+  MonthCloseQuerySchema,
+  MonthCloseStatusBodySchema,
   PaymentUpdateSchema,
+  PrefillFromEmailQuerySchema,
   QuarterQuerySchema,
   RecordIdParamsSchema,
   RecordsQuerySchema,
@@ -29,8 +38,14 @@ import {
   SpvMessageSaveBodySchema,
   SpvMessageSaveParamsSchema,
   SpvMessagesQuerySchema,
+  SupplierRuleBackfillSchema,
+  SupplierRuleCreateSchema,
+  SupplierRuleIdParamsSchema,
+  SupplierRuleUpdateSchema,
+  UploadRecordPdfSchema,
 } from './schema.js'
 import * as service from './service.js'
+import * as supplierEmail from './supplier-email.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 export async function accountingRoutes(app: FastifyInstance) {
@@ -408,5 +423,226 @@ export async function accountingRoutes(app: FastifyInstance) {
         return reply.code(400).send({ success: false, error: String(err) })
       }
     },
+  )
+
+  // ── Record review confirmation, manual PDF upload & archiving ──────────────
+
+  server.post(
+    '/api/accounting/records/:id/confirm-review',
+    {
+      preHandler: [app.authenticate],
+      schema: { params: RecordIdParamsSchema, body: ConfirmRecordReviewSchema },
+    },
+    async (req, reply) => {
+      try {
+        const record = await service.confirmRecordReview(req.params.id, req.body, req.me.id)
+        if (!record) return reply.code(404).send({ success: false, error: 'Record not found' })
+        return { success: true, data: record }
+      } catch (err) {
+        if (err instanceof service.DuplicateDocumentNumberError) {
+          return reply.code(409).send({ success: false, error: err.message })
+        }
+        throw err
+      }
+    },
+  )
+
+  server.post(
+    '/api/accounting/records/:id/upload-pdf',
+    {
+      preHandler: [app.authenticate],
+      schema: { params: RecordIdParamsSchema, body: UploadRecordPdfSchema },
+    },
+    async (req, reply) => {
+      try {
+        const record = await service.uploadRecordPdf(req.params.id, req.body, req.me.id)
+        if (!record) return reply.code(404).send({ success: false, error: 'Record not found' })
+        return { success: true, data: record }
+      } catch (err) {
+        if (err instanceof service.InvalidPdfUploadError) {
+          return reply.code(400).send({ success: false, error: err.message })
+        }
+        throw err
+      }
+    },
+  )
+
+  server.post(
+    '/api/accounting/records/:id/archive',
+    {
+      preHandler: [app.authenticate],
+      schema: { params: RecordIdParamsSchema },
+    },
+    async (req, reply) => {
+      try {
+        const result = await service.archiveRecordNow(req.params.id)
+        if (!result) return reply.code(404).send({ success: false, error: 'Record not found' })
+        return { success: true, data: result }
+      } catch (err) {
+        if (err instanceof service.InvalidPdfUploadError) {
+          return reply.code(400).send({ success: false, error: err.message })
+        }
+        throw err
+      }
+    },
+  )
+
+  // ── Monthly close checklist (Facturi -> Luna) ──────────────────────────────
+
+  server.get(
+    '/api/accounting/month-close',
+    { preHandler: [app.authenticate], schema: { querystring: MonthCloseQuerySchema } },
+    async (req) => ({ success: true, data: await monthClose.getMonthClose(req.query.month) }),
+  )
+
+  server.get(
+    '/api/accounting/month-close/package.zip',
+    { preHandler: [app.authenticate], schema: { querystring: MonthCloseQuerySchema } },
+    async (req, reply) => {
+      const pkg = await monthClose.buildMonthPackageZip(req.query.month)
+      reply.header('Content-Disposition', `attachment; filename="${pkg.filename}"`)
+      return reply.type('application/zip').send(pkg.buffer)
+    },
+  )
+
+  server.post(
+    '/api/accounting/month-close/archive-missing',
+    {
+      preHandler: [app.authenticate],
+      schema: {
+        body: MonthCloseArchiveMissingBodySchema,
+        querystring: MonthCloseArchiveMissingQuerySchema,
+      },
+    },
+    async (req) => {
+      const month = req.body?.month ?? req.query.month
+      return { success: true, data: await monthClose.archiveMissingForMonth(month) }
+    },
+  )
+
+  server.post(
+    '/api/accounting/month-close/fulfill-expected',
+    { preHandler: [app.authenticate], schema: { body: FulfillExpectedBodySchema } },
+    async (req, reply) => {
+      try {
+        const record = await monthClose.fulfillExpectedRow(req.body, req.me.id)
+        return reply.code(201).send({ success: true, data: record })
+      } catch (err) {
+        if (err instanceof service.InvalidPdfUploadError) {
+          return reply.code(400).send({ success: false, error: err.message })
+        }
+        if (err instanceof service.DuplicateDocumentNumberError) {
+          return reply.code(409).send({ success: false, error: err.message })
+        }
+        throw err
+      }
+    },
+  )
+
+  server.put(
+    '/api/accounting/month-close/status',
+    { preHandler: [app.authenticate], schema: { body: MonthCloseStatusBodySchema } },
+    async (req) => ({
+      success: true,
+      data: await monthClose.setMonthClosureStatus(
+        req.body.month,
+        req.body.closed,
+        req.body.note,
+        req.me.id,
+      ),
+    }),
+  )
+
+  // ── Supplier email import & rules ──────────────────────────────────────────
+
+  server.get(
+    '/api/accounting/email-import/prefill',
+    { preHandler: [app.authenticate], schema: { querystring: PrefillFromEmailQuerySchema } },
+    async (req, reply) => {
+      try {
+        const data = await supplierEmail.prefillFromEmailAttachment(
+          req.me,
+          req.query.messageId,
+          req.query.attachmentId,
+        )
+        return { success: true, data }
+      } catch (err) {
+        if (err instanceof supplierEmail.SupplierEmailNotFoundError) {
+          return reply.code(404).send({ success: false, error: err.message })
+        }
+        throw err
+      }
+    },
+  )
+
+  server.post(
+    '/api/accounting/email-import',
+    { preHandler: [app.authenticate], schema: { body: ImportFromEmailBodySchema } },
+    async (req, reply) => {
+      try {
+        const canManageRules =
+          req.me.role?.kind === 'admin' || req.me.features.includes('facturi.setari')
+        const data = await supplierEmail.importInvoiceFromEmail(req.me, req.body, canManageRules)
+        return { success: true, data }
+      } catch (err) {
+        if (err instanceof supplierEmail.SupplierEmailNotFoundError) {
+          return reply.code(404).send({ success: false, error: err.message })
+        }
+        if (err instanceof supplierEmail.SupplierEmailBadRequestError) {
+          return reply.code(400).send({ success: false, error: err.message })
+        }
+        if (err instanceof service.DuplicateDocumentNumberError) {
+          return reply.code(409).send({ success: false, error: err.message })
+        }
+        throw err
+      }
+    },
+  )
+
+  server.get(
+    '/api/accounting/supplier-rules',
+    { preHandler: [app.authenticate] },
+    async () => ({ success: true, data: await supplierEmail.listSupplierRules() }),
+  )
+
+  server.post(
+    '/api/accounting/supplier-rules',
+    { preHandler: [app.authenticate], schema: { body: SupplierRuleCreateSchema } },
+    async (req, reply) => {
+      const rule = await supplierEmail.createSupplierRule(req.body, req.me.id)
+      return reply.code(201).send({ success: true, data: rule })
+    },
+  )
+
+  server.patch(
+    '/api/accounting/supplier-rules/:id',
+    {
+      preHandler: [app.authenticate],
+      schema: { params: SupplierRuleIdParamsSchema, body: SupplierRuleUpdateSchema },
+    },
+    async (req, reply) => {
+      const rule = await supplierEmail.updateSupplierRule(req.params.id, req.body, req.me.id)
+      if (!rule) return reply.code(404).send({ success: false, error: 'Supplier rule not found' })
+      return { success: true, data: rule }
+    },
+  )
+
+  server.delete(
+    '/api/accounting/supplier-rules/:id',
+    { preHandler: [app.authenticate], schema: { params: SupplierRuleIdParamsSchema } },
+    async (req, reply) => {
+      const rule = await supplierEmail.deleteSupplierRule(req.params.id)
+      if (!rule) return reply.code(404).send({ success: false, error: 'Supplier rule not found' })
+      return { success: true, data: rule }
+    },
+  )
+
+  server.post(
+    '/api/accounting/supplier-rules/backfill',
+    { preHandler: [app.authenticate], schema: { body: SupplierRuleBackfillSchema } },
+    async (req) => ({
+      success: true,
+      data: await supplierEmail.backfillSupplierEmailRules(req.body),
+    }),
   )
 }

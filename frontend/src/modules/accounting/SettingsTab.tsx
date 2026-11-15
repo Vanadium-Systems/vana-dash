@@ -17,6 +17,7 @@ import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { openExternal } from '@/shared/lib/open-file'
+import { SupplierRulesCard } from './SupplierRulesCard'
 
 function currentQuarter(): string {
   const now = new Date()
@@ -322,6 +323,7 @@ export function SettingsTab() {
     <div className="space-y-6">
       <AnafConnectionCard />
       <SequenceCard />
+      <SupplierRulesCard />
       <QuarterlyPackageCard />
     </div>
   )

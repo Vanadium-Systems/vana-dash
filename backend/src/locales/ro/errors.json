@@ -246,7 +246,8 @@
     "cycleMonthRequired": "cycleMonth e obligatoriu pt. cycle=\"annual\"",
     "invoiceNotFound": "Factura nu a fost găsită",
     "invoiceNotPaid": "Factura nu e plătită încă — nu există nimic de confirmat",
-    "periodReversed": "Perioada e inversată: data de început e după cea de sfârșit"
+    "periodReversed": "Perioada e inversată: data de început e după cea de sfârșit",
+    "duplicateDocumentNumber": "Factura {{documentNumber}} există deja în aplicație"
   },
   "pdf": {
     "unavailable": "Generare PDF indisponibilă (Chromium neconfigurat)",

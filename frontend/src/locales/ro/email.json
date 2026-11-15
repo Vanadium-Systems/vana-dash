@@ -554,5 +554,26 @@
     "capAboveCompany": "Poate fi cel mult plafonul firmei ({{cap}}).",
     "capInvalid": "Scrie un număr întreg, 0 sau mai mare.",
     "loadFailed": "Setările nu s-au încărcat."
+  },
+  "importAsInvoice": "Adaugă ca factură primită",
+  "importInvoiceDialog": {
+    "title": "Adaugă ca factură primită",
+    "subtitle": "Salvează PDF-ul în Arhivă și înregistrează factura în Contabilitate → Primite.",
+    "attachmentLabel": "Atașament PDF",
+    "counterpartyName": "Furnizor",
+    "counterpartyCif": "CIF / Cod TVA (opțional)",
+    "counterpartyCountry": "Țară (ISO-2, ex. US, DE)",
+    "documentNumber": "Număr factură",
+    "issuedAt": "Data emiterii",
+    "amount": "Sumă",
+    "currency": "Monedă",
+    "reverseChargeType": "Taxare inversă",
+    "reverseChargeVatRate": "Cotă TVA (%)",
+    "createRuleLabel": "Recunoaște automat și următoarele facturi de la acest furnizor",
+    "senderPatternLabel": "Expeditor (adresă sau domeniu)",
+    "attachmentPatternLabel": "Filtru nume PDF (opțional)",
+    "submit": "Salvează factura",
+    "submitting": "Se salvează…",
+    "successToast": "Factura a fost importată și salvată în Arhivă"
   }
 }

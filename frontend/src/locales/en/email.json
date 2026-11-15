@@ -542,5 +542,26 @@
     "capAboveCompany": "It can be at most the company's cap ({{cap}}).",
     "capInvalid": "Write a whole number, 0 or more.",
     "loadFailed": "The settings did not load."
+  },
+  "importAsInvoice": "Add as received invoice",
+  "importInvoiceDialog": {
+    "title": "Add as received invoice",
+    "subtitle": "Save the PDF to the Archive and record the invoice under Accounting → Received.",
+    "attachmentLabel": "PDF attachment",
+    "counterpartyName": "Supplier",
+    "counterpartyCif": "VAT / Tax ID (optional)",
+    "counterpartyCountry": "Country (ISO-2, e.g. US, DE)",
+    "documentNumber": "Invoice number",
+    "issuedAt": "Issue date",
+    "amount": "Amount",
+    "currency": "Currency",
+    "reverseChargeType": "Reverse charge",
+    "reverseChargeVatRate": "VAT rate (%)",
+    "createRuleLabel": "Automatically match future invoices from this supplier",
+    "senderPatternLabel": "Sender (address or domain)",
+    "attachmentPatternLabel": "PDF name filter (optional)",
+    "submit": "Save invoice",
+    "submitting": "Saving…",
+    "successToast": "The invoice was imported and saved to the Archive"
   }
 }

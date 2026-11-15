@@ -1,32 +1,22 @@
 import { and, eq, isNotNull, isNull, or, sql, type Column, type SQL } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
-import { emailMessages, emailThreadReads, emailThreads, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
+import { emailThreadReads, emailThreads, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
-import { getIdentities, type EmailIdentity } from './settings-service.js'
+import {
+  bareAddress,
+  mailboxAddresses,
+  messageVisibleTo,
+} from '../../shared/lib/supplier-email-ingest.js'
+import type { EmailIdentity } from './settings-service.js'
 import { tr } from '../../shared/lib/i18n.js'
+
+export { bareAddress, mailboxAddresses, messageVisibleTo }
 
 // Cutii de email per om (PLAN.md C2, BE-4). Fiecare vede și trimite doar de pe cutiile
 // atribuite; aceeași cutie poate fi la doi oameni (deci citit/necitit e per om, nu per cutie).
 //
 // Filtrul e în service, nu într-un hook: aceleași condiții intră în liste, căutare, fir deschis
 // prin id și atașamente — un singur loc, ca să nu existe cale de citire rămasă neatinsă.
-
-/** Adresa dintr-un header care poate fi „Vanadium Systems <contact@vanadium.systems>". */
-export function bareAddress(value: string): string {
-  const match = /<([^<>]+)>/.exec(value)
-  return (match?.[1] ?? value).trim().toLowerCase()
-}
-
-/** Adresele reale ale cutiilor atribuite omului; `null` = adminul, care le are pe toate. */
-export async function mailboxAddresses(me: SessionUser): Promise<string[] | null> {
-  if (me.mailboxes === null) return null
-  if (me.mailboxes.length === 0) return []
-  const identities = await getIdentities()
-  return me.mailboxes
-    .map((key) => identities.find((i) => i.key === key)?.fromAddress)
-    .filter((a): a is string => Boolean(a))
-    .map(bareAddress)
-}
 
 /**
  * Adresa dintr-un header `From`/`To` care poate fi „Vanadium Systems <contact@vanadium.systems>".
@@ -54,17 +44,6 @@ export function threadVisibleTo(addresses: string[] | null): SQL | undefined {
         (m.direction = 'in' AND ${addressOf(sql`m.to_address`)} = ANY(${list}))
         OR (m.direction = 'out' AND ${addressOf(sql`m.from_address`)} = ANY(${list}))
       )
-  )`
-}
-
-/** Același filtru, pe un rând din `email_messages` (atașamente, mesaj singular). */
-export function messageVisibleTo(addresses: string[] | null): SQL | undefined {
-  if (addresses === null) return undefined
-  if (addresses.length === 0) return sql`false`
-  const list = addressList(addresses)
-  return sql`(
-    (${emailMessages.direction} = 'in' AND ${addressOf(emailMessages.toAddress)} = ANY(${list}))
-    OR (${emailMessages.direction} = 'out' AND ${addressOf(emailMessages.fromAddress)} = ANY(${list}))
   )`
 }
 

@@ -139,3 +139,125 @@ export const SpvMessageSaveBodySchema = z.object({
   cif: z.string().min(2).max(13),
   createdAt: z.coerce.date(),
 })
+
+// ── Supplier email rules & email invoice ingestion ───────────────────────────
+
+const SENDER_PATTERN_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const SENDER_PATTERN_DOMAIN_RE = /^@[a-z0-9.-]+\.[a-z]{2,}$/
+
+export function isValidSenderPattern(value: string): boolean {
+  const normalized = value.trim().toLowerCase()
+  return SENDER_PATTERN_EMAIL_RE.test(normalized) || SENDER_PATTERN_DOMAIN_RE.test(normalized)
+}
+
+export const SupplierRuleCreateSchema = z.object({
+  senderPattern: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3)
+    .max(200)
+    .refine(isValidSenderPattern, {
+      message: 'Expected a valid email address or @domain.tld',
+    }),
+  subjectContains: z.string().trim().max(200).nullish(),
+  attachmentNamePattern: z.string().trim().max(200).nullish(),
+  counterpartyName: z.string().trim().min(1).max(200),
+  counterpartyCif: z.string().trim().max(50).nullish(),
+  counterpartyCountry: z.string().trim().length(2).toUpperCase().nullish(),
+  currency: z.enum(['RON', 'EUR', 'USD']).default('EUR'),
+  category: z.string().trim().max(100).nullish(),
+  reverseChargeType: z.enum(['none', 'eu_services', 'non_eu_services']).default('none'),
+  reverseChargeVatRate: z.number().nonnegative().max(100).nullish(),
+  recurringExpenseId: z.string().uuid().nullish(),
+  active: z.boolean().default(true),
+})
+
+export const SupplierRuleUpdateSchema = updateSchema(SupplierRuleCreateSchema)
+
+export const SupplierRuleIdParamsSchema = z.object({ id: z.string().uuid() })
+
+export const SupplierRuleBackfillSchema = z.object({
+  months: z.number().int().min(1).max(12).default(3),
+  ruleId: z.string().uuid().optional(),
+})
+
+export const PrefillFromEmailQuerySchema = z.object({
+  messageId: z.string().uuid(),
+  attachmentId: z.string().uuid(),
+})
+
+export const ImportFromEmailBodySchema = z.object({
+  messageId: z.string().uuid(),
+  attachmentId: z.string().uuid(),
+  counterpartyName: z.string().trim().min(1).max(200),
+  counterpartyCif: z.string().trim().max(50).nullish(),
+  counterpartyCountry: z.string().trim().length(2).toUpperCase().nullish(),
+  documentNumber: z.string().trim().max(50).nullish(),
+  issuedAt: z.coerce.date(),
+  amount: z.number().nonnegative(),
+  currency: z.enum(['RON', 'EUR', 'USD']).default('EUR'),
+  category: z.string().trim().max(100).nullish(),
+  reverseChargeType: z.enum(['none', 'eu_services', 'non_eu_services']).default('none'),
+  reverseChargeVatRate: z.number().nonnegative().max(100).nullish(),
+  createRule: z.boolean().default(false),
+  senderPattern: z.string().trim().toLowerCase().nullish(),
+  attachmentNamePattern: z.string().trim().max(200).nullish(),
+})
+
+// ── Record review confirmation & manual PDF upload ───────────────────────────
+
+export const ConfirmRecordReviewSchema = z.object({
+  documentNumber: z.string().trim().max(50).nullish(),
+  issuedAt: z.coerce.date().optional(),
+  amount: z.number().nonnegative().optional(),
+  currency: z.enum(['RON', 'EUR', 'USD']).optional(),
+  counterpartyName: z.string().trim().min(1).max(200).optional(),
+  counterpartyCif: z.string().trim().max(50).nullish(),
+  counterpartyCountry: z.string().trim().length(2).toUpperCase().nullish(),
+  reverseChargeType: z.enum(['none', 'eu_services', 'non_eu_services']).optional(),
+  reverseChargeVatRate: z.number().nonnegative().max(100).nullish(),
+})
+
+export const UploadRecordPdfSchema = z.object({
+  filename: z.string().trim().min(1).max(200),
+  contentBase64: z.string().min(1),
+})
+
+// ── Monthly close checklist (Facturi -> Luna) ────────────────────────────────
+
+export const MonthCloseQuerySchema = DeclarationMonthQuerySchema
+
+export const MonthCloseArchiveMissingBodySchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-\d{2}$/, lazyTr('errors.accounting.expectedMonthFormat')).optional(),
+  })
+  .optional()
+
+export const MonthCloseArchiveMissingQuerySchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/, lazyTr('errors.accounting.expectedMonthFormat')).optional(),
+})
+
+export const FulfillExpectedBodySchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/, lazyTr('errors.accounting.expectedMonthFormat')),
+  recurringExpenseId: z.string().uuid().nullish(),
+  supplierRuleId: z.string().uuid().nullish(),
+  counterpartyName: z.string().trim().min(1).max(200).nullish(),
+  counterpartyCif: z.string().trim().max(50).nullish(),
+  counterpartyCountry: z.string().trim().length(2).toUpperCase().nullish(),
+  reverseChargeType: z.enum(['none', 'eu_services', 'non_eu_services']).optional(),
+  reverseChargeVatRate: z.number().nonnegative().max(100).nullish(),
+  documentNumber: z.string().trim().max(50).nullish(),
+  issuedAt: z.coerce.date(),
+  amount: z.number().nonnegative(),
+  currency: z.enum(['RON', 'EUR', 'USD']).default('EUR'),
+  category: z.string().trim().max(100).nullish(),
+  filename: z.string().trim().min(1).max(200),
+  contentBase64: z.string().min(1),
+})
+
+export const MonthCloseStatusBodySchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/, lazyTr('errors.accounting.expectedMonthFormat')),
+  closed: z.boolean(),
+  note: z.string().trim().max(500).nullish(),
+})

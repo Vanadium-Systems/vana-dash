@@ -106,6 +106,37 @@ const SOURCES: GuideSource[] = [
     ],
   },
   {
+    id: 'facturi-luna-email',
+    route: '/accounting',
+    feature: 'facturi.view',
+    title: {
+      ro: 'Închiderea lunii (tab-ul Luna) și facturi primite pe email',
+      en: 'Monthly close (Month tab) and supplier invoices by email',
+    },
+    summary: {
+      ro: 'Verifici toate facturile lunii, completezi documentele lipsă, arhivezi totul și descarci pachetul pentru contabilă.',
+      en: 'Review every invoice in the month, upload missing PDFs, archive everything and download the accountant package.',
+    },
+    steps: [
+      {
+        ro: 'Tab-ul Luna deschide implicit luna anterioară până pe 25 ale lunii (sau luna curentă după 26). Filtrele de sus arată rapid facturile emise, primite din e-Factura, primite pe email/manual, așteptatele lipsă și cele nearhivate.',
+        en: 'The Month tab opens the previous month by default until the 25th (or the current month from the 26th). The top filters show issued, e-Factura received, email/manual received, expected missing, and unarchived documents.',
+      },
+      {
+        ro: 'Facturile aduse automat din email apar cu badge-ul „De verificat” și nu intră în D301/D390 până nu apeși „Confirmă” și verifici numărul, data și suma extrase din PDF.',
+        en: 'Invoices auto-ingested from email show a “Needs review” badge and stay out of D301/D390 until you click “Confirm” and verify the extracted number, date, and amount.',
+      },
+      {
+        ro: 'Pentru furnizorii recurenți fără factură încărcată, poți încărca PDF-ul direct pe rând sau poți căuta în Email după expeditor. La final apeși „Arhivează tot ce lipsește”, descarci pachetul .zip și marchezi luna completă.',
+        en: 'For recurring suppliers without an uploaded invoice, you can upload the PDF directly on the row or search in Email by sender. At the end, click “Archive all missing”, download the .zip package, and mark the month complete.',
+      },
+      {
+        ro: 'În Facturi → Setări configurezi regulile „Facturi furnizori din email” (inclusiv preseturi Anthropic / Hetzner și scanare pe ultimele 3 luni). În Email, pe orice atașament PDF primit ai butonul „Adaugă ca factură primită”.',
+        en: 'In Invoices → Settings you configure “Supplier invoices from email” rules (including Anthropic / Hetzner presets and a 3-month scan). In Email, every received PDF attachment has an “Import as received invoice” button.',
+      },
+    ],
+  },
+  {
     id: 'apeluri-nou',
     route: '/calls',
     feature: 'apeluri.manage',

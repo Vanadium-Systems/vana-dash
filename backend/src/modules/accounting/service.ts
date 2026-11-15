@@ -11,19 +11,23 @@ import {
   recurringExpenses,
   spvMessages,
 } from '../../shared/db/schema/index.js'
-import { recordAudit } from '../../shared/lib/audit.js'
+import { recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
+import { archiveInvoiceDocuments } from '../../shared/lib/financial-archive.js'
 import { PaymentError } from '../../shared/lib/payments.js'
 import { rollBillingDueDateOnPayment } from '../../shared/lib/billing-rollover.js'
 import { computeNextOccurrence, dayAfter, type BillingCycle } from '../../shared/lib/billing-cycle.js'
 import { renderPaymentConfirmationHtml } from '../../shared/lib/documents.js'
 import { htmlToPdf, isPdfAvailable } from '../../shared/lib/pdf.js'
+import { saveDocument } from '../../shared/lib/storage.js'
 import type {
+  ConfirmRecordReviewSchema,
   ManualRecordCreateSchema,
   PaymentUpdateSchema,
   RecordsQuerySchema,
   RecurringExpenseCreateSchema,
   RecurringExpenseUpdateSchema,
   SpvMessageSaveBodySchema,
+  UploadRecordPdfSchema,
 } from './schema.js'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -53,6 +57,11 @@ export const recordColumns = {
   anafMessageId: financialRecords.anafMessageId,
   hasXml: financialRecords.xmlStoragePath,
   hasPdf: financialRecords.pdfStoragePath,
+  needsReview: financialRecords.needsReview,
+  archiveFileId: financialRecords.archiveFileId,
+  emailMessageId: financialRecords.emailMessageId,
+  emailAttachmentId: financialRecords.emailAttachmentId,
+  supplierRuleId: financialRecords.supplierRuleId,
   createdAt: financialRecords.createdAt,
 }
 
@@ -435,4 +444,195 @@ export async function listSavedSpvMessages(): Promise<SpvMessage[]> {
     .where(isNull(spvMessages.deletedAt))
     .orderBy(desc(spvMessages.anafCreatedAt))
   return rows.map((r) => ({ id: r.anafMessageId, type: r.type, detail: r.detail, cif: r.cif, createdAt: r.anafCreatedAt }))
+}
+
+// ── Supplier email review confirmation, PDF upload & manual archiving ────────
+
+const MAX_UPLOAD_PDF_BYTES = 15 * 1024 * 1024
+
+export class DuplicateDocumentNumberError extends Error {
+  readonly statusCode = 409
+  constructor(documentNumber: string) {
+    super(tr('errors.accounting.duplicateDocumentNumber', { documentNumber }))
+    this.name = 'DuplicateDocumentNumberError'
+  }
+}
+
+export class InvalidPdfUploadError extends Error {
+  readonly statusCode = 400
+  constructor(message: string) {
+    super(message)
+    this.name = 'InvalidPdfUploadError'
+  }
+}
+
+function isPgUniqueViolation(err: unknown): boolean {
+  const candidate = err as { code?: string; cause?: { code?: string } }
+  return candidate?.code === '23505' || candidate?.cause?.code === '23505'
+}
+
+export async function confirmRecordReview(
+  id: string,
+  input: z.infer<typeof ConfirmRecordReviewSchema>,
+  userId?: string,
+) {
+  const [existing] = await db
+    .select()
+    .from(financialRecords)
+    .where(and(eq(financialRecords.id, id), isNull(financialRecords.deletedAt)))
+    .limit(1)
+  if (!existing) return null
+
+  try {
+    await db
+      .update(financialRecords)
+      .set({
+        needsReview: false,
+        ...(input.documentNumber !== undefined
+          ? { documentNumber: input.documentNumber?.trim() || null }
+          : {}),
+        ...(input.issuedAt !== undefined ? { issuedAt: input.issuedAt } : {}),
+        ...(input.amount !== undefined ? { amount: input.amount.toFixed(2) } : {}),
+        ...(input.currency !== undefined ? { currency: input.currency } : {}),
+        ...(input.counterpartyName !== undefined
+          ? { counterpartyName: input.counterpartyName.trim() }
+          : {}),
+        ...(input.counterpartyCif !== undefined
+          ? { counterpartyCif: input.counterpartyCif?.trim() || null }
+          : {}),
+        ...(input.counterpartyCountry !== undefined
+          ? { counterpartyCountry: input.counterpartyCountry?.trim().toUpperCase() || null }
+          : {}),
+        ...(input.reverseChargeType !== undefined
+          ? { reverseChargeType: input.reverseChargeType }
+          : {}),
+        ...(input.reverseChargeVatRate !== undefined
+          ? {
+              reverseChargeVatRate:
+                input.reverseChargeVatRate != null ? String(input.reverseChargeVatRate) : null,
+            }
+          : {}),
+        updatedAt: new Date(),
+        ...(userId ? { updatedByUserId: userId } : updatedByUserId()),
+      })
+      .where(eq(financialRecords.id, id))
+  } catch (err) {
+    if (isPgUniqueViolation(err)) {
+      throw new DuplicateDocumentNumberError(input.documentNumber ?? '')
+    }
+    throw err
+  }
+
+  const [updated] = await db
+    .select()
+    .from(financialRecords)
+    .where(eq(financialRecords.id, id))
+    .limit(1)
+
+  if (updated && (updated.pdfStoragePath || updated.xmlStoragePath) && !updated.archiveFileId) {
+    await archiveInvoiceDocuments({
+      recordId: updated.id,
+      direction: updated.direction,
+      issuedAt: updated.issuedAt,
+      counterpartyName: updated.counterpartyName,
+      counterpartyCif: updated.counterpartyCif,
+      documentNumber: updated.documentNumber,
+      anafMessageId: updated.anafMessageId,
+      pdfStoragePath: updated.pdfStoragePath,
+      xmlStoragePath: updated.xmlStoragePath,
+    })
+  }
+
+  await recordAudit({
+    action: 'factura.email.confirmata',
+    entityType: 'financial_record',
+    entityId: id,
+    actorUserId: userId,
+  })
+
+  const [row] = await db
+    .select(recordColumns)
+    .from(financialRecords)
+    .where(eq(financialRecords.id, id))
+    .limit(1)
+  return row ? toPublicRow(row) : null
+}
+
+export async function uploadRecordPdf(
+  id: string,
+  input: z.infer<typeof UploadRecordPdfSchema>,
+  userId?: string,
+) {
+  const [existing] = await db
+    .select()
+    .from(financialRecords)
+    .where(and(eq(financialRecords.id, id), isNull(financialRecords.deletedAt)))
+    .limit(1)
+  if (!existing) return null
+
+  const buffer = Buffer.from(input.contentBase64, 'base64')
+  if (buffer.byteLength > MAX_UPLOAD_PDF_BYTES) {
+    throw new InvalidPdfUploadError('PDF file exceeds the 15 MB limit')
+  }
+  if (buffer.byteLength < 8 || !buffer.subarray(0, 5).equals(Buffer.from('%PDF-'))) {
+    throw new InvalidPdfUploadError('File is not a valid PDF document')
+  }
+
+  const safeFilename = input.filename.replace(/[^A-Za-z0-9._-]/g, '_') || 'invoice.pdf'
+  const pdfStoragePath = await saveDocument(`supplier-invoices/manual/${id}/${safeFilename}`, buffer)
+
+  await db
+    .update(financialRecords)
+    .set({
+      pdfStoragePath,
+      updatedAt: new Date(),
+      ...(userId ? { updatedByUserId: userId } : updatedByUserId()),
+    })
+    .where(eq(financialRecords.id, id))
+
+  await archiveInvoiceDocuments({
+    recordId: existing.id,
+    direction: existing.direction,
+    issuedAt: existing.issuedAt,
+    counterpartyName: existing.counterpartyName,
+    counterpartyCif: existing.counterpartyCif,
+    documentNumber: existing.documentNumber,
+    anafMessageId: existing.anafMessageId,
+    pdfStoragePath,
+    xmlStoragePath: existing.xmlStoragePath,
+  })
+
+  const [row] = await db
+    .select(recordColumns)
+    .from(financialRecords)
+    .where(eq(financialRecords.id, id))
+    .limit(1)
+  return row ? toPublicRow(row) : null
+}
+
+export async function archiveRecordNow(id: string) {
+  const [existing] = await db
+    .select()
+    .from(financialRecords)
+    .where(and(eq(financialRecords.id, id), isNull(financialRecords.deletedAt)))
+    .limit(1)
+  if (!existing) return null
+
+  if (!existing.pdfStoragePath && !existing.xmlStoragePath) {
+    throw new InvalidPdfUploadError('Record has no PDF or XML document to archive')
+  }
+
+  const { pdfArchiveFileId, xmlArchiveFileId } = await archiveInvoiceDocuments({
+    recordId: existing.id,
+    direction: existing.direction,
+    issuedAt: existing.issuedAt,
+    counterpartyName: existing.counterpartyName,
+    counterpartyCif: existing.counterpartyCif,
+    documentNumber: existing.documentNumber,
+    anafMessageId: existing.anafMessageId,
+    pdfStoragePath: existing.pdfStoragePath,
+    xmlStoragePath: existing.xmlStoragePath,
+  })
+
+  return { archiveFileId: pdfArchiveFileId ?? xmlArchiveFileId ?? existing.archiveFileId ?? null }
 }

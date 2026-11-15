@@ -4,6 +4,18 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-15: Monthly close checklist, supplier email rules & email PDF import
+
+### Monthly close (`Facturi → Luna`)
+- Added `GET /api/accounting/month-close?month=YYYY-MM` returning all invoices of the month, synthetic expected rows from active `recurring_expenses` and `supplier_email_rules`, filter counts, archive status, and `accounting_month_closures` state.
+- Added `POST /api/accounting/month-close/archive-missing`, `POST /api/accounting/month-close/fulfill-expected`, `PUT /api/accounting/month-close/status`, and `GET /api/accounting/month-close/package.zip` (exporting `Emise/`, `Primite/`, `Declaratii/`, and `sumar-YYYY-MM.csv`).
+- Added the `MonthCloseTab` UI with filter pills, row actions (confirm review, upload PDF, archive, search/open email), one-click bulk archive, zip download, and month closure toggle.
+
+### Supplier email ingestion & rules
+- Added `supplier_email_rules` management endpoints (`GET/POST/PATCH/DELETE /api/accounting/supplier-rules`, `POST /api/accounting/supplier-rules/backfill`) and `SupplierRulesCard` in Accounting Settings (with Anthropic/Hetzner presets and 3-month backfill).
+- Added `GET /api/accounting/email-import/prefill` and `POST /api/accounting/email-import` plus `ImportEmailInvoiceDialog` on received PDF attachments in Email `ThreadView`.
+- Added `POST /api/accounting/records/:id/confirm-review`, `POST /api/accounting/records/:id/upload-pdf`, and `POST /api/accounting/records/:id/archive` with `needsReview` badges in `RecordsList` and `RecordPage`.
+
 ## 2026-11-13: Invoices: payments, invoice page, editor, storno, proforma
 
 ### Payments

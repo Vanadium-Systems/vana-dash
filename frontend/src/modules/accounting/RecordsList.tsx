@@ -12,6 +12,7 @@ import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
+import { StatePill } from '@/shared/components/ui/state-pill'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PAGE_SIZES, TablePagination } from '@/shared/components/ui/table-pagination'
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
@@ -24,6 +25,7 @@ import { t } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
 import type { FinancialRecord, RecordRow, RecordTab } from '@/shared/lib/types'
 import { AnafStatusBadge } from './badges'
+import { ConfirmSupplierInvoiceDialog, type ConfirmSupplierInvoiceDialogTarget } from './ConfirmSupplierInvoiceDialog'
 import { PaymentPeek } from './PaymentPeek'
 import { useInvalidateRecords, useRecordsPage } from './records-api'
 import { canRecordPayment } from './records-logic'
@@ -50,6 +52,7 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
   const invalidate = useInvalidateRecords()
   const { canShare, share, dialog: shareDialog } = useShareToMessages()
   const [paying, setPaying] = useState<RecordRow | null>(null)
+  const [confirming, setConfirming] = useState<ConfirmSupplierInvoiceDialogTarget | null>(null)
 
   const [statusParam, setStatus] = useUrlState('status', 'all')
   const [search, setSearch] = useSearchState()
@@ -210,19 +213,27 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
                           <AmountCell amount={r.amount} currency={r.currency} secondary={r.companyAmount !== null && list.data ? { amount: r.companyAmount, currency: list.data.companyCurrency } : null} />
                         </TableCell>
                         <TableCell className="tbl-fill font-medium">
-                          <button
-                            type="button"
-                            className="block max-w-full truncate rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              open(r.id)
-                            }}
-                          >
-                            {rowTitle}
-                          </button>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                              type="button"
+                              className="block max-w-full truncate rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                open(r.id)
+                              }}
+                            >
+                              {rowTitle}
+                            </button>
+                            {r.needsReview ? (
+                              <StatePill tone="warning">{t('accounting:monthClose.status.needsReview')}</StatePill>
+                            ) : null}
+                          </div>
                           <TableDetails
                             items={[
                               direction === 'out' ? name : (r.description ?? null),
+                              r.needsReview ? (
+                                <StatePill key="review" tone="warning">{t('accounting:monthClose.status.needsReview')}</StatePill>
+                              ) : null,
                               r.dueAt ? <DueDate key="due" dueAt={r.dueAt} overdue={r.isOverdue && r.paymentStatus !== 'paid'} /> : null,
                               todo ? <span key="todo" className="text-warning-text">{t('accounting:records.todo.pay')}</span> : payment,
                             ]}
@@ -292,6 +303,26 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
                               ...(canPay
                                 ? [{ key: 'pay', icon: CircleDollarSign, label: direction === 'out' ? t('accounting:records.recordPaymentOut') : t('accounting:records.recordPaymentIn'), onClick: () => setPaying(r) }]
                                 : []),
+                              ...(r.needsReview && canIssue
+                                ? [{
+                                    key: 'confirm-review',
+                                    icon: FileCheck,
+                                    label: t('accounting:monthClose.actions.confirmReview'),
+                                    onClick: () => setConfirming({
+                                      mode: 'confirm',
+                                      recordId: r.id,
+                                      counterpartyName: r.counterpartyName,
+                                      counterpartyCif: r.counterpartyCif,
+                                      counterpartyCountry: r.counterpartyCountry,
+                                      documentNumber: r.documentNumber,
+                                      issuedAt: r.issuedAt,
+                                      amount: r.amount,
+                                      currency: r.currency,
+                                      reverseChargeType: r.reverseChargeType,
+                                      reverseChargeVatRate: r.reverseChargeVatRate,
+                                    }),
+                                  }]
+                                : []),
                             ]}
                             menu={[
                               ...(canShare
@@ -315,6 +346,12 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
         </CardContent>
       </Card>
       <PaymentPeek record={paying} onClose={() => setPaying(null)} />
+      <ConfirmSupplierInvoiceDialog
+        target={confirming}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setConfirming(null)
+        }}
+      />
       {shareDialog}
     </div>
   )

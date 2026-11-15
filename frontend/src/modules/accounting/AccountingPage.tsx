@@ -6,6 +6,7 @@ import type { FeatureKey } from '@/shared/lib/types'
 import { DeclarationsTab } from './DeclarationsTab'
 import { EmiseTab } from './EmiseTab'
 import { MesajeTab } from './MesajeTab'
+import { MonthCloseTab } from './MonthCloseTab'
 import { PrimiteTab } from './PrimiteTab'
 import { ProformasTab } from './ProformasTab'
 import { SettingsTab } from './SettingsTab'
@@ -17,6 +18,7 @@ const TABS: Array<{ key: string; label: string; feature?: FeatureKey }> = [
   { key: 'emise', label: t('accounting:tabs.issued') },
   { key: 'proforme', label: t('accounting:proformas.tab') },
   { key: 'primite', label: t('accounting:tabs.received') },
+  { key: 'luna', label: t('accounting:tabs.monthClose') },
   { key: 'declaratii', label: t('accounting:tabs.declarations'), feature: 'facturi.declaratii' },
   { key: 'mesaje', label: t('accounting:tabs.spvMessages'), feature: 'facturi.anaf' },
   { key: 'setari', label: t('common:nav.settings'), feature: 'facturi.setari' },
@@ -53,6 +55,9 @@ export function AccountingPage() {
         </TabsContent>
         <TabsContent value="primite">
           <PrimiteTab />
+        </TabsContent>
+        <TabsContent value="luna">
+          <MonthCloseTab />
         </TabsContent>
         <TabsContent value="declaratii">
           <DeclarationsTab />

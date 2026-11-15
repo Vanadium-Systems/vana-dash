@@ -67,6 +67,7 @@ import {
   prospectViews,
   prospects,
   roles,
+  supplierEmailRules,
   supportTicketReplies,
   supportTickets,
   userMailboxes,
@@ -333,7 +334,44 @@ const byNumber = (n: string) => stateRows.find((r) => r.documentNumber === n)!
 const partialInvoice = byNumber(partialNumber)
 const splitInvoice = byNumber(splitNumber)
 
-// A storno reverses part of an already paid invoice; its lines carry the negative quantity.
+  const [anthropicRule] = await db
+    .insert(supplierEmailRules)
+    .values({
+      senderPattern: 'invoice+statements@mail.anthropic.com',
+      attachmentNamePattern: 'Invoice-',
+      counterpartyName: 'Anthropic, PBC',
+      counterpartyCountry: 'US',
+      currency: 'EUR',
+      category: INFRASTRUCTURE,
+      reverseChargeType: 'non_eu_services',
+      reverseChargeVatRate: '21',
+      active: true,
+      createdByUserId: admin.id,
+    })
+    .returning()
+
+  await db.insert(financialRecords).values({
+    type: 'invoice',
+    direction: 'in',
+    source: 'email',
+    needsReview: true,
+    amount: '45.00',
+    currency: 'EUR',
+    description: 'Anthropic API / Claude subscription',
+    category: INFRASTRUCTURE,
+    issuedAt: daysAgo(1),
+    paymentStatus: 'unpaid',
+    paidAt: null,
+    documentNumber: 'ANTH-DEMO-001',
+    counterpartyName: 'Anthropic, PBC',
+    counterpartyCountry: 'US',
+    reverseChargeType: 'non_eu_services',
+    reverseChargeVatRate: '21',
+    supplierRuleId: anthropicRule!.id,
+    createdByUserId: admin.id,
+  })
+
+  // A storno reverses part of an already paid invoice; its lines carry the negative quantity.
 const stornoSource = invoiceRows.find((r) => r.documentNumber === 'DEMO-0001')!
 const [storno] = await db
   .insert(financialRecords)

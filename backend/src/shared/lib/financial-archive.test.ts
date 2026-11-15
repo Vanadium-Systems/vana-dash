@@ -104,7 +104,7 @@ describe('archiveInvoiceDocuments — idempotență și izolare erori', () => {
 
     await expect(
       archiveInvoiceDocuments({ ...baseInvoice, direction: 'out', anafPdfStoragePath: 'outgoing/2026/anaf_msg-123.pdf' }),
-    ).resolves.toBeUndefined()
+    ).resolves.toEqual({ pdfArchiveFileId: 'file-id-1', xmlArchiveFileId: 'file-id-1' })
 
     expect(uploadFileMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'ACC1786.pdf' }))
     expect(uploadFileMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'ACC1786.xml' }))
@@ -113,7 +113,10 @@ describe('archiveInvoiceDocuments — idempotență și izolare erori', () => {
 
   it('eșecul creării folderului (ensureFolderPath) nu aruncă — doar renunță la arhivarea acestei facturi', async () => {
     ensureFolderPathMock.mockRejectedValueOnce(new Error('DB indisponibilă'))
-    await expect(archiveInvoiceDocuments({ ...baseInvoice, direction: 'in' })).resolves.toBeUndefined()
+    await expect(archiveInvoiceDocuments({ ...baseInvoice, direction: 'in' })).resolves.toEqual({
+      pdfArchiveFileId: null,
+      xmlArchiveFileId: null,
+    })
     expect(uploadFileMock).not.toHaveBeenCalled()
   })
 })

@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-15T16:00:00Z',
+    title: {
+      ro: 'Facturi: tab-ul Luna (închidere de lună), reguli email furnizori și import PDF din Email',
+      en: 'Invoices: Month tab (monthly close), supplier email rules and PDF import from Email',
+    },
+    body: {
+      ro: 'Tab-ul nou Luna din Facturi adună la un loc toate facturile emise, primite prin e-Factura, email sau manual, plus cheltuielile recurente și furnizorii așteptați care încă nu au factură. Poți arhiva documentele lipsă cu un click, confirma datele extrase din PDF, descărca pachetul complet al lunii (.zip cu Emise, Primite, Declarații și sumar CSV) și marca luna ca închisă. În Setări → Facturi configurezi reguli de recunoaștere automată a facturilor PDF primite pe email (cu preseturi Anthropic și Hetzner și scanare pe ultimele 3 luni), iar din Email poți importa orice atașament PDF direct ca factură primită.',
+      en: 'The new Month tab in Invoices brings together all issued, e-Factura, email, and manual invoices, plus expected recurring expenses and supplier rules still missing a PDF. You can archive missing documents in one click, confirm extracted PDF details, download the full monthly package (.zip with Issued, Received, Declarations and CSV summary), and mark the month as closed. In Settings → Invoices you can configure automatic supplier email rules (with Anthropic and Hetzner presets and a 3-month backfill), and from Email you can import any PDF attachment directly as a received invoice.',
+    },
+    features: ['facturi.view', 'facturi.emitere', 'facturi.setari'],
+  },
+  {
     publishedAt: '2026-11-13T16:45:00+02:00',
     title: {
       ro: 'Facturi: pagină pentru fiecare factură, plăți parțiale, editor cu previzualizare, storno și proformă',

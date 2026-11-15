@@ -199,6 +199,7 @@ async function sendValidatedInvoiceEmail(record: PendingRecord): Promise<void> {
   // deterministă (aceeași formulă ca persistInvoiceDocuments) — dacă fișierul nu există pe
   // disc încă, archiveInvoiceDocuments sare peste el elegant, fără eroare.
   await archiveInvoiceDocuments({
+    recordId: record.id,
     direction: 'out',
     issuedAt: record.issuedAt,
     counterpartyName: record.counterpartyName,

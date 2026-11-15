@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Forward, Image as ImageIcon, MessageSquareShare, MoreHorizontal, Paperclip, Reply, ReplyAll, ShieldAlert, Star, Trash2 } from 'lucide-react'
+import { Archive, ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Forward, Image as ImageIcon, MessageSquareShare, MoreHorizontal, Paperclip, Receipt, Reply, ReplyAll, ShieldAlert, Star, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { FileViewer, type ViewerFile } from '@/shared/components/FileViewer'
@@ -24,6 +24,7 @@ import { openCompose, type ComposeInit } from './compose/compose-store'
 import { ComposeForm } from './compose/ComposeForm'
 import { usePhoneLayout, useSendFlowHandlers } from './compose/ComposeWindows'
 import { HtmlMessageBody } from './HtmlMessageBody'
+import { ImportEmailInvoiceDialog, type ImportEmailInvoiceTarget } from './ImportEmailInvoiceDialog'
 import { SnoozeMenu } from './SnoozeMenu'
 import { Avatar, senderName, type MoveFolder } from './ThreadRow'
 
@@ -243,6 +244,8 @@ export function ThreadView({
     openCompose({ kind: 'forward', messageId: message.id, threadId, subject: message.subject, fromAddress: message.toAddress })
 
   const canSend = can('email.trimitere')
+  const canImportInvoice = can('facturi.emitere')
+  const [importTarget, setImportTarget] = useState<ImportEmailInvoiceTarget | null>(null)
   useHotkeys(
     [
       { keys: 'r', label: t('common:actions.reply'), onKey: (e) => { e.preventDefault(); startReply(false) } },
@@ -482,9 +485,32 @@ export function ThreadView({
               )}
               {files.length > 0 ? (
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  {files.map((a) => (
-                    <AttachmentChip key={a.id} attachment={a} onOpen={() => openFile(a.id)} />
-                  ))}
+                  {files.map((a) => {
+                    const isPdf =
+                      a.filename.toLowerCase().endsWith('.pdf') ||
+                      a.contentType?.toLowerCase() === 'application/pdf'
+                    return (
+                      <div key={a.id} className="inline-flex items-center gap-1">
+                        <AttachmentChip attachment={a} onOpen={() => openFile(a.id)} />
+                        {m.direction === 'in' && isPdf && canImportInvoice ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setImportTarget({
+                                messageId: m.id,
+                                attachmentId: a.id,
+                                filename: a.filename,
+                              })
+                            }
+                          >
+                            <Receipt className="h-3.5 w-3.5" /> {t('email:importAsInvoice')}
+                          </Button>
+                        ) : null}
+                      </div>
+                    )
+                  })}
                   {files.length > 1 ? (
                     <Button
                       variant="ghost"
@@ -523,6 +549,12 @@ export function ThreadView({
           onDownload={(file) => void api.download(file.url, file.name).catch((err: Error) => toast.error(err.message))}
         />
       ) : null}
+      <ImportEmailInvoiceDialog
+        target={importTarget}
+        onOpenChange={(open) => {
+          if (!open) setImportTarget(null)
+        }}
+      />
       {shareDialog}
     </div>
   )

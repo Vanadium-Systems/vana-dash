@@ -80,9 +80,11 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
     const baseRon = Math.round(amount * fxRate * 100) / 100
     const vatRon = Math.round(((amount * fxRate * vatRate) / 100) * 100) / 100
 
-    const confirmed = row.source !== 'recurring_expense' || Boolean(row.documentNumber)
+    const confirmed = !row.needsReview && (row.source !== 'recurring_expense' || Boolean(row.documentNumber))
     const label = `${row.counterpartyName ?? row.id} din ${row.issuedAt.toISOString().slice(0, 10)}`
-    if (!confirmed) {
+    if (row.needsReview) {
+      warnings.push(`${label}: factură importată automat din email, încă neverificată - confirm-o din Facturi → Luna / Primite ca să intre în declarație`)
+    } else if (!confirmed) {
       warnings.push(`${label}: abonament recurent, fără factură — nu intră în declarație până nu pui numărul, data și suma de pe factura reală (creionul de pe rând)`)
     } else if (!row.documentNumber) {
       warnings.push(`${label}: lipsește numărul facturii — completează-l cu creionul de pe rând`)
@@ -277,6 +279,7 @@ export async function updateDeclarationLine(id: string, input: z.infer<typeof De
         ...(input.issuedAt !== undefined ? { issuedAt: input.issuedAt } : {}),
         ...(input.amount !== undefined ? { amount: String(input.amount) } : {}),
         ...(input.reverseChargeType !== undefined ? { reverseChargeType: input.reverseChargeType } : {}),
+        needsReview: false,
         updatedAt: new Date(),
       })
       .where(and(eq(financialRecords.id, id), eq(financialRecords.direction, 'in'), isNull(financialRecords.deletedAt)))

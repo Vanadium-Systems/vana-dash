@@ -121,6 +121,7 @@ async function runAnafSync(): Promise<{ imported: number }> {
       const isNewlyInserted = row && row.createdAt.getTime() === row.updatedAt.getTime()
       if (isNewlyInserted) {
         await archiveInvoiceDocuments({
+          recordId: row.id,
           direction: 'in',
           issuedAt: invoice.issuedAt,
           counterpartyName: invoice.counterpartyName,
@@ -195,6 +196,7 @@ async function runAnafSync(): Promise<{ imported: number }> {
       // randat de ANAF pt. aceeași factură, arhivat separat ca a treia copie (regula #7).
       if (row && !alreadyLinkedByAnaf) {
         await archiveInvoiceDocuments({
+          recordId: row.id,
           direction: 'out',
           issuedAt: invoice.issuedAt,
           counterpartyName: invoice.counterpartyName,

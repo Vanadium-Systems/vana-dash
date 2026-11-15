@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Ban, CircleDollarSign, Copy, Download, FileCheck, FileInput, MessageSquareShare, MoreVertical, Pencil, Send, Trash2, Undo2 } from 'lucide-react'
+import { ArrowLeft, Ban, CircleDollarSign, Copy, Download, FileCheck, FileInput, Mail, MessageSquareShare, MoreVertical, Pencil, Send, Trash2, Undo2 } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -24,6 +24,7 @@ import { openFile } from '@/shared/lib/open-file'
 import type { FinancialRecord, RecordDetail, RecordPayment, RecordTimelineEntry } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { AnafStatusBadge } from './badges'
+import { ConfirmSupplierInvoiceDialog, type ConfirmSupplierInvoiceDialogTarget } from './ConfirmSupplierInvoiceDialog'
 import { PaymentPeek } from './PaymentPeek'
 import { proformaMessage, useProformaActions } from './proforma-actions'
 import { useInvalidateRecords, useRecordDetail, useRemovePayment } from './records-api'
@@ -182,6 +183,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
   const { canShare, share, dialog: shareDialog } = useShareToMessages()
   const [paying, setPaying] = useState(false)
   const [storno, setStorno] = useState(false)
+  const [confirming, setConfirming] = useState<ConfirmSupplierInvoiceDialogTarget | null>(null)
   const proformaActions = useProformaActions()
   const canIssue = can('facturi.emitere')
   const canAnaf = can('facturi.anaf')
@@ -298,6 +300,36 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
                 <Send aria-hidden="true" /> {rejected ? t('accounting:issued.resendToAnaf') : t('accounting:issued.sendToAnaf')}
               </Button>
             ) : null}
+            {record.needsReview && canIssue ? (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setConfirming({
+                    mode: 'confirm',
+                    recordId: record.id,
+                    counterpartyName: record.counterpartyName,
+                    counterpartyCif: record.counterpartyCif,
+                    counterpartyCountry: record.counterpartyCountry,
+                    documentNumber: record.documentNumber,
+                    issuedAt: record.issuedAt,
+                    amount: record.amount,
+                    currency: record.currency,
+                    reverseChargeType: record.reverseChargeType,
+                    reverseChargeVatRate: record.reverseChargeVatRate,
+                  })
+                }
+                data-testid="record-confirm-review"
+              >
+                <FileCheck aria-hidden="true" /> {t('accounting:monthClose.actions.confirmReview')}
+              </Button>
+            ) : null}
+            {record.emailMessageId && can('email.view') ? (
+              <Button variant="outline" asChild>
+                <Link to={`/email?q=${encodeURIComponent(record.counterpartyName || record.documentNumber || '')}`}>
+                  <Mail aria-hidden="true" /> {t('accounting:monthClose.actions.openEmail')}
+                </Link>
+              </Button>
+            ) : null}
             {menu.length > 0 ? (
               <DropdownMenu>
                 <DropdownMenuTrigger className="inline-flex h-control-md w-control-md items-center justify-center rounded-md border border-border bg-background hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -323,6 +355,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
             </h1>
             {isProforma ? <StatePill>{t('accounting:records.page.proforma')}</StatePill> : null}
             {data.storno.corrects ? <StatePill tone="warning">{t('accounting:records.page.storno')}</StatePill> : null}
+            {record.needsReview ? <StatePill tone="warning">{t('accounting:monthClose.status.needsReview')}</StatePill> : null}
             {out && canAnaf && !isDraft && !isProforma ? <AnafStatusBadge status={record.anafStatus} /> : null}
             {isDraft ? (
               <StatePill>{t('accounting:records.page.draft')}</StatePill>
@@ -381,6 +414,12 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
         onClose={() => setPaying(false)}
       />
       {canStorno ? <StornoDialog data={data} open={storno} onOpenChange={setStorno} /> : null}
+      <ConfirmSupplierInvoiceDialog
+        target={confirming}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setConfirming(null)
+        }}
+      />
       {shareDialog}
     </div>
   )

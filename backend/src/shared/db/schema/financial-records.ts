@@ -1,10 +1,14 @@
 import { sql } from 'drizzle-orm'
-import { type AnyPgColumn, check, index, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
-import { standardColumns } from './helpers.js'
-import { auditColumns } from './users.js'
+import { type AnyPgColumn, boolean, check, index, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { archiveFiles } from './archive-files.js'
 import { billingClients } from './billing-clients.js'
+import { emailAttachments } from './email-attachments.js'
+import { emailMessages } from './email-messages.js'
+import { standardColumns } from './helpers.js'
 import { platforms } from './platforms.js'
+import { supplierEmailRules } from './supplier-email-rules.js'
 import { tenantColumns } from './tenant-column.js'
+import { auditColumns } from './users.js'
 
 // Extinsă în sprintul Accounting Hub: vana-dash e sursă primară de adevăr pentru
 // facturile EMISE (direction='out', source='generated') și agregator pentru cele
@@ -62,6 +66,12 @@ export const financialRecords = pgTable(
     correctsRecordId: uuid('corrects_record_id').references((): AnyPgColumn => financialRecords.id),
     convertedToRecordId: uuid('converted_to_record_id').references((): AnyPgColumn => financialRecords.id),
     proformaStatus: text('proforma_status', { enum: ['open', 'invoiced', 'cancelled'] }),
+    // Supplier email ingestion & month-close archive link.
+    needsReview: boolean('needs_review').notNull().default(false),
+    emailMessageId: uuid('email_message_id').references(() => emailMessages.id, { onDelete: 'set null' }),
+    emailAttachmentId: uuid('email_attachment_id').references(() => emailAttachments.id, { onDelete: 'set null' }),
+    archiveFileId: uuid('archive_file_id').references(() => archiveFiles.id, { onDelete: 'set null' }),
+    supplierRuleId: uuid('supplier_rule_id').references(() => supplierEmailRules.id, { onDelete: 'set null' }),
     meta: jsonb('meta'),
   },
   (t) => [
@@ -72,6 +82,9 @@ export const financialRecords = pgTable(
     uniqueIndex('uq_financial_records_doc_number').on(t.tenantId, t.documentNumber),
     index('ix_financial_records_reverse_charge').on(t.reverseChargeType, t.issuedAt),
     index('idx_financial_records_corrects').on(t.correctsRecordId).where(sql`${t.correctsRecordId} IS NOT NULL`),
+    uniqueIndex('uq_financial_records_email_attachment')
+      .on(t.tenantId, t.emailAttachmentId)
+      .where(sql`${t.emailAttachmentId} IS NOT NULL AND ${t.deletedAt} IS NULL`),
     check('ck_financial_records_proforma_status', sql`${t.proformaStatus} IN ('open','invoiced','cancelled')`),
   ],
 )

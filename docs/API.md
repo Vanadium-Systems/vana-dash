@@ -197,6 +197,21 @@ not `platform_metrics`, so revenue is never counted twice.
 | PATCH | `/api/accounting/records/:id/payment` | `{ paymentStatus, paidAt? }`. Only for records that are not issued invoices; an issued invoice answers `409 USE_PAYMENTS` (use the payments routes below) |
 | POST | `/api/accounting/records/:id/payments` | Records a payment, see Payments below |
 | DELETE | `/api/accounting/records/:id/payments/:pid` | Removes a payment, see Payments below |
+| POST | `/api/accounting/records/:id/confirm-review` | Confirms an auto-ingested email invoice (`needsReview = false`), updates extracted fields and archives documents (`facturi.emitere`) |
+| POST | `/api/accounting/records/:id/upload-pdf` | `{ filename, contentBase64 }` (max 15 MB, `%PDF-` magic bytes) - attaches a PDF to a record and archives it (`facturi.emitere`) |
+| POST | `/api/accounting/records/:id/archive` | Manually triggers archiving of a record's PDF/XML into the Archive module (`facturi.emitere`) |
+| GET | `/api/accounting/month-close?month=YYYY-MM` | Monthly close checklist: records, synthetic expected rows, counts and closure status (`facturi.view`) |
+| GET | `/api/accounting/month-close/package.zip?month=YYYY-MM` | Downloads `luna-YYYY-MM.zip` with `Emise/`, `Primite/`, `Declaratii/` and `sumar-YYYY-MM.csv` (`facturi.view`) |
+| POST | `/api/accounting/month-close/archive-missing` | Archives all unarchived invoice documents for the given month (or all months if omitted) (`facturi.emitere`) |
+| POST | `/api/accounting/month-close/fulfill-expected` | Uploads a PDF for an expected recurring expense or supplier rule row, creating/updating the record and archiving it (`facturi.emitere`) |
+| PUT | `/api/accounting/month-close/status` | `{ month, closed, note? }` - marks a month as closed or reopens it (`facturi.emitere`) |
+| GET | `/api/accounting/email-import/prefill?messageId=...&attachmentId=...` | Extracts PDF hints and rule defaults for an email attachment (`facturi.emitere`, `404` if mailbox inaccessible) |
+| POST | `/api/accounting/email-import` | Imports a received email PDF attachment as a confirmed invoice and optionally saves a supplier rule (`facturi.emitere`) |
+| GET | `/api/accounting/supplier-rules` | Lists supplier email ingestion rules (`facturi.setari`) |
+| POST | `/api/accounting/supplier-rules` | Creates (or updates on matching sender+attachment pattern) a supplier email rule (`facturi.setari`) |
+| PATCH | `/api/accounting/supplier-rules/:id` | Updates a supplier email rule (`facturi.setari`) |
+| DELETE | `/api/accounting/supplier-rules/:id` | Soft-deletes a supplier email rule (`facturi.setari`) |
+| POST | `/api/accounting/supplier-rules/backfill` | `{ months, ruleId? }` - scans recent inbound emails against active supplier rules (`facturi.setari`) |
 | GET | `/api/accounting/records/:id/xml` | The UBL XML as a download (issued and received) |
 | GET | `/api/accounting/records/:id/pdf` | The PDF, if one was generated |
 | GET | `/api/accounting/anaf/status` | The state of the ANAF connection. Tokens are never returned |
