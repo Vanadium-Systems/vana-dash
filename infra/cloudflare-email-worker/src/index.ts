@@ -18,8 +18,9 @@ export interface Env {
   // production .env (backend/src/shared/config.ts). Two places, easy to let drift apart.
   CLOUDFLARE_EMAIL_INGEST_TOKEN: string
   // When the app does not take a message: the raw .eml waits here and the cron below replays it.
-  // Optional binding (wrangler.jsonc, r2_buckets); without it a failed delivery is only forwarded.
-  PENDING?: R2Bucket
+  // A KV namespace (a value holds up to 25 MiB, Email Routing's message limit). Optional binding;
+  // without it a failed delivery is only forwarded.
+  PENDING?: KVNamespace
   // A verified destination address in Email Routing (a mailbox outside the app, e.g. a Gmail).
   // Set with `wrangler secret put FALLBACK_ADDRESS`: it is a personal address, not for the repo.
   FALLBACK_ADDRESS?: string
@@ -92,6 +93,12 @@ const ALERT_EVERY_MS = 60 * 60 * 1000
 const DELIVERY_TIMEOUT_MS = 25_000
 const REPLAY_BATCH = 20
 
+interface PendingMeta {
+  from: string
+  to: string
+  dmarc: string
+}
+
 interface Envelope {
   from: string
   to: string
@@ -148,11 +155,11 @@ async function deliver(payload: CloudflareInboundPayload, env: Env): Promise<Del
   }
 }
 
-/** At most one alert an hour while the app is down; the marker lives in the pending bucket. */
+/** At most one alert an hour while the app is down; the marker lives in the pending namespace. */
 async function alertAppDown(env: Env, reason: string): Promise<void> {
   if (!env.ALERT_EMAIL || !env.FALLBACK_ADDRESS || !env.PENDING || !env.OWN_DOMAIN) return
   const marker = await env.PENDING.get(ALERT_MARKER)
-  const last = marker ? Number(await marker.text()) : 0
+  const last = marker ? Number(marker) : 0
   if (Date.now() - last < ALERT_EVERY_MS) return
   const from = `alerte@${env.OWN_DOMAIN}`
   const raw = [
@@ -167,7 +174,7 @@ async function alertAppDown(env: Env, reason: string): Promise<void> {
     'Content-Transfer-Encoding: 8bit',
     '',
     `Aplicația nu a preluat un email primit (${reason}), la ${new Date().toISOString()} UTC.`,
-    'Emailurile vin între timp și aici, iar copia lor așteaptă în Cloudflare R2; când aplicația',
+    'Emailurile vin între timp și aici, iar copia lor așteaptă în Cloudflare (KV); când aplicația',
     'răspunde din nou, intră singure în ea. Pașii, în docs-internal/CAND_PICA_SERVERUL.md.',
   ].join('\r\n')
   try {
@@ -213,10 +220,10 @@ export default {
       const prefix = delivery === 'refused' ? DEAD_PREFIX : PENDING_PREFIX
       const key = `${prefix}${new Date().toISOString()}-${crypto.randomUUID()}.eml`
       try {
-        await env.PENDING.put(key, rawBuffer, { customMetadata: { from: envelope.from, to: envelope.to, dmarc: dmarc ?? '' } })
+        await env.PENDING.put(key, rawBuffer, { metadata: { from: envelope.from, to: envelope.to, dmarc: dmarc ?? '' } })
       } catch (err) {
         // The forward below is then the only copy; it must still run.
-        console.error('[cloudflare-email-worker] could not keep the message in R2:', err)
+        console.error('[cloudflare-email-worker] could not keep the message in KV:', err)
       }
     }
     if (env.FALLBACK_ADDRESS) {
@@ -229,32 +236,32 @@ export default {
     await alertAppDown(env, 'the app did not answer')
   },
 
-  // Replays what waited in R2, oldest first, and stops at the first failure: an app that is still
+  // Replays what waited in KV, oldest first, and stops at the first failure: an app that is still
   // down gets one request every five minutes, not the whole backlog.
   async scheduled(_controller, env: Env): Promise<void> {
     if (!env.PENDING) return
-    const listed = await env.PENDING.list({ prefix: PENDING_PREFIX, limit: REPLAY_BATCH, include: ['customMetadata'] })
-    for (const item of listed.objects) {
-      const object = await env.PENDING.get(item.key)
-      if (!object) continue
-      const meta = object.customMetadata ?? {}
-      const raw = await object.arrayBuffer()
+    // KV lists keys in lexicographic order; the keys start with an ISO timestamp, so oldest first.
+    const listed = await env.PENDING.list<PendingMeta>({ prefix: PENDING_PREFIX, limit: REPLAY_BATCH })
+    for (const item of listed.keys) {
+      const raw = await env.PENDING.get(item.name, 'arrayBuffer')
+      if (!raw) continue
+      const meta: PendingMeta = item.metadata ?? { from: '', to: '', dmarc: '' }
       let delivery: Delivery
       try {
-        delivery = await deliver(await buildPayload(raw, { from: meta.from ?? '', to: meta.to ?? '', dmarc: meta.dmarc || null }), env)
+        delivery = await deliver(await buildPayload(raw, { from: meta.from, to: meta.to, dmarc: meta.dmarc || null }), env)
       } catch (err) {
         // Unparseable: retrying will never fix it, and it must not block the messages behind it.
-        console.error(`[cloudflare-email-worker] ${item.key} cannot be parsed:`, err)
+        console.error(`[cloudflare-email-worker] ${item.name} cannot be parsed:`, err)
         delivery = 'refused'
       }
       if (delivery === 'retry') {
-        await alertAppDown(env, 'the app is still not answering; messages are waiting in R2')
+        await alertAppDown(env, 'the app is still not answering; messages are waiting in KV')
         return
       }
       if (delivery === 'refused') {
-        await env.PENDING.put(item.key.replace(PENDING_PREFIX, DEAD_PREFIX), raw, { customMetadata: meta })
+        await env.PENDING.put(item.name.replace(PENDING_PREFIX, DEAD_PREFIX), raw, { metadata: meta })
       }
-      await env.PENDING.delete(item.key)
+      await env.PENDING.delete(item.name)
     }
   },
 } satisfies ExportedHandler<Env>
