@@ -15,6 +15,12 @@ dated rather than versioned. What users see is also listed in the app, under Upd
 - Added `supplier_email_rules` management endpoints (`GET/POST/PATCH/DELETE /api/accounting/supplier-rules`, `POST /api/accounting/supplier-rules/backfill`) and `SupplierRulesCard` in Accounting Settings (with Anthropic/Hetzner presets and 3-month backfill).
 - Added `GET /api/accounting/email-import/prefill` and `POST /api/accounting/email-import` plus `ImportEmailInvoiceDialog` on received PDF attachments in Email `ThreadView`.
 - Added `POST /api/accounting/records/:id/confirm-review`, `POST /api/accounting/records/:id/upload-pdf`, and `POST /api/accounting/records/:id/archive` with `needsReview` badges in `RecordsList` and `RecordPage`.
+- Records imported from email with `needsReview = true` are left out of D301/D390 until confirmed, with a warning.
+
+### Fixed
+- Ingesting an email for a recurring expense row that already has a document number only attaches the PDF; amount, date and review state stay as entered, so a backfill cannot change a month already declared.
+- An invoice that arrives by email before the recurring expense's due date no longer leads to a second row for the same month.
+- The non-EU reverse charge preset used a 0 % rate, which made D301 compute no VAT; it is 21 %. Presets also filter on the subject, so refund mails that resend the original invoice PDF are skipped.
 
 ## 2026-11-13: Invoices: payments, invoice page, editor, storno, proforma
 
