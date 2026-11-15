@@ -22,6 +22,11 @@
 	handle /health {
 		reverse_proxy backend:3001
 	}
+	# MCP endpoint for Claude Code (personal API token). Outside /api/ because that is the path
+	# MCP clients are given; the backend checks the token like any other route.
+	handle /mcp {
+		reverse_proxy backend:3001
+	}
 
 	# Domain verification for the Android app (Digital Asset Links). Served with an explicit
 	# Content-Type, which has to be exactly application/json.
