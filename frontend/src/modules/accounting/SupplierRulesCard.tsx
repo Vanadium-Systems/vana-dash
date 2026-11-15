@@ -78,6 +78,8 @@ const EMPTY_FORM: RuleFormState = {
 const PRESET_ANTHROPIC: RuleFormState = {
   ...EMPTY_FORM,
   senderPattern: 'invoice+statements@mail.anthropic.com',
+  // Refund mails from the same sender carry the original Invoice-*.pdf again.
+  subjectContains: 'receipt',
   attachmentNamePattern: 'Invoice-',
   counterpartyName: 'Anthropic, PBC',
   counterpartyCif: '',
@@ -85,12 +87,13 @@ const PRESET_ANTHROPIC: RuleFormState = {
   currency: 'EUR',
   category: 'AI / Cloud',
   reverseChargeType: 'non_eu_services',
-  reverseChargeVatRate: '0',
+  reverseChargeVatRate: '21',
 }
 
 const PRESET_HETZNER: RuleFormState = {
   ...EMPTY_FORM,
   senderPattern: '@hetzner.com',
+  subjectContains: 'invoice',
   attachmentNamePattern: '',
   counterpartyName: 'Hetzner Online GmbH',
   counterpartyCif: 'DE812871812',

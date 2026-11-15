@@ -383,6 +383,126 @@ describe('supplier-email integration (DB + server)', () => {
     expect(byAtt).toHaveLength(1)
   })
 
+  it('b2) only attaches the PDF to a recurring row already confirmed by hand, keeping its values', async () => {
+    const uniqueSender = `confirmed-${crypto.randomUUID().slice(0, 8)}@acme-test.example`
+    const [recExp] = await db
+      .insert(recurringExpenses)
+      .values({
+        description: 'Subscription',
+        counterpartyName: 'Acme Confirmed Inc',
+        amount: '18.00',
+        currency: 'EUR',
+        cycle: 'monthly',
+        cycleDay: 25,
+        nextDueDate: '2026-09-25',
+        active: true,
+      })
+      .returning()
+    createdRecurringIds.push(recExp!.id)
+
+    const [rule] = await db
+      .insert(supplierEmailRules)
+      .values({
+        senderPattern: uniqueSender,
+        counterpartyName: 'Acme Confirmed Inc',
+        currency: 'EUR',
+        reverseChargeType: 'non_eu_services',
+        reverseChargeVatRate: '21',
+        recurringExpenseId: recExp!.id,
+        active: true,
+      })
+      .returning()
+    createdRuleIds.push(rule!.id)
+
+    const issuedAt = new Date('2026-09-25T00:00:00.000Z')
+    const [confirmedRow] = await db
+      .insert(financialRecords)
+      .values({
+        type: 'expense',
+        direction: 'in',
+        source: 'recurring_expense',
+        amount: '18.00',
+        currency: 'EUR',
+        description: 'Subscription',
+        issuedAt,
+        paymentStatus: 'unpaid',
+        documentNumber: 'ACME-0005',
+        counterpartyName: 'Acme Confirmed Inc',
+        reverseChargeType: 'non_eu_services',
+        reverseChargeVatRate: '21',
+        meta: { recurringExpenseId: recExp!.id },
+      })
+      .returning()
+    createdRecordIds.push(confirmedRow!.id)
+
+    const { message, attachment } = await seedEmailWithPdf({
+      fromAddress: uniqueSender,
+      toAddress: 'contact@vanadium.systems',
+      subject: 'Your receipt',
+      filename: 'Invoice-0005.pdf',
+      receivedAt: new Date('2026-09-26T09:00:00.000Z'),
+    })
+
+    const res = await tryIngestSupplierEmailMessage(message.id)
+    expect(res.result?.status).toBe('linked_recurring')
+
+    const [after] = await db.select().from(financialRecords).where(eq(financialRecords.id, confirmedRow!.id))
+    expect(after?.emailAttachmentId).toBe(attachment.id)
+    expect(after?.pdfStoragePath).toBeTruthy()
+    expect(after?.needsReview).toBe(false)
+    expect(after?.documentNumber).toBe('ACME-0005')
+    expect(after?.amount).toBe('18.00')
+    expect(after?.issuedAt.toISOString()).toBe(issuedAt.toISOString())
+  })
+
+  it('b3) a new email record for a rule tied to a recurring expense counts as that month materialized', async () => {
+    const uniqueSender = `early-${crypto.randomUUID().slice(0, 8)}@acme-test.example`
+    const [recExp] = await db
+      .insert(recurringExpenses)
+      .values({
+        description: 'Hosting',
+        counterpartyName: 'Acme Early GmbH',
+        amount: '24.38',
+        currency: 'EUR',
+        cycle: 'monthly',
+        cycleDay: 1,
+        nextDueDate: '2026-07-01',
+        active: true,
+      })
+      .returning()
+    createdRecurringIds.push(recExp!.id)
+
+    const [rule] = await db
+      .insert(supplierEmailRules)
+      .values({
+        senderPattern: uniqueSender,
+        counterpartyName: 'Acme Early GmbH',
+        currency: 'EUR',
+        reverseChargeType: 'eu_services',
+        reverseChargeVatRate: '21',
+        recurringExpenseId: recExp!.id,
+        active: true,
+      })
+      .returning()
+    createdRuleIds.push(rule!.id)
+
+    const { message } = await seedEmailWithPdf({
+      fromAddress: uniqueSender,
+      toAddress: 'contact@vanadium.systems',
+      subject: 'Invoice',
+      filename: 'Invoice-2026-07.pdf',
+      receivedAt: new Date('2026-07-01T02:00:00.000Z'),
+    })
+
+    const res = await tryIngestSupplierEmailMessage(message.id)
+    expect(res.result?.status).toBe('created')
+    if (res.result) createdRecordIds.push(res.result.recordId)
+
+    const { hasExpenseMaterializedForDate } = await import('./service.js')
+    expect(await hasExpenseMaterializedForDate(recExp!.id, '2026-07-01')).toBe(true)
+    expect(await hasExpenseMaterializedForDate(recExp!.id, '2026-08-01')).toBe(false)
+  })
+
   it('c) needsReview=true shows confirmed=false + warning in D301, then confirmed=true after confirm-review', async () => {
     const server = await setupApp()
     const [role] = await db

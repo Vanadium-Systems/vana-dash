@@ -458,6 +458,33 @@ export async function ingestSupplierEmailAttachment(
     )
     .limit(1)
 
+  if (existingRecurring?.documentNumber) {
+    // A recurring row with a document number was already confirmed by hand and may already be in a
+    // filed D301/D390: attach the PDF only, never overwrite its amount, date or review state.
+    await db
+      .update(financialRecords)
+      .set({
+        pdfStoragePath,
+        emailMessageId: message.id,
+        emailAttachmentId: attachment.id,
+        supplierRuleId: rule?.id ?? existingRecurring.supplierRuleId,
+        updatedAt: new Date(),
+      })
+      .where(eq(financialRecords.id, existingRecurring.id))
+    await archiveInvoiceDocuments({
+      recordId: existingRecurring.id,
+      direction: 'in',
+      issuedAt: existingRecurring.issuedAt,
+      counterpartyName: existingRecurring.counterpartyName ?? counterpartyName,
+      counterpartyCif: existingRecurring.counterpartyCif,
+      documentNumber: existingRecurring.documentNumber,
+      anafMessageId: existingRecurring.anafMessageId,
+      pdfStoragePath,
+      xmlStoragePath: existingRecurring.xmlStoragePath,
+    })
+    return { status: 'linked_recurring', recordId: existingRecurring.id }
+  }
+
   if (existingRecurring) {
     const resolvedDocNum = documentNumber ?? existingRecurring.documentNumber
     const resolvedAmount =
@@ -552,6 +579,8 @@ export async function ingestSupplierEmailAttachment(
     emailMessageId: message.id,
     emailAttachmentId: attachment.id,
     supplierRuleId: rule?.id ?? null,
+    // Lets jobs/recurring-expenses.ts see the month is covered when the email lands before the due date.
+    ...(rule?.recurringExpenseId ? { meta: { recurringExpenseId: rule.recurringExpenseId } } : {}),
     ...(userId ? { createdByUserId: userId } : {}),
   }
 

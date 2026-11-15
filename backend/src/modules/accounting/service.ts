@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, lte, ne, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, isNull, lte, ne, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { SpvMessage } from '../../connectors/types.js'
 import { getCompany } from '../../shared/lib/company.js'
@@ -364,7 +364,14 @@ export async function hasExpenseMaterializedForDate(recurringExpenseId: string, 
       and(
         isNull(financialRecords.deletedAt),
         eq(sql<string>`${financialRecords.meta}->>'recurringExpenseId'`, recurringExpenseId),
-        eq(sql<string>`(${financialRecords.issuedAt} AT TIME ZONE 'UTC')::date::text`, dueDateIso),
+        or(
+          eq(sql<string>`(${financialRecords.issuedAt} AT TIME ZONE 'UTC')::date::text`, dueDateIso),
+          // The supplier's invoice already came in by email this month (supplier-email.ts).
+          and(
+            eq(financialRecords.source, 'email'),
+            sql`date_trunc('month', ${financialRecords.issuedAt} AT TIME ZONE 'UTC') = date_trunc('month', ${dueDateIso}::date)`,
+          ),
+        ),
       ),
     )
     .limit(1)
