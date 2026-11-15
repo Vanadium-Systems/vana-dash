@@ -1,6 +1,7 @@
 import { index, jsonb, pgTable, text, timestamp, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 import { users } from './users.js'
 import { tenantColumns } from './tenant-column.js'
+import { apiTokens } from './api-tokens.js'
 
 // Istoricul „cine a făcut ce" (PLAN.md C2). APPEND-ONLY: fără `updated_at` și fără
 // `deleted_at` (restul tabelelor au coloanele standard) — o intrare de audit nu se editează și
@@ -19,6 +20,8 @@ export const auditLog = pgTable(
     // { camp: [vechi, nou] } — secretele sunt excluse la scriere (shared/lib/audit.ts).
     changes: jsonb('changes').$type<Record<string, [unknown, unknown]>>(),
     ip: text('ip'),
+    // Set when the action came through a personal API token (history shows "<person>, via token <name>").
+    apiTokenId: uuid('api_token_id').references((): AnyPgColumn => apiTokens.id, { onDelete: 'set null' }),
   },
   (t) => [
     // Panoul de istoric de pe un obiect (entity_type + entity_id, cronologic).

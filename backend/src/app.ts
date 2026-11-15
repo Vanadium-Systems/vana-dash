@@ -28,6 +28,7 @@ import './modules/notes/refs.js'
 import './modules/prospects/refs.js'
 import { contractsRoutes } from './modules/contracts/routes.js'
 import { supportRoutes } from './modules/support/routes.js'
+import { apiTokensRoutes } from './modules/api-tokens/routes.js'
 import { cryptoRoutes } from './modules/crypto/routes.js'
 import { emailDraftsRoutes } from './modules/email/drafts-routes.js'
 import { emailImagesRoutes } from './modules/email/images-routes.js'
@@ -63,6 +64,8 @@ import { pushRoutes } from './modules/push/routes.js'
 import { reconciliationRoutes } from './modules/reconciliation/routes.js'
 import { reportsRoutes } from './modules/reports/routes.js'
 import { searchRoutes } from './modules/search/routes.js'
+import { metaRoutes } from './modules/meta/routes.js'
+import { mcpRoutes } from './modules/mcp/routes.js'
 import { teamRoutes } from './modules/team/routes.js'
 import { tendersRoutes } from './modules/tenders/routes.js'
 import { tenantsRoutes } from './modules/tenants/routes.js'
@@ -130,6 +133,8 @@ export async function buildServer() {
   // /15s, alerts /60s, thread /30s) plus navigare activă (fiecare pagină pornește ~10 query-uri
   // în paralel) treceau de prag, cu 429 pe TOATE rutele deodată (bucket comun). Incident
   // 2026-08-27: 429-uri în serie pe email + metrics + financials + auth/me. Ridicat la 900/min.
+  // A personal API token also gets its own budget, keyed on the verified token (see `authenticate`):
+  // keying here, before the token is checked, would let a random Bearer value open a fresh bucket.
   await app.register(rateLimit, { max: 900, timeWindow: '1 minute' })
   await app.register(sensible)
   await app.register(authPlugin)
@@ -180,6 +185,7 @@ export async function buildServer() {
   await app.register(callsRoutes)
   await app.register(contractsRoutes)
   await app.register(supportRoutes)
+  await app.register(apiTokensRoutes)
   await app.register(notesRoutes)
   await app.register(wishlistRoutes)
   await app.register(planRoutes)
@@ -194,6 +200,8 @@ export async function buildServer() {
   await app.register(tendersRoutes)
   await app.register(tenantsRoutes)
   await app.register(searchRoutes)
+  await app.register(metaRoutes)
+  await app.register(mcpRoutes)
 
   return app
 }

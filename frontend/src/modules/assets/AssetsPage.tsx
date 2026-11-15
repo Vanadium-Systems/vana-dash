@@ -165,6 +165,7 @@ export function AssetsPage() {
   const brokers = useQuery({
     queryKey: ['assets', 'brokers'],
     queryFn: () => api.get<Array<{ broker: string; mode: 'paper' | 'live' }>>('/api/assets/brokers'),
+    enabled: can('investitii.setari'),
   })
 
   const portfolio = useQuery({
@@ -176,6 +177,7 @@ export function AssetsPage() {
   const orders = useQuery({
     queryKey: ['assets', 'orders'],
     queryFn: () => api.get<PaperOrderRow[]>('/api/assets/orders'),
+    enabled: can('investitii.ordine'),
     staleTime: 60_000,
   })
 

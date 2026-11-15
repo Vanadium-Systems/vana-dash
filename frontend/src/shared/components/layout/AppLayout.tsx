@@ -13,6 +13,7 @@ import { ThemeToggle } from '@/shared/components/ThemeToggle'
 import { Button } from '@/shared/components/ui/button'
 import { ConfirmProvider } from '@/shared/components/ui/confirm-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
+import { PasswordConfirmProvider } from '@/shared/components/PasswordConfirmProvider'
 import { onForbiddenRefreshMe } from '@/shared/lib/api'
 import { useActiveAlertsCount } from '@/shared/hooks/use-active-alerts-count'
 import { useAnalytics } from '@/shared/hooks/use-analytics'
@@ -514,6 +515,7 @@ export function AppLayout() {
       </div>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
       <ShortcutsHelp />
+      <PasswordConfirmProvider />
     </div>
     </ConfirmProvider>
   )

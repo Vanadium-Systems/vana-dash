@@ -30,7 +30,7 @@ export async function callsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: ListCallsQuerySchema } },
     async (req, reply) => {
       try {
-        return { success: true, data: await service.listCalls(req.query) }
+        return { success: true, data: await service.listCalls(req.me, req.query) }
       } catch (err) {
         return sendCallError(reply, err)
       }
@@ -42,7 +42,7 @@ export async function callsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: CreateCallSchema } },
     async (req, reply) => {
       try {
-        return reply.code(201).send({ success: true, data: await service.createCall(req.body) })
+        return reply.code(201).send({ success: true, data: await service.createCall(req.me, req.body) })
       } catch (err) {
         return sendCallError(reply, err)
       }
@@ -54,7 +54,7 @@ export async function callsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: CallIdParamsSchema, body: UpdateCallSchema } },
     async (req, reply) => {
       try {
-        return { success: true, data: await service.updateCall(req.params.id, req.body) }
+        return { success: true, data: await service.updateCall(req.me, req.params.id, req.body) }
       } catch (err) {
         return sendCallError(reply, err)
       }
@@ -78,7 +78,7 @@ export async function callsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: CallIdParamsSchema } },
     async (req, reply) => {
       try {
-        return { success: true, data: await service.endCall(req.params.id) }
+        return { success: true, data: await service.endCall(req.me, req.params.id) }
       } catch (err) {
         return sendCallError(reply, err)
       }

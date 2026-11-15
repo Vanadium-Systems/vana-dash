@@ -6,8 +6,17 @@
   "vars": {
     "VANA_DASH_WEBHOOK_URL": "https://dash.vanadium.systems/api/webhooks/cloudflare-inbound",
     "OWN_DOMAIN": "vanadium.systems"
-  }
+  },
+  // Where a message waits when the app does not answer (prefix inbound-pending/, refused ones in
+  // inbound-dead/); the cron below replays it. The Archive's bucket: the app never lists it, so the
+  // prefixes stay apart. A lifecycle rule, if any, must be limited to those prefixes.
+  "r2_buckets": [{ "binding": "PENDING", "bucket_name": "vana-dash-archive" }],
+  // The "app is not answering" alert. It can only reach verified destination addresses.
+  "send_email": [{ "name": "ALERT_EMAIL" }],
+  "triggers": { "crons": ["*/5 * * * *"] }
   // The two values above belong to one installation; change them to yours.
+  // FALLBACK_ADDRESS (the mailbox outside the app that gets a copy when the app is down) is personal:
+  //   npx wrangler secret put FALLBACK_ADDRESS
   // CLOUDFLARE_EMAIL_INGEST_TOKEN never goes here, in code or in vars. Set it only with:
   //   npx wrangler secret put CLOUDFLARE_EMAIL_INGEST_TOKEN
   // It has to be identical to the value in the app's production .env (config.ts,

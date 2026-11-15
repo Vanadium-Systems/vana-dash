@@ -42,3 +42,7 @@ scripts/build-android.local.env
 /TODO.md
 /docs-internal
 *.tsbuildinfo
+
+# Local secrets and state of the email Worker (wrangler dev)
+.dev.vars
+.wrangler/

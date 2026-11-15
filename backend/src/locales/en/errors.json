@@ -5,6 +5,7 @@
     "passwordTooShort": "The password must be at least {{min}} characters long",
     "newPasswordInvalid": "The new password is not valid",
     "currentPasswordWrong": "The current password is not correct",
+    "sessionNotFound": "Session not found.",
     "localeNotEnabled": "The selected language is not available",
     "tokenNotCreated": "The token was not created"
   },
@@ -114,6 +115,9 @@
     "notConfigured": "Calls are not configured (DAILY_API_KEY is missing).",
     "bookingTitle": "Call · {{name}}",
     "anonymizedTitle": "Scheduled call"
+  },
+  "apiTokens": {
+    "notFound": "Token not found"
   },
   "support": {
     "ticketNotFound": "The ticket does not exist"

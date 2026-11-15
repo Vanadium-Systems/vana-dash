@@ -1,5 +1,6 @@
 import '../load-env.js'
 import argon2 from 'argon2'
+import { createHash } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import { config } from '../config.js'
 import { encryptApiKey } from '../lib/crypto.js'
@@ -12,6 +13,7 @@ import { tiptapToText, type TiptapNode } from '../lib/tiptap-text.js'
 import { db, sql } from './client.js'
 import {
   alertRules,
+  apiTokens,
   alerts,
   archiveFiles,
   archiveFolderShares,
@@ -134,7 +136,7 @@ const [salesRole] = await db
   .values({
     name: 'Sales (demo)',
     kind: 'custom',
-    features: ['clienti.view', 'clienti.prospectare', 'clienti.calculator', 'email.view', 'email.trimitere', 'email.setari_proprii', 'calendar.view', 'calendar.editare', 'mesaje.view', 'arhiva.view', 'arhiva.editare', 'notite.view'],
+    features: ['clienti.view', 'clienti.prospectare', 'clienti.calculator', 'email.view', 'email.trimitere', 'email.setari_proprii', 'calendar.view', 'calendar.editare', 'mesaje.view', 'arhiva.view', 'arhiva.editare', 'notite.view', 'echipa.tokenuri'],
     createdByUserId: admin.id,
   })
   .returning()
@@ -149,6 +151,30 @@ const [ana, mihai] = await db
     { email: 'mihai@example.com', passwordHash: demoPasswordHash, displayName: 'Mihai Ionescu', roleId: managerRole?.id ?? null, lastSeenAt: daysAgo(2), locale },
   ])
   .returning()
+
+// One live and one revoked token for the demo colleague, so the Profile card has both states.
+// The hashes are fake: nobody can authenticate with these.
+await db.insert(apiTokens).values([
+  {
+    userId: ana!.id,
+    name: 'cron prospectare',
+    tokenHash: createHash('sha256').update('demo-token-1').digest('hex'),
+    prefix: 'Demo1abc',
+    features: ['clienti.view', 'clienti.prospectare'],
+    expiresAt: daysAgo(-60, 0),
+    lastUsedAt: daysAgo(1, 7),
+    lastUsedIp: '203.0.113.7',
+  },
+  {
+    userId: ana!.id,
+    name: 'laptop vechi',
+    tokenHash: createHash('sha256').update('demo-token-2').digest('hex'),
+    prefix: 'Demo2def',
+    lastUsedAt: daysAgo(40, 9),
+    lastUsedIp: '203.0.113.9',
+    revokedAt: daysAgo(30, 12),
+  },
+])
 
 // ── A connected platform with 90 days of metrics ─────────────────────────────
 

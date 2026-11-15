@@ -500,12 +500,19 @@ export const FEATURES: FeatureDef[] = [
       ...write('/api/team/members'),
       ...all('/api/team/members/:id/reset-password'),
       ...all('/api/team/members/:id/resend-invite'),
+      ...all('/api/admin/api-tokens'),
     ],
   },
   {
     key: 'echipa.istoric',
     page: 'echipa',
     routes: all('/api/audit'),
+  },
+  {
+    // Guards token creation inside the service; the routes themselves are `self`.
+    key: 'echipa.tokenuri',
+    page: 'echipa',
+    routes: [],
   },
 
   // ── Mesaje ─────────────────────────────────────────────────────────────────
@@ -669,6 +676,11 @@ const KNOWN_PREFIXES: Array<{
   { prefix: '/api/auth/accept-invite', kind: 'public' },
   { prefix: '/api/auth/logout', kind: 'self' },
   { prefix: '/api/auth/me', kind: 'self' },
+  // Long sessions: the refresh runs exactly when the access token has expired, so it has no session.
+  { prefix: '/api/auth/refresh', kind: 'public' },
+  { prefix: '/api/auth/upgrade-session', kind: 'self' },
+  { prefix: '/api/auth/confirm-password', kind: 'self' },
+  { prefix: '/api/me/sessions', kind: 'self' },
   { prefix: '/api/push', kind: 'self' },
   { prefix: '/api/settings/nav-layout', kind: 'self' },
   { prefix: '/api/analytics/client-config', kind: 'self', methods: 'read' },
@@ -676,6 +688,12 @@ const KNOWN_PREFIXES: Array<{
   // Suportul e al oricărui om activ. `/api/platform/*` cere contul de platformă în rută
   // (`platformOnly`), nu o funcționalitate de rol.
   { prefix: '/api/support', kind: 'self' },
+  // A person manages their own tokens; creating one is gated by `echipa.tokenuri` in the service.
+  { prefix: '/api/me/api-tokens', kind: 'self' },
+  // Lists only what the caller can call (filtered on their features in the service).
+  { prefix: '/api/meta/routes', kind: 'self', methods: 'read' },
+  // MCP for Claude Code: needs a Bearer token, and every tool goes back through the guard.
+  { prefix: '/mcp', kind: 'self', methods: 'write' },
   // Text snippets belong to the person (and the shared ones to the whole team), not to a role.
   { prefix: '/api/snippets', kind: 'self' },
   // The bell belongs to the person: mentions, transfers, releases.

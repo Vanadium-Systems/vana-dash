@@ -130,11 +130,19 @@ export async function softDeleteSequence(id: string): Promise<boolean> {
 
 // ── Enrollments ──────────────────────────────────────────────────────────────
 
-export async function listEnrollments(sequenceId: string): Promise<EnrollmentRow[]> {
+export async function listEnrollments(me: Pick<SessionUser, 'id' | 'features'>, sequenceId: string): Promise<EnrollmentRow[]> {
   return db
     .select()
     .from(emailSequenceEnrollments)
-    .where(and(eq(emailSequenceEnrollments.sequenceId, sequenceId), isNull(emailSequenceEnrollments.deletedAt)))
+    .where(
+      and(
+        eq(emailSequenceEnrollments.sequenceId, sequenceId),
+        isNull(emailSequenceEnrollments.deletedAt),
+        // Enrollments without a prospect are addresses typed by hand: nobody's prospect to hide.
+        sql`(${emailSequenceEnrollments.prospectId} IS NULL
+          OR EXISTS (SELECT 1 FROM ${prospects} WHERE ${prospects.id} = ${emailSequenceEnrollments.prospectId} AND ${visibleProspectsWhere(me)}))`,
+      ),
+    )
     .orderBy(
       sql`case
         when ${emailSequenceEnrollments.status} = 'active' and ${emailSequenceEnrollments.currentStep} = 0 then 0

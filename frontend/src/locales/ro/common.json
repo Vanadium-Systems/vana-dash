@@ -264,7 +264,8 @@
     "someone": "Un om din echipă",
     "loading": "Se citește istoricul…",
     "createdBy": "Creat de {{created}} · {{createdAt}}",
-    "changedBy": "Modificat de {{lastChange}} {{createdAt}}"
+    "changedBy": "Modificat de {{lastChange}} {{createdAt}}",
+    "viaToken": "{{actor}}, prin token {{token}}"
   },
   "errors": {
     "boundary": {
@@ -427,6 +428,8 @@
       "personDeleted": "om șters",
       "personChanged": "om modificat",
       "passwordReset": "parolă resetată",
+      "apiTokenCreated": "token API creat",
+      "apiTokenRevoked": "token API revocat",
       "passwordChanged": "parolă schimbată",
       "addendumCreated": "anexă creată",
       "signedPdfUploaded": "PDF semnat încărcat",

@@ -1,6 +1,6 @@
 import argon2 from 'argon2'
 import { and, eq, isNull, sql } from 'drizzle-orm'
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
@@ -10,13 +10,28 @@ import { tr, trFor } from '../../shared/lib/i18n.js'
 import { DISPLAY_CURRENCIES, ENABLED_LOCALES } from '../../shared/lib/locale.js'
 import { sendEmail } from '../../shared/lib/email.js'
 import { consumeUserToken, createUserToken } from '../../shared/lib/user-tokens.js'
+import { revokeUserApiTokens } from '../../shared/lib/api-tokens.js'
+import {
+  ACCESS_TOKEN_TTL_SECONDS,
+  listUserDevices,
+  markPasswordConfirmed,
+  REFRESH_COOKIE,
+  REFRESH_COOKIE_PATH,
+  REFRESH_IDLE_DAYS,
+  revokeFamily,
+  revokeUserSessions,
+  rotateSession,
+  startSession,
+} from '../../shared/lib/sessions.js'
 import { loadSessionUser, DEFAULT_NOTIFICATION_PREFS, type SessionUser } from '../../shared/lib/session.js'
-import { AcceptInviteSchema, ChangePasswordSchema, ForgotPasswordSchema, LoginBodySchema, PatchMeSchema, ResetPasswordSchema } from './schema.js'
+import { AcceptInviteSchema, ChangePasswordSchema, ConfirmPasswordSchema, SessionFamilyParamsSchema, ForgotPasswordSchema, LoginBodySchema, PatchMeSchema, ResetPasswordSchema } from './schema.js'
 import { isDemoInstall, verifyCredentials } from './service.js'
 import { withRlsBypass } from '../../shared/lib/tenancy.js'
 
 export const SESSION_COOKIE = 'vana_session'
-const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+// The access cookie outlives its JWT (15 minutes) so the browser keeps sending it; an expired JWT
+// answers 401 and the client refreshes. The refresh cookie is the one that keeps the person logged in.
+const SESSION_COOKIE_MAX_AGE_SECONDS = REFRESH_IDLE_DAYS * 24 * 60 * 60
 // The app-wide limit (20MB) exists for email attachments; a route anyone can call gets a small one.
 const PUBLIC_BODY_LIMIT = 16 * 1024
 
@@ -55,6 +70,48 @@ export function sessionPayload(me: SessionUser) {
   }
 }
 
+function setAccessCookie(reply: FastifyReply, accessJwt: string) {
+  return reply.setCookie(SESSION_COOKIE, accessJwt, {
+    httpOnly: true,
+    secure: config.isProduction,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: SESSION_COOKIE_MAX_AGE_SECONDS,
+  })
+}
+
+function setRefreshCookie(reply: FastifyReply, refreshToken: string) {
+  return reply.setCookie(REFRESH_COOKIE, refreshToken, {
+    httpOnly: true,
+    secure: config.isProduction,
+    // Strict: the only reader is the app itself, never a link from another site.
+    sameSite: 'strict',
+    path: REFRESH_COOKIE_PATH,
+    maxAge: SESSION_COOKIE_MAX_AGE_SECONDS,
+  })
+}
+
+function clearAuthCookies(reply: FastifyReply) {
+  return reply.clearCookie(SESSION_COOKIE, { path: '/' }).clearCookie(REFRESH_COOKIE, { path: REFRESH_COOKIE_PATH })
+}
+
+async function signAccess(reply: FastifyReply, user: { id: string; sessionVersion: number; tenantId?: string }, sessionId: string) {
+  return reply.jwtSign(
+    { sub: user.id, sv: user.sessionVersion, sid: sessionId, ...(user.tenantId ? { tid: user.tenantId } : {}) },
+    { expiresIn: ACCESS_TOKEN_TTL_SECONDS },
+  )
+}
+
+/** Starts a login session (new family) and sets both cookies. */
+async function issueSession(req: FastifyRequest, reply: FastifyReply, me: SessionUser, passwordTyped = true) {
+  const { sessionId, refreshToken } = await withRlsBypass(() =>
+    startSession(me.id, me.sessionVersion, { ip: req.ip, userAgent: req.headers['user-agent'] }, passwordTyped),
+  )
+  const accessJwt = await signAccess(reply, { id: me.id, sessionVersion: me.sessionVersion, tenantId: me.tenant?.id }, sessionId)
+  setAccessCookie(reply, accessJwt)
+  setRefreshCookie(reply, refreshToken)
+}
+
 export async function authRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
 
@@ -70,14 +127,6 @@ export async function authRoutes(app: FastifyInstance) {
     },
     async (req, reply) => {
       const { email, password } = req.body
-      const setSessionCookie = (token: string) =>
-        reply.setCookie(SESSION_COOKIE, token, {
-          httpOnly: true,
-          secure: config.isProduction,
-          sameSite: 'lax',
-          path: '/',
-          maxAge: SESSION_MAX_AGE_SECONDS,
-        })
 
       // Before login there is no company in the context; email addresses are unique across companies.
       const user = await withRlsBypass(() => verifyCredentials(email, password))
@@ -90,22 +139,111 @@ export async function authRoutes(app: FastifyInstance) {
       const me = await withRlsBypass(() => loadSessionUser(user.id))
       if (!me) return reply.code(401).send({ success: false, error: tr('errors.auth.invalidCredentials') })
 
-      const token = await reply.jwtSign(
-        { sub: user.id, sv: user.sessionVersion, ...(me.tenant ? { tid: me.tenant.id } : {}) },
-        { expiresIn: SESSION_MAX_AGE_SECONDS },
-      )
-      return setSessionCookie(token).send({ success: true, data: sessionPayload(me) })
+      await issueSession(req, reply, me)
+      return reply.send({ success: true, data: sessionPayload(me) })
     },
   )
 
-  server.post('/api/auth/logout', { preHandler: [app.authenticate] }, async (_req, reply) => {
-    return reply.clearCookie(SESSION_COOKIE, { path: '/' }).send({ success: true })
+  server.post('/api/auth/logout', { preHandler: [app.authenticate] }, async (req, reply) => {
+    const familyId = req.session?.familyId
+    if (familyId) await withRlsBypass(() => revokeFamily(familyId, 'logout'))
+    return clearAuthCookies(reply).send({ success: true })
+  })
+
+  // Exchanges the refresh cookie for a new pair. Public: it runs exactly when the access token has
+  // expired. A refresh token that was already replaced coming back = copied; the family is revoked.
+  server.post(
+    '/api/auth/refresh',
+    { bodyLimit: PUBLIC_BODY_LIMIT, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const presented = req.cookies[REFRESH_COOKIE]
+      const unauthorized = () => clearAuthCookies(reply).code(401).send({ success: false, error: 'SESSION_EXPIRED' })
+      if (!presented) return unauthorized()
+
+      const result = await withRlsBypass(() => rotateSession(presented, { ip: req.ip, userAgent: req.headers['user-agent'] }))
+      if (result.kind === 'reuse') {
+        await recordAudit({ action: 'sesiune.refolosita', entityType: 'user', entityId: result.userId, actorUserId: null })
+        return unauthorized()
+      }
+      if (result.kind === 'invalid') return unauthorized()
+
+      const session = result.session
+      const me = await withRlsBypass(() => loadSessionUser(session.userId))
+      const tenantBlocked = me?.tenant && me.tenant.status !== 'active' && !me.tenant.isPlatformOwner
+      if (!me || me.status !== 'active' || me.sessionVersion !== session.sessionVersion || tenantBlocked) {
+        await withRlsBypass(() => revokeFamily(session.familyId, me?.status === 'active' ? 'password' : 'disabled'))
+        return unauthorized()
+      }
+      const accessJwt = await signAccess(reply, { id: me.id, sessionVersion: me.sessionVersion, tenantId: me.tenant?.id }, session.id)
+      setAccessCookie(reply, accessJwt)
+      if (result.kind === 'rotated') setRefreshCookie(reply, result.refreshToken)
+      return reply.send({ success: true })
+    },
+  )
+
+  // A browser still holding a 7-day cookie from before long sessions moves over without logging in.
+  server.post('/api/auth/upgrade-session', { preHandler: [app.authenticate] }, async (req, reply) => {
+    if (req.session || req.apiToken) return reply.send({ success: true })
+    await issueSession(req, reply, req.me, false)
+    return reply.send({ success: true })
+  })
+
+  // Sensitive actions (a new API token, changing someone's role or status) ask for the password
+  // again when the last confirmation in this session is older than 10 minutes.
+  server.post(
+    '/api/auth/confirm-password',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+      schema: { body: ConfirmPasswordSchema },
+    },
+    async (req, reply) => {
+      const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id))
+      if (!row || !(await argon2.verify(row.passwordHash, req.body.password))) {
+        return reply.code(401).send({ success: false, error: tr('errors.auth.currentPasswordWrong') })
+      }
+      const familyId = req.session?.familyId
+      if (familyId) await withRlsBypass(() => markPasswordConfirmed(familyId))
+      return reply.send({ success: true })
+    },
+  )
+
+  server.get('/api/me/sessions', { preHandler: [app.authenticate] }, async (req) => {
+    const devices = await withRlsBypass(() => listUserDevices(req.me.id))
+    return { success: true, data: devices.map((device) => ({ ...device, current: device.familyId === req.session?.familyId })) }
+  })
+
+  server.delete(
+    '/api/me/sessions/:familyId',
+    { preHandler: [app.authenticate], schema: { params: SessionFamilyParamsSchema } },
+    async (req, reply) => {
+      const devices = await withRlsBypass(() => listUserDevices(req.me.id))
+      // Someone else's session (or one already gone) answers 404, as for any personal object.
+      if (!devices.some((device) => device.familyId === req.params.familyId)) {
+        return reply.code(404).send({ success: false, error: tr('errors.auth.sessionNotFound') })
+      }
+      await withRlsBypass(() => revokeFamily(req.params.familyId, 'logout'))
+      return reply.send({ success: true })
+    },
+  )
+
+  server.post('/api/me/sessions/revoke-others', { preHandler: [app.authenticate] }, async (req, reply) => {
+    await withRlsBypass(() => revokeUserSessions(req.me.id, 'logout', req.session?.familyId))
+    return reply.send({ success: true })
   })
 
   server.get(
     '/api/auth/me',
     { preHandler: [app.authenticate] },
-    async (req) => ({ success: true, data: { ...sessionPayload(req.me), isDemo: await isDemoInstall() } }),
+    async (req) => ({
+      success: true,
+      data: {
+        ...sessionPayload(req.me),
+        isDemo: await isDemoInstall(),
+        // 'legacy' = a 7-day cookie from before long sessions; the client calls /upgrade-session once.
+        sessionKind: req.apiToken ? 'token' : req.session ? 'long' : 'legacy',
+      },
+    }),
   )
 
   // What the pages before login need to pick a language. Nothing about the company or its people.
@@ -191,6 +329,8 @@ export async function passwordRoutes(app: FastifyInstance) {
         .update(users)
         .set({ passwordHash: await argon2.hash(password), sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: new Date() })
         .where(eq(users.id, consumed.userId))
+      await revokeUserApiTokens(consumed.userId)
+      await withRlsBypass(() => revokeUserSessions(consumed.userId, 'password'))
       await recordAudit({ action: 'parola.resetata', entityType: 'user', entityId: consumed.userId })
       return reply.code(204).send()
     },
@@ -233,18 +373,10 @@ export async function passwordRoutes(app: FastifyInstance) {
       if (!user) return reply.code(400).send({ success: false, error: { code: 'INVITE_EXPIRED' } })
 
       // Loghează omul imediat după acceptare — altfel ar trebui să scrie parola a doua oară.
-      const tokenJwt = await reply.jwtSign({ sub: user.id, sv: user.sessionVersion }, { expiresIn: SESSION_MAX_AGE_SECONDS })
-      const me = await loadSessionUser(user.id)
+      const me = await withRlsBypass(() => loadSessionUser(user.id))
       await recordAudit({ action: 'echipa.invitatie.acceptata', entityType: 'user', entityId: user.id })
-      return reply
-        .setCookie(SESSION_COOKIE, tokenJwt, {
-          httpOnly: true,
-          secure: config.isProduction,
-          sameSite: 'lax',
-          path: '/',
-          maxAge: SESSION_MAX_AGE_SECONDS,
-        })
-        .send({ success: true, data: me ? sessionPayload(me) : null })
+      if (me) await issueSession(req, reply, me)
+      return reply.send({ success: true, data: me ? sessionPayload(me) : null })
     },
   )
 
@@ -296,20 +428,12 @@ export async function passwordRoutes(app: FastifyInstance) {
       .update(users)
       .set({ passwordHash: await argon2.hash(parsed.data.newPassword), sessionVersion: nextVersion, updatedAt: new Date() })
       .where(eq(users.id, req.me.id))
+    await revokeUserApiTokens(req.me.id)
     await recordAudit({ action: 'parola.schimbata', entityType: 'user', entityId: req.me.id })
 
-    const token = await reply.jwtSign(
-      { sub: req.me.id, sv: nextVersion, ...(req.me.tenant ? { tid: req.me.tenant.id } : {}) },
-      { expiresIn: SESSION_MAX_AGE_SECONDS },
-    )
-    return reply
-      .setCookie(SESSION_COOKIE, token, {
-        httpOnly: true,
-        secure: config.isProduction,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: SESSION_MAX_AGE_SECONDS,
-      })
-      .send({ success: true, data: { otherSessionsRevoked: true } })
+    // Every other device is logged out (session_version moved on); this one starts a fresh family.
+    await withRlsBypass(() => revokeUserSessions(req.me.id, 'password'))
+    await issueSession(req, reply, { ...req.me, sessionVersion: nextVersion })
+    return reply.send({ success: true, data: { otherSessionsRevoked: true } })
   })
 }

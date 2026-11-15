@@ -7,6 +7,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { EntityHistory } from '@/shared/components/EntityHistory'
 import { api } from '@/shared/lib/api'
+import { useMe } from '@/shared/hooks/use-me'
 import type { AnafCompanyInfo, BillingClient, ContractDetails, Platform, PricingConfigRow, ReservedContractNumber, VanagreenTenant } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
@@ -82,6 +83,7 @@ export function contractNumberConflict(
 
 export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialogProps) {
   const queryClient = useQueryClient()
+  const { can } = useMe()
   const [form, setForm] = useState({
     name: '',
     slug: '',
@@ -145,13 +147,13 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
   const vanagreenTenants = useQuery({
     queryKey: ['vanagreen-tenants'],
     queryFn: () => api.get<VanagreenTenant[]>('/api/reconciliation/vanagreen-tenants'),
-    enabled: open,
+    enabled: open && can('reconciliere.view'),
   })
 
   const platforms = useQuery({
     queryKey: ['platforms'],
     queryFn: () => api.get<Platform[]>('/api/platforms'),
-    enabled: open,
+    enabled: open && can('platforme.view'),
   })
 
   // Wave 0/1, sprint de-hardcodare (2026-08-20) — aceeași sursă ca ConfigPretTab (catalogul de
@@ -160,7 +162,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
   const pricingConfig = useQuery({
     queryKey: ['pricing', 'config', platformId],
     queryFn: () => api.get<PricingConfigRow | null>(`/api/pricing/config?platformId=${platformId}`),
-    enabled: open && Boolean(platformId),
+    enabled: open && Boolean(platformId) && can('clienti.view'),
   })
   const moduleAddonOptions = pricingConfig.data?.config.addons.map((a) => a.label) ?? []
   // Plan (2026-09-21) — dropdown-ul cu 2 opțiuni fixe ("Standard"/"Privat") înlocuit cu

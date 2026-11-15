@@ -264,7 +264,8 @@
     "someone": "Someone on the team",
     "loading": "Reading the history…",
     "createdBy": "Created by {{created}} · {{createdAt}}",
-    "changedBy": "Changed by {{lastChange}} {{createdAt}}"
+    "changedBy": "Changed by {{lastChange}} {{createdAt}}",
+    "viaToken": "{{actor}}, via token {{token}}"
   },
   "errors": {
     "boundary": {
@@ -427,6 +428,8 @@
       "personDeleted": "person deleted",
       "personChanged": "person changed",
       "passwordReset": "password reset",
+      "apiTokenCreated": "API token created",
+      "apiTokenRevoked": "API token revoked",
       "passwordChanged": "password changed",
       "addendumCreated": "addendum created",
       "signedPdfUploaded": "signed PDF uploaded",

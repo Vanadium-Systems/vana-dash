@@ -17,6 +17,7 @@ import { Select } from '@/shared/components/ui/select'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
 import { Tooltip } from '@/shared/components/ui/tooltip'
+import { ApiTokensAdminSection } from './ApiTokensAdminSection'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { useMe } from '@/shared/hooks/use-me'
 import { inviteExpired, memberName, TEAM_QUERY_KEY, useTeamMembers, type TeamMember } from '@/shared/hooks/use-team'
@@ -409,6 +410,8 @@ export function TeamPage() {
           )}
         </>
       )}
+
+      {canManage ? <ApiTokensAdminSection /> : null}
 
       <InviteDialog open={inviting} onOpenChange={setInviting} roleOptions={roleOptions} onInvited={refresh} />
       <EditMemberDialog member={editing} onClose={() => setEditing(null)} roleOptions={roleOptions} onSaved={refresh} />

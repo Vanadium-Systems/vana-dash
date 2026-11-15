@@ -2,6 +2,8 @@ import { randomBytes } from 'node:crypto'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { roles, userMailboxes, userTokens, users } from '../../shared/db/schema/index.js'
+import { revokeUserApiTokens } from '../../shared/lib/api-tokens.js'
+import { revokeUserSessions } from '../../shared/lib/sessions.js'
 import { config } from '../../shared/config.js'
 import { recordAudit } from '../../shared/lib/audit.js'
 import { notify } from '../../shared/lib/notify.js'
@@ -155,6 +157,9 @@ export async function updateMember(actor: SessionUser, userId: string, input: { 
         .update(userTokens)
         .set({ usedAt: new Date(), updatedAt: new Date() })
         .where(and(eq(userTokens.userId, userId), isNull(userTokens.usedAt)))
+      await revokeUserApiTokens(userId, tx)
+    await revokeUserSessions(userId, 'disabled', undefined, tx)
+      await revokeUserSessions(userId, 'disabled', undefined, tx)
     }
     // Same transaction: a half-disabled account would keep prospects nobody can work.
     return leaving ? handOverDepartingUser(tx, userId, actor.id) : null
@@ -211,6 +216,7 @@ export async function deleteMember(actor: SessionUser, userId: string) {
       .update(userTokens)
       .set({ usedAt: now, updatedAt: now })
       .where(and(eq(userTokens.userId, userId), isNull(userTokens.usedAt)))
+    await revokeUserApiTokens(userId, tx)
     await tx.delete(userMailboxes).where(eq(userMailboxes.userId, userId))
   })
 
@@ -264,6 +270,8 @@ export async function sendPasswordReset(actor: SessionUser, userId: string) {
       trFor(user.locale, 'emails.reset.validityByAdmin'),
     ].join('\n'),
   })
+  // An admin resetting someone's password is reacting to a problem: their tokens stop now.
+  await revokeUserApiTokens(userId)
   await recordAudit({ action: 'echipa.parola.resetare', entityType: 'user', entityId: userId })
   return { ok: true }
 }

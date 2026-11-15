@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { PASSWORD_CONFIRM_REQUIRED, passwordConfirmRequired } from '../../shared/lib/sessions.js'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { AccessError } from '../access/service.js'
 import { InviteMemberSchema, MemberMailboxesSchema, UpdateMemberSchema } from '../access/schema.js'
@@ -34,10 +35,12 @@ export async function teamRoutes(app: FastifyInstance) {
     return reply.code(201).send({ success: true, data: created })
   })
 
-  server.patch('/api/team/members/:id', { preHandler: [app.authenticate], schema: { body: UpdateMemberSchema } }, async (req) => ({
-    success: true,
-    data: await updateMember(req.me, (req.params as { id: string }).id, req.body),
-  }))
+  server.patch('/api/team/members/:id', { preHandler: [app.authenticate], schema: { body: UpdateMemberSchema } }, async (req, reply) => {
+    // Changing someone's role or status is the kind of action an unattended open session must not do.
+    const sensitive = req.body.roleId !== undefined || req.body.status !== undefined
+    if (sensitive && passwordConfirmRequired(req.session)) return reply.code(403).send(PASSWORD_CONFIRM_REQUIRED)
+    return { success: true, data: await updateMember(req.me, (req.params as { id: string }).id, req.body) }
+  })
 
   server.delete('/api/team/members/:id', { preHandler: [app.authenticate] }, async (req) => ({
     success: true,

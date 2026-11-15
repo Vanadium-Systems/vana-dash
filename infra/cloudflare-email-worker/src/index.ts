@@ -1,3 +1,4 @@
+import { EmailMessage } from 'cloudflare:email'
 import PostalMime from 'postal-mime'
 
 // Receives email through Cloudflare Email Routing (free) and hands it to the app. Sending
@@ -16,6 +17,14 @@ export interface Env {
   // or in wrangler.jsonc. It has to be identical to CLOUDFLARE_EMAIL_INGEST_TOKEN in the app's
   // production .env (backend/src/shared/config.ts). Two places, easy to let drift apart.
   CLOUDFLARE_EMAIL_INGEST_TOKEN: string
+  // When the app does not take a message: the raw .eml waits here and the cron below replays it.
+  // Optional binding (wrangler.jsonc, r2_buckets); without it a failed delivery is only forwarded.
+  PENDING?: R2Bucket
+  // A verified destination address in Email Routing (a mailbox outside the app, e.g. a Gmail).
+  // Set with `wrangler secret put FALLBACK_ADDRESS`: it is a personal address, not for the repo.
+  FALLBACK_ADDRESS?: string
+  // `send_email` binding for the "app is not answering" alert to FALLBACK_ADDRESS.
+  ALERT_EMAIL?: SendEmail
 }
 
 interface CloudflareInboundPayload {
@@ -75,22 +84,109 @@ function dmarcResult(headers: Headers): string | null {
   return results.includes('fail') ? 'fail' : results[0]!
 }
 
+const PENDING_PREFIX = 'inbound-pending/'
+// Messages the app refuses for good (4xx) or that cannot be parsed: kept, out of the replay queue.
+const DEAD_PREFIX = 'inbound-dead/'
+const ALERT_MARKER = 'alerts/app-down'
+const ALERT_EVERY_MS = 60 * 60 * 1000
+const DELIVERY_TIMEOUT_MS = 25_000
+const REPLAY_BATCH = 20
+
+interface Envelope {
+  from: string
+  to: string
+  dmarc: string | null
+}
+
+async function buildPayload(rawBuffer: ArrayBuffer, envelope: Envelope): Promise<CloudflareInboundPayload> {
+  const parsed = await PostalMime.parse(rawBuffer)
+  // `envelope.from` is the SMTP envelope address (MAIL FROM). For bulk and transactional senders
+  // it is a bounce address (bounces+xxx@outbound…), not the From: header the recipient sees, and a
+  // reply sent there goes nowhere. So the From: header parsed from the message is used, with the
+  // envelope as fallback only when there is no From: at all (a malformed message).
+  return {
+    from: mailboxAddress(parsed.from) ?? envelope.from,
+    replyTo: mailboxAddress(parsed.replyTo?.[0]),
+    to: envelope.to,
+    subject: parsed.subject ?? '',
+    text: parsed.text ?? null,
+    html: parsed.html ?? null,
+    messageId: parsed.messageId ?? null,
+    inReplyTo: parsed.inReplyTo ?? null,
+    references: Array.isArray(parsed.references) ? parsed.references.join(' ') : (parsed.references ?? null),
+    dmarc: envelope.dmarc,
+    attachments: parsed.attachments.map((a) => ({
+      filename: a.filename ?? 'attachment',
+      contentType: a.mimeType ?? null,
+      contentBase64: toBase64(a.content),
+      contentId: a.contentId ?? null,
+      disposition: a.disposition ?? null,
+    })),
+  }
+}
+
+type Delivery = 'stored' | 'retry' | 'refused'
+
+/** 'stored' when the app kept it (idempotent on Message-ID, so a replay is safe); 'refused' = 4xx. */
+async function deliver(payload: CloudflareInboundPayload, env: Env): Promise<Delivery> {
+  try {
+    const res = await fetch(env.VANA_DASH_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Cloudflare-Email-Token': env.CLOUDFLARE_EMAIL_INGEST_TOKEN },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
+    })
+    if (res.ok) return 'stored'
+    console.error(`[cloudflare-email-worker] the app answered HTTP ${res.status}`)
+    // 401/403 is a token out of sync with the app: fixable, so the messages wait (and the alert goes
+    // out). 408/429 mean later. Any other 4xx will not change on a retry (bad payload, too large).
+    const later = [401, 403, 408, 429].includes(res.status)
+    return res.status >= 400 && res.status < 500 && !later ? 'refused' : 'retry'
+  } catch (err) {
+    console.error('[cloudflare-email-worker] the app did not answer:', err)
+    return 'retry'
+  }
+}
+
+/** At most one alert an hour while the app is down; the marker lives in the pending bucket. */
+async function alertAppDown(env: Env, reason: string): Promise<void> {
+  if (!env.ALERT_EMAIL || !env.FALLBACK_ADDRESS || !env.PENDING || !env.OWN_DOMAIN) return
+  const marker = await env.PENDING.get(ALERT_MARKER)
+  const last = marker ? Number(await marker.text()) : 0
+  if (Date.now() - last < ALERT_EVERY_MS) return
+  const from = `alerte@${env.OWN_DOMAIN}`
+  const raw = [
+    `From: VanaDash <${from}>`,
+    `To: ${env.FALLBACK_ADDRESS}`,
+    // Headers are ASCII: a subject with diacritics goes in RFC 2047 encoded-word form.
+    `Subject: =?UTF-8?B?${btoa(String.fromCharCode(...new TextEncoder().encode('VanaDash nu primește emailuri')))}?=`,
+    `Message-ID: <${crypto.randomUUID()}@${env.OWN_DOMAIN}>`,
+    `Date: ${new Date().toUTCString()}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=utf-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    `Aplicația nu a preluat un email primit (${reason}), la ${new Date().toISOString()} UTC.`,
+    'Emailurile vin între timp și aici, iar copia lor așteaptă în Cloudflare R2; când aplicația',
+    'răspunde din nou, intră singure în ea. Pașii, în docs-internal/CAND_PICA_SERVERUL.md.',
+  ].join('\r\n')
+  try {
+    await env.ALERT_EMAIL.send(new EmailMessage(from, env.FALLBACK_ADDRESS, raw))
+    // Only after a send that went out: a failed alert must not silence the next hour.
+    await env.PENDING.put(ALERT_MARKER, String(Date.now()))
+  } catch (err) {
+    console.error('[cloudflare-email-worker] alert not sent:', err)
+  }
+}
+
 export default {
   async email(message, env: Env): Promise<void> {
+    // `message.raw` can be read once: buffer it before anything else.
+    const rawBuffer = await new Response(message.raw).arrayBuffer()
+    const dmarc = dmarcResult(message.headers)
     try {
-      // `message.raw` can be read once: buffer it before anything else.
-      const rawBuffer = await new Response(message.raw).arrayBuffer()
       const parsed = await PostalMime.parse(rawBuffer)
-
-      // `message.from` is the SMTP envelope address (MAIL FROM). For bulk and transactional
-      // senders it is a bounce address (bounces+xxx@outbound…), not the From: header the
-      // recipient sees, and a reply sent there goes nowhere. So the From: header parsed from
-      // the message is used, with the envelope as fallback only when there is no From: at all
-      // (a malformed message).
       const parsedFrom = mailboxAddress(parsed.from) ?? message.from
-      const parsedReplyTo = mailboxAddress(parsed.replyTo?.[0])
-      const dmarc = dmarcResult(message.headers)
-
       const ownDomain = (env.OWN_DOMAIN ?? '').toLowerCase()
       const fromDomain = parsedFrom.split('@').pop()?.toLowerCase() ?? ''
       if (ownDomain && dmarc === 'fail' && (fromDomain === ownDomain || fromDomain.endsWith(`.${ownDomain}`))) {
@@ -98,39 +194,67 @@ export default {
         message.setReject('DMARC fail')
         return
       }
-
-      const payload: CloudflareInboundPayload = {
-        from: parsedFrom,
-        replyTo: parsedReplyTo,
-        to: message.to,
-        subject: parsed.subject ?? '',
-        text: parsed.text ?? null,
-        html: parsed.html ?? null,
-        messageId: parsed.messageId ?? null,
-        inReplyTo: parsed.inReplyTo ?? null,
-        references: Array.isArray(parsed.references) ? parsed.references.join(' ') : (parsed.references ?? null),
-        dmarc,
-        attachments: parsed.attachments.map((a) => ({
-          filename: a.filename ?? 'attachment',
-          contentType: a.mimeType ?? null,
-          contentBase64: toBase64(a.content),
-          contentId: a.contentId ?? null,
-          disposition: a.disposition ?? null,
-        })),
-      }
-
-      const res = await fetch(env.VANA_DASH_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Cloudflare-Email-Token': env.CLOUDFLARE_EMAIL_INGEST_TOKEN },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) {
-        console.error(`[cloudflare-email-worker] the app answered HTTP ${res.status} for the message from ${message.from}`)
-      }
     } catch (err) {
-      // Cloudflare Email Routing does not retry on failure, so a throw here would lose the
-      // email for good and gain nothing.
+      // An unparseable message still goes through the delivery path below, so it is kept.
+      console.error('[cloudflare-email-worker] could not parse for the DMARC check:', err)
+    }
+
+    const envelope: Envelope = { from: message.from, to: message.to, dmarc }
+    let delivery: Delivery = 'retry'
+    try {
+      delivery = await deliver(await buildPayload(rawBuffer, envelope), env)
+    } catch (err) {
       console.error('[cloudflare-email-worker] error while processing the email:', err)
+    }
+    if (delivery === 'stored') return
+
+    // Email Routing does not retry: from here on, this Worker is the only copy of the message.
+    if (env.PENDING) {
+      const prefix = delivery === 'refused' ? DEAD_PREFIX : PENDING_PREFIX
+      const key = `${prefix}${new Date().toISOString()}-${crypto.randomUUID()}.eml`
+      try {
+        await env.PENDING.put(key, rawBuffer, { customMetadata: { from: envelope.from, to: envelope.to, dmarc: dmarc ?? '' } })
+      } catch (err) {
+        // The forward below is then the only copy; it must still run.
+        console.error('[cloudflare-email-worker] could not keep the message in R2:', err)
+      }
+    }
+    if (env.FALLBACK_ADDRESS) {
+      try {
+        await message.forward(env.FALLBACK_ADDRESS)
+      } catch (err) {
+        console.error('[cloudflare-email-worker] forward to the fallback address failed:', err)
+      }
+    }
+    await alertAppDown(env, 'the app did not answer')
+  },
+
+  // Replays what waited in R2, oldest first, and stops at the first failure: an app that is still
+  // down gets one request every five minutes, not the whole backlog.
+  async scheduled(_controller, env: Env): Promise<void> {
+    if (!env.PENDING) return
+    const listed = await env.PENDING.list({ prefix: PENDING_PREFIX, limit: REPLAY_BATCH, include: ['customMetadata'] })
+    for (const item of listed.objects) {
+      const object = await env.PENDING.get(item.key)
+      if (!object) continue
+      const meta = object.customMetadata ?? {}
+      const raw = await object.arrayBuffer()
+      let delivery: Delivery
+      try {
+        delivery = await deliver(await buildPayload(raw, { from: meta.from ?? '', to: meta.to ?? '', dmarc: meta.dmarc || null }), env)
+      } catch (err) {
+        // Unparseable: retrying will never fix it, and it must not block the messages behind it.
+        console.error(`[cloudflare-email-worker] ${item.key} cannot be parsed:`, err)
+        delivery = 'refused'
+      }
+      if (delivery === 'retry') {
+        await alertAppDown(env, 'the app is still not answering; messages are waiting in R2')
+        return
+      }
+      if (delivery === 'refused') {
+        await env.PENDING.put(item.key.replace(PENDING_PREFIX, DEAD_PREFIX), raw, { customMetadata: meta })
+      }
+      await env.PENDING.delete(item.key)
     }
   },
 } satisfies ExportedHandler<Env>

@@ -10,7 +10,7 @@ import type { SessionUser } from '../../shared/lib/session.js'
 import { runCallsClose } from '../../jobs/calls-close.js'
 import { CallError, createCall, endCall, getPublicCall, joinCall, listCalls } from './service.js'
 
-const me = { id: '00000000-0000-4000-8000-0000000000aa', displayName: 'Acme Tester', email: 'tester@example.com' } as SessionUser
+const me = { id: '00000000-0000-4000-8000-0000000000aa', displayName: 'Acme Tester', email: 'tester@example.com', features: ['clienti.toti'] } as SessionUser
 const callIds: string[] = []
 
 const jsonResponse = (body: unknown, status = 200): Response =>
@@ -42,18 +42,18 @@ afterAll(async () => {
 describe('calls', () => {
   it('creates a call whose row shows our link, never the Daily room', async () => {
     stubDaily()
-    const call = await createCall({ title: 'Acme intro', expiresInHours: 2 })
+    const call = await createCall(me, { title: 'Acme intro', expiresInHours: 2 })
     callIds.push(call.id)
 
     expect(call.status).toBe('open')
     expect(call.publicUrl).toMatch(/\/apel\/[A-Za-z0-9_-]{16}$/)
     expect(JSON.stringify(call)).not.toContain('daily.co')
-    expect((await listCalls({ status: 'open', limit: 200 })).some((row) => row.id === call.id)).toBe(true)
+    expect((await listCalls(me, { status: 'open', limit: 200 })).some((row) => row.id === call.id)).toBe(true)
   })
 
   it('the guest view of an open call has the room and nothing about who it is for', async () => {
     stubDaily()
-    const call = await createCall({ title: 'Acme pricing', expiresInHours: 1 })
+    const call = await createCall(me, { title: 'Acme pricing', expiresInHours: 1 })
     callIds.push(call.id)
     const publicId = call.publicUrl.split('/').pop()!
 
@@ -66,11 +66,11 @@ describe('calls', () => {
 
   it('an ended call cannot be joined and its guest view has no room', async () => {
     stubDaily()
-    const call = await createCall({ title: 'Acme follow-up', expiresInHours: 1 })
+    const call = await createCall(me, { title: 'Acme follow-up', expiresInHours: 1 })
     callIds.push(call.id)
 
     expect((await joinCall(call.id, me)).token).toBe('owner-token')
-    expect((await endCall(call.id)).status).toBe('ended')
+    expect((await endCall(me, call.id)).status).toBe('ended')
     await expect(joinCall(call.id, me)).rejects.toMatchObject({ code: 'closed', status: 410 })
     expect((await getPublicCall(call.publicUrl.split('/').pop()!))?.roomUrl).toBeNull()
   })
@@ -84,7 +84,7 @@ describe('calls', () => {
       { duration: 600, max_participants: 2 },
       { duration: 300, max_participants: 3 },
     ])
-    const call = await createCall({ title: 'Acme expired', expiresInHours: 1 })
+    const call = await createCall(me, { title: 'Acme expired', expiresInHours: 1 })
     callIds.push(call.id)
 
     expect(await runCallsClose(new Date(Date.now() + 2 * 3_600_000))).toBeGreaterThanOrEqual(1)

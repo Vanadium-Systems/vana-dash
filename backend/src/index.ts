@@ -2,6 +2,7 @@ import { buildServer } from './app.js'
 import { startAccountingAlertsJob } from './jobs/accounting-alerts.js'
 import { startArchiveMonthlyFoldersJob } from './jobs/archive-monthly-folders.js'
 import { startAssistantCleanupJob } from './jobs/assistant-cleanup.js'
+import { startSessionsCleanupJob } from './jobs/sessions-cleanup.js'
 import { startBackupJob } from './jobs/backup.js'
 import { startBillingCycleRolloverJob } from './jobs/billing-cycle-rollover.js'
 import { startBnrDailyFetchJob } from './jobs/bnr-daily-fetch.js'
@@ -86,6 +87,7 @@ startBackupJob()
 startArchiveMonthlyFoldersJob()
 startCalendarRemindersJob()
 startAssistantCleanupJob()
+startSessionsCleanupJob()
 startChatCleanupJob()
 startScheduledTickJob()
 startCryptoPriceSyncJob()

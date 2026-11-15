@@ -9,6 +9,7 @@ export interface AuditListItem {
   entityId: string | null
   /** `{ camp: [vechi, nou] }`; absent pe acțiunile fără modificări de câmpuri. */
   changes: Record<string, [unknown, unknown]> | null
+  viaToken?: { id: string; name: string } | null
   createdAt: string
 }
 
@@ -35,6 +36,8 @@ const ACTION_LABEL: Record<string, string> = {
   'echipa.parola.resetare': t('common:audit.actions.passwordReset'),
   'parola.resetata': t('common:audit.actions.passwordReset'),
   'parola.schimbata': t('common:audit.actions.passwordChanged'),
+  'api_token.creat': t('common:audit.actions.apiTokenCreated'),
+  'api_token.revocat': t('common:audit.actions.apiTokenRevoked'),
   'contract.anexa.creata': t('common:audit.actions.addendumCreated'),
   'contract.pdf.semnat.incarcat': t('common:audit.actions.signedPdfUploaded'),
   'contract.semnat': t('common:audit.actions.contractSigned'),

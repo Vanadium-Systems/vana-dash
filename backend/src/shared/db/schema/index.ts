@@ -1,5 +1,7 @@
 export * from './users.js'
 export * from './roles.js'
+export * from './api-tokens.js'
+export * from './user-sessions.js'
 export * from './access.js'
 export * from './chat.js'
 export * from './audit.js'

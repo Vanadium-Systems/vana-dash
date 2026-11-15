@@ -20,6 +20,8 @@ export interface RequestActor {
   displayCurrency?: DisplayCurrency
   /** The company the request works in; absent = the platform owner (jobs, machine routes). */
   tenantId?: string
+  /** The personal API token the request came with (written to `audit_log.api_token_id`). */
+  apiTokenId?: string
   /** Only for lookups that must see every company (the session's own user row, the tenant list). */
   bypassRls?: boolean
 }

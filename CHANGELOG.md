@@ -4,6 +4,39 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-15: Long sessions and no lost email when the server is down
+
+### Added
+- Long sessions: login sets a 15-minute access JWT (`vana_session`, with `sid`) and a rotating refresh token (`vana_refresh`, HttpOnly, SameSite=Strict, path `/api/auth`) that lives 60 days from its last use. `POST /api/auth/refresh` rotates it; a refresh token that was already replaced coming back after a 30-second grace window revokes the whole login family and is written to History (`sesiune.refolosita`). Migration `0094_user_sessions`.
+- `GET /api/me/sessions`, `DELETE /api/me/sessions/:familyId`, `POST /api/me/sessions/revoke-others` and a Devices card in My profile.
+- `POST /api/auth/confirm-password`: creating an API token and changing someone's role or status ask for the password again when it was not typed in the last 10 minutes (`403 PASSWORD_CONFIRM_REQUIRED`).
+- `POST /api/auth/upgrade-session` moves a 7-day cookie from before this change to a long session without logging in.
+- The client refreshes once on a 401 (single-flight) and retries the request.
+- Email Worker: when the app does not answer, the raw message waits in an R2 bucket, a copy goes to a fallback mailbox, an alert is sent at most once an hour, and a cron replays the waiting messages every 5 minutes.
+
+### Security
+- Logout, a password change or reset, and deactivating a person end the sessions at once (the access token is checked against its session row on every request).
+
+## 2026-11-15: API tokens and an MCP endpoint
+
+### Added
+- Personal API tokens: `Authorization: Bearer vd_…`, 32 random bytes in base64url, only the SHA-256 stored and the value shown once. Created in My profile → API tokens with the new feature `echipa.tokenuri` (off by default). A token has at most the role's features and is read-only unless write features are ticked (without a list it gets only the page gates `<page>.view`), expires after 30, 90 or 365 days or never (default 90), and is revoked instantly. Migration `0093_api_tokens` adds `api_tokens` and `audit_log.api_token_id`; History shows "<person>, prin token <name>".
+- `GET/POST /api/me/api-tokens`, `DELETE /api/me/api-tokens/:id`, `GET /api/me/api-tokens/features`, and for admins (`echipa.administrare`) `GET /api/admin/api-tokens` and `DELETE /api/admin/api-tokens/:id`, with a section in Team.
+- `GET /api/meta/routes?filter=`: the routes the caller can call, with their feature and the JSON Schemas of body, query and params.
+- `POST /mcp`: a stateless MCP endpoint (protocol 2026-07-28, 2025 clients served statelessly), Bearer token only. 19 tools, each one existing route called with the same token: search, prospects, tasks, notes, invoices, summary, calendar, archive, email threads and `api_routes`. No deletes, no email sending.
+- Dependency `@modelcontextprotocol/server` 2.4.0, pinned. It pulls only `@modelcontextprotocol/core` and zod (already used). Version negotiation, header validation and the error format are more than a hundred lines and follow the spec. To remove it, delete `backend/src/modules/mcp/` and its registration in `app.ts`.
+
+### Security
+- A token is refused with `403 TOKEN_NOT_ALLOWED` on `/api/auth/*` (except `GET /api/auth/me`), `/api/me/api-tokens*`, `/api/admin/api-tokens*`, `/api/team/*`, `/api/access/*`, `/api/platform/*` and with an `x-tenant-id` header. An unknown, revoked or expired token, or a Bearer not starting with `vd_`, is `401 TOKEN_INVALID`, with no fallback to the cookie. Through a token the person is never a platform admin.
+- 120 requests per minute per token (counted after verification), on top of 900 per minute per IP. `/mcp` takes 300 messages per minute per IP, 256 KB bodies, and refuses requests with an `Origin` header.
+- Disabling or deleting a person, changing or resetting their password, and an admin's password reset revoke their tokens.
+
+### Fixed
+- History (`GET /api/audit`) shows the rows about a prospect only to people who can see that prospect, and archive / calendar share rows only to the people involved and the area's managers.
+- Email sequence enrollments list only prospects the person can see; the call list shows no prospect name for a prospect the person cannot see.
+- My profile no longer asks for the company email settings, which answered 403 for colleagues.
+- Pages no longer fire requests a colleague has no right to: bulk send (platforms), the client form (platforms, VanaGreen tenants) and Investments (brokers, orders, settings). A regression test lists what colleague pages load on open.
+
 ## 2026-11-15: Monthly close checklist, supplier email rules & email PDF import
 
 ### Monthly close (`Facturi → Luna`)

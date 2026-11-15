@@ -106,7 +106,8 @@
     },
     "echipa": {
       "administrare": "Invită oameni și editează roluri",
-      "istoric": "Vede istoricul"
+      "istoric": "Vede istoricul",
+      "tokenuri": "Token-uri API"
     },
     "mesaje": {
       "view": "Mesaje între oameni"

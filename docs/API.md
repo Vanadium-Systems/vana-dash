@@ -24,8 +24,11 @@ assigned (`MAILBOX_FORBIDDEN`), notes, plan, wishlist and assistant by owner, th
 spaces and shares, the Calendar by owner, share and attendees. An object from someone else's
 space asked for by id answers `404`, not `403`, so it does not reveal that it exists.
 
-The JWT is `{ sub, sv }`. `session_version` goes up when a person is deactivated or resets
-their password, so old sessions get `401`. The role and the features are read on every request,
+The access JWT is `{ sub, sv, sid }` and lives 15 minutes; `sid` is the login session row, checked on
+every request, so logging out a device takes effect at once. The refresh token (cookie `vana_refresh`,
+sent only to `/api/auth`) lives 60 days from its last use and is replaced at every refresh; a replaced
+token presented again after 30 seconds revokes every session of that login. `session_version` goes up
+when a person is deactivated or changes or resets their password, so old sessions get `401`. The role and the features are read on every request,
 so a change in Modules takes effect without logging out.
 
 ## Language and display currency
@@ -76,14 +79,103 @@ route refuses every request.
 | Method | Route | Description |
 |---|---|---|
 | POST | `/api/auth/login` | `{ email, password }` → sets the cookie. A deactivated or still-invited person gets 401, like a wrong password |
-| POST | `/api/auth/logout` | Clears the cookie |
-| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies, motionPref, hideAmounts, isDemo }`. `mailboxes: null` means all (admin). `isDemo` is true on a demo install and turns on the "Date de demonstrație" band |
+| POST | `/api/auth/logout` | Ends this device's session and clears both cookies |
+| POST | `/api/auth/refresh` | No body, no session: exchanges the `vana_refresh` cookie for new cookies. `401 SESSION_EXPIRED` when the token is unknown, expired, revoked or reused. 30 per minute per IP |
+| POST | `/api/auth/upgrade-session` | A 7-day cookie from before long sessions gets a long session; no-op otherwise |
+| POST | `/api/auth/confirm-password` | `{ password }`. Marks the session as confirmed for 10 minutes. `401` on a wrong password, 5 per 15 minutes |
+
+Sensitive actions answer `403 { error: { code: 'PASSWORD_CONFIRM_REQUIRED' } }` when the password was
+not typed in the last 10 minutes of the session: `POST /api/me/api-tokens` and `PATCH /api/team/members/:id`
+with `roleId` or `status`. The client asks for the password, calls `confirm-password` and retries.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/me/sessions` | The person's devices: `[{ familyId, deviceLabel, ip, createdAt, lastUsedAt, current }]` |
+| DELETE | `/api/me/sessions/:familyId` | Logs that device out. `404` for a session that is not the person's |
+| POST | `/api/me/sessions/revoke-others` | Logs out every other device |
+| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies, motionPref, hideAmounts, isDemo }`. `mailboxes: null` means all (admin). `isDemo` is true on a demo install and turns on the "Date de demonstrație" band. `sessionKind`: `long`, `legacy` (call `upgrade-session`) or `token` |
 | GET | `/api/auth/locale` | `{ defaultLocale, enabledLocales }`, for the pages before login |
 | PATCH | `/api/auth/me` | `{ displayName?, motionPref?: 'system'\|'full'\|'reduced'\|'off', hideAmounts?: boolean, notificationPrefs?: { chat: 'all'\|'dm'\|'none', emailNew, alerts }, updatesSeenAt?, locale?: 'ro'\|'en', displayCurrency?: 'RON'\|'EUR'\|'USD' }`. `400` for a language or currency outside the lists. `updatesSeenAt` (ISO) is how far the person has read What's new; the server caps it at now |
 | POST | `/api/auth/me/password` | `{ currentPassword, newPassword }` (12 characters minimum). Logs out the other sessions |
 | POST | `/api/auth/forgot-password` | `{ email }` → always `204`, whether the address has an account or not |
 | POST | `/api/auth/reset-password` | `{ token, password }`. Single-use token, 1h. `RESET_TOKEN_EXPIRED` |
 | POST | `/api/auth/accept-invite` | `{ token, password }`. Token valid 72h. `INVITE_EXPIRED` (expired or invalid), `INVITE_USED` (already accepted) |
+
+## API tokens
+
+A person can call the API from a terminal or a script with a personal token instead of the
+cookie. Creating one needs the feature `echipa.tokenuri` (off by default); the page is
+My profile → API tokens.
+
+```
+Authorization: Bearer vd_…
+```
+
+The token is `vd_` plus 32 random bytes in base64url. Only its SHA-256 is stored, and the full
+value is shown once, in the answer to the creating request. A token has at most the features of
+the person's role (it can carry a subset, and the page gates are applied again on top), and it
+expires after 30, 90 or 365 days or never (default 90). Revoking is immediate and cannot be
+undone. Disabling or deleting the person, a password change or reset, and an admin's password reset revoke their tokens.
+In History a call made with a token reads "<person>, prin token <name>" (`audit_log.api_token_id`).
+Through a token the person is never a platform admin and the role counts as `custom`.
+
+| Answer | When |
+|---|---|
+| `401 TOKEN_INVALID` | Unknown, revoked or expired token, or a `Bearer` value that does not start with `vd_`. There is no fallback to the cookie |
+| `403 TOKEN_NOT_ALLOWED` | The path is refused to tokens (below), or the request carries an `x-tenant-id` header |
+| `403 { code: 'FEATURE_FORBIDDEN', feature }` | The token (or the role behind it) lacks the route's feature |
+| `429` | More than 120 requests a minute on this token |
+
+Refused to tokens: `/api/auth/*` (except `GET /api/auth/me`), `/api/me/api-tokens*`,
+`/api/admin/api-tokens*`, `/api/team/*`, `/api/access/*` and `/api/platform/*`. A token cannot
+create or widen tokens, invite people or change roles.
+
+The 120 per minute is counted per token after it is verified, on top of the 900 per minute per IP.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/me/api-tokens` | The person's own tokens (active and revoked) → `[{ id, name, prefix, features, expiresAt, lastUsedAt, lastUsedIp, revokedAt, createdAt }]`. `features` is the list the token was created with. Never the token itself |
+| POST | `/api/me/api-tokens` | `{ name, features?, expiresInDays?: 30\|90\|365\|null }`. Without `features` the token is read-only: it gets only the person's page gates (`<page>.view`). `201`; `403 FEATURE_FORBIDDEN` without `echipa.tokenuri`; `400 FEATURES_NOT_IN_ROLE` for a feature the person does not have |
+| GET | `/api/me/api-tokens/features` | The labels of the person's own features, for the picker in the UI |
+| DELETE | `/api/me/api-tokens/:id` | Revokes one of their own. `404` for someone else's |
+| GET | `/api/admin/api-tokens` | The company's active tokens, each with `user: { id, displayName, email }`. Needs `echipa.administrare` |
+| DELETE | `/api/admin/api-tokens/:id` | Revokes any token. Needs `echipa.administrare` |
+| GET | `/api/meta/routes` | Query: `filter?` (a piece of the path or of the feature key). The routes the caller can call |
+
+```http
+POST /api/me/api-tokens
+{ "name": "cron", "features": ["clienti.view"], "expiresInDays": 90 }
+
+201
+{
+  "success": true,
+  "data": {
+    "token": "vd_…",
+    "item": {
+      "id": "…", "name": "cron", "prefix": "vd_…", "features": ["clienti.view"],
+      "expiresAt": "2027-02-13T…", "lastUsedAt": null, "lastUsedIp": null,
+      "revokedAt": null, "createdAt": "2026-11-15T…"
+    }
+  }
+}
+```
+
+`GET /api/meta/routes` lists what the caller can really call: the route's feature is in the
+person's list (narrowed by the token, when the request came with one) and, through a token,
+the path is not one of the refused ones. It is built from the same map the guard enforces.
+
+```json
+{ "success": true, "data": [
+  { "method": "GET", "path": "/api/prospects", "feature": "clienti.view",
+    "query": { "type": "object", "properties": { … } } },
+  { "method": "POST", "path": "/api/prospects", "feature": "clienti.prospectare",
+    "body": { "type": "object", "properties": { … } } }
+] }
+```
+
+`feature` is `null` for a route that is the person's own (`self`). `body`, `query` and `params`
+are JSON Schemas of the input, and are left out for a route whose schema JSON Schema cannot
+express.
 
 ## Access (Modules)
 
@@ -1166,6 +1258,50 @@ A slot is free if it is inside the weekly schedule, after `minNoticeHours`, with
 `horizonDays`, and does not touch (with `bufferMin` on both sides) a blocked interval, a
 calendar occurrence (RRULE expanded; all-day events take the local day) or a confirmed booking.
 Recurring expenses shown in the calendar take no time.
+
+## MCP
+
+`POST /mcp` is a Model Context Protocol endpoint for Claude Code and other MCP clients. It is
+stateless: one POST per message, protocol version 2026-07-28 (2025 clients are served
+statelessly too). `subscriptions/listen` is not supported.
+
+It works only with a Bearer token (the [API tokens](#api-tokens) above). With the cookie the
+answer is `403 TOKEN_REQUIRED`; a request with an `Origin` header (a browser) is `403`.
+Limits: 300 messages a minute per IP, 256 KB per body.
+
+```
+claude mcp add --transport http vanadash https://dash.example.com/mcp --header "Authorization: Bearer vd_…"
+```
+
+Every tool is one existing route, called with the same token, so the rights, the History entry
+and the 120-per-minute limit are the route's own. `tools/list` shows only the tools the token
+can use. There are no deletes and no email sending.
+
+| Tool | Route |
+|---|---|
+| `search` | `GET /api/search` |
+| `list_prospects` | `GET /api/prospects` |
+| `get_prospect` | `GET /api/prospects/:id` |
+| `add_prospect` | `POST /api/prospects` |
+| `add_prospect_note` | `POST /api/prospects/:id/notes` |
+| `list_tasks` | `GET /api/prospects/tasks` |
+| `add_task` | `POST /api/prospects/:id/tasks` |
+| `complete_task` | `POST /api/prospects/tasks/:taskId/done` |
+| `list_notes` | `GET /api/notes` |
+| `add_note` | `POST /api/notes` |
+| `list_invoices` | `GET /api/invoicing/invoices` |
+| `get_invoice` | `GET /api/accounting/records/:id/detail` |
+| `financial_summary` | `GET /api/metrics/summary` |
+| `calendar_events` | `GET /api/calendar/events` |
+| `add_calendar_event` | `POST /api/calendar/events` |
+| `archive_search` | `GET /api/archive/search` |
+| `list_email_threads` | `GET /api/email/threads` |
+| `get_email_thread` | `GET /api/email/threads/:id` |
+| `api_routes` | `GET /api/meta/routes` |
+
+Inputs are loose on purpose: path parameters fill the `:name` segments, the rest goes to the
+query string or the JSON body, and the route validates it. The route's `400` comes back as the
+tool error; `api_routes` returns the exact schema.
 
 ## What a connected platform has to expose
 

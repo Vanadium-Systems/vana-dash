@@ -25,6 +25,30 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-15T18:50:00Z',
+    title: {
+      ro: 'Rămâi logat: fără login în fiecare săptămână',
+      en: 'Stay logged in: no weekly login',
+    },
+    body: {
+      ro: 'Rămâi logat cât timp deschizi aplicația măcar o dată la 60 de zile, și pe telefon. Dacă cineva îți copiază sesiunea, toate dispozitivele acelui login sunt delogate. În Profilul meu, la Dispozitive, vezi unde ești logat și poți deloga un dispozitiv. Când creezi un token API sau schimbi rolul unui coleg, ți se cere din nou parola dacă n-ai scris-o în ultimele 10 minute.',
+      en: 'You stay logged in as long as you open the app at least once every 60 days, on your phone too. If someone copies your session, all devices of that login are logged out. In My profile, under Devices, you see where you are logged in and can log a device out. When you create an API token or change a colleague’s role, you are asked for your password again if you have not typed it in the last 10 minutes.',
+    },
+    features: [],
+  },
+  {
+    publishedAt: '2026-11-15T18:50:00Z',
+    title: {
+      ro: 'Token-uri API: aplicația din terminal și din Claude Code',
+      en: 'API tokens: the app from a terminal and from Claude Code',
+    },
+    body: {
+      ro: 'În Profilul meu, la Token-uri API, îți faci un token personal cu care scripturile și Claude Code folosesc aplicația în numele tău. Are cel mult drepturile rolului tău și implicit doar citire (bifezi explicit ce trebuie să scrie), expiră în 30, 90 sau 365 de zile ori deloc, iar valoarea o vezi o singură dată, la creare. Îl revoci oricând și încetează imediat; schimbarea sau resetarea parolei îl revocă și ea. Adminul vede în Echipă token-urile active ale firmei și le poate revoca. În Istoric, ce s-a făcut cu un token apare ca „nume, prin token X”. Funcția e oprită până o pornește adminul pentru rolul tău.',
+      en: 'In My profile, under API tokens, you make a personal token that scripts and Claude Code use to work in the app on your behalf. It has at most your role’s rights and is read-only by default (you tick what it has to write), expires in 30, 90 or 365 days or never, and you see the value only once, when you create it. You can revoke it any time and it stops at once; changing or resetting your password revokes it too. The admin sees the company’s active tokens in Team and can revoke them. In History, what was done with a token shows as “name, via token X”. The feature is off until the admin turns it on for your role.',
+    },
+    features: ['echipa.tokenuri', 'echipa.administrare'],
+  },
+  {
     publishedAt: '2026-11-15T16:00:00Z',
     title: {
       ro: 'Facturi: tab-ul Luna (închidere de lună), reguli email furnizori și import PDF din Email',

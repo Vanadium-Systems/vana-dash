@@ -11,6 +11,7 @@ import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
+import { useMe } from '@/shared/hooks/use-me'
 import { readFileAsBase64, type PendingAttachment } from '@/shared/lib/attachments'
 import type { BulkSendResult, EmailSend, EmailSenderOptions, EmailTemplate, Platform } from '@/shared/lib/types'
 import { EngagementBadges } from './EngagementBadges'
@@ -119,9 +120,11 @@ export function BulkSendTab() {
   })
   const [from, setFrom] = useIdentityKey('contact', settings.data?.identities)
 
+  const { can } = useMe()
   const platforms = useQuery({
     queryKey: ['platforms'],
     queryFn: () => api.get<Platform[]>('/api/platforms'),
+    enabled: can('platforme.view'),
   })
 
   // "Trimite la clienții din <platformă>" — încarcă clienții activi (aceiași ca la facturare,

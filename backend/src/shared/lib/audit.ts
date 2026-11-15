@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { auditLog, users } from '../db/schema/index.js'
+import { apiTokens, auditLog, users } from '../db/schema/index.js'
 import { currentActor } from './request-context.js'
 
 // „Cine a făcut ce" (PLAN.md C2). Un singur helper, chemat din service în aceeași tranzacție
@@ -42,6 +42,7 @@ export async function recordAudit(entry: AuditEntry) {
     entityId: entry.entityId ?? null,
     changes: redact(entry.changes) ?? null,
     ip: actor.ip,
+    apiTokenId: actor.apiTokenId ?? null,
   })
 }
 
@@ -50,6 +51,7 @@ export interface EntityHistoryItem {
   at: Date
   action: string
   actor: { id: string; name: string | null } | null
+  viaToken: { id: string; name: string } | null
   changes: Record<string, [unknown, unknown]> | null
 }
 
@@ -67,9 +69,12 @@ export async function listEntityHistory(entityTypes: string[], entityId: string,
       changes: auditLog.changes,
       actorId: users.id,
       actorName: users.displayName,
+      tokenId: apiTokens.id,
+      tokenName: apiTokens.name,
     })
     .from(auditLog)
     .leftJoin(users, eq(users.id, auditLog.actorUserId))
+    .leftJoin(apiTokens, eq(apiTokens.id, auditLog.apiTokenId))
     .where(and(inArray(auditLog.entityType, entityTypes), eq(auditLog.entityId, entityId)))
     .orderBy(asc(auditLog.createdAt))
     .limit(limit)
@@ -78,6 +83,7 @@ export async function listEntityHistory(entityTypes: string[], entityId: string,
     at: row.at,
     action: row.action,
     actor: row.actorId ? { id: row.actorId, name: row.actorName } : null,
+    viaToken: row.tokenId ? { id: row.tokenId, name: row.tokenName! } : null,
     changes: row.changes ?? null,
   }))
 }

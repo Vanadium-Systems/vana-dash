@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { useCollapsingTitle } from '@/shared/hooks/use-collapsing-title'
 import { api } from '@/shared/lib/api'
+import { useMe } from '@/shared/hooks/use-me'
 import { cn } from '@/shared/lib/utils'
 import { CandleChart } from '@/modules/crypto/CandleChart'
 import { OrderDialog } from './OrderDialog'
@@ -63,6 +64,7 @@ function formatCompact(value: number | null): string {
 export function AssetDetailPage() {
   const { category = 'stock', symbol = '' } = useParams<{ category: AssetCategory; symbol: string }>()
   const navigate = useNavigate()
+  const { can } = useMe()
   const queryClient = useQueryClient()
   const [days, setDays] = useState<1 | 7 | 30 | 90 | 365>(30)
   const [chartMode, setChartMode] = useState<'line' | 'candles'>('line')
@@ -92,6 +94,7 @@ export function AssetDetailPage() {
   const brokers = useQuery({
     queryKey: ['assets', 'brokers'],
     queryFn: () => api.get<Array<{ broker: string; mode: 'paper' | 'live' }>>('/api/assets/brokers'),
+    enabled: can('investitii.setari'),
     staleTime: 60_000,
   })
   const t212Mode = brokers.data?.find((b) => b.broker === 'trading212')?.mode ?? 'paper'

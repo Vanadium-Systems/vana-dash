@@ -4,6 +4,7 @@ import { billingClients, calls, prospects } from '../../shared/db/schema/index.j
 import { callPublicUrl, closeCallRoom, openCallRoom, type CallRecord } from '../../shared/lib/call-rooms.js'
 import { createOwnerToken, DailyError, isDailyConfigured } from '../../shared/lib/daily.js'
 import { getCompany } from '../../shared/lib/company.js'
+import { visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import { userName, type SessionUser } from '../../shared/lib/session.js'
 import type { z } from 'zod'
 import { CreateCallSchema, UpdateCallSchema } from './schema.js'
@@ -53,11 +54,13 @@ function toCallRow(call: CallRecord, prospectName: string | null, clientName: st
   }
 }
 
-async function selectRows(where: ReturnType<typeof and> | undefined, limit: number): Promise<CallRow[]> {
+// The list is company-wide, but a prospect the person cannot see shows no name: the join only
+// matches visible prospects, so `prospect` comes out null.
+async function selectRows(me: SessionUser, where: ReturnType<typeof and> | undefined, limit: number): Promise<CallRow[]> {
   const rows = await db
     .select({ call: calls, prospectName: prospects.name, clientName: billingClients.name })
     .from(calls)
-    .leftJoin(prospects, eq(prospects.id, calls.prospectId))
+    .leftJoin(prospects, and(eq(prospects.id, calls.prospectId), visibleProspectsWhere(me)))
     .leftJoin(billingClients, eq(billingClients.id, calls.billingClientId))
     .where(and(isNull(calls.deletedAt), where))
     .orderBy(desc(calls.createdAt))
@@ -65,14 +68,14 @@ async function selectRows(where: ReturnType<typeof and> | undefined, limit: numb
   return rows.map((row) => toCallRow(row.call, row.prospectName, row.clientName))
 }
 
-export async function listCalls(query: { status: 'open' | 'ended' | 'all'; limit: number }): Promise<CallRow[]> {
+export async function listCalls(me: SessionUser, query: { status: 'open' | 'ended' | 'all'; limit: number }): Promise<CallRow[]> {
   const where =
     query.status === 'open' ? eq(calls.status, 'open') : query.status === 'ended' ? inArray(calls.status, ['ended', 'cancelled']) : undefined
-  return selectRows(where, query.limit)
+  return selectRows(me, where, query.limit)
 }
 
-export async function getCall(id: string): Promise<CallRow | null> {
-  const [row] = await selectRows(eq(calls.id, id), 1)
+export async function getCall(me: SessionUser, id: string): Promise<CallRow | null> {
+  const [row] = await selectRows(me, eq(calls.id, id), 1)
   return row ?? null
 }
 
@@ -83,7 +86,7 @@ async function loadOpenable(id: string): Promise<CallRecord> {
   return row
 }
 
-export async function createCall(input: CreateInput): Promise<CallRow> {
+export async function createCall(me: SessionUser, input: CreateInput): Promise<CallRow> {
   if (!isDailyConfigured()) throw new CallError('not_configured', 503)
 
   const exp = new Date(Date.now() + input.expiresInHours * 3_600_000)
@@ -100,10 +103,10 @@ export async function createCall(input: CreateInput): Promise<CallRow> {
     throw err
   }
 
-  return (await getCall(row.id))!
+  return (await getCall(me, row.id))!
 }
 
-export async function updateCall(id: string, input: UpdateInput): Promise<CallRow> {
+export async function updateCall(me: SessionUser, id: string, input: UpdateInput): Promise<CallRow> {
   const call = await loadOpenable(id)
 
   const set: Record<string, unknown> = { updatedAt: new Date() }
@@ -112,7 +115,7 @@ export async function updateCall(id: string, input: UpdateInput): Promise<CallRo
   if (input.billingClientId !== undefined) set.billingClientId = input.billingClientId
 
   await db.update(calls).set(set).where(eq(calls.id, call.id))
-  return (await getCall(id))!
+  return (await getCall(me, id))!
 }
 
 export async function joinCall(id: string, me: SessionUser): Promise<{ roomUrl: string; token: string }> {
@@ -131,7 +134,7 @@ export async function joinCall(id: string, me: SessionUser): Promise<{ roomUrl: 
   return { roomUrl: call.roomUrl, token }
 }
 
-export async function endCall(id: string): Promise<CallRow> {
+export async function endCall(me: SessionUser, id: string): Promise<CallRow> {
   const call = await loadOpenable(id)
   try {
     await closeCallRoom(call, 'ended')
@@ -139,7 +142,7 @@ export async function endCall(id: string): Promise<CallRow> {
     if (err instanceof DailyError) throw new CallError('provider', 502)
     throw err
   }
-  return (await getCall(id))!
+  return (await getCall(me, id))!
 }
 
 // What the anonymous join page may know: nothing about who the call is for.

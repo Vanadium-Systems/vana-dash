@@ -979,6 +979,14 @@ const SOURCES: GuideSource[] = [
         ro: 'La Notificări alegi despre ce ești anunțat: mesajele (toate sau doar cele directe), emailul nou pe cutiile tale și alertele.',
         en: 'Under Notifications you choose what you are told about: messages (all or only direct ones), new email in your mailboxes and alerts.',
       },
+      {
+        ro: 'La Dispozitive vezi unde ești logat: dispozitivul, ultima activitate și de când ești logat. Pe un rând care nu e al tău de acum apeși Deloghează și acolo va trebui să intri din nou cu parola; „Deloghează celelalte dispozitive” le scoate pe toate odată. Rămâi logat cât deschizi aplicația măcar o dată la 60 de zile.',
+        en: 'Under Devices you see where you are logged in: the device, the last activity and since when. On a row that is not your current one, press Log out and that device will have to log in again with the password; “Log out other devices” removes them all at once. You stay logged in as long as you open the app at least once every 60 days.',
+      },
+      {
+        ro: 'La Token-uri API (apare doar dacă adminul ți-a pornit funcția) faci un token pentru terminal sau Claude Code. Alegi un nume, drepturile și cât ține. Implicit e doar citire; bifezi în plus doar ce trebuie să scrie. Valoarea o vezi o singură dată: copiaz-o atunci. Un token care nu mai trebuie îl revoci din aceeași listă, iar efectul e imediat. Adminul vede token-urile firmei în Echipă.',
+        en: 'Under API tokens (shown only if the admin turned the feature on for you) you make a token for a terminal or Claude Code. You pick a name, the rights and how long it lasts. It is read-only by default; tick more only for what it has to write. You see the value only once, so copy it then. A token you no longer need is revoked from the same list, and it stops at once. The admin sees the company’s tokens in Team.',
+      },
     ],
   },
 ]

@@ -75,7 +75,7 @@ export async function emailSequencesRoutes(app: FastifyInstance) {
     '/api/email/sequences/:id/enrollments',
     { preHandler: [app.authenticate], schema: { params: SequenceIdParamsSchema } },
     async (req) => {
-      return { success: true, data: await service.listEnrollments(req.params.id) }
+      return { success: true, data: await service.listEnrollments(req.me, req.params.id) }
     },
   )
 

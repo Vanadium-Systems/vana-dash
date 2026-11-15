@@ -106,7 +106,8 @@
     },
     "echipa": {
       "administrare": "Invites people and edits roles",
-      "istoric": "Sees the history"
+      "istoric": "Sees the history",
+      "tokenuri": "API tokens"
     },
     "mesaje": {
       "view": "Messages between people"

@@ -29,6 +29,46 @@ export function onForbiddenRefreshMe(refresh: () => Promise<unknown>) {
   refreshMeOnce = refresh
 }
 
+// Asks the person for the password again (PASSWORD_CONFIRM_REQUIRED). Registered by the dialog
+// provider in the app shell; resolves when the password was confirmed, rejects on cancel.
+let askPasswordConfirm: (() => Promise<void>) | null = null
+export function onPasswordConfirmRequired(ask: () => Promise<void>) {
+  askPasswordConfirm = ask
+}
+
+// Auth routes where a 401 is an answer, not an expired session: no refresh, no retry.
+const NO_REFRESH_PATHS = [
+  '/api/auth/login',
+  '/api/auth/refresh',
+  '/api/auth/logout',
+  '/api/auth/confirm-password',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/accept-invite',
+]
+
+// The access cookie lives 15 minutes; the refresh cookie renews it. Many requests fail with 401 at
+// the same moment, so they share one refresh call. It uses fetch directly (never `request`), so it
+// cannot recurse; callers retry their request once and only once.
+let refreshing: Promise<boolean> | null = null
+function refreshSession(): Promise<boolean> {
+  refreshing ??= fetch('/api/auth/refresh', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'X-Locale': getLocale() },
+  })
+    .then((res) => res.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null
+    })
+  return refreshing
+}
+
+function canRefresh(path: string): boolean {
+  return !NO_REFRESH_PATHS.some((skipped) => path === skipped || path.startsWith(`${skipped}?`))
+}
+
 interface ApiEnvelope<T> {
   success: boolean
   data: T
@@ -85,7 +125,12 @@ function userMessage(status: number, body: ApiEnvelope<unknown> | null): string 
   return t('common:errors.api.generic', { status })
 }
 
-async function requestEnvelope<T>(path: string, init?: RequestInit): Promise<ApiEnvelope<T>> {
+interface RetryState {
+  refreshed?: boolean
+  confirmed?: boolean
+}
+
+async function requestEnvelope<T>(path: string, init?: RequestInit, retry: RetryState = {}): Promise<ApiEnvelope<T>> {
   // FormData (upload arhivă) — browserul setează singur Content-Type cu boundary-ul multipart,
   // nu-l suprascriem cu application/json.
   const isFormData = init?.body instanceof FormData
@@ -103,8 +148,9 @@ async function requestEnvelope<T>(path: string, init?: RequestInit): Promise<Api
     throw new ApiError(0, t('common:errors.api.network'))
   })
 
-  if (res.status === 401 && !path.startsWith('/api/auth/')) {
-    return handleUnauthorized()
+  if (res.status === 401 && canRefresh(path)) {
+    if (!retry.refreshed && (await refreshSession())) return requestEnvelope<T>(path, init, { ...retry, refreshed: true })
+    if (!path.startsWith('/api/auth/')) return handleUnauthorized()
   }
 
   const body = (await res.json().catch(() => null)) as (ApiEnvelope<T> & { message?: string }) | null
@@ -114,7 +160,14 @@ async function requestEnvelope<T>(path: string, init?: RequestInit): Promise<Api
     const { message, code } = errorDetails(res.status, body)
     // Rolul tocmai i-a fost schimbat: reîncărcăm `/me` ca interfața să se potrivească.
     if (res.status === 403 && code === 'FEATURE_FORBIDDEN') void refreshMeOnce?.()
-    throw new ApiError(res.status, message, code, body)
+    const error = new ApiError(res.status, message, code, body)
+    if (res.status === 403 && code === 'PASSWORD_CONFIRM_REQUIRED' && askPasswordConfirm && !retry.confirmed) {
+      // Cancel (or a failure) in the dialog surfaces the original error.
+      const confirmed = await askPasswordConfirm().then(() => true, () => false)
+      if (!confirmed) throw error
+      return requestEnvelope<T>(path, init, { ...retry, confirmed: true })
+    }
+    throw error
   }
   return body
 }
@@ -127,9 +180,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 // îl trimite, altfel cade pe `fallbackFileName` — folosit atât pt. descărcare reală pe disc
 // (ArchivePage, Accounting → Primite), cât și pt. Web Share API (fișierul are nevoie de bytes
 // reali în JS, nu doar un URL — vezi getBlob).
-async function fetchBlob(path: string): Promise<{ blob: Blob; filename: string | null }> {
+async function fetchBlob(path: string, refreshed = false): Promise<{ blob: Blob; filename: string | null }> {
   const res = await fetch(path, { credentials: 'include' })
   if (res.status === 401) {
+    if (!refreshed && (await refreshSession())) return fetchBlob(path, true)
     return handleUnauthorized()
   }
   if (!res.ok) {
@@ -190,5 +244,5 @@ export const api = {
     return { data: envelope.data, revertToken: (envelope as ApiEnvelope<T> & { revertToken: string }).revertToken }
   },
   download: downloadFile,
-  getBlob: fetchBlob,
+  getBlob: (path: string) => fetchBlob(path),
 }

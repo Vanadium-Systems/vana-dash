@@ -11,6 +11,9 @@ import type { FeatureKey, SessionPayload } from '@/shared/lib/types'
 
 export const ME_QUERY_KEY = ['auth', 'me'] as const
 
+// Once per page load; a failure is harmless, the old cookie keeps working until it expires.
+let upgradeTried = false
+
 export interface UseMe {
   session: SessionPayload | null
   features: Set<FeatureKey>
@@ -39,6 +42,12 @@ export function useMe(): UseMe {
   useEffect(() => {
     if (motionPref) applyMotionPref(motionPref)
   }, [motionPref])
+  const sessionKind = session?.sessionKind
+  useEffect(() => {
+    if (sessionKind !== 'legacy' || upgradeTried) return
+    upgradeTried = true
+    api.post('/api/auth/upgrade-session').catch(() => {})
+  }, [sessionKind])
   const features = useMemo(() => new Set(session?.features ?? []), [session])
   const can = useCallback(
     (feature: FeatureKey | null | undefined) => (feature === null || feature === undefined || session === null ? true : features.has(feature)),

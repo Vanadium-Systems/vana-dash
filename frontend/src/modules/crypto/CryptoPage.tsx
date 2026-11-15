@@ -256,6 +256,7 @@ export function CryptoPage() {
   const settings = useQuery({
     queryKey: ['crypto', 'settings'],
     queryFn: () => api.get<{ tradingEnabled: boolean }>('/api/crypto/settings'),
+    enabled: can('investitii.setari'),
   })
 
   const portfolio = useQuery({
@@ -267,6 +268,7 @@ export function CryptoPage() {
   const orders = useQuery({
     queryKey: ['crypto', 'orders'],
     queryFn: () => api.get<PaperOrderRow[]>('/api/crypto/orders'),
+    enabled: can('investitii.ordine'),
     staleTime: 60_000,
   })
 

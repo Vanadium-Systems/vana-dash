@@ -14,7 +14,9 @@ import { isPushSupported } from '@/shared/lib/push-client'
 import { extractEmailAddress } from '@/modules/email/identity'
 import { NavSettingsCard } from '@/modules/settings/NavSettingsCard'
 import { PushPreferencesCard, PushSubscriptionCard } from '@/modules/settings/PushCards'
-import type { EmailIdentity, EmailSettings, SessionPayload } from '@/shared/lib/types'
+import type { EmailIdentity, EmailSenderOptions, SessionPayload } from '@/shared/lib/types'
+import { ApiTokensCard } from './ApiTokensCard'
+import { DevicesCard } from './DevicesCard'
 import { PasswordInput } from './PasswordInput'
 import { changeLocale, t } from '@/shared/lib/i18n'
 import { applyMotionPref, type MotionPref } from '@/shared/lib/motion'
@@ -43,9 +45,12 @@ export function ProfilePage() {
   const [newPassword, setNewPassword] = useState('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
 
+  // sender-options, not /api/email/settings: the latter needs `email.setari`, which a colleague
+  // does not have, and it already returns only the person's own mailboxes.
   const identities = useQuery({
-    queryKey: ['email', 'settings'],
-    queryFn: () => api.get<EmailSettings>('/api/email/settings'),
+    queryKey: ['email', 'settings', 'sender-options'],
+    queryFn: () => api.get<EmailSenderOptions>('/api/email/sender-options'),
+    enabled: can('email.view'),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -105,7 +110,6 @@ export function ProfilePage() {
 
   const prefs = session?.notificationPrefs
   const myBoxes = (identities.data?.identities ?? [])
-    .filter((identity) => session?.mailboxes === null || session?.mailboxes.includes(identity.key))
     .map((identity: EmailIdentity) => extractEmailAddress(identity.fromAddress))
     .filter(Boolean)
 
@@ -270,6 +274,10 @@ export function ProfilePage() {
           ) : null}
         </CardContent>
       </Card>
+
+      <DevicesCard />
+
+      {can('echipa.tokenuri') ? <ApiTokensCard /> : null}
 
       {isPushSupported() ? <PushSubscriptionCard /> : null}
       {isPushSupported() ? <PushPreferencesCard /> : null}

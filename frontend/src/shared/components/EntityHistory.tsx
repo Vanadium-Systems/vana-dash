@@ -36,7 +36,8 @@ const CHANGE_LABEL: Record<string, string> = {
 function actorName(item: AuditListItem, members: ReturnType<typeof useTeamMembers>['data']): string {
   if (!item.actor) return t('common:labels.system')
   const member = members?.find((m) => m.id === item.actor?.id)
-  return member ? memberName(member) : (item.actor.displayName ?? t('common:history.someone'))
+  const name = member ? memberName(member) : (item.actor.displayName ?? t('common:history.someone'))
+  return item.viaToken ? t('common:history.viaToken', { actor: name, token: item.viaToken.name }) : name
 }
 
 /** Valoarea veche → cea nouă, pe o singură linie; obiectele lungi devin JSON scurt. */

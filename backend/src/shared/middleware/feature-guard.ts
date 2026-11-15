@@ -17,6 +17,14 @@ export interface FeatureGuard {
   /** Routes registered without `authenticate`; each must be declared `public` or `machine`. */
   open: RouteDescriptor[]
   problems: CatalogProblem[]
+  /** Request schemas of the authenticated routes, for `GET /api/meta/routes`. */
+  schemas: Map<string, RouteSchemas>
+}
+
+export interface RouteSchemas {
+  body?: unknown
+  querystring?: unknown
+  params?: unknown
 }
 
 declare module 'fastify' {
@@ -25,7 +33,7 @@ declare module 'fastify' {
   }
 }
 
-const routeKey = (method: string, url: string) => `${method.toUpperCase()} ${url}`
+export const routeKey = (method: string, url: string) => `${method.toUpperCase()} ${url}`
 
 /**
  * Leagă fiecare rută autentificată de funcționalitatea ei (PLAN.md C2, BE-1).
@@ -41,7 +49,7 @@ const routeKey = (method: string, url: string) => `${method.toUpperCase()} ${url
  * calculate — aici n-avem încă cine e omul.
  */
 export const featureGuardPlugin = fp(async (app: FastifyInstance) => {
-  const guard: FeatureGuard = { routes: new Map(), authenticated: [], open: [], problems: [] }
+  const guard: FeatureGuard = { routes: new Map(), authenticated: [], open: [], problems: [], schemas: new Map() }
   app.decorate('featureGuard', guard)
 
   app.addHook('onRoute', (route) => {
@@ -57,6 +65,8 @@ export const featureGuardPlugin = fp(async (app: FastifyInstance) => {
         continue
       }
       guard.authenticated.push({ method, url: route.url })
+      const { body, querystring, params } = (route.schema ?? {}) as RouteSchemas
+      guard.schemas.set(routeKey(method, route.url), { body, querystring, params })
       if (declaredRouteKind(method, route.url)) {
         guard.routes.set(routeKey(method, route.url), null)
         continue

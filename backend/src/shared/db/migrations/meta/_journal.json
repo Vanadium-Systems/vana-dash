@@ -652,6 +652,20 @@
       "when": 1794750934063,
       "tag": "0092_supplier_email_rules_and_month_close",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1794760139561,
+      "tag": "0093_api_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1794766865705,
+      "tag": "0094_user_sessions",
+      "breakpoints": true
     }
   ]
 }

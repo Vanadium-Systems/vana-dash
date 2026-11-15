@@ -40,3 +40,7 @@ export const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(1),
 })
+
+export const ConfirmPasswordSchema = z.object({ password: z.string().min(1).max(200) })
+
+export const SessionFamilyParamsSchema = z.object({ familyId: z.string().uuid() })

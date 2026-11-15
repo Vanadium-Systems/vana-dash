@@ -77,7 +77,8 @@ export function TeamHistoryPage() {
   const actorName = (item: AuditListItem) => {
     if (!item.actor) return t('common:labels.system')
     const member = members.data?.find((m) => m.id === item.actor?.id)
-    return member ? memberName(member) : (item.actor.displayName ?? t('common:history.someone'))
+    const name = member ? memberName(member) : (item.actor.displayName ?? t('common:history.someone'))
+    return item.viaToken ? t('common:history.viaToken', { actor: name, token: item.viaToken.name }) : name
   }
   const activeFilters = [
     actorId ? { key: 'actor', label: `Om: ${memberName(members.data?.find((m) => m.id === actorId) ?? { displayName: null, email: actorId })}` } : null,
@@ -169,7 +170,7 @@ export function TeamHistoryPage() {
                   <td className="whitespace-nowrap py-2 pr-3 text-muted-foreground" title={formatDateTime(item.createdAt)}>
                     {formatRelativeTime(item.createdAt)}
                   </td>
-                  <td className="max-w-[8rem] truncate py-2 pr-3">{actorName(item)}</td>
+                  <td className="max-w-[8rem] truncate py-2 pr-3 md:max-w-[14rem]" title={actorName(item)}>{actorName(item)}</td>
                   <td className="py-2 pr-3">
                     {actionLabel(item.action)}
                     {/* The object column is hidden on a phone, so its name moves under the action. */}
