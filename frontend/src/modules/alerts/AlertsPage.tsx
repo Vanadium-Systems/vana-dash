@@ -184,7 +184,7 @@ function ActiveAlertsSection() {
                       <span className="block truncate text-xs text-muted-foreground">{alert.ruleName}</span>
                     </button>
                     <span className="hidden shrink-0 text-xs text-muted-foreground tnum sm:inline">{triggeredLabel(alert.triggeredAt)}</span>
-                    <div className="hidden shrink-0 lg:block [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
+                    <div className="hidden shrink-0 xl:block [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
                       <AlertActions alert={alert} compact />
                     </div>
                   </li>
