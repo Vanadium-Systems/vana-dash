@@ -3,7 +3,6 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
-import sensible from '@fastify/sensible'
 import Fastify, { type FastifyError } from 'fastify'
 import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { accessRoutes } from './modules/access/routes.js'
@@ -137,7 +136,6 @@ export async function buildServer() {
   // A personal API token also gets its own budget, keyed on the verified token (see `authenticate`):
   // keying here, before the token is checked, would let a random Bearer value open a fresh bucket.
   await app.register(rateLimit, { max: 900, timeWindow: '1 minute' })
-  await app.register(sensible)
   await app.register(authPlugin)
   // După authPlugin: hook-ul lui mută `authenticate` în preValidation, iar guard-ul trebuie
   // să vadă astea ca să știe care rute sunt autentificate.

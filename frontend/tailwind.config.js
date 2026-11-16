@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+import plugin from 'tailwindcss/plugin'
+
 export default {
   darkMode: ['class'],
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -148,5 +150,50 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    plugin(({ addUtilities, matchUtilities, theme }) => {
+      addUtilities({
+        '@keyframes enter': {
+          from: {
+            opacity: 'var(--tw-enter-opacity, 1)',
+            transform:
+              'translate3d(0, var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1))',
+          },
+        },
+        '@keyframes exit': {
+          to: {
+            opacity: 'var(--tw-exit-opacity, 1)',
+            transform:
+              'translate3d(0, var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1))',
+          },
+        },
+        '.animate-in': {
+          animationName: 'enter',
+          animationDuration: '150ms',
+          '--tw-enter-opacity': 'initial',
+          '--tw-enter-scale': 'initial',
+          '--tw-enter-translate-y': 'initial',
+        },
+        '.animate-out': {
+          animationName: 'exit',
+          animationDuration: '150ms',
+          '--tw-exit-opacity': 'initial',
+          '--tw-exit-scale': 'initial',
+          '--tw-exit-translate-y': 'initial',
+        },
+        '.fade-in-0': { '--tw-enter-opacity': '0' },
+        '.fade-out-0': { '--tw-exit-opacity': '0' },
+        '.zoom-in-99': { '--tw-enter-scale': '0.99' },
+        '.zoom-out-99': { '--tw-exit-scale': '0.99' },
+        '.slide-in-from-bottom-0': { '--tw-enter-translate-y': '0px' },
+        '.slide-in-from-bottom-4': { '--tw-enter-translate-y': '1rem' },
+        '.slide-out-to-bottom-0': { '--tw-exit-translate-y': '0px' },
+        '.slide-out-to-bottom-4': { '--tw-exit-translate-y': '1rem' },
+      })
+      matchUtilities(
+        { duration: (value) => ({ animationDuration: value }) },
+        { values: theme('transitionDuration') },
+      )
+    }),
+  ],
 }
