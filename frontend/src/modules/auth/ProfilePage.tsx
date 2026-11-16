@@ -20,6 +20,7 @@ import { DevicesCard } from './DevicesCard'
 import { PasswordInput } from './PasswordInput'
 import { changeLocale, t } from '@/shared/lib/i18n'
 import { applyMotionPref, type MotionPref } from '@/shared/lib/motion'
+import { applyPalette, PALETTE_SWATCHES, THEME_PALETTES, type ThemePalette } from '@/shared/lib/palette'
 import { cn } from '@/shared/lib/utils'
 import { LOCALE_NAMES, type DisplayCurrency, type Locale } from '@/shared/lib/locale'
 
@@ -100,10 +101,12 @@ export function ProfilePage() {
   })
 
   const saveDisplayPrefs = useMutation({
-    mutationFn: (patch: { motionPref?: MotionPref; hideAmounts?: boolean; soundOn?: boolean }) => api.patch<SessionPayload>('/api/auth/me', patch),
+    mutationFn: (patch: { motionPref?: MotionPref; themePalette?: ThemePalette; hideAmounts?: boolean; soundOn?: boolean }) =>
+      api.patch<SessionPayload>('/api/auth/me', patch),
     onSuccess: (data) => {
       queryClient.setQueryData(['auth', 'me'], data)
       applyMotionPref(data.motionPref ?? 'system')
+      if (data.themePalette) applyPalette(data.themePalette)
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : t('auth:profile.display.notSaved')),
   })
@@ -167,6 +170,37 @@ export function ProfilePage() {
               onValueChange={(value) => saveDisplayCurrency.mutate(value as DisplayCurrency)}
               options={(session?.displayCurrencies ?? []).map((currency) => ({ value: currency, label: t(`common:currencies.${currency}`) }))}
             />
+          </Field>
+          <Field label={t('auth:profile.display.palette')} hint={t('auth:profile.display.paletteHint')}>
+            <div role="radiogroup" aria-label={t('auth:profile.display.palette')} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {THEME_PALETTES.map((palette) => {
+                const selected = (session?.themePalette ?? 'vanadium') === palette
+                const swatch = PALETTE_SWATCHES[palette]
+                return (
+                  <button
+                    key={palette}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    disabled={saveDisplayPrefs.isPending}
+                    onClick={() => saveDisplayPrefs.mutate({ themePalette: palette })}
+                    className={cn(
+                      'flex h-control-md items-center gap-2.5 rounded-md border px-3 text-left text-sm transition-colors duration-[var(--duration-fast)]',
+                      selected
+                        ? 'border-primary bg-accent font-medium text-foreground ring-1 ring-primary'
+                        : 'border-border bg-card text-muted-foreground hover:border-border-strong hover:text-foreground',
+                    )}
+                  >
+                    <span className="flex shrink-0 items-center overflow-hidden rounded-sm border border-border-strong" aria-hidden="true">
+                      <span className="h-4 w-3" style={{ backgroundColor: swatch.light.bg }} />
+                      <span className="h-4 w-2.5" style={{ backgroundColor: swatch.light.primary }} />
+                      <span className="h-4 w-2" style={{ backgroundColor: swatch.light.glow }} />
+                    </span>
+                    <span className="truncate">{t(`auth:profile.display.paletteOptions.${palette}`)}</span>
+                  </button>
+                )
+              })}
+            </div>
           </Field>
           <Field label={t('auth:profile.display.motion')} hint={t('auth:profile.display.motionHint')}>
             <div role="radiogroup" aria-label={t('auth:profile.display.motion')} className="inline-flex flex-wrap gap-1 rounded-md bg-muted p-1">

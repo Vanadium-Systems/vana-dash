@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { MOTION_PREFS } from '../../shared/db/schema/users.js'
+import { MOTION_PREFS, THEME_PALETTES } from '../../shared/db/schema/users.js'
 import { DISPLAY_CURRENCIES, LOCALES } from '../../shared/lib/locale.js'
 
 export const LoginBodySchema = z.object({
@@ -21,6 +21,7 @@ export const PatchMeSchema = z.object({
   locale: z.enum(LOCALES).optional(),
   displayCurrency: z.enum(DISPLAY_CURRENCIES).optional(),
   motionPref: z.enum(MOTION_PREFS).optional(),
+  themePalette: z.enum(THEME_PALETTES).optional(),
   hideAmounts: z.boolean().optional(),
   soundOn: z.boolean().optional(),
 })

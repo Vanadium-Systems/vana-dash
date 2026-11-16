@@ -68,6 +68,29 @@ describe('GET /api/auth/me', () => {
     const res = await app.inject({ method: 'GET', url: '/api/auth/me' })
     expect(res.statusCode).toBe(401)
   })
+
+  it('persists themePalette via PATCH /api/auth/me and rejects unknown palette', async () => {
+    const patchRes = await app.inject({
+      method: 'PATCH',
+      url: '/api/auth/me',
+      cookies: { vana_session: stefanCookie },
+      payload: { themePalette: 'padure' },
+    })
+    expect(patchRes.statusCode).toBe(200)
+    expect(patchRes.json().data.themePalette).toBe('padure')
+
+    const meRes = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: { vana_session: stefanCookie } })
+    expect(meRes.statusCode).toBe(200)
+    expect(meRes.json().data.themePalette).toBe('padure')
+
+    const badRes = await app.inject({
+      method: 'PATCH',
+      url: '/api/auth/me',
+      cookies: { vana_session: stefanCookie },
+      payload: { themePalette: 'neon' },
+    })
+    expect(badRes.statusCode).toBe(400)
+  })
 })
 
 describe('authenticate() — sesiune validă necesară pe rutele protejate', () => {

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo } from 'react'
 import { api } from '@/shared/lib/api'
 import { applyMotionPref } from '@/shared/lib/motion'
+import { applyPalette } from '@/shared/lib/palette'
 import type { FeatureKey, SessionPayload } from '@/shared/lib/types'
 
 // Cine e omul logat și ce poate face (PLAN.md C2, FE-2). Un singur query, același pe
@@ -42,6 +43,10 @@ export function useMe(): UseMe {
   useEffect(() => {
     if (motionPref) applyMotionPref(motionPref)
   }, [motionPref])
+  const themePalette = session?.themePalette
+  useEffect(() => {
+    if (themePalette) applyPalette(themePalette)
+  }, [themePalette])
   const sessionKind = session?.sessionKind
   useEffect(() => {
     if (sessionKind !== 'legacy' || upgradeTried) return

@@ -1,0 +1,9 @@
+{
+  "name": "res-m-spike",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@towns-protocol/vodozemac": "latest",
+    "ts-mls": "latest"
+  }
+}

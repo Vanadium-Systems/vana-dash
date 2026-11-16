@@ -25,6 +25,9 @@ export interface NotificationPrefs {
 export const MOTION_PREFS = ['system', 'full', 'reduced', 'off'] as const
 export type MotionPref = (typeof MOTION_PREFS)[number]
 
+export const THEME_PALETTES = ['vanadium', 'grafit', 'padure', 'chihlimbar', 'ardezie'] as const
+export type ThemePalette = (typeof THEME_PALETTES)[number]
+
 export const users = pgTable(
   'users',
   {
@@ -55,6 +58,7 @@ export const users = pgTable(
     displayCurrency: text('display_currency', { enum: DISPLAY_CURRENCIES }).notNull().default('RON'),
     // 'system' follows prefers-reduced-motion until the person picks a level in their profile.
     motionPref: text('motion_pref', { enum: MOTION_PREFS }).notNull().default('system'),
+    themePalette: text('theme_palette', { enum: THEME_PALETTES }).notNull().default('vanadium'),
     hideAmounts: boolean('hide_amounts').notNull().default(false),
     // The person's own Home grid. null = the company layout (dashboard_config['home.layout']),
     // kept here like nav_layout so no dashboard_config read can pick up a personal row.
@@ -68,5 +72,6 @@ export const users = pgTable(
     check('ck_users_locale', sql`${t.locale} IN ('ro', 'en')`),
     check('ck_users_display_currency', sql`${t.displayCurrency} IN ('RON', 'EUR', 'USD')`),
     check('ck_users_motion_pref', sql`${t.motionPref} IN ('system', 'full', 'reduced', 'off')`),
+    check('ck_users_theme_palette', sql`${t.themePalette} IN ('vanadium', 'grafit', 'padure', 'chihlimbar', 'ardezie')`),
   ],
 )

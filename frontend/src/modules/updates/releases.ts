@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T22:15:00Z',
+    title: {
+      ro: 'Palete de culori în Profilul meu',
+      en: 'Colour palettes in My profile',
+    },
+    body: {
+      ro: 'În Profilul meu poți alege una dintre cele cinci palete de culori (Vanadium, Grafit, Pădure, Chihlimbar, Ardezie), fiecare cu variantă de zi și de noapte. Alegerea se salvează pe contul tău și se aplică pe toate dispozitivele.',
+      en: 'In My profile you can pick one of five colour palettes (Vanadium, Graphite, Forest, Amber, Slate), each with day and night modes. Your choice is saved to your account and applies across all devices.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-16T22:00:00Z',
     title: {
       ro: 'Declarații: recipisa se poate confirma de mână',

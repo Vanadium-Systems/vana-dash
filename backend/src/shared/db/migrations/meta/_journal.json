@@ -694,6 +694,13 @@
       "when": 1794838089013,
       "tag": "0098_ideal_employees",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1794860252597,
+      "tag": "0099_theme_palette",
+      "breakpoints": true
     }
   ]
 }

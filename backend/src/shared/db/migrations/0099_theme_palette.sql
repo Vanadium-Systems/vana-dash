@@ -1,0 +1,2 @@
+ALTER TABLE "users" ADD COLUMN "theme_palette" text DEFAULT 'vanadium' NOT NULL;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "ck_users_theme_palette" CHECK ("users"."theme_palette" IN ('vanadium', 'grafit', 'padure', 'chihlimbar', 'ardezie'));
