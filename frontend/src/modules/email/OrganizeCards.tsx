@@ -65,7 +65,7 @@ export function LabelsCard({ scope }: { scope: Scope }) {
   return (
     <SettingsSection
       title={scope === 'mine' ? t('email:mySettings.labels') : t('email:labels.labels')}
-      description={scope === 'mine' ? t('email:mySettings.labelsHint') : undefined}
+      description={scope === 'mine' ? t('email:mySettings.labelsHint') : t('email:labels.companyHint')}
     >
       <form
         className="flex gap-2"

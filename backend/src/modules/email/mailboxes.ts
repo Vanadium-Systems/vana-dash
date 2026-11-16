@@ -129,7 +129,17 @@ export async function soleMailboxHolder(identityKey: string): Promise<string | n
     .innerJoin(users, eq(users.id, userMailboxes.userId))
     .where(and(eq(userMailboxes.identityKey, identityKey), isNull(userMailboxes.deletedAt), isNull(users.deletedAt)))
     .limit(2)
-  return rows.length === 1 ? (rows[0]?.userId ?? null) : null
+  if (rows.length === 1) return rows[0]?.userId ?? null
+  if (rows.length > 1) return null
+  // Nobody holds it: only the admin reads it (admins see every mailbox without rows here), so the
+  // admin's own rules apply. With two admins it is shared again.
+  const admins = await db
+    .select({ id: users.id })
+    .from(users)
+    .innerJoin(roles, eq(roles.id, users.roleId))
+    .where(and(eq(roles.kind, 'admin'), isNull(users.deletedAt)))
+    .limit(2)
+  return admins.length === 1 ? (admins[0]?.id ?? null) : null
 }
 
 // ── Citit / necitit per om ───────────────────────────────────────────────────────────────────
