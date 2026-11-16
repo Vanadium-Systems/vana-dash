@@ -1,6 +1,91 @@
-import { clsx, type ClassValue } from 'clsx'
 import { extendTailwindMerge } from 'tailwind-merge'
 import { intlTag } from './format'
+
+export type ClassValue =
+  | ClassValue[]
+  | Record<string, unknown>
+  | string
+  | number
+  | bigint
+  | boolean
+  | null
+  | undefined
+
+function toVal(mix: ClassValue): string {
+  if (typeof mix === 'string' || typeof mix === 'number') return String(mix)
+  if (!mix || typeof mix !== 'object') return ''
+  const parts: string[] = []
+  if (Array.isArray(mix)) {
+    for (const item of mix) {
+      const val = item && toVal(item)
+      if (val) parts.push(val)
+    }
+  } else {
+    for (const [k, v] of Object.entries(mix)) {
+      if (v) parts.push(k)
+    }
+  }
+  return parts.join(' ')
+}
+
+export function clsx(...inputs: ClassValue[]): string {
+  const parts: string[] = []
+  for (const input of inputs) {
+    const val = input && toVal(input)
+    if (val) parts.push(val)
+  }
+  return parts.join(' ')
+}
+
+type ConfigSchema = Record<string, Record<string, ClassValue>>
+type ConfigVariants<T extends ConfigSchema> = {
+  [Variant in keyof T]?: keyof T[Variant] | null | undefined
+}
+type Config<T extends ConfigSchema> = {
+  variants?: T
+  defaultVariants?: ConfigVariants<T>
+  compoundVariants?: Array<
+    ConfigVariants<T> & {
+      class?: ClassValue
+      className?: ClassValue
+    }
+  >
+}
+
+export type VariantProps<Component extends (...args: never[]) => unknown> = Omit<
+  NonNullable<Parameters<Component>[0]>,
+  'class' | 'className'
+>
+
+export function cva<T extends ConfigSchema>(base?: ClassValue, config?: Config<T>) {
+  return (props?: ConfigVariants<T> & { class?: ClassValue; className?: ClassValue }): string => {
+    if (!config?.variants) return clsx(base, props?.class, props?.className)
+    const { variants, defaultVariants, compoundVariants } = config
+    const resolved: Record<string, unknown> = { ...defaultVariants }
+    if (props) {
+      for (const [k, v] of Object.entries(props)) {
+        if (v !== undefined && k !== 'class' && k !== 'className') resolved[k] = v
+      }
+    }
+    const variantClasses: ClassValue[] = []
+    for (const [variant, map] of Object.entries(variants)) {
+      const selected = resolved[variant]
+      if (selected != null && typeof selected === 'string') {
+        variantClasses.push(map[selected])
+      }
+    }
+    if (compoundVariants) {
+      for (const cv of compoundVariants) {
+        const matches = Object.entries(cv).every(([k, v]) => {
+          if (k === 'class' || k === 'className') return true
+          return resolved[k] === v
+        })
+        if (matches) variantClasses.push(cv.class, cv.className)
+      }
+    }
+    return clsx(base, variantClasses, props?.class, props?.className)
+  }
+}
 
 // Token-ii de înălțime (DESIGN.md) trebuie să se bată corect cu `h-8` & co. într-un className.
 const twMerge = extendTailwindMerge({

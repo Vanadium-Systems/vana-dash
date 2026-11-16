@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from '@/shared/lib/utils'
+import { cva, type VariantProps, cn } from '@/shared/lib/utils'
 
 // Mesaj în pagină, lângă ce l-a provocat (nu toast, care sare): o eroare de server,
 // o contradicție în form, o condiție în care acțiunea e riscantă dar posibilă. Tonul e
