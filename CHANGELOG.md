@@ -4,6 +4,27 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-16: Daily fixes (labels, receipts, tenders, notifications, fit)
+
+### Added
+- Declarations: `PUT /api/accounting/{d301|d390}/filing` takes `receiptConfirmed`; an "I have the receipt" button confirms a filing whose receipt never reaches the SPV email (special VAT code).
+- Tenders: `GET`/`PUT /api/tenders/settings` (`archiveAfterDays`, default 30), set on the tenders page.
+- Push: reading a chat conversation or an email thread sends a close push for its tag to the person's browsers; `push-sw.js` closes the matching notifications. Sent only for tags the person was shown.
+- `audit_fit` gained a `TEXT_OVERFLOW` check (text drawn past its card).
+
+### Changed
+- Tenders: a direct acquisition with no deadline leaves the main list after `archiveAfterDays`; "Show archived" lists everything that left it (not interested, closed, expired).
+- A mailbox nobody holds counts as the admin's when there is exactly one admin, so the admin's own email rules apply there.
+- Active/demo clients over time is a stacked area with the last value at the end of each series.
+
+### Fixed
+- Email: `PATCH` and bulk-update refused nothing; a label that is neither the company's nor the person's own now answers 404. The company settings view no longer loads for someone without `email.setari`.
+- Declarations: confirming a filing closes its open no-receipt alert; saving the same index keeps the receipt; a seen alert is not raised again.
+- KPI figures shrink to fit their card instead of spilling out; alert row actions show from 1280px, where they fit.
+- Home revenue widget: the chart takes the room left by the figure, so the day labels are not cut.
+- Tables: the focused row is framed by an outline (an inset ring on a `<tr>` lost its top edge).
+- Charts: the hover cursor uses theme tokens instead of Recharts' solid `#ccc` block.
+
 ## 2026-11-16: Messages day chip, folder dates
 
 ### Fixed

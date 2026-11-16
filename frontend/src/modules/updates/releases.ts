@@ -25,6 +25,54 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T22:00:00Z',
+    title: {
+      ro: 'Declarații: recipisa se poate confirma de mână',
+      en: 'Declarations: the receipt can be confirmed by hand',
+    },
+    body: {
+      ro: 'Recipisa pentru D301 și D390 depuse pe codul special de TVA nu vine pe email, așa că alerta „fără recipisă” nu se mai închidea. Lângă index e acum butonul „Am recipisa”; alerta se închide singură când depunerea e confirmată și nu mai revine după ce ai văzut-o.',
+      en: 'The receipt for D301 and D390 filed on a special VAT code never comes by email, so the “no receipt” alert never cleared. Next to the index there is now an “I have the receipt” button; the alert closes once the filing is confirmed and does not come back after you have seen it.',
+    },
+    features: ['facturi.declaratii'],
+  },
+  {
+    publishedAt: '2026-11-16T21:59:00Z',
+    title: {
+      ro: 'Licitații: lista arată doar ce se mai poate depune',
+      en: 'Tenders: the list shows only what can still get an offer',
+    },
+    body: {
+      ro: 'Achizițiile directe nu au termen în SICAP și rămâneau în listă la nesfârșit. După 30 de zile (se schimbă sub reguli) trec în „Arată arhivate”, lângă cele închise, cele expirate și cele marcate „Nu mă interesează”. Nu se șterge nimic, arhiva se poate căuta.',
+      en: 'Direct acquisitions have no deadline in SICAP and stayed on the list forever. After 30 days (changed under the rules) they move to “Show archived”, with the closed, the expired and those marked “Not interested”. Nothing is deleted; the archive is searchable.',
+    },
+    features: ['licitatii.view'],
+  },
+  {
+    publishedAt: '2026-11-16T21:58:00Z',
+    title: {
+      ro: 'Email: etichetele firmei și ale tale, separat',
+      en: 'Email: the company’s labels and yours, apart',
+    },
+    body: {
+      ro: 'Pe un mesaj se poate pune doar o etichetă a firmei sau una a ta, niciodată a unui coleg. Setările firmei spun că etichetele de acolo le văd toți; pe cele doar ale tale le faci în Setările mele.',
+      en: 'A message can carry only a company label or one of your own, never a colleague’s. Company settings say their labels are seen by everyone; labels only you see are made in My settings.',
+    },
+    features: ['email.view'],
+  },
+  {
+    publishedAt: '2026-11-16T21:57:00Z',
+    title: {
+      ro: 'Notificări închise peste tot, cifre care încap, grafice mai curate',
+      en: 'Notifications closed everywhere, figures that fit, cleaner charts',
+    },
+    body: {
+      ro: 'O conversație sau un email citit pe un dispozitiv își închide notificarea în celelalte browsere. Cifrele mari din carduri se micșorează în loc să iasă din card. Pe Acasă, „Venitul pe zile” nu mai taie zilele de jos. Rândul ales dintr-un tabel are conturul întreg. La hover pe grafice nu mai apare blocul alb, iar „Evoluție clienți activi/demo” e o arie cu ultima valoare scrisă la capăt.',
+      en: 'A conversation or email read on one device closes its notification in your other browsers. Large figures in cards shrink instead of spilling out. On Home, “Revenue by day” no longer cuts the day labels. The focused table row has its full frame. Hovering a chart no longer shows a white block, and “Active/demo clients over time” is an area with the last value written at its end.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-16T19:00:00Z',
     title: {
       ro: 'Scorul prospecților: mărimea ideală a firmei se alege din Setări',
