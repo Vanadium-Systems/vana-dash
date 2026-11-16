@@ -1,9 +1,16 @@
-import dotenv from 'dotenv'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// .env trăiește la root-ul monorepo-ului (../../../ față de backend/src/shared).
-// dotenv nu suprascrie variabilele deja setate, deci env-ul real are prioritate.
+// .env lives at the monorepo root (../../../ from backend/src/shared).
+// process.loadEnvFile does not overwrite already-set env vars.
 const here = path.dirname(fileURLToPath(import.meta.url))
-dotenv.config({ path: path.resolve(here, '../../../.env') })
-dotenv.config()
+
+export function loadEnvIfExists(envPath: string): void {
+  if (fs.existsSync(envPath)) {
+    process.loadEnvFile(envPath)
+  }
+}
+
+loadEnvIfExists(path.resolve(here, '../../../.env'))
+loadEnvIfExists(path.resolve(process.cwd(), '.env'))
