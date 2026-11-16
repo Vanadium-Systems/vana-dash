@@ -708,6 +708,20 @@
       "when": 1794864886742,
       "tag": "0100_tenant_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1794864904294,
+      "tag": "0101_encrypted_ibans",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1794864906397,
+      "tag": "0102_force_rls",
+      "breakpoints": true
     }
   ]
 }

@@ -27,7 +27,11 @@ export const billingClients = pgTable(
     city: text('city'),
     county: text('county'),
     country: text('country').notNull().default('RO'),
+    // Plaintext IBAN, read only until scripts/encrypt-v1.ts has copied it; dropped in part E.
     iban: text('iban'),
+    // encryptField(iban) and hmacField(normalized iban): equality without decrypting.
+    ibanEnc: text('iban_enc'),
+    ibanHmac: text('iban_hmac'),
     bank: text('bank'),
     email: text('email'),
     // Sprint C, Track B: mapare la un tenant din vanagreen (recyclers_app) — validată printr-un
