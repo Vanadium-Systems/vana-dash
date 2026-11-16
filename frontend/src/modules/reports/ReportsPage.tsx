@@ -1,5 +1,6 @@
 import { Download } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
@@ -24,6 +25,7 @@ import { approx, MoneyNote } from '@/shared/components/MoneyNote'
 import { useMoneyQuery } from '@/shared/hooks/use-money-query'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { openFile } from '@/shared/lib/open-file'
+import { categoryLabel } from '@/shared/lib/financial-utils'
 
 // Convertește ?period= (7d|30d|90d|mtd|ytd) în {from,to} ISO — mirror al
 // shared/lib/period.ts din backend (resolvePeriod), dar rutele /api/reports/* cer
@@ -85,7 +87,7 @@ function MrrAndClientsSection() {
   })
 
   return (
-    <div className="space-y-4">
+    <div id="mrr" className="scroll-mt-4 space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <KPICard
           label={t('reports:kpi.currentMrr')}
@@ -141,7 +143,7 @@ function PeriodComparisonSection() {
   const amount = (value: number) => approx(formatNumber(value, comparison.money?.currency ?? BASE_CURRENCY), comparison.money)
 
   return (
-    <Card>
+    <Card id="compare" className="scroll-mt-4">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{t('reports:compare.title')}</CardTitle>
         <Button
@@ -216,7 +218,7 @@ function ExpenseBreakdownSection() {
   })
 
   return (
-    <Card>
+    <Card id="expenses" className="scroll-mt-4">
       <CardHeader>
         <CardTitle>{t('reports:expenses.byCategory')}</CardTitle>
       </CardHeader>
@@ -230,7 +232,7 @@ function ExpenseBreakdownSection() {
         ) : (
           <MetricBarChart
             data={chartData}
-            series={categories.map((c, i) => ({ key: c, label: c, color: chartColor(i) }))}
+            series={categories.map((c, i) => ({ key: c, label: categoryLabel(c), color: chartColor(i) }))}
             unit={breakdown.money?.currency ?? BASE_CURRENCY}
             stacked
           />
@@ -249,7 +251,7 @@ function MonthlySnapshotSection() {
   const converted = snapshot.money?.converted
 
   return (
-    <Card>
+    <Card id="monthly" className="scroll-mt-4">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
         <CardTitle>{t('reports:monthly.title')}</CardTitle>
         <div className="flex items-center gap-2">
@@ -294,6 +296,11 @@ function MonthlySnapshotSection() {
 }
 
 export function ReportsPage() {
+  const { hash } = useLocation()
+  // The Financials folder links to a report by its anchor; the router does not scroll to it.
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
+  }, [hash])
   return (
     <div className="space-y-6">
       <PageHeader title={t('common:nav.reports')} actions={<PeriodSelector />} />

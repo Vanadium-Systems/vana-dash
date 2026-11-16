@@ -1,4 +1,13 @@
+import { t } from './i18n'
 import type { PnlByMonth, SeriesPoint } from './types'
+
+// The server groups records without a category under this key (`COALESCE(category, 'necategorizat')`).
+const UNCATEGORIZED = 'necategorizat'
+
+/** A category as people read it: the server's fallback key becomes a word in their language. */
+export function categoryLabel(category: string): string {
+  return category === UNCATEGORIZED ? t('common:labels.uncategorized') : category
+}
 
 // Extras din FinancialsPage — reutilizat și în Overview pt. cardul de Venituri
 // (trebuie să numere venitul exact la fel: doar facturile plătite, direction='out').

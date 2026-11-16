@@ -205,7 +205,6 @@
   },
   "expenses": {
     "none": "No expenses this month.",
-    "uncategorized": "Uncategorized",
     "rest": "The rest"
   },
   "planNext": {

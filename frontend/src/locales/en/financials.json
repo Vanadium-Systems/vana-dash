@@ -74,5 +74,25 @@
     "revenue": "Revenue",
     "expenses": "Costs",
     "profit": "Profit"
+  },
+  "reportsFolder": {
+    "title": "Reports",
+    "all": "All reports",
+    "mrr": {
+      "title": "MRR and clients",
+      "hint": "Monthly subscriptions and active clients"
+    },
+    "compare": {
+      "title": "Two periods",
+      "hint": "Revenue, expenses and net side by side"
+    },
+    "expenses": {
+      "title": "Expenses by category",
+      "hint": "Where the money goes in the period"
+    },
+    "monthly": {
+      "title": "Monthly report",
+      "hint": "The whole month, as a PDF"
+    }
   }
 }

@@ -74,5 +74,25 @@
     "revenue": "Venit",
     "expenses": "Cheltuieli",
     "profit": "Profit"
+  },
+  "reportsFolder": {
+    "title": "Rapoarte",
+    "all": "Toate rapoartele",
+    "mrr": {
+      "title": "MRR și clienți",
+      "hint": "Abonamentele lunare și clienții activi"
+    },
+    "compare": {
+      "title": "Două perioade",
+      "hint": "Venit, cheltuieli și net, alăturate"
+    },
+    "expenses": {
+      "title": "Cheltuieli pe categorii",
+      "hint": "Unde se duc banii în perioadă"
+    },
+    "monthly": {
+      "title": "Raportul lunar",
+      "hint": "Luna întreagă, descărcabilă ca PDF"
+    }
   }
 }

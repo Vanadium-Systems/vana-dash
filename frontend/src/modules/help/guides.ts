@@ -98,6 +98,10 @@ const SOURCES: GuideSource[] = [
         ro: 'Un click pe un rând filtrează toată pagina. Filtrul apare ca etichetă sus și e în adresă, deci îl poți trimite unui coleg. Îl scoți cu × de pe etichetă.',
         en: 'A click on a row filters the whole page. The filter shows as a tag at the top and is in the address, so you can send it to a colleague. Remove it with the × on the tag.',
       },
+      {
+        ro: 'Jos pe pagină, dosarul Rapoarte are câte un card pentru fiecare raport: MRR și clienți, două perioade, cheltuieli pe categorii și raportul lunar. Un click te duce direct la raport, în tab-ul Rapoarte.',
+        en: 'At the bottom of the page, the Reports folder has a card for each report: MRR and clients, two periods, expenses by category and the monthly report. A click takes you straight to the report, in the Reports tab.',
+      },
     ],
   },
   {

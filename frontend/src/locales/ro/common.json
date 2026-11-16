@@ -160,7 +160,8 @@
     "system": "Sistem",
     "order": "Ordin",
     "language": "Limbă",
-    "displayCurrency": "Monedă de afișare"
+    "displayCurrency": "Monedă de afișare",
+    "uncategorized": "Necategorizat"
   },
   "time": {
     "justNow": "chiar acum"

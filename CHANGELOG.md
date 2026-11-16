@@ -4,6 +4,14 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-16: A reports folder on Financials
+
+### Added
+- Financials: a Reports folder at the bottom of the page, one card per report (MRR and clients, two periods, expenses by category, monthly report) with a drawn thumbnail of its shape; a click opens the report in the Reports tab, scrolled to it (`#mrr`, `#compare`, `#expenses`, `#monthly`). Shown with `financiar.rapoarte`.
+
+### Fixed
+- The server's fallback category key showed as-is in the Financials annotation and the Reports chart; `categoryLabel()` (`shared/lib/financial-utils.ts`) turns it into "Uncategorized" in Home, Financials and Reports.
+
 ## 2026-11-16: The same look on every page
 
 ### Changed

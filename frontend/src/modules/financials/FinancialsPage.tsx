@@ -15,10 +15,11 @@ import { MetricBarChart } from '@/shared/components/charts/MetricBarChart'
 import { ComparisonLine, DayColumns, monthColumns, RankedBars, SplitBar, type ShareRow } from '@/shared/components/charts/question-charts'
 import { useUrlState } from '@/shared/hooks/use-url-state'
 import { api } from '@/shared/lib/api'
-import { sumByDirection } from '@/shared/lib/financial-utils'
+import { categoryLabel, sumByDirection } from '@/shared/lib/financial-utils'
 import type { CashflowEntry, Delta as DeltaValue, ExchangeRatePoint, PnlByCategory, PnlByMonth, PnlResponse, RevenueSeries } from '@/shared/lib/types'
 import { formatMoney, formatNumber, intlTag } from '@/shared/lib/format'
 import { BnrRateChart, type BnrRatePoint } from './BnrRateChart'
+import { ReportsFolder } from './ReportsFolder'
 import { t } from '@/shared/lib/i18n'
 import { approx, MoneyNote } from '@/shared/components/MoneyNote'
 import { useMoneyQuery } from '@/shared/hooks/use-money-query'
@@ -75,7 +76,7 @@ function biggestChange(current: PnlByCategory[] | undefined, previous: PnlByCate
     if (!best || Math.abs(change) > Math.abs(best.change)) best = { category, direction, change }
   }
   if (!best || Math.abs(best.change) < 1) return null
-  const params = { category: best.category, value: formatMoney(Math.abs(best.change), currency) }
+  const params = { category: categoryLabel(best.category), value: formatMoney(Math.abs(best.change), currency) }
   const key = best.direction === 'in' ? (best.change > 0 ? 'expenseUp' : 'expenseDown') : best.change > 0 ? 'revenueUp' : 'revenueDown'
   return { key: `${key}:${best.category}:${Math.round(best.change)}`, text: t(`financials:annotation.${key}`, params) }
 }
@@ -134,7 +135,7 @@ export function FinancialsPage() {
 
   const categoryRows = (direction: 'in' | 'out'): ShareRow[] =>
     pivotByCategory(pnl.data?.byCategory)
-      .map((row) => ({ id: `category:${row.category}`, label: row.category, value: direction === 'in' ? row.in : row.out }))
+      .map((row) => ({ id: `category:${row.category}`, label: categoryLabel(row.category), value: direction === 'in' ? row.in : row.out }))
       .filter((row) => row.value > 0)
       .sort((a, b) => b.value - a.value)
   const clientRows: ShareRow[] = (pnl.data?.byClient ?? []).filter((r) => r.id).map((r) => ({ id: `client:${r.id}`, label: r.name ?? '—', value: r.total }))
@@ -320,6 +321,8 @@ export function FinancialsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ReportsFolder />
 
       <ExchangeRateCard />
     </div>

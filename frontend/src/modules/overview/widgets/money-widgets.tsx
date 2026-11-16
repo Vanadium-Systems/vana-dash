@@ -7,6 +7,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { useMoneyQuery } from '@/shared/hooks/use-money-query'
 import { companyToday } from '@/shared/components/PeriodSelect'
 import { CHART_COLORS } from '@/shared/lib/chart-colors'
+import { categoryLabel } from '@/shared/lib/financial-utils'
 import { companyTimeZone, formatDate, formatMoney, formatNumber, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
@@ -176,8 +177,7 @@ export function ExpensesByCategoryWidget({ size, preview }: WidgetProps) {
   }
   const sorted = [...byCategory.entries()].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1])
   const total = sorted.reduce((sum, [, value]) => sum + value, 0)
-  const label = (key: string) => (key === 'necategorizat' ? t('overview:expenses.uncategorized') : key)
-  const top: CategorySlice[] = sorted.slice(0, 4).map(([key, value], index) => ({ key, label: label(key), total: value, color: SLICE_COLORS[index]! }))
+  const top: CategorySlice[] = sorted.slice(0, 4).map(([key, value], index) => ({ key, label: categoryLabel(key), total: value, color: SLICE_COLORS[index]! }))
   const restTotal = sorted.slice(4).reduce((sum, [, value]) => sum + value, 0)
   const slices: CategorySlice[] = restTotal > 0 ? [...top, { key: '_rest', label: t('overview:expenses.rest'), total: restTotal, color: REST_COLOR }] : top
   const share = (value: number) => formatNumber(Math.round((value / total) * 100), '%')
@@ -199,7 +199,7 @@ export function ExpensesByCategoryWidget({ size, preview }: WidgetProps) {
         ))}
       </div>
       <ul className={cn('mt-2 gap-x-4 gap-y-1', size === 'l' ? 'space-y-1' : 'grid grid-cols-2')}>
-        {(size === 'l' ? [...top, ...sorted.slice(4, 8).map(([key, value]) => ({ key, label: label(key), total: value, color: REST_COLOR }))] : slices).map((slice) => (
+        {(size === 'l' ? [...top, ...sorted.slice(4, 8).map(([key, value]) => ({ key, label: categoryLabel(key), total: value, color: REST_COLOR }))] : slices).map((slice) => (
           <li key={slice.key} className="flex min-w-0 items-center gap-2 text-xs">
             <span className="size-2 shrink-0 rounded-sm" style={{ background: slice.color }} aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate">{slice.label}</span>

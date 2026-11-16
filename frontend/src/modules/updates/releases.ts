@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T09:40:00Z',
+    title: {
+      ro: 'Rapoartele, la un click din Financiar',
+      en: 'Reports one click away from Financials',
+    },
+    body: {
+      ro: 'Jos pe pagina Financiar e acum un dosar cu rapoartele: MRR și clienți, două perioade, cheltuieli pe categorii și raportul lunar. Fiecare card arată forma raportului și te duce direct la el. Înregistrările fără categorie apar peste tot ca „Necategorizat”.',
+      en: 'The bottom of the Financials page now has a folder with the reports: MRR and clients, two periods, expenses by category and the monthly report. Each card shows the shape of its report and takes you straight to it. Records without a category show as “Uncategorized” everywhere.',
+    },
+    features: ['financiar.rapoarte'],
+  },
+  {
     publishedAt: '2026-11-16T09:10:00Z',
     title: {
       ro: 'Același aspect pe toate paginile',
