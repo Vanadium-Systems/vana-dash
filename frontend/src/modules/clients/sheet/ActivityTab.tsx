@@ -45,6 +45,13 @@ const FIELD_LABEL: Record<string, TKey> = {
   cash: 'clients:sheet.fields.cash',
   receivables: 'clients:sheet.fields.receivables',
   inventory: 'clients:sheet.fields.inventory',
+  researchFines: 'clients:research.fields.researchFines',
+  researchNews: 'clients:research.fields.researchNews',
+  researchBadNews: 'clients:research.fields.researchBadNews',
+  researchGrowth: 'clients:research.fields.researchGrowth',
+  researchCompetitor: 'clients:research.fields.researchCompetitor',
+  researchCompetitorName: 'clients:research.fields.researchCompetitorName',
+  researchedAt: 'clients:research.fields.researchedAt',
 }
 
 const text = (value: unknown): string => (typeof value === 'string' ? value : '')

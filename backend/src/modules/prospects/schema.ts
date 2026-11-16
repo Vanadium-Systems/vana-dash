@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { lazyTr } from '../../shared/lib/i18n.js'
 import { FiltersParamSchema, ProspectFilterSchema, ProspectFiltersSchema } from './filters.js'
+import { RESEARCH_FIELDS } from './research.js'
 import { CALL_OUTCOMES, CONTACT_POINT_KINDS, PROSPECT_TASK_KINDS, PROSPECT_TASK_PRIORITIES } from '../../shared/db/schema/prospect-crm.js'
 
 export const PROSPECT_SORT_KEYS = ['score', 'name', 'updatedAt', 'createdAt', 'lastActivityAt', 'value', 'expectedCloseAt', 'daysInStage', 'nextTask'] as const
@@ -62,6 +63,16 @@ export const CreateProspectSchema = z.object({
   platformId: z.string().uuid().optional(),
 })
 
+const researchFields = {
+  researchFines: z.enum(RESEARCH_FIELDS.researchFines).nullable().optional(),
+  researchNews: z.enum(RESEARCH_FIELDS.researchNews).nullable().optional(),
+  researchBadNews: z.enum(RESEARCH_FIELDS.researchBadNews).nullable().optional(),
+  researchGrowth: z.enum(RESEARCH_FIELDS.researchGrowth).nullable().optional(),
+  researchCompetitor: z.enum(RESEARCH_FIELDS.researchCompetitor).nullable().optional(),
+  researchCompetitorName: z.string().trim().max(200).nullable().optional(),
+  researchedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+}
+
 export const UpdateProspectSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),
   cif: z.string().trim().max(20).nullable().optional(),
@@ -79,6 +90,7 @@ export const UpdateProspectSchema = z.object({
   valueCurrency: z.string().regex(/^[A-Z]{3}$/).nullable().optional(),
   expectedCloseAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   isActive: z.boolean().nullable().optional(),
+  ...researchFields,
 })
 
 const listParams = {
@@ -130,7 +142,8 @@ export const ScoreCriterionSchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1).max(120),
   filters: ProspectFiltersSchema.min(1),
-  points: z.number().min(0).max(20),
+  // Negative for what should lower the score (fines, bad news); the final score is clamped to 0..100.
+  points: z.number().min(-20).max(20),
 })
 
 // Descending cut-offs for the four labels; below `fit` is "unfit".

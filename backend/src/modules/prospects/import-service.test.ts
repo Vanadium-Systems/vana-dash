@@ -54,6 +54,20 @@ afterAll(async () => {
 })
 
 describe('parsing', () => {
+  it('reads the research columns and leaves "nu știu" unknown', async () => {
+    const [row] = await parseCsv([
+      'Firma,CUI,Pers. decizie,Decident,Amenzi 6 luni,Prezență în știri,Știri negative,Semne de creștere,Folosește o soluție similară,Soluția folosită,Data verificării',
+      'ACME TEST SRL,99100907,ION POPESCU,da,nu,Uneori,nu știu,DA,da,Acme Waste,2026-11-16',
+    ])
+    expect(row).toMatchObject({
+      research: { researchFines: 'no', researchNews: 'sometimes', researchGrowth: 'yes', researchCompetitor: 'yes' },
+      researchCompetitorName: 'Acme Waste',
+      researchedAt: '2026-11-16',
+      decisionMaker: true,
+    })
+    expect(row!.research).not.toHaveProperty('researchBadNews')
+  })
+
   it('recognises the new format (BUC export) by column aliases', async () => {
     const [row] = await parseCsv([
       'Firma,CUI,Nr. angajați,Cifra afaceri,Profit/pierdere,Capital propriu,Datorii,Disponibilități,Web1,Email1,Pers. decizie',

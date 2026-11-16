@@ -1,9 +1,18 @@
 import { useMemo } from 'react'
 import type { FilterField } from '@/shared/lib/filters'
-import { t } from '@/shared/lib/i18n'
+import { t, type TKey } from '@/shared/lib/i18n'
 import type { ProspectAssignee } from '@/shared/lib/types'
 import type { ProspectKind, ProspectList } from './types'
 import type { ProspectStatusEntry } from '@/shared/lib/types'
+
+const YES_NO = ['yes', 'no'] as const
+const RESEARCH_FILTERS = [
+  { key: 'researchFines', answers: YES_NO },
+  { key: 'researchNews', answers: ['often', 'sometimes', 'rarely', 'never'] as const },
+  { key: 'researchBadNews', answers: YES_NO },
+  { key: 'researchGrowth', answers: YES_NO },
+  { key: 'researchCompetitor', answers: YES_NO },
+]
 
 const NO_LISTS: ProspectList[] = []
 
@@ -64,6 +73,13 @@ export function useFilterFields(kind: ProspectKind, statuses: ProspectStatusEntr
           { value: 'no', label: t('clients:health.fields.reachableNo') },
         ],
       },
+      ...RESEARCH_FILTERS.map(({ key, answers }) => ({
+        key,
+        label: t(`clients:research.fields.${key}` as TKey),
+        type: 'enum' as const,
+        group: t('clients:research.group'),
+        options: [...answers.map((value) => ({ value, label: t(`clients:research.answers.${value}` as TKey) })), { value: 'unknown', label: t('clients:research.unknown') }],
+      })),
       {
         key: 'isActive',
         label: t('clients:health.fields.isActive'),

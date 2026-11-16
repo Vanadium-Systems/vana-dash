@@ -230,7 +230,8 @@
     "props": {
       "title": "Details",
       "empty": "Add",
-      "financials": "Financials"
+      "financials": "Financials",
+      "research": "Research"
     },
     "fields": {
       "name": "Name",
@@ -825,7 +826,13 @@
       "isActive": "company status",
       "phone": "phone",
       "email": "email",
-      "contactName": "contact person"
+      "contactName": "contact person",
+      "researchFines": "fines",
+      "researchNews": "news presence",
+      "researchBadNews": "negative news",
+      "researchGrowth": "growth signs",
+      "researchCompetitor": "similar product",
+      "researchCompetitorName": "product used"
     },
     "rowErrors": {
       "MISSING_NAME": "Company name is missing",
@@ -859,6 +866,27 @@
       "failedHint": "Batches already written stay. Upload the file again: imported rows show up under Completing, they are not duplicated.",
       "another": "Another file",
       "openList": "Open the list"
+    }
+  },
+  "research": {
+    "group": "Research",
+    "unknown": "Unknown",
+    "fields": {
+      "researchFines": "Fines in the last 6 months",
+      "researchNews": "News presence",
+      "researchBadNews": "Negative news",
+      "researchGrowth": "Growth signs",
+      "researchCompetitor": "Uses a similar product",
+      "researchCompetitorName": "Product used",
+      "researchedAt": "Researched on"
+    },
+    "answers": {
+      "yes": "Yes",
+      "no": "No",
+      "often": "Often",
+      "sometimes": "Sometimes",
+      "rarely": "Rarely",
+      "never": "Never"
     }
   },
   "health": {
@@ -1029,6 +1057,8 @@
         "medium": "Important",
         "low": "Slightly important",
         "none": "Not at all",
+        "lowers": "Lowers the score",
+        "lowersMuch": "Lowers the score a lot",
         "custom": "{{points}} points"
       },
       "thresholds": "Labels",

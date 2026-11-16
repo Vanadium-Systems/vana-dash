@@ -19,6 +19,8 @@ const IMPACTS: Array<{ points: number; label: TKey }> = [
   { points: 10, label: 'clients:settings.score.impact.medium' },
   { points: 5, label: 'clients:settings.score.impact.low' },
   { points: 0, label: 'clients:settings.score.impact.none' },
+  { points: -10, label: 'clients:settings.score.impact.lowers' },
+  { points: -20, label: 'clients:settings.score.impact.lowersMuch' },
 ]
 
 const LABEL_TEXTS: Record<ScoreLabelKey, TKey> = {

@@ -270,6 +270,13 @@ export function rowColumns(ctx: FilterContext) {
     valueCurrency: prospects.valueCurrency,
     expectedCloseAt: prospects.expectedCloseAt,
     isActive: prospects.isActive,
+    researchFines: prospects.researchFines,
+    researchNews: prospects.researchNews,
+    researchBadNews: prospects.researchBadNews,
+    researchGrowth: prospects.researchGrowth,
+    researchCompetitor: prospects.researchCompetitor,
+    researchCompetitorName: prospects.researchCompetitorName,
+    researchedAt: prospects.researchedAt,
     assignedUserId: prospects.assignedUserId,
     claimedAt: prospects.claimedAt,
     ownerName: sql<string | null>`(SELECT coalesce(nullif(u."display_name", ''), u."email") FROM ${users} u WHERE u."id" = ${prospects.assignedUserId})`,
@@ -737,6 +744,13 @@ const AUDITED_FIELDS = [
   'cash',
   'receivables',
   'inventory',
+  'researchFines',
+  'researchNews',
+  'researchBadNews',
+  'researchGrowth',
+  'researchCompetitor',
+  'researchCompetitorName',
+  'researchedAt',
 ] as const
 
 export async function statusKind(key: string): Promise<'open' | 'won' | 'lost' | null> {

@@ -49,6 +49,9 @@ Values per field:
 - employees, revenue, value, foundingYear: numbers, use "between".
 - expectedCloseAt, lastActivityAt, createdAt: dates as YYYY-MM-DD, use "between".
 - caen: CAEN code or prefix. source: free text. people.role: free text.
+- reachable: "yes" (has a phone or email), "no" (neither).
+- researchFines, researchBadNews, researchGrowth, researchCompetitor: "yes", "no", "unknown".
+- researchNews: "often", "sometimes", "rarely", "never", "unknown".
 - phone, email: only is_empty / not_empty. people.decisionMaker, people.doNotContact: only not_empty / is_empty.
 Use only what the phrase says; at most ${MAX_FILTERS} filters. If the phrase has no usable filter, return "filters": [].
 

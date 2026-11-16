@@ -63,10 +63,10 @@ beforeAll(async () => {
   p1 = await newProspect('one', {
     status: 'contactat', assignedUserId: ana.id, score: '80', source: 'qafl-src', caenCode: '3811', employeeCount: 10, revenue: '1000',
     valueAmount: '500', expectedCloseAt: '2030-01-15', lastActivityAt: new Date(Date.now() - 48 * HOUR), createdAt: new Date('2025-03-01T10:00:00Z'),
-    foundingYear: 2020, isActive: false,
+    foundingYear: 2020, isActive: false, researchFines: 'yes', researchNews: 'often',
   })
   p2 = await newProspect('two', {
-    status: 'necontactat', score: '40', caenCode: '3821', employeeCount: 50, revenue: '5000', createdAt: new Date('2025-06-01T10:00:00Z'), foundingYear: 2010, isActive: true,
+    status: 'necontactat', score: '40', caenCode: '3821', employeeCount: 50, revenue: '5000', createdAt: new Date('2025-06-01T10:00:00Z'), foundingYear: 2010, isActive: true, researchFines: 'no',
   })
   p3 = await newProspect('three', { status: 'contactat', assignedUserId: manager.id, source: 'qafl-other', createdAt: new Date('2025-09-01T10:00:00Z') })
 
@@ -221,6 +221,19 @@ describe('filter fields', () => {
     await expectIds([{ field: 'contactStatus', op: 'in', value: ['unsubscribed'] }, { field: 'archived', op: 'in', value: ['any'] }], [p3])
     await expectIds([{ field: 'contactStatus', op: 'in', value: ['invalid'] }, { field: 'archived', op: 'in', value: ['any'] }], [p3])
     await expectIds([{ field: 'contactStatus', op: 'not_in', value: ['unsubscribed', 'invalid'] }], [p1, p2])
+  })
+
+  it('research answers, with unknown as the empty column', async () => {
+    await expectIds([{ field: 'researchFines', op: 'in', value: ['yes'] }], [p1])
+    await expectIds([{ field: 'researchFines', op: 'in', value: ['no', 'unknown'] }], [p2])
+    await expectIds([{ field: 'researchFines', op: 'not_in', value: ['yes'] }], [p2])
+    await expectIds([{ field: 'researchNews', op: 'in', value: ['unknown'] }], [p2])
+    await expectIds([{ field: 'researchNews', op: 'not_empty' }], [p1])
+  })
+
+  it('reachable: a working phone or email', async () => {
+    await expectIds([{ field: 'reachable', op: 'in', value: ['yes'] }], [p1, p2])
+    await expectIds([{ field: 'reachable', op: 'in', value: ['no'] }, { field: 'archived', op: 'in', value: ['any'] }], [p3])
   })
 
   it('people.role, people.decisionMaker and people.doNotContact', async () => {

@@ -22,6 +22,9 @@ export interface NextTask {
 }
 
 /** One row of `GET /api/prospects` for `kind=companies` (service.ts `rowColumns`). Numerics come as strings. */
+export type YesNo = 'yes' | 'no'
+export type NewsPresence = 'often' | 'sometimes' | 'rarely' | 'never'
+
 export interface ProspectRow {
   id: string
   name: string
@@ -50,6 +53,13 @@ export interface ProspectRow {
   primaryPerson: string | null
   note: { id: string; body: string } | null
   nextTask: NextTask | null
+  researchFines: YesNo | null
+  researchNews: NewsPresence | null
+  researchBadNews: YesNo | null
+  researchGrowth: YesNo | null
+  researchCompetitor: YesNo | null
+  researchCompetitorName: string | null
+  researchedAt: string | null
 }
 
 /** One row for `kind=people`: the person with the company they belong to. */

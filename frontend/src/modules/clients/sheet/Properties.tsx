@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Money } from '@/shared/components/Money'
+import { Select } from '@/shared/components/ui/select'
 import { Input } from '@/shared/components/ui/input'
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
@@ -14,7 +15,7 @@ import { useWrite } from './use-sheet'
 type FieldKind = 'text' | 'integer' | 'decimal' | 'date'
 
 interface FieldDef {
-  key: 'source' | 'caenCode' | 'employeeCount' | 'website' | 'cif' | 'expectedCloseAt' | 'revenue' | 'profit' | 'debt' | 'equity' | 'cash' | 'receivables' | 'inventory'
+  key: 'source' | 'researchCompetitorName' | 'researchedAt' | 'caenCode' | 'employeeCount' | 'website' | 'cif' | 'expectedCloseAt' | 'revenue' | 'profit' | 'debt' | 'equity' | 'cash' | 'receivables' | 'inventory'
   label: TKey
   kind: FieldKind
 }
@@ -26,6 +27,17 @@ const MAIN_FIELDS: FieldDef[] = [
   { key: 'employeeCount', label: 'clients:sheet.fields.employeeCount', kind: 'integer' },
   { key: 'website', label: 'clients:sheet.fields.website', kind: 'text' },
   { key: 'cif', label: 'clients:sheet.fields.cif', kind: 'text' },
+]
+
+type ResearchKey = 'researchFines' | 'researchNews' | 'researchBadNews' | 'researchGrowth' | 'researchCompetitor'
+
+const YES_NO = ['yes', 'no']
+const RESEARCH_ENUMS: { key: ResearchKey; answers: string[] }[] = [
+  { key: 'researchFines', answers: YES_NO },
+  { key: 'researchNews', answers: ['often', 'sometimes', 'rarely', 'never'] },
+  { key: 'researchBadNews', answers: YES_NO },
+  { key: 'researchGrowth', answers: YES_NO },
+  { key: 'researchCompetitor', answers: YES_NO },
 ]
 
 const FINANCIAL_FIELDS: FieldDef[] = [
@@ -124,6 +136,7 @@ export function Properties({ sheet }: { sheet: ProspectSheet }) {
   const { session } = useMe()
   const write = useWrite()
   const [financialOpen, setFinancialOpen] = useState(false)
+  const [researchOpen, setResearchOpen] = useState(false)
   const readOnly = !sheet.canEdit
   const patch = (body: Record<string, unknown>) => write(() => api.patch(`/api/prospects/${sheet.id}`, body))
 
@@ -150,6 +163,31 @@ export function Properties({ sheet }: { sheet: ProspectSheet }) {
       </PropertyRow>
     )
   }
+
+  const enumRow = ({ key, answers }: { key: ResearchKey; answers: string[] }) => {
+    const label = t(`clients:research.fields.${key}` as TKey)
+    const current = sheet[key]
+    if (readOnly) {
+      return (
+        <PropertyRow key={key} label={label}>
+          {current ? <span className="block truncate">{t(`clients:research.answers.${current}` as TKey)}</span> : <span className="text-muted-foreground">—</span>}
+        </PropertyRow>
+      )
+    }
+    return (
+      <PropertyRow key={key} label={label}>
+        <Select
+          size="sm"
+          aria-label={label}
+          value={current ?? ''}
+          onValueChange={(value) => void patch({ [key]: value || null })}
+          options={[{ value: '', label: t('clients:research.unknown') }, ...answers.map((value) => ({ value, label: t(`clients:research.answers.${value}` as TKey) }))]}
+        />
+      </PropertyRow>
+    )
+  }
+
+  const textRow = (key: 'researchCompetitorName') => row({ key, label: 'clients:research.fields.researchCompetitorName', kind: 'text' })
 
   const currency = sheet.valueCurrency ?? session?.tenant?.currency ?? BASE_CURRENCY
   const valueLabel = t('clients:sheet.fields.value')
@@ -185,6 +223,23 @@ export function Properties({ sheet }: { sheet: ProspectSheet }) {
         {t('clients:sheet.props.financials')}
       </button>
       {financialOpen ? <dl className="mt-2 space-y-0.5">{FINANCIAL_FIELDS.map(row)}</dl> : null}
+      {/* native: disclosure toggle in text */}
+      <button
+        type="button"
+        aria-expanded={researchOpen}
+        className="mt-3 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={() => setResearchOpen((open) => !open)}
+      >
+        <ChevronDown className={cn('h-4 w-4 transition-transform', researchOpen && 'rotate-180')} aria-hidden="true" />
+        {t('clients:sheet.props.research')}
+      </button>
+      {researchOpen ? (
+        <dl className="mt-2 space-y-0.5">
+          {RESEARCH_ENUMS.map(enumRow)}
+          {textRow('researchCompetitorName')}
+          {row({ key: 'researchedAt', label: 'clients:research.fields.researchedAt', kind: 'date' })}
+        </dl>
+      ) : null}
     </section>
   )
 }

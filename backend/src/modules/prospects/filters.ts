@@ -13,6 +13,7 @@ import {
 } from '../../shared/db/schema/index.js'
 import { escapeLike, foldDiacritics, PROSPECT_ID, visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import type { SessionUser } from '../../shared/lib/session.js'
+import { RESEARCH_FIELD_KEYS, RESEARCH_UNKNOWN } from './research.js'
 
 // The one filter compiler (list, count, board, aggregates, export, lists from search, view alerts,
 // signals, score criteria, natural-language search). Fields are a whitelist and every value is a
@@ -42,6 +43,7 @@ export const FILTER_FIELDS = [
   'email',
   'contactStatus',
   'reachable',
+  ...RESEARCH_FIELD_KEYS,
   'foundingYear',
   'people.role',
   'people.decisionMaker',
@@ -273,6 +275,23 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
     case 'email': {
       if (f.op === 'is_empty') return sql`NOT ${hasOkContactPoint(f.field)}`
       if (f.op === 'not_empty') return hasOkContactPoint(f.field)
+      break
+    }
+    case 'researchFines':
+    case 'researchNews':
+    case 'researchBadNews':
+    case 'researchGrowth':
+    case 'researchCompetitor': {
+      const column = prospects[f.field]
+      if (f.op === 'is_empty') return sql`${column} IS NULL`
+      if (f.op === 'not_empty') return sql`${column} IS NOT NULL`
+      if (f.op === 'in' || f.op === 'not_in') {
+        // `unknown` is the null column, so "fines: no or unknown" reads as one filter.
+        const known = f.value.filter((v) => v !== RESEARCH_UNKNOWN)
+        const columnSql = sql`${column}`
+        const parts = [...(known.length ? [inList('in', columnSql, known)] : []), ...(f.value.includes(RESEARCH_UNKNOWN) ? [sql`${column} IS NULL`] : [])]
+        return f.op === 'in' ? or(parts) : sql`NOT ${or(parts)}`
+      }
       break
     }
     case 'reachable':

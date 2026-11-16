@@ -61,6 +61,14 @@ export const prospects = pgTable(
     scoreBase: numeric('score_base', { precision: 5, scale: 1 }),
     // The highest label the final score may reach: 'warm' | 'nurture' | 'skip' | null (see scoring.ts).
     scoreCeiling: text('score_ceiling'),
+    // Research answers (see modules/prospects/research.ts); null = unknown.
+    researchFines: text('research_fines'),
+    researchNews: text('research_news'),
+    researchBadNews: text('research_bad_news'),
+    researchGrowth: text('research_growth'),
+    researchCompetitor: text('research_competitor'),
+    researchCompetitorName: text('research_competitor_name'),
+    researchedAt: date('researched_at'),
     // Set when merged into another prospect; old links follow it.
     mergedIntoId: uuid('merged_into_id').references((): AnyPgColumn => prospects.id),
   },

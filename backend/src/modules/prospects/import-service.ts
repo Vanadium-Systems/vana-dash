@@ -19,6 +19,7 @@ import { canReassign } from '../../shared/lib/prospect-access.js'
 import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { IMPORT_MAX_ROWS, type ImportDistribution } from './import-schema.js'
+import { RESEARCH_FIELDS, type ResearchField } from './research.js'
 import { InvalidAssigneeError, recalculateScores } from './service.js'
 
 /**
@@ -52,6 +53,33 @@ const STATUS_COLS = ['Status']
 const NOTES_COLS = ['OBS', 'Obs', 'Notițe', 'Notite', 'Notes']
 const OWNER_COLS = ['Responsabil (email)', 'Responsabil', 'Owner (email)']
 const REVENUE_YEAR_COLS = ['An', 'Anul', 'Year']
+
+// Research columns, filled by a research pass (Harvey or by hand). Answers in Romanian or English;
+// "nu știu" or an empty cell leave the field as it was.
+const RESEARCH_COLS: Record<ResearchField, string[]> = {
+  researchFines: ['Amenzi 6 luni', 'Fines 6 months'],
+  researchNews: ['Prezență în știri', 'Prezenta in stiri', 'News presence'],
+  researchBadNews: ['Știri negative', 'Stiri negative', 'Bad news'],
+  researchGrowth: ['Semne de creștere', 'Semne de crestere', 'Growth signs'],
+  researchCompetitor: ['Folosește o soluție similară', 'Foloseste o solutie similara', 'Uses a similar product'],
+}
+const COMPETITOR_NAME_COLS = ['Soluția folosită', 'Solutia folosita', 'Product used']
+const RESEARCHED_AT_COLS = ['Data verificării', 'Data verificarii', 'Researched at']
+const DECISION_MAKER_COLS = ['Decident', 'Decision maker']
+const RESEARCH_ANSWERS: Record<string, string> = {
+  da: 'yes',
+  yes: 'yes',
+  nu: 'no',
+  no: 'no',
+  des: 'often',
+  often: 'often',
+  uneori: 'sometimes',
+  sometimes: 'sometimes',
+  rar: 'rarely',
+  rarely: 'rarely',
+  deloc: 'never',
+  never: 'never',
+}
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -348,6 +376,25 @@ export interface ParsedProspectRow {
   notes: string | null
   ownerEmail: string | null
   isActive: boolean | undefined
+  research: Partial<Record<ResearchField, string>>
+  researchCompetitorName: string | null
+  researchedAt: string | null
+  decisionMaker: boolean
+}
+
+/** Only answers that belong to the field; anything else ("nu știu", typos) stays unknown. */
+function parseResearch(row: Record<string, string>): ParsedProspectRow['research'] {
+  const research: ParsedProspectRow['research'] = {}
+  for (const field of Object.keys(RESEARCH_COLS) as ResearchField[]) {
+    const answer = RESEARCH_ANSWERS[toAscii(getCol(row, RESEARCH_COLS[field]).trim())]
+    if (answer && (RESEARCH_FIELDS[field] as readonly string[]).includes(answer)) research[field] = answer
+  }
+  return research
+}
+
+function parseResearchedAt(row: Record<string, string>): string | null {
+  const raw = getCol(row, RESEARCHED_AT_COLS).trim()
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null
 }
 
 /** Every filled column among the aliases (a file can have Mobil1 and Mobil2), split on `/ , ;`. */
@@ -384,6 +431,10 @@ function parseRow({ line, cells: row }: SourceRow): ParsedProspectRow {
     notes: getCol(row, NOTES_COLS) || null,
     ownerEmail: getCol(row, OWNER_COLS).toLowerCase() || null,
     isActive: isActiveRaw(row),
+    research: parseResearch(row),
+    researchCompetitorName: getCol(row, COMPETITOR_NAME_COLS).trim() || null,
+    researchedAt: parseResearchedAt(row),
+    decisionMaker: ['da', 'yes'].includes(toAscii(getCol(row, DECISION_MAKER_COLS).trim())),
   }
 }
 
@@ -511,6 +562,18 @@ function buildPatch(row: ParsedProspectRow, existing: ExistingProspect, contacts
   fill('cash', existing.cash, money(row.cash))
   fill('receivables', existing.receivables, money(row.receivables))
   fill('inventory', existing.inventory, money(row.inventory))
+  // Research is dated: a newer pass replaces what an older one found.
+  for (const [field, answer] of Object.entries(row.research) as Array<[ResearchField, string]>) {
+    if (existing[field] !== answer) {
+      set[field] = answer
+      fills.push(field)
+    }
+  }
+  if (row.researchCompetitorName && existing.researchCompetitorName !== row.researchCompetitorName) {
+    set.researchCompetitorName = row.researchCompetitorName
+    fills.push('researchCompetitorName')
+  }
+  if (row.researchedAt && fills.some((f) => f.startsWith('research'))) set.researchedAt = row.researchedAt
   // Struck off is news, so unlike the rest it replaces what is there.
   if (row.isActive !== undefined && existing.isActive !== row.isActive) {
     set.isActive = row.isActive
@@ -793,6 +856,9 @@ export async function commitImport(me: Pick<SessionUser, 'id' | 'features'>, tok
             receivables: money(p.receivables),
             inventory: money(p.inventory),
             isActive: p.isActive,
+            ...p.research,
+            researchCompetitorName: p.researchCompetitorName,
+            researchedAt: p.researchedAt,
             source: entry.source,
             status,
             assignedUserId,
@@ -801,7 +867,7 @@ export async function commitImport(me: Pick<SessionUser, 'id' | 'features'>, tok
           let personId: string | null = null
           if (p.contactName) {
             personId = crypto.randomUUID()
-            drafts.people.push({ id: personId, prospectId: id, name: p.contactName })
+            drafts.people.push({ id: personId, prospectId: id, name: p.contactName, isDecisionMaker: p.decisionMaker })
           }
           for (const [list, kind] of [[r.contacts.phones, 'phone'], [r.contacts.emails, 'email']] as const) {
             list.forEach((c, n) => drafts.points.push({ prospectId: id, personId, kind, value: c.value, valueNormalized: c.valueNormalized, isPrimary: n === 0 }))
@@ -819,7 +885,7 @@ export async function commitImport(me: Pick<SessionUser, 'id' | 'features'>, tok
           let personId: string | null = null
           if (patch.person) {
             personId = crypto.randomUUID()
-            drafts.people.push({ id: personId, prospectId: id, name: patch.person })
+            drafts.people.push({ id: personId, prospectId: id, name: patch.person, isDecisionMaker: p.decisionMaker })
           }
           for (const c of patch.points) drafts.points.push({ prospectId: id, personId, ...c })
           addNote(id, p.notes)

@@ -240,7 +240,8 @@
     "props": {
       "title": "Detalii",
       "empty": "Adaugă",
-      "financials": "Cifre financiare"
+      "financials": "Cifre financiare",
+      "research": "Cercetare"
     },
     "fields": {
       "name": "Nume",
@@ -850,7 +851,13 @@
       "isActive": "starea firmei",
       "phone": "telefon",
       "email": "email",
-      "contactName": "persoană de contact"
+      "contactName": "persoană de contact",
+      "researchFines": "amenzi",
+      "researchNews": "prezență în știri",
+      "researchBadNews": "știri negative",
+      "researchGrowth": "semne de creștere",
+      "researchCompetitor": "soluție similară",
+      "researchCompetitorName": "soluția folosită"
     },
     "rowErrors": {
       "MISSING_NAME": "Lipsește numele firmei",
@@ -886,6 +893,27 @@
       "failedHint": "Loturile deja scrise rămân. Încarcă fișierul din nou: rândurile importate apar la «Completează», nu se dublează.",
       "another": "Alt fișier",
       "openList": "Deschide lista"
+    }
+  },
+  "research": {
+    "group": "Cercetare",
+    "unknown": "Nu știu",
+    "fields": {
+      "researchFines": "Amenzi în ultimele 6 luni",
+      "researchNews": "Prezență în știri",
+      "researchBadNews": "Știri negative",
+      "researchGrowth": "Semne de creștere",
+      "researchCompetitor": "Folosește o soluție similară",
+      "researchCompetitorName": "Soluția folosită",
+      "researchedAt": "Data verificării"
+    },
+    "answers": {
+      "yes": "Da",
+      "no": "Nu",
+      "often": "Des",
+      "sometimes": "Uneori",
+      "rarely": "Rar",
+      "never": "Deloc"
     }
   },
   "health": {
@@ -1065,6 +1093,8 @@
         "medium": "Important",
         "low": "Puțin important",
         "none": "Deloc",
+        "lowers": "Scade scorul",
+        "lowersMuch": "Scade mult scorul",
         "custom": "{{points}} puncte"
       },
       "thresholds": "Etichete",

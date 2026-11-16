@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T17:00:00Z',
+    title: {
+      ro: 'Prospecți: ce s-a aflat despre firmă intră în scor',
+      en: 'Prospects: what research found counts in the score',
+    },
+    body: {
+      ro: 'Fișa firmei are o secțiune nouă, „Cercetare”: amenzi în ultimele 6 luni, prezență în știri, știri negative, semne de creștere și dacă folosește deja o soluție similară, fiecare cu „Nu știu” până verifică cineva. Se completează de mână sau la import. În Setări, un criteriu pe ele poate și scădea scorul (de pildă pentru amenzi).',
+      en: 'The company sheet has a new “Research” section: fines in the last 6 months, news presence, negative news, growth signs and whether it already uses a similar product, each “Unknown” until someone checks. Fill it in by hand or through import. In Settings, a criterion on them can also lower the score (for fines, say).',
+    },
+    features: ['clienti.prospectare'],
+  },
+  {
     publishedAt: '2026-11-16T15:30:00Z',
     title: {
       ro: 'Prospecți: scorul arată potrivirea, filtrul Contact arată pe cine poți suna',

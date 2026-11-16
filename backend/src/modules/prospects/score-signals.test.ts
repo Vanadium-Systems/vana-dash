@@ -87,6 +87,11 @@ describe('computeFinalScore', () => {
     expect(computeFinalScore(95, ['a', 'b'], [c('a', 20), c('b', 10)])).toBe(100)
   })
 
+  it('subtracts negative points, never below 0', () => {
+    expect(computeFinalScore(70, ['fines'], [c('fines', -20)])).toBe(50)
+    expect(computeFinalScore(10, ['fines'], [c('fines', -20)])).toBe(0)
+  })
+
   it('keeps a zero base at zero whatever matches', () => {
     expect(computeFinalScore(0, ['a'], [c('a', 20)])).toBe(0)
   })
