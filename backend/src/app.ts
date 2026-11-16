@@ -1,4 +1,3 @@
-import cookie from '@fastify/cookie'
 import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyError } from 'fastify'
@@ -73,6 +72,7 @@ import { tr } from './shared/lib/i18n.js'
 import { validationMessage } from './shared/lib/validation-messages.js'
 import { authPlugin } from './shared/middleware/auth.js'
 import { featureGuardPlugin } from './shared/middleware/feature-guard.js'
+import { cookiePlugin } from './shared/plugins/cookie.js'
 import { securityHeadersPlugin } from './shared/plugins/security-headers.js'
 
 export async function buildServer() {
@@ -121,7 +121,7 @@ export async function buildServer() {
   })
 
   await app.register(securityHeadersPlugin, { origin: config.frontendOrigin })
-  await app.register(cookie)
+  await app.register(cookiePlugin)
   await app.register(jwt, {
     secret: config.jwtSecret,
     cookie: { cookieName: SESSION_COOKIE, signed: false },
