@@ -1,6 +1,4 @@
 import cookie from '@fastify/cookie'
-import cors from '@fastify/cors'
-import helmet from '@fastify/helmet'
 import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyError } from 'fastify'
@@ -75,6 +73,7 @@ import { tr } from './shared/lib/i18n.js'
 import { validationMessage } from './shared/lib/validation-messages.js'
 import { authPlugin } from './shared/middleware/auth.js'
 import { featureGuardPlugin } from './shared/middleware/feature-guard.js'
+import { securityHeadersPlugin } from './shared/plugins/security-headers.js'
 
 export async function buildServer() {
   const app = Fastify({
@@ -121,8 +120,7 @@ export async function buildServer() {
     return reply.code(statusCode).send({ success: false, error: statusCode >= 500 ? tr('errors.internal') : error.message })
   })
 
-  await app.register(helmet)
-  await app.register(cors, { origin: config.frontendOrigin, credentials: true })
+  await app.register(securityHeadersPlugin, { origin: config.frontendOrigin })
   await app.register(cookie)
   await app.register(jwt, {
     secret: config.jwtSecret,
