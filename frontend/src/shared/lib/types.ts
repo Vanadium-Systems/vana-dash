@@ -1,5 +1,6 @@
 import type { DisplayCurrency, Locale } from './locale'
 import type { MotionPref } from './motion'
+import type { ThemePalette } from './palette'
 export type FeatureKey = string
 
 export interface SessionRole {
@@ -39,6 +40,7 @@ export interface SessionPayload {
   displayCurrency: DisplayCurrency
   displayCurrencies: DisplayCurrency[]
   motionPref?: MotionPref
+  themePalette?: ThemePalette
   hideAmounts?: boolean
   /** A short sound when a payment comes in (off by default). */
   soundOn?: boolean

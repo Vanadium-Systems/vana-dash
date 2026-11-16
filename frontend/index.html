@@ -21,6 +21,10 @@
         var isDark = stored === 'dark' || ((!stored || stored === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)
         document.documentElement.classList.toggle('dark', isDark)
         document.documentElement.style.colorScheme = isDark ? 'dark' : 'light'
+        var palette = localStorage.getItem('vana-dash-palette')
+        if (palette && palette !== 'vanadium' && /^(grafit|padure|chihlimbar|ardezie)$/.test(palette)) {
+          document.documentElement.dataset.palette = palette
+        }
       })()
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

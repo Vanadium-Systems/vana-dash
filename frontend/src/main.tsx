@@ -11,6 +11,10 @@ import { ReloadOnNavigate, watchForUpdates } from '@/shared/lib/app-update'
 import { initI18n } from '@/shared/lib/i18n'
 import { isNative } from '@/shared/lib/native'
 import './index.css'
+import './shared/styles/palettes/grafit.css'
+import './shared/styles/palettes/padure.css'
+import './shared/styles/palettes/chihlimbar.css'
+import './shared/styles/palettes/ardezie.css'
 import './shared/styles/rasina.css'
 
 const queryClient = new QueryClient({
