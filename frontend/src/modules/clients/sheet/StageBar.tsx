@@ -52,6 +52,7 @@ export function StageBar({ sheet, statuses }: { sheet: ProspectSheet; statuses: 
                 />
               ) : null}
               {stages.map((stage, position) => (
+                // native: segmented control
                 <button
                   key={stage.id}
                   type="button"

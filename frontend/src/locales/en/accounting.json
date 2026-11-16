@@ -95,6 +95,8 @@
     "noSpecialTerms": "(no special terms)"
   },
   "clients": {
+    "iban": "IBAN",
+    "vanagreen": "VanaGreen",
     "add": "Add a client",
     "demoUntil": "Demo until",
     "deletedIn": "Deleted in",
@@ -739,7 +741,6 @@
       "invoiced": "Invoiced",
       "cancelled": "Cancelled"
     },
-    "number": "Proforma",
     "convert": "Invoice from proforma",
     "converted": "The invoice draft is ready, with the proforma lines",
     "cancel": "Cancel",

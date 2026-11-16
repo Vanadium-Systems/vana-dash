@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NAV_GROUP_ORDER, NAV_ITEMS, resolveNavLayout } from './nav-items'
+import { NAV_GROUP_ORDER, NAV_ITEMS, isNavItemActive, resolveNavLayout } from './nav-items'
 
 describe('NAV_ITEMS', () => {
   it('are 21 destinații, fiecare într-un grup cunoscut', () => {
@@ -27,5 +27,21 @@ describe('NAV_ITEMS', () => {
     expect(resolved).not.toContain('/plan')
     expect(resolved).not.toContain('/assets')
     expect(resolved).toHaveLength(21)
+  })
+})
+
+describe('isNavItemActive', () => {
+  const item = (to: string) => NAV_ITEMS.find((entry) => entry.to === to)!
+
+  it('pe Istoric se aprinde doar Istoric, nu și Echipă', () => {
+    expect(isNavItemActive(item('/team/history'), '/team/history')).toBe(true)
+    expect(isNavItemActive(item('/team'), '/team/history')).toBe(false)
+  })
+
+  it('o pagină de sub rută aprinde tot elementul ei; Azi doar pe /', () => {
+    expect(isNavItemActive(item('/team'), '/team')).toBe(true)
+    expect(isNavItemActive(item('/accounting'), '/accounting/invoices/new')).toBe(true)
+    expect(isNavItemActive(item('/'), '/accounting')).toBe(false)
+    expect(isNavItemActive(item('/crypto'), '/assets/abc')).toBe(true)
   })
 })

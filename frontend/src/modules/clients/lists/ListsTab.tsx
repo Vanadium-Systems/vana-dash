@@ -39,6 +39,7 @@ function ListsTable({ lists, canWrite, canEnroll, onOpen, onEdit, onDelete, onEn
         {lists.map((list) => (
           <TableRow key={list.id} className="cursor-pointer" onClick={() => onOpen(list)}>
             <TableCell className="tbl-fill">
+              {/* native: row title link */}
               <button
                 type="button"
                 className="block max-w-full truncate rounded-sm text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

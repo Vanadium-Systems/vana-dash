@@ -50,6 +50,7 @@ function TextBody({ text }: { text: string }) {
     <div className="email-canvas rounded-sm p-3 text-sm">
       <p className="whitespace-pre-wrap break-words">{main ? linkify(main) : t('email:body.noText')}</p>
       {quoted ? (
+        // native: inline text link
         <button type="button" className="mt-1.5 rounded px-1 text-xs opacity-60 hover:opacity-100" aria-expanded={showQuoted} onClick={() => setShowQuoted((v) => !v)}>
           {showQuoted ? t('email:thread.hideQuoted') : t('email:thread.showQuotedShort')}
         </button>
@@ -62,6 +63,7 @@ function TextBody({ text }: { text: string }) {
 function AttachmentChip({ attachment, onOpen }: { attachment: EmailAttachmentMeta; onOpen: () => void }) {
   const Icon = attachment.contentType?.startsWith('image/') ? ImageIcon : attachment.contentType === 'application/pdf' ? FileText : Paperclip
   return (
+    // native: attachment chip
     <button type="button" onClick={onOpen} title={attachment.filename} className="inline-flex max-w-56 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs hover:bg-muted">
       <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       <span className="truncate">{attachment.filename}</span>
@@ -373,6 +375,7 @@ export function ThreadView({
                 { key: 'all', icon: <ReplyAll className="h-4 w-4" />, label: t('email:thread.replyAll'), onClick: () => startReply(true) },
                 { key: 'fwd', icon: <Forward className="h-4 w-4" />, label: t('email:actions.forward'), onClick: () => startForward(lastInbound) },
               ].map((action) => (
+                // native: action tile
                 <button
                   key={action.key}
                   type="button"
@@ -403,6 +406,7 @@ export function ThreadView({
         {items.map((item) => {
           if (item.kind === 'more') {
             return (
+              // native: list row
               <button
                 key={`more-${item.ids[0]}`}
                 type="button"
@@ -417,6 +421,7 @@ export function ThreadView({
           const date = m.receivedAt ?? m.createdAt
           if (!item.expanded) {
             return (
+              // native: list row
               <button
                 key={m.id}
                 type="button"
@@ -442,6 +447,7 @@ export function ThreadView({
                     <span className="font-semibold">{authorOf(m)}</span>
                     <span className="min-w-0 truncate text-xs text-muted-foreground">{bare(m.fromAddress)}</span>
                   </p>
+                  {/* native: inline text link */}
                   <button
                     type="button"
                     className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
@@ -466,16 +472,17 @@ export function ThreadView({
                   {formatRelativeTime(date)}
                 </time>
                 {m.direction === 'in' ? (
-                  <button
+                  <Button
                     type="button"
-                    className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
+                    variant="ghost"
+                    size="icon"
                     title={m.isStarred ? t('email:thread.unstar') : t('email:thread.star')}
                     aria-label={m.isStarred ? t('email:thread.unstar') : t('email:thread.star')}
                     aria-pressed={m.isStarred}
                     onClick={() => toggleStar.mutate(m)}
                   >
-                    <Star className={cn('h-4 w-4', m.isStarred && 'fill-warning text-warning')} />
-                  </button>
+                    <Star className={cn(m.isStarred && 'fill-warning text-warning')} />
+                  </Button>
                 ) : null}
               </header>
               {m.bodyHtml ? (

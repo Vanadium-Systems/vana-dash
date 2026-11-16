@@ -71,6 +71,7 @@ function ReceivedOnPhone({ addresses, value, onChange }: { addresses: { key: str
     setOpen(false)
   }
   const row = (address: string, label: string, selected: boolean) => (
+    // native: list row
     <button
       key={address || 'any'}
       type="button"
@@ -85,6 +86,7 @@ function ReceivedOnPhone({ addresses, value, onChange }: { addresses: { key: str
   const others = [...(current ? [{ address: '', label: t('email:list.anyAddress') }] : []), ...addresses.filter((a) => a.address !== value)]
   return (
     <>
+      {/* native: avatar trigger */}
       <button
         type="button"
         title={t('email:list.receivedOnHint')}
@@ -123,7 +125,8 @@ export function MailboxView({ view }: { view: Extract<EmailView, { kind: 'mailbo
   const [search, setSearch] = useUrlState('q')
   const filterState = useMailFilters()
   const [toAddress, setToAddress] = useState('')
-  const [pageSize, setPageSize] = useState(50)
+  // A mailbox reads from the top; a rows-per-page choice next to the arrows was noise (audit, finding 12).
+  const pageSize = 50
   const [page, setPage] = useState(0)
   const [focusIndex, setFocusIndex] = useState(-1)
   const [viewer, setViewer] = useState<{ name: string; url: string; mimeType: string; id: string } | null>(null)
@@ -354,6 +357,7 @@ export function MailboxView({ view }: { view: Extract<EmailView, { kind: 'mailbo
           ) : threads.isError ? (
             <p className="py-6 text-center text-sm">
               {t('email:list.loadFailed')}{' '}
+              {/* native: inline text link */}
               <button type="button" className="underline underline-offset-2" onClick={() => void threads.refetch()}>
                 {t('common:actions.retry')}
               </button>
@@ -395,14 +399,7 @@ export function MailboxView({ view }: { view: Extract<EmailView, { kind: 'mailbo
           )}
         </div>
         {total > 0 ? (
-          <div className="flex items-center justify-between gap-2 pt-1 text-xs text-muted-foreground">
-            <Select size="sm" className="w-auto shrink-0" title={t('email:list.perPageHint')} value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
-              {[25, 50, 100, 200].map((size) => (
-                <option key={size} value={size}>
-                  {t('email:pagination.perPage', { size })}
-                </option>
-              ))}
-            </Select>
+          <div className="flex items-center justify-end gap-2 pt-1 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <span className="whitespace-nowrap tabular-nums">
                 {t('email:pagination.range', { from: page * pageSize + 1, to: Math.min((page + 1) * pageSize, total), total })}

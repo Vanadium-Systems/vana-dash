@@ -24,7 +24,8 @@ export function NewAccountEmpty({ onImport, onNew }: { onImport: () => void; onN
         <p className="text-sm font-medium">{t('clients:prospects.empty.newTitle')}</p>
         <p className="max-w-sm text-sm text-muted-foreground">{t('clients:prospects.empty.newBody')}</p>
         <div className="flex flex-wrap justify-center gap-2">
-          <Button type="button" onClick={onImport}>
+          {/* Outline: "Prospect nou" in the header is already the one primary on the screen. */}
+          <Button type="button" variant="outline" onClick={onImport}>
             <Upload aria-hidden="true" /> {t('clients:prospects.import')}
           </Button>
           <Button type="button" variant="outline" onClick={onNew}>

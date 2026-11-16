@@ -231,12 +231,10 @@
     "nothingOnAddress": "Nimic primit pe adresa asta",
     "nothingHere": "Nimic aici",
     "receivedOn": "Primit pe {{toAddress}}",
-    "perPageHint": "Mesaje pe pagină",
     "hasAttachment": "Are atașament",
     "nothingFiltered": "Nimic pentru filtrele alese"
   },
   "pagination": {
-    "perPage": "{{size}} / pagină",
     "range": "{{from}}–{{to}} din {{total}}"
   },
   "sent": {
@@ -263,7 +261,6 @@
     "loadFailed": "Nu am putut încărca istoricul.",
     "empty": "Niciun email trimis încă.",
     "viewContent": "Vezi conținutul",
-    "rowsPerPage": "Rânduri pe pagină",
     "openedFilter": "Deschise",
     "clickedFilter": "Cu click",
     "filterSource": "Sursă",

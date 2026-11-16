@@ -1,4 +1,4 @@
-import { CalendarClock, CalendarPlus, Check, Copy, Mail, Phone, Users } from 'lucide-react'
+import { CalendarClock, Check, Copy, Mail, Phone, Users } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/shared/components/ui/badge'
@@ -24,6 +24,7 @@ export function Initials({ name }: { name: string }) {
 function CopyCui({ cif }: { cif: string }) {
   const [copied, setCopied] = useState(false)
   return (
+    // native: inline text link
     <button
       type="button"
       title={t('clients:sheet.header.copyCui')}
@@ -54,26 +55,25 @@ interface SheetHeaderProps {
   onCall: () => void
   onWrite: () => void
   onSchedule: () => void
-  onMeet: () => void
   onClaim: () => void
   onCollaborators: () => void
   menu: ReactNode
 }
 
-export function SheetHeader({ sheet, canClaim, canCall, canWrite, onCall, onWrite, onSchedule, onMeet, onClaim, onCollaborators, menu }: SheetHeaderProps) {
+export function SheetHeader({ sheet, canClaim, canCall, canWrite, onCall, onWrite, onSchedule, onClaim, onCollaborators, menu }: SheetHeaderProps) {
   return (
     <header className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0 flex-1 basis-60">
           <h1 className="truncate text-xl font-semibold">{sheet.name}</h1>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             {sheet.cif ? <CopyCui cif={sheet.cif} /> : <span>{t('clients:sheet.header.noCui')}</span>}
             {sheet.score !== null ? (
               <Badge variant="secondary" title={t('clients:sheet.header.score')}>
                 {sheet.priority} · <span className="tabular-nums">{formatNumber(Number(sheet.score))}</span>
               </Badge>
             ) : null}
-          </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" disabled={!canCall} title={canCall ? undefined : t('clients:sheet.header.noPhone')} onClick={onCall}>
@@ -82,11 +82,6 @@ export function SheetHeader({ sheet, canClaim, canCall, canWrite, onCall, onWrit
           <Button type="button" variant="outline" disabled={!canWrite} title={canWrite ? undefined : t('clients:sheet.header.noEmail')} onClick={onWrite}>
             <Mail aria-hidden="true" /> {t('clients:sheet.header.write')}
           </Button>
-          {sheet.canEdit ? (
-            <Button type="button" variant="outline" title={t('meetings:buttonHint', { name: sheet.name })} onClick={onMeet}>
-              <CalendarPlus aria-hidden="true" /> {t('meetings:button')}
-            </Button>
-          ) : null}
           {sheet.canEdit ? (
             <Button type="button" onClick={onSchedule}>
               <CalendarClock aria-hidden="true" /> {t('clients:sheet.header.schedule')}

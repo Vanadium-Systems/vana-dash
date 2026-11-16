@@ -110,6 +110,7 @@ export function RecipientField({
               )}
             >
               <span className="truncate">{address}</span>
+              {/* native: chip remove */}
               <button
                 type="button"
                 className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
@@ -162,6 +163,7 @@ export function RecipientField({
         >
           {matches.map((address, i) => (
             <li key={address} role="option" aria-selected={i === active}>
+              {/* native: list row */}
               <button
                 type="button"
                 className={cn('block w-full truncate px-3 py-1.5 text-left text-sm', i === active ? 'bg-muted' : 'hover:bg-muted')}

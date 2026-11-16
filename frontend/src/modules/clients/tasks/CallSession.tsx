@@ -263,6 +263,7 @@ export function CallSession() {
             <ul className="space-y-0.5">
               {queue.map((row) => (
                 <li key={row.id}>
+                  {/* native: list row */}
                   <button
                     type="button"
                     aria-current={row.id === current?.id ? 'true' : undefined}

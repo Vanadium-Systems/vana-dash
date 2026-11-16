@@ -102,14 +102,9 @@ function TemplateEditor() {
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         {(templates.data ?? []).map((template) => (
-          <button
-            key={template.key}
-            type="button"
-            onClick={() => select(template)}
-            className={`rounded-md border px-3 py-1.5 text-sm ${selectedKey === template.key ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
-          >
+          <Button key={template.key} type="button" variant={selectedKey === template.key ? 'default' : 'outline'} onClick={() => select(template)}>
             {template.name}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -120,6 +115,7 @@ function TemplateEditor() {
           {current.placeholders?.length ? (
             <div className="flex flex-wrap gap-1">
               {current.placeholders.map((p) => (
+                // native: token insert chip
                 <button
                   key={p.token}
                   type="button"

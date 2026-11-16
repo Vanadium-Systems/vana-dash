@@ -533,16 +533,16 @@
     "label": "Culoare"
   },
   "filter": {
-    "add": "Filtru",
+    "add": "Filtre",
     "remove": "Scoate filtrul {{filter}}"
   },
   "filterBar": {
     "search": "Caută",
     "searchPlaceholder": "Caută",
     "addFilter": "Filtru",
-    "allFilters": "Toate filtrele",
-    "pinFilter": "Fixează {{field}} în bară",
-    "unpinFilter": "Scoate {{field}} din bară",
+    "allFilters": "Toate filtrele…",
+    "pinFilter": "Pune {{field}} primul în Filtre",
+    "unpinFilter": "Scoate {{field}} dintre primele în Filtre",
     "fieldSearch": "Caută un filtru",
     "back": "Înapoi",
     "edit": "Modifică filtrul {{filter}}",

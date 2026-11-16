@@ -3,7 +3,7 @@ import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalList
 import { CSS } from '@dnd-kit/utilities'
 import { Columns3, GripVertical } from 'lucide-react'
 import { useState } from 'react'
-import { Button } from '@/shared/components/ui/button'
+import { Button, buttonVariants } from '@/shared/components/ui/button'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { Input } from '@/shared/components/ui/input'
@@ -18,6 +18,7 @@ function SortableColumn({ columnKey, onToggle, disabled }: { columnKey: ColumnKe
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: columnKey })
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`flex items-center gap-2 rounded-sm px-1 ${isDragging ? 'z-10 bg-accent' : ''}`}>
+      {/* native: drag handle */}
       <button type="button" className="touch-target flex h-control-sm w-6 cursor-grab items-center justify-center rounded-sm text-muted-foreground hover:bg-accent active:cursor-grabbing" aria-label={t('clients:prospects.columnsMenu.drag', { column: columnLabel(columnKey) })} {...attributes} {...listeners}>
         <GripVertical className="h-4 w-4" />
       </button>
@@ -41,8 +42,8 @@ export function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onCha
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex h-control-md items-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <Columns3 className="h-4 w-4" aria-hidden="true" /> {t('clients:prospects.columnsMenu.trigger')}
+      <DropdownMenuTrigger className={buttonVariants({ variant: 'outline' })}>
+        <Columns3 aria-hidden="true" /> {t('clients:prospects.columnsMenu.trigger')}
       </DropdownMenuTrigger>
       <ResponsiveMenuContent title={t('clients:prospects.columnsMenu.trigger')} align="end">
         <div className="w-[min(20rem,calc(100vw-2rem))] max-w-full space-y-2 p-1">

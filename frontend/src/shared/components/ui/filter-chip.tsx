@@ -1,13 +1,14 @@
 import { SlidersHorizontal, X } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { buttonVariants } from '@/shared/components/ui/button'
 import { DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { t } from '@/shared/lib/i18n'
 
-/** The "Filtru" button that opens a list's filter menu; goes inside a `DropdownMenu`. */
+/** The single "Filtre" button of a list (style §9); goes inside a `DropdownMenu`. */
 export function FilterMenuTrigger() {
   return (
-    <DropdownMenuTrigger className="inline-flex h-control-md items-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      <SlidersHorizontal className="h-4 w-4" aria-hidden="true" /> {t('common:filter.add')}
+    <DropdownMenuTrigger className={buttonVariants({ variant: 'outline' })}>
+      <SlidersHorizontal aria-hidden="true" /> {t('common:filter.add')}
     </DropdownMenuTrigger>
   )
 }

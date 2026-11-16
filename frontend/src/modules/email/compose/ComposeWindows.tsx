@@ -11,6 +11,7 @@ import { cn } from '@/shared/lib/utils'
 import { closeCompose, openCompose, setComposeMinimized, setComposeTitle, useComposeWindows, type ComposeWindow } from './compose-store'
 import { ComposeForm } from './ComposeForm'
 import type { SendFlowHandlers } from './send-flow'
+import { Button } from '@/shared/components/ui/button'
 
 const phoneQuery = window.matchMedia?.('(max-width: 767px)')
 
@@ -101,6 +102,7 @@ function ComposeFrame({
 
   const titleBar = (
     <div className="flex h-10 shrink-0 items-center gap-1 rounded-t-lg bg-muted pl-3 pr-1">
+      {/* native: window title toggle */}
       <button
         type="button"
         className="min-w-0 flex-1 truncate text-left text-sm font-medium"
@@ -110,25 +112,20 @@ function ComposeFrame({
         {title}
       </button>
       {phone ? null : (
-        <button
+        <Button
           type="button"
-          className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground"
+          variant="ghost"
+          size="icon"
           aria-label={w.minimized ? t('email:compose.expand') : t('email:compose.minimize')}
           title={w.minimized ? t('email:compose.expand') : t('email:compose.minimize')}
           onClick={() => setComposeMinimized(w.id, !w.minimized)}
         >
-          {w.minimized ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </button>
+          {w.minimized ? <ChevronUp /> : <ChevronDown />}
+        </Button>
       )}
-      <button
-        type="button"
-        className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground"
-        aria-label={t('common:actions.close')}
-        title={t('common:actions.close')}
-        onClick={close}
-      >
-        <X className="h-4 w-4" />
-      </button>
+      <Button type="button" variant="ghost" size="icon" aria-label={t('common:actions.close')} title={t('common:actions.close')} onClick={close}>
+        <X />
+      </Button>
     </div>
   )
 

@@ -1,6 +1,7 @@
 import { Archive, Check, Clock, FileText, Image as ImageIcon, Mail, MailOpen, MoreHorizontal, Paperclip, ShieldAlert, Star, Trash2 } from 'lucide-react'
 import type { MouseEvent, ReactNode } from 'react'
 import { Highlight } from '@/shared/components/Highlight'
+import { Button } from '@/shared/components/ui/button'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { ContextMenu, useContextMenu } from '@/shared/components/ui/context-menu'
 import { DropdownMenuItem, DropdownMenuTrigger, MenuShortcut } from '@/shared/components/ui/dropdown-menu'
@@ -51,6 +52,7 @@ const FOLDER_LABEL = {
 function AttachmentChip({ attachment, onOpen }: { attachment: EmailThread['attachments'][number]; onOpen: () => void }) {
   const Icon = attachment.contentType?.startsWith('image/') ? ImageIcon : attachment.contentType === 'application/pdf' ? FileText : Paperclip
   return (
+    // native: attachment chip
     <button
       type="button"
       onClick={(e) => {
@@ -68,18 +70,19 @@ function AttachmentChip({ attachment, onOpen }: { attachment: EmailThread['attac
 
 function HoverAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon-sm"
       title={label}
       aria-label={label}
       onClick={(e) => {
         e.stopPropagation()
         onClick()
       }}
-      className="rounded p-1.5 text-muted-foreground hover:bg-background hover:text-foreground"
     >
       {children}
-    </button>
+    </Button>
   )
 }
 
@@ -183,8 +186,10 @@ export function ThreadRow({
           onClick={(e) => e.stopPropagation()}
           aria-label={subject}
         />
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           title={thread.isStarred ? t('email:thread.unstar') : t('email:thread.star')}
           aria-label={thread.isStarred ? t('email:thread.unstar') : t('email:thread.star')}
           aria-pressed={thread.isStarred}
@@ -192,10 +197,11 @@ export function ThreadRow({
             e.stopPropagation()
             onStar()
           }}
-          className="hidden shrink-0 rounded p-1 text-muted-foreground hover:text-foreground sm:block"
+          className="hidden sm:inline-flex"
         >
-          <Star className={cn('h-4 w-4', thread.isStarred && 'fill-warning text-warning')} />
-        </button>
+          <Star className={cn(thread.isStarred && 'fill-warning text-warning')} />
+        </Button>
+        {/* native: list row */}
         <button
           type="button"
           className="flex min-w-0 flex-1 select-none items-start gap-3 text-left sm:items-center"

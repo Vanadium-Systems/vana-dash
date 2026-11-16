@@ -145,6 +145,7 @@ function ContactCell({ row, ctx }: { row: ProspectRow; ctx: CellContext }) {
   const navigate = useNavigate()
   if (!row.primaryPhone && !row.primaryEmail && !row.primaryPerson) {
     return row.canEdit ? (
+      // native: inline text link
       <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => ctx.openProspect(row.id)}>
         {t('clients:prospects.contact.add')}
       </button>

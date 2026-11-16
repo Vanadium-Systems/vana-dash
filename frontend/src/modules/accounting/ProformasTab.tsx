@@ -124,8 +124,7 @@ export function ProformasTab() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
-                    <TableHead>{t('accounting:proformas.number')}</TableHead>
-                    <TableHead priority="md">{t('common:labels.client')}</TableHead>
+                    <TableHead>{t('common:labels.client')}</TableHead>
                     <TableHead priority="lg">{t('accounting:labels.issued')}</TableHead>
                     <TableHead priority="md">{t('common:labels.status')}</TableHead>
                     <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
@@ -134,32 +133,35 @@ export function ProformasTab() {
                 <TableBody>
                   {rows.map((row) => {
                     const state = proformaState(row)
-                    const rowTitle = row.documentNumber ?? t('accounting:issued.draftMarker')
+                    // Style §8: the client leads the row; the number is a reference under it.
+                    const name = row.counterpartyName ?? '—'
+                    const reference = row.documentNumber ?? t('accounting:issued.draftMarker')
                     const pill = <StatePill key="state" tone={state === 'invoiced' ? 'success' : 'neutral'}>{t(`accounting:proformas.status.${state}` as const)}</StatePill>
                     return (
                       <TableRow key={row.id} data-row-id={row.id} className="cursor-pointer" onClick={() => open(row.id)}>
                         <TableCell className="whitespace-nowrap text-right">
                           <AmountCell amount={row.amount} currency={row.currency} />
                         </TableCell>
-                        <TableCell className="tbl-fill font-medium">
+                        <TableCell className="tbl-fill">
+                          {/* native: row title link */}
                           <button
                             type="button"
-                            className="block max-w-full truncate rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="block max-w-full truncate rounded-sm text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             onClick={(e) => {
                               e.stopPropagation()
                               open(row.id)
                             }}
                           >
-                            {rowTitle}
+                            {name}
                           </button>
-                          <TableDetails items={[row.counterpartyName, formatDate(row.issuedAt), pill]} />
+                          <div className="truncate text-xs tabular-nums text-text-3">{reference}</div>
+                          <TableDetails items={[formatDate(row.issuedAt), pill]} />
                         </TableCell>
-                        <TableCell priority="md" truncate>{row.counterpartyName ?? '—'}</TableCell>
-                        <TableCell priority="lg" className="whitespace-nowrap">{formatDate(row.issuedAt)}</TableCell>
+                        <TableCell priority="lg" className="whitespace-nowrap text-muted-foreground">{formatDate(row.issuedAt)}</TableCell>
                         <TableCell priority="md">{pill}</TableCell>
                         <TableCell className="text-right">
                           <RowActions
-                            title={rowTitle}
+                            title={`${name} · ${reference}`}
                             actions={[
                               ...(canIssue && state === 'open'
                                 ? [{ key: 'convert', icon: FileInput, label: t('accounting:proformas.convert'), disabled: actions.busy, onClick: () => actions.convert.mutate(row.id) }]

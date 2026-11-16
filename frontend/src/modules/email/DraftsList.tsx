@@ -38,6 +38,7 @@ export function DraftsList({ onOpen }: { onOpen: (draft: EmailDraft) => void }) 
           <div className="space-y-1">
             {drafts.data.map((d) => (
               <div key={d.id} className="flex items-center justify-between gap-2 rounded-md p-2 text-sm hover:bg-muted">
+                {/* native: list row */}
                 <button className="min-w-0 flex-1 text-left" onClick={() => onOpen(d)}>
                   <p className="truncate font-medium">{d.subject || t('email:labels.noSubject')}</p>
                   <p className="truncate text-xs text-muted-foreground">{d.to || t('email:drafts.noRecipient')}</p>

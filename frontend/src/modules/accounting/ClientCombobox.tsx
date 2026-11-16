@@ -93,6 +93,7 @@ export function ClientCombobox({ id, clients, value, disabled, invalid, onCreate
           {matches.length === 0 ? <li className="px-3 py-1.5 text-sm text-muted-foreground">{t('accounting:editor.client.empty')}</li> : null}
           {options.map((option, i) => (
             <li key={option.client?.id ?? 'new'} role="option" aria-selected={i === active}>
+              {/* native: list row */}
               <button
                 type="button"
                 className={cn('block w-full truncate px-3 py-1.5 text-left text-sm', i === active ? 'bg-muted' : 'hover:bg-muted', !option.client && 'font-medium')}

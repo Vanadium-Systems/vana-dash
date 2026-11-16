@@ -149,6 +149,7 @@ export function ContractsTab() {
               {list.data.rows.map((row) => (
                 <TableRow key={row.clientId} className="cursor-pointer" onClick={() => openPeek(row.clientId)}>
                   <TableCell className="tbl-fill">
+                    {/* native: row title link */}
                     <button
                       type="button"
                       className="block max-w-full truncate rounded-sm text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

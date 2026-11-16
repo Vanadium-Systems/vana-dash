@@ -222,12 +222,10 @@
     "nothingOnAddress": "Nothing received on this address",
     "nothingHere": "Nothing here",
     "receivedOn": "Received on {{toAddress}}",
-    "perPageHint": "Messages per page",
     "hasAttachment": "Has attachment",
     "nothingFiltered": "Nothing for these filters"
   },
   "pagination": {
-    "perPage": "{{size}} / page",
     "range": "{{from}}–{{to}} of {{total}}"
   },
   "sent": {
@@ -254,7 +252,6 @@
     "loadFailed": "The history could not be loaded.",
     "empty": "No email sent yet.",
     "viewContent": "See the content",
-    "rowsPerPage": "Rows per page",
     "openedFilter": "Opened",
     "clickedFilter": "Clicked",
     "filterSource": "Source",

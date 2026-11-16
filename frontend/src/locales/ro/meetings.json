@@ -1,6 +1,5 @@
 {
   "button": "Meet",
-  "buttonHint": "Programează o întâlnire cu {{name}}",
   "dialog": {
     "title": "Meet cu {{name}}",
     "editTitle": "Mută întâlnirea",

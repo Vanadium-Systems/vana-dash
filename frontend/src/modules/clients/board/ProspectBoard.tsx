@@ -99,6 +99,7 @@ export function ProspectBoard({
     <div className="space-y-3">
       <div role="group" aria-label={t('clients:board.stagePicker')} className="flex flex-wrap gap-1.5">
         {board.columns.map((col) => (
+          // native: segmented control
           <button
             key={col.status}
             type="button"

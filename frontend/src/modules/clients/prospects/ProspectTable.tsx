@@ -25,6 +25,7 @@ function SortHead({ columnKey, label, sort, onSort }: { columnKey: SortKey; labe
   const active = sort?.key === columnKey
   const Icon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown
   return (
+    // native: sortable column header
     <button type="button" className={cn('inline-flex items-center gap-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', active && 'text-foreground')} onClick={() => onSort(columnKey)}>
       {label}
       <Icon className={cn('h-3 w-3', !active && 'opacity-40')} aria-hidden="true" />
@@ -99,7 +100,7 @@ export function ProspectTable({
         >
           {rows.map((row, rowIndex) => {
             const selected = selection.isSelected(row.id)
-            const textOf = (priority: 'md' | 'lg') => columns.filter((key) => columnDef(key).priority === priority).map((key) => columnText(key, row, ctx))
+            const textOf = (priority: 'md' | 'lg', skip: ColumnKey[] = []) => columns.filter((key) => columnDef(key).priority === priority && !skip.includes(key)).map((key) => columnText(key, row, ctx))
             return (
               <TableRow
                 key={row.id}
@@ -124,6 +125,7 @@ export function ProspectTable({
                   />
                 </TableCell>
                 <TableCell className="tbl-fill tbl-fill-lg md:max-w-[16rem]">
+                  {/* native: row title link */}
                   <button
                     type="button"
                     className="block max-w-full truncate text-left font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -133,11 +135,12 @@ export function ProspectTable({
                   >
                     {row.name}
                   </button>
-                  <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 truncate text-xs text-text-3">
                     <span className="truncate">{row.cif ?? t('clients:prospects.noCif')}</span>
                     {row.archivedAt ? <Badge variant="outline">{t('clients:prospects.archived')}</Badge> : null}
                   </div>
-                  <div className="tbl-lg-fallback truncate text-xs text-muted-foreground">{textOf('lg').filter(Boolean).join(' · ')}</div>
+                  {/* The note has its own editable line below on narrow tables; repeating it here would show it twice. */}
+                  <div className="tbl-lg-fallback truncate text-xs text-muted-foreground">{textOf('lg', ['note']).filter(Boolean).join(' · ')}</div>
                   <TableDetails items={textOf('md')} />
                   {columns.includes('note') ? (
                     <div className="tbl-narrow-only mt-1">

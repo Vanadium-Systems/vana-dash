@@ -42,6 +42,7 @@ const REASON_TEXTS: Record<DuplicateReason, TKey> = {
 
 function CountCard({ label, count, onClick }: { label: string; count: number; onClick: () => void }) {
   return (
+    // native: whole card is clickable
     <button
       type="button"
       onClick={onClick}

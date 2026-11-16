@@ -1,6 +1,6 @@
 import { ChevronDown, Star, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Button } from '@/shared/components/ui/button'
+import { Button, buttonVariants } from '@/shared/components/ui/button'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { Input } from '@/shared/components/ui/input'
@@ -53,11 +53,11 @@ export function ViewMenu({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex h-control-md max-w-full items-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <DropdownMenuTrigger className={cn(buttonVariants({ variant: 'outline' }), 'max-w-full')}>
         {dirty ? <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-primary" /> : null}
         <span className="truncate">{t('clients:prospects.views.trigger', { name: active?.name ?? t('clients:prospects.views.none') })}</span>
         {dirty ? <span className="sr-only">{t('clients:prospects.views.modified')}</span> : null}
-        <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <ChevronDown className="shrink-0" aria-hidden="true" />
       </DropdownMenuTrigger>
       <ResponsiveMenuContent title={t('clients:prospects.views.title')} align="start">
         <div className="w-[min(22rem,calc(100vw-2rem))] max-w-full space-y-2 p-1">

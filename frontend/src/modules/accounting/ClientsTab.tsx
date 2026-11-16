@@ -45,9 +45,9 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
           <TableHead>{t('accounting:clientForm.name')}</TableHead>
           <TableHead priority="md">{t('common:labels.cif')}</TableHead>
           <TableHead priority="lg">{t('common:labels.address')}</TableHead>
-          <TableHead priority="lg">IBAN</TableHead>
+          <TableHead priority="lg">{t('accounting:clients.iban')}</TableHead>
           <TableHead priority="md">{t('common:labels.email')}</TableHead>
-          <TableHead priority="lg">Vanagreen</TableHead>
+          <TableHead priority="lg">{t('accounting:clients.vanagreen')}</TableHead>
           {showDemoEndsAt && <TableHead priority="lg">{t('accounting:clients.demoUntil')}</TableHead>}
           {showPendingDeletion && <TableHead priority="md">{t('accounting:clients.deletedIn')}</TableHead>}
           <TableHead className="text-right"><span className="tbl-narrow-sr">{t('common:labels.actions')}</span></TableHead>
@@ -69,10 +69,10 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
                 ]}
               />
             </TableCell>
-            <TableCell priority="md" className="whitespace-nowrap font-mono text-xs">{c.cif}</TableCell>
-            <TableCell priority="lg" className="max-w-xs truncate">{c.address}</TableCell>
-            <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs">{c.iban ?? '—'}</TableCell>
-            <TableCell priority="md" className="max-w-[14rem] truncate">{c.email ?? '—'}</TableCell>
+            <TableCell priority="md" className="whitespace-nowrap font-mono text-xs text-text-3">{c.cif}</TableCell>
+            <TableCell priority="lg" className="max-w-xs truncate text-muted-foreground">{c.address}</TableCell>
+            <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs text-text-3">{c.iban ?? '—'}</TableCell>
+            <TableCell priority="md" className="max-w-[14rem] truncate text-muted-foreground">{c.email ?? '—'}</TableCell>
             <TableCell priority="lg">
               {c.vanagreenTenantId ? (
                 <StatePill tone="success">{t('accounting:clients.mapped')}{c.autoInvoiceEnabled ? t('accounting:clients.plusAuto') : ''}</StatePill>

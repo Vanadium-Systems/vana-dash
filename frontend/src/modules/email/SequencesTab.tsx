@@ -84,6 +84,7 @@ export function SequencesTab() {
                 {sequences.data.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell className="font-medium tbl-fill">
+                      {/* native: row title link */}
                       <button type="button" className="max-w-full truncate underline decoration-dotted underline-offset-2" onClick={() => setViewingEnrollments(s)}>
                         {s.name}
                       </button>
@@ -91,6 +92,7 @@ export function SequencesTab() {
                     <TableCell priority="lg" className="text-sm text-muted-foreground">{FROM_LABEL[s.fromIdentity] ?? s.fromIdentity}</TableCell>
                     <TableCell priority="md">{s.steps.length}</TableCell>
                     <TableCell>
+                      {/* native: wraps status pill */}
                       <button type="button" onClick={() => toggleActive.mutate({ id: s.id, active: !s.active })}>
                         <StatePill tone={s.active ? 'success' : 'neutral'}>
                           {s.active ? t('common:states.activeF') : t('email:sequences.paused')}

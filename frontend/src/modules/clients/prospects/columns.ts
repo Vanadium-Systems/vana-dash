@@ -29,12 +29,14 @@ export interface ColumnDef {
 }
 
 // The company name is not here: it is always the first column and is never hidden.
+// Style §8: who handles the row, where it stands and how much it is worth go last (`md`); contact and
+// note are `lg`, so a narrower table drops them before the row is folded into the title cell.
 export const COLUMN_DEFS: ColumnDef[] = [
   { key: 'owner', priority: 'md', editable: true },
   { key: 'status', priority: 'md', editable: true },
   { key: 'score', priority: 'md', sort: 'score', calc: 'score' },
-  { key: 'contact', priority: 'md' },
-  { key: 'note', priority: 'md' },
+  { key: 'contact', priority: 'lg' },
+  { key: 'note', priority: 'lg' },
   { key: 'nextTask', priority: 'lg', sort: 'nextTask' },
   { key: 'daysInStage', priority: 'lg', sort: 'daysInStage' },
   { key: 'lastActivityAt', priority: 'lg', sort: 'lastActivityAt' },

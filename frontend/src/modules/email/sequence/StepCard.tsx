@@ -46,6 +46,7 @@ export function StepCard({ step, index, templates, canRemove, onChange, onRemove
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cn('space-y-3 rounded-md border p-3', isDragging && 'opacity-50')}>
       <div className="flex flex-wrap items-center gap-2">
+        {/* native: drag handle */}
         <button
           type="button"
           className="cursor-grab touch-none rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"

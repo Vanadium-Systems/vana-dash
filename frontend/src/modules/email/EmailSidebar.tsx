@@ -76,6 +76,7 @@ function NavItem({ active, icon, label, onClick, unreadCount, rail }: NavItemPro
   const name = unreadCount ? t('email:sidebar.itemUnread', { label, count: unreadCount }) : label
   if (rail) {
     return (
+      // native: sidebar nav item
       <button
         onClick={onClick}
         title={name}
@@ -92,6 +93,7 @@ function NavItem({ active, icon, label, onClick, unreadCount, rail }: NavItemPro
     )
   }
   return (
+    // native: sidebar nav item
     <button
       onClick={onClick}
       aria-current={active ? 'page' : undefined}

@@ -357,6 +357,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
           autoFocus={isNew || mode === 'forward'}
           trailing={
             showCc ? null : (
+              // native: inline text link
               <button type="button" className="shrink-0 pt-1.5 text-sm text-muted-foreground hover:text-foreground" onClick={() => setShowCc(true)}>
                 {t('email:compose.cc')}
               </button>
@@ -431,6 +432,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
               <li key={`${a.filename}-${i}`} className="inline-flex max-w-full items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs">
                 <Paperclip className="h-3 w-3 shrink-0" />
                 <span className="max-w-48 truncate">{a.filename}</span>
+                {/* native: chip remove */}
                 <button
                   type="button"
                   aria-label={t('email:compose.removeAttachment', { filename: a.filename })}
@@ -517,6 +519,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
               ? t('email:compose.savedAt', { time: formatDate(saveState.at, { timeStyle: 'short' }) })
               : saveState.kind === 'error'
                 ? (
+                    // native: inline text link
                     <button type="button" className="text-destructive underline underline-offset-2" onClick={() => void save().catch(() => undefined)}>
                       {t('email:compose.saveErrorRetry')}
                     </button>

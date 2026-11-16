@@ -159,6 +159,7 @@ export function MySettingsTab() {
       ) : settings.isError || !settings.data ? (
         <p className="text-sm">
           {t('email:mySettings.loadFailed')}{' '}
+          {/* native: inline text link */}
           <button type="button" className="underline underline-offset-2" onClick={() => void settings.refetch()}>
             {t('common:actions.retry')}
           </button>

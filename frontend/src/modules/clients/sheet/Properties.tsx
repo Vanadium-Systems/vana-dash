@@ -107,6 +107,7 @@ function InlineValue({ label, shown, initial, inputMode, type, readOnly, onSave 
     )
   }
   return (
+    // native: inline edit field
     <button
       ref={button}
       type="button"
@@ -173,6 +174,7 @@ export function Properties({ sheet }: { sheet: ProspectSheet }) {
         </PropertyRow>
         {MAIN_FIELDS.map(row)}
       </dl>
+      {/* native: disclosure toggle in text */}
       <button
         type="button"
         aria-expanded={financialOpen}

@@ -259,13 +259,9 @@ export function BulkSendTab() {
                 {attachments.map((a, i) => (
                   <li key={`${a.filename}-${i}`} className="flex items-center justify-between rounded-md border px-3 py-1.5 text-sm">
                     <span className="truncate">{a.filename}</span>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-destructive"
-                      onClick={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    <Button type="button" variant="ghost" size="icon-sm" onClick={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}>
+                      <X />
+                    </Button>
                   </li>
                 ))}
               </ul>

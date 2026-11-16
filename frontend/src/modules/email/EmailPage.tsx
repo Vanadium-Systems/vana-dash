@@ -1,4 +1,5 @@
 import { Menu, PenLine } from 'lucide-react'
+import { Button } from '@/shared/components/ui/button'
 import { Fab } from '@/shared/components/ui/fab'
 import { useMe } from '@/shared/hooks/use-me'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -144,9 +145,9 @@ export function EmailPage() {
       <PageHeader
         title={t('common:labels.email')}
         actions={
-          <button className="rounded-md border p-2 md:hidden" aria-label={t('email:sidebar.menu')} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen((v) => !v)}>
-            <Menu className="h-4 w-4" />
-          </button>
+          <Button variant="outline" size="icon" className="md:hidden" aria-label={t('email:sidebar.menu')} aria-expanded={sidebarOpen} onClick={() => setSidebarOpen((v) => !v)}>
+            <Menu />
+          </Button>
         }
       />
 

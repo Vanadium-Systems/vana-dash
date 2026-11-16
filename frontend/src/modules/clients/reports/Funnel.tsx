@@ -35,6 +35,7 @@ export function Funnel({ stages }: { stages: FunnelStage[] }) {
           const muted = chosen !== null && chosen !== stage.status
           const label = `${stage.label}: ${formatNumber(stage.reached)} (${conversionText(stage)})`
           return (
+              // native: chart cell
               <button
                 key={stage.status}
                 type="button"

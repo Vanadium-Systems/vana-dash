@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Calculator, CircleSlash, ListPlus, MessageSquareShare, MessagesSquare, Send, UserCheck, UserPlus, Users, Workflow } from 'lucide-react'
+import { Archive, ArchiveRestore, Calculator, CalendarPlus, CircleSlash, ListPlus, MessageSquareShare, MessagesSquare, Send, UserCheck, UserPlus, Users, Workflow } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AddToSequenceDialog, type SequenceTarget } from '@/modules/pricing/AddToSequenceDialog'
@@ -80,7 +80,9 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
   const sequenceTarget = (): SequenceTarget => ({ id: sheet.id, name: sheet.name, email: email?.value ?? null, contactName: sheet.people[0]?.name ?? null })
   const mineRequested = sheet.pendingRequests.some((request) => request.requestedByUserId === meId)
 
+  // Style §9: Call, Write and Schedule stay in sight; Meet joins the rest in ⋯.
   const menu: RowAction[] = [
+    ...(sheet.canEdit ? [{ key: 'meet', icon: CalendarPlus, label: t('meetings:button'), onClick: () => gate(() => setMeetOpen(true)) }] : []),
     { key: 'sequence', icon: Workflow, label: t('clients:sheet.menu.sequence'), disabled: !email, onClick: () => gate(() => setSequenceTargets([sequenceTarget()])) },
     // Adding to a list is a write (`clienti.prospectare`), the same right as claiming.
     ...(canClaim ? [{ key: 'list', icon: ListPlus, label: t('clients:sheet.menu.addToList'), onClick: () => setListOpen(true) }] : []),
@@ -132,7 +134,6 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
           onCall={() => phone && contact('call', phone.value)}
           onWrite={() => email && contact('write', email.value)}
           onSchedule={() => setScheduleOpen(true)}
-          onMeet={() => gate(() => setMeetOpen(true))}
           onClaim={() => void team.claim()}
           onCollaborators={() => setCollaboratorsOpen(true)}
           menu={<RowActions actions={[]} menu={menu} title={sheet.name} />}

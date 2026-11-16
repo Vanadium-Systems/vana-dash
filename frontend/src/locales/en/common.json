@@ -527,16 +527,16 @@
     "label": "Color"
   },
   "filter": {
-    "add": "Filter",
+    "add": "Filters",
     "remove": "Remove the filter {{filter}}"
   },
   "filterBar": {
     "search": "Search",
     "searchPlaceholder": "Search",
     "addFilter": "Filter",
-    "allFilters": "All filters",
-    "pinFilter": "Pin {{field}} to the bar",
-    "unpinFilter": "Unpin {{field}} from the bar",
+    "allFilters": "All filters…",
+    "pinFilter": "Show {{field}} first in Filters",
+    "unpinFilter": "Stop showing {{field}} first in Filters",
     "fieldSearch": "Find a filter",
     "back": "Back",
     "edit": "Edit filter {{filter}}",

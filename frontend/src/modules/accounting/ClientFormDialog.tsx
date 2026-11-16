@@ -134,13 +134,17 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
     enabled: open,
   })
 
-  // Fără `enabled: open`: lista trebuie să fie deja în cache când se deschide dialogul, altfel
-  // prima sugestie pleacă fără ea. Cine nu are `facturi.contracte` primește 403 și rămâne cu [].
+  // Not gated on `open`: the list must already be cached when the dialog opens, or the first
+  // suggestion goes out without it. Without `facturi.contracte` there is no list to ask for (a 403
+  // on every visit otherwise), so the suggestion runs on an empty one.
+  const canContracts = can('facturi.contracte')
   const reservedNumbers = useQuery({
     queryKey: ['contract-reserved-numbers'],
     queryFn: () => api.get<ReservedContractNumber[]>('/api/contracts/reserved-numbers'),
+    enabled: canContracts,
     retry: false,
   })
+  const reserved = canContracts ? reservedNumbers.data : []
 
   // Listă goală (fără eroare) dacă platforma vanagreen nu e configurată încă — dropdown-ul
   // devine pur decorativ, id-ul se introduce manual (validat oricum la salvare).
@@ -216,7 +220,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
       setContractPlan(client?.contractPlan ?? '')
       const details = client?.contractDetails ?? {}
       setContractDetails(
-        !details.nrContract ? { ...details, nrContract: suggestNextContractNumber(clients.data, reservedNumbers.data) } : details,
+        !details.nrContract ? { ...details, nrContract: suggestNextContractNumber(clients.data, reserved) } : details,
       )
       setContractDateIso(details.dataContract ? parseContractDate(details.dataContract) : '')
       // "Ciclu de facturare": select LUNAR/ANUAL/SPECIAL — orice altă valoare existentă (text
@@ -234,10 +238,10 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
   // Lista de rezervate sosită după deschidere: sugestia se recalculează doar dacă omul n-a
   // atins câmpul (valoarea e încă sugestia făcută fără listă).
   useEffect(() => {
-    if (!open || client?.contractDetails?.nrContract || !reservedNumbers.data) return
+    if (!open || client?.contractDetails?.nrContract || !reserved) return
     setContractDetails((current) =>
       current.nrContract === suggestNextContractNumber(clients.data)
-        ? { ...current, nrContract: suggestNextContractNumber(clients.data, reservedNumbers.data) }
+        ? { ...current, nrContract: suggestNextContractNumber(clients.data, reserved) }
         : current,
     )
   }, [reservedNumbers.data])
@@ -515,6 +519,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                         <div className="px-3 py-2 text-sm text-muted-foreground">{t('accounting:clientForm.noResult')}</div>
                       ) : (
                         filteredTenants.map((tenant) => (
+                          // native: list row
                           <button
                             key={tenant.id}
                             type="button"

@@ -15,9 +15,11 @@ export function useTableFit<T extends HTMLElement>() {
     observer.current = null
     if (!wrapper) return
     // A title column cut to a few letters counts as not fitting too (the subject in Sent at 1280px).
+    // Only when something in it is actually cut: a short title ("(draft)") is narrow and fine.
     const titleTooNarrow = () => {
       const cell = wrapper.querySelector<HTMLElement>('tbody td.tbl-truncate, tbody td.tbl-fill')
-      return Boolean(cell && cell.offsetParent && cell.clientWidth < 128)
+      if (!cell || !cell.offsetParent || cell.clientWidth >= 128) return false
+      return [cell, ...cell.querySelectorAll<HTMLElement>('*')].some((el) => el.offsetParent && el.scrollWidth > el.clientWidth + 1)
     }
     const fit = () => {
       for (const level of ['full', 'no-lg', 'no-md'] as TableFit[]) {

@@ -66,6 +66,7 @@ export function SignatureEditor({
         {mailboxes.map((m) => {
           const own = htmlHasContent(values[m.key] ?? '')
           return (
+            // native: tab pills
             <button
               key={m.key}
               type="button"

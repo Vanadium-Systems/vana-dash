@@ -30,7 +30,7 @@ import { useOfflinePrefetch } from '@/shared/hooks/use-offline-prefetch'
 import { useOnline } from '@/shared/hooks/use-online'
 import { isNative } from '@/shared/lib/native'
 import { clearReadEmailNotifications, onNativeNotificationTap, registerNativeDeviceToken } from '@/shared/lib/native-push'
-import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem, navGroupLabel, canOpenNavItem } from '@/shared/lib/nav-items'
+import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem, isNavItemActive, navGroupLabel, canOpenNavItem } from '@/shared/lib/nav-items'
 import { BrandMark } from '@/shared/components/BrandMark'
 import { NotificationBell } from '@/shared/components/layout/NotificationBell'
 import { ContentSkeleton } from '@/shared/components/layout/ShellSkeleton'
@@ -95,7 +95,7 @@ function SidebarNav({
           <div key={group} className={cn(sectionIndex > 0 && 'mt-4')}>
             {compact ? null : <div className="px-2 pb-1 text-xs font-medium text-muted-foreground">{navGroupLabel(group)}</div>}
             {groupItems.map((item) => {
-              const active = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(`${item.to}/`)) || item.activeOn?.some((prefix) => location.pathname.startsWith(prefix))
+              const active = isNavItemActive(item, location.pathname)
               // The active item is lit resin (DESIGN.md), the one place on a work screen that carries it.
               const resin = active ? rasina(item.to) : null
               return (
@@ -302,23 +302,23 @@ export function AppLayout() {
         </div>
       )}
       <div className={cn('flex gap-1.5 px-2 pt-2', compact && 'flex-col items-center')}>
-        <Button
+        {/* native: looks like a search field, not a button (Button would need its geometry overridden) */}
+        <button
           type="button"
-          variant="outline"
           onClick={() => {
             onClose?.()
             setPaletteOpen(true)
           }}
           title={compact ? `${t('common:actions.search')} (${PALETTE_SHORTCUT})` : undefined}
           className={cn(
-            'w-full bg-transparent px-2 font-normal text-muted-foreground hover:bg-accent/60',
-            compact ? 'justify-center' : 'justify-start',
+            'flex h-control-md w-full items-center gap-2 rounded-md border border-border px-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            compact && 'justify-center',
           )}
         >
           <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className={compact ? 'sr-only' : undefined}>{t('common:actions.search')}</span>
           {compact ? null : <kbd className="ml-auto hidden font-sans text-xs md:inline">{PALETTE_SHORTCUT}</kbd>}
-        </Button>
+        </button>
         <NotificationBell />
       </div>
       <SidebarNav
@@ -393,19 +393,19 @@ export function AppLayout() {
           </DropdownMenuContent>
         </DropdownMenu>
         {!onClose && sidebar.canToggle ? (
-          <Button
+          // native: a menu row like the nav items above it
+          <button
             type="button"
-            variant="ghost"
             onClick={sidebar.toggle}
             title={compact ? t('common:shell.expandSidebar') : undefined}
             className={cn(
-              'mt-1 w-full px-2 font-normal text-muted-foreground hover:bg-accent/60',
-              compact ? 'justify-center' : 'justify-start',
+              'mt-1 flex h-control-md w-full items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              compact && 'justify-center',
             )}
           >
             {compact ? <PanelLeftOpen className="h-4 w-4" aria-hidden="true" /> : <PanelLeftClose className="h-4 w-4" aria-hidden="true" />}
             <span className={compact ? 'sr-only' : undefined}>{compact ? t('common:shell.expandSidebar') : t('common:shell.collapseSidebar')}</span>
-          </Button>
+          </button>
         ) : null}
       </div>
     </>

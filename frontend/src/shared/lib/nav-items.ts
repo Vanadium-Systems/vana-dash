@@ -77,6 +77,15 @@ export const NAV_ITEMS: NavItemDef[] = [
  *  ar fi fost un shortcut care dă într-un ecran refuzat. */
 export const MOBILE_BOTTOM_TOS = ['/', '/email', '/calendar', '/messages'] as const
 
+const matchesPath = (to: string, pathname: string) => pathname === to || (to !== '/' && pathname.startsWith(`${to}/`))
+
+/** Lit in the menu: its own page or a page under it, unless another item owns a deeper route (`/team/history` is History, not Team). */
+export function isNavItemActive(item: Pick<NavItemDef, 'to' | 'activeOn'>, pathname: string): boolean {
+  if (item.activeOn?.some((prefix) => pathname.startsWith(prefix))) return true
+  if (!matchesPath(item.to, pathname)) return false
+  return !NAV_ITEMS.some((other) => other.to.length > item.to.length && matchesPath(other.to, pathname))
+}
+
 export function findNavItem(to: string): NavItemDef | undefined {
   return NAV_ITEMS.find((item) => item.to === to)
 }

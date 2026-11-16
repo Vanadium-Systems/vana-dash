@@ -1,6 +1,5 @@
 {
   "button": "Meet",
-  "buttonHint": "Schedule a meeting with {{name}}",
   "dialog": {
     "title": "Meet with {{name}}",
     "editTitle": "Reschedule the meeting",

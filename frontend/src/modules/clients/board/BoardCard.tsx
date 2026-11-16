@@ -20,6 +20,7 @@ function CardFace({ row, currency, onOpen, menu }: { row: ProspectRow; currency:
   return (
     <>
       <div className="flex items-start gap-2">
+        {/* native: row title link */}
         <button
           type="button"
           className="min-w-0 flex-1 rounded-sm text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

@@ -74,6 +74,7 @@ function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-muted py-0.5 pl-2.5 pr-1 text-xs">
       <span className="truncate">{label}</span>
+      {/* native: chip remove */}
       <button type="button" className="rounded-full p-0.5 text-muted-foreground hover:text-foreground" aria-label={t('email:filters.remove', { label })} onClick={onRemove}>
         <X className="h-3 w-3" />
       </button>
@@ -173,6 +174,7 @@ export function MailSearch({
           <ul id={listId} role="listbox" onMouseDown={(e) => e.preventDefault()} className="absolute left-0 right-0 top-full z-30 mt-1 max-h-96 overflow-y-auto rounded-md border bg-popover py-1 shadow-md">
             {addresses.map((address, i) => (
               <li key={`a-${address}`} role="option" aria-selected={active === i}>
+                {/* native: list row */}
                 <button type="button" className={cn('flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm', active === i ? 'bg-muted' : 'hover:bg-muted')} onClick={() => pick(i)}>
                   <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <span className="truncate">
@@ -185,6 +187,7 @@ export function MailSearch({
               const i = addresses.length + j
               return (
                 <li key={`t-${thread.id}`} role="option" aria-selected={active === i}>
+                  {/* native: list row */}
                   <button type="button" className={cn('flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm', active === i ? 'bg-muted' : 'hover:bg-muted')} onClick={() => pick(i)}>
                     <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     <span className="min-w-0 flex-1 truncate">

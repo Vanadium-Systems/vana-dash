@@ -95,6 +95,8 @@
     "noSpecialTerms": "(fără condiții speciale)"
   },
   "clients": {
+    "iban": "IBAN",
+    "vanagreen": "VanaGreen",
     "add": "Adaugă client",
     "demoUntil": "Demo până la",
     "deletedIn": "Se șterge în",
@@ -745,7 +747,6 @@
       "invoiced": "Facturată",
       "cancelled": "Anulată"
     },
-    "number": "Proformă",
     "convert": "Factură din proformă",
     "converted": "Ciorna facturii e gata, cu liniile proformei",
     "cancel": "Anulează",

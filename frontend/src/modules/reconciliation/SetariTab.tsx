@@ -33,7 +33,10 @@ function SetupGuide() {
   const [open, setOpen] = useState(false)
   return (
     <Card>
+      {/* native: disclosure header spanning the card */}
       <button
+        type="button"
+        aria-expanded={open}
         className="flex w-full items-center gap-2 p-4 text-left text-sm font-medium"
         onClick={() => setOpen((v) => !v)}
       >

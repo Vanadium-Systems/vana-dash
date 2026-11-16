@@ -118,7 +118,7 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
   })
 
   const open = (id: string) => navigate(`/accounting/records/${id}`)
-  const firstColumn = direction === 'out' ? t('accounting:labels.number') : t('accounting:labels.supplier')
+  const firstColumn = direction === 'out' ? t('common:labels.client') : t('accounting:labels.supplier')
 
   return (
     <div className="space-y-4">
@@ -180,14 +180,12 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
                   <TableRow>
                     <TableHead className="text-right">{t('common:labels.amount')}</TableHead>
                     <TableHead>{firstColumn}</TableHead>
-                    {direction === 'out' ? (
-                      <TableHead priority="md">{t('common:labels.client')}</TableHead>
-                    ) : (
+                    {direction === 'in' ? (
                       <>
                         <TableHead priority="lg">{t('common:labels.cif')}</TableHead>
                         <TableHead priority="md">{t('common:labels.document')}</TableHead>
                       </>
-                    )}
+                    ) : null}
                     <TableHead priority="lg">{t('accounting:labels.issued')}</TableHead>
                     <TableHead priority="md">{t('accounting:labels.due')}</TableHead>
                     <TableHead priority="md">{t('accounting:labels.payment')}</TableHead>
@@ -206,31 +204,34 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
                       <RecordPaymentBadge key="payment" direction={direction} status={r.paymentStatus} remaining={r.remaining} currency={r.currency} overdue={r.isOverdue} />
                     )
                     const todo = direction === 'in' && r.isOverdue && r.paymentStatus !== 'paid'
-                    const rowTitle = r.documentNumber ?? (direction === 'out' ? t('accounting:issued.draftMarker') : name)
+                    // Style §8: the row is who it is with (and how much); the number is a reference under it.
+                    const reference = r.documentNumber ?? (isDraft ? t('accounting:issued.draftMarker') : null)
                     return (
                       <TableRow key={r.id} data-row-id={r.id} className="cursor-pointer" onClick={() => open(r.id)}>
                         <TableCell className="whitespace-nowrap text-right">
                           <AmountCell amount={r.amount} currency={r.currency} secondary={r.companyAmount !== null && list.data ? { amount: r.companyAmount, currency: list.data.companyCurrency } : null} />
                         </TableCell>
-                        <TableCell className="tbl-fill font-medium">
+                        <TableCell className="tbl-fill">
                           <div className="flex flex-wrap items-center gap-1.5">
+                            {/* native: row title link */}
                             <button
                               type="button"
-                              className="block max-w-full truncate rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="block max-w-full truncate rounded-sm text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 open(r.id)
                               }}
                             >
-                              {rowTitle}
+                              {name}
                             </button>
                             {r.needsReview ? (
                               <StatePill tone="warning">{t('accounting:monthClose.status.needsReview')}</StatePill>
                             ) : null}
                           </div>
+                          {reference ? <div className="truncate text-xs tabular-nums text-text-3">{reference}</div> : null}
                           <TableDetails
                             items={[
-                              direction === 'out' ? name : (r.description ?? null),
+                              direction === 'in' ? (r.description ?? null) : null,
                               r.needsReview ? (
                                 <StatePill key="review" tone="warning">{t('accounting:monthClose.status.needsReview')}</StatePill>
                               ) : null,
@@ -239,15 +240,13 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
                             ]}
                           />
                         </TableCell>
-                        {direction === 'out' ? (
-                          <TableCell priority="md" truncate>{r.counterpartyName ?? '—'}</TableCell>
-                        ) : (
+                        {direction === 'in' ? (
                           <>
-                            <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs">{r.counterpartyCif ?? '—'}</TableCell>
-                            <TableCell priority="md" truncate>{r.description ?? '—'}</TableCell>
+                            <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs text-text-3">{r.counterpartyCif ?? '—'}</TableCell>
+                            <TableCell priority="md" truncate className="text-muted-foreground">{r.description ?? '—'}</TableCell>
                           </>
-                        )}
-                        <TableCell priority="lg" className="whitespace-nowrap">{formatDate(r.issuedAt)}</TableCell>
+                        ) : null}
+                        <TableCell priority="lg" className="whitespace-nowrap text-muted-foreground">{formatDate(r.issuedAt)}</TableCell>
                         <TableCell priority="md">
                           <DueDate dueAt={r.dueAt} overdue={r.isOverdue && r.paymentStatus !== 'paid'} />
                         </TableCell>
@@ -280,7 +279,7 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
                         ) : null}
                         <TableCell className="text-right">
                           <RowActions
-                            title={rowTitle}
+                            title={reference ? `${name} · ${reference}` : name}
                             actions={[
                               ...(isDraft && canIssue
                                 ? [

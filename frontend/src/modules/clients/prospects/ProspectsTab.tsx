@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Archive, ArchiveRestore, Calculator, ChevronDown, Columns3, Download, ListPlus, Rows3, TrendingUp, Mail, MessageSquareShare, Phone, Plus, Trash2, Upload, UserPlus, Workflow } from 'lucide-react'
+import { Archive, ArchiveRestore, Calculator, Columns3, Download, ListPlus, MoreHorizontal, Rows3, TrendingUp, Mail, MessageSquareShare, Phone, Plus, Trash2, Upload, UserPlus, Workflow } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -14,10 +14,10 @@ import { ProspectDrawer } from '../sheet/ProspectDrawer'
 import { PromoteProspectDialog } from '@/modules/pricing/PromoteProspectDialog'
 import { FilterBar } from '@/shared/components/FilterBar'
 import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
-import { Button } from '@/shared/components/ui/button'
+import { Button, buttonVariants } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
-import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import type { RowAction } from '@/shared/components/ui/row-actions'
 import { ResponsiveMenuContent } from '@/shared/components/ui/responsive-menu'
@@ -295,10 +295,10 @@ export function ProspectsTab() {
         <Tabs value={kind} onValueChange={(next) => setKind(next as ProspectKind)}>
           <TabsList variant="segmented">
             <TabsTrigger value="companies">
-              {t('clients:prospects.kinds.companies')} <span className="text-muted-foreground">{countLabel(companiesCount.data)}</span>
+              {t('clients:prospects.kinds.companies')} <span className="ml-1.5 text-muted-foreground">{countLabel(companiesCount.data)}</span>
             </TabsTrigger>
             <TabsTrigger value="people">
-              {t('clients:prospects.kinds.people')} <span className="text-muted-foreground">{countLabel(peopleCount.data)}</span>
+              {t('clients:prospects.kinds.people')} <span className="ml-1.5 text-muted-foreground">{countLabel(peopleCount.data)}</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -328,25 +328,34 @@ export function ProspectsTab() {
             }}
           />
           {kind === 'companies' && layout === 'list' ? <ColumnsMenu columns={columns} onChange={setColumns} /> : null}
-          {can('clienti.prospectare') && !noFilters ? (
-            <Button type="button" variant="outline" onClick={fromSearch}>
-              <ListPlus aria-hidden="true" /> {t('clients:lists.fromSearch')}
-            </Button>
-          ) : null}
-          {can('clienti.export') ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex h-control-md items-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <Download className="h-4 w-4" aria-hidden="true" /> {t('clients:prospects.export')} <ChevronDown className="h-4 w-4" aria-hidden="true" />
-              </DropdownMenuTrigger>
-              <ResponsiveMenuContent title={t('clients:prospects.export')}>
-                <DropdownMenuItem onClick={() => exportFile('xlsx')}>{t('clients:prospects.exportXlsx')}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => exportFile('csv')}>{t('clients:prospects.exportCsv')}</DropdownMenuItem>
-              </ResponsiveMenuContent>
-            </DropdownMenu>
-          ) : null}
-          <Button type="button" variant="outline" onClick={() => navigate('/clients/import')}>
-            <Upload aria-hidden="true" /> {t('clients:prospects.import')}
-          </Button>
+          {/* Style §9: one primary and two secondary in sight; the occasional ones wait behind ⋯. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className={buttonVariants({ variant: 'outline', size: 'icon' })}>
+              <MoreHorizontal aria-hidden="true" />
+              <span className="sr-only">{t('common:actions.more')}</span>
+            </DropdownMenuTrigger>
+            <ResponsiveMenuContent title={t('common:actions.more')}>
+              {can('clienti.prospectare') && !noFilters ? (
+                <DropdownMenuItem onClick={fromSearch}>
+                  <ListPlus className="h-4 w-4" aria-hidden="true" /> {t('clients:lists.fromSearch')}
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem onClick={() => navigate('/clients/import')}>
+                <Upload className="h-4 w-4" aria-hidden="true" /> {t('clients:prospects.import')}
+              </DropdownMenuItem>
+              {can('clienti.export') ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => exportFile('xlsx')}>
+                    <Download className="h-4 w-4" aria-hidden="true" /> {t('clients:prospects.exportXlsx')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportFile('csv')}>
+                    <Download className="h-4 w-4" aria-hidden="true" /> {t('clients:prospects.exportCsv')}
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </ResponsiveMenuContent>
+          </DropdownMenu>
           <Button type="button" onClick={() => setNewSeed({})}>
             <Plus aria-hidden="true" /> {t('clients:prospects.new.trigger')}
           </Button>

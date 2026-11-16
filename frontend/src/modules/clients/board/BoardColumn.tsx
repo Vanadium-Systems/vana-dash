@@ -29,6 +29,7 @@ export interface ColumnProps {
 export function FoldedColumn({ column, status, onExpand }: { column: BoardColumnData; status: ProspectStatusEntry | undefined; onExpand: () => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.status })
   return (
+    // native: whole card is clickable
     <button
       ref={setNodeRef}
       type="button"

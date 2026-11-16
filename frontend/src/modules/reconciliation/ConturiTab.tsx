@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { PlatformStatusBadge } from '@/shared/components/PlatformStatusBadge'
 import { api } from '@/shared/lib/api'
@@ -17,7 +18,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { MatchDialog } from './MatchDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { EmptyState } from '@/shared/components/ui/empty-state'
-import { intlTag } from '@/shared/lib/format'
+import { formatNumber, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 
 export function ConturiTab() {
@@ -161,11 +162,7 @@ export function ConturiTab() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle>{t('reconciliation:transactions.title')}</CardTitle>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={unmatchedOnly}
-                onChange={(e) => setUnmatchedOnly(e.target.checked)}
-              />
+              <Checkbox checked={unmatchedOnly} onChange={(e) => setUnmatchedOnly(e.target.checked)} />
               {t('reconciliation:transactions.onlyUnmatched')}
             </label>
           </div>
@@ -196,44 +193,27 @@ export function ConturiTab() {
                   <TableRow
                     key={txn.id}
                   >
-                    <TableCell priority="md" className="whitespace-nowrap">{formatDate(txn.valueDate)}</TableCell>
+                    <TableCell priority="md" className="whitespace-nowrap text-muted-foreground">{formatDate(txn.valueDate)}</TableCell>
                     <TableCell className="font-medium tbl-fill">
                       <div className="truncate">{txn.counterpartyName ?? '—'}</div>
                       <TableDetails items={[formatDate(txn.valueDate), txn.match?.id ? (txn.match.documentNumber ?? txn.match.financialRecordId) : txn.direction === 'in' ? <span key="todo" className="text-warning-text">{t('reconciliation:transactions.toMatch')}</span> : null]} />
                     </TableCell>
-                    <TableCell priority="lg" className="max-w-xs truncate text-xs text-muted-foreground" title={txn.reference ?? ''}>
+                    <TableCell priority="lg" className="max-w-xs truncate text-xs text-text-3" title={txn.reference ?? ''}>
                       {txn.reference ?? '—'}
                     </TableCell>
-                    <TableCell
-                      className={
-                        txn.direction === 'in'
-                          ? 'whitespace-nowrap text-right font-mono text-sm tnum text-success'
-                          : 'whitespace-nowrap text-right font-mono text-sm tnum text-muted-foreground'
-                      }
-                    >
+                    {/* Style: incoming is coloured, outgoing carries the minus and stays in the text colour, not red or dimmed. */}
+                    <TableCell className={txn.direction === 'in' ? 'whitespace-nowrap text-right font-medium tnum text-success' : 'whitespace-nowrap text-right font-medium tnum'}>
                       {txn.direction === 'in' ? '+' : '−'}
                       <Money amount={txn.amount} currency={txn.currency} />
                     </TableCell>
                     <TableCell priority="md">
                       {txn.match?.id ? (
                         <span className="text-xs">
-                          {txn.match.documentNumber ?? txn.match.financialRecordId}
-                          <span className="ml-1 text-muted-foreground">
-                            (
-                            {txn.match.matchType === 'auto' ? (
-                              <>
-                                <span className="mr-1 inline-block h-1 w-10 translate-y-[-3px] overflow-hidden rounded-full bg-muted align-middle">
-                                  <span
-                                    className="block h-full bg-success"
-                                    style={{ width: `${Math.round(Number(txn.match.confidence) * 100)}%` }}
-                                  />
-                                </span>
-                                {t('reconciliation:transactions.auto')} {Number(txn.match.confidence).toFixed(2)}
-                              </>
-                            ) : (
-                              t('reconciliation:transactions.manual')
-                            )}
-                            )
+                          <span className="tabular-nums text-text-3">{txn.match.documentNumber ?? txn.match.financialRecordId}</span>
+                          <span className="ml-1.5 text-muted-foreground">
+                            {txn.match.matchType === 'auto'
+                              ? `${t('reconciliation:transactions.auto')} ${formatNumber(Math.round(Number(txn.match.confidence) * 100), '%')}`
+                              : t('reconciliation:transactions.manual')}
                           </span>
                         </span>
                       ) : txn.direction === 'in' ? (
@@ -256,15 +236,17 @@ export function ConturiTab() {
                             tranzacțiilor: cine vede bankul nu o poate face automat. */}
                         {canMatch && txn.match?.id ? (
                           <Button
-                            variant="outline"
+                            variant="ghost"
+                            size="icon-sm"
                             title={t('reconciliation:transactions.cancelMatch')}
+                            aria-label={t('reconciliation:transactions.cancelMatch')}
                             disabled={unmatch.isPending}
                             onClick={() => unmatch.mutate(txn.id)}
                           >
                             <Link2Off className="h-4 w-4" />
                           </Button>
                         ) : canMatch && txn.direction === 'in' ? (
-                          <Button variant="outline" className="tbl-narrow-only" title={t('reconciliation:match.manual')} onClick={() => setMatching(txn)}>
+                          <Button variant="ghost" size="icon-sm" className="tbl-narrow-only" title={t('reconciliation:match.manual')} aria-label={t('reconciliation:match.manual')} onClick={() => setMatching(txn)}>
                             <Link2 className="h-4 w-4" />
                           </Button>
                         ) : null}

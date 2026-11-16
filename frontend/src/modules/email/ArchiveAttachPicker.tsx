@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Eye, File as FileIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Input } from '@/shared/components/ui/input'
 import { useDebounced } from '@/shared/hooks/use-debounced'
@@ -93,6 +94,7 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
             <ul className="max-h-72 space-y-1 overflow-y-auto">
               {results.data.map((file) => (
                 <li key={file.id} className="flex items-center gap-1 rounded-md border hover:bg-muted">
+                  {/* native: list row */}
                   <button
                     type="button"
                     disabled={downloadingId !== null}
@@ -112,15 +114,17 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
                     </span>
                     {downloadingId === file.id ? <span className="shrink-0 text-xs text-muted-foreground">{t('email:attach.adding')}</span> : null}
                   </button>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-sm"
                     title={t('email:attach.openFull')}
                     disabled={previewingId !== null}
                     onClick={() => void preview(file)}
-                    className="mr-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded hover:bg-background disabled:opacity-50"
+                    className="mr-2"
                   >
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  </button>
+                    <Eye className="text-muted-foreground" />
+                  </Button>
                 </li>
               ))}
             </ul>

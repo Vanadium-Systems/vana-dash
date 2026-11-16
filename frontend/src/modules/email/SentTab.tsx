@@ -146,6 +146,7 @@ function Stat({
   const base = 'flex min-w-0 flex-col bg-card px-4 py-3 text-left'
   if (!onClick) return <div className={base}>{body}</div>
   return (
+    // native: whole card is clickable
     <button type="button" aria-pressed={active} title={t('email:sent.statFilterHint')} onClick={onClick} className={cn(base, 'transition-colors hover:bg-muted', active && 'bg-muted')}>
       {body}
     </button>
@@ -328,7 +329,7 @@ export function SentTab() {
   const [sentBy, setSentBy] = useState('all')
   const [q, setQ] = useState('')
   const debouncedQ = useDebounced(q, 300)
-  const [pageSize, setPageSize] = useState(50)
+  const pageSize = 50
   const [page, setPage] = useState(0)
   const [exporting, setExporting] = useState(false)
   const period = usePeriod()
@@ -510,42 +511,15 @@ export function SentTab() {
         )}
 
         {total > 0 ? (
-          <div className="flex items-center justify-between gap-2 pt-1 text-xs text-muted-foreground">
-            <Select
-              size="sm"
-              className="w-auto shrink-0"
-              title={t('email:sent.rowsPerPage')}
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-            >
-              {[25, 50, 100].map((size) => (
-                <option key={size} value={size}>
-                  {t('email:pagination.perPage', { size })}
-                </option>
-              ))}
-            </Select>
+          <div className="flex items-center justify-end gap-2 pt-1 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <span className="whitespace-nowrap">
+              <span className="whitespace-nowrap tabular-nums">
                 {t('email:pagination.range', { from: page * pageSize + 1, to: Math.min((page + 1) * pageSize, total), total })}
               </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="w-8"
-                title={t('common:actions.previousPage')}
-                disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="ghost" size="icon" title={t('common:actions.previousPage')} aria-label={t('common:actions.previousPage')} disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="w-8"
-                title={t('common:actions.nextPage')}
-                disabled={(page + 1) * pageSize >= total}
-                onClick={() => setPage((p) => p + 1)}
-              >
+              <Button variant="ghost" size="icon" title={t('common:actions.nextPage')} aria-label={t('common:actions.nextPage')} disabled={(page + 1) * pageSize >= total} onClick={() => setPage((p) => p + 1)}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

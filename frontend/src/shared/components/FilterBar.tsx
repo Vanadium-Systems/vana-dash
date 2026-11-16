@@ -70,7 +70,6 @@ function usePinnedFields(storageKey: string, fields: FilterField[]): [Set<string
   return [useMemo(() => new Set(keys), [keys]), toggle]
 }
 
-const PINNED_TRIGGER = 'inline-flex h-control-sm items-center rounded-full border border-dashed px-2.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 const LABEL_TRIGGER = 'rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 interface FilterBarProps {
@@ -136,7 +135,6 @@ export function FilterBar({ fields, clauses, onChange, search, onSearch, count, 
     return () => clearTimeout(timer)
   }, [typed, onSearch])
 
-  const pinnedIdle = fields.filter((field) => pinned.has(field.key) && !clauses.some((clause) => clause.field === field.key))
   const active = Boolean(clauses.length || search || typed)
 
   return (
@@ -147,7 +145,7 @@ export function FilterBar({ fields, clauses, onChange, search, onSearch, count, 
       </div>
 
       {/* A second line on a phone; on a wide screen the chips sit in the same row as the buttons. */}
-      {clauses.length > 0 || pinnedIdle.length > 0 ? (
+      {clauses.length > 0 ? (
         <div className="order-last flex basis-full flex-wrap items-center gap-2 sm:order-none sm:contents">
           {clauses.map((clause, index) => {
             const field = fieldOf(clause.field)
@@ -168,21 +166,15 @@ export function FilterBar({ fields, clauses, onChange, search, onSearch, count, 
               />
             )
           })}
-          {pinnedIdle.map((field) => (
-            <FieldMenu key={field.key} field={field} clause={undefined} onCommit={(next) => commit(field, next)} trigger={<DropdownMenuTrigger className={PINNED_TRIGGER}>{field.label}</DropdownMenuTrigger>} />
-          ))}
         </div>
       ) : null}
 
-      <AddFilterMenu fields={fields} clauses={clauses} onCommit={commit} />
+      <AddFilterMenu fields={fields} pinned={pinned} clauses={clauses} onCommit={commit} onAll={() => setAllOpen(true)} />
       {onNaturalLanguage ? (
         <Button type="button" variant="outline" aria-expanded={phrase.open} onClick={phrase.toggle}>
           <Sparkles aria-hidden="true" /> {t('common:filterBar.nl.button')}
         </Button>
       ) : null}
-      <Button type="button" variant="outline" onClick={() => setAllOpen(true)}>
-        <ListFilter aria-hidden="true" /> {t('common:filterBar.allFilters')}
-      </Button>
       {active ? (
         <Button
           type="button"
@@ -297,13 +289,15 @@ function FieldMenu({ field, clause, onCommit, trigger }: { field: FilterField; c
   )
 }
 
-function AddFilterMenu({ fields, clauses, onCommit }: { fields: FilterField[]; clauses: FilterClause[]; onCommit: (field: FilterField, next: FilterClause | null) => void }) {
+/** The one "Filtre" button (style §9): pinned fields first, then the rest, and the full dialog at the end. */
+function AddFilterMenu({ fields, pinned, clauses, onCommit, onAll }: { fields: FilterField[]; pinned: Set<string>; clauses: FilterClause[]; onCommit: (field: FilterField, next: FilterClause | null) => void; onAll: () => void }) {
   const [open, setOpen] = useState(false)
   const [picked, setPicked] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const field = fields.find((entry) => entry.key === picked)
   const needle = normalizeForSearch(query.trim())
-  const shown = needle ? fields.filter((entry) => normalizeForSearch(entry.label).includes(needle)) : fields
+  const matching = needle ? fields.filter((entry) => normalizeForSearch(entry.label).includes(needle)) : fields
+  const shown = [...matching.filter((entry) => pinned.has(entry.key)), ...matching.filter((entry) => !pinned.has(entry.key))]
 
   return (
     <DropdownMenu
@@ -336,6 +330,20 @@ function AddFilterMenu({ fields, clauses, onCommit }: { fields: FilterField[]; c
                   </Button>
                 ))}
                 {shown.length === 0 ? <p className="px-2 py-3 text-sm text-muted-foreground">{t('common:filterBar.noFields')}</p> : null}
+              </div>
+              <div className="border-t pt-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  role="menuitem"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setOpen(false)
+                    onAll()
+                  }}
+                >
+                  <ListFilter aria-hidden="true" /> {t('common:filterBar.allFilters')}
+                </Button>
               </div>
             </div>
           )}

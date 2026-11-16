@@ -314,6 +314,7 @@ export function MonthCloseTab() {
             const count = data.counts[key]
             const active = activeFilter === key
             return (
+              // native: filter tabs
               <button
                 key={key}
                 type="button"
