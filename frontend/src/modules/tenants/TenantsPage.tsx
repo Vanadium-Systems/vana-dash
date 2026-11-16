@@ -44,7 +44,7 @@ export function TenantsPage() {
   }
 
   return (
-    <div className="space-y-6" data-density="comfortable">
+    <div className="space-y-6">
       <PageHeader
         title={t('tenants:title')}
         description={t('tenants:description')}

@@ -152,7 +152,7 @@ export function MySettingsTab() {
   })
 
   return (
-    <div data-density="comfortable" className="max-w-5xl">
+    <div className="max-w-5xl">
       <h2 className="pb-4 text-lg font-semibold">{t('email:mySettings.title')}</h2>
       {settings.isPending ? (
         <Skeleton className="h-48 w-full" />

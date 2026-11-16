@@ -295,10 +295,10 @@ export function ProspectsTab() {
         <Tabs value={kind} onValueChange={(next) => setKind(next as ProspectKind)}>
           <TabsList variant="segmented">
             <TabsTrigger value="companies">
-              {t('clients:prospects.kinds.companies')} <span className="tabular-nums text-muted-foreground">{countLabel(companiesCount.data)}</span>
+              {t('clients:prospects.kinds.companies')} <span className="text-muted-foreground">{countLabel(companiesCount.data)}</span>
             </TabsTrigger>
             <TabsTrigger value="people">
-              {t('clients:prospects.kinds.people')} <span className="tabular-nums text-muted-foreground">{countLabel(peopleCount.data)}</span>
+              {t('clients:prospects.kinds.people')} <span className="text-muted-foreground">{countLabel(peopleCount.data)}</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>

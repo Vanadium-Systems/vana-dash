@@ -66,7 +66,7 @@ export function MessagesPage() {
     // Pe telefon scădem și bara de jos (4rem) + zonele sigure, ca lista să nu împingă pagina.
     <div
       className="flex h-[calc(100dvh-6rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] min-h-0 flex-col md:h-[calc(100dvh-3rem)]"
-      data-density="comfortable"
+     
     >
       <div className="flex min-h-0 flex-1 md:grid md:grid-cols-[300px_minmax(0,1fr)]">
         <aside

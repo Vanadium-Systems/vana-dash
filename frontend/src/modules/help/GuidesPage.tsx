@@ -32,7 +32,7 @@ export function GuidesPage() {
     .filter((group) => group.guides.length > 0)
 
   return (
-    <div className="max-w-3xl space-y-6" data-density="comfortable">
+    <div className="max-w-3xl space-y-6">
       <PageHeader title={t('common:nav.guides')} description={t('help:description')} />
 
       {mine.length === 0 ? (

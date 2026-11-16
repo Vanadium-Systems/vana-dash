@@ -20,7 +20,7 @@ export function RequireFeature({ feature, page, children }: { feature: FeatureKe
 export function AccessDenied({ page }: { page: string }) {
   const admin = activeAdminName(useTeamMembers().data)
   return (
-    <div data-density="comfortable" className="max-w-md py-8">
+    <div className="max-w-md py-8">
       <h1 className="text-lg font-semibold">{t('common:access.denied.title', { page })}</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {admin ? t('common:access.denied.askAdmin', { admin }) : t('common:access.denied.hint')}

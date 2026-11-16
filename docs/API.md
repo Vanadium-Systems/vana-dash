@@ -93,9 +93,9 @@ with `roleId` or `status`. The client asks for the password, calls `confirm-pass
 | GET | `/api/me/sessions` | The person's devices: `[{ familyId, deviceLabel, ip, createdAt, lastUsedAt, current }]` |
 | DELETE | `/api/me/sessions/:familyId` | Logs that device out. `404` for a session that is not the person's |
 | POST | `/api/me/sessions/revoke-others` | Logs out every other device |
-| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies, motionPref, hideAmounts, isDemo }`. `mailboxes: null` means all (admin). `isDemo` is true on a demo install and turns on the "Date de demonstrație" band. `sessionKind`: `long`, `legacy` (call `upgrade-session`) or `token` |
+| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies, motionPref, hideAmounts, soundOn, isDemo }`. `mailboxes: null` means all (admin). `isDemo` is true on a demo install and turns on the "Date de demonstrație" band. `sessionKind`: `long`, `legacy` (call `upgrade-session`) or `token` |
 | GET | `/api/auth/locale` | `{ defaultLocale, enabledLocales }`, for the pages before login |
-| PATCH | `/api/auth/me` | `{ displayName?, motionPref?: 'system'\|'full'\|'reduced'\|'off', hideAmounts?: boolean, notificationPrefs?: { chat: 'all'\|'dm'\|'none', emailNew, alerts }, updatesSeenAt?, locale?: 'ro'\|'en', displayCurrency?: 'RON'\|'EUR'\|'USD' }`. `400` for a language or currency outside the lists. `updatesSeenAt` (ISO) is how far the person has read What's new; the server caps it at now |
+| PATCH | `/api/auth/me` | `{ displayName?, motionPref?: 'system'\|'full'\|'reduced'\|'off', hideAmounts?: boolean, soundOn?: boolean, notificationPrefs?: { chat: 'all'\|'dm'\|'none', emailNew, alerts }, updatesSeenAt?, locale?: 'ro'\|'en', displayCurrency?: 'RON'\|'EUR'\|'USD' }`. `400` for a language or currency outside the lists. `updatesSeenAt` (ISO) is how far the person has read What's new; the server caps it at now |
 | POST | `/api/auth/me/password` | `{ currentPassword, newPassword }` (12 characters minimum). Logs out the other sessions |
 | POST | `/api/auth/forgot-password` | `{ email }` → always `204`, whether the address has an account or not |
 | POST | `/api/auth/reset-password` | `{ token, password }`. Single-use token, 1h. `RESET_TOKEN_EXPIRED` |
@@ -263,7 +263,7 @@ Common query params: `period` = `7d` | `30d` | `90d` | `mtd` | `ytd` (default `3
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/metrics/summary` | Per metric key: `{ metricKey, unit, total, latest, latestAt }`. Gauges (mrr, active_clients) use `latest`; flows use `total` |
+| GET | `/api/metrics/summary` | Per metric key: `{ metricKey, unit, total, latest, latestAt, previous? }`; `?compare=previous` or a start date adds `previous`, the same figure for the earlier period. Gauges (mrr, active_clients) use `latest`; flows use `total` |
 | GET | `/api/metrics/series` | `?metricKey=revenue` → a daily series `{ date, value }` (SUM per day, in SQL) |
 | GET | `/api/metrics/overview-config` | `{ visibleKpis: string[] }`, the optional cards shown on the overview. `mrr` is built in (it does not come from `platform_metrics`) |
 | PUT | `/api/metrics/overview-config` | `{ visibleKpis: string[] }`. An empty array hides all the optional cards; the revenue card always stays |
@@ -275,8 +275,20 @@ not `platform_metrics`, so revenue is never counted twice.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/financials/pnl` | `{ byMonth: [{ month, direction, total }], byCategory: [{ category, direction, total }] }`. `month` is ISO 8601, `direction` is `in`/`out`, `category` falls back to `'necategorizat'` |
+| GET | `/api/financials/pnl` | `{ byMonth, byCategory, byClient, byPlatform, totals, previous?, delta? }`. `byMonth` rows are `{ month, direction, total }` (`month` ISO 8601, `direction` `in`/`out`), `byCategory` falls back to `'necategorizat'`. Extra params: `compare=previous` or `compare=YYYY-MM-DD` (the start of the period to compare with; for the current month the same days of the last one are used), and `filter=category:<x>`, `platform:<id>` or `client:<key>`, which narrows every block |
+| GET | `/api/financials/revenue-series` | `granularity=day\|week\|month`, `forecast=1`, `compare` as above. Returns `{ points, total, forecast, incompleteFrom, today, previous?, delta? }`: `forecast` is the estimate up to the end of the month, `incompleteFrom` the first period still open |
 | GET | `/api/financials/cashflow` | `[{ direction, paymentStatus, total, count }]`, grouped by direction and payment status (paid/unpaid/partial) |
+
+## Dashboard layout
+
+The Home widget grid. The person's own layout is stored in `users.home_layout`; the company layout is the default for everyone who has not saved one.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/dashboard/layout` | The caller's layout, or the company one when they have none. Own data (`self`) |
+| PUT | `/api/dashboard/layout` | Saves the caller's layout (widget ids, sizes, positions) |
+| DELETE | `/api/dashboard/layout` | Drops it: "Back to the company layout" |
+| PUT | `/api/dashboard/layout/company` | Sets the company layout. Needs `echipa.administrare` |
 
 ## Accounting
 
@@ -284,6 +296,7 @@ not `platform_metrics`, so revenue is never counted twice.
 |---|---|---|
 | GET | `/api/accounting/records` | Always a page: `{ items, total, totals, counts, companyCurrency }`. Filters: `direction` (in/out), `type`, `paymentStatus`, `anafStatus`, `from`, `to`, `tab` (`all`, `draft`, `open`, `overdue`, `paid`, `rejected`), `q` (number or counterparty), `page`, `pageSize` (100 at most). `totals` and `counts` follow the filters, `counts` per tab; amounts in the company currency. Proformas are not in it |
 | POST | `/api/accounting/records` | A manual record (expense, invoice, payment) |
+| GET | `/api/accounting/deadlines` | `{ items }`: the upcoming fiscal and invoicing deadlines. Needs `facturi.view`; declaration deadlines are included only with `facturi.declaratii`, the ANAF token expiry only with `facturi.anaf` |
 | GET | `/api/accounting/records/:id` | Detail and invoice lines |
 | GET | `/api/accounting/records/:id/detail` | Everything the document page shows in one request: the record, lines, payments with the balance, the timeline, the storno and proforma links, the total for the same counterparty and the conversations it was shared in. `404 RECORD_NOT_FOUND` |
 | PATCH | `/api/accounting/records/:id/payment` | `{ paymentStatus, paidAt? }`. Only for records that are not issued invoices; an issued invoice answers `409 USE_PAYMENTS` (use the payments routes below) |

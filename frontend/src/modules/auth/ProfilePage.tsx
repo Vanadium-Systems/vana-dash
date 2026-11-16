@@ -100,7 +100,7 @@ export function ProfilePage() {
   })
 
   const saveDisplayPrefs = useMutation({
-    mutationFn: (patch: { motionPref?: MotionPref; hideAmounts?: boolean }) => api.patch<SessionPayload>('/api/auth/me', patch),
+    mutationFn: (patch: { motionPref?: MotionPref; hideAmounts?: boolean; soundOn?: boolean }) => api.patch<SessionPayload>('/api/auth/me', patch),
     onSuccess: (data) => {
       queryClient.setQueryData(['auth', 'me'], data)
       applyMotionPref(data.motionPref ?? 'system')
@@ -114,7 +114,7 @@ export function ProfilePage() {
     .filter(Boolean)
 
   return (
-    <div className="space-y-6" data-density="comfortable">
+    <div className="space-y-6">
       <PageHeader title={t('common:nav.myProfile')} description={t('auth:profile.description')} />
 
       <Card>
@@ -197,6 +197,17 @@ export function ProfilePage() {
               checked={session?.hideAmounts ?? false}
               label={t('auth:profile.display.hideAmounts')}
               onCheckedChange={(checked) => saveDisplayPrefs.mutate({ hideAmounts: checked })}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm">{t('auth:profile.display.sound')}</p>
+              <p className="text-xs text-muted-foreground">{t('auth:profile.display.soundHint')}</p>
+            </div>
+            <Switch
+              checked={session?.soundOn ?? false}
+              label={t('auth:profile.display.sound')}
+              onCheckedChange={(checked) => saveDisplayPrefs.mutate({ soundOn: checked })}
             />
           </div>
         </CardContent>

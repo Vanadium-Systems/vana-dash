@@ -154,6 +154,9 @@ describe('rezolvarea rutei', () => {
     expect(declaredRouteKind('GET', '/api/team/members')).toBe('self')
     expect(declaredRouteKind('POST', '/api/team/members')).toBeNull()
     expect(declaredRouteKind('PUT', '/api/team/members/:id/mailboxes')).toBeNull()
+    // The person's Home layout is self; the company layout under the same prefix is not.
+    expect(declaredRouteKind('PUT', '/api/dashboard/layout')).toBe('self')
+    expect(declaredRouteKind('PUT', '/api/dashboard/layout/company')).toBeNull()
     expect(declaredRouteKind('GET', '/api/v1/integrations/jeffbot/snapshot')).toBe('machine')
     expect(declaredRouteKind('GET', '/api/webhooks/resend-inbound')).toBe('machine')
     expect(declaredRouteKind('GET', '/api/monitoring/host-metrics')).toBe('machine')

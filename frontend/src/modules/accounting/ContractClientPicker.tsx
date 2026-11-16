@@ -40,7 +40,7 @@ export function ContractClientPicker({ open, onOpenChange, onPick }: { open: boo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-density="comfortable">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('accounting:contracts.list.newTitle')}</DialogTitle>
         </DialogHeader>

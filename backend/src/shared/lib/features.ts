@@ -73,6 +73,7 @@ export const FEATURES: FeatureDef[] = [
       ...read('/api/invoicing/invoices'),
       ...read('/api/invoicing/proformas'),
       ...read('/api/accounting/month-close'),
+      ...read('/api/accounting/deadlines'),
     ],
   },
   {
@@ -501,6 +502,7 @@ export const FEATURES: FeatureDef[] = [
       ...all('/api/team/members/:id/reset-password'),
       ...all('/api/team/members/:id/resend-invite'),
       ...all('/api/admin/api-tokens'),
+      ...write('/api/dashboard/layout/company'),
     ],
   },
   {
@@ -667,6 +669,8 @@ const KNOWN_PREFIXES: Array<{
   prefix: string
   kind: 'self' | 'public' | 'machine'
   methods?: 'read' | 'write'
+  /** A longer path under `prefix` that is NOT declared here, so a feature can claim it. */
+  except?: string
 }> = [
   { prefix: '/health', kind: 'public' },
   { prefix: '/api/auth/login', kind: 'public' },
@@ -683,6 +687,8 @@ const KNOWN_PREFIXES: Array<{
   { prefix: '/api/me/sessions', kind: 'self' },
   { prefix: '/api/push', kind: 'self' },
   { prefix: '/api/settings/nav-layout', kind: 'self' },
+  // Personal home layout; the company-wide one (`/company`) is gated by `echipa.administrare`.
+  { prefix: '/api/dashboard/layout', kind: 'self', except: '/api/dashboard/layout/company' },
   { prefix: '/api/analytics/client-config', kind: 'self', methods: 'read' },
   { prefix: '/api/team/members', kind: 'self', methods: 'read' },
   // Suportul e al oricărui om activ. `/api/platform/*` cere contul de platformă în rută
@@ -716,6 +722,7 @@ export function declaredRouteKind(method: string, url: string): 'self' | 'public
   const readOnly = isReadMethod(method)
   const matches = KNOWN_PREFIXES.filter((entry) => {
     if (!matchesPrefix(url, entry.prefix)) return false
+    if (entry.except && matchesPrefix(url, entry.except)) return false
     if (entry.methods === 'write' && readOnly) return false
     if (entry.methods === 'read' && !readOnly) return false
     return true

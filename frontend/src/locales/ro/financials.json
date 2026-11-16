@@ -30,7 +30,11 @@
     "revenueToExpensesHint": "încasat raportat la cheltuit"
   },
   "charts": {
-    "revenueVsExpenses": "Venituri (încasate) vs. cheltuieli pe lună"
+    "revenueVsExpenses": "Venituri (încasate) vs. cheltuieli pe lună",
+    "byDayLegend": "Coloanele aprinse: azi și ziua cu cele mai mari încasări. Linia punctată: media zilelor lucrate. Hașurat: estimarea până la final de lună.",
+    "expenseMix": "Din ce sunt făcute cheltuielile",
+    "byDay": "Încasările pe zile",
+    "againstPrevious": "Încasările față de perioada anterioară"
   },
   "pnl": {
     "byCategory": "P&L pe categorie"
@@ -40,5 +44,35 @@
     "title": "Cash flow",
     "issued": "Emise",
     "received": "Primite"
+  },
+  "annotation": {
+    "expenseUp": "Cheltuielile pe „{{category}}” au crescut cu {{value}} față de perioada anterioară.",
+    "expenseDown": "Cheltuielile pe „{{category}}” au scăzut cu {{value}} față de perioada anterioară.",
+    "revenueUp": "Veniturile din „{{category}}” au crescut cu {{value}} față de perioada anterioară.",
+    "revenueDown": "Veniturile din „{{category}}” au scăzut cu {{value}} față de perioada anterioară."
+  },
+  "breakdown": {
+    "clients": "Clienții care aduc cel mai mult",
+    "expenseCategories": "Cheltuieli pe categorii",
+    "revenueCategories": "Venituri pe categorii",
+    "platforms": "Venituri pe platforme",
+    "noPlatform": "Fără platformă",
+    "rest": "Restul"
+  },
+  "compare": {
+    "previousPeriod": "perioada anterioară"
+  },
+  "figures": {
+    "label": "Cifrele perioadei"
+  },
+  "filter": {
+    "chip": "Doar: {{name}}",
+    "remove": "Scoate filtrul"
+  },
+  "metric": {
+    "label": "Ce arată pagina",
+    "revenue": "Venit",
+    "expenses": "Cheltuieli",
+    "profit": "Profit"
   }
 }

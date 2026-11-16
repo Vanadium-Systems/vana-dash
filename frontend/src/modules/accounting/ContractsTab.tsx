@@ -185,7 +185,7 @@ export function ContractsTab() {
       <ContractClientPicker open={pickerOpen} onOpenChange={setPickerOpen} onPick={openPeek} />
 
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="max-w-3xl" data-density="comfortable">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{t('accounting:contracts.list.settings')}</DialogTitle>
           </DialogHeader>

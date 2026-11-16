@@ -20,6 +20,13 @@ export interface SellerAddress {
   postalCode: string
 }
 
+export interface DeclarationDeadline {
+  code: 'D301' | 'D390'
+  /** YYYY-MM, the month the declaration reports on. */
+  period: string
+  dueAt: Date
+}
+
 export interface CountryPack {
   /** ISO 3166-1 alpha-2. */
   code: string
@@ -29,6 +36,8 @@ export interface CountryPack {
   sellerAddress(office: CompanyAddress): SellerAddress
   /** A phone number in the form duplicates and lookups compare (E.164 where the country allows). */
   normalizePhone(raw: string): string
+  /** Periodic declarations still worth showing at `now`: the latest periods and when each is due. */
+  declarationDeadlines(now: Date): DeclarationDeadline[]
   /** Company data from the country's public register, by tax id; absent where there is none. */
   lookupCompany?: (taxId: string) => Promise<CompanyLookup>
 }

@@ -44,7 +44,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
         autoComplete="off"
         maxLength={5}
         placeholder="HH:MM"
-        className={cn('tnum font-mono', className)}
+        className={cn('tnum', className)}
         value={draft}
         onChange={(e) => {
           let next = e.target.value.replace('.', ':').replace(/[^\d:]/g, '')

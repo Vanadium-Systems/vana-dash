@@ -223,7 +223,7 @@ export function CallSession() {
   const showSummary = summary || finished
 
   return (
-    <div data-density="comfortable" className="fixed inset-0 z-50 flex flex-col bg-background">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background">
       <header className="flex items-center gap-3 border-b px-4 py-3 safe-top">
         <h1 className="text-base font-semibold">{t('clients:tasks.session.title')}</h1>
         <span className="tabular-nums text-sm text-muted-foreground" aria-live="polite">

@@ -15,6 +15,9 @@ import { Tooltip } from './tooltip'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
+// jsdom has no scrollIntoView, and the open list calls it for the active option.
+Element.prototype.scrollIntoView = vi.fn()
+
 let container: HTMLDivElement
 let root: Root
 
@@ -80,26 +83,112 @@ describe('Field', () => {
 })
 
 describe('Select', () => {
-  it('randează opțiunile și trimite valoarea aleasă', () => {
+  const CURRENCIES = [
+    { value: 'RON', label: 'Lei' },
+    { value: 'EUR', label: 'Euro' },
+  ]
+  const combo = () => container.querySelector<HTMLButtonElement>('[role="combobox"]')!
+  const listbox = () => document.querySelector('[role="listbox"]')
+  const options = () => [...document.querySelectorAll<HTMLElement>('[role="option"]')]
+  const key = (name: string) =>
+    act(() => {
+      document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }))
+    })
+
+  it('click deschide lista, alege valoarea și o închide', () => {
+    const onValueChange = vi.fn()
+    const onChange = vi.fn((e: React.ChangeEvent<HTMLSelectElement>) => e.target.value)
+    render(<Select aria-label="Monedă" value="RON" onValueChange={onValueChange} onChange={onChange} options={CURRENCIES} />)
+    expect(listbox()).toBeNull()
+    act(() => combo().click())
+    expect(listbox()).not.toBeNull()
+    expect(options()).toHaveLength(2)
+    act(() => options().find((o) => o.textContent === 'Euro')!.click())
+    expect(onValueChange).toHaveBeenCalledWith('EUR')
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange.mock.results[0]!.value).toBe('EUR')
+    expect(listbox()).toBeNull()
+  })
+
+  it('tastatura: ArrowDown deschide, mută, Enter alege', () => {
+    const onValueChange = vi.fn()
+    render(<Select aria-label="Monedă" defaultValue="RON" onValueChange={onValueChange} options={CURRENCIES} />)
+    act(() => combo().focus())
+    key('ArrowDown')
+    expect(listbox()).not.toBeNull()
+    key('ArrowDown')
+    key('Enter')
+    expect(onValueChange).toHaveBeenCalledWith('EUR')
+    expect(listbox()).toBeNull()
+    expect(document.activeElement).toBe(combo())
+  })
+
+  it('Esc închide fără să aleagă și întoarce focusul pe buton', () => {
+    const onValueChange = vi.fn()
+    render(<Select aria-label="Monedă" defaultValue="RON" onValueChange={onValueChange} options={CURRENCIES} />)
+    act(() => combo().focus())
+    key('Enter')
+    expect(listbox()).not.toBeNull()
+    key('ArrowDown')
+    key('Escape')
+    expect(listbox()).toBeNull()
+    expect(onValueChange).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(combo())
+  })
+
+  it('<option> ca copii merg la fel', () => {
     const onValueChange = vi.fn()
     render(
-      <Select
-        aria-label="Monedă"
-        value="RON"
-        onValueChange={onValueChange}
-        options={[
-          { value: 'RON', label: 'Lei' },
-          { value: 'EUR', label: 'Euro' },
-        ]}
-      />,
+      <Select aria-label="Monedă" defaultValue="RON" onValueChange={onValueChange}>
+        <option value="RON">Lei</option>
+        <option value="EUR">Euro</option>
+      </Select>,
     )
-    const select = container.querySelector('select')!
-    expect(select.options).toHaveLength(2)
-    act(() => {
-      select.value = 'EUR'
-      select.dispatchEvent(new Event('change', { bubbles: true }))
-    })
+    expect(container.querySelector('select')!.options).toHaveLength(2)
+    act(() => combo().click())
+    expect(options().map((o) => o.textContent)).toEqual(['Lei', 'Euro'])
+    act(() => options()[1]!.click())
     expect(onValueChange).toHaveBeenCalledWith('EUR')
+  })
+
+  it('de la 8 opțiuni apare căutarea, fără diacritice', () => {
+    const labels = ['București', 'Cluj', 'Iași', 'Timișoara', 'Brașov', 'Sibiu', 'Oradea', 'Arad']
+    render(<Select aria-label="Oraș" defaultValue="Cluj" options={labels.map((label) => ({ value: label, label }))} />)
+    act(() => combo().click())
+    const search = document.querySelector<HTMLInputElement>('[role="searchbox"]')!
+    expect(search).not.toBeNull()
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'bucur')
+      search.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(options().map((o) => o.textContent)).toEqual(['București'])
+  })
+
+  it('sub 8 opțiuni nu are căutare', () => {
+    render(<Select aria-label="Monedă" defaultValue="RON" options={CURRENCIES} />)
+    act(() => combo().click())
+    expect(document.querySelector('[role="searchbox"]')).toBeNull()
+  })
+
+  describe('direcția listei', () => {
+    const place = (rect: Partial<DOMRect>) => {
+      render(<Select aria-label="Monedă" defaultValue="RON" options={CURRENCIES} />)
+      vi.spyOn(combo(), 'getBoundingClientRect').mockReturnValue({ left: 20, right: 220, width: 200, height: 40, x: 20, y: 0, ...rect } as DOMRect)
+      act(() => combo().click())
+      return (listbox() as HTMLElement).style
+    }
+
+    it('urcă când sub buton e puțin loc', () => {
+      const style = place({ top: 500, bottom: window.innerHeight - 100 })
+      expect(style.bottom).not.toBe('')
+      expect(style.top).toBe('')
+    })
+
+    it('coboară când sub buton e loc', () => {
+      const style = place({ top: 20, bottom: 100 })
+      expect(style.top).not.toBe('')
+      expect(style.bottom).toBe('')
+    })
   })
 })
 

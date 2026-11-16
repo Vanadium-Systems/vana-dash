@@ -405,7 +405,8 @@
     "collapseSidebar": "Collapse"
   },
   "emptyState": {
-    "resetFilters": "Reset the filters"
+    "resetFilters": "Reset the filters",
+    "demoRow": "Example row"
   },
   "audit": {
     "actions": {
@@ -601,5 +602,18 @@
   },
   "demo": {
     "banner": "Demo data"
+  },
+  "select": {
+    "search": "Search",
+    "noMatch": "No option matches"
+  },
+  "delta": {
+    "against": "against {{period}}"
+  },
+  "charts": {
+    "estimate": "Estimate",
+    "actual": "Collected",
+    "previous": "Previous period",
+    "current": "Selected period"
   }
 }

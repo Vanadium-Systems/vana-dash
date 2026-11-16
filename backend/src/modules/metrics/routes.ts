@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { resolvePeriod } from '../../shared/lib/period.js'
+import { resolveComparePeriod, resolvePeriod } from '../../shared/lib/period.js'
 import { OverviewConfigUpdateSchema, PeriodQuerySchema, SeriesQuerySchema } from './schema.js'
 import * as service from './service.js'
 import { moneyMeta } from '../../shared/lib/display-money.js'
@@ -13,7 +13,12 @@ export async function metricRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: PeriodQuerySchema } },
     async (req) => {
       const range = resolvePeriod(req.query.period, req.query.from, req.query.to)
-      return { success: true, data: await service.getSummary(range, req.query.platformId), money: await moneyMeta() }
+      const data = await service.getSummary(range, req.query.platformId)
+      if (!req.query.compare) return { success: true, data, money: await moneyMeta() }
+      const previousRange = resolveComparePeriod(range, req.query.compare, req.query.period)
+      // `data` stays the array it always was; the compared rows come next to it.
+      const previous = await service.getSummary(previousRange, req.query.platformId)
+      return { success: true, data, previous, money: await moneyMeta() }
     },
   )
 

@@ -1,27 +1,37 @@
 import { useQuery } from '@tanstack/react-query'
+import { X } from 'lucide-react'
 import { useState } from 'react'
+import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { EmptyState } from '@/shared/components/ui/empty-state'
-import { ListSkeleton, Skeleton } from '@/shared/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
-import { KPICard } from '@/shared/components/KPICard'
+import { Skeleton } from '@/shared/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
+import { Delta } from '@/shared/components/Delta'
+import { Money } from '@/shared/components/Money'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { PeriodSelector, usePeriod } from '@/shared/components/PeriodSelector'
 import { ChartEmpty, ChartError, ChartSkeleton } from '@/shared/components/charts/chart-states'
 import { MetricBarChart } from '@/shared/components/charts/MetricBarChart'
+import { ComparisonLine, DayColumns, monthColumns, RankedBars, SplitBar, type ShareRow } from '@/shared/components/charts/question-charts'
+import { useUrlState } from '@/shared/hooks/use-url-state'
 import { api } from '@/shared/lib/api'
 import { sumByDirection } from '@/shared/lib/financial-utils'
-import type { CashflowEntry, ExchangeRatePoint, PnlByCategory, PnlByMonth, PnlResponse } from '@/shared/lib/types'
-import { formatNumber, intlTag } from '@/shared/lib/format'
+import type { CashflowEntry, Delta as DeltaValue, ExchangeRatePoint, PnlByCategory, PnlByMonth, PnlResponse, RevenueSeries } from '@/shared/lib/types'
+import { formatMoney, formatNumber, intlTag } from '@/shared/lib/format'
 import { BnrRateChart, type BnrRatePoint } from './BnrRateChart'
 import { t } from '@/shared/lib/i18n'
 import { approx, MoneyNote } from '@/shared/components/MoneyNote'
 import { useMoneyQuery } from '@/shared/hooks/use-money-query'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 
+// Financials (DESIGN.md "Charts", "Figures and money"; archetype C, analytics). One metric at a
+// time (Venit / Cheltuieli / Profit), the figures with their change against the previous period,
+// the chart whose shape answers the question, and breakdowns where a click on a row narrows the
+// whole page (`?filtru=client:<id>`, removable chip). Everything that changes the view is in the URL.
+
 const BAR_SERIES = [
   { key: 'out', label: t('financials:labels.revenueCollected'), color: 'hsl(var(--primary))' },
-  { key: 'in', label: t('financials:labels.expenses'), color: 'hsl(var(--destructive))' },
+  { key: 'in', label: t('financials:labels.expenses'), color: 'var(--s0)' },
 ]
 
 const CASHFLOW_LABELS: Record<CashflowEntry['paymentStatus'], string> = {
@@ -30,138 +40,259 @@ const CASHFLOW_LABELS: Record<CashflowEntry['paymentStatus'], string> = {
   unpaid: t('financials:status.unpaid'),
 }
 
+type Metric = 'revenue' | 'expenses' | 'profit'
+const METRICS: Metric[] = ['revenue', 'expenses', 'profit']
+
+/** The previous period, in words, for the deltas ("față de perioada anterioară" / "față de octombrie"). */
+function againstLabel(period: string): string {
+  if (period !== 'mtd') return t('financials:compare.previousPeriod')
+  const now = new Date()
+  return new Intl.DateTimeFormat(intlTag(), { month: 'long' }).format(new Date(now.getFullYear(), now.getMonth() - 1, 15))
+}
+
+function granularityFor(period: string): 'day' | 'week' | 'month' {
+  if (period === 'ytd') return 'month'
+  if (period === '90d') return 'week'
+  return 'day'
+}
+
+interface Annotation {
+  key: string
+  text: string
+}
+
+/** The largest change between the two periods, written on the page; closing it is remembered for the session. */
+function biggestChange(current: PnlByCategory[] | undefined, previous: PnlByCategory[] | undefined, currency: string, only?: 'in' | 'out'): Annotation | null {
+  if (!current || !previous) return null
+  const sum = (rows: PnlByCategory[], category: string, direction: 'in' | 'out') =>
+    rows.filter((r) => r.category === category && r.direction === direction).reduce((total, r) => total + r.total, 0)
+  let best: { category: string; direction: 'in' | 'out'; change: number } | null = null
+  const keys = new Set([...current, ...previous].map((r) => `${r.direction}|${r.category}`))
+  for (const key of keys) {
+    const [direction, category] = key.split('|') as ['in' | 'out', string]
+    if (only && direction !== only) continue
+    const change = sum(current, category, direction) - sum(previous, category, direction)
+    if (!best || Math.abs(change) > Math.abs(best.change)) best = { category, direction, change }
+  }
+  if (!best || Math.abs(best.change) < 1) return null
+  const params = { category: best.category, value: formatMoney(Math.abs(best.change), currency) }
+  const key = best.direction === 'in' ? (best.change > 0 ? 'expenseUp' : 'expenseDown') : best.change > 0 ? 'revenueUp' : 'revenueDown'
+  return { key: `${key}:${best.category}:${Math.round(best.change)}`, text: t(`financials:annotation.${key}`, params) }
+}
+
 export function FinancialsPage() {
   const period = usePeriod()
+  const [metricParam, setMetric] = useUrlState('metrica', 'revenue')
+  const metric = (METRICS.includes(metricParam as Metric) ? metricParam : 'revenue') as Metric
+  const [filter, setFilter] = useUrlState('filtru', '')
+  const [filterLabel, setFilterLabel] = useState<string | null>(null)
+  const [closedNote, setClosedNote] = useState(() => sessionStorage.getItem('financials.annotation.closed'))
 
-  const pnl = useMoneyQuery<PnlResponse>(['financials', 'pnl', period], `/api/financials/pnl?period=${period}`)
-  const cashflow = useMoneyQuery<CashflowEntry[]>(['financials', 'cashflow', period], `/api/financials/cashflow?period=${period}`)
-  // Calculat LIVE din recurring_expenses, nu din financial_records — o cheltuială recurentă abia
-  // creată n-are încă niciun rând materializat (cron-ul scrie unul doar la nextDueDate), deci
-  // fără query-ul ăsta separat ar fi invizibilă pe Financials până la următoarea rulare de cron.
-  const recurringExpensesMonthly = useMoneyQuery<{ monthlyRon: number; monthlyDisplay: number }>(
-    ['financials', 'recurring-expenses'],
-    '/api/financials/recurring-expenses',
+  const filterParam = filter ? `&filter=${encodeURIComponent(filter)}` : ''
+  const pnl = useMoneyQuery<PnlResponse>(['financials', 'pnl', period, 'compare', filter], `/api/financials/pnl?period=${period}&compare=previous${filterParam}`)
+  const series = useMoneyQuery<RevenueSeries>(
+    ['financials', 'revenue-series', period, filter],
+    `/api/financials/revenue-series?period=${period}&compare=previous&granularity=${granularityFor(period)}${period === 'mtd' ? '&forecast=1' : ''}${filterParam}`,
   )
-  // The server says which currency the totals are in; nothing here assumes lei.
-  const money = pnl.money
-  const currency = money?.currency ?? BASE_CURRENCY
-  const converted = money?.converted
+  const cashflow = useMoneyQuery<CashflowEntry[]>(['financials', 'cashflow', period, filter], `/api/financials/cashflow?period=${period}${filterParam}`)
+  // Live from recurring_expenses, not financial_records: a recurring cost created a minute ago has
+  // no materialised row yet (the cron writes one at nextDueDate).
+  const recurringExpensesMonthly = useMoneyQuery<{ monthlyRon: number; monthlyDisplay: number }>(['financials', 'recurring-expenses'], '/api/financials/recurring-expenses')
 
-  // direction: 'out' = factură emisă de Stefan (venit), 'in' = document primit (cheltuială).
-  // "Venituri" = doar facturile plătite — o factură emisă dar neîncasată nu e venit realizat,
-  // e doar facturat/în așteptare (card separat mai jos). Cheltuielile rămân pe toate stările
-  // (o factură primită e o obligație din momentul emiterii, indiferent dacă a fost plătită).
-  const revenue = sumByDirection(pnl.data?.byMonth, 'out', ['paid'])
+  const money = pnl.money
+  const currency = t(`common:money.units.${money?.currency ?? BASE_CURRENCY}`)
+  const against = againstLabel(period)
+
+  // 'out' = issued (revenue), 'in' = received (cost). Collected = paid issued invoices only.
+  const collected = sumByDirection(pnl.data?.byMonth, 'out', ['paid'])
   const pendingRevenue = sumByDirection(pnl.data?.byMonth, 'out', ['unpaid', 'partial'])
   const expense = sumByDirection(pnl.data?.byMonth, 'in')
-  // Simetric cu "Facturat, în așteptare" de mai sus — cheltuielile recurente materializate
-  // (jobs/recurring-expenses.ts) pornesc mereu unpaid, deci fără cardul ăsta ar fi invizibile
-  // ca "de plată" până le marchezi manual plătite. Când se leagă reconcilierea bancară pe
-  // cheltuieli (Revolut/SPV), trecerea unpaid→paid se va întâmpla automat, la fel ca la facturi.
   const pendingExpense = sumByDirection(pnl.data?.byMonth, 'in', ['unpaid', 'partial'])
-  const profit = revenue != null && expense != null ? revenue - expense : null
-  // Rată income/outcome — venituri încasate / cheltuieli, ambele deja convertite în aceeași monedă în SQL
-  // (displayAmountSql), deci corecte indiferent de moneda cheltuielilor individuale. Cheltuieli 0 →
-  // raport nedefinit (nu Infinity), afișat "—".
-  const incomeOutcomeRatio = revenue != null && expense != null && expense > 0 ? revenue / expense : null
+  const profit = collected != null && expense != null ? collected - expense : null
+  const previousCollected = sumByDirection(pnl.data?.previous?.byMonth, 'out', ['paid'])
+  const previousExpense = sumByDirection(pnl.data?.previous?.byMonth, 'in')
+  const deltaOf = (current: number | null, previous: number | null): DeltaValue | null =>
+    current == null || previous == null ? null : { abs: (current - previous).toFixed(2), pct: previous === 0 ? null : Math.round(((current - previous) / Math.abs(previous)) * 1000) / 10 }
 
-  const monthlyChartData = pivotByMonth(pnl.data?.byMonth)
-  const categoryRows = pivotByCategory(pnl.data?.byCategory)
+  const primary = {
+    revenue: { label: t('financials:labels.revenueCollected'), value: collected, delta: deltaOf(collected, previousCollected), higherIsBetter: true },
+    expenses: { label: t('financials:labels.expenses'), value: expense, delta: deltaOf(expense, previousExpense), higherIsBetter: false },
+    profit: {
+      label: t('financials:kpi.netProfit'),
+      value: profit,
+      delta: deltaOf(profit, previousCollected != null && previousExpense != null ? previousCollected - previousExpense : null),
+      higherIsBetter: true,
+    },
+  }[metric]
+  const secondary = [
+    metric !== 'revenue' && { label: t('financials:labels.revenueCollected'), value: collected },
+    { label: t('financials:kpi.invoicedPending'), value: pendingRevenue },
+    metric !== 'expenses' && { label: t('financials:labels.expenses'), value: expense },
+    { label: t('financials:kpi.expensesPending'), value: pendingExpense },
+    { label: t('financials:kpi.recurringMonthly'), value: recurringExpensesMonthly.data?.monthlyDisplay ?? null },
+  ].filter((f): f is { label: string; value: number | null } => Boolean(f))
+
+  const categoryRows = (direction: 'in' | 'out'): ShareRow[] =>
+    pivotByCategory(pnl.data?.byCategory)
+      .map((row) => ({ id: `category:${row.category}`, label: row.category, value: direction === 'in' ? row.in : row.out }))
+      .filter((row) => row.value > 0)
+      .sort((a, b) => b.value - a.value)
+  const clientRows: ShareRow[] = (pnl.data?.byClient ?? []).filter((r) => r.id).map((r) => ({ id: `client:${r.id}`, label: r.name ?? '—', value: r.total }))
+  const platformRows: ShareRow[] = (pnl.data?.byPlatform ?? []).map((r) => ({
+    id: r.id ? `platform:${r.id}` : 'platform:none',
+    label: r.name ?? t('financials:breakdown.noPlatform'),
+    value: r.total,
+  }))
+  const select = (row: ShareRow) => {
+    if (row.id === filter) {
+      setFilter('')
+      return
+    }
+    // "No platform" cannot be a filter: there is no id to narrow on.
+    if (row.id === 'platform:none') return
+    setFilter(row.id)
+    setFilterLabel(row.label)
+  }
+
+  const annotation = biggestChange(pnl.data?.byCategory, pnl.data?.previous?.byCategory, currency, metric === 'expenses' ? 'in' : metric === 'revenue' ? 'out' : undefined)
+  const showAnnotation = annotation && closedNote !== annotation.key
 
   return (
     <div className="space-y-6">
       <PageHeader title={t('common:nav.financials')} actions={<PeriodSelector />} />
 
-      <div className="kpi-grid gap-4">
-        <KPICard label={t('financials:labels.revenueCollected')} value={revenue} unit={currency} converted={converted} isPending={pnl.isPending} />
-        <KPICard label={t('financials:kpi.invoicedPending')} value={pendingRevenue} unit={currency} converted={converted} isPending={pnl.isPending} />
-        <KPICard label={t('financials:labels.expenses')} value={expense} unit={currency} converted={converted} isPending={pnl.isPending} />
-        <KPICard
-          label={t('financials:kpi.expensesPending')}
-          value={pendingExpense}
-          unit={currency}
-          converted={converted}
-          isPending={pnl.isPending}
-          hint={t('financials:kpi.expensesPendingHint')}
-        />
-        <KPICard
-          label={t('financials:kpi.recurringMonthly')}
-          value={recurringExpensesMonthly.data?.monthlyDisplay ?? null}
-          unit={recurringExpensesMonthly.money?.currency ?? currency}
-          converted={recurringExpensesMonthly.money?.converted}
-          isPending={recurringExpensesMonthly.isPending}
-          hint={t('financials:kpi.recurringMonthlyHint')}
-        />
-        <KPICard label={t('financials:kpi.netProfit')} value={profit} unit={currency} converted={converted} isPending={pnl.isPending} />
-        <KPICard
-          label={t('financials:kpi.revenueToExpenses')}
-          value={incomeOutcomeRatio}
-          isPending={pnl.isPending}
-          tone={incomeOutcomeRatio == null ? undefined : incomeOutcomeRatio >= 1 ? 'positive' : 'negative'}
-          hint={t('financials:kpi.revenueToExpensesHint')}
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <Tabs value={metric} onValueChange={setMetric}>
+          <TabsList variant="segmented" aria-label={t('financials:metric.label')}>
+            {METRICS.map((m) => (
+              <TabsTrigger key={m} value={m}>
+                {t(`financials:metric.${m}`)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        {filter ? (
+          <span className="inline-flex h-control-sm items-center gap-1 rounded-md border border-glow/40 bg-glow/10 pl-2.5 text-sm">
+            {t('financials:filter.chip', { name: filterLabel ?? filter.slice(filter.indexOf(':') + 1) })}
+            <Button variant="ghost" size="icon-sm" aria-label={t('financials:filter.remove')} onClick={() => setFilter('')}>
+              <X />
+            </Button>
+          </span>
+        ) : null}
       </div>
+
+      <section aria-label={t('financials:figures.label')} className="flex flex-wrap items-end gap-x-10 gap-y-4">
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">{primary.label}</p>
+          {pnl.isPending ? (
+            <Skeleton className="mt-1 h-9 w-48" />
+          ) : (
+            <p className="text-figure font-semibold tracking-title">
+              {primary.value == null ? '—' : <Money amount={primary.value} currency={currency} tabular={false} sign={metric === 'profit'} />}
+            </p>
+          )}
+          {primary.delta ? <Delta delta={primary.delta} currency={currency} against={against} higherIsBetter={primary.higherIsBetter} className="mt-1 block" /> : null}
+        </div>
+        {secondary.map((figure) => (
+          <div key={figure.label} className="min-w-0">
+            <p className="truncate text-xs text-muted-foreground">{figure.label}</p>
+            <p className="mt-0.5 text-lg font-medium">{pnl.isPending || figure.value == null ? '—' : <Money amount={figure.value} currency={currency} tabular={false} />}</p>
+          </div>
+        ))}
+      </section>
       <MoneyNote money={money} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('financials:charts.revenueVsExpenses')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {pnl.isPending ? (
-            <ChartSkeleton height={300} />
-          ) : pnl.isError ? (
-            <ChartError message={t('common:states.loadFailed')} />
-          ) : !monthlyChartData.length ? (
-            <ChartEmpty label={t('common:states.noData')} />
-          ) : (
-            <MetricBarChart data={monthlyChartData} series={BAR_SERIES} unit={currency} />
-          )}
-        </CardContent>
-      </Card>
+      {showAnnotation ? (
+        <div role="note" className="flex items-center justify-between gap-3 rounded-md bg-muted px-4 py-2 text-sm">
+          <p className="min-w-0">{annotation.text}</p>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('common:actions.close')}
+            onClick={() => {
+              sessionStorage.setItem('financials.annotation.closed', annotation.key)
+              setClosedNote(annotation.key)
+            }}
+          >
+            <X />
+          </Button>
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('financials:pnl.byCategory')}</CardTitle>
+          <CardTitle>{t(`financials:charts.${metric === 'expenses' ? 'expenseMix' : metric === 'profit' ? 'revenueVsExpenses' : period === 'mtd' ? 'byDay' : 'againstPrevious'}`)}</CardTitle>
         </CardHeader>
         <CardContent>
-          {pnl.isPending ? (
-            <ListSkeleton rows={4} />
-          ) : pnl.isError ? (
-            <ChartError message={t('common:states.loadFailed')} />
-          ) : !categoryRows.length ? (
-            <EmptyState kind="new" title={t('financials:empty')} />
+          {metric === 'revenue' ? (
+            series.isPending ? (
+              <ChartSkeleton height={240} />
+            ) : series.isError ? (
+              <ChartError message={t('common:states.loadFailed')} />
+            ) : period === 'mtd' ? (
+              <DayColumns columns={monthColumns(series.data?.points ?? [], series.data?.forecast ?? [], series.data?.today ?? '')} currency={currency} height={240} />
+            ) : (
+              <ComparisonLine current={series.data?.points ?? []} previous={series.data?.previous?.points ?? []} currency={currency} height={240} incompleteFrom={series.data?.incompleteFrom ?? null} />
+            )
+          ) : metric === 'expenses' ? (
+            pnl.isPending ? (
+              <ChartSkeleton height={80} />
+            ) : categoryRows('in').length === 0 ? (
+              <EmptyState kind={filter ? 'filtered' : 'new'} title={t('financials:empty')} onReset={() => setFilter('')} />
+            ) : (
+              <SplitBar rows={categoryRows('in')} currency={currency} restLabel={t('financials:breakdown.rest')} />
+            )
+          ) : pnl.isPending ? (
+            <ChartSkeleton height={300} />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('common:labels.category')}</TableHead>
-                  <TableHead priority="md" className="text-right">{t('financials:labels.revenueCollected')}</TableHead>
-                  <TableHead priority="md" className="text-right">{t('financials:labels.expenses')}</TableHead>
-                  <TableHead className="text-right">{t('financials:labels.net')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categoryRows.map((row) => (
-                  <TableRow key={row.category}>
-                    <TableCell className="font-medium tbl-fill">
-                      <div className="truncate capitalize">{row.category}</div>
-                      <TableDetails items={[`+${approx(formatNumber(row.out, currency), money)}`, `−${approx(formatNumber(row.in, currency), money)}`]} />
-                    </TableCell>
-                    <TableCell priority="md" className="whitespace-nowrap text-right font-mono text-sm">{approx(formatNumber(row.out, currency), money)}</TableCell>
-                    <TableCell priority="md" className="whitespace-nowrap text-right font-mono text-sm">{approx(formatNumber(row.in, currency), money)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right font-mono text-sm tnum">
-                      <span className={row.out - row.in < 0 ? 'text-destructive' : undefined}>
-                        {approx(formatNumber(row.out - row.in, currency), money)}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <MetricBarChart data={pivotByMonth(pnl.data?.byMonth)} series={BAR_SERIES} unit={money?.currency ?? BASE_CURRENCY} />
           )}
+          {metric === 'revenue' && period === 'mtd' ? <p className="mt-2 text-xs text-text-3">{t('financials:charts.byDayLegend')}</p> : null}
         </CardContent>
       </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {metric !== 'expenses' ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('financials:breakdown.clients')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pnl.isPending ? (
+                <ChartSkeleton height={160} />
+              ) : clientRows.length === 0 ? (
+                <EmptyState kind={filter ? 'filtered' : 'new'} title={t('financials:empty')} onReset={() => setFilter('')} />
+              ) : (
+                <RankedBars rows={clientRows} currency={currency} activeId={filter} onSelect={select} />
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
+        <Card className={metric === 'expenses' ? 'lg:col-span-2' : undefined}>
+          <CardHeader>
+            <CardTitle>{t(metric === 'expenses' ? 'financials:breakdown.expenseCategories' : 'financials:breakdown.revenueCategories')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pnl.isPending ? (
+              <ChartSkeleton height={160} />
+            ) : categoryRows(metric === 'expenses' ? 'in' : 'out').length === 0 ? (
+              <EmptyState kind={filter ? 'filtered' : 'new'} title={t('financials:empty')} onReset={() => setFilter('')} />
+            ) : (
+              <RankedBars rows={categoryRows(metric === 'expenses' ? 'in' : 'out')} currency={currency} activeId={filter} onSelect={select} />
+            )}
+          </CardContent>
+        </Card>
+        {metric !== 'expenses' && platformRows.length > 1 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('financials:breakdown.platforms')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RankedBars rows={platformRows} currency={currency} activeId={filter} onSelect={select} />
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
 
       <Card>
         <CardHeader>
@@ -173,16 +304,16 @@ export function FinancialsPage() {
           ) : cashflow.isError ? (
             <ChartError message={t('common:states.loadFailed')} />
           ) : !cashflow.data?.length ? (
-            <EmptyState kind="new" title={t('financials:empty')} />
+            <EmptyState kind={filter ? 'filtered' : 'new'} title={t('financials:empty')} onReset={() => setFilter('')} />
           ) : (
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="kpi-grid gap-x-8 gap-y-4">
               {cashflow.data.map((entry) => (
-                <div key={`${entry.direction}-${entry.paymentStatus}`} className="rounded-md border p-3">
-                  <div className="text-xs text-muted-foreground">
+                <div key={`${entry.direction}-${entry.paymentStatus}`} className="min-w-0">
+                  <div className="truncate text-xs text-muted-foreground">
                     {entry.direction === 'out' ? t('financials:cashFlow.issued') : t('financials:cashFlow.received')} · {CASHFLOW_LABELS[entry.paymentStatus]}
                   </div>
-                  <div className="tnum font-mono text-lg font-semibold">{approx(formatNumber(entry.total, cashflow.money?.currency ?? currency), cashflow.money)}</div>
-                  <div className="text-xs text-muted-foreground">{t('common:count.records', { count: entry.count })}</div>
+                  <div className="whitespace-nowrap text-lg font-medium">{approx(formatNumber(entry.total, cashflow.money?.currency ?? BASE_CURRENCY), cashflow.money)}</div>
+                  <div className="text-xs text-text-3">{t('common:count.records', { count: entry.count })}</div>
                 </div>
               ))}
             </div>
@@ -303,9 +434,9 @@ function ExchangeRateCard() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="tnum font-mono text-2xl font-semibold">
-          {latest ? `1 ${currency} = ${Number(latest.rate).toFixed(4)} ${BASE_CURRENCY}` : '—'}
-          {latest && <span className="ml-2 font-sans text-sm font-normal text-muted-foreground">{t('financials:bnr.asOf', { date: latest.date })}</span>}
+        <div>
+          <p className="whitespace-nowrap text-2xl font-semibold">{latest ? `1 ${currency} = ${Number(latest.rate).toFixed(4)} ${BASE_CURRENCY}` : '—'}</p>
+          {latest && <p className="text-sm text-muted-foreground">{t('financials:bnr.asOf', { date: latest.date })}</p>}
         </div>
         {history.isPending ? (
           <ChartSkeleton height={220} />

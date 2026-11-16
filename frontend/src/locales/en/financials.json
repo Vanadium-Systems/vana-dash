@@ -30,7 +30,11 @@
     "revenueToExpensesHint": "collected against spent"
   },
   "charts": {
-    "revenueVsExpenses": "Revenue (collected) vs. expenses per month"
+    "revenueVsExpenses": "Revenue (collected) vs. expenses per month",
+    "byDayLegend": "Lit columns: today and the day with the most collected. Dashed line: the average of the days worked. Hatched: the estimate to the end of the month.",
+    "expenseMix": "What the costs are made of",
+    "byDay": "Collections by day",
+    "againstPrevious": "Collections against the previous period"
   },
   "pnl": {
     "byCategory": "P&L by category"
@@ -40,5 +44,35 @@
     "title": "Cash flow",
     "issued": "Issued",
     "received": "Received"
+  },
+  "annotation": {
+    "expenseUp": "Costs in “{{category}}” went up by {{value}} against the previous period.",
+    "expenseDown": "Costs in “{{category}}” went down by {{value}} against the previous period.",
+    "revenueUp": "Revenue from “{{category}}” went up by {{value}} against the previous period.",
+    "revenueDown": "Revenue from “{{category}}” went down by {{value}} against the previous period."
+  },
+  "breakdown": {
+    "clients": "Clients who bring the most",
+    "expenseCategories": "Costs by category",
+    "revenueCategories": "Revenue by category",
+    "platforms": "Revenue by platform",
+    "noPlatform": "No platform",
+    "rest": "The rest"
+  },
+  "compare": {
+    "previousPeriod": "the previous period"
+  },
+  "figures": {
+    "label": "The figures of the period"
+  },
+  "filter": {
+    "chip": "Only: {{name}}",
+    "remove": "Remove the filter"
+  },
+  "metric": {
+    "label": "What the page shows",
+    "revenue": "Revenue",
+    "expenses": "Costs",
+    "profit": "Profit"
   }
 }

@@ -78,7 +78,7 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
 
   if (ticket.isPending) {
     return (
-      <div className="max-w-2xl space-y-4" data-density="comfortable">
+      <div className="max-w-2xl space-y-4">
         {back}
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-24 w-full" />
@@ -90,7 +90,7 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
   if (ticket.isError) {
     const missing = ticket.error instanceof ApiError && ticket.error.status === 404
     return (
-      <div className="max-w-2xl space-y-4 text-sm" data-density="comfortable">
+      <div className="max-w-2xl space-y-4 text-sm">
         {back}
         <p>{missing ? t('support:ticket.notFound') : t('support:ticket.loadFailed')}</p>
         {missing ? null : (
@@ -110,7 +110,7 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
   ]
 
   return (
-    <div className="max-w-2xl space-y-6" data-density="comfortable">
+    <div className="max-w-2xl space-y-6">
       {back}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">

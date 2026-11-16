@@ -21,7 +21,7 @@ import type { FeatureKey, Platform } from '@/shared/lib/types'
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div data-density="comfortable" className="space-y-6">
+    <div className="space-y-6">
       <PageHeader title={t('common:nav.clients')} />
       {children}
     </div>

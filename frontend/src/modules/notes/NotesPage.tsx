@@ -199,7 +199,7 @@ export function NotesPage() {
   const newTab = (view: NotesView) => (view === 'archived' ? archivedCount.data : view === 'trash' ? trashCount.data : undefined)
 
   return (
-    <div className="space-y-4" data-density="comfortable">
+    <div className="space-y-4">
       <PageHeader title={t('common:nav.notes')} />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -222,7 +222,7 @@ export function NotesPage() {
                 {VIEWS.map((view) => (
                   <TabsTrigger key={view} value={view}>
                     {t(`notes:views.${view}` as 'notes:views.active')}
-                    {newTab(view) ? <span className="tnum ml-1.5 text-xs text-muted-foreground">{newTab(view)}</span> : null}
+                    {newTab(view) ? <span className="ml-1.5 text-xs text-muted-foreground">{newTab(view)}</span> : null}
                   </TabsTrigger>
                 ))}
               </TabsList>

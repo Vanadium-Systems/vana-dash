@@ -24,7 +24,7 @@ const DialogContent = React.forwardRef<
         (zoom-in-99, origin center — e modal). Același Radix, doar clase responsive. */}
     <DialogPrimitive.Content
       ref={ref}
-      data-density="comfortable"
+     
       className={cn(
         'fixed inset-x-0 top-[env(safe-area-inset-top,0px)] bottom-0 z-50 grid gap-4 overflow-y-auto rounded-t-lg border bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] ease-out-strong',
         'md:fixed md:left-1/2 md:top-1/2 md:bottom-auto md:max-h-[90vh] md:w-[calc(100%-2rem)] md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-t-none md:rounded-lg md:p-6 md:pb-6 md:shadow-lg',

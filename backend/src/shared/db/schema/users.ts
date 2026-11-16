@@ -56,6 +56,11 @@ export const users = pgTable(
     // 'system' follows prefers-reduced-motion until the person picks a level in their profile.
     motionPref: text('motion_pref', { enum: MOTION_PREFS }).notNull().default('system'),
     hideAmounts: boolean('hide_amounts').notNull().default(false),
+    // The person's own Home grid. null = the company layout (dashboard_config['home.layout']),
+    // kept here like nav_layout so no dashboard_config read can pick up a personal row.
+    homeLayout: jsonb('home_layout'),
+    // A short sound when a payment comes in. Off by default: nobody asked the app to make noise.
+    soundOn: boolean('sound_on').notNull().default(false),
   },
   (t) => [
     uniqueIndex('uq_users_email').on(t.email),

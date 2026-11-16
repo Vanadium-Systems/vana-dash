@@ -59,7 +59,15 @@ TableBody.displayName = 'TableBody'
 
 const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
   ({ className, ...props }, ref) => (
-    <tr ref={ref} className={cn('border-b transition-colors duration-100 hover:bg-muted/50', className)} {...props} />
+    <tr
+      ref={ref}
+      className={cn(
+        // Zebra at 2.5% of the text colour; a selected row is lit (--glow), not filled.
+        'border-b transition-colors duration-100 even:bg-zebra hover:bg-accent data-[state=selected]:bg-glow/10 aria-selected:bg-glow/10',
+        className,
+      )}
+      {...props}
+    />
   ),
 )
 TableRow.displayName = 'TableRow'
@@ -84,7 +92,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
   ({ className, priority, ...props }, ref) => (
     <th
       ref={ref}
-      className={cn('h-control-md whitespace-nowrap px-2 text-left align-middle text-xs font-medium text-muted-foreground', priority && PRIORITY_CLASS[priority], className)}
+      className={cn('h-control-md whitespace-nowrap px-3 text-left align-middle text-xs font-medium text-text-3', priority && PRIORITY_CLASS[priority], className)}
       {...props}
     />
   ),
@@ -98,7 +106,8 @@ interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
 
 const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
   ({ className, priority, truncate = false, children, ...props }, ref) => (
-    <td ref={ref} className={cn('p-2 align-middle', priority && PRIORITY_CLASS[priority], truncate && 'tbl-truncate w-full max-w-0', className)} {...props}>
+    // The row is 50px tall (--row-h) through the cell, so a row with a second line simply grows.
+    <td ref={ref} className={cn('h-row px-3 py-2 align-middle text-row', priority && PRIORITY_CLASS[priority], truncate && 'tbl-truncate w-full max-w-0', className)} {...props}>
       {truncate ? <div className="truncate">{children}</div> : children}
     </td>
   ),

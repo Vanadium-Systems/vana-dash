@@ -76,7 +76,7 @@ export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, d
           {isPending ? (
             <Skeleton className="h-8 w-28" />
           ) : (
-            <div className={cn('tnum min-w-0 whitespace-nowrap font-mono text-2xl font-semibold', tone && TONE_CLASS[tone])}>
+            <div className={cn('tnum min-w-0 whitespace-nowrap text-2xl font-semibold', tone && TONE_CLASS[tone])}>
               {value === null || value === undefined ? (
                 '—'
               ) : (
@@ -95,7 +95,7 @@ export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, d
         </div>
         {deltaPct != null && !isPending ? (
           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-            <span className={cn('tnum font-mono', deltaClass)}>
+            <span className={cn('tnum', deltaClass)}>
               {deltaRising ? '↑' : '↓'} {Math.abs(deltaPct).toFixed(1)}%
             </span>
             <span>{deltaLabel ?? t('common:kpi.vsPreviousPeriod')}</span>

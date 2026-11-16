@@ -222,7 +222,7 @@ export function TeamPage() {
 
   if (members.isPending) {
     return (
-      <div className="space-y-6" data-density="comfortable">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-40" />
         <div className="space-y-2" aria-busy="true">
           {[0, 1, 2].map((i) => (
@@ -235,7 +235,7 @@ export function TeamPage() {
 
   if (members.isError) {
     return (
-      <div className="space-y-2 py-8 text-sm" data-density="comfortable">
+      <div className="space-y-2 py-8 text-sm">
         <p>{t('team:loadFailed')}</p>
         <Button variant="outline" onClick={() => void members.refetch()}>
           {t('common:actions.retry')}
@@ -247,7 +247,7 @@ export function TeamPage() {
   const roleOptions = (roles.data?.roles ?? []).map((role) => ({ value: role.id, label: role.name }))
 
   return (
-    <div className="space-y-6" data-density="comfortable">
+    <div className="space-y-6">
       <PageHeader
         title={t('common:nav.team')}
         description={t('team:description')}

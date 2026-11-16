@@ -38,6 +38,8 @@ import { BottomSheet } from '@/shared/components/ui/responsive-menu'
 import { prefetchPage } from '@/shared/lib/prefetch'
 import { isPlainClick, markRouteCommitted, navigateWithTransition } from '@/shared/lib/view-transition'
 import { sessionUserName } from '@/shared/lib/types'
+import { rasina } from '@/shared/lib/rasina'
+import { LoadingTrail } from './LoadingTrail'
 import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
 import { getTenantOverride, setTenantOverride } from '@/shared/lib/tenant-override'
@@ -92,31 +94,40 @@ function SidebarNav({
         .map(([group, groupItems], sectionIndex) => (
           <div key={group} className={cn(sectionIndex > 0 && 'mt-4')}>
             {compact ? null : <div className="px-2 pb-1 text-xs font-medium text-muted-foreground">{navGroupLabel(group)}</div>}
-            {groupItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                title={compact ? item.label : undefined}
-                {...navLink(item.to, onNavigate)}
-                className={({ isActive }) =>
-                  cn(
-                    'relative flex h-control-md items-center gap-2.5 rounded-sm px-2 text-sm',
+            {groupItems.map((item) => {
+              const active = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(`${item.to}/`)) || item.activeOn?.some((prefix) => location.pathname.startsWith(prefix))
+              // The active item is lit resin (DESIGN.md), the one place on a work screen that carries it.
+              const resin = active ? rasina(item.to) : null
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/'}
+                  title={compact ? item.label : undefined}
+                  {...navLink(item.to, onNavigate)}
+                  style={resin?.style}
+                  className={cn(
+                    'relative flex h-control-md items-center gap-2.5 rounded-md px-2 text-sm',
                     compact && 'justify-center',
-                    isActive || item.activeOn?.some((prefix) => location.pathname.startsWith(prefix))
-                      ? 'bg-accent font-medium text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground',
-                  )
-                }
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                <span className={compact ? 'sr-only' : 'truncate'}>{item.label}</span>
-                {item.to === '/email' && unreadTotal ? <NavBadge count={unreadTotal} compact={compact} /> : null}
-                {item.to === '/messages' && chatUnread ? <NavBadge count={chatUnread} compact={compact} /> : null}
-                {item.to === '/clients' && taskCount ? <NavBadge count={taskCount} compact={compact} quiet /> : null}
-                {item.to === '/alerts' && activeAlerts ? <NavBadge count={activeAlerts} compact={compact} /> : null}
-              </NavLink>
-            ))}
+                    active
+                      ? cn(resin?.className, 'bg-card font-medium text-foreground shadow-sm')
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
+                >
+                  <item.icon
+                    className={cn('h-4 w-4 shrink-0', active && 'text-brand')}
+                    strokeWidth={1.6}
+                    fill={active ? 'currentColor' : 'none'}
+                    fillOpacity={active ? 0.22 : undefined}
+                  />
+                  <span className={compact ? 'sr-only' : 'truncate'}>{item.label}</span>
+                  {item.to === '/email' && unreadTotal ? <NavBadge count={unreadTotal} compact={compact} /> : null}
+                  {item.to === '/messages' && chatUnread ? <NavBadge count={chatUnread} compact={compact} /> : null}
+                  {item.to === '/clients' && taskCount ? <NavBadge count={taskCount} compact={compact} quiet /> : null}
+                  {item.to === '/alerts' && activeAlerts ? <NavBadge count={activeAlerts} compact={compact} /> : null}
+                </NavLink>
+              )
+            })}
           </div>
         ))}
     </nav>
@@ -420,6 +431,7 @@ export function AppLayout() {
         // The status bar is transparent over the WebView; this keeps scrolled content from showing under it.
         <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top,0px)] bg-background" />
       ) : null}
+      <LoadingTrail />
       <div className="flex min-w-0 flex-1 flex-col">
         {session?.isDemo ? (
           <div role="status" className="bg-warning/15 px-4 py-1 text-center text-xs text-warning-text" data-testid="demo-band">
@@ -441,7 +453,7 @@ export function AppLayout() {
             </div>
           ) : null}
           {/* Only the content waits for a page's code; the bar and the nav stay (MA10). */}
-          <div className={cn('p-4 md:p-6', isFullWidthPage ? '' : 'mx-auto max-w-6xl')} style={{ viewTransitionName: 'page' }}>
+          <div className={cn('px-page-x py-page-y', isFullWidthPage ? '' : 'mx-auto max-w-6xl')} style={{ viewTransitionName: 'page' }}>
             <Suspense fallback={<ContentSkeleton />}>
               <Outlet />
             </Suspense>

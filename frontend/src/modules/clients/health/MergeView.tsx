@@ -123,7 +123,7 @@ export function MergeView({ masterId, otherId, onSwap, onClose }: { masterId: st
   const moves = preview.data ? (Object.keys(MOVE_TEXTS) as Array<keyof MergeMoves>).filter((key) => preview.data.moves[key] > 0) : []
 
   return (
-    <div data-density="comfortable" className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold">{t('clients:health.merge.title')}</h2>

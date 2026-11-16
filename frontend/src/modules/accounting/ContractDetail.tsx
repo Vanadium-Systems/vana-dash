@@ -104,7 +104,7 @@ export function ContractDetail({ clientId }: { clientId: string }) {
     documents.data?.filter((d) => d.docType === docType).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
 
   return (
-    <div className="space-y-4" data-density="comfortable">
+    <div className="space-y-4">
       {clients.isPending ? <ListSkeleton rows={4} /> : null}
       {selectedClient && (
         <>

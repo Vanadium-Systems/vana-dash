@@ -1,20 +1,17 @@
-import '@fontsource/inter/400.css'
-import '@fontsource/inter/500.css'
-import '@fontsource/inter/600.css'
-import '@fontsource/inter/700.css'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/jetbrains-mono/600.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import React, { useSyncExternalStore } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { Toaster } from 'sonner'
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary'
+import { AppToaster } from '@/shared/components/ui/sonner'
 import { ReloadOnNavigate, watchForUpdates } from '@/shared/lib/app-update'
 import { initI18n } from '@/shared/lib/i18n'
 import { isNative } from '@/shared/lib/native'
 import './index.css'
+import './shared/styles/rasina.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,26 +32,6 @@ if ('serviceWorker' in navigator) {
   } else {
     watchForUpdates()
   }
-}
-
-// On a phone toasts sit at the bottom, by the thumb and above the bottom nav (MA12).
-const phoneQuery = window.matchMedia('(max-width: 767px)')
-function AppToaster() {
-  const phone = useSyncExternalStore(
-    (onChange) => {
-      phoneQuery.addEventListener('change', onChange)
-      return () => phoneQuery.removeEventListener('change', onChange)
-    },
-    () => phoneQuery.matches,
-  )
-  return (
-    <Toaster
-      richColors
-      position={phone ? 'bottom-center' : 'top-right'}
-      offset={phone ? 'calc(4.5rem + env(safe-area-inset-bottom, 0px))' : undefined}
-      toastOptions={{ style: { fontFamily: 'Inter, system-ui, sans-serif' } }}
-    />
-  )
 }
 
 // The language has to be known before any module that builds labels is evaluated, so the app

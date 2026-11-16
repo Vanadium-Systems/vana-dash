@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { resolvePeriod } from '../../shared/lib/period.js'
-import { ExchangeRateQuerySchema, PeriodQuerySchema } from './schema.js'
+import { ExchangeRateQuerySchema, PeriodQuerySchema, RevenueSeriesQuerySchema } from './schema.js'
 import * as service from './service.js'
 import { displayMoney, fromRon, moneyMeta } from '../../shared/lib/display-money.js'
 
@@ -13,7 +13,9 @@ export async function financialsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: PeriodQuerySchema } },
     async (req) => {
       const range = resolvePeriod(req.query.period, req.query.from, req.query.to)
-      return { success: true, data: await service.getPnl(range), money: await moneyMeta() }
+      const { compare, period, filter } = req.query
+      const data = await service.getPnlCompared(range, { compare, period, filter: service.parseRecordFilter(filter) })
+      return { success: true, data, money: await moneyMeta() }
     },
   )
 
@@ -22,16 +24,24 @@ export async function financialsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: PeriodQuerySchema } },
     async (req) => {
       const range = resolvePeriod(req.query.period, req.query.from, req.query.to)
-      return { success: true, data: await service.getCashflow(range), money: await moneyMeta() }
+      return { success: true, data: await service.getCashflow(range, service.parseRecordFilter(req.query.filter)), money: await moneyMeta() }
     },
   )
 
   server.get(
     '/api/financials/revenue-series',
-    { preHandler: [app.authenticate], schema: { querystring: PeriodQuerySchema } },
+    { preHandler: [app.authenticate], schema: { querystring: RevenueSeriesQuerySchema } },
     async (req) => {
       const range = resolvePeriod(req.query.period, req.query.from, req.query.to)
-      return { success: true, data: await service.getRevenueSeries(range), money: await moneyMeta() }
+      const { compare, period, filter, granularity, forecast } = req.query
+      const data = await service.getRevenueSeries(range, {
+        compare,
+        period,
+        filter: service.parseRecordFilter(filter),
+        granularity,
+        forecast: forecast === '1',
+      })
+      return { success: true, data, money: await moneyMeta() }
     },
   )
 

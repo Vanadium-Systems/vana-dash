@@ -20,7 +20,7 @@ interface PageHeaderProps {
  */
 export const PageSectionContext = createContext<{ title: string; nav: ReactNode } | null>(null)
 
-// Primitivă lipsă (16+ module reinventau individual <h1 className="text-2xl font-bold">
+// Primitivă lipsă (16+ module reinventau individual <h1 className="text-2xl font-semibold tracking-title">
 // fără subtitlu/acțiuni) — rulată pe toate paginile de nivel top, înlocuiește markup-ul
 // hand-rolled ca "bogăția" vizuală a unei pagini să vină din design, nu din accident.
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
@@ -28,10 +28,10 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
   const inRouter = useInRouterContext()
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">{section?.title ?? title}</h1>
+            <h1 className="text-2xl font-semibold tracking-title">{section?.title ?? title}</h1>
             {inRouter ? <PageGuidesLink /> : null}
           </div>
           {description ? <div className="mt-1 text-sm text-muted-foreground">{description}</div> : null}

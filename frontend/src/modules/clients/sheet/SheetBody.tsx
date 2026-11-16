@@ -122,7 +122,7 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
   ]
 
   return (
-    <div data-density="comfortable" className="sheet-root">
+    <div className="sheet-root">
       <div className="space-y-4">
         <SheetHeader
           sheet={sheet}

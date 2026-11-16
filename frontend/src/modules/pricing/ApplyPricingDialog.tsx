@@ -66,7 +66,7 @@ export function ApplyPricingDialog({ client, body, onOpenChange }: ApplyPricingD
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent data-density="comfortable">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('pricing:apply.title', { name: client?.name })}</DialogTitle>
           </DialogHeader>

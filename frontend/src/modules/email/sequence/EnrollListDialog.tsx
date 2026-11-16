@@ -69,7 +69,7 @@ export function EnrollListDialog({ open, sequence, list, onOpenChange }: EnrollL
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent data-density="comfortable">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('email:sequences.enrollList.title')}</DialogTitle>
         </DialogHeader>

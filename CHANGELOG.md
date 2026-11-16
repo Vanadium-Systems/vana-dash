@@ -4,6 +4,24 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-16: Vanadium style, a new Home and a new Financials page
+
+### Added
+- The Vanadium style across the app: warm white stone by day, deep blue by night, the Onest font (served locally, OFL), a blue primary button, teal on what is active, radii 4/6/10, a single density (control 36, row 50), a custom Select with search above 7 options, a new toast (action and close on one row) and a loading bar. The contract is `DESIGN.md`.
+- Home: a window with a photo by the company's time of day, a one-sentence forecast, an attention button, the month's figures with the change from last month and a "where it comes from" inspector, a "Next step" card, and a personal widget grid (resize, drag, catalog with previews, "Back to the company layout"). 18 widgets. A "Payment received" moment: toast, vibration on phones, an optional sound (My profile, synthesized in WebAudio, no file).
+- Financials: Revenue / Expenses / Profit switch, the figure with its delta in percent and money against the previous period, collections by day with forecast and previous-period line, an expense breakdown, clients / categories / platforms as ordered bars, and click-to-filter (kept in the URL).
+- `GET/PUT/DELETE /api/dashboard/layout` (own layout) and `PUT /api/dashboard/layout/company` (`echipa.administrare`).
+- `GET /api/accounting/deadlines` (`facturi.view`; declarations need `facturi.declaratii`, the ANAF token needs `facturi.anaf`).
+- `compare` and `filter` on `/api/financials/pnl`, `granularity`, `forecast` and `compare` on `/api/financials/revenue-series`, `compare` on `/api/metrics/summary`.
+- Migration `0095`: `users.home_layout` and `users.sound_on`; `soundOn` in `/api/auth/me` and its PATCH.
+
+### Changed
+- `/api/financials/pnl` also returns `byClient`, `byPlatform`, `totals`, `previous` and `delta`. `/api/financials/revenue-series` now returns `{ points, total, forecast, incompleteFrom, today, previous?, delta? }`. `/api/metrics/summary` returns `previous` when asked to compare.
+
+### Fixed
+- The market table on Crypto scrolled sideways at 360px; the BNR rate line broke under its figure on a phone.
+- Two release entries had the same timestamp, which failed the Updates test; a due-date test failed between midnight and 02:00 Romanian time.
+
 ## 2026-11-15: Long sessions and no lost email when the server is down
 
 ### Added

@@ -49,7 +49,7 @@ export function SupportPage({ scope }: { scope: SupportScope }) {
   )
 
   return (
-    <div className="space-y-6" data-density="comfortable">
+    <div className="space-y-6">
       <PageHeader
         title={scope === 'platform' ? t('common:shell.supportTickets') : t('common:nav.support')}
         description={

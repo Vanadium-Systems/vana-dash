@@ -4,7 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ME_QUERY_KEY } from '@/shared/hooks/use-me'
-import { formatDate, formatMoney } from '@/shared/lib/format'
+import { companyTimeZone, formatDate, formatMoney } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import type { RecordsPage } from '@/shared/lib/types'
 import { DueDate, RecordPaymentBadge, TotalsBand } from './records-ui'
@@ -125,7 +125,8 @@ describe('RecordPaymentBadge', () => {
 })
 
 describe('DueDate', () => {
-  const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10)
+  // The day in the company's zone, not UTC: between midnight and 02:00 in Bucharest the UTC date is still yesterday.
+  const daysAgo = (days: number) => new Intl.DateTimeFormat('en-CA', { timeZone: companyTimeZone() }).format(new Date(Date.now() - days * 86_400_000))
 
   it('overdue shows the date and how many days late', async () => {
     const dueAt = daysAgo(12)

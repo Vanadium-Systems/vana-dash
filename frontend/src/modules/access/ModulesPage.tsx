@@ -128,7 +128,7 @@ export function ModulesPage() {
   }
 
   return (
-    <div className="space-y-6" data-density="comfortable">
+    <div className="space-y-6">
       <PageHeader
         title={t('common:nav.modules')}
         description={t('access:description')}

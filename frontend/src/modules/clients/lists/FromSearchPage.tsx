@@ -103,7 +103,7 @@ export function FromSearchPage() {
   if (done) {
     const skipped = skippedSummary(done.result.skipped)
     return (
-      <div data-density="comfortable" className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-2xl space-y-6">
         <PageHeader title={t('clients:lists.fromSearchPage.doneTitle', { name: done.listName })} />
         <Card>
           <CardContent className="space-y-4 pt-6">
@@ -126,7 +126,7 @@ export function FromSearchPage() {
   const setRule = (key: keyof SkipRules) => (e: React.ChangeEvent<HTMLInputElement>) => setRules((old) => ({ ...old, [key]: e.target.checked }))
 
   return (
-    <div data-density="comfortable" className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
         title={t('clients:lists.fromSearchPage.title')}
         description={t('clients:lists.fromSearchPage.description')}

@@ -104,7 +104,7 @@ export function botStatus(ageMinutes: number): 'online' | 'late' | 'offline' {
 
 // Buy & hold e referința, nu o strategie în concurs: gri, punctat. Restul își păstrează
 // culoarea indiferent de ce strategii apar în snapshot (culoarea urmează entitatea). Paleta are
-// 6 sloturi, deci `gtaa` și `lgbm` împart unul: nu apar niciodată pe același grafic.
+// 5 sloturi: `gtaa` și `lgbm` împart unul, iar `trend200x15` (slot 5) reia primul prin modulo; nu apar niciodată pe același grafic.
 export const REFERENCE_KEY = 'hold'
 const SERIES_SLOT: Record<string, number> = {
   mix: 0,
@@ -119,7 +119,7 @@ const SERIES_SLOT: Record<string, number> = {
 export function strategyColor(key: string): string {
   if (key === REFERENCE_KEY) return CHART_NEUTRAL
   const slot = SERIES_SLOT[key]
-  return slot === undefined ? CHART_NEUTRAL : CHART_COLORS[slot]!
+  return slot === undefined ? CHART_NEUTRAL : CHART_COLORS[slot % CHART_COLORS.length]!
 }
 
 export function returnPct(s: Pick<BotStrategy, 'equity' | 'startEquity'>): number {

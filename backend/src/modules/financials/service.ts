@@ -2,14 +2,20 @@ import { and, asc, eq, isNull, gte, lte, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { exchangeRates, recurringExpenses } from '../../shared/db/schema/index.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
+import { getCompanyTimeZone } from '../../shared/lib/company.js'
 import {
   getCashflowByStatus,
   getCurrentMrr,
-  getDailyPaidRevenue,
+  getPaidRevenueBuckets,
+  getPaidRevenueTotal,
   getPnlByCategory,
   getPnlByMonth,
+  getPnlTotals,
+  getRevenueByClient,
+  getRevenueByPlatform,
+  type RecordFilter,
 } from '../../shared/lib/financial-aggregation.js'
-import type { PeriodRange } from '../../shared/lib/period.js'
+import { dayInZone, delta, forecastToMonthEnd, resolveComparePeriod, type PeriodRange } from '../../shared/lib/period.js'
 import type { ExchangeRateQuerySchema } from './schema.js'
 import type { z } from 'zod'
 
@@ -26,9 +32,44 @@ import type { z } from 'zod'
  * despărți "Venituri" (încasate) de sumele facturate dar neîncasate încă — o factură emisă
  * dar neplătită nu e venit realizat, e doar promisiune de venit ("în așteptare").
  */
-export async function getPnl(range: PeriodRange) {
-  const [byMonth, byCategory] = await Promise.all([getPnlByMonth(range), getPnlByCategory(range)])
-  return { byMonth, byCategory }
+export async function getPnl(range: PeriodRange, filter?: RecordFilter) {
+  const [byMonth, byCategory, byClient, byPlatform, totals] = await Promise.all([
+    getPnlByMonth(range, filter),
+    getPnlByCategory(range, filter),
+    getRevenueByClient(range, filter),
+    getRevenueByPlatform(range, filter),
+    getPnlTotals(range, filter),
+  ])
+  return { byMonth, byCategory, byClient, byPlatform, totals }
+}
+
+export interface CompareOptions {
+  compare?: string
+  period?: string
+  filter?: RecordFilter
+}
+
+/** The P&L of the period, plus the same figures for the compared period and the deltas of the totals. */
+export async function getPnlCompared(range: PeriodRange, options: CompareOptions) {
+  const current = await getPnl(range, options.filter)
+  if (!options.compare) return current
+  const previousRange = resolveComparePeriod(range, options.compare, options.period)
+  const previous = await getPnl(previousRange, options.filter)
+  return {
+    ...current,
+    previous: { ...previous, from: previousRange.from.toISOString(), to: previousRange.to.toISOString() },
+    delta: {
+      revenue: delta(current.totals.revenue, previous.totals.revenue),
+      expense: delta(current.totals.expense, previous.totals.expense),
+      net: delta(current.totals.net, previous.totals.net),
+    },
+  }
+}
+
+export function parseRecordFilter(raw?: string): RecordFilter | undefined {
+  if (!raw) return undefined
+  const separator = raw.indexOf(':')
+  return { kind: raw.slice(0, separator) as RecordFilter['kind'], id: raw.slice(separator + 1) }
 }
 
 /**
@@ -48,8 +89,73 @@ export async function getRecurringRevenue() {
  * Serie zilnică de venit real, pt. graficul de Venituri din Overview — vezi
  * getDailyPaidRevenue (financial-aggregation.ts) pt. de ce nu mai vine din platform_metrics.
  */
-export async function getRevenueSeries(range: PeriodRange) {
-  return getDailyPaidRevenue(range)
+export async function getRevenueSeries(
+  range: PeriodRange,
+  options: CompareOptions & { granularity: 'day' | 'week' | 'month'; forecast?: boolean },
+) {
+  const timeZone = await getCompanyTimeZone()
+  const today = dayInZone(new Date(), timeZone)
+  const points = fillBuckets(await getPaidRevenueBuckets(range, options.granularity, timeZone, options.filter), range, options.granularity, timeZone)
+  // The bucket that holds today is still filling up: the chart draws it differently.
+  const incompleteFrom = points.length > 0 && range.to.getTime() >= Date.now() - 60_000 ? currentBucket(today, options.granularity) : null
+
+  let forecast: { date: string; value: number }[] = []
+  if (options.forecast && options.granularity === 'day') {
+    const monthStart = new Date(`${today.slice(0, 8)}01T00:00:00Z`)
+    const monthPoints =
+      range.from <= monthStart ? points : await getPaidRevenueBuckets({ from: monthStart, to: new Date() }, 'day', timeZone, options.filter)
+    forecast = forecastToMonthEnd(new Map(monthPoints.map((p) => [p.date, p.value])), today)
+  }
+
+  const total = await getPaidRevenueTotal(range, options.filter)
+  let previous: { points: { date: string; value: number }[]; total: number; from: string; to: string } | undefined
+  let seriesDelta: ReturnType<typeof delta> | undefined
+  if (options.compare) {
+    const previousRange = resolveComparePeriod(range, options.compare, options.period)
+    const [previousBuckets, previousTotal] = await Promise.all([
+      getPaidRevenueBuckets(previousRange, options.granularity, timeZone, options.filter),
+      getPaidRevenueTotal(previousRange, options.filter),
+    ])
+    const previousPoints = fillBuckets(previousBuckets, previousRange, options.granularity, timeZone)
+    previous = { points: previousPoints, total: previousTotal, from: previousRange.from.toISOString(), to: previousRange.to.toISOString() }
+    seriesDelta = delta(total, previousTotal)
+  }
+
+  return { points, total, forecast, incompleteFrom, today, ...(previous ? { previous, delta: seriesDelta } : {}) }
+}
+
+/**
+ * Every bucket of the range, with 0 where nothing was collected: a chart that skips the empty
+ * weeks draws a straight line over them. The buckets are only listed here; the sums come from SQL.
+ */
+function fillBuckets(
+  rows: { date: string; value: number }[],
+  range: PeriodRange,
+  granularity: 'day' | 'week' | 'month',
+  timeZone: string,
+): { date: string; value: number }[] {
+  const byDate = new Map(rows.map((row) => [row.date, row.value]))
+  const last = currentBucket(dayInZone(range.to, timeZone), granularity)
+  const out: { date: string; value: number }[] = []
+  for (let day = currentBucket(dayInZone(range.from, timeZone), granularity); day <= last; day = nextBucket(day, granularity)) {
+    out.push({ date: day, value: byDate.get(day) ?? 0 })
+  }
+  return out
+}
+
+function nextBucket(day: string, granularity: 'day' | 'week' | 'month'): string {
+  const date = new Date(`${day}T12:00:00Z`)
+  if (granularity === 'month') date.setUTCMonth(date.getUTCMonth() + 1)
+  else date.setUTCDate(date.getUTCDate() + (granularity === 'week' ? 7 : 1))
+  return date.toISOString().slice(0, 10)
+}
+
+function currentBucket(today: string, granularity: 'day' | 'week' | 'month'): string {
+  if (granularity === 'day') return today
+  if (granularity === 'month') return `${today.slice(0, 8)}01`
+  const date = new Date(`${today}T12:00:00Z`)
+  const mondayOffset = (date.getUTCDay() + 6) % 7
+  return new Date(date.getTime() - mondayOffset * 86_400_000).toISOString().slice(0, 10)
 }
 
 /**
@@ -128,6 +234,6 @@ export async function getExchangeRateHistory(query: z.infer<typeof ExchangeRateQ
  * Cashflow: paid vs. unpaid/partial, grupat pe direcție — câte înregistrări și cât valorează.
  * `total` convertit la RON per rând, la fel ca `getPnl`.
  */
-export async function getCashflow(range: PeriodRange) {
-  return getCashflowByStatus(range)
+export async function getCashflow(range: PeriodRange, filter?: RecordFilter) {
+  return getCashflowByStatus(range, filter)
 }

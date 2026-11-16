@@ -666,6 +666,13 @@
       "when": 1794766865705,
       "tag": "0094_user_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1794778520310,
+      "tag": "0095_home_layout",
+      "breakpoints": true
     }
   ]
 }

@@ -68,5 +68,182 @@
   },
   "notes": {
     "pinned": "Pinned notes"
+  },
+  "widgets": {
+    "updated": "Updated {{when}}",
+    "failed": "The data did not load.",
+    "more_one": "{{count}} more",
+    "more_other": "{{count}} more",
+    "openAlerts": "Open alerts",
+    "writeEmail": "Write an email",
+    "platforms": "Platforms",
+    "openPlatforms": "Open platforms",
+    "allPlatformsOk_one": "The platform responds.",
+    "allPlatformsOk_other": "All {{count}} platforms respond.",
+    "platformsDown_one": "One platform has problems.",
+    "platformsDown_other": "{{count}} platforms have problems.",
+    "openNotes": "Open notes",
+    "noPinned": "No pinned note. Pin one in Notes and it shows here.",
+    "collected": "Collected this month",
+    "revenue": "Revenue by day",
+    "openFinancials": "Open Financials",
+    "forecastToMonthEnd": "Estimate at month end: ~{{value}}",
+    "estimate": "Estimate",
+    "average": "Average of the days worked: {{value}}",
+    "receivable": "To collect",
+    "expensesByCategory": "Expenses by category",
+    "planNext": "Next step in the Plan",
+    "myTasks": "My tasks today",
+    "deadlines": "Deadlines",
+    "quickNote": "Quick note",
+    "suggestedLeads": "Suggested leads",
+    "funnel": "Funnel, last 30 days",
+    "yearGrid": "Collected over a year",
+    "newTenders": "New tenders"
+  },
+  "catalog": {
+    "title": "Add a widget",
+    "add": "Add",
+    "added": "Added",
+    "collected": "The amount collected this month, against the same days of last month.",
+    "revenue": "Collections by day, with today, the peak of the month and the estimate to its end.",
+    "today": "What is left in your calendar today.",
+    "toResolve": "Active alerts and new bookings.",
+    "unreadMessages": "Conversations with unread messages.",
+    "email": "The latest threads in the inbox.",
+    "pinnedNote": "Pinned notes.",
+    "platformStatus": "Whether the platforms respond.",
+    "receivable": "What is left to collect and how much of it is overdue.",
+    "expensesByCategory": "Where the money went this month, by category.",
+    "planNext": "The first open goal in the Plan, with its progress.",
+    "myTasks": "Your tasks due today.",
+    "deadlines": "Invoice due dates, declarations and the ANAF token.",
+    "quickNote": "Write a note without opening Notes.",
+    "suggestedLeads": "The prospects with the highest score.",
+    "funnel": "How many prospects reached each stage in the last 30 days.",
+    "yearGrid": "Every day of the last year, with what came in.",
+    "newTenders": "Tenders that appeared in the last week."
+  },
+  "sizes": {
+    "s": "Small",
+    "w": "Wide",
+    "l": "Large",
+    "band": "Band"
+  },
+  "edit": {
+    "start": "Edit",
+    "done": "Done",
+    "add": "Add a widget",
+    "reset": "Back to the company layout",
+    "notSaved": "The layout was not saved. Please try again.",
+    "size": "Size of {{widget}}",
+    "move": "Move {{widget}}",
+    "remove": "Remove {{widget}}"
+  },
+  "grid": {
+    "label": "Your widgets",
+    "empty": "The grid is empty. Add the first widget from the catalog."
+  },
+  "window": {
+    "label": "Summary of the day",
+    "weather": {
+      "clear": "Clear. Nothing needs attention today.",
+      "one": "Clear. A single cloud: {{first}}.",
+      "several": "Cloudy: {{count}} things need attention, the first is {{first}}.",
+      "storm": "Storm: {{first}}."
+    },
+    "cloud": {
+      "critical": "a critical alert",
+      "warning": "a warning",
+      "overdue": "an overdue invoice",
+      "deadline": "a deadline in the next three days",
+      "booking": "a new booking"
+    },
+    "needsAttention_one": "thing needs attention today",
+    "needsAttention_other": "things need attention today"
+  },
+  "figures": {
+    "label": "The month in figures",
+    "invoiced": "Invoiced",
+    "toCollect": "To collect",
+    "mrr": "Monthly recurring revenue"
+  },
+  "inspector": {
+    "open": "See the list",
+    "collected": "Invoices issued in {{monthName}} and paid, in the display currency. Compared with the same days of last month.",
+    "invoiced": "All invoices issued in {{monthName}}, paid or not, without drafts and proformas.",
+    "toCollect": "Invoiced minus collected in {{monthName}}: what clients still owe from this month.",
+    "mrr": "Active client subscriptions as a monthly equivalent (yearly ones divided by 12)."
+  },
+  "next": {
+    "label": "Next step",
+    "open": "Open"
+  },
+  "deadlines": {
+    "kind": {
+      "invoice_due": "Due",
+      "declaration": "Declaration",
+      "anaf_token": "ANAF token"
+    },
+    "open": "Invoices",
+    "none": "No deadline coming up.",
+    "today": "today",
+    "inDays_one": "tomorrow",
+    "inDays_other": "in {{count}} days",
+    "overdueDays_one": "overdue by {{count}} day",
+    "overdueDays_other": "overdue by {{count}} days",
+    "total_one": "{{count}} deadline",
+    "total_other": "{{count}} deadlines in total"
+  },
+  "receivable": {
+    "open": "Invoices",
+    "nothingOpen": "Nothing to collect right now.",
+    "toCollect": "To collect",
+    "overdue": "Overdue",
+    "overdueOfOpen": "overdue, out of {{open}} to collect",
+    "noneOverdue": "to collect, nothing overdue"
+  },
+  "expenses": {
+    "none": "No expenses this month.",
+    "uncategorized": "Uncategorized",
+    "rest": "The rest"
+  },
+  "planNext": {
+    "open": "The Plan",
+    "none": "You have no open goal in the Plan."
+  },
+  "tasks": {
+    "open": "Tasks",
+    "none": "No tasks for today. Add one from a prospect's sheet.",
+    "noneToday": "No tasks today",
+    "overdue_one": "{{count}} overdue task",
+    "overdue_other": "{{count}} overdue tasks"
+  },
+  "quickNote": {
+    "placeholder": "Write what you do not want to forget",
+    "saved": "Note saved.",
+    "failed": "The note was not saved.",
+    "label": "Note text"
+  },
+  "leads": {
+    "open": "Open Clients",
+    "none": "No prospect has a score yet. Scores appear after an import."
+  },
+  "funnel": {
+    "open": "Open reports",
+    "none": "No movement in the funnel in the last 30 days."
+  },
+  "yearGrid": {
+    "total": "{{total}} collected over the last year"
+  },
+  "tenders": {
+    "open": "Open tenders",
+    "none_one": "No new tender in the last day.",
+    "none_other": "No new tender in the last {{count}} days.",
+    "until": "until {{date}}"
+  },
+  "payment": {
+    "received": "Payment received",
+    "amount": "Collections went up by {{value}}."
   }
 }

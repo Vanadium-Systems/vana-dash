@@ -56,7 +56,7 @@ export function AuthLayout({ title, subline, children }: { title: string; sublin
       </aside>
       <main className="flex min-w-0 flex-col [&>div]:min-h-0 [&>div]:flex-1">
         <div className="flex flex-1 flex-col justify-center px-4 py-10 sm:px-8">
-          <div className="mx-auto w-full max-w-sm" data-density="comfortable">
+          <div className="mx-auto w-full max-w-sm">
             <div className="mb-8 flex items-center gap-2.5 lg:hidden">
               <BrandMark className="h-8 w-8" />
               <span className="text-base font-semibold">VanaDash</span>

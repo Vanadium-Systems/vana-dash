@@ -36,6 +36,71 @@ export interface Guide {
 
 const SOURCES: GuideSource[] = [
   {
+    id: 'acasa',
+    route: '/',
+    title: {
+      ro: 'Acasă: cifrele lunii și widget-urile tale',
+      en: 'Home: the month’s figures and your widgets',
+    },
+    summary: {
+      ro: 'Acasă îți spune într-o propoziție cum stă firma, ce cere atenția acum și cum arată luna față de cea trecută. Restul paginii sunt widget-uri pe care le aranjezi tu.',
+      en: 'Home tells you in one sentence how the company is doing, what needs attention now and how the month compares with the last one. The rest of the page is widgets you arrange yourself.',
+    },
+    steps: [
+      {
+        ro: 'Sus, fereastra cu fotografie se schimbă după ora firmei: răsărit, zi, apus, noapte. Sub ea, butonul cu ce cere atenție te duce direct la lucrul respectiv.',
+        en: 'At the top, the photo window changes with the company’s time: sunrise, day, sunset, night. Under it, the button for what needs attention takes you straight to it.',
+      },
+      {
+        ro: 'Fiecare cifră a lunii are lângă ea schimbarea față de luna trecută, în procente. La luna curentă se compară aceleași zile. Un click pe cifră arată de unde vine.',
+        en: 'Each figure of the month shows the change from last month, in percent. For the current month the same days are compared. A click on a figure shows where it comes from.',
+      },
+      {
+        ro: 'Apasă Editează ca să muți widget-uri prin tragere, să le schimbi mărimea sau să adaugi altele din catalog, cu previzualizare. Așezarea e doar a ta.',
+        en: 'Press Edit to move widgets by dragging, resize them or add more from the catalog, with a preview. The layout is yours alone.',
+      },
+      {
+        ro: '„Revino la așezarea firmei” șterge așezarea ta și te întoarce la cea stabilită de admin.',
+        en: '“Back to the company layout” drops yours and returns to the one the admin set.',
+      },
+      {
+        ro: 'La o plată primită apare un mesaj, iar pe telefon vibrează. Sunetul e oprit; îl pornești din Profilul meu, la „Sunet la o plată primită”.',
+        en: 'When a payment arrives you get a message, and the phone vibrates. The sound is off; turn it on in My profile, under “Sound on a received payment”.',
+      },
+    ],
+  },
+  {
+    id: 'financiar',
+    route: '/financials',
+    feature: 'financiar.view',
+    title: {
+      ro: 'Financiar: venit, cheltuieli, profit',
+      en: 'Financials: revenue, expenses, profit',
+    },
+    summary: {
+      ro: 'Alegi Venit, Cheltuieli sau Profit și vezi cifra perioadei cu schimbarea față de perioada anterioară. Orice rând din pagină poate deveni filtru.',
+      en: 'You pick Revenue, Expenses or Profit and see the period’s figure with the change from the previous period. Any row on the page can become a filter.',
+    },
+    steps: [
+      {
+        ro: 'Delta de lângă cifră e în procente și în lei, față de perioada anterioară de aceeași lungime. La luna curentă se compară aceleași zile din luna trecută, nu luna întreagă.',
+        en: 'The delta next to the figure is in percent and in money, against the previous period of the same length. For the current month, the same days of last month are compared, not the whole month.',
+      },
+      {
+        ro: 'Încasările pe zile arată ziua de azi și vârful aprinse, media și, hașurat, cât se estimează până la sfârșitul lunii. Linia subțire e perioada anterioară.',
+        en: 'Collections by day highlight today and the peak, show the average and, hatched, the estimate up to the end of the month. The thin line is the previous period.',
+      },
+      {
+        ro: 'Bara împărțită arată din ce sunt făcute cheltuielile. Clienții, categoriile și platformele sunt bare ordonate după valoare.',
+        en: 'The split bar shows what the expenses are made of. Clients, categories and platforms are bars ordered by value.',
+      },
+      {
+        ro: 'Un click pe un rând filtrează toată pagina. Filtrul apare ca etichetă sus și e în adresă, deci îl poți trimite unui coleg. Îl scoți cu × de pe etichetă.',
+        en: 'A click on a row filters the whole page. The filter shows as a tag at the top and is in the address, so you can send it to a colleague. Remove it with the × on the tag.',
+      },
+    ],
+  },
+  {
     id: 'facturi-emise',
     route: '/accounting',
     feature: 'facturi.view',

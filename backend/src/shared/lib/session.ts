@@ -50,6 +50,7 @@ export interface SessionUser {
   // Optional so the users built by hand in tests stay valid; absent = the defaults.
   motionPref?: MotionPref
   hideAmounts?: boolean
+  soundOn?: boolean
 }
 
 export const DEFAULT_NOTIFICATION_PREFS = { chat: 'all', emailNew: true, alerts: true } as const
@@ -107,6 +108,7 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
       displayCurrency: users.displayCurrency,
       motionPref: users.motionPref,
       hideAmounts: users.hideAmounts,
+      soundOn: users.soundOn,
       roleId: roles.id,
       roleName: roles.name,
       roleKind: roles.kind,
@@ -164,6 +166,7 @@ export async function loadSessionUser(userId: string): Promise<SessionUser | nul
     displayCurrency: row.displayCurrency,
     motionPref: row.motionPref,
     hideAmounts: row.hideAmounts,
+    soundOn: row.soundOn,
   }
 }
 

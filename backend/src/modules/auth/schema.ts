@@ -22,6 +22,7 @@ export const PatchMeSchema = z.object({
   displayCurrency: z.enum(DISPLAY_CURRENCIES).optional(),
   motionPref: z.enum(MOTION_PREFS).optional(),
   hideAmounts: z.boolean().optional(),
+  soundOn: z.boolean().optional(),
 })
 
 export const ForgotPasswordSchema = z.object({ email: z.string().email() })

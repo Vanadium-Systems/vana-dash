@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T09:00:00Z',
+    title: {
+      ro: 'Aspect nou, Acasă și Financiar refăcute',
+      en: 'New look, Home and Financials rebuilt',
+    },
+    body: {
+      ro: 'Aplicația are alt aspect: piatră albă ziua, albastru adânc noaptea, font nou și butoane mai aerisite. Acasă are o fereastră cu fotografie după ora firmei, cifrele lunii cu diferența față de luna trecută și un buton cu ce cere atenția. Cu Editează îți aranjezi singur widget-urile, iar „Revino la așezarea firmei” le readuce pe cele ale echipei. Pagina Financiar arată venitul, cheltuielile sau profitul cu schimbarea față de perioada anterioară; un click pe un client sau o categorie filtrează toată pagina. La o plată primită apare un mesaj, iar din Profilul meu poți porni și un sunet.',
+      en: 'The app has a new look: white stone by day, deep blue by night, a new font and roomier buttons. Home has a window with a photo that follows the company clock, the month’s figures with the change from last month, and a button for what needs attention. Edit lets you arrange your own widgets, and “Back to the company layout” restores the team’s. The Financials page shows revenue, expenses or profit with the change from the previous period; a click on a client or a category filters the whole page. A payment received shows a message, and you can turn on a sound from My profile.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-15T18:50:00Z',
     title: {
       ro: 'Rămâi logat: fără login în fiecare săptămână',
@@ -37,7 +49,7 @@ const SOURCES: ReleaseSource[] = [
     features: [],
   },
   {
-    publishedAt: '2026-11-15T18:50:00Z',
+    publishedAt: '2026-11-15T18:49:00Z',
     title: {
       ro: 'Token-uri API: aplicația din terminal și din Claude Code',
       en: 'API tokens: the app from a terminal and from Claude Code',

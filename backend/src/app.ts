@@ -12,6 +12,7 @@ import { alertsRoutes } from './modules/alerts/routes.js'
 import { archiveRoutes } from './modules/archive/routes.js'
 import { assetsRoutes } from './modules/assets/routes.js'
 import { assistantRoutes } from './modules/assistant/routes.js'
+import { overviewRoutes } from './modules/overview/routes.js'
 import { settingsRoutes } from './modules/settings/routes.js'
 import { authRoutes, passwordRoutes, SESSION_COOKIE } from './modules/auth/routes.js'
 import { auditRoutes } from './modules/audit/routes.js'
@@ -197,6 +198,7 @@ export async function buildServer() {
   await app.register(jeffbotRoutes)
   await app.register(assetsRoutes)
   await app.register(settingsRoutes)
+  await app.register(overviewRoutes)
   await app.register(tendersRoutes)
   await app.register(tenantsRoutes)
   await app.register(searchRoutes)

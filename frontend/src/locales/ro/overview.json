@@ -69,5 +69,191 @@
   },
   "notes": {
     "pinned": "Notițe fixate"
+  },
+  "widgets": {
+    "updated": "Actualizat {{when}}",
+    "failed": "Datele nu s-au încărcat.",
+    "more_one": "încă {{count}}",
+    "more_few": "încă {{count}}",
+    "more_other": "încă {{count}}",
+    "openAlerts": "Deschide alertele",
+    "writeEmail": "Scrie un email",
+    "platforms": "Platformele",
+    "openPlatforms": "Deschide platformele",
+    "allPlatformsOk_one": "Platforma răspunde.",
+    "allPlatformsOk_few": "Toate cele {{count}} platforme răspund.",
+    "allPlatformsOk_other": "Toate cele {{count}} de platforme răspund.",
+    "platformsDown_one": "O platformă are probleme.",
+    "platformsDown_few": "{{count}} platforme au probleme.",
+    "platformsDown_other": "{{count}} de platforme au probleme.",
+    "openNotes": "Deschide notițele",
+    "noPinned": "Nicio notiță fixată. Fixează una din Notițe și apare aici.",
+    "collected": "Încasat luna asta",
+    "revenue": "Venitul pe zile",
+    "openFinancials": "Deschide Financiar",
+    "forecastToMonthEnd": "Estimare la final de lună: ~{{value}}",
+    "estimate": "Estimare",
+    "average": "Media pe zilele lucrate: {{value}}",
+    "receivable": "De încasat",
+    "expensesByCategory": "Cheltuieli pe categorii",
+    "planNext": "Următorul prag din Plan",
+    "myTasks": "Taskurile mele de azi",
+    "deadlines": "Termene",
+    "quickNote": "Notiță rapidă",
+    "suggestedLeads": "Lead-uri sugerate",
+    "funnel": "Pâlnia pe 30 de zile",
+    "yearGrid": "Încasările pe un an",
+    "newTenders": "Licitații noi"
+  },
+  "catalog": {
+    "title": "Adaugă un widget",
+    "add": "Adaugă",
+    "added": "Adăugat",
+    "collected": "Suma încasată luna asta, cu diferența față de aceleași zile din luna trecută.",
+    "revenue": "Încasările pe zile, cu ziua de azi, vârful lunii și estimarea până la final.",
+    "today": "Ce mai ai azi în calendar.",
+    "toResolve": "Alertele active și programările noi.",
+    "unreadMessages": "Conversațiile cu mesaje necitite.",
+    "email": "Ultimele fire din inbox.",
+    "pinnedNote": "Notițele fixate.",
+    "platformStatus": "Dacă platformele răspund.",
+    "receivable": "Cât ai de încasat și cât din asta e restant.",
+    "expensesByCategory": "Unde au plecat banii luna asta, pe categorii.",
+    "planNext": "Primul obiectiv neatins din Plan, cu progresul lui.",
+    "myTasks": "Taskurile tale cu termen azi.",
+    "deadlines": "Scadențe de facturi, declarații și tokenul ANAF.",
+    "quickNote": "Scrii o notiță fără să deschizi Notițele.",
+    "suggestedLeads": "Prospecții cu cel mai mare scor.",
+    "funnel": "Câți prospecți au ajuns la fiecare etapă în ultimele 30 de zile.",
+    "yearGrid": "Fiecare zi din ultimul an, cu cât s-a încasat.",
+    "newTenders": "Licitațiile apărute în ultima săptămână."
+  },
+  "sizes": {
+    "s": "Mic",
+    "w": "Lat",
+    "l": "Mare",
+    "band": "Bandă"
+  },
+  "edit": {
+    "start": "Editează",
+    "done": "Gata",
+    "add": "Adaugă un widget",
+    "reset": "Revino la așezarea firmei",
+    "notSaved": "Așezarea nu a fost salvată. Încercați din nou.",
+    "size": "Mărimea pentru {{widget}}",
+    "move": "Mută {{widget}}",
+    "remove": "Scoate {{widget}}"
+  },
+  "grid": {
+    "label": "Widget-urile tale",
+    "empty": "Grila e goală. Adaugă primul widget din catalog."
+  },
+  "window": {
+    "label": "Rezumatul zilei",
+    "weather": {
+      "clear": "Senin. Nimic nu cere atenție azi.",
+      "one": "Senin. Un singur nor: {{first}}.",
+      "several": "Înnorat: {{count}} lucruri cer atenție, primul e {{first}}.",
+      "storm": "Furtună: {{first}}."
+    },
+    "cloud": {
+      "critical": "o alertă critică",
+      "warning": "o alertă de atenție",
+      "overdue": "o factură restantă",
+      "deadline": "un termen în următoarele trei zile",
+      "booking": "o programare nouă"
+    },
+    "needsAttention_one": "lucru cere atenție azi",
+    "needsAttention_few": "lucruri cer atenție azi",
+    "needsAttention_other": "de lucruri cer atenție azi"
+  },
+  "figures": {
+    "label": "Cifrele lunii",
+    "invoiced": "Facturat",
+    "toCollect": "De încasat",
+    "mrr": "Venit recurent lunar"
+  },
+  "inspector": {
+    "open": "Vezi lista",
+    "collected": "Facturile emise în {{monthName}} și încasate, în moneda afișată. Comparația e cu aceleași zile din luna trecută.",
+    "invoiced": "Toate facturile emise în {{monthName}}, încasate sau nu, fără ciorne și proforme.",
+    "toCollect": "Facturat minus încasat în {{monthName}}: ce mai au clienții de plătit din luna asta.",
+    "mrr": "Abonamentele active ale clienților, aduse la echivalentul lunar (cele anuale împărțite la 12)."
+  },
+  "next": {
+    "label": "Următorul pas",
+    "open": "Deschide"
+  },
+  "deadlines": {
+    "kind": {
+      "invoice_due": "Scadență",
+      "declaration": "Declarație",
+      "anaf_token": "Token ANAF"
+    },
+    "open": "Facturile",
+    "none": "Niciun termen în perioada următoare.",
+    "today": "azi",
+    "inDays_one": "mâine",
+    "inDays_few": "în {{count}} zile",
+    "inDays_other": "în {{count}} de zile",
+    "overdueDays_one": "restant de {{count}} zi",
+    "overdueDays_few": "restant de {{count}} zile",
+    "overdueDays_other": "restant de {{count}} de zile",
+    "total_one": "{{count}} termen",
+    "total_few": "în total {{count}} termene",
+    "total_other": "în total {{count}} de termene"
+  },
+  "receivable": {
+    "open": "Facturile",
+    "nothingOpen": "Nu ai nimic de încasat acum.",
+    "toCollect": "De încasat",
+    "overdue": "Restant",
+    "overdueOfOpen": "restant, din {{open}} de încasat",
+    "noneOverdue": "de încasat, nimic restant"
+  },
+  "expenses": {
+    "none": "Nicio cheltuială luna asta.",
+    "uncategorized": "Necategorizat",
+    "rest": "Restul"
+  },
+  "planNext": {
+    "open": "Planul",
+    "none": "Nu ai niciun obiectiv deschis în Plan."
+  },
+  "tasks": {
+    "open": "Taskurile",
+    "none": "Niciun task pentru azi. Adaugă unul din fișa unui prospect.",
+    "noneToday": "Niciun task azi",
+    "overdue_one": "{{count}} task restant",
+    "overdue_few": "{{count}} taskuri restante",
+    "overdue_other": "{{count}} de taskuri restante"
+  },
+  "quickNote": {
+    "placeholder": "Scrie ce nu vrei să uiți",
+    "saved": "Notiță salvată.",
+    "failed": "Notița nu s-a salvat.",
+    "label": "Textul notiței"
+  },
+  "leads": {
+    "open": "Deschide Clienți",
+    "none": "Niciun prospect cu scor încă. Scorul apare după import."
+  },
+  "funnel": {
+    "open": "Deschide rapoartele",
+    "none": "Nicio mișcare în pâlnie în ultimele 30 de zile."
+  },
+  "yearGrid": {
+    "total": "{{total}} încasați în ultimul an"
+  },
+  "tenders": {
+    "open": "Deschide licitațiile",
+    "none_one": "Nicio licitație nouă în ultima zi.",
+    "none_few": "Nicio licitație nouă în ultimele {{count}} zile.",
+    "none_other": "Nicio licitație nouă în ultimele {{count}} de zile.",
+    "until": "până la {{date}}"
+  },
+  "payment": {
+    "received": "Plată primită",
+    "amount": "Încasarea a crescut cu {{value}}."
   }
 }

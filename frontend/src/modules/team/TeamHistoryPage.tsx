@@ -86,7 +86,7 @@ export function TeamHistoryPage() {
   ].filter((f): f is { key: string; label: string } => f !== null)
 
   return (
-    <div className="space-y-6" data-density="comfortable">
+    <div className="space-y-6">
       <PageHeader title={t('common:nav.history')} description={t('team:history.description')} />
 
       <div className="flex flex-wrap items-end gap-2">

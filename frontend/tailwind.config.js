@@ -5,17 +5,36 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        // Cifre, date, coduri document (sumă, MRR, timestamp, FV-2041) — Contractul G.
+        sans: ['Onest', 'system-ui', 'sans-serif'],
+        // Codes only: CUI, IBAN, document numbers, keys (DESIGN.md). Not every number.
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
+      letterSpacing: {
+        title: '-0.02em',
+      },
+      spacing: {
+        // Page margins of the airy density: 28 / 20 (20 on a phone).
+        'page-x': 'var(--page-x)',
+        'page-y': 'var(--page-y)',
+      },
+      fontSize: {
+        // The style's sizes outside Tailwind's scale: table row 13.5, button 13 (row actions).
+        row: ['13.5px', '1.4'],
+        btn: ['13px', '1.25'],
+        // Decimals of an amount at 0.73 of the figure (Mercury), so the whole part reads first.
+        fraction: '0.73em',
+        // The one figure of Home.
+        figure: ['2rem', '1.15'],
+      },
       height: {
+        row: 'var(--row-h)',
         'control-sm': 'var(--control-sm)',
         'control-md': 'var(--control-md)',
         'control-lg': 'var(--control-lg)',
       },
       minHeight: {
         'control-md': 'var(--control-md)',
+        row: 'var(--row-h)',
       },
       width: {
         'control-sm': 'var(--control-sm)',
@@ -26,6 +45,14 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        'border-strong': 'hsl(var(--border-strong))',
+        'text-3': 'hsl(var(--text-3))',
+        glow: {
+          DEFAULT: 'hsl(var(--glow))',
+          ink: 'hsl(var(--glow-ink))',
+        },
+        brand: 'hsl(var(--brand))',
+        zebra: 'hsl(var(--zebra))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {
@@ -95,13 +122,14 @@ export default {
           foreground: 'hsl(var(--popover-foreground))',
         },
       },
+      // The style's three radii: small 4, control 6, panel 10.
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        lg: '10px',
+        md: '6px',
+        sm: '4px',
       },
       transitionTimingFunction: {
-        'out-strong': 'cubic-bezier(0.23, 1, 0.32, 1)',
+        'out-strong': 'cubic-bezier(0.22, 1, 0.36, 1)',
         'in-out-strong': 'cubic-bezier(0.77, 0, 0.175, 1)',
         drawer: 'var(--ease-drawer)',
       },
@@ -112,6 +140,7 @@ export default {
       },
       boxShadow: {
         glow: '0 0 0 1px hsl(var(--glow) / 0.45), 0 0 24px -4px hsl(var(--glow) / 0.45)',
+        float: 'var(--shadow-l)',
       },
     },
   },

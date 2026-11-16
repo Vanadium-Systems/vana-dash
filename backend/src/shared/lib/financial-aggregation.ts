@@ -1,6 +1,6 @@
 import { and, eq, gte, isNotNull, isNull, lte, ne, sql } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { billingClients, financialRecords } from '../db/schema/index.js'
+import { billingClients, financialRecords, platforms } from '../db/schema/index.js'
 import { getRateForDate } from './bnr.js'
 import type { PeriodRange } from './period.js'
 import { displayMoney } from './display-money.js'
@@ -16,17 +16,35 @@ import { displayAmountSql } from './sql-fx.js'
  * originală, doar mutată aici.
  */
 
-function baseFilters(range: PeriodRange) {
+/** A click on a breakdown row narrows the whole Financials page to that slice. */
+export interface RecordFilter {
+  kind: 'category' | 'platform' | 'client'
+  id: string
+}
+
+// One key per client, whether the record is linked to a billing client or only names the counterparty.
+const clientKey = sql<string>`COALESCE(${financialRecords.billingClientId}::text, ${financialRecords.counterpartyCif}, ${financialRecords.counterpartyName}, '-')`
+const categoryKey = sql<string>`COALESCE(${financialRecords.category}, 'necategorizat')`
+
+function filterSql(filter?: RecordFilter) {
+  if (!filter) return []
+  if (filter.kind === 'category') return [sql`${categoryKey} = ${filter.id}`]
+  if (filter.kind === 'platform') return [sql`${financialRecords.platformId}::text = ${filter.id}`]
+  return [sql`${clientKey} = ${filter.id}`]
+}
+
+function baseFilters(range: PeriodRange, filter?: RecordFilter) {
   return [
     isNull(financialRecords.deletedAt),
     // A proforma is an offer, not revenue.
     ne(financialRecords.type, 'proforma'),
     gte(financialRecords.issuedAt, range.from),
     lte(financialRecords.issuedAt, range.to),
+    ...filterSql(filter),
   ]
 }
 
-export async function getPnlByMonth(range: PeriodRange) {
+export async function getPnlByMonth(range: PeriodRange, filter?: RecordFilter) {
   const month = sql<string>`TO_CHAR(DATE_TRUNC('month', ${financialRecords.issuedAt}) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`
   const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
 
@@ -38,14 +56,14 @@ export async function getPnlByMonth(range: PeriodRange) {
       total: sql<number>`SUM(${displayAmount})::float`,
     })
     .from(financialRecords)
-    .where(and(...baseFilters(range)))
+    .where(and(...baseFilters(range, filter)))
     .groupBy(month, financialRecords.direction, financialRecords.paymentStatus)
     .orderBy(month)
 }
 
-export async function getPnlByCategory(range: PeriodRange) {
+export async function getPnlByCategory(range: PeriodRange, filter?: RecordFilter) {
   const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
-  const category = sql<string>`COALESCE(${financialRecords.category}, 'necategorizat')`
+  const category = categoryKey
 
   return db
     .select({
@@ -55,12 +73,12 @@ export async function getPnlByCategory(range: PeriodRange) {
       total: sql<number>`SUM(${displayAmount})::float`,
     })
     .from(financialRecords)
-    .where(and(...baseFilters(range)))
+    .where(and(...baseFilters(range, filter)))
     .groupBy(category, financialRecords.direction, financialRecords.paymentStatus)
     .orderBy(sql`SUM(${displayAmount}) DESC`)
 }
 
-export async function getCashflowByStatus(range: PeriodRange) {
+export async function getCashflowByStatus(range: PeriodRange, filter?: RecordFilter) {
   const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
   return db
     .select({
@@ -70,7 +88,7 @@ export async function getCashflowByStatus(range: PeriodRange) {
       count: sql<number>`COUNT(*)::int`,
     })
     .from(financialRecords)
-    .where(and(...baseFilters(range)))
+    .where(and(...baseFilters(range, filter)))
     .groupBy(financialRecords.direction, financialRecords.paymentStatus)
 }
 
@@ -79,7 +97,7 @@ export async function getCashflowByStatus(range: PeriodRange) {
  * `reports/period-comparison` pt. comparație side-by-side pe două intervale. Un singur rând,
  * SUM condiționat pe direcție (regula #9 CLAUDE.md — agregare SQL, nu JS).
  */
-export async function getPnlTotals(range: PeriodRange) {
+export async function getPnlTotals(range: PeriodRange, filter?: RecordFilter) {
   const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
   const [row] = await db
     .select({
@@ -87,7 +105,7 @@ export async function getPnlTotals(range: PeriodRange) {
       expense: sql<number>`COALESCE(SUM(CASE WHEN ${financialRecords.direction} = 'in' THEN ${displayAmount} ELSE 0 END), 0)::float`,
     })
     .from(financialRecords)
-    .where(and(...baseFilters(range)))
+    .where(and(...baseFilters(range, filter)))
 
   const revenue = row?.revenue ?? 0
   const expense = row?.expense ?? 0
@@ -129,6 +147,69 @@ export async function getDailyPaidRevenue(range: PeriodRange) {
     )
     .groupBy(day)
     .orderBy(day)
+}
+
+/** Revenue issued per client in the period, largest first (the ranked bars on Financials). */
+export async function getRevenueByClient(range: PeriodRange, filter?: RecordFilter, limit = 10) {
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
+  return db
+    .select({
+      id: clientKey,
+      name: sql<string>`COALESCE(MAX(${billingClients.name}), MAX(${financialRecords.counterpartyName}), '-')`,
+      total: sql<number>`SUM(${displayAmount})::float`,
+    })
+    .from(financialRecords)
+    .leftJoin(billingClients, eq(billingClients.id, financialRecords.billingClientId))
+    .where(and(...baseFilters(range, filter), eq(financialRecords.direction, 'out')))
+    .groupBy(clientKey)
+    .orderBy(sql`SUM(${displayAmount}) DESC`)
+    .limit(limit)
+}
+
+/** Revenue issued per platform; records with no platform are one row with a null id. */
+export async function getRevenueByPlatform(range: PeriodRange, filter?: RecordFilter) {
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
+  return db
+    .select({
+      id: financialRecords.platformId,
+      name: sql<string | null>`MAX(${platforms.name})`,
+      total: sql<number>`SUM(${displayAmount})::float`,
+    })
+    .from(financialRecords)
+    .leftJoin(platforms, eq(platforms.id, financialRecords.platformId))
+    .where(and(...baseFilters(range, filter), eq(financialRecords.direction, 'out')))
+    .groupBy(financialRecords.platformId)
+    .orderBy(sql`SUM(${displayAmount}) DESC`)
+}
+
+/**
+ * Collected revenue (issued, paid) per day, week or month, the buckets cut in the company's time
+ * zone so "today" is the company's today. Dates come back as YYYY-MM-DD (the bucket's first day).
+ */
+export async function getPaidRevenueBuckets(
+  range: PeriodRange,
+  granularity: 'day' | 'week' | 'month',
+  timeZone: string,
+  filter?: RecordFilter,
+) {
+  const bucket = sql<string>`TO_CHAR(DATE_TRUNC(${granularity}, ${financialRecords.issuedAt} AT TIME ZONE ${timeZone}), 'YYYY-MM-DD')`
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
+  return db
+    .select({ date: bucket, value: sql<number>`SUM(${displayAmount})::float` })
+    .from(financialRecords)
+    .where(and(...baseFilters(range, filter), eq(financialRecords.direction, 'out'), eq(financialRecords.paymentStatus, 'paid')))
+    // By position: the bucket expression has bound parameters, so Postgres would not match a repeated copy.
+    .groupBy(sql`1`)
+    .orderBy(sql`1`)
+}
+
+export async function getPaidRevenueTotal(range: PeriodRange, filter?: RecordFilter): Promise<number> {
+  const displayAmount = displayAmountSql(financialRecords.amount, financialRecords.currency, financialRecords.issuedAt, (await displayMoney()).currency)
+  const [row] = await db
+    .select({ total: sql<number>`COALESCE(SUM(${displayAmount}), 0)::float` })
+    .from(financialRecords)
+    .where(and(...baseFilters(range, filter), eq(financialRecords.direction, 'out'), eq(financialRecords.paymentStatus, 'paid')))
+  return row?.total ?? 0
 }
 
 export async function getCurrentMrr() {

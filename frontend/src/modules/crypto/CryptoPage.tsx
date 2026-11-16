@@ -522,7 +522,7 @@ export function CryptoPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-8" />
+                            <TableHead className="w-8 pl-1 pr-0" />
                             <TableHead>{t('crypto:market.coin')}</TableHead>
                             <TableHead className="text-right">{t('common:labels.price')}</TableHead>
                             <TableHead className="text-right">24h</TableHead>
@@ -539,7 +539,8 @@ export function CryptoPage() {
                               onClick={() => void navigate(`/crypto/coin/${coin.id}`)}
                               data-testid="crypto-market-row"
                             >
-                              <TableCell>
+                              {/* The star needs no row padding; at 360px the 12px saved keep the table inside the card. */}
+                              <TableCell className="w-8 pl-1 pr-0">
                                 <button
                                   type="button"
                                   aria-label={isWatched('cex', coin.id) ? t('crypto:favorites.remove') : t('crypto:favorites.add')}

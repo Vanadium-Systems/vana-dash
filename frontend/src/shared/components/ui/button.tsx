@@ -9,17 +9,17 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        outline: 'border border-border bg-background hover:bg-accent hover:text-accent-foreground',
+        outline: 'border border-border-strong bg-card hover:bg-accent hover:text-accent-foreground',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
       },
-      // Înălțimile vin din --control-* (DESIGN.md); data-density="comfortable" le urcă o treaptă.
+      // Heights come from --control-* (DESIGN.md): md 36 everywhere (40 on a phone). `sm` and
+      // `icon-sm` (32) are for the actions on a table row only.
       size: {
-        sm: 'h-control-sm px-2 text-xs',
-        md: 'h-control-md px-3',
+        sm: 'h-control-sm px-2.5 text-btn',
+        md: 'h-control-md px-3.5',
         lg: 'h-control-lg px-4',
         icon: 'h-control-md w-control-md',
-        // Iconițe în bare de unelte și rânduri dense (selecție în email, comutatorul listă/grilă).
         'icon-sm': 'h-control-sm w-control-sm',
       },
     },

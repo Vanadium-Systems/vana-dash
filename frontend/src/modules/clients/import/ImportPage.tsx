@@ -86,7 +86,7 @@ export function ImportPage() {
   }
 
   return (
-    <div data-density="comfortable" className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader
         title={t('clients:import.title')}
         description={t('clients:import.description')}

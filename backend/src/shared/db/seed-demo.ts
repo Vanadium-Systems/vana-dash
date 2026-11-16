@@ -147,7 +147,18 @@ const [managerRole] = await db.select().from(roles).where(eq(roles.name, 'Manage
 const [ana, mihai] = await db
   .insert(users)
   .values([
-    { email: 'ana@example.com', passwordHash: demoPasswordHash, displayName: 'Ana Popescu', roleId: salesRole!.id, lastSeenAt: daysAgo(0, 8), locale },
+    { email: 'ana@example.com', passwordHash: demoPasswordHash, displayName: 'Ana Popescu', roleId: salesRole!.id,
+      lastSeenAt: daysAgo(0, 8),
+      locale,
+      // Her own Home: only widgets her role can see (see modules/overview/widgets.ts).
+      homeLayout: [
+        { widget: 'today', size: 'w', order: 0 },
+        { widget: 'my_tasks', size: 'w', order: 1 },
+        { widget: 'unread_messages', size: 's', order: 2 },
+        { widget: 'email', size: 'w', order: 3 },
+        { widget: 'suggested_leads', size: 'w', order: 4 },
+      ],
+    },
     { email: 'mihai@example.com', passwordHash: demoPasswordHash, displayName: 'Mihai Ionescu', roleId: managerRole?.id ?? null, lastSeenAt: daysAgo(2), locale },
   ])
   .returning()
@@ -339,6 +350,9 @@ const stateRows = await db
     stateRow(2, 25, '900.00', { documentNumber: splitNumber, paymentStatus: 'paid', paidAt: daysAgo(12) }),
     stateRow(0, 8, '1100.00', { documentNumber: nextNumber(), anafStatus: 'rejected' }),
     stateRow(1, 15, '750.00', { documentNumber: nextNumber(), anafStatus: 'validated' }),
+    // Due in 2 days (Home "deadlines") and a plainly overdue one (Home "to collect").
+    stateRow(3, 12, '1800.00', { documentNumber: nextNumber() }),
+    stateRow(4, 30, '1250.00', { documentNumber: nextNumber() }),
     {
       ...stateRow(2, 4, '600.00', { documentNumber: 'PRO-0001' }),
       type: 'proforma' as const,
@@ -434,6 +448,41 @@ await db.insert(invoicePayments).values([
   { recordId: splitInvoice.id, amount: '400.00', currency: 'RON', paidAt: paidOn(daysAgo(18)), method: 'cash' as const, createdByUserId: admin.id },
   { recordId: splitInvoice.id, amount: '500.00', currency: 'RON', paidAt: paidOn(splitInvoice.paidAt), method: 'bank' as const, reference: 'DEMO-TX-2', createdByUserId: admin.id },
 ])
+
+// A month that looks ordinary: one paid invoice per working day for 90 days, one empty weekday
+// and one clear peak (about 3x the average) in each of the last three months.
+const workdays = Array.from({ length: 90 }, (_, d) => d).filter((d) => ![0, 6].includes(daysAgo(d).getUTCDay()))
+const emptyDay = workdays.find((d) => d >= 3)
+const peakDays = new Set([9, 39, 69].map((from) => workdays.find((d) => d >= from)))
+const dailyRows = workdays
+  .filter((d) => d !== emptyDay)
+  .map((d, i) => {
+    const paidAt = daysAgo(d, 11)
+    const issuedAt = new Date(paidAt.getTime() - 4 * DAY)
+    const amount = peakDays.has(d) ? 2700 : 900 + wobble(i, 250)
+    const client = clients[i % clients.length]!
+    return {
+      type: 'invoice' as const,
+      direction: 'out' as const,
+      amount: amount.toFixed(2),
+      currency: 'RON',
+      description: L({ ro: `Servicii ${client.name}`, en: `Services ${client.name}` }),
+      issuedAt,
+      dueAt: new Date(issuedAt.getTime() + 10 * DAY),
+      paidAt,
+      paymentStatus: 'paid' as const,
+      documentNumber: nextNumber(),
+      billingClientId: client.id,
+      counterpartyName: client.name,
+      counterpartyCif: client.cif,
+      source: 'demo',
+      createdByUserId: admin.id,
+    }
+  })
+const dailyInvoices = await db.insert(financialRecords).values(dailyRows).returning()
+await db.insert(invoicePayments).values(
+  dailyInvoices.map((r) => ({ recordId: r.id, amount: r.amount, currency: r.currency, paidAt: paidOn(r.paidAt), method: 'bank' as const, createdByUserId: admin.id })),
+)
 
 // ── Prospects ────────────────────────────────────────────────────────────────
 
@@ -1066,6 +1115,11 @@ const [rule] = await db
   .values({ name: L({ ro: 'Venit zilnic sub 1000 RON', en: 'Daily revenue below 1000 RON' }), metricKey: 'revenue', condition: 'lt', threshold: '1000', windowHours: 24, severity: 'warning', platformId: platform!.id, createdByUserId: admin.id })
   .returning()
 await db.insert(alerts).values({ ruleId: rule!.id, severity: 'warning', message: L({ ro: 'Venit zilnic sub 1000 RON pe Acme Platform (demo)', en: 'Daily revenue below 1000 RON on Acme Platform (demo)' }), triggeredAt: daysAgo(1, 7) })
+const [criticalRule] = await db
+  .insert(alertRules)
+  .values({ name: L({ ro: 'Nicio sincronizare în 24 de ore', en: 'No sync in 24 hours' }), metricKey: 'sync_age_hours', condition: 'gt', threshold: '24', windowHours: 24, severity: 'critical', platformId: platform!.id, createdByUserId: admin.id })
+  .returning()
+await db.insert(alerts).values({ ruleId: criticalRule!.id, severity: 'critical', message: L({ ro: 'Acme Platform nu s-a sincronizat de peste 24 de ore', en: 'Acme Platform has not synced in over 24 hours' }), triggeredAt: daysAgo(0, 6) }) // slop-ok: invented demo company, the repo's rule for demo data
 
 const [ticket] = await db
   .insert(supportTickets)
@@ -1205,6 +1259,7 @@ const taskRows = await db
     task(ana!.id, prospectAt(8).id, 'meeting', L({ ro: 'Vizită la depozit', en: 'Visit the warehouse' }), inDays(3, 10)),
     // Admin
     task(admin.id, prospectAt(0).id, 'call', callTitle(prospectAt(0).name), daysAgo(3, 9), { priority: 'high' }),
+    task(admin.id, prospectAt(5).id, 'email', L({ ro: 'Confirmă contractul semnat', en: 'Confirm the signed contract' }), daysAgo(0, 9), { priority: 'medium' }),
     task(admin.id, prospectAt(2).id, 'task', L({ ro: 'Pregătește contractul-cadru', en: 'Prepare the framework contract' }), daysAgo(0, 14)),
     task(admin.id, prospectAt(6).id, 'call', callTitle(prospectAt(6).name), inDays(5, 10), { priority: 'low' }),
     task(admin.id, prospectAt(0).id, 'call', callTitle(prospectAt(0).name), daysAgo(1, 9), {

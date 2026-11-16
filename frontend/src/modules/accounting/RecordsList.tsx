@@ -139,7 +139,7 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
           {tabs.map((entry) => (
             <TabsTrigger key={entry} value={entry} data-testid={`records-tab-${entry}`}>
               {t(`accounting:records.tabs.${direction}.${entry}` as const)}
-              {list.data ? <span className="ml-1.5 tnum text-xs text-muted-foreground">{formatNumber(list.data.counts[entry])}</span> : null}
+              {list.data ? <span className="ml-1.5 text-xs text-muted-foreground">{formatNumber(list.data.counts[entry])}</span> : null}
             </TabsTrigger>
           ))}
         </TabsList>

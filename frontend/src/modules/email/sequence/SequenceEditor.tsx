@@ -121,7 +121,7 @@ export function SequenceEditor({ sequence, onClose }: SequenceEditorProps) {
   )
 
   return (
-    <div className="space-y-4" data-density="comfortable">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="ghost" onClick={leave}>
           <ArrowLeft aria-hidden="true" /> {t('email:sequences.editor.back')}

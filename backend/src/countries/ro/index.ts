@@ -14,6 +14,17 @@ export const ro: CountryPack = {
     return { name: info.name, address: info.address, caen: info.caen, isActive: info.stare === 'activ' }
   },
 
+  // D301 and D390 for month M are due on the 25th of M+1. Three periods back, so a missed one
+  // stays visible as overdue for about two months.
+  declarationDeadlines(now) {
+    return [0, 1, 2].flatMap((back) => {
+      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - back, 1))
+      const period = start.toISOString().slice(0, 7)
+      const dueAt = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 25))
+      return (['D301', 'D390'] as const).map((code) => ({ code, period, dueAt }))
+    })
+  },
+
   sellerAddress(office) {
     const missing: CompanyField[] = []
     if (!office.county.trim()) missing.push('county')

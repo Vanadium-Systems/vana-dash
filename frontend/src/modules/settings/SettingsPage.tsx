@@ -55,7 +55,7 @@ export function SettingsPage() {
   // funcționalitatea lui, deci un rol fără una nu vede un card gol (PLAN.md C2).
   const { can } = useMe()
   return (
-    <div className="space-y-6" data-density="comfortable">
+    <div className="space-y-6">
       <PageHeader title={t('common:nav.settings')} />
       {can('setari.firma') ? <CompanyProfileCard /> : null}
       {can('clienti.view') ? <ClientsSettings /> : null}

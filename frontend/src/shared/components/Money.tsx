@@ -15,6 +15,8 @@ interface MoneyProps extends MoneyAmount {
   hide?: boolean
   /** Color by sign and a leading "+" on positive amounts. */
   sign?: boolean
+  /** Tabular figures, for amounts compared down a column (the default). A lone figure reads better without. */
+  tabular?: boolean
   className?: string
 }
 
@@ -24,13 +26,13 @@ function Figure({ amount, currency, plus }: MoneyAmount & { plus?: boolean }) {
     <>
       {plus ? '+' : null}
       {whole}
-      {fraction ? <span className="text-[0.8em] text-muted-foreground">{fraction}</span> : null}
+      {fraction ? <span className="text-fraction text-muted-foreground">{fraction}</span> : null}
       {suffix}
     </>
   )
 }
 
-export function Money({ amount, currency, secondary, hide, sign, className }: MoneyProps) {
+export function Money({ amount, currency, secondary, hide, sign, tabular = true, className }: MoneyProps) {
   const { session } = useMe()
   if (hide ?? session?.hideAmounts) {
     return (
@@ -41,7 +43,7 @@ export function Money({ amount, currency, secondary, hide, sign, className }: Mo
   }
   const value = Number(amount)
   return (
-    <span className={cn('tnum whitespace-nowrap', sign && value > 0 && 'text-success-text', sign && value < 0 && 'text-destructive-text', className)}>
+    <span className={cn(tabular && 'tnum', 'whitespace-nowrap', sign && value > 0 && 'text-success-text', sign && value < 0 && 'text-destructive-text', className)}>
       <Figure amount={amount} currency={currency} plus={sign && value > 0} />
       {secondary ? (
         <span className="block text-xs text-muted-foreground">

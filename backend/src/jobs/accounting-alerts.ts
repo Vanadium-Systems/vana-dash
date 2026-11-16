@@ -37,7 +37,7 @@ const UNMATCHED_TXN_DAYS = 7
 // la fiecare refresh reușit, comportament OAuth comun). Dacă presupunerea
 // asta se dovedește greșită empiric, e nevoie de o coloană dedicată — nu o
 // adăugăm aici, doar semnalăm limitarea (vezi raportul de sprint).
-const ANAF_REFRESH_TOKEN_LIFETIME_DAYS = 365
+export const ANAF_REFRESH_TOKEN_LIFETIME_DAYS = 365
 const ANAF_REFRESH_TOKEN_WARNING_DAYS = 30
 const REVOLUT_REFRESH_TOKEN_LIFETIME_DAYS = 90
 const REVOLUT_REFRESH_TOKEN_WARNING_DAYS = 7 // fereastră 4x mai mică decât ANAF → prag proporțional mai mic

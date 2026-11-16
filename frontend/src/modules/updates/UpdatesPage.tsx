@@ -34,7 +34,7 @@ export function UpdatesPage() {
   }, [sessionLoaded])
 
   return (
-    <div className="max-w-2xl space-y-6" data-density="comfortable">
+    <div className="max-w-2xl space-y-6">
       <PageHeader title={t('common:nav.updates')} description={t('updates:description')} />
       {releases.length === 0 ? (
         <EmptyState kind="new" title={t('updates:empty')} />

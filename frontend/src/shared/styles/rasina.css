@@ -1,0 +1,86 @@
+/* The resin (DESIGN.md "Two layers"): translucent material with light poured into it. Allowed only
+   on the active nav item, popups, the "Următorul pas" card and the button on the Home window.
+   From the style's rasina-turnari.css, the eight pourings Stefan picked on 2026-11-13. Each piece
+   gets a model and a pouring (position, angle, size) from a seed of its content
+   (`shared/lib/rasina.ts`), so it looks the same on every load and two neighbours differ.
+   The light comes from --c1..--c4 (index.css; Home rewrites them after the time of day). */
+.rz {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  --i: var(--resin-i, 0.75);
+  --k: var(--resin-k, 1);
+  --lit: 0.5;
+}
+.rz:hover,
+.rz:focus-visible,
+.rz.lit {
+  --lit: 1;
+}
+.rz::before,
+.rz::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  transition: opacity 0.9s var(--ease-mercury);
+}
+/* Breathing (18s) only at full motion; reduced and off keep the material still. */
+[data-motion='full'] .rz::before {
+  animation: rz-breathe 18s ease-in-out var(--dl, 0s) infinite alternate;
+}
+@keyframes rz-breathe {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(3%, -2%) scale(1.04); }
+  100% { transform: translate(-2%, 2%) scale(0.98); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rz::before { animation: none !important; }
+}
+
+/* 1 · Nor + dâră (ce e acum în skill), ca reper */
+.rz-s1::before{inset:-30%;filter:blur(26px);opacity:calc(var(--i)*.55*var(--lit)*var(--k));
+  background:radial-gradient(38% 46% at var(--x) var(--y),var(--c1),transparent 70%),radial-gradient(34% 40% at calc(100% - var(--x)) 40%,var(--c2),transparent 70%),radial-gradient(42% 48% at 82% calc(100% - var(--y)),var(--c3),transparent 72%)}
+.rz-s1::after{inset:-20%;filter:blur(16px);opacity:calc(var(--i)*.5*var(--lit)*var(--k));
+  background:linear-gradient(var(--a),transparent 36%,var(--c3) 44%,transparent 50%,var(--c1) 58%,var(--c2) 64%,transparent 74%)}
+
+/* 2 · Straturi: turnată în mai multe reprize, fiecare cu altă culoare, ca sedimentele */
+.rz-s2::before{inset:-10%;filter:blur(7px);opacity:calc(var(--i)*.6*var(--lit)*var(--k));transform:rotate(calc(var(--a) - 100deg));
+  background:linear-gradient(180deg,transparent 0 calc(var(--y) - 30%),var(--c1) calc(var(--y) - 22%),transparent calc(var(--y) - 12%),var(--c2) calc(var(--y) - 4%),transparent calc(var(--y) + 6%),var(--c3) calc(var(--y) + 16%),var(--c4) calc(var(--y) + 30%))}
+.rz-s2::after{inset:0;opacity:calc(var(--i)*.7*var(--lit));transform:rotate(calc(var(--a) - 100deg)) scale(1.3);
+  background:linear-gradient(180deg,transparent calc(var(--y) - 4.4%),rgba(255,255,255,.7) calc(var(--y) - 4%),transparent calc(var(--y) - 3.4%))}
+
+/* 3 · Miez: lumina stă într-un punct din adânc și se stinge spre margini; marginea prinde un fir de lumină */
+.rz-s3::before{inset:-20%;filter:blur(10px);opacity:calc(var(--i)*.75*var(--lit)*var(--k));
+  background:radial-gradient(calc(18% * var(--s)) calc(22% * var(--s)) at var(--x) var(--y),#fff,var(--c1) 30%,var(--c2) 55%,transparent 80%),radial-gradient(70% 80% at var(--x) var(--y),color-mix(in oklab,var(--c3) 50%,transparent),transparent 75%)}
+.rz-s3::after{inset:0;opacity:calc(var(--i)*.8*var(--lit));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--c4) 45%,transparent),inset 0 0 22px -8px var(--c2)}
+
+/* 4 · Vârtej: culorile s-au amestecat la turnare și au rămas marmorate */
+.rz-s4::before{inset:-40%;filter:blur(18px);opacity:calc(var(--i)*.55*var(--lit)*var(--k));
+  background:conic-gradient(from var(--a) at var(--x) var(--y),var(--c1),var(--c3) 22%,transparent 30%,var(--c2) 45%,var(--c4) 58%,transparent 66%,var(--c3) 80%,var(--c1))}
+.rz-s4::after{inset:-40%;filter:blur(3px);opacity:calc(var(--i)*.35*var(--lit));mix-blend-mode:soft-light;
+  background:repeating-conic-gradient(from calc(var(--a) + 20deg) at var(--x) var(--y),transparent 0 9deg,rgba(255,255,255,.8) 10deg,transparent 12deg 40deg)}
+
+/* 5 · Picătura: lumina curge de sus, ca rășina care încă se scurge; un menisc luminos pe muchie */
+.rz-s5::before{inset:-10%;filter:blur(12px);opacity:calc(var(--i)*.7*var(--lit)*var(--k));
+  background:radial-gradient(calc(14% * var(--s)) 85% at var(--x) 0%,var(--c4),var(--c1) 25%,var(--c2) 55%,transparent 80%),radial-gradient(calc(8% * var(--s)) 45% at calc(var(--x) + 22%) 0%,var(--c3),transparent 80%)}
+.rz-s5::after{left:0;right:0;top:0;height:2px;border-radius:0;opacity:calc(var(--i)*.9*var(--lit));
+  background:radial-gradient(40% 100% at var(--x) 0%,#fff,var(--c1) 40%,transparent 80%)}
+
+/* 7 · Înghețată: suprafață mată (granulată), lumina urcă din muchia de jos */
+.rz-s7::before{inset:0;opacity:calc(var(--i)*.7*var(--lit)*var(--k));
+  background:radial-gradient(90% calc(60% * var(--s)) at var(--x) 115%,var(--c2),var(--c3) 40%,transparent 75%),linear-gradient(0deg,color-mix(in oklab,var(--c1) 35%,transparent),transparent 40%)}
+.rz-s7::after{inset:0;opacity:calc(.12 + var(--i)*.1);mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* 8 · Două turnări: două culori care s-au întâlnit; cusătura dintre ele e linia de lumină */
+.rz-s8::before{inset:-10%;filter:blur(5px);opacity:calc(var(--i)*.55*var(--lit)*var(--k));
+  background:linear-gradient(var(--a),color-mix(in oklab,var(--c1) 80%,transparent) 0 calc(var(--y) - 4%),color-mix(in oklab,var(--c3) 80%,transparent) calc(var(--y) + 4%) 100%)}
+.rz-s8::after{inset:-10%;opacity:calc(var(--i)*.9*var(--lit));filter:blur(.6px);
+  background:linear-gradient(var(--a),transparent calc(var(--y) - .8%),#fff var(--y),transparent calc(var(--y) + .8%)),linear-gradient(var(--a),transparent calc(var(--y) - 6%),color-mix(in oklab,var(--c4) 60%,transparent) var(--y),transparent calc(var(--y) + 6%))}
+
+/* 10 · Prismă: miezul e limpede, doar muchia descompune lumina, ca la un bloc turnat */
+.rz-s10::before{inset:0;opacity:calc(var(--i)*.8*var(--lit)*var(--k));
+  background:linear-gradient(var(--a),var(--c1) 0,var(--c2) 3%,var(--c3) 6%,transparent 14%,transparent 86%,var(--c4) 94%,var(--c2) 100%)}
+.rz-s10::after{inset:0;opacity:calc(var(--i)*.6*var(--lit));box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px color-mix(in oklab,var(--c2) 35%,transparent)}

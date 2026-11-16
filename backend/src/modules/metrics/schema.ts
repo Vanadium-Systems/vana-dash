@@ -5,6 +5,7 @@ export const PeriodQuerySchema = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   platformId: z.string().uuid().optional(),
+  compare: z.union([z.literal('previous'), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional(),
 })
 
 export const SeriesQuerySchema = PeriodQuerySchema.extend({

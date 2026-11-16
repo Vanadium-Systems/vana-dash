@@ -88,7 +88,7 @@ export function ShareToMessagesDialog({ shared, onClose }: { shared: ShareRef | 
 
   return (
     <Dialog open={shared !== null} onOpenChange={(open) => !open && close()}>
-      <DialogContent data-density="comfortable">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('messages:share.title')}</DialogTitle>
         </DialogHeader>

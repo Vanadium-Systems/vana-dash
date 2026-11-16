@@ -405,7 +405,8 @@
     "collapseSidebar": "Restrânge"
   },
   "emptyState": {
-    "resetFilters": "Resetează filtrele"
+    "resetFilters": "Resetează filtrele",
+    "demoRow": "Rând de exemplu"
   },
   "audit": {
     "actions": {
@@ -610,5 +611,18 @@
   },
   "demo": {
     "banner": "Date de demonstrație"
+  },
+  "select": {
+    "search": "Caută",
+    "noMatch": "Nicio opțiune nu se potrivește"
+  },
+  "delta": {
+    "against": "față de {{period}}"
+  },
+  "charts": {
+    "estimate": "Estimare",
+    "actual": "Încasat",
+    "previous": "Perioada anterioară",
+    "current": "Perioada aleasă"
   }
 }

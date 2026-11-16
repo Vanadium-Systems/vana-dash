@@ -36,6 +36,9 @@ const TEMPLATES = [
   { id: 'tpl-b', name: 'Follow-up Acme' },
 ]
 
+// jsdom has no scrollIntoView, and the open list calls it for the active option.
+Element.prototype.scrollIntoView = vi.fn()
+
 let container: HTMLDivElement
 let root: Root
 
@@ -86,12 +89,14 @@ const render = async (value: EmailSequence | null, onClose = vi.fn()) => {
   })
 }
 
-const select = (el: HTMLSelectElement, value: string) =>
-  act(async () => {
-    const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!
-    setter.call(el, value)
-    el.dispatchEvent(new Event('change', { bubbles: true }))
-  })
+// The visible control is a combobox button; the value lives in the hidden native <select> before it.
+const nativeOf = (combo: HTMLElement) => combo.previousElementSibling as HTMLSelectElement
+const select = async (combo: HTMLElement, value: string) => {
+  const label = nativeOf(combo).querySelector(`option[value="${value}"]`)!.textContent
+  await act(async () => combo.click())
+  const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find((o) => o.textContent === label)!
+  await act(async () => option.click())
+}
 const button = (text: string) => [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(text)) as HTMLButtonElement
 const titleInputs = () => [...container.querySelectorAll<HTMLInputElement>('input[id$="-title"]')].map((i) => i.value)
 const saveButton = () => button(t('common:actions.save'))
@@ -131,7 +136,7 @@ describe('SequenceEditor reordering', () => {
 
 describe('SequenceEditor A/B variant', () => {
   const pickTemplates = async (a: string, b?: string) => {
-    const selects = () => [...container.querySelectorAll<HTMLSelectElement>('select[id$="-a"], select[id$="-b"]')]
+    const selects = () => [...container.querySelectorAll<HTMLElement>('[role="combobox"][id$="-a"], [role="combobox"][id$="-b"]')]
     await select(selects()[0]!, a)
     if (b) await select(selects()[1]!, b)
   }
@@ -166,7 +171,7 @@ describe('SequenceEditor A/B variant', () => {
     expect(button(t('email:sequences.editor.addB'))).toBeTruthy()
     // Adding it again starts empty: the old choice is not kept.
     await act(async () => button(t('email:sequences.editor.addB')).click())
-    expect(container.querySelector<HTMLSelectElement>('select[id$="-b"]')!.value).toBe('')
+    expect(nativeOf(container.querySelector<HTMLElement>('[role="combobox"][id$="-b"]')!).value).toBe('')
   })
 })
 

@@ -40,6 +40,8 @@ export interface SessionPayload {
   displayCurrencies: DisplayCurrency[]
   motionPref?: MotionPref
   hideAmounts?: boolean
+  /** A short sound when a payment comes in (off by default). */
+  soundOn?: boolean
   /** A demo install: the shell shows a permanent band. */
   isDemo?: boolean
   /** `legacy` = an old 7-day cookie, moved to long sessions with `POST /api/auth/upgrade-session`. */
@@ -635,9 +637,45 @@ export interface PnlByCategory {
   total: number
 }
 
+/** A change against the compared period: `abs` in the amount's currency, `pct` null when the previous was zero. */
+export interface Delta {
+  abs: string
+  pct: number | null
+}
+
+export interface PnlTotals {
+  revenue: number
+  expense: number
+  net: number
+}
+
+export interface PnlBreakdownRow {
+  id: string | null
+  name: string | null
+  total: number
+}
+
 export interface PnlResponse {
   byMonth: PnlByMonth[]
   byCategory: PnlByCategory[]
+  byClient?: PnlBreakdownRow[]
+  byPlatform?: PnlBreakdownRow[]
+  totals?: PnlTotals
+  /** With `?compare=`: the same figures for the compared period. */
+  previous?: Omit<PnlResponse, 'previous' | 'delta'> & { from: string; to: string }
+  delta?: { revenue: Delta; expense: Delta; net: Delta }
+}
+
+/** `/api/financials/revenue-series`: collected revenue per bucket, the running bucket and the run-rate forecast. */
+export interface RevenueSeries {
+  points: SeriesPoint[]
+  total: number
+  forecast: SeriesPoint[]
+  /** The bucket that holds today (still filling up), or null when the period is in the past. */
+  incompleteFrom: string | null
+  today: string
+  previous?: { points: SeriesPoint[]; total: number; from: string; to: string }
+  delta?: Delta
 }
 
 export interface CashflowEntry {

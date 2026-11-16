@@ -8,6 +8,7 @@ import { decryptApiKey } from '../../shared/lib/crypto.js'
 import { readDocument } from '../../shared/lib/storage.js'
 import { PaymentError } from '../../shared/lib/payments.js'
 import * as d301 from './d301.js'
+import { listDeadlines } from './deadlines.js'
 import * as monthClose from './month-close.js'
 import * as quarterlyPackage from './quarterly-package.js'
 import { getRecordDetail } from './record-detail.js'
@@ -300,6 +301,11 @@ export async function accountingRoutes(app: FastifyInstance) {
       return { success: true, data: await service.saveSpvMessage(req.params.id, req.body) }
     },
   )
+
+  server.get('/api/accounting/deadlines', { preHandler: [app.authenticate] }, async (req) => ({
+    success: true,
+    data: { items: await listDeadlines(req.me.features) },
+  }))
 
   // ── D301/D390 — taxare inversă TVA (Sprint D, Track A) ─────────────────────
   // SPV takes the ANAF PDF form, signed with a qualified certificate in Adobe Reader; there is no

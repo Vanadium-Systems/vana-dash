@@ -1,46 +1,77 @@
+/* Onest (OFL, public/fonts/OFL-onest.txt), variable 400-700, served from the app: latin and
+   latin-ext, which carries ș and ț. */
+@font-face {
+  font-family: 'Onest';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/onest-latin.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'Onest';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/onest-latin-ext.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* Monochrome on light, graphite terminal on dark. Primary is not blue: near-black on light,
-     near-white on dark. The blue #0077b6 stays in charts (the categorical palette in
-     chart-colors.ts), in the logo and favicon, and in a few accents. */
+  /* The Vanadium style (DESIGN.md): warm stone white by day, deep blue at night, the V blue on what
+     you can press, turquoise on what is lit now. Values from the skill's stil-tokens.css as HSL
+     triplets; the translucent lines are composed over the card they sit on. */
   :root {
-    --background: 0 0% 100%; /* alb pur */
-    --foreground: 0 0% 9%; /* near-black */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --background: 40 25.7% 93.1%; /* #f2efe9 */
+    --foreground: 218 15.4% 10.2%; /* #16191e */
+    --card: 45 33.3% 97.6%; /* #fbfaf7 */
+    --card-foreground: 218 15.4% 10.2%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    --primary: 0 0% 9%; /* butoane/stări active solide near-black */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96%; /* griuri neutre, fără tentă */
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 42%; /* gri real pt. text secundar */
-    --accent: 0 0% 93%; /* hover neutru */
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --success: 152 58% 32%; /* NOU — stări pozitive (pastile soft light) */
+    --popover-foreground: 218 15.4% 10.2%;
+    --primary: 215 91.2% 44.3%; /* --act #0a5fd8 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 23.1% 89.8%; /* --sunken */
+    --secondary-foreground: 218 15.4% 10.2%;
+    --muted: 40 23.1% 89.8%;
+    --muted-foreground: 217 7.2% 35.5%; /* --text-2 */
+    --text-3: 215 5.9% 40%; /* #60656c, references; the style's #666b72 fell to 4.45:1 on the selected row */
+    --accent: 47 9.3% 94.4%; /* --hover */
+    --accent-foreground: 218 15.4% 10.2%;
+    --destructive: 5 65.4% 45.3%; /* --err */
+    --destructive-foreground: 0 0% 100%;
+    --success: 144 48.1% 30.2%;
     --success-foreground: 0 0% 100%;
-    --warning: 35 85% 38%; /* NOU — stări parțiale / atenționare */
+    --warning: 34 92.3% 30.4%;
     --warning-foreground: 0 0% 100%;
-    --border: 0 0% 90%; /* gri pur — border-ele ies definitiv din albastru */
-    --input: 0 0% 58%; /* conturul câmpurilor, 3:1 pe fundal (WCAG 1.4.11); butoanele outline stau pe --border */
-    --ring: 0 0% 9%;
-    --radius: 0.375rem; /* colțuri mai strânse, densitate de date */
-    /* Text semantic, separat de umpluturi: >=4.5:1 pe --background și --muted (DESIGN.md). */
-    --success-text: 152 58% 28%;
-    --warning-text: 35 85% 32%;
-    --destructive-text: 0 72% 42%;
-    --surface-raised: 0 0% 98%;
+    --border: 44 9% 89.5%; /* --line */
+    --border-strong: 43 6.3% 83%; /* --line-2 */
+    --input: 40 3.6% 48.8%; /* --line-ctl, 3.9:1 (WCAG 1.4.11) */
+    --ring: 215 91.2% 44.3%;
+    --radius: 0.375rem;
+    --success-text: 144 48.1% 30.2%;
+    --warning-text: 34 92.3% 30.4%;
+    --destructive-text: 5 65.4% 45.3%;
+    --surface-raised: 0 0% 100%;
     --surface-overlay: 0 0% 100%;
-    /* Messages: your bubbles take a light tint of the brand blue, the others' stay neutral. */
-    --bubble-own: 214 95% 94%;
-    --bubble-other: 0 0% 95%;
-    --tick-seen: 214 97% 42%;
+    --glow: 184 89.8% 30.8%; /* #088c95, as a graphic 3.9:1 */
+    --glow-ink: 184 89.3% 25.7%; /* turquoise as text */
+    --brand: 214 75.4% 60.2%; /* dash steel: identity only, never a button */
+    --zebra: 218 15.4% 10.2% / 0.025;
+    /* Chart categories; --s3 and --s0 are under 3:1 here, so their series carry a written label. */
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s0: #a7a59e;
+    --hatch: rgba(40, 50, 70, 0.45);
+    --shadow-l: 0 30px 60px -20px rgba(20, 35, 70, 0.35), 0 0 0 1px rgba(40, 40, 30, 0.06);
+    /* Messages: your bubbles take a light tint of the V blue, the others' stay neutral. */
+    --bubble-own: 215 80% 93%;
+    --bubble-other: 40 18% 90%;
+    --tick-seen: 215 91.2% 44.3%;
     /* Categories a person picks (folder, note). Plain hue for icons and dots (3:1 on the
        background), the surface for a filled card, where text keeps 4.5:1. */
     --tag-1: 0 62% 42%;
@@ -63,36 +94,48 @@
     --tag-on: 0 0% 100%;
   }
 
+  /* Night: the blue hour, deep blue and not black. Higher means lighter, not a bigger shadow. */
   .dark {
-    --background: 0 0% 6%; /* grafit neutru, nu navy — și decizie de baterie pe AMOLED */
-    --foreground: 0 0% 93%;
-    --card: 0 0% 9%; /* o treaptă peste background, separare prin suprafață + bordură */
-    --card-foreground: 0 0% 93%;
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 93%;
-    --primary: 0 0% 96%; /* inversat: acțiune primară aproape-albă, text negru */
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 93%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 62%;
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 93%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 20% 98%;
-    --success: 152 45% 45%;
-    --success-foreground: 152 60% 8%;
-    --warning: 38 80% 55%;
-    --warning-foreground: 30 70% 10%;
-    --border: 0 0% 17%;
-    --input: 0 0% 40%;
-    --ring: 0 0% 96%;
-    --success-text: 152 45% 58%;
-    --warning-text: 38 80% 62%;
-    --destructive-text: 0 70% 66%;
-    --surface-raised: 0 0% 9%;
-    --surface-overlay: 0 0% 12%;
-    /* tag palette, dark: same hues */
+    --background: 223 60% 6.9%; /* #070d1c */
+    --foreground: 219 51.5% 93.5%; /* #e6ecf7 */
+    --card: 221 53.8% 10.2%; /* #0c1528 */
+    --card-foreground: 219 51.5% 93.5%;
+    --popover: 221 50% 13.3%; /* #111c33, the lightest surface */
+    --popover-foreground: 219 51.5% 93.5%;
+    --primary: 216 100% 65.5%; /* #4f95ff */
+    --primary-foreground: 218 87.2% 9.2%;
+    --secondary: 222 61.9% 8.2%;
+    --secondary-foreground: 219 51.5% 93.5%;
+    --muted: 222 61.9% 8.2%;
+    --muted-foreground: 219 23.5% 68.2%;
+    --text-3: 222 20% 61.8%; /* #8a96b1, same correction */
+    --accent: 221 45.7% 13.7%;
+    --accent-foreground: 219 51.5% 93.5%;
+    --destructive: 5 100% 69.2%;
+    --destructive-foreground: 5 60% 8%;
+    --success: 147 45.5% 56.1%;
+    --success-foreground: 147 60% 8%;
+    --warning: 38 73.6% 56.9%;
+    --warning-foreground: 35 68.8% 6.3%;
+    --border: 221 41.7% 16.4%;
+    --border-strong: 222 37.1% 21.4%;
+    --input: 223 29.1% 46.5%; /* 3.1:1 */
+    --ring: 216 100% 65.5%;
+    --success-text: 147 45.5% 56.1%;
+    --warning-text: 38 73.6% 56.9%;
+    --destructive-text: 5 100% 69.2%;
+    --surface-raised: 221 50% 13.3%;
+    --surface-overlay: 221 50% 13.3%;
+    --glow: 179 71.3% 57.6%; /* #46e0de */
+    --glow-ink: 179 71.3% 57.6%;
+    --zebra: 219 51.5% 93.5% / 0.025;
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s0: #56617a;
+    --hatch: rgba(200, 215, 255, 0.45);
+    --shadow-l: 0 30px 60px -20px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(150, 180, 255, 0.1);
+    /* tag palette, dark: same hues, on the blue surfaces */
     --tag-1: 0 60% 62%;
     --tag-1-surface: 0 28% 17%;
     --tag-2: 28 60% 62%;
@@ -111,29 +154,32 @@
     --tag-8-surface: 330 28% 17%;
     /* Near black on the lighter dark-theme tags. */
     --tag-on: 0 0% 9%;
-    --bubble-own: 214 40% 20%;
-    --bubble-other: 0 0% 13%;
-    --tick-seen: 214 90% 68%;
+    --bubble-own: 216 55% 22%;
+    --bubble-other: 221 45% 15%;
+    --tick-seen: 216 100% 70%;
   }
 
-  /* Un singur set de înălțimi pentru tot ce se completează și se apasă (DESIGN.md): sm doar în
-     rânduri de tabel dense, md implicit, lg în Setări și dialoguri. */
+  /* One density for everyone (DESIGN.md, 2026-11-15): control 36, row 50. `sm` is only for the
+     actions on a table row; on a phone every control grows to 40. */
   :root {
-    --control-sm: 1.75rem;
-    --control-md: 2rem;
-    --control-lg: 2.25rem;
-  }
-  /* Setări și dialoguri: o treaptă mai aerisit, aceleași componente. */
-  [data-density='comfortable'] {
     --control-sm: 2rem;
     --control-md: 2.25rem;
     --control-lg: 2.5rem;
+    --row-h: 3.125rem;
+    --page-x: 1.75rem;
+    --page-y: 1.25rem;
+  }
+  @media (max-width: 599px) {
+    :root {
+      --control-md: 2.5rem;
+      --page-x: 1.25rem;
+    }
   }
 
   /* Motion on three levels (DESIGN.md "Motion"): fast = menus, tooltips, presses; standard =
      tab line, toasts, popovers; screen = drawers, sheets, side peek, page cross-fade. */
   :root {
-    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
     --ease-mercury: cubic-bezier(0.16, 1, 0.3, 1);
@@ -143,15 +189,22 @@
     /* How far things travel when they enter. Zeroed under reduced motion, so the fades stay. */
     --enter-scale: 0.96;
     --enter-shift: 0.5rem;
-    /* Glass for what floats over content (menus, toasts, palette, selection bar, bottom nav). */
-    --glass-alpha: 0.78;
-    --glass-blur: 16px;
-    /* Light is a signal: only what needs attention glows, warm, never the brand blue. */
-    --glow: 28 95% 55%;
+    /* Glass for what floats over content (menus, toasts, palette, selection bar, bottom nav):
+       70% material and at least 8px of blur, so the text behind stops being readable. */
+    --glass-alpha: 0.7;
+    --glass-blur: 18px;
+    /* The resin's light (rasina.css); Home rewrites it after the time of day. */
+    --c1: #5ff0e8;
+    --c2: #2fc4dd;
+    --c3: #2a6ff0;
+    --c4: #9ff7f4;
+    --horizon: linear-gradient(90deg, transparent, var(--c1) 22%, var(--c2) 50%, var(--c3) 78%, transparent);
+    --resin-i: 0.75;
+    --resin-k: 1.15;
   }
   .dark {
-    --glass-alpha: 0.72;
-    --glow: 30 100% 58%;
+    --glass-alpha: 0.66;
+    --resin-k: 1;
   }
 
   /* Reduced motion drops movement and keeps the fades that explain what appeared (MA9). */
@@ -197,6 +250,14 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
 }
 
@@ -297,10 +358,11 @@
     }
   }
 
+  /* Attention is said with the state colours; turquoise means "lit now", not "look here". */
   .glow-attention {
     box-shadow:
-      0 0 0 1px hsl(var(--glow) / 0.45),
-      0 0 24px -4px hsl(var(--glow) / 0.45);
+      0 0 0 1px hsl(var(--destructive-text) / 0.5),
+      0 0 24px -6px hsl(var(--destructive-text) / 0.45);
   }
 
   /* Bottom sheet and side drawer: the panel slides on --ease-drawer, the backdrop only fades.
@@ -695,5 +757,201 @@
   from {
     opacity: 0;
     transform: scale(0.96);
+  }
+}
+
+/* The loading trail (LoadingTrail.tsx): a lit segment running along a 2px line at the top. */
+.loading-trail {
+  position: fixed;
+  inset: env(safe-area-inset-top, 0px) 0 auto 0;
+  z-index: 70;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-screen) var(--ease-out);
+}
+.loading-trail[data-shown] {
+  opacity: 1;
+}
+.loading-trail::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, hsl(var(--glow)), transparent);
+  animation: loading-trail 1.2s var(--ease-out) infinite;
+}
+@keyframes loading-trail {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+/* Motion off: the line is simply lit, nothing runs. */
+[data-motion='off'] .loading-trail::before,
+[data-motion='reduced'] .loading-trail::before {
+  width: 100%;
+  animation: none;
+}
+
+/* Home grid (HomeGrid.tsx): 2 columns on a phone, 4 from 64rem; rows of 11rem; dense flow fills
+   the hole a large widget leaves. */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 11rem;
+  grid-auto-flow: dense;
+  gap: 1rem;
+}
+@media (min-width: 64rem) {
+  .home-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* The Home window (HomeWindow.tsx, DESIGN.md "Two layers"). Home only. */
+.home-window {
+  position: relative;
+  height: 10.5rem;
+  border-radius: 10px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #0b1d48;
+  box-shadow: inset 0 0 0 1px hsl(var(--border));
+}
+.home-window-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.2s var(--ease-mercury);
+}
+.home-window-photo[data-loaded] {
+  opacity: 1;
+}
+/* The readability veil: on the left only, where the text is. */
+.home-window-veil {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(4, 10, 28, 0.66), rgba(4, 10, 28, 0.28) 45%, transparent 70%);
+}
+/* 6% grain, so the photo reads as a window and not as a banner. */
+.home-window::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.home-window::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 10px 18px -12px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.home-window-text {
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 1.25rem 1.375rem;
+  color: #f4f7ff;
+  text-shadow: 0 1px 12px rgba(0, 10, 40, 0.35);
+}
+/* The resin button on the photo: refraction over the landscape. */
+.home-window-button {
+  margin-top: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.375rem 0.75rem 0.375rem 0.4375rem;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: inherit;
+  text-shadow: none;
+  background: rgba(10, 20, 45, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  backdrop-filter: blur(12px) saturate(1.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.home-window-button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.home-window-button b {
+  display: grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: hsl(var(--warning));
+  color: hsl(var(--warning-foreground));
+  font-size: 12px;
+  font-weight: 600;
+}
+@media (max-width: 599px) {
+  .home-window {
+    height: 9.5rem;
+  }
+  /* The text runs the whole width on a phone, so does the veil. */
+  .home-window-veil {
+    background: linear-gradient(90deg, rgba(4, 10, 28, 0.7), rgba(4, 10, 28, 0.45) 70%, rgba(4, 10, 28, 0.3));
+  }
+  .home-window-text {
+    padding: 1rem;
+  }
+}
+
+/* The peak toast (payment-arrival.ts): the tick draws itself in 700ms and the horizon passes under
+   the toast, once. Full motion only; reduced and off show the finished tick and no horizon. */
+.toast-peak {
+  position: relative;
+  overflow: hidden;
+}
+[data-motion='full'] .toast-peak [data-icon] svg path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: peak-tick 700ms var(--ease-out) 150ms forwards;
+}
+[data-motion='full'] .toast-peak::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--horizon);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: peak-horizon 1400ms var(--ease-mercury) 300ms forwards;
+}
+@keyframes peak-tick {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes peak-horizon {
+  60% { transform: scaleX(1); opacity: 1; }
+  to { transform: scaleX(1); opacity: 0; }
+}
+
+/* A widget says its age only where there is room next to its action (WidgetFrame.tsx). */
+.widget-frame {
+  container-type: inline-size;
+}
+@container (max-width: 15rem) {
+  .widget-age {
+    display: none;
   }
 }
