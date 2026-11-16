@@ -185,7 +185,7 @@ export function ProfilePage() {
                     disabled={saveDisplayPrefs.isPending}
                     onClick={() => saveDisplayPrefs.mutate({ themePalette: palette })}
                     className={cn(
-                      'flex h-control-md items-center gap-2.5 rounded-md border px-3 text-left text-sm transition-colors duration-[var(--duration-fast)]',
+                      'flex h-control-md items-center gap-2.5 rounded-md border px-3 text-left text-sm transition-colors duration-fast',
                       selected
                         ? 'border-primary bg-accent font-medium text-foreground ring-1 ring-primary'
                         : 'border-border bg-card text-muted-foreground hover:border-border-strong hover:text-foreground',
@@ -214,7 +214,7 @@ export function ProfilePage() {
                   disabled={saveDisplayPrefs.isPending}
                   onClick={() => saveDisplayPrefs.mutate({ motionPref: pref })}
                   className={cn(
-                    'h-control-md rounded-sm px-3 text-sm transition-colors duration-[var(--duration-fast)]',
+                    'h-control-md rounded-sm px-3 text-sm transition-colors duration-fast',
                     (session?.motionPref ?? 'system') === pref ? 'bg-background font-medium text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
