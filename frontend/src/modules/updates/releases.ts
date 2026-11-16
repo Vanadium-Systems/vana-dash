@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T10:00:00Z',
+    title: {
+      ro: 'Mesaje și Arhivă: două reparații mici',
+      en: 'Messages and Archive: two small fixes',
+    },
+    body: {
+      ro: 'În Mesaje, ziua lipită sus apare doar cât derulezi, așa că nu mai acoperă primul mesaj. În Arhivă, coloana Modificat arată și la foldere data ultimei schimbări dinăuntru.',
+      en: 'In Messages, the day pinned at the top shows only while you scroll, so it no longer covers the first message. In the Archive, the Modified column also shows the last change inside a folder.',
+    },
+    features: ['mesaje.view', 'arhiva.view'],
+  },
+  {
     publishedAt: '2026-11-16T09:40:00Z',
     title: {
       ro: 'Rapoartele, la un click din Financiar',

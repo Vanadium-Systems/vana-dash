@@ -65,6 +65,7 @@ export function folderItem(folder: ArchiveFolder): ArchiveItem {
     name: folder.name,
     color: folder.color,
     starred: folder.starred,
+    updatedAt: folder.updatedAt,
     fileCount: folder.fileCount,
     subfolderCount: folder.subfolderCount,
     canWrite: folder.level === 'edit',

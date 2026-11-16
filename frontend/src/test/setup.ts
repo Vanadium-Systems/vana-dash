@@ -7,3 +7,18 @@ initWithResources('ro', roResources)
 
 // The zone /api/auth/me gives in the app; the machine's own zone would make dates differ in CI.
 setCompanyTimeZone('Europe/Bucharest')
+
+// jsdom has no IntersectionObserver; components that only watch stickiness need a no-op.
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = class {
+    readonly root = null
+    readonly rootMargin = ''
+    readonly thresholds = []
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return []
+    }
+  } as unknown as typeof IntersectionObserver
+}

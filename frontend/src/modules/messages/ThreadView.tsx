@@ -447,6 +447,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
       <div className="relative min-h-0 flex-1">
         <div
           ref={scrollRef}
+          data-thread-scroll
           className="scroll-subtle h-full overflow-y-auto overscroll-contain px-3 pb-3"
           onClick={(e) => {
             // A click on a message (not on its buttons, links or a text selection) picks it for the keys.

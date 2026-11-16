@@ -4,6 +4,12 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-16: Messages day chip, folder dates
+
+### Fixed
+- Messages: the day chip stuck at the top of a thread fades out once scrolling stops (it covered the first message); the chips between days stay, and a focused or open chip stays visible.
+- Archive: the Modified column was empty for folders. `GET /api/archive/folders` returns `updatedAt` (the newest direct file's change, or the folder's creation).
+
 ## 2026-11-16: A reports folder on Financials
 
 ### Added

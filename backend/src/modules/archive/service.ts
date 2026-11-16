@@ -124,6 +124,8 @@ export interface ArchiveFolderRow {
   name: string
   parentId: string | null
   createdAt: Date
+  /** The latest change inside: its newest direct file, or the folder's creation when it has none. */
+  updatedAt: Date
   autoMonthlySubfolders: boolean
   ownerUserId: string
   color: number | null
@@ -141,6 +143,10 @@ export interface ArchiveFolderRow {
  * Subfolderele unui folder. Fără `parentId` se listează rădăcina spațiului omului — pagina
  * pornește de acolo, nu de o rădăcină comună care nu mai există.
  */
+function maxDate(a: Date, b: Date | undefined): Date {
+  return b && b > a ? b : a
+}
+
 export async function listFolders(
   me: SessionUser,
   parentId?: string,
@@ -179,7 +185,7 @@ export async function listFolders(
   const ids = folders.map((f) => f.id)
   const [fileCounts, subfolderCounts, levels, stars] = await Promise.all([
     db
-      .select({ folderId: archiveFiles.folderId, count: sql<number>`COUNT(*)::int` })
+      .select({ folderId: archiveFiles.folderId, count: sql<number>`COUNT(*)::int`, lastChange: sql<Date>`MAX(${archiveFiles.updatedAt})` })
       .from(archiveFiles)
       .where(and(sql`${archiveFiles.deletedAt} IS NULL`, inArray(archiveFiles.folderId, ids)))
       .groupBy(archiveFiles.folderId),
@@ -203,6 +209,7 @@ export async function listFolders(
   const starredIds = new Set(stars.map((r) => r.itemId))
   const levelByFolder = new Map(levels.map((r) => [r.id, r.lvl]))
   const fileCountByFolder = new Map(fileCounts.map((r) => [r.folderId, r.count]))
+  const lastChangeByFolder = new Map(fileCounts.map((r) => [r.folderId, new Date(r.lastChange)]))
   const subfolderCountByParent = new Map(subfolderCounts.map((r) => [r.parentId, r.count]))
 
   return folders.map((f) => {
@@ -210,6 +217,7 @@ export async function listFolders(
     const subfolderCount = subfolderCountByParent.get(f.id) ?? 0
     return {
       ...f,
+      updatedAt: maxDate(f.createdAt, lastChangeByFolder.get(f.id)),
       starred: starredIds.has(f.id),
       fileCount,
       subfolderCount,

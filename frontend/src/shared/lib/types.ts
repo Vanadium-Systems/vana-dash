@@ -1188,6 +1188,8 @@ export interface ArchiveFolder {
   name: string
   parentId: string | null
   createdAt: string
+  /** The latest change inside: its newest direct file, or its creation. */
+  updatedAt: string
   fileCount: number
   subfolderCount: number
   autoMonthlySubfolders: boolean
