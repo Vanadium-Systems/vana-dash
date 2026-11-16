@@ -4,6 +4,11 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-16: Fewer third-party dependencies
+
+### Changed
+- Replaced 20 direct production dependencies (10 backend, 10 frontend) with small built-in implementations and platform APIs: `process.loadEnvFile()`, custom 5-field cron scheduler, HTML-to-plain-text converter, Fastify security/CORS headers and cookie plugins, `openssl req -x509` for Revolut certificates, vendored SVG icon set (`scripts/vendor-icons.mjs`), built-in toast stack, lightweight `i18n` core, native `<dialog>` command palette, `Slot`/`Tabs`/`Label`/`clsx`/`cva`, and inline Tailwind keyframes.
+
 ## 2026-11-16: Daily fixes (labels, receipts, tenders, notifications, fit)
 
 ### Added
