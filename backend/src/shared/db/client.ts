@@ -75,8 +75,21 @@ function buildRecorder(steps: ChainStep[], callable: boolean): any {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-// `execute` is left out: applyTenantContext uses it, and a raw statement scopes itself.
-const SCOPED_ENTRY_POINTS = new Set<PropertyKey>(['select', 'selectDistinct', 'insert', 'update', 'delete', 'query'])
+// Every way into a query, raw `execute` included (the archive's recursive CTEs, the calendar and
+// prospect reports): left out, they ran with no tenant set and RLS returned nothing.
+// applyTenantContext calls execute on the raw transaction, not on this proxy, so no recursion.
+const SCOPED_ENTRY_POINTS = new Set<PropertyKey>([
+  'select',
+  'selectDistinct',
+  'selectDistinctOn',
+  'insert',
+  'update',
+  'delete',
+  'query',
+  'execute',
+  'with',
+  '$count',
+])
 
 export const db: Db = config.rlsEnabled
   ? (new Proxy(plainDb, {

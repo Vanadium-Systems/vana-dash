@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import { config } from '../../shared/config.js'
-import { db } from '../../shared/db/client.js'
+import { db, dbSubquery } from '../../shared/db/client.js'
 import {
   emailSends,
   emailSequenceEnrollments,
@@ -511,7 +511,7 @@ export async function stopEnrollmentsForProspect(prospectId: string, reason: 'wo
         eq(emailSequenceEnrollments.prospectId, prospectId),
         eq(emailSequenceEnrollments.status, 'active'),
         isNull(emailSequenceEnrollments.deletedAt),
-        inArray(emailSequenceEnrollments.sequenceId, db.select({ id: emailSequences.id }).from(emailSequences).where(eq(flag, true))),
+        inArray(emailSequenceEnrollments.sequenceId, dbSubquery.select({ id: emailSequences.id }).from(emailSequences).where(eq(flag, true))),
       ),
     )
     .returning({ id: emailSequenceEnrollments.id })
@@ -532,7 +532,7 @@ export async function pauseSequenceIfBouncing(enrollmentId: string): Promise<boo
   if (!sequence || sequence.pausedAt) return false
 
   const { threshold, minSends, window } = await getSequenceBouncePause()
-  const recent = db
+  const recent = dbSubquery
     .select({ status: emailSends.status })
     .from(emailSends)
     .innerJoin(emailSequenceEnrollments, eq(emailSequenceEnrollments.id, emailSends.sequenceEnrollmentId))
