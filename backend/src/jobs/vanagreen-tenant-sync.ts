@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { and, eq, inArray, isNotNull, isNull, lte } from 'drizzle-orm'
 import {
   fetchVanagreenDemoTenants,
@@ -56,7 +57,8 @@ const CRON_EXPR = '30 6 * * *'
 
 export function startVanagreenTenantSyncJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runVanagreenTenantSyncJob()
+    // Owner-only integration (VanaGreen integration): runs as the platform owner, not per company.
+    void runAsTenant(getOwnerTenantId(), () => runVanagreenTenantSyncJob()).catch((err) => console.error('[vanagreen-tenant-sync] failed:', err))
   })
   console.log(`[vanagreen-tenant-sync] Scheduled (${CRON_EXPR})`)
 }

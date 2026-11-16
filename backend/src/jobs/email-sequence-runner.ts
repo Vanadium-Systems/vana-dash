@@ -1,6 +1,7 @@
 import { activeAdminIds } from '../shared/lib/notify.js'
 import { createHash } from 'node:crypto'
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, asc, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import { getOutreachCapStatus, sendCampaignEmail } from '../modules/email/service.js'
 import {
@@ -51,14 +52,12 @@ function isSendWindowNow(hour: number, weekdaysOnly: boolean, timeZone: string):
 export function startEmailSequenceRunnerJob(): void {
   registerSequenceListeners()
   cron.schedule(CRON_EXPR, () => {
-    void (async () => {
+    void forEachTenant(async () => {
       const { outreachSendHour, outreachSendWeekdaysOnly } = await getEmailSettings()
       // Only email steps wait for the send window; a call or task step is created whenever it falls due.
       const inWindow = isSendWindowNow(outreachSendHour, outreachSendWeekdaysOnly, await getCompanyTimeZone())
       await runEmailSequences({ inWindow })
-    })().catch((err) => {
-      console.error(`[email-sequence-runner] ${String(err)}`)
-    })
+    }).catch((err) => console.error('[email-sequence-runner] failed:', err))
   })
   console.log(`[email-sequence-runner] Scheduled (${CRON_EXPR}, fereastră de trimitere editabilă din Setări Email)`)
 }

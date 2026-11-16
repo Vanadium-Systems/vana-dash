@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { db } from '../shared/db/client.js'
 import { syncLog } from '../shared/db/schema/index.js'
 import { countBatchObjects, listExpiredBatches, purgeBatches } from '../modules/archive/trash.js'
@@ -13,7 +14,9 @@ const MAX_NOTES = 200
 
 export function startTrashPurgeJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runTrashPurge()
+    void forEachTenant(async () => {
+      await runTrashPurge()
+    }).catch((err) => console.error('[trash-purge] failed:', err))
   })
   console.log(`[trash-purge] Scheduled (${CRON_EXPR})`)
 }

@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { expirePendingActions } from '../modules/assistant/service.js'
 
 // La fiecare 5 minute: acțiuni "confirm" (assistant_pending_actions) care au trecut de
@@ -8,7 +9,7 @@ const CRON_EXPR = '*/5 * * * *'
 
 export function startAssistantCleanupJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runAssistantCleanupJob()
+    void forEachTenant(() => runAssistantCleanupJob()).catch((err) => console.error('[assistant-cleanup] failed:', err))
   })
   console.log(`[assistant-cleanup] Scheduled (${CRON_EXPR})`)
 }

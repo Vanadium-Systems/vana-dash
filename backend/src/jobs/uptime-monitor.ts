@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { isNull } from 'drizzle-orm'
 import { getConnector } from '../connectors/index.js'
 import { db } from '../shared/db/client.js'
@@ -22,7 +23,8 @@ const SITE_FETCH_TIMEOUT_MS = 10_000
 
 export function startUptimeMonitorJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void checkUptime().catch((err) => console.error(`[uptime-monitor] ${String(err)}`))
+    // Owner-only integration (platforms are owner-only): runs as the platform owner, not per company.
+    void runAsTenant(getOwnerTenantId(), () => checkUptime()).catch((err) => console.error('[uptime-monitor] failed:', err))
   })
   console.log(`[uptime-monitor] Scheduled (${CRON_EXPR})`)
 }

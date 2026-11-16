@@ -3,6 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { userTokens } from '../db/schema/index.js'
 import { tr } from './i18n.js'
+import { withRlsBypass } from './tenancy.js'
 
 // Token-uri de unică folosire: invitație, resetare de parolă, înscriere (PLAN.md C2).
 //
@@ -31,14 +32,21 @@ export async function createUserToken(userId: string, kind: TokenKind): Promise<
   return token
 }
 
-export type ConsumeResult = { userId: string } | { error: 'TOKEN_INVALID' | 'TOKEN_EXPIRED' | 'TOKEN_USED' }
+export type ConsumeResult = { userId: string; tenantId: string } | { error: 'TOKEN_INVALID' | 'TOKEN_EXPIRED' | 'TOKEN_USED' }
 
 /**
  * Validează și consumă un token. Un token deja folosit se respinge chiar dacă nu a expirat
  * (nu e single-use altfel), iar un token expirat se deosebește de unul invalid — linkul expirat
  * trebuie să poată cere altul, nu să spună „adresă greșită".
  */
-export async function consumeUserToken(token: string, kind: TokenKind): Promise<ConsumeResult> {
+export function consumeUserToken(token: string, kind: TokenKind): Promise<ConsumeResult> {
+  // The link is opened without a session, so the company is not known yet: the token row says
+  // which one it is. The lookup is by the hash of a 256-bit secret. Callers continue with
+  // runAsTenant(result.tenantId).
+  return withRlsBypass(() => consumeInScope(token, kind))
+}
+
+async function consumeInScope(token: string, kind: TokenKind): Promise<ConsumeResult> {
   const [row] = await db
     .select()
     .from(userTokens)
@@ -53,5 +61,5 @@ export async function consumeUserToken(token: string, kind: TokenKind): Promise<
     .where(and(eq(userTokens.id, row.id), isNull(userTokens.usedAt)))
     .returning({ id: userTokens.id })
   if (claimed.length === 0) return { error: 'TOKEN_USED' }
-  return { userId: row.userId }
+  return { userId: row.userId, tenantId: row.tenantId }
 }

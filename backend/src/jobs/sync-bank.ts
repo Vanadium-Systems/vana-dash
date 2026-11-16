@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { isNull } from 'drizzle-orm'
 import { db } from '../shared/db/client.js'
 import { bankAccounts } from '../shared/db/schema/index.js'
@@ -13,7 +14,7 @@ const CRON_EXPR = '*/30 * * * *'
 
 export function startBankSyncJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void syncAllBankAccounts()
+    void forEachTenant(() => syncAllBankAccounts()).catch((err) => console.error('[sync-bank] failed:', err))
   })
   console.log(`[sync-bank] Scheduled (${CRON_EXPR})`)
 }

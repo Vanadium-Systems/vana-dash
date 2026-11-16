@@ -5,7 +5,7 @@ import { db } from '../db/client.js'
 import { apiTokens, platformAccessLog, users } from '../db/schema/index.js'
 import { tr } from '../lib/i18n.js'
 import { findActiveTenant } from '../lib/tenant-loop.js'
-import { withRlsBypass } from '../lib/tenancy.js'
+import { getOwnerTenantId, runAsTenant, withRlsBypass } from '../lib/tenancy.js'
 import { safeEqual } from '../lib/crypto.js'
 import { ENABLED_LOCALES, isLocale } from '../lib/locale.js'
 import { actorStore, runWithFreshActor } from '../lib/request-context.js'
@@ -80,7 +80,7 @@ export const authPlugin = fp(async (app) => {
       apiToken = bearer ? await withRlsBypass(() => findUsableApiToken(bearer)) : null
       if (!apiToken) return await reply.code(401).send({ success: false, error: 'TOKEN_INVALID' })
       const tokenUserId = apiToken.userId
-      me = await withRlsBypass(() => loadSessionUser(tokenUserId))
+      me = await runAsTenant(apiToken.tenantId, () => loadSessionUser(tokenUserId))
       // No session_version check: changing the password does not revoke tokens, revoking does.
       if (!me || me.status !== 'active') return await reply.code(401).send({ success: false, error: 'TOKEN_INVALID' })
       const routeUrl = req.routeOptions.url ?? req.url.split('?')[0] ?? req.url
@@ -113,7 +113,8 @@ export const authPlugin = fp(async (app) => {
         return await reply.code(401).send({ success: false, error: 'Unauthorized' })
       }
 
-      // The company is not known before this row is read, so the lookup crosses companies.
+      // The company is not known before this row is read, so the lookup crosses companies. It is
+      // one user by id; the company comes from that row and the `tid` check below.
       me = await withRlsBypass(() => loadSessionUser(payload.sub))
       if (!me) return await reply.code(401).send({ success: false, error: 'Unauthorized' })
       // Dezactivat sau cu sesiunea invalidată (parolă schimbată/resetată): delogat imediat,
@@ -128,7 +129,7 @@ export const authPlugin = fp(async (app) => {
       // not 15 minutes later.
       if (payload.sid) {
         const sessionId = payload.sid
-        const session = await withRlsBypass(() => isSessionUsable(sessionId))
+        const session = await runAsTenant(me.tenant?.id ?? getOwnerTenantId(), () => isSessionUsable(sessionId))
         if (!session || session.userId !== me.id) {
           return await reply.code(401).send({ success: false, error: 'Unauthorized' })
         }
@@ -174,11 +175,12 @@ export const authPlugin = fp(async (app) => {
     // la 15s să nu devină un UPDATE pe fiecare cerere.
     if (!me.lastSeenAt || Date.now() - me.lastSeenAt.getTime() > LAST_SEEN_MIN_INTERVAL_MS) {
       const userId = me.id
-      await withRlsBypass(() => db.update(users).set({ lastSeenAt: new Date() }).where(eq(users.id, userId)))
+      // The person's own company, also when the platform admin is looking at another one.
+      await runAsTenant(me.tenant?.id ?? getOwnerTenantId(), () => db.update(users).set({ lastSeenAt: new Date() }).where(eq(users.id, userId)))
     }
     if (apiToken && (!apiToken.lastUsedAt || Date.now() - apiToken.lastUsedAt.getTime() > API_TOKEN_LAST_USED_INTERVAL_MS)) {
       const tokenId = apiToken.id
-      await withRlsBypass(() =>
+      await runAsTenant(apiToken.tenantId, () =>
         db.update(apiTokens).set({ lastUsedAt: new Date(), lastUsedIp: req.ip }).where(eq(apiTokens.id, tokenId)),
       )
     }

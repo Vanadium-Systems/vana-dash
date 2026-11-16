@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, eq, isNull } from 'drizzle-orm'
 import { refreshTokens } from '../connectors/revolut/oauth.js'
 import { db } from '../shared/db/client.js'
@@ -22,7 +23,7 @@ const REFRESH_IF_EXPIRES_WITHIN_MS = 15 * 60 * 1000
 
 export function startRevolutTokenRefreshJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void refreshRevolutTokensIfNeeded()
+    void forEachTenant(() => refreshRevolutTokensIfNeeded()).catch((err) => console.error('[refresh-revolut-token] failed:', err))
   })
   console.log(`[refresh-revolut-token] Scheduled (${CRON_EXPR})`)
 }

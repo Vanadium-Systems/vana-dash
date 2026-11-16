@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import {
   beginSicapRun,
   fetchContractNoticeEligibility,
@@ -35,8 +36,8 @@ const CRON_EXPR = '0 6,14 * * *'
 
 export function startTenderWatchSyncJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    // Without the catch, a failed run is an unhandled rejection and takes the whole server down.
-    runTenderWatchSyncJob().catch((err) => console.error(`[tender-watch-sync] Run failed: ${String(err)}`))
+    // Owner-only integration (SICAP: one capped run, never one per company): runs as the platform owner, not per company.
+    void runAsTenant(getOwnerTenantId(), () => runTenderWatchSyncJob()).catch((err) => console.error('[tender-watch-sync] failed:', err))
   })
   console.log(`[tender-watch-sync] Scheduled (${CRON_EXPR})`)
 }

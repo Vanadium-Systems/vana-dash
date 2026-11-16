@@ -1,5 +1,6 @@
 import { and, eq, gte } from 'drizzle-orm'
 import cron from '../shared/lib/cron.js'
+import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { getLatestReview, getState, STALE_AFTER_MS } from '../modules/jeffbot/service.js'
 import { db } from '../shared/db/client.js'
 import { alerts } from '../shared/db/schema/index.js'
@@ -22,7 +23,8 @@ const serviceUrl = (name: string) => (name === 'jeffbot-stocks' ? '/assets?tab=b
 
 export function startJeffbotAlertsJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void checkJeffbotAlerts().catch((err) => console.error(`[jeffbot-alerts] ${String(err)}`))
+    // Owner-only integration (jeffbot is owner-only): runs as the platform owner, not per company.
+    void runAsTenant(getOwnerTenantId(), () => checkJeffbotAlerts()).catch((err) => console.error('[jeffbot-alerts] failed:', err))
   })
   console.log(`[jeffbot-alerts] Scheduled (${CRON_EXPR})`)
 }

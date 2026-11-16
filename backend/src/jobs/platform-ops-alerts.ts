@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { getPlatformOpsSignals, listPlatforms, OpsSignalsFetchError } from '../modules/platforms/service.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
 import { tl, tr } from '../shared/lib/i18n.js'
@@ -14,7 +15,8 @@ const CRON_EXPR = '*/5 * * * *'
 
 export function startPlatformOpsAlertsJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void checkPlatformOpsAlerts().catch((err) => console.error(`[platform-ops-alerts] ${String(err)}`))
+    // Owner-only integration (the owner's platforms): runs as the platform owner, not per company.
+    void runAsTenant(getOwnerTenantId(), () => checkPlatformOpsAlerts()).catch((err) => console.error('[platform-ops-alerts] failed:', err))
   })
   console.log(`[platform-ops-alerts] Scheduled (${CRON_EXPR})`)
 }

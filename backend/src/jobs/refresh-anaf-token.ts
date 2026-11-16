@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { refreshTokens } from '../connectors/anaf/oauth.js'
 import { getAnafCredentialsRow, markNeedsReauth, saveAnafTokens } from '../shared/lib/anaf.js'
 import { decryptField } from '../shared/lib/crypto.js'
@@ -12,7 +13,7 @@ const REFRESH_IF_EXPIRES_WITHIN_MS = 48 * 60 * 60 * 1000
 
 export function startAnafTokenRefreshJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void refreshAnafTokenIfNeeded()
+    void forEachTenant(() => refreshAnafTokenIfNeeded()).catch((err) => console.error('[refresh-anaf-token] failed:', err))
   })
   console.log(`[refresh-anaf-token] Scheduled (${CRON_EXPR})`)
 }

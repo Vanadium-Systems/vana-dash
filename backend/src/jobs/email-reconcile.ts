@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { eq } from 'drizzle-orm'
 import { listSentEmails } from '../connectors/resend/reconcile.js'
 import { updateSendStatusFromWebhook, type DeliveryStatus } from '../modules/email/service.js'
@@ -29,9 +30,7 @@ const LAST_EVENT_TO_STATUS: Record<string, DeliveryStatus> = {
 
 export function startEmailReconcileJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void reconcileEmails().catch((err) => {
-      console.error(`[email-reconcile] ${String(err)}`)
-    })
+    void forEachTenant(() => reconcileEmails()).catch((err) => console.error('[email-reconcile] failed:', err))
   })
   console.log(`[email-reconcile] Scheduled (${CRON_EXPR})`)
 }
