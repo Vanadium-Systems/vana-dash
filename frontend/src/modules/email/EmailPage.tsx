@@ -169,7 +169,8 @@ export function EmailPage() {
           {view.kind === 'templates' ? <TemplatesTab /> : null}
           {view.kind === 'bulk' ? <BulkSendTab /> : null}
           {view.kind === 'sequences' ? <SequencesTab /> : null}
-          {view.kind === 'settings' ? <SettingsTab /> : null}
+          {/* A link to the company settings opened by someone without them: nothing to load. */}
+          {view.kind === 'settings' && can('email.setari') ? <SettingsTab /> : null}
           {view.kind === 'mysettings' ? <MySettingsTab /> : null}
         </div>
       </div>
