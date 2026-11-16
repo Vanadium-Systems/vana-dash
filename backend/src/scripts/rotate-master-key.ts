@@ -13,7 +13,7 @@ async function main() {
   if (Object.keys(legacy).length > 0) {
     throw new Error(`pre-v1 values left, run encrypt-v1 first: ${JSON.stringify(legacy)}`)
   }
-  console.log(`[rotate-master-key] re-wrapped ${await rewrapTenantKeys()} data key(s)`)
+  console.log(`[rotate-master-key] re-wrapped ${await rewrapTenantKeys()} data key(s)`) // slop-ok: CLI script output
 }
 
 main()

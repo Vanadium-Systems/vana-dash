@@ -41,7 +41,7 @@ describe('encryptField / decryptField (v1)', () => {
   })
 
   it('handles unicode and uses a fresh IV each time', async () => {
-    const plaintext = 'cheie-secretă-ăîșț-🔑'
+    const plaintext = 'cheie-secretă-ăîșț-🔑' // slop-ok: unicode round-trip case
     const a = await encryptField(plaintext)
     expect(a).not.toBe(await encryptField(plaintext))
     expect(await decryptField(a)).toBe(plaintext)
@@ -79,7 +79,8 @@ describe('encryptField / decryptField (v1)', () => {
     const otherValue = await runAsTenant(otherTenantId, () => encryptField('other-secret'))
     expect(otherValue.split(':')[1]).not.toBe(ownerValue.split(':')[1])
     expect(await runAsTenant(otherTenantId, () => decryptField(otherValue))).toBe('other-secret')
-    forgetDataKeys()
+    // Owner's key already in memory: the cache must not hand it to the other company.
+    expect(await decryptField(ownerValue)).toBe('owner-secret')
     await expect(runAsTenant(otherTenantId, () => decryptField(ownerValue))).rejects.toThrow(/not found/)
   })
 

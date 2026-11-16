@@ -152,7 +152,12 @@ export async function getPublicCall(
 ): Promise<{ status: 'open' | 'ended'; opensAt: string | null; closesAt: string; roomUrl: string | null } | null> {
   // The guest has no account, so no company: the link itself is the key (unique, random), and
   // only the time window leaves this function.
-  const [call] = await withRlsBypass(() => db.select().from(calls).where(and(eq(calls.publicId, publicId), isNull(calls.deletedAt))))
+  const [call] = await withRlsBypass(() =>
+    db
+      .select({ status: calls.status, scheduledAt: calls.scheduledAt, expiresAt: calls.expiresAt, roomUrl: calls.roomUrl })
+      .from(calls)
+      .where(and(eq(calls.publicId, publicId), isNull(calls.deletedAt))),
+  )
   if (!call) return null
 
   const isOpen = call.status === 'open' && call.expiresAt.getTime() > Date.now()

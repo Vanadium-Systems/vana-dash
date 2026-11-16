@@ -57,8 +57,10 @@ function openWithMaster(payload: string): Buffer {
   throw new Error('[crypto] value does not decrypt with MASTER_ENCRYPTION_KEY or MASTER_ENCRYPTION_KEY_NEXT')
 }
 
-// Unwrapped data keys, by keyId, and the active keyId of each company. A master rotation does not
-// change a data key, so neither cache goes stale when it runs.
+// Unwrapped data keys, by company and keyId, and the active keyId of each company. The company is
+// part of the cache key so a ciphertext of company A never decrypts in company B's context, even
+// once A's key is in memory. A master rotation does not change a data key, so neither cache goes
+// stale when it runs.
 const dataKeys = new Map<string, Buffer>()
 const activeKeyIds = new Map<string, string>()
 
@@ -71,15 +73,17 @@ export function forgetDataKeys(): void {
 // The filters on tenant_id below are on purpose, unlike in services: with RLS_ENABLED=false they
 // are the only thing that stops one company's ciphertext from decrypting under another's context.
 async function loadDataKey(keyId: string): Promise<Buffer> {
-  const cached = dataKeys.get(keyId)
+  const tenantId = currentTenantId()
+  const cacheKey = `${tenantId}:${keyId}`
+  const cached = dataKeys.get(cacheKey)
   if (cached) return cached
   const [row] = await db
     .select({ wrappedKey: tenantKeys.wrappedKey })
     .from(tenantKeys)
-    .where(and(eq(tenantKeys.keyId, keyId), eq(tenantKeys.tenantId, currentTenantId())))
+    .where(and(eq(tenantKeys.keyId, keyId), eq(tenantKeys.tenantId, tenantId)))
   if (!row) throw new Error(`[crypto] data key ${keyId} not found for this company`)
   const key = openWithMaster(row.wrappedKey)
-  dataKeys.set(keyId, key)
+  dataKeys.set(cacheKey, key)
   return key
 }
 

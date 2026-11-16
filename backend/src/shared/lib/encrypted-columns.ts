@@ -135,7 +135,7 @@ export interface ConvertOptions {
 export async function convertTenant(tenantId: string, opts: ConvertOptions): Promise<Record<string, number>> {
   const done: Record<string, number> = {}
   const pause = () => new Promise((resolve) => setTimeout(resolve, opts.pauseMs))
-  /* eslint-disable @typescript-eslint/no-explicit-any -- the column key comes from the table list above */
+  /* eslint-disable @typescript-eslint/no-explicit-any -- the column key comes from the table list above (slop-ok: dynamic column key) */
   for (const t of SECRET_TABLES) {
     for (const [key, column] of Object.entries(t.columns)) {
       const label = `${t.name}.${key}`
@@ -152,7 +152,7 @@ export async function convertTenant(tenantId: string, opts: ConvertOptions): Pro
         if (!rows.length) break
         for (const row of rows) {
           const v1 = await encryptField(await decryptField(row.value as string))
-          await db.update(t.table).set({ [key]: v1 } as any).where(eq(t.id, row.id))
+          await db.update(t.table).set({ [key]: v1 } as any).where(eq(t.id, row.id)) // slop-ok: column key from SECRET_TABLES
         }
         done[label] = (done[label] ?? 0) + rows.length
         await pause()
@@ -174,7 +174,7 @@ export async function convertTenant(tenantId: string, opts: ConvertOptions): Pro
       if (!rows.length) break
       for (const row of rows) {
         const { enc, hmac } = await protectIban(row.iban as string)
-        await db.update(p.table).set({ [plainKey]: null, [encKey]: enc, [hmacKey]: hmac } as any).where(eq(p.id, row.id))
+        await db.update(p.table).set({ [plainKey]: null, [encKey]: enc, [hmacKey]: hmac } as any).where(eq(p.id, row.id)) // slop-ok: column key from SECRET_TABLES
       }
       done[p.name] = (done[p.name] ?? 0) + rows.length
       await pause()

@@ -20,12 +20,12 @@ async function main() {
     batchSize: numberArg('--batch', 100),
     pauseMs: numberArg('--pause-ms', 250),
   }
-  console.log(`[encrypt-v1] before: ${JSON.stringify(await countLegacyValues())}${opts.dryRun ? ' (dry run)' : ''}`)
+  console.log(`[encrypt-v1] before: ${JSON.stringify(await countLegacyValues())}${opts.dryRun ? ' (dry run)' : ''}`) // slop-ok: CLI script output
   await forEachTenant(async (tenantId) => {
     const done = await convertTenant(tenantId, opts)
-    console.log(`[encrypt-v1] ${tenantId}: ${JSON.stringify(done)}`)
+    console.log(`[encrypt-v1] ${tenantId}: ${JSON.stringify(done)}`) // slop-ok: CLI script output
   })
-  if (!opts.dryRun) console.log(`[encrypt-v1] left: ${JSON.stringify(await countLegacyValues())}`)
+  if (!opts.dryRun) console.log(`[encrypt-v1] left: ${JSON.stringify(await countLegacyValues())}`) // slop-ok: CLI script output
 }
 
 main()
