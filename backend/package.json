@@ -40,7 +40,6 @@
     "fastify-type-provider-zod": "^7.0.0",
     "fflate": "^0.8.3",
     "firebase-admin": "^14.3.0",
-    "html-to-text": "^10.0.1",
     "pdf-lib": "^1.17.1",
     "postal-mime": "^2.7.6",
     "postgres": "^3.4.9",
