@@ -117,6 +117,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
       sonner: path.resolve(__dirname, 'src/shared/components/ui/toast.tsx'),
+      'lucide-react': path.resolve(__dirname, 'src/shared/components/icons/index.ts'),
     },
   },
   // PostHog resolves exception stacks by fetching the .map next to each bundle. Without it the

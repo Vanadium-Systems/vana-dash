@@ -18,7 +18,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "sonner": ["src/shared/components/ui/toast.tsx"]
+      "sonner": ["src/shared/components/ui/toast.tsx"],
+      "lucide-react": ["src/shared/components/icons/index.ts"]
     },
     "types": ["vite/client", "vite-plugin-pwa/client"]
   },
