@@ -65,7 +65,10 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
       ref={ref}
       className={cn(
         // Zebra at 2.5% of the text colour; a selected row is lit (--glow), not filled.
+        // The focused row's frame is an outline, not a ring: an inset box-shadow on a <tr> loses
+        // its top edge under the collapsed border of the row above.
         'border-b transition-colors duration-100 even:bg-zebra hover:bg-accent data-[state=selected]:bg-glow/10 aria-selected:bg-glow/10',
+        'focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-ring data-[focused]:outline data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-ring',
         className,
       )}
       {...props}

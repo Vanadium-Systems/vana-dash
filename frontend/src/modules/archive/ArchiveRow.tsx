@@ -40,10 +40,10 @@ export function ArchiveRow({ item, env }: { item: ArchiveItem; env: ListEnv }) {
       data-row-id={item.id}
       data-selecting={env.selectedIds.size > 0 ? '' : undefined}
       aria-selected={selected}
+      data-focused={env.focusId === item.id ? '' : undefined}
       className={cn(
         'hover-row group cursor-pointer select-none',
         selected && 'bg-muted',
-        env.focusId === item.id && 'ring-1 ring-inset ring-ring',
         dnd.dropLit && 'bg-accent',
         dnd.isDragging && 'opacity-50',
       )}
