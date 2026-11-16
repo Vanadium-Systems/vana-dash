@@ -10,7 +10,7 @@ export function LoadFailed({ missing, onRetry }: { missing: boolean; onRetry: ()
   const navigate = useNavigate()
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/accounting?tab=emise')}>
+      <Button variant="ghost" onClick={() => navigate('/accounting?tab=emise')}>
         <ArrowLeft aria-hidden="true" /> {t('accounting:editor.backToList')}
       </Button>
       {missing ? (
@@ -20,7 +20,7 @@ export function LoadFailed({ missing, onRetry }: { missing: boolean; onRetry: ()
           tone="critical"
           title={t('accounting:editor.loadFailed')}
           action={
-            <Button variant="outline" size="sm" onClick={onRetry}>
+            <Button variant="outline" onClick={onRetry}>
               {t('common:actions.retry')}
             </Button>
           }

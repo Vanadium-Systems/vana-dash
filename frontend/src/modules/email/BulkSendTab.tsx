@@ -243,6 +243,7 @@ export function BulkSendTab() {
               >
                 <Paperclip className="h-4 w-4" /> {t('email:attach.addFile')}
               </Button>
+              {/* native: hidden file picker */}
               <input
                 ref={attachmentInputRef}
                 type="file"
@@ -278,6 +279,7 @@ export function BulkSendTab() {
               >
                 <Upload className="h-4 w-4" /> {t('email:bulk.uploadCsv')}
               </Button>
+              {/* native: hidden file picker */}
               <input
                 ref={fileInputRef}
                 type="file"

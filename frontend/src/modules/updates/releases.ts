@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T09:10:00Z',
+    title: {
+      ro: 'Același aspect pe toate paginile',
+      en: 'The same look on every page',
+    },
+    body: {
+      ro: 'Clienți, Facturi, Email, Reconciliere, Calendar, Mesaje, Notițe, Arhivă, Echipă și restul paginilor au acum aceleași butoane, aceleași pastile de stare și un singur buton „Filtre”. În Clienți și Facturi rândul începe cu firma. În Calendar, „Partajează” și „Programări” sunt în meniul ⋯ de lângă „Eveniment nou”. Mărimile fișierelor și procentele se scriu cu virgulă, iar Istoricul arată fiecare acțiune în cuvinte.',
+      en: 'Clients, Invoices, Email, Reconciliation, Calendar, Messages, Notes, Archive, Team and the other pages now share the same buttons, the same state pills and a single “Filters” button. In Clients and Invoices a row starts with the company. In the Calendar, “Share” and “Bookings” sit in the ⋯ menu next to “New event”. File sizes and percentages use the decimal separator of your language, and History names every action in words.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-16T09:00:00Z',
     title: {
       ro: 'Aspect nou, Acasă și Financiar refăcute',

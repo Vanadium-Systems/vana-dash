@@ -172,6 +172,7 @@ function AddressFields({
           onChange={(number) => onChange({ ...address, number })}
         />
       </div>
+      {/* arbitrary: no token for a two-column grid with a fixed side column */}
       <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
         <FieldRow
           id={`${idPrefix}-details`}
@@ -223,7 +224,7 @@ function WorkLocationBlock({
           type="button"
           variant="ghost"
           size="icon"
-          className="mb-[1px] w-9 shrink-0"
+          className="mb-px w-9 shrink-0"
           aria-label={t('settings:company.deleteSite')}
           onClick={onRemove}
         >

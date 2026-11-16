@@ -9,6 +9,7 @@ import { api } from '@/shared/lib/api'
 import type { InvoiceTemplate } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 
@@ -198,7 +199,7 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
           <div className="space-y-2">
             <Label>{t('pricing:templates.lines')}</Label>
             <div className="hidden flex-wrap gap-2 text-xs text-muted-foreground sm:flex">
-              <div className="sm:min-w-[8rem] sm:flex-1">{t('common:labels.description')}</div>
+              <div className="sm:min-w-32 sm:flex-1">{t('common:labels.description')}</div>
               <div className="w-16">{t('common:labels.quantityShort')}</div>
               <div className="w-48">{t('pricing:templates.priceSource')}</div>
               <div className="w-24">{t('pricing:templates.unitPrice')}</div>
@@ -207,7 +208,7 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
             </div>
             {form.lines.map((line, i) => (
               <div key={i} className="flex flex-wrap items-end gap-2">
-                <div className="w-full sm:min-w-[8rem] sm:flex-1">
+                <div className="w-full sm:min-w-32 sm:flex-1">
                   <Input
                     placeholder={t('common:labels.description')}
                     value={line.description}
@@ -257,9 +258,7 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
           </div>
 
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.isDefaultForAutoInvoice}
+            <Checkbox checked={form.isDefaultForAutoInvoice}
               onChange={(e) => setForm((f) => ({ ...f, isDefaultForAutoInvoice: e.target.checked }))}
             />
             {t('pricing:templates.useAsDefault')}

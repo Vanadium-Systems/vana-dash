@@ -15,6 +15,7 @@ import { t } from '@/shared/lib/i18n'
 import type { EmailBlocklistEntry, EmailLabel, EmailRule, EmailRuleAction, EmailRuleMatchType, SuppressionsOverview } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { SettingsSection } from './SettingsLayout'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 
 // The cards shared by the company's Email settings (email.setari) and a person's own settings
 // (email.setari_proprii): labels and rules per scope, the blocklist and unsubscribes read-only
@@ -90,8 +91,7 @@ export function LabelsCard({ scope }: { scope: Scope }) {
             <span>{l.name}</span>
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={!l.notificationsEnabled}
                   onChange={(e) =>
                     toggleNotifications.mutate({

@@ -193,12 +193,12 @@ export function HtmlMessageBody({ html, attachments, fallbackText, autoLoadImage
       {(hasExternalImages && !showExternalImages) || fit.shrunk ? (
         <div className="mb-2 flex flex-wrap gap-2">
           {hasExternalImages && !showExternalImages ? (
-            <Button variant="outline" size="sm" onClick={() => setShowExternalImages(true)}>
+            <Button variant="outline" onClick={() => setShowExternalImages(true)}>
               {t('email:body.showImages')}
             </Button>
           ) : null}
           {fit.shrunk ? (
-            <Button variant="ghost" size="sm" onClick={() => setActualSize((v) => !v)}>
+            <Button variant="ghost" onClick={() => setActualSize((v) => !v)}>
               {actualSize ? t('email:body.fitToWidth') : t('email:body.actualSize')}
             </Button>
           ) : null}

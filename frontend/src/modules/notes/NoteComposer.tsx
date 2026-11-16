@@ -59,6 +59,7 @@ export function NoteComposer() {
     <div ref={rootRef} className="w-full max-w-xl rounded-lg border bg-card text-card-foreground shadow-sm">
       {open ? (
         <div className="space-y-2 p-3">
+          {/* native: borderless note title field */}
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -69,13 +70,14 @@ export function NoteComposer() {
           />
           <NoteEditor key={open} doc={open === 'list' ? EMPTY_TASK_DOC : plainToDoc('')} autoFocus onChange={(doc) => (docRef.current = doc)} onSubmit={() => void finish()} className="min-h-12" />
           <div className="flex justify-end">
-            <Button variant="ghost" size="sm" onClick={() => void finish()}>
+            <Button variant="ghost" onClick={() => void finish()}>
               {t('notes:done')}
             </Button>
           </div>
         </div>
       ) : (
         <div className="flex items-center">
+          {/* native: fake input, whole field is clickable */}
           <button
             type="button"
             onClick={() => setOpen('note')}

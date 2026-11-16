@@ -102,13 +102,13 @@ export function SheetHeader({ sheet, canClaim, canCall, canWrite, onCall, onWrit
           <span className="flex items-center gap-2">
             <span className="text-muted-foreground">{t('clients:sheet.header.free')}</span>
             {canClaim ? (
-              <Button type="button" size="sm" variant="outline" onClick={onClaim}>
+              <Button type="button" variant="outline" onClick={onClaim}>
                 {t('clients:sheet.team.claim')}
               </Button>
             ) : null}
           </span>
         )}
-        <Button type="button" size="sm" variant="ghost" onClick={onCollaborators}>
+        <Button type="button" variant="ghost" onClick={onCollaborators}>
           <Users aria-hidden="true" />
           {sheet.collaborators.length > 0 ? t('clients:sheet.header.collaborators', { count: sheet.collaborators.length }) : t('clients:sheet.header.noCollaborators')}
         </Button>

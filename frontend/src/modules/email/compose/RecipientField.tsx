@@ -125,6 +125,7 @@ export function RecipientField({
             </span>
           )
         })}
+        {/* native: borderless recipient field */}
         <input
           ref={inputRef}
           id={id}
@@ -134,7 +135,7 @@ export function RecipientField({
           role="combobox"
           aria-expanded={focused && matches.length > 0}
           aria-controls={listId}
-          className="h-7 min-w-[8rem] flex-1 bg-transparent text-sm outline-none"
+          className="h-7 min-w-32 flex-1 bg-transparent text-sm outline-none"
           value={text}
           onChange={(e) => {
             const next = e.target.value

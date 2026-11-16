@@ -56,6 +56,7 @@ function Choice({ name, label, value, checked, onSelect }: { name: string; label
   return (
     <label className={cn('flex min-w-0 cursor-pointer flex-col gap-0.5 rounded-md border px-3 py-2 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring', checked ? 'border-primary bg-accent' : 'hover:bg-accent/50')}>
       <span className="flex items-center gap-2 text-xs text-muted-foreground">
+        {/* native: radio group */}
         <input type="radio" name={name} checked={checked} onChange={onSelect} className="accent-primary" />
         <span className="truncate">{label}</span>
       </span>
@@ -141,7 +142,7 @@ export function MergeView({ masterId, otherId, onSwap, onClose }: { masterId: st
             <CardContent className="space-y-4 pt-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm">{t('clients:health.merge.survivor', { name: masterName })}</p>
-                <Button type="button" variant="outline" size="sm" onClick={onSwap}>
+                <Button type="button" variant="outline" onClick={onSwap}>
                   <ArrowLeftRight aria-hidden="true" />
                   {t('clients:health.merge.swap')}
                 </Button>

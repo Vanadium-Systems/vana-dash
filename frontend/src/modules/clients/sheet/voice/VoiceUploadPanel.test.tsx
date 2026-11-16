@@ -110,6 +110,6 @@ describe('VoiceUploadPanel', () => {
     // Only the small file went out.
     expect(FakeXhr.all).toHaveLength(1)
     expect(FakeXhr.all[0]!.sent!.get('file')).toHaveProperty('name', 'mic.mp3')
-    expect(text()).toContain('depășește 25.0 MB')
+    expect(text()).toContain('depășește 25,0 MB')
   })
 })

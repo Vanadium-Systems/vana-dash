@@ -27,6 +27,7 @@ export function FolderPicker({ trail, onNavigate }: { trail: PickerCrumb[]; onNa
         {trail.map((crumb, i) => (
           <span key={crumb.id ?? 'root'} className="flex items-center gap-1">
             {i > 0 ? <span>/</span> : null}
+            {/* native: breadcrumb link */}
             <button
               type="button"
               className="hover:underline disabled:no-underline"
@@ -43,6 +44,7 @@ export function FolderPicker({ trail, onNavigate }: { trail: PickerCrumb[]; onNa
           <p className="px-2 py-1.5 text-sm text-muted-foreground">{t('common:states.loading')}</p>
         ) : folders.data?.length ? (
           folders.data.map((f) => (
+            // native: list row
             <button
               key={f.id}
               type="button"

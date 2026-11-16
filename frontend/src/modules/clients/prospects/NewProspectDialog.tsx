@@ -141,7 +141,6 @@ export function NewProspectDialog({ seed, onOpenChange, onOpenProspect }: { seed
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() => {
                   onOpenChange(false)
                   onOpenProspect(existing.id)

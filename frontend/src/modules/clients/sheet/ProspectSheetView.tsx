@@ -76,23 +76,23 @@ export function ProspectSheetView({ id, variant, list, onOpen, onExpand, onGone,
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         {variant === 'page' ? (
-          <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+          <Button type="button" variant="ghost" onClick={onBack}>
             <ArrowLeft aria-hidden="true" /> {t('common:actions.back')}
           </Button>
         ) : null}
         {neighbors ? (
           <>
-            <Button type="button" variant="outline" size="icon-sm" disabled={!prevId} aria-label={t('clients:sheet.nav.prev')} title={`${t('clients:sheet.nav.prev')} (K)`} onClick={goPrev}>
+            <Button type="button" variant="outline" size="icon" disabled={!prevId} aria-label={t('clients:sheet.nav.prev')} title={`${t('clients:sheet.nav.prev')} (K)`} onClick={goPrev}>
               <ChevronUp />
             </Button>
-            <Button type="button" variant="outline" size="icon-sm" disabled={!nextId} aria-label={t('clients:sheet.nav.next')} title={`${t('clients:sheet.nav.next')} (J)`} onClick={goNext}>
+            <Button type="button" variant="outline" size="icon" disabled={!nextId} aria-label={t('clients:sheet.nav.next')} title={`${t('clients:sheet.nav.next')} (J)`} onClick={goNext}>
               <ChevronDown />
             </Button>
             <span className="text-xs tabular-nums text-muted-foreground">{t('clients:sheet.nav.position', { index: formatNumber(neighbors.index), total: formatNumber(neighbors.total) })}</span>
           </>
         ) : null}
         {variant === 'drawer' && onExpand ? (
-          <Button type="button" variant="ghost" size="sm" className="ml-auto" onClick={onExpand}>
+          <Button type="button" variant="ghost" className="ml-auto" onClick={onExpand}>
             <Maximize2 aria-hidden="true" /> {t('clients:sheet.expand')}
           </Button>
         ) : null}

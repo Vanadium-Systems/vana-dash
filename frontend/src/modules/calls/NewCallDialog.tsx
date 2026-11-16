@@ -29,7 +29,7 @@ function ProspectPicker({ id, value, onChange }: { id?: string; value: LinkedPro
     return (
       <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-1.5 text-sm">
         <span className="min-w-0 truncate">{value.name}</span>
-        <Button type="button" size="sm" variant="ghost" onClick={() => onChange(null)}>
+        <Button type="button" variant="ghost" onClick={() => onChange(null)}>
           {t('calls:dialog.unlinkProspect')}
         </Button>
       </div>

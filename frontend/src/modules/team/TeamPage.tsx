@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
-import { Button } from '@/shared/components/ui/button'
+import { Button, buttonVariants } from '@/shared/components/ui/button'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
@@ -326,8 +326,8 @@ export function TeamPage() {
                             <MemberState member={member} />
                           </div>
                         </td>
-                        <td className="tbl-md max-w-[16rem] truncate py-2 pr-3 text-muted-foreground">{member.email}</td>
-                        <td className="max-w-[7rem] truncate py-2 pr-3 md:max-w-none">
+                        <td className="tbl-md max-w-64 truncate py-2 pr-3 text-muted-foreground">{member.email}</td>
+                        <td className="max-w-28 truncate py-2 pr-3 md:max-w-none">
                           {canManage && !isAdmin && member.role ? (
                             <Link to="/modules" className="underline underline-offset-2 hover:text-foreground">
                               {member.role.name}
@@ -340,15 +340,15 @@ export function TeamPage() {
                         <td className="tbl-md py-2 pr-3">
                           <MemberState member={member} />
                         </td>
-                        <td className="tbl-lg py-2 pr-3">
+                        <td className="tbl-lg whitespace-nowrap py-2 pr-3">
                           {sentReset?.id === member.id ? (
                             <span className="text-sm text-muted-foreground">{t('team:members.resetLinkSent', { email: sentReset.email })}</span>
                           ) : (
                             <LastSeen at={member.lastSeenAt} />
                           )}
                         </td>
-                        <td className="py-2 text-right">
-                          <span className="mr-1 inline-flex">
+                        <td className="whitespace-nowrap py-2 text-right">
+                          <span className="mr-1 inline-flex align-middle">
                             {canChat && member.status === 'active' && member.id !== session?.user.id ? (
                               <Button
                                 variant="ghost"
@@ -363,7 +363,7 @@ export function TeamPage() {
                           </span>
                           {canManage || (canAssignFolders && member.status === 'disabled') ? (
                             <DropdownMenu>
-                              <DropdownMenuTrigger className="rounded-sm p-1 hover:bg-accent">
+                              <DropdownMenuTrigger className={cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }), 'align-middle')}>
                                 <Ellipsis className="h-4 w-4" aria-hidden="true" />
                                 <span className="sr-only">{t('team:members.actionsFor', { member: memberName(member) })}</span>
                               </DropdownMenuTrigger>

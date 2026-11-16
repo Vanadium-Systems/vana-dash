@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Badge } from '@/shared/components/ui/badge'
+import { StatePill } from '@/shared/components/ui/state-pill'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { RowActions, type RowAction } from '@/shared/components/ui/row-actions'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
@@ -124,7 +125,7 @@ export function ProspectTable({
                     }}
                   />
                 </TableCell>
-                <TableCell className="tbl-fill tbl-fill-lg md:max-w-[16rem]">
+                <TableCell className="tbl-fill tbl-fill-lg md:max-w-64">
                   {/* native: row title link */}
                   <button
                     type="button"
@@ -137,7 +138,7 @@ export function ProspectTable({
                   </button>
                   <div className="flex items-center gap-1.5 truncate text-xs text-text-3">
                     <span className="truncate">{row.cif ?? t('clients:prospects.noCif')}</span>
-                    {row.archivedAt ? <Badge variant="outline">{t('clients:prospects.archived')}</Badge> : null}
+                    {row.archivedAt ? <StatePill>{t('clients:prospects.archived')}</StatePill> : null}
                   </div>
                   {/* The note has its own editable line below on narrow tables; repeating it here would show it twice. */}
                   <div className="tbl-lg-fallback truncate text-xs text-muted-foreground">{textOf('lg', ['note']).filter(Boolean).join(' · ')}</div>

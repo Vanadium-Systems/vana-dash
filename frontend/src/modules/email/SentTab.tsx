@@ -444,7 +444,6 @@ export function SentTab() {
           ) : null}
           <Button
             variant="ghost"
-            size="sm"
             className="ml-auto"
             disabled={exporting}
             onClick={async () => {
@@ -483,11 +482,11 @@ export function SentTab() {
               {items.map((s) => (
                 <TableRow key={s.id} className="cursor-pointer" onClick={() => setViewing(s)}>
                   <TableCell priority="md" className="whitespace-nowrap text-sm text-muted-foreground">{formatDate(s.createdAt)}</TableCell>
-                  <TableCell priority="lg" className="max-w-[14rem] text-sm">
+                  <TableCell priority="lg" className="max-w-56 text-sm">
                     <div className="truncate">{s.fromAddress ?? '—'}</div>
                     <div className="truncate text-xs text-muted-foreground">{s.sentByUserId ? (names.get(s.sentByUserId) ?? '—') : t('email:sent.sentByAuto')}</div>
                   </TableCell>
-                  <TableCell priority="md" className="max-w-[14rem] truncate text-sm">{s.recipient}</TableCell>
+                  <TableCell priority="md" className="max-w-56 truncate text-sm">{s.recipient}</TableCell>
                   <TableCell className="tbl-truncate w-full max-w-0 text-sm">
                     <div className="truncate">{s.subject}</div>
                     {/* On a phone the engagement column is hidden; opens and clicks come along under the subject. */}

@@ -60,7 +60,7 @@ export function ApiTokensAdminSection() {
                     items={[token.name, <span key="prefix" className="font-mono">{prefixText(token)}</span>, lastUsedText(token, true), expiresText(token)]}
                   />
                 </TableCell>
-                <TableCell priority="md" className="max-w-[10rem] truncate">
+                <TableCell priority="md" className="max-w-40 truncate">
                   {token.name}
                 </TableCell>
                 <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs">

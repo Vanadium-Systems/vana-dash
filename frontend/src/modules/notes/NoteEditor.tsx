@@ -77,7 +77,7 @@ function ToolButton({ label, active, disabled, onClick, children }: { label: str
     <Button
       type="button"
       variant="ghost"
-      size="icon-sm"
+      size="icon"
       title={label}
       aria-label={label}
       aria-pressed={active}
@@ -131,6 +131,7 @@ function LinkField({ editor, onDone }: { editor: Editor; onDone: () => void }) {
     onDone()
   }
   return (
+    // native: borderless inline link field
     <input
       autoFocus
       value={value}
@@ -241,6 +242,7 @@ function SlashMenu({ state }: { state: SlashState }) {
     >
       {state.items.length === 0 ? <p className="px-2 py-1.5 text-sm text-muted-foreground">{t('notes:slash.none')}</p> : null}
       {state.items.map((item, i) => (
+        // native: list row
         <button
           key={item.key}
           type="button"

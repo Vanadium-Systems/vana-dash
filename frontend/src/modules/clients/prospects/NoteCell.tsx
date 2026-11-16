@@ -39,7 +39,7 @@ export function NoteCell({ row }: { row: Pick<ProspectRow, 'id' | 'name' | 'note
   if (!row.note && !row.canEdit) return <span className="text-muted-foreground">—</span>
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger className="block w-full min-w-0 max-w-[16rem] rounded-sm text-left text-xs hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <DropdownMenuTrigger className="block w-full min-w-0 max-w-64 rounded-sm text-left text-xs hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         {row.note ? <span className="line-clamp-2 whitespace-pre-line break-words">{body}</span> : <span className="text-muted-foreground">{t('clients:prospects.note.add')}</span>}
         <span className="sr-only"> {t('clients:prospects.note.open', { name: row.name })}</span>
       </DropdownMenuTrigger>

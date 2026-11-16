@@ -370,6 +370,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
         ) : null}
         {isReply ? null : (
           <div className="border-b">
+            {/* native: borderless subject line */}
             <input
               aria-label={t('common:labels.subject')}
               placeholder={t('common:labels.subject')}
@@ -453,7 +454,6 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() => {
                   setLastSeenMessageId(null)
                   void send({ ignoreReplies: true })
@@ -476,7 +476,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
             tone="warning"
             title={t('email:compose.draftChanged')}
             action={
-              <Button type="button" variant="outline" size="sm" onClick={() => void reloadDraft()}>
+              <Button type="button" variant="outline" onClick={() => void reloadDraft()}>
                 {t('email:compose.reload')}
               </Button>
             }
@@ -499,9 +499,10 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
         >
           <Paperclip className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="sm" disabled={attachments.length >= MAX_ATTACHMENTS} onClick={() => setArchivePickerOpen(true)}>
+        <Button type="button" variant="ghost" disabled={attachments.length >= MAX_ATTACHMENTS} onClick={() => setArchivePickerOpen(true)}>
           {t('email:attach.fromArchive')}
         </Button>
+        {/* native: hidden file picker */}
         <input
           ref={fileInputRef}
           type="file"

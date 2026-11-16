@@ -70,7 +70,7 @@
   },
   "actions": {
     "downloadZip": "Descarcă (.zip)",
-    "upload": "Upload"
+    "upload": "Încarcă"
   },
   "folders": {
     "monthlyDisable": "Dezactivează subfolder lunar",
@@ -96,7 +96,6 @@
     "placeholder": "Caută fișiere și foldere…"
   },
   "filters": {
-    "add": "Filtru",
     "noTags": "Niciun fișier din listă nu are etichete.",
     "remove": "Scoate filtrul",
     "removeNamed": "Scoate filtrul {{name}}"

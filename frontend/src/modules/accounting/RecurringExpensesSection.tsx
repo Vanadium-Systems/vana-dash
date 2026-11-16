@@ -13,6 +13,7 @@ import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 
 interface FormState {
   description: string
@@ -365,8 +366,7 @@ export function RecurringExpensesSection() {
           </div>
 
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.autoMaterialize}
               onChange={(e) => setForm((f) => ({ ...f, autoMaterialize: e.target.checked }))}
             />

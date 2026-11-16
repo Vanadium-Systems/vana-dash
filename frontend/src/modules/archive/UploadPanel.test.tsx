@@ -92,7 +92,7 @@ describe('UploadPanel', () => {
     act(() => FakeXhr.all[0]!.finish(413, { success: false, error: 'plin', code: 'STORAGE_FULL', usedBytes: 10 * gb, limitBytes: 10 * gb }))
     const row = container.querySelector('[data-upload-status="error"]')!
     expect(row.textContent).toContain('Arhiva e plină')
-    expect(row.textContent).toContain('10.0 GB')
+    expect(row.textContent).toContain('10,0 GB')
   })
 
   it('tells a file that is too big from a full archive', () => {

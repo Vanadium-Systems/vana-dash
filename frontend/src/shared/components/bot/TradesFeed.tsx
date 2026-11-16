@@ -45,14 +45,14 @@ export function TradesFeed({ trades, strategies }: { trades: BotTrade[]; strateg
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-sm">
                   {SIDE_LABEL[trade.side]} <span className="font-medium">{trade.symbol.replace(/USDT$/, '')}</span>
-                  <span className="tnum ml-1.5 font-mono text-xs text-muted-foreground">{Number(trade.qty.toPrecision(6))}</span>
+                  <span className="tnum ml-1.5 text-xs text-muted-foreground">{Number(trade.qty.toPrecision(6))}</span>
                 </TableCell>
-                <TableCell className="tnum text-right font-mono text-xs">{formatPrice(trade.price)}</TableCell>
+                <TableCell className="tnum text-right text-xs">{formatPrice(trade.price)}</TableCell>
                 <TableCell className="hidden whitespace-nowrap text-xs text-muted-foreground md:table-cell" title={trade.subAccount ?? undefined}>
                   {labelByKey.get(trade.strategy) ?? trade.strategy}
                 </TableCell>
                 <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">
-                  <span className="block max-w-[9rem] truncate" title={trade.reason ?? undefined}>
+                  <span className="block max-w-36 truncate" title={trade.reason ?? undefined}>
                     {trade.reason ?? '—'}
                   </span>
                 </TableCell>

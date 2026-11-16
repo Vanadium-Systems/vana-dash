@@ -12,6 +12,7 @@ import type { Platform, PricingConfig, PricingConfigRow } from '@/shared/lib/typ
 import { PlatformTemplatesSection } from './PlatformTemplatesSection'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
 
@@ -593,7 +594,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                         </div>
                       </div>
                     </div>
-                    <div className="min-w-[16rem] flex-1 space-y-1">
+                    <div className="min-w-64 flex-1 space-y-1">
                       <Label className="text-xs">{t('pricing:config.includedAddons')}</Label>
                       {form.addons.length === 0 ? (
                         <p className="text-xs text-muted-foreground">{t('pricing:config.addAddonsFirst')}</p>
@@ -601,9 +602,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
                         <div className="flex flex-wrap gap-2">
                           {form.addons.map((addon, addonIndex) => (
                             <label key={addonIndex} className="flex items-center gap-1 text-xs">
-                              <input
-                                type="checkbox"
-                                checked={row.addonKeys.includes(addon.key)}
+                              <Checkbox checked={row.addonKeys.includes(addon.key)}
                                 onChange={(e) =>
                                   update({
                                     ...row,
@@ -832,9 +831,7 @@ function SelfServePricingToggleCard() {
           {t('pricing:config.selfServeHint')}
         </p>
         <label className="flex items-center gap-2 text-sm font-medium">
-          <input
-            type="checkbox"
-            checked={toggleState.data?.enabled ?? true}
+          <Checkbox checked={toggleState.data?.enabled ?? true}
             disabled={toggleState.isPending || toggle.isPending}
             onChange={(e) => toggle.mutate(e.target.checked)}
           />

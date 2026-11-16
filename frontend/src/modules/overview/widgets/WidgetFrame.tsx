@@ -80,7 +80,7 @@ export function WidgetFrame({ title, module, action, updatedAt, state, emptyText
           <div className="space-y-2">
             <p className="text-sm">{t('overview:widgets.failed')}</p>
             {onRetry ? (
-              <Button variant="outline" size="sm" onClick={onRetry}>
+              <Button variant="outline" onClick={onRetry}>
                 {t('common:actions.retry')}
               </Button>
             ) : null}

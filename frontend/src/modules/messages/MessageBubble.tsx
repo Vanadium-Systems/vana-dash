@@ -194,7 +194,7 @@ export const MessageBubble = forwardRef<
   const meta = (
     <span
       className={cn(
-        'inline-flex items-center gap-1 whitespace-nowrap text-[11px]',
+        'inline-flex items-center gap-1 whitespace-nowrap text-xs',
         // Over a photo: a dark chip that reads on any picture, ticks included (the blue stays blue).
         photoOnly
           ? 'rounded-full bg-black/55 px-1.5 py-0.5 leading-none text-white/90 [&_.text-muted-foreground]:text-white/90'
@@ -326,10 +326,12 @@ export const MessageBubble = forwardRef<
         {message.pending === 'failed' ? (
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <StatePill tone="warning">{t('messages:thread.notSent')}</StatePill>
+            {/* native: inline text link */}
             <button type="button" className="flex items-center gap-1 underline underline-offset-2" onClick={actions.onRetry}>
               <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
               {t('common:actions.tryAgainShort')}
             </button>
+            {/* native: inline text link */}
             <button type="button" className="underline underline-offset-2" onClick={actions.onDiscard}>
               {t('common:actions.discard')}
             </button>
@@ -363,6 +365,7 @@ export const MessageBubble = forwardRef<
 
 function SheetItem({ icon: Icon, label, onClick, destructive }: { icon: typeof Reply; label: string; onClick: () => void; destructive?: boolean }) {
   return (
+    // native: message bubble action
     <button
       type="button"
       role="menuitem"
@@ -379,6 +382,7 @@ function ReactionRow({ onPick, className, large }: { onPick: (emoji: string) => 
   return (
     <div className={cn('flex items-center gap-1', className)} role="group" aria-label={t('messages:actions.react')}>
       {QUICK_REACTIONS.map((emoji) => (
+        // native: emoji reaction
         <button
           key={emoji}
           type="button"
@@ -416,6 +420,7 @@ function ReactionPills({
         const names = reaction.userIds.map(nameOf).join(', ')
         return (
           <li key={reaction.emoji} className="reaction-pill">
+            {/* native: emoji reaction */}
             <button
               type="button"
               onClick={() => onToggle(reaction.emoji)}
@@ -439,6 +444,7 @@ function ReactionPills({
 
 function QuoteBlock({ reply, onJump }: { reply: ChatReplyPreview; onJump: (messageId: string) => void }) {
   return (
+    // native: message bubble quote, whole block is clickable
     <button
       type="button"
       onClick={() => onJump(reply.id)}
@@ -489,10 +495,10 @@ function EditForm({ initial, onSave, onCancel }: { initial: string; onSave: (bod
         aria-label={t('messages:thread.editMessage')}
       />
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={!draft.trim()}>
+        <Button type="submit" disabled={!draft.trim()}>
           {t('common:actions.save')}
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+        <Button type="button" variant="ghost" onClick={onCancel}>
           {t('common:actions.discard')}
         </Button>
       </div>
@@ -518,6 +524,7 @@ function AttachmentItem({
   if (IMAGE_TYPES.includes(attachment.contentType)) {
     return (
       <li className="relative w-fit max-w-full">
+        {/* native: thumbnail tile */}
         <button type="button" onClick={onOpen} className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {/* The thumbnail (640px), not the original: a phone photo is megabytes. */}
           <img
@@ -535,6 +542,7 @@ function AttachmentItem({
   if (VIDEO_TYPES.includes(attachment.contentType)) {
     return (
       <li className="relative">
+        {/* native: thumbnail tile */}
         <button
           type="button"
           onClick={onOpen}
@@ -555,6 +563,7 @@ function AttachmentItem({
   }
   return (
     <li>
+      {/* native: list row */}
       <button
         type="button"
         onClick={() => void api.download(`${href}?download=1`, attachment.filename).catch((err: Error) => toast.error(err.message))}

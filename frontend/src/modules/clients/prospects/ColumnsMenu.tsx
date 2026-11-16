@@ -71,7 +71,7 @@ export function ColumnsMenu({ columns, onChange }: { columns: ColumnKey[]; onCha
               </label>
             ))}
           </div>
-          <Button type="button" variant="ghost" size="sm" disabled={sameColumns(columns, DEFAULT_COLUMNS)} onClick={() => onChange([...DEFAULT_COLUMNS])}>
+          <Button type="button" variant="ghost" disabled={sameColumns(columns, DEFAULT_COLUMNS)} onClick={() => onChange([...DEFAULT_COLUMNS])}>
             {t('clients:prospects.columnsMenu.defaults')}
           </Button>
         </div>

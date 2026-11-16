@@ -149,6 +149,7 @@ export function StoragePanel({ onOpenFolder }: { onOpenFolder: (id: string) => v
                 {topFolders.map((folder) => (
                   <TableRow key={folder.folderId}>
                     <TableCell className="font-medium tbl-fill">
+                      {/* native: inline text link */}
                       <button type="button" className="block max-w-full truncate rounded-sm text-left hover:underline" onClick={() => onOpenFolder(folder.folderId)}>
                         {folder.name}
                       </button>

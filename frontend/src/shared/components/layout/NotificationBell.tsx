@@ -43,7 +43,7 @@ export function NotificationBell({ className }: { className?: string }) {
         <div className="w-[min(22rem,calc(100vw-2rem))] max-w-full">
           <div className="flex items-center justify-between gap-2 px-2 py-1">
             <span className="text-sm font-medium">{t('common:notifications.title')}</span>
-            <Button type="button" size="sm" variant="ghost" disabled={unread === 0 || markRead.isPending} onClick={() => markRead.mutate({ all: true })}>
+            <Button type="button" variant="ghost" disabled={unread === 0 || markRead.isPending} onClick={() => markRead.mutate({ all: true })}>
               {t('common:notifications.markAll')}
             </Button>
           </div>
@@ -67,7 +67,7 @@ export function NotificationBell({ className }: { className?: string }) {
           </div>
           {query.hasNextPage ? (
             <div className="px-2 py-1">
-              <Button type="button" size="sm" variant="ghost" className="w-full" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
+              <Button type="button" variant="ghost" className="w-full" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
                 {t('common:notifications.more')}
               </Button>
             </div>

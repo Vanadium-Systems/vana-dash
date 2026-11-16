@@ -72,7 +72,7 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
             <TableCell priority="md" className="whitespace-nowrap font-mono text-xs text-text-3">{c.cif}</TableCell>
             <TableCell priority="lg" className="max-w-xs truncate text-muted-foreground">{c.address}</TableCell>
             <TableCell priority="lg" className="whitespace-nowrap font-mono text-xs text-text-3">{c.iban ?? '—'}</TableCell>
-            <TableCell priority="md" className="max-w-[14rem] truncate text-muted-foreground">{c.email ?? '—'}</TableCell>
+            <TableCell priority="md" className="max-w-56 truncate text-muted-foreground">{c.email ?? '—'}</TableCell>
             <TableCell priority="lg">
               {c.vanagreenTenantId ? (
                 <StatePill tone="success">{t('accounting:clients.mapped')}{c.autoInvoiceEnabled ? t('accounting:clients.plusAuto') : ''}</StatePill>

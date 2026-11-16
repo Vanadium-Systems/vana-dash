@@ -338,6 +338,7 @@ export function EventFormDialog({ open, onOpenChange, occurrence, prefill, writa
                     const code = BYDAY_CODES[i] ?? 'MO'
                     const active = byDays.has(code)
                     return (
+                      // native: chip
                       <button
                         key={code}
                         type="button"
@@ -419,7 +420,6 @@ export function EventFormDialog({ open, onOpenChange, occurrence, prefill, writa
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
                   onClick={() => setReminders((prev) => [...prev, REMINDER_PRESETS.find((m) => m >= 10 && !prev.includes(m)) ?? 0])}
                 >
                   <Plus className="h-4 w-4" /> {t('calendar:reminders.add')}
@@ -430,7 +430,7 @@ export function EventFormDialog({ open, onOpenChange, occurrence, prefill, writa
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>{t('calendar:event.attendeesOptional')}</Label>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setAttendeeIds(new Set(attendeeCandidates.map((m) => m.id)))}>
+                  <Button type="button" variant="ghost" onClick={() => setAttendeeIds(new Set(attendeeCandidates.map((m) => m.id)))}>
                     {t('calendar:event.wholeTeam')}
                   </Button>
                 </div>
@@ -475,6 +475,7 @@ export function EventFormDialog({ open, onOpenChange, occurrence, prefill, writa
                   const selected = color === value
                   const swatch = value === null ? tagColor(personTag(ownerId ?? '')) : value.startsWith('tag-') ? tagColor(Number(value.slice(4))) : value
                   return (
+                    // native: color swatch
                     <button
                       key={value ?? 'mine'}
                       type="button"

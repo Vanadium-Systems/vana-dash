@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
+import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { EmptyState } from '@/shared/components/ui/empty-state'
@@ -13,6 +14,7 @@ import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/shared/components/ui/dropdown-menu'
 import { FilterChip, FilterMenuTrigger } from '@/shared/components/ui/filter-chip'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { cn } from '@/shared/lib/utils'
 import { api } from '@/shared/lib/api'
 import { formatNumber, intlTag } from '@/shared/lib/format'
@@ -79,10 +81,7 @@ function PurchaseDialog({
         </DialogHeader>
         <div className="space-y-4">
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-input"
-              checked={addExpense}
+            <Checkbox checked={addExpense}
               onChange={(e) => setAddExpense(e.target.checked)}
             />
             {t('wishlist:addAsExpense', { amount: `${item?.estimatedPrice ?? '—'} ${item?.currency ?? ''}`.trim() })}
@@ -256,7 +255,7 @@ export function WishlistPage() {
                       {item.estimatedPrice ? `${Number(item.estimatedPrice).toLocaleString(intlTag())} ${item.currency}` : '—'}
                     </TableCell>
                     <TableCell priority="lg">
-                      {item.purchased ? <Badge variant="success">{t('wishlist:status.bought')}</Badge> : <Badge variant="outline">{t('wishlist:status.inList')}</Badge>}
+                      {item.purchased ? <StatePill tone="success">{t('wishlist:status.bought')}</StatePill> : <StatePill>{t('wishlist:status.inList')}</StatePill>}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">

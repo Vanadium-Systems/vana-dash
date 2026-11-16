@@ -180,8 +180,8 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol, liveMode }: Ord
             <div className="rounded-md border bg-muted/40 p-3 text-sm" data-testid="assets-order-preview">
               <p>
                 {tNodes('crypto:order.previewLine', {
-                  reference: <span className="tnum font-mono">{formatUsd(preview.referencePrice)}</span>,
-                  estimate: <span className="tnum font-mono">{formatUsd(preview.estimatedValue)}</span>,
+                  reference: <span className="tnum">{formatUsd(preview.referencePrice)}</span>,
+                  estimate: <span className="tnum">{formatUsd(preview.estimatedValue)}</span>,
                 })}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">

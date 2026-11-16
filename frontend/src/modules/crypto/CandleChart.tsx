@@ -99,7 +99,7 @@ export function CandleChart({ candles, height = 320 }: CandleChartProps) {
         {priceTicks.map((tick) => (
           <g key={tick.v}>
             <line x1={PAD.left} x2={W - PAD.right} y1={tick.y} y2={tick.y} className="stroke-border" strokeDasharray="3 3" strokeWidth={1} />
-            <text x={W - PAD.right + 6} y={tick.y + 4} fontSize={11} className="fill-muted-foreground font-mono">
+            <text x={W - PAD.right + 6} y={tick.y + 4} fontSize={11} className="fill-muted-foreground">
               {fmt(tick.v)}
             </text>
           </g>
@@ -135,7 +135,7 @@ export function CandleChart({ candles, height = 320 }: CandleChartProps) {
       </svg>
 
       {hovered ? (
-        <div className="pointer-events-none absolute left-2 top-2 rounded-md border bg-popover px-2 py-1 font-mono text-xs shadow-sm">
+        <div className="pointer-events-none absolute left-2 top-2 rounded-md border bg-popover px-2 py-1 tnum text-xs shadow-sm">
           <span className="text-muted-foreground">{new Date(hovered.t).toLocaleString(intlTag(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
           {'  '}O {fmt(hovered.o)} H {fmt(hovered.h)} L {fmt(hovered.l)} C{' '}
           <span className={hovered.c >= hovered.o ? 'text-success-text' : 'text-destructive-text'}>{fmt(hovered.c)}</span>

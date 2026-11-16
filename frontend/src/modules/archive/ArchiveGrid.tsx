@@ -40,6 +40,7 @@ function FolderTile({ item, env }: { item: ArchiveItem; env: ListEnv }) {
       {...dnd.osDrop}
     >
       <FolderGlyph color={item.color} className="h-5 w-5" />
+      {/* native: item name opens the item */}
       <button type="button" className="min-w-0 flex-1 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <ItemName item={item} query={env.query} />
       </button>
@@ -78,6 +79,7 @@ function FileCard({ item, env }: { item: ArchiveItem; env: ListEnv }) {
         {item.previewUrl ? <img src={item.previewUrl} alt="" loading="lazy" className="h-full w-full object-cover" /> : <ItemGlyph item={item} className="h-10 w-10" />}
       </div>
       <div className="min-w-0 px-3 py-2">
+        {/* native: item name opens the item */}
         <button type="button" className="block w-full min-w-0 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ItemName item={item} query={env.query} />
         </button>

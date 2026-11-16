@@ -397,6 +397,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
       <div className="p-6">
         <p className="text-sm">
           {t('messages:thread.loadFailed')}{' '}
+          {/* native: inline text link */}
           <button type="button" className="underline underline-offset-2" onClick={() => void thread.refetch()}>
             {t('common:actions.retry')}
           </button>
@@ -416,6 +417,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
             <ArrowLeft className="h-4 w-4" />
           </Button>
         ) : null}
+        {/* native: header strip is clickable */}
         <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 text-left" onClick={() => setPanel('info')}>
           <ChatAvatar name={title} group={conversation.kind === 'group'} userId={other?.id} online={other?.presence === 'online'} />
           <span className="min-w-0 flex-1">
@@ -468,7 +470,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
           <div ref={contentRef}>
             {thread.hasMore ? (
               <div className="my-3 text-center">
-                <Button variant="outline" size="sm" disabled={thread.isLoadingOlder} onClick={() => void loadOlder()}>
+                <Button variant="outline" disabled={thread.isLoadingOlder} onClick={() => void loadOlder()}>
                   {thread.isLoadingOlder ? t('common:states.loading') : t('messages:thread.older')}
                 </Button>
               </div>
@@ -533,7 +535,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
 
             {thread.hasNewer ? (
               <div className="my-3 text-center">
-                <Button variant="outline" size="sm" disabled={thread.isLoadingNewer} onClick={() => void thread.loadNewer()}>
+                <Button variant="outline" disabled={thread.isLoadingNewer} onClick={() => void thread.loadNewer()}>
                   {thread.isLoadingNewer ? t('common:states.loading') : t('messages:thread.newer')}
                 </Button>
               </div>

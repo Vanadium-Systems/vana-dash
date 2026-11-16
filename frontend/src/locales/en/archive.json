@@ -91,7 +91,6 @@
     "placeholder": "Search files and folders…"
   },
   "filters": {
-    "add": "Filter",
     "noTags": "None of the files in the list has a label.",
     "remove": "Remove filter",
     "removeNamed": "Remove the {{name}} filter"

@@ -46,6 +46,7 @@ export function SeriesScopeDialog({
         >
           {SCOPES.map((option, i) => (
             <label key={option} className="flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2 text-sm hover:bg-accent">
+              {/* native: radio option, no radio primitive */}
               <input
                 ref={i === 0 ? firstRef : undefined}
                 type="radio"

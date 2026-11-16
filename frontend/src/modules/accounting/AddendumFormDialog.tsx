@@ -9,6 +9,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import type { ContractAddendum } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 
 interface AddendumFormDialogProps {
   open: boolean
@@ -104,7 +105,7 @@ export function AddendumFormDialog({ open, onOpenChange, clientId, prefill }: Ad
             />
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={temporary} onChange={(e) => setTemporary(e.target.checked)} />
+            <Checkbox checked={temporary} onChange={(e) => setTemporary(e.target.checked)} />
             {t('accounting:addendum.temporary')}
           </label>
           {temporary && (

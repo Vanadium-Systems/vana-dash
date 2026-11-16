@@ -142,7 +142,7 @@ export function ActivityTab({ prospectId, kinds }: { prospectId: string; kinds: 
         <Timeline entries={entries} />
       )}
       {timeline.hasNextPage ? (
-        <Button type="button" variant="outline" size="sm" disabled={timeline.isFetchingNextPage} onClick={() => void timeline.fetchNextPage()}>
+        <Button type="button" variant="outline" disabled={timeline.isFetchingNextPage} onClick={() => void timeline.fetchNextPage()}>
           {t('clients:sheet.activity.more')}
         </Button>
       ) : null}

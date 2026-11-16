@@ -48,6 +48,7 @@ function Distribution({ draft }: { draft: ScoreDraft | null }) {
                 <span className="tabular-nums">{formatNumber(row.count)}</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                {/* arbitrary: no token for width transition */}
                 <div className="h-full rounded-full bg-primary transition-[width] duration-200 ease-out" style={{ width: `${total ? (row.count / total) * 100 : 0}%` }} />
               </div>
             </li>
@@ -130,12 +131,14 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
   if (config.isError) return <p className="text-sm text-destructive-text">{t('common:states.loadFailed')}</p>
 
   return (
+    // arbitrary: no token for a fixed-side-column grid
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="min-w-0 space-y-6">
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">{t('clients:settings.score.base')}</h3>
           <p className="text-sm text-muted-foreground">{t('clients:settings.score.baseHint')}</p>
           <div className="flex items-center gap-3">
+            {/* native: range slider */}
             <input
               type="range"
               min={0}

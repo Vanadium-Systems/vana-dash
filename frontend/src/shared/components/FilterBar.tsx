@@ -315,7 +315,7 @@ function AddFilterMenu({ fields, pinned, clauses, onCommit, onAll }: { fields: F
         <div className="min-w-64 max-w-[min(20rem,calc(100vw-2rem))] p-1">
           {field ? (
             <div className="space-y-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setPicked(null)}>
+              <Button type="button" variant="ghost" onClick={() => setPicked(null)}>
                 <ChevronLeft aria-hidden="true" /> {t('common:filterBar.back')}
               </Button>
               <FilterValueEditor field={field} clause={clauses.find((clause) => clause.field === field.key)} onChange={(next) => onCommit(field, next)} />

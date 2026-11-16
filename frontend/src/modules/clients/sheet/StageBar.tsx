@@ -83,18 +83,18 @@ export function StageBar({ sheet, statuses }: { sheet: ProspectSheet; statuses: 
             {kind === 'open' ? (
               <>
                 {won ? (
-                  <Button type="button" size="sm" variant="outline" onClick={() => void move(won.key)}>
+                  <Button type="button" variant="outline" onClick={() => void move(won.key)}>
                     <Trophy aria-hidden="true" /> {t('clients:sheet.stage.won')}
                   </Button>
                 ) : null}
                 {lost ? (
-                  <Button type="button" size="sm" variant="outline" onClick={() => setLostOpen(true)}>
+                  <Button type="button" variant="outline" onClick={() => setLostOpen(true)}>
                     <XCircle aria-hidden="true" /> {t('clients:sheet.stage.lost')}
                   </Button>
                 ) : null}
               </>
             ) : (
-              <Button type="button" size="sm" variant="outline" onClick={reopen}>
+              <Button type="button" variant="outline" onClick={reopen}>
                 <RotateCcw aria-hidden="true" /> {t('clients:sheet.stage.reopen')}
               </Button>
             )}

@@ -113,7 +113,7 @@ export function TasksTab({ prospectId, prospectName, canEdit, onSchedule }: { pr
   return (
     <div className="space-y-4">
       {canEdit ? (
-        <Button type="button" variant="outline" size="sm" onClick={onSchedule}>
+        <Button type="button" variant="outline" onClick={onSchedule}>
           <CalendarClock aria-hidden="true" /> {t('clients:sheet.next.schedule')}
         </Button>
       ) : null}

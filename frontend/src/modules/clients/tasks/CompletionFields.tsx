@@ -77,7 +77,7 @@ export function CompletionFields({ draft, onChange, isCall, phones = [], keyHint
         <span className="text-sm font-medium">{t('clients:tasks.nextStep')}</span>
         <div className="flex flex-wrap gap-2">
           {NEXT_STEPS.map((choice) => (
-            <Button key={choice} type="button" size="sm" variant={draft.next === choice ? 'default' : 'outline'} aria-pressed={draft.next === choice} onClick={() => patch({ next: choice })}>
+            <Button key={choice} type="button" variant={draft.next === choice ? 'default' : 'outline'} aria-pressed={draft.next === choice} onClick={() => patch({ next: choice })}>
               {t(NEXT_LABEL[choice])}
             </Button>
           ))}

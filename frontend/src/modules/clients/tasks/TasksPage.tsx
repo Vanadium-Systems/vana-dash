@@ -176,7 +176,7 @@ export function TasksPageTab() {
                     <TableDetails items={[task.prospectName, task.personName, scope === 'team' ? task.assigneeName : null]} />
                   </TableCell>
                   <TableCell priority="md">
-                    <Link to={`/clients/${task.prospectId}`} className="block max-w-[16rem] truncate rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <Link to={`/clients/${task.prospectId}`} className="block max-w-64 truncate rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       {task.prospectName}
                     </Link>
                     {scope === 'team' && task.assigneeName ? <span className="block truncate text-xs text-muted-foreground">{task.assigneeName}</span> : null}

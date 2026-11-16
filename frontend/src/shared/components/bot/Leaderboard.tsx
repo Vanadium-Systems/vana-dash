@@ -71,15 +71,15 @@ export function Leaderboard({
                       {isReference ? <span className="text-xs text-muted-foreground">{t('common:bot.leaderboard.reference')}</span> : null}
                     </span>
                   </TableCell>
-                  <TableCell className={cn('tnum text-right font-mono text-xs', pnlClass(pct))}>{formatPct(pct)}</TableCell>
-                  <TableCell className="tnum hidden text-right font-mono text-xs text-muted-foreground sm:table-cell">
+                  <TableCell className={cn('tnum text-right text-xs', pnlClass(pct))}>{formatPct(pct)}</TableCell>
+                  <TableCell className="tnum hidden text-right text-xs text-muted-foreground sm:table-cell">
                     {vsHold == null ? '—' : `${vsHold > 0 ? '+' : ''}${vsHold.toFixed(2)} pp`}
                   </TableCell>
-                  <TableCell className="tnum hidden text-right font-mono text-xs text-muted-foreground md:table-cell">
+                  <TableCell className="tnum hidden text-right text-xs text-muted-foreground md:table-cell">
                     {s.maxDdPct.toFixed(1)}%
                   </TableCell>
-                  <TableCell className="tnum hidden text-right font-mono text-xs text-muted-foreground lg:table-cell">{s.trades}</TableCell>
-                  <TableCell className="tnum hidden text-right font-mono text-xs text-muted-foreground lg:table-cell">
+                  <TableCell className="tnum hidden text-right text-xs text-muted-foreground lg:table-cell">{s.trades}</TableCell>
+                  <TableCell className="tnum hidden text-right text-xs text-muted-foreground lg:table-cell">
                     {s.feesUsdt.toFixed(2)}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">

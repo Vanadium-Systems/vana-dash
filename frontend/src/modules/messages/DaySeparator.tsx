@@ -52,6 +52,7 @@ export function DaySeparator({ iso, onJump }: { iso: string; onJump: (dateIso: s
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {/* native: visually hidden date picker, opened from the menu */}
       <input
         ref={dateRef}
         type="date"

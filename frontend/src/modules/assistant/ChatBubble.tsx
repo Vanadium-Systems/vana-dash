@@ -76,10 +76,10 @@ function MessageMeta({ text, iso }: { text: string; iso?: string }) {
     : null
   return (
     <div className="flex shrink-0 items-center gap-1 self-end opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100">
-      {time ? <span className="tnum font-mono text-xs text-muted-foreground">{time}</span> : null}
+      {time ? <span className="tnum text-xs text-muted-foreground">{time}</span> : null}
       <Button
         variant="ghost"
-        size="icon-sm"
+        size="icon"
         aria-label={copied ? t('common:states.copied') : t('assistant:copyMessage')}
         className="text-muted-foreground"
         onClick={() => void navigator.clipboard.writeText(text).then(() => setCopied(true))}
@@ -97,6 +97,7 @@ export function ChatBubble({ message, streaming = false }: { message: BubbleMess
   return (
     <div className={cn('group flex items-end gap-2', isUser ? 'flex-row-reverse self-end' : 'self-start')}>
       <Avatar role={message.role} />
+      {/* arbitrary: reading width in ch, no token */}
       <div className={cn('flex min-w-0 max-w-[85ch] flex-col gap-1', isUser && 'items-end')}>
         {message.tools && !streaming ? <ToolLine tools={message.tools} /> : null}
         <div

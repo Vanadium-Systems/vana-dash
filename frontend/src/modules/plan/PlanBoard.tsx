@@ -19,6 +19,7 @@ import { CheckCircle2, Circle, GripVertical, Lock } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/shared/components/ui/badge'
+import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { api } from '@/shared/lib/api'
@@ -101,9 +102,9 @@ function GoalCard({ goal, mrrRon, onEdit, handle }: GoalCardProps) {
             </Badge>
           ) : null}
           {goal.targetDate ? (
-            <Badge variant={goal.status !== 'completed' && goal.targetDate < new Date().toISOString().slice(0, 10) ? 'warning' : 'outline'}>
+            <StatePill tone={goal.status !== 'completed' && goal.targetDate < new Date().toISOString().slice(0, 10) ? 'warning' : 'neutral'}>
               {t('plan:deadline', { targetDate: formatTargetDate(goal.targetDate) })}
-            </Badge>
+            </StatePill>
           ) : null}
         </div>
         {goal.note ? <p className="text-sm text-muted-foreground">{goal.note}</p> : null}

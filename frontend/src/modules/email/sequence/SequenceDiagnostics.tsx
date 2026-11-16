@@ -43,7 +43,6 @@ function PauseBand({ sequence, paused, rule }: { sequence: EmailSequence; paused
       action={
         <Button
           type="button"
-          size="sm"
           variant="outline"
           disabled={resume.isPending}
           onClick={() => void confirm({ title: t('email:sequences.diag.resumeTitle', { name: sequence.name }), consequence: t('email:sequences.diag.resumeBody'), confirmLabel: t('email:sequences.diag.resume') }).then((ok) => ok && resume.mutate())}

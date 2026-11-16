@@ -25,7 +25,7 @@ export function initials(name: string): string {
 }
 
 const SIZES = {
-  sm: 'size-7 text-[11px]',
+  sm: 'size-7 text-xs',
   md: 'size-9 text-xs',
   lg: 'size-10 text-sm',
 } as const

@@ -56,6 +56,7 @@ export function VersionsPeek({ noteId, onClose, onRestored }: { noteId: string |
           <ul className="space-y-1">
             {list.data.map((version) => (
               <li key={version.id}>
+                {/* native: list row */}
                 <button
                   type="button"
                   aria-pressed={version.id === pickedId}

@@ -12,6 +12,7 @@ import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { RowActions } from '@/shared/components/ui/row-actions'
 import { TablePagination } from '@/shared/components/ui/table-pagination'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { api } from '@/shared/lib/api'
 import { downloadCsv } from '@/shared/lib/csv'
 import type { TenderOpportunity, TenderSource } from '@/shared/lib/types'
@@ -121,7 +122,7 @@ export function TendersPage() {
       <TenderWatchRulesCard />
 
       <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-[12rem] flex-1 space-y-1">
+        <div className="min-w-48 flex-1 space-y-1">
           <label className="text-xs text-muted-foreground">{t('tenders:searchLabel')}</label>
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('tenders:searchPlaceholder')} />
         </div>
@@ -145,11 +146,11 @@ export function TendersPage() {
           </div>
         </div>
         <label className="flex items-center gap-2 pb-2 text-xs text-muted-foreground">
-          <input type="checkbox" checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)} />
+          <Checkbox checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)} />
           {t('tenders:onlyImportant')}
         </label>
         <label className="flex items-center gap-2 pb-2 text-xs text-muted-foreground">
-          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+          <Checkbox checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
           {t('tenders:showArchived')}
         </label>
       </div>
@@ -192,7 +193,7 @@ export function TendersPage() {
                 <TableBody>
                   {pageRows.map((tender) => (
                     <TableRow key={tender.id} className={cn(tender.dismissedAt ? 'opacity-60' : undefined, tender.isPriority ? 'bg-warning/10' : undefined)}>
-                      <TableCell className="font-medium tbl-fill md:min-w-[12rem] md:max-w-xs">
+                      <TableCell className="font-medium tbl-fill md:min-w-48 md:max-w-xs">
                         <a href={tender.detailUrl} target="_blank" rel="noreferrer" className="flex items-start gap-1 hover:underline">
                           {tender.isPriority ? <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-warning text-warning" /> : null}
                           <span className="line-clamp-2">{tender.title}</span>
@@ -208,7 +209,7 @@ export function TendersPage() {
                         ) : null}
                         <TableDetails items={[tender.contractingAuthority, tender.estimatedValueRon ? formatNumber(Number(tender.estimatedValueRon), BASE_CURRENCY) : null]} />
                       </TableCell>
-                      <TableCell priority="md" className="max-w-[14rem] truncate">{tender.contractingAuthority ?? '—'}</TableCell>
+                      <TableCell priority="md" className="max-w-56 truncate">{tender.contractingAuthority ?? '—'}</TableCell>
                       <TableCell priority="lg" className="whitespace-nowrap text-sm text-muted-foreground">{tender.cpvCode ?? '—'}</TableCell>
                       <TableCell priority="lg">
                         <Badge variant="outline">{SOURCE_LABEL[tender.source]}</Badge>

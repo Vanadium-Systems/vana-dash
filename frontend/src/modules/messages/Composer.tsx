@@ -263,6 +263,7 @@ export const Composer = forwardRef<
             <p className="truncate text-xs font-medium">{t('messages:reply.to', { name: replyTo.authorName })}</p>
             <p className="truncate text-xs text-muted-foreground">{replyTo.body || t('messages:reply.attachment')}</p>
           </div>
+          {/* native: chip remove */}
           <button
             type="button"
             className="rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
@@ -281,6 +282,7 @@ export const Composer = forwardRef<
               <Hash className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="text-muted-foreground">{t(`messages:refs.types.${refInput.type}`)}</span>
               <span className="min-w-0 truncate font-medium">{refInput.title}</span>
+              {/* native: chip remove */}
               <button
                 type="button"
                 className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
@@ -305,6 +307,7 @@ export const Composer = forwardRef<
               {entry.status === 'failed' ? (
                 // Acțiune de text într-un chip, nu buton cu carapacă (`ui/` are doar variante
                 // de 28/32px, care ar sparge chip-ul).
+                // native: inline text link
                 <button
                   type="button"
                   className="flex items-center gap-1 underline underline-offset-2"
@@ -317,6 +320,7 @@ export const Composer = forwardRef<
                   {t('common:actions.tryAgainShort')}
                 </button>
               ) : null}
+              {/* native: chip remove */}
               <button
                 type="button"
                 className="text-muted-foreground hover:text-foreground"
@@ -358,8 +362,11 @@ export const Composer = forwardRef<
             s-ar deschide camera/galeria. Același tipar ca în Arhivă și Email. În APK, galeria
             (accept doar imagini + video) deschide selectorul de poze al sistemului, vezi
             MainActivity.java. */}
+        {/* native: hidden file input */}
         <input ref={galleryInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={onPicked} />
+        {/* native: hidden file input */}
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onPicked} />
+        {/* native: hidden file input */}
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={onPicked} />
         <Textarea
           ref={textareaRef}
@@ -422,6 +429,7 @@ function UploadPreview({ upload, onClose }: { upload: PendingUpload; onClose: ()
 }
 function AttachOption({ icon: Icon, label, onClick }: { icon: typeof Images; label: string; onClick: () => void }) {
   return (
+    // native: menu tile
     <button
       type="button"
       role="menuitem"
@@ -449,6 +457,7 @@ function UploadThumb({ file, onOpen }: { file: File; onOpen: () => void }) {
 
   if (isImage && url) {
     return (
+      // native: thumbnail tile
       <button type="button" onClick={onOpen} className="shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={t('messages:composer.previewFile', { name: file.name })}>
         <img src={url} alt="" className="h-16 w-16 rounded-sm object-cover" />
       </button>

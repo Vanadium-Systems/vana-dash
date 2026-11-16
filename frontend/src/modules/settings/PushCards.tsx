@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import {
   getPushPermissionState,
   isSubscribedToPush,
@@ -153,9 +154,7 @@ export function PushPreferencesCard() {
         <div className="space-y-2">
           {PREFERENCE_LABELS.map(({ key, label }) => (
             <label key={key} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={prefs.data[key]}
+              <Checkbox checked={prefs.data[key]}
                 onChange={(e) => update.mutate({ [key]: e.target.checked })}
               />
               {label}

@@ -3,6 +3,7 @@ import { Link2, Trash2, Video } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Field } from '@/shared/components/ui/field'
@@ -129,8 +130,9 @@ export function BookingPanel({ focusBlockForm, onBookingClick }: { focusBlockFor
           <ul className="space-y-1">
             {upcomingBookings.map((b) => (
               <li key={b.id}>
+                {/* native: list row */}
                 <button type="button" className="w-full rounded-sm px-1 py-1 text-left hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => onBookingClick(b)}>
-                  <span className="font-mono text-xs text-muted-foreground tnum">{slotLabel(b.start)}</span>
+                  <span className="text-xs text-muted-foreground tnum">{slotLabel(b.start)}</span>
                   <span className="block truncate">{[b.name, b.company].filter(Boolean).join(', ')}</span>
                   {b.email ? <span className="block truncate text-xs text-muted-foreground">{b.email}</span> : null}
                 </button>
@@ -147,7 +149,7 @@ export function BookingPanel({ focusBlockForm, onBookingClick }: { focusBlockFor
           {upcomingBlocks.map((b) => (
             <li key={b.id} className="group flex items-center gap-2">
               <span className="min-w-0 flex-1 truncate">
-                <span className="font-mono text-xs tnum">{slotLabel(b.startAt)}</span>
+                <span className="text-xs tnum">{slotLabel(b.startAt)}</span>
                 {b.reason ? <span className="text-muted-foreground"> · {b.reason}</span> : null}
               </span>
               <Button variant="ghost" size="icon-sm" title={t('common:actions.unblock')} disabled={deleteBlock.isPending} onClick={() => deleteBlock.mutate(b)}>
@@ -303,14 +305,14 @@ function SettingsForm({ settings }: { settings: BookingSettings }) {
     <form onSubmit={submit} className="space-y-4">
       <h3 className="text-xs text-muted-foreground">{t('calendar:booking.schedule.title')}</h3>
       <label className="flex items-center gap-2">
-        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+        <Checkbox checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
         {t('calendar:booking.schedule.showOnSite')}
       </label>
       <div className="space-y-1">
         {rows.map((r, i) => (
           <div key={WEEKDAYS[i]} className="grid grid-cols-[6.5rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2">
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={r.on} onChange={(e) => setRows((prev) => prev.map((x, j) => (j === i ? { ...x, on: e.target.checked } : x)))} />
+              <Checkbox checked={r.on} onChange={(e) => setRows((prev) => prev.map((x, j) => (j === i ? { ...x, on: e.target.checked } : x)))} />
               {WEEKDAYS[i]}
             </label>
             <TimeInput
@@ -377,7 +379,7 @@ export function BookingDetailDialog({ booking, onOpenChange }: { booking: Bookin
         </DialogHeader>
         <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-2 text-sm">
           <dt className="text-muted-foreground">{t('common:labels.when')}</dt>
-          <dd className="font-mono tnum">{slotLabel(booking.start)}</dd>
+          <dd className="tnum">{slotLabel(booking.start)}</dd>
           <dt className="text-muted-foreground">{t('common:labels.email')}</dt>
           <dd className="min-w-0 truncate">{booking.email ? <a className="underline underline-offset-2" href={`mailto:${booking.email}`}>{booking.email}</a> : '—'}</dd>
           <dt className="text-muted-foreground">{t('common:labels.subject')}</dt>

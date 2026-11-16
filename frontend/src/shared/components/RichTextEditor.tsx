@@ -248,6 +248,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className, au
         <ToolbarButton title={t('common:editor.insertImage')} onClick={() => imageInputRef.current?.click()}>
           <ImageIcon className="h-4 w-4" />
         </ToolbarButton>
+        {/* native: hidden file picker */}
         <input
           ref={imageInputRef}
           type="file"

@@ -53,10 +53,10 @@ export function QuickCreate({
         </Select>
       ) : null}
       <div className="flex items-center justify-between gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => onMore(title)}>
+        <Button type="button" variant="ghost" onClick={() => onMore(title)}>
           {t('calendar:quick.more')}
         </Button>
-        <Button type="submit" size="sm" disabled={pending}>
+        <Button type="submit" disabled={pending}>
           {pending ? t('common:states.saving') : t('common:actions.save')}
         </Button>
       </div>

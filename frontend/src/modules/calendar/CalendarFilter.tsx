@@ -63,10 +63,10 @@ export function CalendarFilter({
         </div>
       ) : null}
       <div className="flex gap-1">
-        <Button variant="ghost" size="sm" onClick={() => onChange(new Set())} disabled={shownCount === 0}>
+        <Button variant="ghost" onClick={() => onChange(new Set())} disabled={shownCount === 0}>
           {t('calendar:filter.onlyMine')}
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => onChange(new Set(others.map((l) => l.userId)))} disabled={shownCount === others.length}>
+        <Button variant="ghost" onClick={() => onChange(new Set(others.map((l) => l.userId)))} disabled={shownCount === others.length}>
           {t('calendar:filter.all')}
         </Button>
       </div>
@@ -75,6 +75,7 @@ export function CalendarFilter({
           const checked = shown.has(layer.userId)
           return (
             <li key={layer.userId}>
+              {/* native: list row */}
               <button
                 type="button"
                 role="menuitemcheckbox"

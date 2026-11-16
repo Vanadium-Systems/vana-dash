@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Archive, ArchiveRestore, History, Link2, MessageSquareShare, MoreVertical, Pin, Tag, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/shared/components/ui/button'
+import { Button, buttonVariants } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/shared/components/ui/dialog'
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { ResponsiveMenuContent } from '@/shared/components/ui/responsive-menu'
@@ -224,7 +224,7 @@ function NoteSession({ initial, list, labels, canShare, actions, onReload, onClo
       {readOnly && initial ? (
         <Banner tone="info">
           <span>{t('notes:trashBanner')}</span>
-          <Button size="sm" onClick={() => void noteActions.restore([initial]).then(() => onClose())}>
+          <Button onClick={() => void noteActions.restore([initial]).then(() => onClose())}>
             {t('notes:restore')}
           </Button>
         </Banner>
@@ -234,7 +234,6 @@ function NoteSession({ initial, list, labels, canShare, actions, onReload, onClo
           <span>{t('notes:conflict.message')}</span>
           <span className="flex gap-2">
             <Button
-              size="sm"
               variant="outline"
               onClick={() => {
                 saver.discard(conflict.updatedAt)
@@ -245,7 +244,6 @@ function NoteSession({ initial, list, labels, canShare, actions, onReload, onClo
               {t('notes:conflict.reload')}
             </Button>
             <Button
-              size="sm"
               onClick={() => {
                 saver.keepMine(conflict.updatedAt)
                 setConflict(null)
@@ -258,6 +256,7 @@ function NoteSession({ initial, list, labels, canShare, actions, onReload, onClo
       ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-12 md:px-6 md:pt-8">
+        {/* native: borderless note title field */}
         <input
           value={title}
           readOnly={readOnly}
@@ -294,12 +293,12 @@ function NoteSession({ initial, list, labels, canShare, actions, onReload, onClo
         {note && !readOnly ? (
           <>
             <ColorMenu value={note.color} align="end" onChange={(color) => void noteActions.setColor([note], color)} />
-            <Button variant="ghost" size="icon-sm" title={t('notes:label.add')} aria-label={t('notes:label.add')} onClick={() => setAddingLabel(true)}>
+            <Button variant="ghost" size="icon" title={t('notes:label.add')} aria-label={t('notes:label.add')} onClick={() => setAddingLabel(true)}>
               <Tag />
             </Button>
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="icon"
               title={note.pinned ? t('notes:unpin') : t('notes:pin')}
               aria-label={note.pinned ? t('notes:unpin') : t('notes:pin')}
               aria-pressed={note.pinned}
@@ -309,7 +308,7 @@ function NoteSession({ initial, list, labels, canShare, actions, onReload, onClo
             </Button>
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="icon"
               title={note.archivedAt ? t('notes:unarchive') : t('notes:archive')}
               aria-label={note.archivedAt ? t('notes:unarchive') : t('notes:archive')}
               onClick={() => void (note.archivedAt ? noteActions.unarchive([note]) : noteActions.archive([note])).then(() => onClose())}
@@ -317,7 +316,7 @@ function NoteSession({ initial, list, labels, canShare, actions, onReload, onClo
               {note.archivedAt ? <ArchiveRestore /> : <Archive />}
             </Button>
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex h-control-sm w-control-sm items-center justify-center rounded-md hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <DropdownMenuTrigger className={buttonVariants({ variant: 'ghost', size: 'icon' })}>
                 <MoreVertical className="h-4 w-4" aria-hidden="true" />
                 <span className="sr-only">{t('common:labels.actions')}</span>
               </DropdownMenuTrigger>
@@ -341,7 +340,7 @@ function NoteSession({ initial, list, labels, canShare, actions, onReload, onClo
             </DropdownMenu>
           </>
         ) : null}
-        <Button variant="outline" size="sm" onClick={onClose} className="ml-1">
+        <Button variant="outline" onClick={onClose} className="ml-1">
           {t('notes:done')}
         </Button>
       </div>

@@ -48,6 +48,7 @@ export function FileStep({ pending, error, onFile }: { pending: boolean; error: 
           <p className="text-sm" aria-live="polite">
             {pending ? t('clients:import.file.reading') : t('clients:import.file.drop')}
           </p>
+          {/* native: hidden file picker */}
           <input ref={input} type="file" accept={IMPORT_EXTENSIONS.join(',')} className="sr-only" tabIndex={-1} onChange={(e) => pick(e.target.files?.[0])} />
           <Button type="button" disabled={pending} onClick={() => input.current?.click()}>
             {t('clients:import.file.choose')}

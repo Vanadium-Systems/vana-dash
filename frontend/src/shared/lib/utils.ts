@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { extendTailwindMerge } from 'tailwind-merge'
+import { intlTag } from './format'
 
 // Token-ii de înălțime (DESIGN.md) trebuie să se bată corect cu `h-8` & co. într-un className.
 const twMerge = extendTailwindMerge({
@@ -16,6 +17,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// One formatter per language: formatBytes runs once per row in the archive and upload lists.
+const byteFormatters = new Map<string, Intl.NumberFormat>()
+function oneDecimal(): Intl.NumberFormat {
+  const tag = intlTag()
+  let formatter = byteFormatters.get(tag)
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(tag, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    byteFormatters.set(tag, formatter)
+  }
+  return formatter
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   const units = ['KB', 'MB', 'GB', 'TB']
@@ -25,7 +38,7 @@ export function formatBytes(bytes: number): string {
     value /= 1024
     i++
   }
-  return `${value.toFixed(1)} ${units[i]}`
+  return `${oneDecimal().format(value)} ${units[i]}`
 }
 
 /** Pentru căutare: fără diacritice (inclusiv ş/ţ cu sedilă din date vechi), fără majuscule. */

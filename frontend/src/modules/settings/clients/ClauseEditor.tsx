@@ -29,7 +29,7 @@ export function ClauseEditor({ fields, value, onChange, disabled }: { fields: Fi
         </span>
       ))}
       {disabled ? null : (
-        <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Button type="button" variant="outline" onClick={() => setOpen(true)}>
           <ListFilter aria-hidden="true" /> {value.length ? t('clients:settings.filters.edit') : t('clients:settings.filters.add')}
         </Button>
       )}

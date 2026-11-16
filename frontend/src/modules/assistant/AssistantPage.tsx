@@ -83,7 +83,7 @@ function TokenMeter({ rows, model }: { rows: Array<{ role: 'user' | 'assistant';
     ? assistantRows.reduce((sum, m) => sum + ((m.inputTokens ?? 0) * (model.inputPricePerMtok ?? 0) + (m.outputTokens ?? 0) * (model.outputPricePerMtok ?? 0)) / 1e6, 0)
     : null
   return (
-    <span className="tnum inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-xs text-muted-foreground" title={t('assistant:meterHint')}>
+    <span className="tnum inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs text-muted-foreground" title={t('assistant:meterHint')}>
       {used >= 10_000 ? `${(used / 1000).toFixed(1)}k` : used}
       {model?.contextWindow ? (
         <>
@@ -340,6 +340,7 @@ export function AssistantPage() {
   const currentModelLabel = models.data?.find((m) => m.id === currentModel)?.label ?? t('assistant:defaultModel')
 
   return (
+    // arbitrary: viewport-height calc, no token
     <div className="flex h-[calc(100dvh-7rem)] flex-col gap-4 md:h-[calc(100dvh-5rem)]">
       <PageHeader
         title={t('common:nav.assistant')}
@@ -464,7 +465,7 @@ export function AssistantPage() {
               <span className="truncate">
                 {run.kind === 'reminder' ? run.text : run.prompt}
               </span>
-              <span className="tnum shrink-0 font-mono text-xs">
+              <span className="tnum shrink-0 text-xs">
                 {new Date(run.runAt).toLocaleString(intlTag(), { timeZone: companyTimeZone(), day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </span>
               {/* native: chip remove button */}
@@ -482,6 +483,7 @@ export function AssistantPage() {
         </div>
       ) : null}
 
+      {/* arbitrary: transition on border and shadow only */}
       <div className="flex items-end gap-1 rounded-md border border-input p-1 transition-[border-color,box-shadow] duration-150 ease-out focus-within:ring-1 focus-within:ring-ring">
         <Textarea
           ref={textareaRef}
@@ -503,7 +505,7 @@ export function AssistantPage() {
           }}
         />
         <Button
-          size="icon-sm"
+          size="icon"
           aria-label={t('common:actions.send')}
           disabled={isStreaming || Boolean(pendingConfirm) || !input.trim()}
           onClick={() => void sendMessage()}

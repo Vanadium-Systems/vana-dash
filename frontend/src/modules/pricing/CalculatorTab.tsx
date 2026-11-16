@@ -17,6 +17,7 @@ import { calculatePrice } from './calc'
 import { ApplyPricingDialog } from './ApplyPricingDialog'
 import { buildApplyBody, type PricingApplyBody, type StoredOffer } from './offer'
 import { Select } from '@/shared/components/ui/select'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
 
@@ -237,10 +238,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
             </div>
             <div className="space-y-1">
               <label htmlFor="calc-mobil-enabled" className="flex h-4 items-center gap-2 text-xs font-medium leading-none">
-                <input
-                  id="calc-mobil-enabled"
-                  type="checkbox"
-                  checked={mobilEnabled}
+                <Checkbox id="calc-mobil-enabled" checked={mobilEnabled}
                   onChange={(e) => {
                     setMobilEnabled(e.target.checked)
                     if (!e.target.checked) setInput((i) => ({ ...i, opMobil: 0 }))
@@ -271,10 +269,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
             </div>
             <div className="space-y-1">
               <label htmlFor="calc-siatd-enabled" className="flex h-4 items-center gap-2 text-xs font-medium leading-none">
-                <input
-                  id="calc-siatd-enabled"
-                  type="checkbox"
-                  checked={siatdEnabled}
+                <Checkbox id="calc-siatd-enabled" checked={siatdEnabled}
                   onChange={(e) => {
                     setSiatdEnabled(e.target.checked)
                     if (!e.target.checked) setInput((i) => ({ ...i, siatd: 0 }))
@@ -293,10 +288,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
             </div>
             <div className="space-y-1">
               <label htmlFor="calc-cantare-enabled" className="flex h-4 items-center gap-2 text-xs font-medium leading-none">
-                <input
-                  id="calc-cantare-enabled"
-                  type="checkbox"
-                  checked={cantareEnabled}
+                <Checkbox id="calc-cantare-enabled" checked={cantareEnabled}
                   onChange={(e) => {
                     setCantareEnabled(e.target.checked)
                     if (!e.target.checked) setInput((i) => ({ ...i, cantare: 0 }))
@@ -360,9 +352,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                 return (
                   <div key={addon.key} className="flex items-center gap-2">
                     <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={includedInBundle || selected}
+                      <Checkbox checked={includedInBundle || selected}
                         disabled={includedInBundle}
                         title={includedInBundle ? t('pricing:calc.includedIn', { label: activeBundle?.label }) : undefined}
                         onChange={(e) =>
@@ -386,7 +376,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                             addonQuantities: { ...i.addonQuantities, [addon.key]: Math.max(1, parseRoDecimal(e.target.value) || 1) },
                           }))
                         }
-                        className="w-16 font-mono tnum"
+                        className="w-16 tnum"
                         aria-label={`Cantitate ${addon.label}`}
                       />
                     ) : null}
@@ -402,9 +392,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
               <div className="flex flex-wrap gap-4">
                 {config.data.config.equipmentItems.map((equipment) => (
                   <label key={equipment.id} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={input.selectedEquipmentIds.includes(equipment.id)}
+                    <Checkbox checked={input.selectedEquipmentIds.includes(equipment.id)}
                       onChange={(e) =>
                         setInput((i) => ({
                           ...i,
@@ -502,7 +490,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
                 {result.breakdown.map((row) => (
                   <div key={row.label} className="flex justify-between border-b border-dashed py-0.5">
                     <span>{row.label}</span>
-                    <span className="font-mono">{formatNumber(row.value, 'EUR')}</span>
+                    <span>{formatNumber(row.value, 'EUR')}</span>
                   </div>
                 ))}
               </div>
@@ -526,7 +514,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
               ) : null}
 
               <div className="flex flex-wrap items-end gap-2 border-t pt-3">
-                <div className="min-w-[14rem] flex-1 space-y-1">
+                <div className="min-w-56 flex-1 space-y-1">
                   <Label htmlFor="calc-apply-client" className="text-xs">
                     {t('pricing:calc.applyToClient')}
                   </Label>

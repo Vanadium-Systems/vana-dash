@@ -171,7 +171,7 @@ function InfoPanel({
           adding ? (
             <AddMembers conversation={conversation} disabled={saving} onAdd={addMember} onDone={() => setAdding(false)} />
           ) : (
-            <Button variant="outline" size="sm" className="mt-3" onClick={() => setAdding(true)}>
+            <Button variant="outline" className="mt-3" onClick={() => setAdding(true)}>
               <UserPlus className="h-4 w-4" />
               {t('messages:panel.addPeople')}
             </Button>
@@ -234,7 +234,7 @@ function AddMembers({
         </ul>
       )}
       <div className="flex justify-end">
-        <Button variant="ghost" size="sm" onClick={onDone}>
+        <Button variant="ghost" onClick={onDone}>
           {t('messages:panel.addDone')}
         </Button>
       </div>
@@ -265,6 +265,7 @@ function MediaList({ conversationId, kind, onOpen }: { conversationId: string; k
         <ul className="grid grid-cols-3 gap-1">
           {items.map((item) => (
             <li key={item.id}>
+              {/* native: thumbnail tile */}
               <button
                 type="button"
                 onClick={() => onOpen(item)}
@@ -280,6 +281,7 @@ function MediaList({ conversationId, kind, onOpen }: { conversationId: string; k
         <ul className="divide-y">
           {items.map((item) => (
             <li key={item.id}>
+              {/* native: list row */}
               <button
                 type="button"
                 onClick={() => void api.download(`/api/chat/attachments/${item.id}?download=1`, item.filename).catch((err: Error) => toast.error(err.message))}
@@ -299,7 +301,7 @@ function MediaList({ conversationId, kind, onOpen }: { conversationId: string; k
       )}
       {media.hasNextPage ? (
         <div className="pt-3 text-center">
-          <Button variant="outline" size="sm" disabled={media.isFetchingNextPage} onClick={() => void media.fetchNextPage()}>
+          <Button variant="outline" disabled={media.isFetchingNextPage} onClick={() => void media.fetchNextPage()}>
             {media.isFetchingNextPage ? t('common:states.loading') : t('messages:panel.more')}
           </Button>
         </div>
@@ -328,6 +330,7 @@ function SearchPanel({ conversationId, onJump }: { conversationId: string; onJum
         <ul className="divide-y">
           {hits.data!.map((hit) => (
             <li key={hit.id}>
+              {/* native: list row */}
               <button
                 type="button"
                 onClick={() => onJump(hit.id)}

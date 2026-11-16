@@ -85,6 +85,7 @@ function BookingLayers({ day, windows, blocks, onBlockClick }: { day: Date; wind
       {blocks.map((b) => {
         const style = rangeStyle(new Date(b.startAt), new Date(b.endAt), day)
         return style ? (
+          // native: calendar cell
           <button
             key={b.id}
             type="button"
@@ -355,6 +356,7 @@ export function WeekView({
         {days.map((day) => {
           const today = isToday(day)
           return (
+            // native: calendar cell
             <button
               key={day.toISOString()}
               type="button"
@@ -376,6 +378,7 @@ export function WeekView({
         {days.map((day) => (
           <div key={day.toISOString()} className={cn('min-w-0 space-y-1 border-l px-1 py-1', isToday(day) && 'bg-primary/5')}>
             {allDayOn(occurrences, day).map((occ) => (
+              // native: event chip
               <button
                 key={occurrenceId(occ)}
                 type="button"
@@ -427,6 +430,7 @@ export function WeekView({
                     const movable = isMovable(occ)
                     const dimmed = id === draggingId || id === hiddenKey
                     return (
+                      // native: event chip
                       <button
                         key={id}
                         type="button"

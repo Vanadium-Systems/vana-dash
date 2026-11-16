@@ -488,7 +488,6 @@
     "done": "Snoozed until {{when}}"
   },
   "filters": {
-    "add": "Filter",
     "attachment": "Has attachment",
     "fromChip": "From: {{address}}",
     "fromHint": "From… (type in the search)",

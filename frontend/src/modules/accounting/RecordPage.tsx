@@ -102,7 +102,7 @@ export function RecordPage() {
     const missing = detail.error instanceof ApiError && detail.error.status === 404
     return (
       <div className="mx-auto max-w-5xl space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => back(undefined)}>
+        <Button variant="ghost" onClick={() => back(undefined)}>
           <ArrowLeft aria-hidden="true" /> {t('common:actions.back')}
         </Button>
         {missing ? (
@@ -112,7 +112,7 @@ export function RecordPage() {
             tone="critical"
             title={t('accounting:records.page.loadFailed')}
             action={
-              <Button variant="outline" size="sm" onClick={() => void detail.refetch()}>
+              <Button variant="outline" onClick={() => void detail.refetch()}>
                 {t('common:actions.retry')}
               </Button>
             }
@@ -270,7 +270,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
     <div className="mx-auto max-w-5xl space-y-8" data-testid="record-page">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+          <Button type="button" variant="ghost" onClick={onBack}>
             <ArrowLeft aria-hidden="true" /> {t('common:actions.back')}
           </Button>
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -559,7 +559,7 @@ function Payments({ data, canIssue, canPay, onPay }: { data: RecordDetail; canIs
       title={out ? t('accounting:records.payments.titleOut') : t('accounting:records.payments.titleIn')}
       action={
         canPay && payments.length > 0 ? (
-          <Button variant="outline" size="sm" onClick={onPay}>
+          <Button variant="outline" onClick={onPay}>
             {out ? t('accounting:records.recordPaymentOut') : t('accounting:records.recordPaymentIn')}
           </Button>
         ) : null
@@ -569,7 +569,7 @@ function Payments({ data, canIssue, canPay, onPay }: { data: RecordDetail; canIs
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span>{out ? t('accounting:records.payments.emptyOut') : t('accounting:records.payments.emptyIn')}</span>
           {canPay ? (
-            <Button variant="outline" size="sm" onClick={onPay}>
+            <Button variant="outline" onClick={onPay}>
               {out ? t('accounting:records.recordPaymentOut') : t('accounting:records.recordPaymentIn')}
             </Button>
           ) : null}

@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
+import { StatePill } from '@/shared/components/ui/state-pill'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
@@ -14,6 +15,7 @@ import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, Tabl
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { api } from '@/shared/lib/api'
 import { useMe } from '@/shared/hooks/use-me'
+import { formatPercent } from '@/shared/lib/format'
 import { cn, parseRoDecimal } from '@/shared/lib/utils'
 import { BotTab } from './bot/BotTab'
 import { MiniSparkline } from './MiniSparkline'
@@ -37,10 +39,10 @@ const CATEGORIES = [
 function ChangeCell({ change }: { change: number | null }) {
   if (change == null) return <span className="text-muted-foreground">—</span>
   return (
-    <span className={cn('tnum inline-flex items-center gap-1 font-mono text-xs', change >= 0 ? 'text-success-text' : 'text-destructive-text')}>
+    <span className={cn('tnum inline-flex items-center gap-1 text-xs', change >= 0 ? 'text-success-text' : 'text-destructive-text')}>
       {change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
       {change >= 0 ? '+' : ''}
-      {change.toFixed(2)}%
+      {formatPercent(change)}
     </span>
   )
 }
@@ -300,11 +302,11 @@ export function CryptoPage() {
         title={t('common:nav.crypto')}
         actions={
           settings.data?.tradingEnabled ? (
-            <Badge variant="destructive" className="gap-1">
+            <StatePill tone="critical" className="gap-1">
               <ShieldAlert className="h-3 w-3" /> {t('crypto:mode.live')}
-            </Badge>
+            </StatePill>
           ) : (
-            <Badge variant="secondary">{t('crypto:mode.paper')}</Badge>
+            <StatePill>{t('crypto:mode.paper')}</StatePill>
           )
         }
       />
@@ -326,6 +328,7 @@ export function CryptoPage() {
             }}
           />
 
+          {/* arbitrary: proportional two-column grid, no token */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             {/* ── Stânga: Favorite + Portofoliu + Ordine recente ── */}
             <div className="min-w-0 space-y-6">
@@ -376,7 +379,7 @@ export function CryptoPage() {
                           </div>
                           <div className="flex items-end justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="tnum font-mono text-sm leading-tight">{formatUsd(priceUsd)}</p>
+                              <p className="tnum text-sm leading-tight">{formatUsd(priceUsd)}</p>
                               <ChangeCell change={change24h} />
                             </div>
                             <MiniSparkline values={sparkline} width={88} height={24} />
@@ -392,7 +395,7 @@ export function CryptoPage() {
                 <CardContent className="pt-6">
                   <div className="mb-2 flex items-baseline justify-between">
                     <h2 className="text-sm font-semibold">{t('crypto:portfolio.title')}</h2>
-                    <span className="tnum font-mono text-sm">{formatUsd(totalValueUsd)}</span>
+                    <span className="tnum text-sm">{formatUsd(totalValueUsd)}</span>
                   </div>
                   {portfolio.isPending ? (
                     <ListSkeleton rows={4} />
@@ -421,7 +424,7 @@ export function CryptoPage() {
                             <TableCell className="whitespace-nowrap text-right text-xs tabular-nums">{formatUsd(pos.valueUsd)}</TableCell>
                             <TableCell className="text-right">
                               {pos.unrealizedPnlUsd != null ? (
-                                <span className={cn('tnum font-mono text-xs', pos.unrealizedPnlUsd >= 0 ? 'text-success-text' : 'text-destructive-text')}>
+                                <span className={cn('tnum text-xs', pos.unrealizedPnlUsd >= 0 ? 'text-success-text' : 'text-destructive-text')}>
                                   {pos.unrealizedPnlUsd >= 0 ? '+' : ''}
                                   {formatUsd(pos.unrealizedPnlUsd)}
                                 </span>
@@ -438,7 +441,7 @@ export function CryptoPage() {
                     <p className="mt-2 text-xs text-muted-foreground">
                       {tNodes('crypto:portfolio.realizedPnl', {
                         value: (
-                          <span className={cn('tnum font-mono', (portfolio.data?.realizedPnlUsd ?? 0) >= 0 ? 'text-success-text' : 'text-destructive-text')}>
+                          <span className={cn('tnum', (portfolio.data?.realizedPnlUsd ?? 0) >= 0 ? 'text-success-text' : 'text-destructive-text')}>
                             {formatUsd(portfolio.data?.realizedPnlUsd)}
                           </span>
                         ),
@@ -454,7 +457,7 @@ export function CryptoPage() {
                   {!orders.data?.length ? (
                     <p className="text-sm text-muted-foreground">{t('crypto:orders.none')}</p>
                   ) : (
-                    <ul className="space-y-1.5 font-mono text-xs" data-testid="crypto-orders-list">
+                    <ul className="space-y-1.5 tnum text-xs" data-testid="crypto-orders-list">
                       {orders.data.slice(0, 10).map((order) => (
                         <li key={order.id} className="flex items-center justify-between gap-2 border-b pb-1 last:border-none">
                           <span>
@@ -530,11 +533,11 @@ export function CryptoPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-8 pl-1 pr-0" />
+                            <TableHead className="w-6 pl-1 pr-0" />
                             <TableHead>{t('crypto:market.coin')}</TableHead>
                             <TableHead className="text-right">{t('common:labels.price')}</TableHead>
-                            <TableHead className="text-right">24h</TableHead>
-                            <TableHead className="hidden text-right lg:table-cell">{t('crypto:stats.marketCap')}</TableHead>
+                            <TableHead className="hidden text-right sm:table-cell">24h</TableHead>
+                            <TableHead className="hidden text-right 2xl:table-cell">{t('crypto:stats.marketCap')}</TableHead>
                             <TableHead className="hidden md:table-cell">{t('common:labels.days7')}</TableHead>
                             <TableHead priority="md" className="text-right">{t('common:labels.order')}</TableHead>
                           </TableRow>
@@ -548,7 +551,7 @@ export function CryptoPage() {
                               data-testid="crypto-market-row"
                             >
                               {/* The star needs no row padding; at 360px the 12px saved keep the table inside the card. */}
-                              <TableCell className="w-8 pl-1 pr-0">
+                              <TableCell className="w-6 pl-1 pr-0">
                                 {/* native: star toggle */}
                                 <button
                                   type="button"
@@ -566,11 +569,17 @@ export function CryptoPage() {
                                 <span className="font-medium uppercase">{coin.symbol}</span>
                                 <span className="ml-2 text-xs text-muted-foreground tbl-md">{coin.name}</span>
                               </TableCell>
-                              <TableCell className="tnum text-right font-mono text-xs">{formatUsd(coin.priceUsd)}</TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="tnum text-right text-xs">
+                                {formatUsd(coin.priceUsd)}
+                                {/* Under sm the 24h change rides under the price: four columns do not fit 360px. */}
+                                <div className="sm:hidden">
+                                  <ChangeCell change={coin.change24h} />
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden text-right sm:table-cell">
                                 <ChangeCell change={coin.change24h} />
                               </TableCell>
-                              <TableCell className="tnum hidden text-right font-mono text-xs lg:table-cell">
+                              <TableCell className="tnum hidden text-right text-xs 2xl:table-cell">
                                 {formatUsd(coin.marketCapUsd)}
                               </TableCell>
                               <TableCell className="hidden md:table-cell">

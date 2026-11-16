@@ -11,6 +11,7 @@ import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 
 interface PastRecordFormDialogProps {
   open: boolean
@@ -265,7 +266,7 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
           ) : null}
           <div className="flex items-end gap-4">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} />
+              <Checkbox checked={paid} onChange={(e) => setPaid(e.target.checked)} />
               {copy.paidLabel}
             </label>
             {paid ? (

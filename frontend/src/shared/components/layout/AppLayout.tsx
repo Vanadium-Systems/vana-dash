@@ -449,7 +449,7 @@ export function AppLayout() {
           {tenantOverride ? (
             <div role="status" className="flex flex-wrap items-center justify-between gap-2 bg-warning/15 px-4 py-2 text-sm md:px-6">
               <span>{t('tenants:banner.text', { name: tenantOverride.name })}</span>
-              <Button variant="outline" size="sm" onClick={() => setTenantOverride(null)}>
+              <Button variant="outline" onClick={() => setTenantOverride(null)}>
                 {t('tenants:banner.back')}
               </Button>
             </div>
@@ -490,7 +490,7 @@ export function AppLayout() {
                   <>
                     <span
                       className={cn(
-                        'flex h-8 w-16 items-center justify-center rounded-full transition-colors duration-[var(--duration-fast)]',
+                        'flex h-8 w-16 items-center justify-center rounded-full transition-colors duration-fast',
                         isActive && 'bg-accent',
                       )}
                     >

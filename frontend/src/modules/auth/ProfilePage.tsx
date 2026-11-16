@@ -114,7 +114,7 @@ export function ProfilePage() {
     .filter(Boolean)
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl space-y-6">
       <PageHeader title={t('common:nav.myProfile')} description={t('auth:profile.description')} />
 
       <Card>
@@ -171,6 +171,7 @@ export function ProfilePage() {
           <Field label={t('auth:profile.display.motion')} hint={t('auth:profile.display.motionHint')}>
             <div role="radiogroup" aria-label={t('auth:profile.display.motion')} className="inline-flex flex-wrap gap-1 rounded-md bg-muted p-1">
               {MOTION_PREFS.map((pref) => (
+                // native: segmented control
                 <button
                   key={pref}
                   type="button"

@@ -54,6 +54,7 @@ function renderNode(node: NoteNode, query: string): ReactNode {
       return (
         <li data-checked={node.attrs?.checked ? 'true' : 'false'}>
           <label>
+            {/* native: read-only checkbox inside a rendered note */}
             <input type="checkbox" checked={Boolean(node.attrs?.checked)} readOnly tabIndex={-1} aria-hidden="true" className="pointer-events-none" />
           </label>
           <div>{children}</div>

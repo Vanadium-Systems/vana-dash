@@ -1,6 +1,7 @@
 import { Archive, ArchiveRestore, MoreVertical, Pin, Trash2, Undo2 } from 'lucide-react'
 import { useRef, type CSSProperties } from 'react'
 import { Highlight } from '@/shared/components/Highlight'
+import { Button } from '@/shared/components/ui/button'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { ResponsiveMenuContent } from '@/shared/components/ui/responsive-menu'
@@ -80,6 +81,7 @@ export function NoteCard(props: NoteCardProps) {
         !ready && 'invisible',
       )}
     >
+      {/* native: whole card is clickable */}
       <button
         type="button"
         className="block w-full rounded-lg p-3 pb-10 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -123,44 +125,45 @@ export function NoteCard(props: NoteCardProps) {
       </div>
 
       {view !== 'trash' ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           title={note.pinned ? t('notes:unpin') : t('notes:pin')}
           aria-label={note.pinned ? t('notes:unpin') : t('notes:pin')}
           aria-pressed={note.pinned}
           onClick={() => props.onPin(note)}
-          className={cn(
-            'absolute right-1.5 top-1.5 h-control-sm w-control-sm items-center justify-center rounded-md hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            note.pinned ? 'inline-flex' : HOVER_ONLY_INLINE,
-          )}
+          className={cn('absolute right-1.5 top-1.5', !note.pinned && HOVER_ONLY_INLINE)}
         >
           <Pin className={cn('h-4 w-4', note.pinned && 'fill-current')} aria-hidden="true" />
-        </button>
+        </Button>
       ) : null}
 
       <div className={cn('absolute inset-x-1 bottom-1 items-center gap-0.5', HOVER_ONLY)}>
         {view === 'trash' ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             title={t('notes:restore')}
             aria-label={t('notes:restore')}
             onClick={() => props.onRestore(note)}
-            className="inline-flex h-control-sm w-control-sm items-center justify-center rounded-md hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Undo2 className="h-4 w-4" aria-hidden="true" />
-          </button>
+          </Button>
         ) : (
           <>
             <ColorMenu value={note.color} onChange={(color) => props.onColor(note, color)} />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               title={view === 'archived' ? t('notes:unarchive') : t('notes:archive')}
               aria-label={view === 'archived' ? t('notes:unarchive') : t('notes:archive')}
               onClick={() => (view === 'archived' ? props.onUnarchive(note) : props.onArchive(note))}
-              className="inline-flex h-control-sm w-control-sm items-center justify-center rounded-md hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {view === 'archived' ? <ArchiveRestore className="h-4 w-4" aria-hidden="true" /> : <Archive className="h-4 w-4" aria-hidden="true" />}
-            </button>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger className="inline-flex h-control-sm w-control-sm items-center justify-center rounded-md hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <MoreVertical className="h-4 w-4" aria-hidden="true" />

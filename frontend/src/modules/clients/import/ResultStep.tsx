@@ -53,7 +53,7 @@ export function ResultStep({ result, failure, onList, onAnother }: { result: Imp
             {result.skipped > 0 ? <p className="text-sm text-muted-foreground">{t('clients:import.preview.skipped', { count: result.skipped })}</p> : null}
             {result.errors.length > 0 ? (
               <Alert tone="warning" title={t('clients:import.result.errors', { count: result.errors.length })} action={
-                <Button type="button" variant="outline" size="sm" onClick={() => downloadErrors(result.errors)}>
+                <Button type="button" variant="outline" onClick={() => downloadErrors(result.errors)}>
                   <Download aria-hidden="true" /> {t('clients:import.result.downloadErrors')}
                 </Button>
               }>

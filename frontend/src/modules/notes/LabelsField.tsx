@@ -39,6 +39,7 @@ export function LabelsField({
           {readOnly ? (
             <span className="pr-2.5" />
           ) : (
+            // native: chip remove
             <button
               type="button"
               title={t('notes:label.remove', { label })}
@@ -53,6 +54,7 @@ export function LabelsField({
       ))}
       {adding ? (
         <>
+          {/* native: borderless inline label field */}
           <input
             autoFocus
             list={listId}
@@ -82,6 +84,7 @@ export function LabelsField({
           </datalist>
         </>
       ) : !readOnly ? (
+        // native: chip row add
         <button
           type="button"
           onClick={() => onAddingChange(true)}

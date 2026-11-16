@@ -22,7 +22,7 @@ export function NextStep({ sheet, onSchedule }: { sheet: ProspectSheet; onSchedu
         title={t('clients:sheet.next.none')}
         action={
           sheet.canEdit ? (
-            <Button type="button" size="sm" variant="outline" onClick={onSchedule}>
+            <Button type="button" variant="outline" onClick={onSchedule}>
               <CalendarClock aria-hidden="true" /> {t('clients:sheet.next.schedule')}
             </Button>
           ) : null

@@ -499,7 +499,6 @@
     "done": "Amânat până {{when}}"
   },
   "filters": {
-    "add": "Filtru",
     "attachment": "Are atașament",
     "fromChip": "De la: {{address}}",
     "fromHint": "De la… (scrie în căutare)",

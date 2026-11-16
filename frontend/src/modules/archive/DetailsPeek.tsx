@@ -92,10 +92,10 @@ export function DetailsPeek({
 
           {item ? (
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => actions.download([item])}>
+              <Button variant="outline" onClick={() => actions.download([item])}>
                 <Download className="h-4 w-4" /> {t('common:actions.download')}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => actions.toggleStar([item])}>
+              <Button variant="outline" onClick={() => actions.toggleStar([item])}>
                 {starred ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />}
                 {starred ? t('archive:menu.unstar') : t('archive:menu.star')}
               </Button>
@@ -113,6 +113,7 @@ export function DetailsPeek({
                   {data.path.map((place, index) => (
                     <span key={place.id} className="flex items-center gap-1">
                       {index > 0 ? <span aria-hidden="true">/</span> : null}
+                      {/* native: breadcrumb link */}
                       <button type="button" className="hover:underline" onClick={() => onOpenFolder(place.id)}>
                         {place.name}
                       </button>

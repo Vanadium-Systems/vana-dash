@@ -74,6 +74,7 @@ export function ArchiveRow({ item, env }: { item: ArchiveItem; env: ListEnv }) {
             <ItemGlyph item={item} />
           </span>
           <div className="min-w-0 flex-1">
+            {/* native: item name opens the item */}
             <button type="button" className="block w-full min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <ItemName item={item} query={env.query} />
             </button>

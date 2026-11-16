@@ -15,7 +15,7 @@ export function CallRoomPage() {
   const endCall = useEndCall()
 
   const back = (
-    <Button variant="ghost" size="sm" onClick={() => navigate('/calls')}>
+    <Button variant="ghost" onClick={() => navigate('/calls')}>
       <ArrowLeft className="h-4 w-4" />
       {t('calls:actions.back')}
     </Button>
@@ -29,6 +29,7 @@ export function CallRoomPage() {
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">{t('calls:room.loading')}</p>
+        {/* arbitrary: viewport-height calc, no token */}
         <Skeleton className="h-[calc(100dvh-8rem)] w-full" />
       </div>
     )
@@ -52,15 +53,16 @@ export function CallRoomPage() {
         {back}
         <div className="flex gap-2">
           {call ? (
-            <Button variant="outline" size="sm" onClick={() => void copyCallLink(call)}>
+            <Button variant="outline" onClick={() => void copyCallLink(call)}>
               {t('calls:actions.copyLink')}
             </Button>
           ) : null}
-          <Button variant="destructive" size="sm" onClick={() => void onEnd()}>
+          <Button variant="destructive" onClick={() => void onEnd()}>
             {t('calls:actions.endForAll')}
           </Button>
         </div>
       </div>
+      {/* arbitrary: viewport-height calc, no token */}
       <iframe
         title={call?.title ?? t('calls:title')}
         src={`${join.data.roomUrl}?t=${encodeURIComponent(join.data.token)}`}

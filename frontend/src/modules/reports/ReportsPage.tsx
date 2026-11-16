@@ -179,11 +179,11 @@ function PeriodComparisonSection() {
             {(['periodA', 'periodB'] as const).map((key) => (
               <div key={key} className="space-y-1 rounded-md bg-muted/50 p-3">
                 <p className="text-xs font-medium text-muted-foreground">{key === 'periodA' ? 'A' : 'B'}</p>
-                <p className="text-sm">{t('reports:compare.revenue')} <strong className="tnum font-mono">{amount(comparison.data![key].revenue)}</strong></p>
-                <p className="text-sm">{t('reports:compare.expense')} <strong className="tnum font-mono">{amount(comparison.data![key].expense)}</strong></p>
+                <p className="text-sm">{t('reports:compare.revenue')} <strong className="tnum">{amount(comparison.data![key].revenue)}</strong></p>
+                <p className="text-sm">{t('reports:compare.expense')} <strong className="tnum">{amount(comparison.data![key].expense)}</strong></p>
                 <p className="text-sm">
                   {t('reports:compare.net')}{' '}
-                  <strong className={cn('tnum font-mono', comparison.data![key].net < 0 && 'text-destructive')}>
+                  <strong className={cn('tnum', comparison.data![key].net < 0 && 'text-destructive')}>
                     {amount(comparison.data![key].net)}
                   </strong>
                 </p>

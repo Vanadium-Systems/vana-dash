@@ -98,18 +98,18 @@ export function EventReadView({
 
       <div className="flex flex-wrap items-center gap-2 border-t pt-3 max-sm:sticky max-sm:bottom-0 max-sm:bg-card">
         {canEdit ? (
-          <Button size="sm" onClick={onEdit}>
+          <Button onClick={onEdit}>
             <Pencil className="h-4 w-4" /> {t('common:actions.edit')}
             <kbd className="ml-1 font-sans text-xs opacity-70 max-sm:hidden">E</kbd>
           </Button>
         ) : null}
         {canDuplicate ? (
-          <Button size="sm" variant="outline" onClick={onDuplicate}>
+          <Button variant="outline" onClick={onDuplicate}>
             <Copy className="h-4 w-4" /> {t('calendar:read.duplicate')}
           </Button>
         ) : null}
         {canEdit ? (
-          <Button size="sm" variant="outline" onClick={onDelete}>
+          <Button variant="outline" onClick={onDelete}>
             <Trash2 className="h-4 w-4" /> {t('common:actions.delete')}
           </Button>
         ) : null}

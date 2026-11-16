@@ -156,7 +156,7 @@ export function NotesPage() {
     <>
       {filter.view === 'active' ? (
         <>
-          <Button variant="ghost" size="sm" onClick={() => void actions.pin(selectedNotes, !selectedNotes.every((note) => note.pinned)).then(done)}>
+          <Button variant="ghost" onClick={() => void actions.pin(selectedNotes, !selectedNotes.every((note) => note.pinned)).then(done)}>
             {selectedNotes.every((note) => note.pinned) ? <PinOff /> : <Pin />}
             {selectedNotes.every((note) => note.pinned) ? t('notes:unpin') : t('notes:pin')}
           </Button>
@@ -165,15 +165,15 @@ export function NotesPage() {
         </>
       ) : null}
       {filter.view === 'trash' ? (
-        <Button variant="ghost" size="sm" onClick={() => void actions.restore(selectedNotes).then(done)}>
+        <Button variant="ghost" onClick={() => void actions.restore(selectedNotes).then(done)}>
           <Undo2 /> {t('notes:restore')}
         </Button>
       ) : (
         <>
-          <Button variant="ghost" size="sm" onClick={() => void (filter.view === 'archived' ? actions.unarchive(selectedNotes) : actions.archive(selectedNotes)).then(done)}>
+          <Button variant="ghost" onClick={() => void (filter.view === 'archived' ? actions.unarchive(selectedNotes) : actions.archive(selectedNotes)).then(done)}>
             <Archive /> {filter.view === 'archived' ? t('notes:unarchive') : t('notes:archive')}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => void actions.trash(selectedNotes).then(done)}>
+          <Button variant="ghost" onClick={() => void actions.trash(selectedNotes).then(done)}>
             <Trash2 /> {t('common:actions.delete')}
           </Button>
         </>
@@ -267,7 +267,7 @@ export function NotesPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-sm">
           <span>{t('notes:trash.hint')}</span>
           {list.length > 0 ? (
-            <Button variant="outline" size="sm" onClick={askEmptyTrash} disabled={emptyTrash.isPending}>
+            <Button variant="outline" onClick={askEmptyTrash} disabled={emptyTrash.isPending}>
               {t('notes:trash.empty')}
             </Button>
           ) : null}

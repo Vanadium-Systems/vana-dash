@@ -40,7 +40,7 @@ export function TeamBanner({ sheet, meId, canClaim, canReassign, onRequest }: Te
           title={t('clients:sheet.team.freeTitle')}
           action={
             canClaim ? (
-              <Button type="button" size="sm" onClick={() => void actions.claim()}>
+              <Button type="button" onClick={() => void actions.claim()}>
                 {t('clients:sheet.team.claim')}
               </Button>
             ) : null
@@ -53,11 +53,11 @@ export function TeamBanner({ sheet, meId, canClaim, canReassign, onRequest }: Te
           title={t('clients:sheet.team.ownedBy', { owner: sheet.ownerName ?? '', date: sheet.claimedAt ? formatDate(sheet.claimedAt) : '—' })}
           action={
             mine ? (
-              <Button type="button" size="sm" variant="outline" onClick={() => void actions.decide(mine.id, 'cancel')}>
+              <Button type="button" variant="outline" onClick={() => void actions.decide(mine.id, 'cancel')}>
                 {t('clients:sheet.team.cancelRequest')}
               </Button>
             ) : canClaim ? (
-              <Button type="button" size="sm" variant="outline" onClick={onRequest}>
+              <Button type="button" variant="outline" onClick={onRequest}>
                 {t('clients:sheet.team.requestTransfer')}
               </Button>
             ) : null
@@ -74,10 +74,10 @@ export function TeamBanner({ sheet, meId, canClaim, canReassign, onRequest }: Te
           title={t(request.kind === 'access' ? 'clients:sheet.team.incomingAccess' : 'clients:sheet.team.incomingTransfer', { who: request.requesterName })}
           action={
             <>
-              <Button type="button" size="sm" onClick={() => void actions.decide(request.id, 'accept')}>
+              <Button type="button" onClick={() => void actions.decide(request.id, 'accept')}>
                 {t('clients:sheet.team.accept')}
               </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => void actions.decide(request.id, 'refuse')}>
+              <Button type="button" variant="outline" onClick={() => void actions.decide(request.id, 'refuse')}>
                 {t('clients:sheet.team.refuse')}
               </Button>
             </>

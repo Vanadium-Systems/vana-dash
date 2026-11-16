@@ -21,6 +21,7 @@ import { EmptyState } from '@/shared/components/ui/empty-state'
 import { RowActions, type RowAction } from '@/shared/components/ui/row-actions'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { StatePill } from '@/shared/components/ui/state-pill'
+import { Input } from '@/shared/components/ui/input'
 import {
   Table,
   TableBody,
@@ -220,14 +221,14 @@ export function MonthCloseTab() {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <input
+            <Input
               type="month"
               aria-label={t('accounting:monthClose.monthLabel')}
               value={month}
               onChange={(e) => {
                 if (e.target.value) updateParams({ month: e.target.value })
               }}
-              className="flex h-control-md rounded-md border border-input bg-background px-2.5 text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-auto bg-background px-2.5 tabular-nums"
             />
             <Button
               type="button"
@@ -255,7 +256,6 @@ export function MonthCloseTab() {
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
                   disabled={setClosureStatus.isPending}
                   onClick={() => handleToggleClosure(false)}
                 >
@@ -267,7 +267,6 @@ export function MonthCloseTab() {
             <Button
               type="button"
               variant="outline"
-              size="sm"
               disabled={setClosureStatus.isPending}
               onClick={() => handleToggleClosure(true)}
             >
@@ -281,7 +280,6 @@ export function MonthCloseTab() {
             <Button
               type="button"
               variant="outline"
-              size="sm"
               disabled={archiveMissing.isPending}
               onClick={handleArchiveMissing}
               data-testid="month-close-archive-missing"
@@ -295,7 +293,6 @@ export function MonthCloseTab() {
           <Button
             type="button"
             variant="outline"
-            size="sm"
             disabled={downloadingZip}
             onClick={() => void handleDownloadZip()}
             data-testid="month-close-download-zip"
@@ -346,7 +343,7 @@ export function MonthCloseTab() {
               tone="critical"
               title={t('accounting:records.loadFailed')}
               action={
-                <Button variant="outline" size="sm" onClick={() => void monthClose.refetch()}>
+                <Button variant="outline" onClick={() => void monthClose.refetch()}>
                   {t('common:actions.retry')}
                 </Button>
               }

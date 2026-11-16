@@ -2,7 +2,7 @@ import { ArrowRight, Ban, ExternalLink, Phone, SkipForward, X } from 'lucide-rea
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Badge } from '@/shared/components/ui/badge'
+import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button, buttonVariants } from '@/shared/components/ui/button'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
 import { api } from '@/shared/lib/api'
@@ -83,7 +83,7 @@ function CallCard({ task, phoneId, onPhone }: { task: TaskRow; phoneId: string; 
                   {phone.value}
                   {phone.label ? <span className="ml-2 text-xs text-muted-foreground no-underline">{phone.label}</span> : null}
                 </span>
-                {phone.status === 'invalid' ? <Badge variant="secondary">{t('clients:tasks.session.invalid')}</Badge> : null}
+                {phone.status === 'invalid' ? <StatePill>{t('clients:tasks.session.invalid')}</StatePill> : null}
                 {off ? null : (
                   <a
                     href={`tel:${phone.value.replace(/\s+/g, '')}`}

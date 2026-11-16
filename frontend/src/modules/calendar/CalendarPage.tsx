@@ -1,12 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarClock, ChevronLeft, ChevronRight, Plus, Search, Users, X } from 'lucide-react'
+import { CalendarClock, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Users, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AccessShareDialog } from '@/shared/components/AccessShareDialog'
 import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
-import { Button } from '@/shared/components/ui/button'
+import { Button, buttonVariants } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
+import { ResponsiveMenuContent } from '@/shared/components/ui/responsive-menu'
 import { Fab } from '@/shared/components/ui/fab'
 import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
@@ -494,6 +496,7 @@ export function CalendarPage() {
             <p className="px-2 py-3 text-sm text-muted-foreground">{t('calendar:search.empty', { term: debouncedTerm })}</p>
           ) : (
             search.data!.map((hit) => (
+              // native: list row
               <button
                 key={`${hit.eventId}-${hit.occurrenceStart}`}
                 type="button"
@@ -551,18 +554,34 @@ export function CalendarPage() {
           )}
           {!phone ? viewSwitch : null}
           <CalendarFilter layers={layers} shown={shownLayers} onChange={changeShownLayers} />
-          {myId && !phone ? (
-            <Button variant="outline" onClick={() => setShareOpen(true)}>
-              <Users className="h-4 w-4" /> {t('common:actions.share')}
-            </Button>
-          ) : null}
           {canWrite && !phone ? (
             <Button onClick={() => createAt(anchor)}>
               <Plus className="h-4 w-4" /> {t('calendar:event.newTitle')}
             </Button>
           ) : null}
-          {canBookings ? (
-            <Button variant="outline" size={phone ? 'sm' : 'md'} onClick={() => setBookingsOpen(true)}>
+          {/* Desktop: one primary, the view and the filter in sight; the rarer actions under ⋯. */}
+          {!phone && (myId || canBookings) ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className={buttonVariants({ variant: 'outline', size: 'icon' })}>
+                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">{t('common:labels.actions')}</span>
+              </DropdownMenuTrigger>
+              <ResponsiveMenuContent title={t('common:labels.actions')} align="end">
+                {myId ? (
+                  <DropdownMenuItem onClick={() => setShareOpen(true)}>
+                    <Users className="h-4 w-4" aria-hidden="true" /> {t('common:actions.share')}
+                  </DropdownMenuItem>
+                ) : null}
+                {canBookings ? (
+                  <DropdownMenuItem onClick={() => setBookingsOpen(true)}>
+                    <CalendarClock className="h-4 w-4" aria-hidden="true" /> {t('calendar:booking.short')}
+                  </DropdownMenuItem>
+                ) : null}
+              </ResponsiveMenuContent>
+            </DropdownMenu>
+          ) : null}
+          {canBookings && phone ? (
+            <Button variant="outline" onClick={() => setBookingsOpen(true)}>
               <CalendarClock className="h-4 w-4" /> {t('calendar:booking.short')}
             </Button>
           ) : null}
@@ -574,7 +593,7 @@ export function CalendarPage() {
           <div className="flex items-center justify-between gap-2">
             {viewSwitch}
             {myId ? (
-              <Button variant="ghost" size="sm" onClick={() => setShareOpen(true)}>
+              <Button variant="ghost" onClick={() => setShareOpen(true)}>
                 <Users className="h-4 w-4" /> {t('common:actions.share')}
               </Button>
             ) : null}
@@ -601,6 +620,7 @@ export function CalendarPage() {
                 const selected = isSameDay(day, anchor)
                 const isTodayDay = isSameDay(day, new Date())
                 return (
+                  // native: calendar cell
                   <button
                     key={day.toISOString()}
                     type="button"
@@ -802,6 +822,7 @@ function whenTitle(day: Date): string {
 
 function DayListRow({ occ, onClick }: { occ: CalendarOccurrence; onClick: () => void }) {
   return (
+    // native: list row
     <button type="button" className="flex min-h-10 w-full items-center gap-3 rounded-md px-2 text-left text-sm hover:bg-accent" onClick={onClick}>
       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: eventColors(occ.color, occ.ownerUserId).background }} aria-hidden="true" />
       <span className="w-24 shrink-0 tabular-nums text-muted-foreground">{whenText(occ).split(' · ').at(-1)}</span>

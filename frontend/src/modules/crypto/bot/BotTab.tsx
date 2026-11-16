@@ -43,6 +43,7 @@ export function BotTab() {
       <StatusStrip snapshot={snapshot} receivedAt={receivedAt} />
       <Leaderboard strategies={snapshot.strategies} currency="USDT" featured={{ key: 'mix', label: 'MIX' }} />
       <EquityChart strategies={snapshot.strategies} market="crypto" />
+      {/* arbitrary: proportional two-column grid, no token */}
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <TradesFeed trades={trades} strategies={snapshot.strategies} />
         <LearningPanel snapshot={snapshot} reviews={reviews} />

@@ -95,7 +95,7 @@ export function BoardColumn({ column, status, currency, f, q, draggable, moveTar
           <BoardCard key={row.id} row={row} currency={currency} draggable={draggable && row.canEdit} moveTargets={moveTargets} onOpen={onOpen} onMove={onMove} />
         ))}
         {remaining > 0 ? (
-          <Button type="button" variant="ghost" size="sm" className="w-full" disabled={loading} onClick={loadMore}>
+          <Button type="button" variant="ghost" className="w-full" disabled={loading} onClick={loadMore}>
             {failed ? t('clients:board.loadMoreFailed') : t('clients:board.loadMore', { count: remaining, n: formatNumber(remaining) })}
           </Button>
         ) : null}

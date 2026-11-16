@@ -82,7 +82,7 @@ export function InvoiceLines({ lines, states, currency, locked, rates, onChange,
         ))}
       </div>
       {!locked ? (
-        <Button type="button" variant="outline" size="sm" onClick={onAdd}>
+        <Button type="button" variant="outline" onClick={onAdd}>
           <Plus aria-hidden="true" /> {t('accounting:editor.lines.add')}
         </Button>
       ) : null}

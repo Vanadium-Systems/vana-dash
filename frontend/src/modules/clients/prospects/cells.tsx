@@ -155,7 +155,7 @@ function ContactCell({ row, ctx }: { row: ProspectRow; ctx: CellContext }) {
   }
   return (
     // The pencil sits in the middle of the cell, only on hover or focus; touch screens use the row menu.
-    <div className="relative min-w-0 max-w-[13rem] pr-8 text-xs leading-tight">
+    <div className="relative min-w-0 max-w-52 pr-8 text-xs leading-tight">
       {row.primaryPerson ? <div className="truncate text-muted-foreground">{row.primaryPerson}</div> : null}
       {row.primaryPhone ? (
         <a href={`tel:${row.primaryPhone}`} className="block truncate text-primary underline">
@@ -235,7 +235,7 @@ export function ColumnCell({ columnKey, colIndex, rowIndex, row, ctx }: { column
       )
     }
     case 'owner': {
-      const display = text ? <span className="block max-w-[12rem] truncate" title={text}>{text}</span> : <span className="text-muted-foreground">{t('clients:prospects.noOwner')}</span>
+      const display = text ? <span className="block max-w-48 truncate" title={text}>{text}</span> : <span className="text-muted-foreground">{t('clients:prospects.noOwner')}</span>
       if (!row.canEdit) return display
       return (
         <EditableCell
@@ -309,7 +309,7 @@ export function ColumnCell({ columnKey, colIndex, rowIndex, row, ctx }: { column
       return <NoteCell row={row} />
     case 'nextTask':
       return row.nextTask ? (
-        <span className={`block max-w-[14rem] truncate ${isOverdue(row.nextTask) ? 'text-destructive-text' : ''}`} title={text ?? undefined}>
+        <span className={`block max-w-56 truncate ${isOverdue(row.nextTask) ? 'text-destructive-text' : ''}`} title={text ?? undefined}>
           {text}
         </span>
       ) : (
@@ -321,6 +321,6 @@ export function ColumnCell({ columnKey, colIndex, rowIndex, row, ctx }: { column
     case 'createdAt':
       return <span className="whitespace-nowrap tabular-nums">{text ?? <Empty />}</span>
     default:
-      return text ? <span className="block max-w-[12rem] truncate">{text}</span> : <Empty />
+      return text ? <span className="block max-w-48 truncate">{text}</span> : <Empty />
   }
 }

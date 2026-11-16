@@ -254,7 +254,6 @@ export function SupplierRulesCard() {
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={() => openNew(PRESET_ANTHROPIC)}
             >
               {t('accounting:supplierRules.presetAnthropic')}
@@ -262,7 +261,6 @@ export function SupplierRulesCard() {
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={() => openNew(PRESET_HETZNER)}
             >
               {t('accounting:supplierRules.presetHetzner')}
@@ -270,7 +268,6 @@ export function SupplierRulesCard() {
             <Button
               type="button"
               variant="outline"
-              size="sm"
               disabled={backfill.isPending}
               onClick={handleBackfill}
             >
@@ -279,7 +276,7 @@ export function SupplierRulesCard() {
                 ? t('accounting:supplierRules.backfillRunning')
                 : t('accounting:supplierRules.backfillButton')}
             </Button>
-            <Button type="button" size="sm" onClick={() => openNew(EMPTY_FORM)}>
+            <Button type="button" onClick={() => openNew(EMPTY_FORM)}>
               <Plus className="h-3.5 w-3.5" />
               {t('accounting:supplierRules.addRule')}
             </Button>

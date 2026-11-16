@@ -207,7 +207,7 @@ export function FinancialsPage() {
           <p className="min-w-0">{annotation.text}</p>
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             aria-label={t('common:actions.close')}
             onClick={() => {
               sessionStorage.setItem('financials.annotation.closed', annotation.key)

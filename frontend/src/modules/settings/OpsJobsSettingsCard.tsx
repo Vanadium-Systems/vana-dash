@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Badge } from '@/shared/components/ui/badge'
+import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { api } from '@/shared/lib/api'
@@ -63,7 +63,7 @@ export function OpsJobsSettingsCard() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{job.label}</p>
-                    {enabled ? <Badge variant="success">{t('common:states.active')}</Badge> : <Badge variant="outline">{t('settings:jobs.off')}</Badge>}
+                    {enabled ? <StatePill tone="success">{t('common:states.active')}</StatePill> : <StatePill>{t('settings:jobs.off')}</StatePill>}
                   </div>
                   <p className="text-xs text-muted-foreground">{job.description}</p>
                 </div>

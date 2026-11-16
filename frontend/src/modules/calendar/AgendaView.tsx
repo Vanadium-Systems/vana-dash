@@ -42,6 +42,7 @@ export function AgendaView({ from, occurrences, onEventClick, onLoadMore, hasMor
               <ul>
                 {items.map((occ) => (
                   <li key={`${occ.eventId}-${occ.occurrenceStart}`}>
+                    {/* native: list row */}
                     <button
                       type="button"
                       className="flex h-10 w-full min-w-0 items-center gap-3 rounded-md px-2 text-left text-sm hover:bg-accent focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

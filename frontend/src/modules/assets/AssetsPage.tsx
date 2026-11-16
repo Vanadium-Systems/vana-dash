@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
+import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
@@ -35,7 +36,7 @@ const METALS: WatchEntry[] = [
 function ChangeCell({ change }: { change: number | null }) {
   if (change == null) return <span className="text-muted-foreground">—</span>
   return (
-    <span className={cn('tnum font-mono text-xs', change >= 0 ? 'text-success-text' : 'text-destructive-text')}>
+    <span className={cn('tnum text-xs', change >= 0 ? 'text-success-text' : 'text-destructive-text')}>
       {change >= 0 ? '+' : ''}
       {change.toFixed(2)}%
     </span>
@@ -205,11 +206,11 @@ export function AssetsPage() {
         title={t('common:nav.stocks')}
         actions={
           settings.data?.tradingEnabled ? (
-            <Badge variant="destructive" className="gap-1">
+            <StatePill tone="critical" className="gap-1">
               <ShieldAlert className="h-3 w-3" /> {t('crypto:mode.live')}
-            </Badge>
+            </StatePill>
           ) : (
-            <Badge variant="secondary">{t('crypto:mode.paper')}</Badge>
+            <StatePill>{t('crypto:mode.paper')}</StatePill>
           )
         }
       />
@@ -275,6 +276,7 @@ export function AssetsPage() {
           </Alert>
         ) : null}
 
+        {/* arbitrary: proportional two-column grid, no token */}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div className="min-w-0 space-y-6">
             <section className="space-y-2" data-testid="assets-watchlist">
@@ -318,7 +320,7 @@ export function AssetsPage() {
                         </div>
                         <div className="flex items-end justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="tnum font-mono text-sm leading-tight">{formatUsd(priceUsd)}</p>
+                            <p className="tnum text-sm leading-tight">{formatUsd(priceUsd)}</p>
                             <ChangeCell change={changePct} />
                           </div>
                           <div className="flex items-center gap-2">
@@ -345,7 +347,7 @@ export function AssetsPage() {
               <CardContent className="pt-6">
                 <div className="mb-2 flex items-baseline justify-between">
                   <h2 className="text-sm font-semibold">{t('crypto:portfolio.title')}</h2>
-                  <span className="tnum font-mono text-sm">{formatUsd(totalValueUsd)}</span>
+                  <span className="tnum text-sm">{formatUsd(totalValueUsd)}</span>
                 </div>
                 {portfolio.isPending ? (
                   <ListSkeleton rows={4} />
@@ -374,7 +376,7 @@ export function AssetsPage() {
                           <TableCell className="whitespace-nowrap text-right text-xs tabular-nums">{formatUsd(pos.valueUsd)}</TableCell>
                           <TableCell className="text-right">
                             {pos.unrealizedPnlUsd != null ? (
-                              <span className={cn('tnum font-mono text-xs', pos.unrealizedPnlUsd >= 0 ? 'text-success-text' : 'text-destructive-text')}>
+                              <span className={cn('tnum text-xs', pos.unrealizedPnlUsd >= 0 ? 'text-success-text' : 'text-destructive-text')}>
                                 {pos.unrealizedPnlUsd >= 0 ? '+' : ''}
                                 {formatUsd(pos.unrealizedPnlUsd)}
                               </span>
@@ -391,7 +393,7 @@ export function AssetsPage() {
                   <p className="mt-2 text-xs text-muted-foreground">
                     {tNodes('crypto:portfolio.realizedPnl', {
                       value: (
-                        <span className={cn('tnum font-mono', (portfolio.data?.realizedPnlUsd ?? 0) >= 0 ? 'text-success-text' : 'text-destructive-text')}>
+                        <span className={cn('tnum', (portfolio.data?.realizedPnlUsd ?? 0) >= 0 ? 'text-success-text' : 'text-destructive-text')}>
                           {formatUsd(portfolio.data?.realizedPnlUsd)}
                         </span>
                       ),
@@ -407,7 +409,7 @@ export function AssetsPage() {
                 {!orders.data?.length ? (
                   <p className="text-sm text-muted-foreground">{t('crypto:orders.none')}</p>
                 ) : (
-                  <ul className="space-y-1.5 font-mono text-xs" data-testid="assets-orders-list">
+                  <ul className="space-y-1.5 tnum text-xs" data-testid="assets-orders-list">
                     {orders.data.slice(0, 10).map((order) => (
                       <li key={order.id} className="flex items-center justify-between gap-2 border-b pb-1 last:border-none">
                         <span>
@@ -504,7 +506,7 @@ export function AssetsPage() {
                                 <span className="font-medium">{row.symbol}</span>
                                 <span className="ml-2 truncate text-xs text-muted-foreground tbl-md">{row.name}</span>
                               </TableCell>
-                              <TableCell className="tnum text-right font-mono text-xs">{formatUsd(row.priceUsd)}</TableCell>
+                              <TableCell className="tnum text-right text-xs">{formatUsd(row.priceUsd)}</TableCell>
                               <TableCell className="text-right">
                                 <ChangeCell change={row.changePct} />
                               </TableCell>

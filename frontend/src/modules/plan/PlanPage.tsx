@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
+import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { SidePeek, usePeek } from '@/shared/components/ui/side-peek'
@@ -48,9 +49,9 @@ function TieredGoals({ goals, mrrRon, onEdit }: { goals: PlanGoal[]; mrrRon: num
                 mrr: <span className="font-medium text-foreground">{formatRon(mrrRon)} {BASE_CURRENCY}</span>,
               })}
             </span>
-            <Badge variant={gap > 0 ? 'warning' : 'success'}>
+            <StatePill tone={gap > 0 ? 'warning' : 'success'}>
               {gap > 0 ? t('plan:gap', { amount: `${formatRon(gap)} ${BASE_CURRENCY}` }) : t('plan:coveredByMrr')}
-            </Badge>
+            </StatePill>
           </CardContent>
         </Card>
       ) : null}
@@ -70,9 +71,9 @@ function TieredGoals({ goals, mrrRon, onEdit }: { goals: PlanGoal[]; mrrRon: num
               {tierCost > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   <Badge variant="outline">{t('plan:perMonth', { amount: `${formatRon(tierCost)} ${BASE_CURRENCY}` })}</Badge>
-                  <Badge variant={cumulativeGap > 0 ? 'warning' : 'success'}>
+                  <StatePill tone={cumulativeGap > 0 ? 'warning' : 'success'}>
                     {cumulativeGap > 0 ? t('plan:cumulativeGap', { amount: `${formatRon(cumulativeGap)} ${BASE_CURRENCY}` }) : t('plan:coveredByMrr')}
-                  </Badge>
+                  </StatePill>
                 </div>
               ) : null}
             </div>

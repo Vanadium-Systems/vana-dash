@@ -28,7 +28,6 @@ export function Offer({ sheet }: { sheet: ProspectSheet }) {
           <Button
             type="button"
             variant="ghost"
-            size="sm"
             aria-label={t('pricing:apply.offer.delete')}
             onClick={() =>
               void confirm({ title: t('pricing:apply.offer.deleteTitle', { name: sheet.name }), consequence: t('pricing:apply.offer.deleteBody'), confirmLabel: t('pricing:apply.offer.deleteConfirm'), destructive: true }).then(
@@ -55,7 +54,7 @@ export function Offer({ sheet }: { sheet: ProspectSheet }) {
       {details.length > 0 ? <p className="break-words text-xs text-muted-foreground">{details.join(' · ')}</p> : null}
       <p className="text-xs text-muted-foreground">{t('pricing:apply.offer.savedAt', { date: formatDate(offer.savedAt) })}</p>
       {can('clienti.calculator') ? (
-        <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/clients?tab=calculator&prospectId=${sheet.id}`)}>
+        <Button type="button" variant="outline" onClick={() => navigate(`/clients?tab=calculator&prospectId=${sheet.id}`)}>
           <Calculator aria-hidden="true" /> {t('pricing:apply.offer.reopen')}
         </Button>
       ) : null}

@@ -170,6 +170,7 @@ export function SignDocumentDialog({ doc, onOpenChange }: SignDocumentDialogProp
             <p className="text-xs text-muted-foreground">
               {t('accounting:sign.fallbackHint')}
             </p>
+            {/* native: hidden file picker */}
             <input
               ref={fileInputRef}
               type="file"

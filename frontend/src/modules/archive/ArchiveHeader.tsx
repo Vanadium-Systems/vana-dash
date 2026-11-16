@@ -44,6 +44,7 @@ export const crumbDropId = (crumb: Crumb) => `crumb:${crumb.id ?? 'root'}`
 function CrumbLink({ crumb, onNavigate }: { crumb: Crumb; onNavigate: (id: string | null) => void }) {
   const drop = useDroppable({ id: crumbDropId(crumb), disabled: !crumb.dropFolderId })
   return (
+    // native: breadcrumb link
     <button
       ref={drop.setNodeRef}
       type="button"

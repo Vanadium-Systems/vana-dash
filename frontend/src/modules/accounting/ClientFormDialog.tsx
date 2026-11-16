@@ -13,6 +13,7 @@ import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 import { bundleMonthlyTotal } from '@/modules/pricing/calc'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 
 interface ClientFormDialogProps {
   open: boolean
@@ -383,7 +384,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
             <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning dark:bg-transparent">
               <p className="font-medium">{t('accounting:clientForm.autoCreatedHint')}</p>
               <label className="mt-2 flex items-center gap-2">
-                <input type="checkbox" checked={needsBillingInfo} onChange={(e) => setNeedsBillingInfo(e.target.checked)} />
+                <Checkbox checked={needsBillingInfo} onChange={(e) => setNeedsBillingInfo(e.target.checked)} />
                 {t('accounting:clientForm.keepIncomplete')}
               </label>
             </div>
@@ -469,8 +470,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
             <Label className="text-sm font-semibold">{t('accounting:clientForm.vanagreen')}</Label>
             {!client && (
               <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={createInVanagreen}
                   onChange={(e) => {
                     setCreateInVanagreen(e.target.checked)
@@ -655,8 +655,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
               </div>
             </div>
             <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={autoInvoiceEnabled}
                 onChange={(e) => setAutoInvoiceEnabled(e.target.checked)}
                 disabled={!vanagreenTenantId}
@@ -790,8 +789,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
               <div className="flex flex-wrap gap-3">
                 {moduleAddonOptions.map((opt) => (
                   <label key={opt} className="flex items-center gap-1.5 text-sm">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={moduleAddonSelected.includes(opt)}
                       onChange={(e) =>
                         setModuleAddonSelected((sel) => (e.target.checked ? [...sel, opt] : sel.filter((o) => o !== opt)))
@@ -808,8 +806,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
               />
             </div>
             <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={contractDetails.areLunaGratuita ?? true}
                 onChange={(e) => setContractDetails((d) => ({ ...d, areLunaGratuita: e.target.checked }))}
               />

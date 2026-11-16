@@ -31,7 +31,6 @@ export function DueDateField({ issuedAt, dueAt, choice, disabled, onPreset, onCu
           <Button
             key={preset}
             type="button"
-            size="sm"
             variant="outline"
             disabled={disabled}
             aria-pressed={choice === preset}
@@ -43,7 +42,6 @@ export function DueDateField({ issuedAt, dueAt, choice, disabled, onPreset, onCu
         ))}
         <Button
           type="button"
-          size="sm"
           variant="outline"
           disabled={disabled}
           aria-pressed={choice === 'custom'}

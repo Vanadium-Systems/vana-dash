@@ -50,6 +50,11 @@ export function formatNumber(value: number, unit?: string | null): string {
   return formatted
 }
 
+/** A signed-change style percent with fixed decimals, so a column of them lines up ("1,50%", not "1,5%"). */
+export function formatPercent(value: number, decimals = 2): string {
+  return `${new Intl.NumberFormat(intlTag(), { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value)}%`
+}
+
 /**
  * An amount with its currency. The currency always comes from the data (a document keeps its
  * own, a total says which one the server computed it in); nothing here assumes RON.

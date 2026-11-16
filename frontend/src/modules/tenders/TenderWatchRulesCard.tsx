@@ -9,6 +9,7 @@ import { api } from '@/shared/lib/api'
 import type { TenderWatchRule } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
 
 // Reguli de match CPV/keyword pt. monitorul de licitații — editabile din UI din prima zi
@@ -146,14 +147,12 @@ function NewRuleForm() {
       </div>
       {exclude ? null : (
         <label className="flex items-center gap-1.5 pb-2 text-xs text-muted-foreground">
-          <input type="checkbox" checked={highPriority} onChange={(e) => setHighPriority(e.target.checked)} />
+          <Checkbox checked={highPriority} onChange={(e) => setHighPriority(e.target.checked)} />
           {t('tenders:rules.highPriority')}
         </label>
       )}
       <label className="flex items-center gap-1.5 pb-2 text-xs text-muted-foreground" title={t('tenders:rules.negativeHint')}>
-        <input
-          type="checkbox"
-          checked={exclude}
+        <Checkbox checked={exclude}
           onChange={(e) => {
             setExclude(e.target.checked)
             if (e.target.checked) setHighPriority(false)

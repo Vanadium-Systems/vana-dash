@@ -36,7 +36,7 @@ const RANGES = [
 function ChangePct({ value, label }: { value: number | null; label: string }) {
   if (value == null) return null
   return (
-    <span className={cn('tnum font-mono text-xs', value >= 0 ? 'text-success-text' : 'text-destructive-text')}>
+    <span className={cn('tnum text-xs', value >= 0 ? 'text-success-text' : 'text-destructive-text')}>
       {label} {value >= 0 ? '+' : ''}
       {value.toFixed(2)}%
     </span>
@@ -47,7 +47,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   return (
     <div className="rounded-md border p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="tnum mt-0.5 font-mono text-sm">{value}</p>
+      <p className="tnum mt-0.5 text-sm">{value}</p>
       {sub ? <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p> : null}
     </div>
   )
@@ -150,6 +150,7 @@ export function AssetDetailPage() {
         <div
           aria-hidden={!titleCollapsed}
           className={cn(
+            // arbitrary: safe-area inset has no token
             'glass absolute inset-x-0 top-0 truncate border-b px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] text-sm font-medium transition-opacity duration-fast',
             titleCollapsed ? 'opacity-100' : 'pointer-events-none opacity-0',
           )}
@@ -184,7 +185,7 @@ export function AssetDetailPage() {
             <span className="font-mono text-sm uppercase text-muted-foreground">{a.symbol}</span>
           </h1>
           <p className="flex items-baseline gap-3">
-            <span className="tnum font-mono text-lg">{formatUsd(a.priceUsd)}</span>
+            <span className="tnum text-lg">{formatUsd(a.priceUsd)}</span>
             <ChangePct value={a.changePct} label={t('assets:asset.today')} />
           </p>
         </div>
@@ -194,7 +195,7 @@ export function AssetDetailPage() {
         <CardContent className="pt-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className={cn('tnum font-mono text-xs', rangeUp ? 'text-success-text' : 'text-destructive-text')}>
+              <span className={cn('tnum text-xs', rangeUp ? 'text-success-text' : 'text-destructive-text')}>
                 {first != null && last != null ? t('crypto:chart.changeInRange', { value: (((last - first) / first) * 100).toFixed(2) }) : '—'}
               </span>
               <div className="flex gap-1">

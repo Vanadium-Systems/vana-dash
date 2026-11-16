@@ -52,6 +52,10 @@ export default {
           ink: 'hsl(var(--glow-ink))',
         },
         brand: 'hsl(var(--brand))',
+        logo: {
+          fill: 'hsl(var(--logo-fill))',
+          line: 'hsl(var(--logo-line))',
+        },
         zebra: 'hsl(var(--zebra))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

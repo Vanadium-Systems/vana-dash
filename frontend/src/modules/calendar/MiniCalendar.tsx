@@ -36,10 +36,10 @@ export function MiniCalendar({ month, selected, onSelect, onMonthChange }: MiniC
           {MONTH_LABELS[month.getMonth()]} {month.getFullYear()}
         </span>
         <div className="flex">
-          <Button variant="ghost" size="icon-sm" aria-label={t('calendar:mini.prevMonth')} onClick={() => onMonthChange(addMonths(startOfMonth(month), -1))}>
+          <Button variant="ghost" size="icon" aria-label={t('calendar:mini.prevMonth')} onClick={() => onMonthChange(addMonths(startOfMonth(month), -1))}>
             <ChevronLeft />
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label={t('calendar:mini.nextMonth')} onClick={() => onMonthChange(addMonths(startOfMonth(month), 1))}>
+          <Button variant="ghost" size="icon" aria-label={t('calendar:mini.nextMonth')} onClick={() => onMonthChange(addMonths(startOfMonth(month), 1))}>
             <ChevronRight />
           </Button>
         </div>
@@ -56,6 +56,7 @@ export function MiniCalendar({ month, selected, onSelect, onMonthChange }: MiniC
           const inMonth = day.getMonth() === month.getMonth()
           const chosen = isSameDay(day, selected)
           return (
+            // native: calendar cell
             <button
               key={day.getTime()}
               type="button"

@@ -641,24 +641,24 @@ export function ArchivePage() {
   const selectionActions = (
     <>
       <span className="tnum whitespace-nowrap text-sm text-muted-foreground">{selectedBytes > 0 ? formatBytes(selectedBytes) : null}</span>
-      <Button variant="ghost" size="sm" onClick={() => actions.download(selectedItems)}>
+      <Button variant="ghost" onClick={() => actions.download(selectedItems)}>
         <Download className="h-4 w-4" /> {t('common:actions.download')}
       </Button>
       {selectedItems.every((item) => item.canWrite) ? (
-        <Button variant="ghost" size="sm" onClick={() => actions.move(selectedItems)}>
+        <Button variant="ghost" onClick={() => actions.move(selectedItems)}>
           <FolderInput className="h-4 w-4" /> {t('common:actions.move')}
         </Button>
       ) : null}
-      <Button variant="ghost" size="sm" onClick={() => actions.toggleStar(selectedItems)}>
+      <Button variant="ghost" onClick={() => actions.toggleStar(selectedItems)}>
         <Star className="h-4 w-4" /> {t('archive:menu.star')}
       </Button>
       {selectedItems.length === 1 && selectedItems[0]?.kind === 'file' && canShareToMessages ? (
-        <Button variant="ghost" size="sm" onClick={() => actions.sendToMessages(selectedItems[0]!)}>
+        <Button variant="ghost" onClick={() => actions.sendToMessages(selectedItems[0]!)}>
           <MessageSquareShare className="h-4 w-4" /> {t('messages:share.action')}
         </Button>
       ) : null}
       {selectedItems.every((item) => item.canWrite) ? (
-        <Button variant="ghost" size="sm" onClick={() => actions.trash(selectedItems)}>
+        <Button variant="ghost" onClick={() => actions.trash(selectedItems)}>
           <Trash2 className="h-4 w-4" /> {t('common:actions.delete')}
         </Button>
       ) : null}
@@ -810,6 +810,7 @@ export function ArchivePage() {
           <CardContent className="px-2 pt-4 sm:px-4">{body()}</CardContent>
         </Card>
 
+        {/* native: hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -820,6 +821,7 @@ export function ArchivePage() {
             e.target.value = ''
           }}
         />
+        {/* native: hidden file input */}
         <input
           ref={cameraInputRef}
           type="file"
@@ -867,6 +869,7 @@ export function ArchivePage() {
           toolbar={
             viewerCurrent ? (
               <>
+                {/* native: viewer toolbar toggle */}
                 <button
                   type="button"
                   className={viewerButtonClass}
@@ -878,10 +881,12 @@ export function ArchivePage() {
                 >
                   <Star className={starredIds.has(viewerCurrent.id) ? 'h-5 w-5 fill-warning text-warning' : 'h-5 w-5'} />
                 </button>
+                {/* native: viewer toolbar icon */}
                 <button type="button" className={viewerButtonClass} aria-label={t('archive:menu.details')} onClick={() => setParam('details', viewerCurrent.id)}>
                   <Info className="h-5 w-5" />
                 </button>
                 {canShareToMessages ? (
+                  // native: viewer toolbar icon
                   <button
                     type="button"
                     className={viewerButtonClass}

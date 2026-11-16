@@ -552,8 +552,8 @@ const SOURCES: GuideSource[] = [
         en: 'Someone else\'s event has the person\'s name in the title.',
       },
       {
-        ro: 'Ca să-ți vadă cineva calendarul, apasă „Partajează calendarul” și alege „Vede” sau „Editează”.',
-        en: 'For someone to see your calendar, press “Share the calendar” and pick “Can view” or “Can edit”.',
+        ro: 'Ca să-ți vadă cineva calendarul, deschide meniul ⋯ de lângă „Eveniment nou”, apasă „Partajează” și alege „Vede” sau „Editează”. Tot acolo sunt și Programările.',
+        en: 'For someone to see your calendar, open the ⋯ menu next to “New event”, press “Share” and pick “Can view” or “Can edit”. Bookings are in the same menu.',
       },
     ],
   },
@@ -680,8 +680,8 @@ const SOURCES: GuideSource[] = [
     },
     steps: [
       {
-        ro: 'Caută după nume, CUI, telefon, email sau persoana de contact. Pentru o căutare mai fină apasă „+ Filtru” și alege câmpul, sau scrie o frază în câmpul de căutare, de pildă „firme active din Cluj fără responsabil”, și filtrele apar ca chip-uri pe care le poți corecta.',
-        en: 'Search by name, CUI, phone, email or contact person. For a finer search press “+ Filter” and pick the field, or write a phrase in the search box, for example “active companies in Cluj with no owner”, and the filters appear as chips you can correct.',
+        ro: 'Caută după nume, CUI, telefon, email sau persoana de contact. Pentru o căutare mai fină apasă „Filtre” și alege câmpul, sau scrie o frază în câmpul de căutare, de pildă „firme active din Cluj fără responsabil”, și filtrele apar ca chip-uri pe care le poți corecta.',
+        en: 'Search by name, CUI, phone, email or contact person. For a finer search press “Filters” and pick the field, or write a phrase in the search box, for example “active companies in Cluj with no owner”, and the filters appear as chips you can correct.',
       },
       {
         ro: 'Cu „Firme” și „Oameni” treci între lista de firme și cea de oameni de contact. Coloanele, sortarea și calculele din subsol (sumă, medie, minim, maxim) se aleg din antetul tabelului.',

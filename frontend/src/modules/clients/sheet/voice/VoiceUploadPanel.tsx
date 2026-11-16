@@ -97,7 +97,7 @@ export function VoiceUploadPanel({ prospectId, onClose }: { prospectId: string; 
     <section aria-label={t('clients:voice.uploadTitle')} className="space-y-3">
       <div className="flex items-center gap-2">
         <h3 className="min-w-0 flex-1 text-sm font-medium">{t('clients:voice.uploadTitle')}</h3>
-        <Button type="button" variant="ghost" size="icon-sm" title={t('common:actions.close')} aria-label={t('common:actions.close')} disabled={busy} onClick={onClose}>
+        <Button type="button" variant="ghost" size="icon" title={t('common:actions.close')} aria-label={t('common:actions.close')} disabled={busy} onClick={onClose}>
           <X />
         </Button>
       </div>
@@ -123,6 +123,7 @@ export function VoiceUploadPanel({ prospectId, onClose }: { prospectId: string; 
           <Button type="button" variant="outline" onClick={() => input.current?.click()}>
             {t('clients:voice.choose')}
           </Button>
+          {/* native: hidden file picker */}
           <input
             ref={input}
             type="file"

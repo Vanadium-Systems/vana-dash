@@ -4,6 +4,21 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-16: The same look on every page
+
+### Changed
+- Every screen goes through the style: native buttons became `Button` (or carry a `native:` comment with the reason), `size="sm"` stays only on row actions, state badges became `StatePill`, `font-mono` stays only on codes, native checkboxes and text inputs became `Checkbox` / `Input`, and arbitrary Tailwind values moved to the scale where one exists.
+- Clients, Invoices and Contracts have a single "Filters" button; Archive and the Email search use the same one. A row in Clients and Invoices starts with the company; Clients shows owner, status and score at 1280px.
+- Calendar: "Share" and "Bookings" moved into a ⋯ menu next to "New event" on desktop.
+- The logo colours are tokens (`--logo-fill`, `--logo-line`) instead of hex values.
+- History names every audited action (51 labels added) instead of showing its code.
+
+### Fixed
+- File sizes, crypto prices and 24h changes are formatted with the reader's decimal separator; an empty portfolio shows `0$`.
+- The Crypto market table no longer scrolls sideways at 360px or 1280px (the 24h change goes under the price on a phone, market cap shows from 1536px).
+- Team: the row actions and the last-activity cell stay on one line.
+- `403` on `/api/contracts/reserved-numbers` for a colleague without `facturi.contracte` opening the client form.
+
 ## 2026-11-16: Vanadium style, a new Home and a new Financials page
 
 ### Added

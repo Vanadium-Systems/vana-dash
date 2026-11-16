@@ -154,7 +154,7 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
               tone="critical"
               title={t('accounting:records.loadFailed')}
               action={
-                <Button variant="outline" size="sm" onClick={() => void list.refetch()}>
+                <Button variant="outline" onClick={() => void list.refetch()}>
                   {t('common:actions.retry')}
                 </Button>
               }

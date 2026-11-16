@@ -43,7 +43,7 @@ function LanguageSwitch() {
 
 export function AuthLayout({ title, subline, children }: { title: string; subline: string; children: ReactNode }) {
   return (
-    <div className="grid min-h-[100dvh] bg-background lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+    <div className="grid min-h-dvh bg-background lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <aside className="dark hidden flex-col justify-between bg-background p-10 text-foreground lg:flex">
         <div className="flex items-center gap-2.5">
           <BrandMark className="h-9 w-9" />

@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { Label } from '@/shared/components/ui/label'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
+import { Input } from '@/shared/components/ui/input'
 import { api } from '@/shared/lib/api'
 import type { DeclarationLine, DeclarationPreview } from '@/shared/lib/types'
 import { DeclarationFilingRow } from './DeclarationFilingRow'
@@ -163,10 +164,10 @@ export function DeclarationsTab() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Label htmlFor="decl-month">{t('common:labels.month')}</Label>
-        <input
+        <Input
           id="decl-month"
           type="month"
-          className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+          className="w-auto"
           value={month}
           onChange={(e) => setSearchParams({ tab: 'declaratii', month: e.target.value })}
         />

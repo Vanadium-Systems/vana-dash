@@ -17,6 +17,7 @@ import { intlTag } from '@/shared/lib/format'
 import { tRich } from '@/shared/lib/i18n-nodes'
 import { t } from '@/shared/lib/i18n'
 import { openExternal } from '@/shared/lib/open-file'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 
 const GUIDE_STEPS = [
   'reconciliation:guide.step1',
@@ -247,8 +248,7 @@ function VanagreenExtensionCard() {
           {t('reconciliation:extension.hint')}
         </p>
         <label className="flex items-center gap-2 text-sm font-medium">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={settings.data?.autoExtendEnabled ?? false}
             disabled={settings.isPending || toggle.isPending}
             onChange={(e) => toggle.mutate(e.target.checked)}

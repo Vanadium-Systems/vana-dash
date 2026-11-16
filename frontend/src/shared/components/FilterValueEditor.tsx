@@ -19,7 +19,7 @@ function ModeButtons({ modes, mode, onMode }: { modes: Array<{ mode: Mode; label
   return (
     <div className="flex flex-wrap gap-1" role="group">
       {modes.map((entry) => (
-        <Button key={entry.mode} type="button" size="sm" variant={mode === entry.mode ? 'outline' : 'ghost'} aria-pressed={mode === entry.mode} className={mode === entry.mode ? 'bg-accent' : undefined} onClick={() => onMode(entry.mode)}>
+        <Button key={entry.mode} type="button" variant={mode === entry.mode ? 'outline' : 'ghost'} aria-pressed={mode === entry.mode} className={mode === entry.mode ? 'bg-accent' : undefined} onClick={() => onMode(entry.mode)}>
           {entry.label}
         </Button>
       ))}

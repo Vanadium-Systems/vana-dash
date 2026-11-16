@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { Mail, Plus, Search, X } from 'lucide-react'
+import { Mail, Search, X } from 'lucide-react'
 import { useId, useRef, useState, type KeyboardEvent } from 'react'
 import { Highlight } from '@/shared/components/Highlight'
-import { DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
+import { DropdownMenuItem } from '@/shared/components/ui/dropdown-menu'
+import { FilterMenuTrigger } from '@/shared/components/ui/filter-chip'
 import { ResponsiveMenu, ResponsiveMenuContent } from '@/shared/components/ui/responsive-menu'
+import { Input } from '@/shared/components/ui/input'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { useUrlState } from '@/shared/hooks/use-url-state'
 import { api } from '@/shared/lib/api'
@@ -151,7 +153,7 @@ export function MailSearch({
     <div className="min-w-0 flex-1 space-y-2">
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <input
+        <Input
           ref={ref}
           type="search"
           role="combobox"
@@ -159,7 +161,7 @@ export function MailSearch({
           aria-controls={listId}
           aria-label={t('email:list.searchAria')}
           placeholder={t('email:list.searchPlaceholder')}
-          className="h-control-md w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="bg-card pl-8 pr-3"
           value={query}
           onChange={(e) => {
             onQuery(e.target.value)
@@ -209,10 +211,8 @@ export function MailSearch({
         {filters.starred ? <Chip label={t('email:filters.starred')} onRemove={() => state.setStarred(false)} /> : null}
         {filters.days ? <Chip label={t('email:filters.periodChip', { count: filters.days })} onRemove={() => state.setDays(null)} /> : null}
         <ResponsiveMenu>
-          <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
-            <Plus className="h-3 w-3" aria-hidden="true" /> {t('email:filters.add')}
-          </DropdownMenuTrigger>
-          <ResponsiveMenuContent title={t('email:filters.add')} align="start">
+          <FilterMenuTrigger />
+          <ResponsiveMenuContent title={t('common:filter.add')} align="start">
             {filters.unread ? null : <DropdownMenuItem onClick={() => state.setUnread(true)}>{t('email:filters.unread')}</DropdownMenuItem>}
             {filters.attachment ? null : <DropdownMenuItem onClick={() => state.setAttachment(true)}>{t('email:filters.attachment')}</DropdownMenuItem>}
             {filters.starred ? null : <DropdownMenuItem onClick={() => state.setStarred(true)}>{t('email:filters.starred')}</DropdownMenuItem>}

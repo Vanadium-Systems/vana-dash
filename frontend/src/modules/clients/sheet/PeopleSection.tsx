@@ -82,10 +82,10 @@ export function PeopleSection({ sheet, onContact }: { sheet: ProspectSheet; onCo
   const addButtons = (personId: string | null) =>
     canEdit ? (
       <div className="flex flex-wrap gap-1">
-        <Button type="button" size="sm" variant="ghost" onClick={() => setPointTarget({ point: null, kind: 'phone', personId })}>
+        <Button type="button" variant="ghost" onClick={() => setPointTarget({ point: null, kind: 'phone', personId })}>
           <Plus aria-hidden="true" /> {t('clients:sheet.contact.addPhone')}
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setPointTarget({ point: null, kind: 'email', personId })}>
+        <Button type="button" variant="ghost" onClick={() => setPointTarget({ point: null, kind: 'email', personId })}>
           <Plus aria-hidden="true" /> {t('clients:sheet.contact.addEmail')}
         </Button>
       </div>
@@ -132,7 +132,7 @@ export function PeopleSection({ sheet, onContact }: { sheet: ProspectSheet; onCo
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-medium">{t('clients:sheet.people.title')}</h3>
         {canEdit ? (
-          <Button type="button" size="sm" variant="ghost" onClick={() => setPersonTarget('new')}>
+          <Button type="button" variant="ghost" onClick={() => setPersonTarget('new')}>
             <Plus aria-hidden="true" /> {t('clients:sheet.people.add')}
           </Button>
         ) : null}

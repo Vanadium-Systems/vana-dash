@@ -100,6 +100,7 @@ export function StornoDialog({ data, open, onOpenChange }: { data: RecordDetail;
           <div role="radiogroup" aria-label={t('accounting:storno.modeLabel')} className="space-y-2">
             {(['full', 'partial'] as const).map((value) => (
               <label key={value} className="flex min-h-control-lg cursor-pointer items-start gap-3 rounded-md px-1 py-1.5 hover:bg-accent/50">
+                {/* native: radio group */}
                 <input type="radio" name="storno-mode" checked={mode === value} onChange={() => setMode(value)} className="mt-1 accent-primary" />
                 <span className="min-w-0 text-sm">
                   <span className="block font-medium">{value === 'full' ? t('accounting:storno.modeFull') : t('accounting:storno.modePartial')}</span>

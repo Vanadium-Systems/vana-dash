@@ -73,10 +73,10 @@ export function UploadPanel() {
         <h2 className="min-w-0 flex-1 truncate text-sm font-medium" role="status">
           {title}
         </h2>
-        <Button variant="ghost" size="icon-sm" title={collapsed ? t('archive:uploadPanel.expand') : t('archive:uploadPanel.collapse')} aria-label={collapsed ? t('archive:uploadPanel.expand') : t('archive:uploadPanel.collapse')} aria-expanded={!collapsed} onClick={() => setCollapsed((current) => !current)}>
+        <Button variant="ghost" size="icon" title={collapsed ? t('archive:uploadPanel.expand') : t('archive:uploadPanel.collapse')} aria-label={collapsed ? t('archive:uploadPanel.expand') : t('archive:uploadPanel.collapse')} aria-expanded={!collapsed} onClick={() => setCollapsed((current) => !current)}>
           <ChevronDown className={cn('h-4 w-4 transition-transform duration-fast', collapsed && 'rotate-180')} />
         </Button>
-        <Button variant="ghost" size="icon-sm" title={t('common:actions.close')} aria-label={t('common:actions.close')} disabled={active > 0} onClick={clearFinishedUploads}>
+        <Button variant="ghost" size="icon" title={t('common:actions.close')} aria-label={t('common:actions.close')} disabled={active > 0} onClick={clearFinishedUploads}>
           <X className="h-4 w-4" />
         </Button>
       </div>

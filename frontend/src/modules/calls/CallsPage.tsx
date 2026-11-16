@@ -26,7 +26,7 @@ export function CallsPage() {
   const calls = useCalls(status)
 
   const newCallButton = canManage && (
-    <Button size="sm" onClick={() => setCreating(true)}>
+    <Button onClick={() => setCreating(true)}>
       <Plus className="h-4 w-4" />
       {t('calls:newCall')}
     </Button>
@@ -55,7 +55,7 @@ export function CallsPage() {
       ) : calls.isError ? (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">{t('calls:error')}</p>
-          <Button variant="outline" size="sm" onClick={() => void calls.refetch()}>
+          <Button variant="outline" onClick={() => void calls.refetch()}>
             {t('calls:retry')}
           </Button>
         </div>

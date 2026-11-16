@@ -10,6 +10,7 @@ import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import { cn, parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
 
 interface ProviderModel {
@@ -81,12 +82,12 @@ function ProviderCard({ settings }: { settings: ProviderSettings }) {
         {settings.isDefault ? (
           <Badge variant="default">{t('common:states.default')}</Badge>
         ) : (
-          <Button size="sm" variant="ghost" disabled={update.isPending} onClick={() => update.mutate({ isDefault: true })}>
+          <Button variant="ghost" disabled={update.isPending} onClick={() => update.mutate({ isDefault: true })}>
             {t('settings:providers.setDefault')}
           </Button>
         )}
         <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+          <Checkbox checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           {t('settings:providers.active')}
         </label>
       </div>
@@ -148,7 +149,7 @@ function ProviderCard({ settings }: { settings: ProviderSettings }) {
                   value={m.contextWindow ?? ''}
                   onChange={(e) => setModels((prev) => prev.map((x, j) => (j === i ? { ...x, contextWindow: e.target.value === '' ? undefined : parseRoDecimal(e.target.value) } : x)))}
                   placeholder={t('settings:providers.contextPlaceholder')}
-                  className="w-44 font-mono tnum"
+                  className="w-44 tnum"
                   title={t('settings:providers.contextHint')}
                 />
                 <PriceInput
@@ -240,7 +241,7 @@ function PriceInput({ value, onCommit, placeholder, className, title }: { value:
         onCommit(Number.isNaN(parsed) ? undefined : parsed)
       }}
       placeholder={placeholder}
-      className={cn('font-mono tnum', className)}
+      className={cn('tnum', className)}
       title={title}
     />
   )

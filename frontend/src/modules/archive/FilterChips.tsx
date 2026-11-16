@@ -1,6 +1,7 @@
-import { Check, ChevronDown, Plus, X } from 'lucide-react'
+import { Check, ChevronDown, X } from 'lucide-react'
 import { useState } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
+import { FilterMenuTrigger } from '@/shared/components/ui/filter-chip'
 import { FILTER_FILE_TYPES, fileTypeLabel } from '@/shared/lib/file-type'
 import { t } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
@@ -60,6 +61,7 @@ function Chip({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
+      {/* native: chip remove */}
       <button
         type="button"
         className={cn(chipClass, 'rounded-r-md px-1.5')}
@@ -111,9 +113,7 @@ export function FilterChips({ values, tagOptions, onChange }: { values: FilterVa
       ))}
       {missing.length > 0 ? (
         <DropdownMenu>
-          <DropdownMenuTrigger className="inline-flex h-control-md items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
-            <Plus className="h-3 w-3" aria-hidden="true" /> {t('archive:filters.add')}
-          </DropdownMenuTrigger>
+          <FilterMenuTrigger />
           <DropdownMenuContent align="start">
             {missing.map((chip) => (
               <DropdownMenuItem

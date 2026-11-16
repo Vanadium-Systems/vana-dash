@@ -76,6 +76,7 @@ export function ConversationList({ meId, onNew }: { meId: string; onNew: () => v
         {t('messages:list.loadFailed')}{' '}
         {/* Acțiune de text în interiorul unei propoziții, fără carapacă de buton — de aceea
             nativ, nu `Button` (ar fi 32px înălțime și padding într-o frază). */}
+        {/* native: inline text link */}
         <button type="button" className="underline underline-offset-2" onClick={() => void conversations.refetch()}>
           {t('common:actions.retry')}
         </button>

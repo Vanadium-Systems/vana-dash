@@ -56,10 +56,10 @@ export function ArchiveToolbar({
           </Select>
         ) : null}
         <div className="flex items-center gap-1 rounded-md border border-input p-0.5">
-          <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="icon-sm" title={t('archive:view.list')} aria-label={t('archive:view.list')} aria-pressed={viewMode === 'list'} onClick={() => onViewMode('list')}>
+          <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="icon" title={t('archive:view.list')} aria-label={t('archive:view.list')} aria-pressed={viewMode === 'list'} onClick={() => onViewMode('list')}>
             <List className="h-4 w-4" />
           </Button>
-          <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="icon-sm" title={t('archive:view.grid')} aria-label={t('archive:view.grid')} aria-pressed={viewMode === 'grid'} onClick={() => onViewMode('grid')}>
+          <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="icon" title={t('archive:view.grid')} aria-label={t('archive:view.grid')} aria-pressed={viewMode === 'grid'} onClick={() => onViewMode('grid')}>
             <LayoutGrid className="h-4 w-4" />
           </Button>
         </div>

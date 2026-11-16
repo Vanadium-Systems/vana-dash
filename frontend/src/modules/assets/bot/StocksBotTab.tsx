@@ -45,6 +45,7 @@ export function StocksBotTab() {
       <StatusStrip snapshot={snapshot} receivedAt={receivedAt} />
       <Leaderboard strategies={snapshot.strategies} currency={snapshot.currency} referenceLabel="SPY" />
       <EquityChart strategies={snapshot.strategies} market="stocks" />
+      {/* arbitrary: proportional two-column grid, no token */}
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <TradesFeed trades={trades} strategies={snapshot.strategies} />
         <div className="min-w-0 space-y-6">

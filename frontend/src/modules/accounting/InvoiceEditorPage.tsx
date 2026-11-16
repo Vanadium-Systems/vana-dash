@@ -353,7 +353,7 @@ function Editor({ detail, onReload }: { detail: RecordDetail | null; onReload: (
   return (
     <div className="mx-auto max-w-[96rem] space-y-6" data-testid="invoice-editor">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => void back()}>
+        <Button type="button" variant="ghost" onClick={() => void back()}>
           <ArrowLeft aria-hidden="true" /> {t('common:actions.back')}
         </Button>
         <Button disabled={!canIssue} onClick={() => setIssuing(true)} data-testid="editor-issue">
@@ -373,7 +373,7 @@ function Editor({ detail, onReload }: { detail: RecordDetail | null; onReload: (
           tone="critical"
           title={t('accounting:editor.conflict.title')}
           action={
-            <Button variant="outline" size="sm" onClick={() => save.draftId && void onReload(save.draftId)}>
+            <Button variant="outline" onClick={() => save.draftId && void onReload(save.draftId)}>
               {t('accounting:editor.conflict.reload')}
             </Button>
           }

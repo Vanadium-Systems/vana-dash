@@ -63,7 +63,7 @@ export function ViewMenu({
         <div className="w-[min(22rem,calc(100vw-2rem))] max-w-full space-y-2 p-1">
           <div className="flex flex-wrap gap-1" role="group">
             {TABS.map((key) => (
-              <Button key={key} type="button" size="sm" variant={tab === key ? 'outline' : 'ghost'} aria-pressed={tab === key} className={tab === key ? 'bg-accent' : undefined} onClick={() => setTab(key)}>
+              <Button key={key} type="button" variant={tab === key ? 'outline' : 'ghost'} aria-pressed={tab === key} className={tab === key ? 'bg-accent' : undefined} onClick={() => setTab(key)}>
                 {t(`clients:prospects.views.tabs.${key}`)}
               </Button>
             ))}
@@ -131,14 +131,14 @@ export function ViewDirtyBar({ view, onSave, onSaveAsNew, onDiscard, saving }: {
       <span aria-hidden="true" className="h-2 w-2 rounded-full bg-primary" />
       <span className="text-muted-foreground">{t('clients:prospects.views.dirty', { name: view.name })}</span>
       {view.isMine ? (
-        <Button type="button" size="sm" disabled={saving} onClick={onSave}>
+        <Button type="button" disabled={saving} onClick={onSave}>
           {t('common:actions.save')}
         </Button>
       ) : null}
-      <Button type="button" size="sm" variant="outline" onClick={onSaveAsNew}>
+      <Button type="button" variant="outline" onClick={onSaveAsNew}>
         {t('clients:prospects.views.saveAsNew')}
       </Button>
-      <Button type="button" size="sm" variant="ghost" onClick={onDiscard}>
+      <Button type="button" variant="ghost" onClick={onDiscard}>
         {t('clients:prospects.views.discard')}
       </Button>
     </div>

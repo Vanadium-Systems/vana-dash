@@ -62,10 +62,10 @@ function SortableWidget({
               options={def.sizes.map((size) => ({ value: size, label: sizeLabel(size) }))}
             />
           ) : null}
-          <Button variant="ghost" size="icon-sm" className="cursor-grab touch-none" aria-label={t('overview:edit.move', { widget: def.title() })} {...attributes} {...listeners}>
+          <Button variant="ghost" size="icon" className="cursor-grab touch-none" aria-label={t('overview:edit.move', { widget: def.title() })} {...attributes} {...listeners}>
             <GripVertical />
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label={t('overview:edit.remove', { widget: def.title() })} onClick={onRemove}>
+          <Button variant="ghost" size="icon" aria-label={t('overview:edit.remove', { widget: def.title() })} onClick={onRemove}>
             <X />
           </Button>
         </div>
@@ -109,7 +109,7 @@ function Catalog({ open, onOpenChange, placed, onAdd }: { open: boolean; onOpenC
                       <p className="text-xs text-muted-foreground">{def.description()}</p>
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-xs text-text-3">{def.sizes.map(sizeLabel).join(' · ')}</span>
-                        <Button variant="outline" size="sm" disabled={added} onClick={() => onAdd(def)}>
+                        <Button variant="outline" disabled={added} onClick={() => onAdd(def)}>
                           {added ? t('overview:catalog.added') : t('overview:catalog.add')}
                         </Button>
                       </div>

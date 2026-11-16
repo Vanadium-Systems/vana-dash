@@ -88,6 +88,7 @@ export function MonthView({ monthDate, occurrences, onDayClick, onEventClick, on
               ) : null}
               <div className="hidden space-y-1 sm:block">
                 {visible.map((occ) => (
+                  // native: event chip
                   <button
                     key={`${occ.eventId}-${occ.occurrenceStart}`}
                     type="button"
@@ -111,6 +112,7 @@ export function MonthView({ monthDate, occurrences, onDayClick, onEventClick, on
                   </button>
                 ))}
                 {dayEvents.length > MAX_VISIBLE_PER_DAY ? (
+                  // native: inline text link
                   <button
                     type="button"
                     className="block rounded px-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"

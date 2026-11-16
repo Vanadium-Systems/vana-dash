@@ -300,7 +300,7 @@ function PageRows({
         const isView = feature.key === page.viewFeature
         return (
           <tr key={feature.key} className="border-t">
-            <th scope="row" className={cn('sticky left-0 z-[1] bg-background py-1 pr-3 text-left text-sm font-normal sm:min-w-[11rem]', index === 0 && 'pt-2')}>
+            <th scope="row" className={cn('sticky left-0 z-[1] bg-background py-1 pr-3 text-left text-sm font-normal sm:min-w-44', index === 0 && 'pt-2')}>
               {isView ? <span>{page.label}</span> : <span className="pl-6 text-muted-foreground">{feature.label}</span>}
             </th>
             {roles.map((role) => {

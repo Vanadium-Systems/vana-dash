@@ -17,13 +17,13 @@ export function BrandMark({ className }: { className?: string }) {
         <path d={MARK_V} />
       </clipPath>
       <g clipPath={`url(#${clipId})`}>
-        <path d={MARK_V} className="fill-[#1B2129] dark:fill-[#C4CCD5]" />
+        <path d={MARK_V} className="fill-logo-fill" />
         <path
           d={MARK_LINES}
           fill="none"
           strokeWidth={14.3}
           strokeOpacity={0.92}
-          className="stroke-[#9AA6B3] dark:stroke-[#5C6875]"
+          className="stroke-logo-line"
         />
       </g>
     </svg>

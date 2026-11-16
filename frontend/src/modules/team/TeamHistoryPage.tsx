@@ -81,8 +81,8 @@ export function TeamHistoryPage() {
     return item.viaToken ? t('common:history.viaToken', { actor: name, token: item.viaToken.name }) : name
   }
   const activeFilters = [
-    actorId ? { key: 'actor', label: `Om: ${memberName(members.data?.find((m) => m.id === actorId) ?? { displayName: null, email: actorId })}` } : null,
-    entityType ? { key: 'entityType', label: `Obiect: ${ENTITY_LABEL[entityType] ?? entityType}` } : null,
+    actorId ? { key: 'actor', label: `${t('team:labels.person')}: ${memberName(members.data?.find((m) => m.id === actorId) ?? { displayName: null, email: actorId })}` } : null,
+    entityType ? { key: 'entityType', label: `${t('team:labels.object')}: ${ENTITY_LABEL[entityType] ?? entityType}` } : null,
   ].filter((f): f is { key: string; label: string } => f !== null)
 
   return (
@@ -170,7 +170,7 @@ export function TeamHistoryPage() {
                   <td className="whitespace-nowrap py-2 pr-3 text-muted-foreground" title={formatDateTime(item.createdAt)}>
                     {formatRelativeTime(item.createdAt)}
                   </td>
-                  <td className="max-w-[8rem] truncate py-2 pr-3 md:max-w-[14rem]" title={actorName(item)}>{actorName(item)}</td>
+                  <td className="max-w-32 truncate py-2 pr-3 md:max-w-56" title={actorName(item)}>{actorName(item)}</td>
                   <td className="py-2 pr-3">
                     {actionLabel(item.action)}
                     {/* The object column is hidden on a phone, so its name moves under the action. */}

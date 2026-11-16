@@ -150,6 +150,7 @@ function ActiveAlertsSection() {
   const selected = alerts.data.find((a) => a.id === selectedId) ?? (isDesktop ? (ordered[0] ?? null) : null)
 
   return (
+    // arbitrary: fixed-width side column, no token
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="min-w-0 space-y-6">
         {SEVERITY_GROUPS.map((severity) => {
@@ -182,7 +183,7 @@ function ActiveAlertsSection() {
                       <span className="block truncate text-sm">{alert.message}</span>
                       <span className="block truncate text-xs text-muted-foreground">{alert.ruleName}</span>
                     </button>
-                    <span className="hidden shrink-0 font-mono text-xs text-muted-foreground tnum sm:inline">{triggeredLabel(alert.triggeredAt)}</span>
+                    <span className="hidden shrink-0 text-xs text-muted-foreground tnum sm:inline">{triggeredLabel(alert.triggeredAt)}</span>
                     <div className="hidden shrink-0 lg:block [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
                       <AlertActions alert={alert} compact />
                     </div>

@@ -64,6 +64,7 @@ export function RefPicker({ open, onClose, onPick }: { open: boolean; onClose: (
                 <ul>
                   {group.items.map((item) => (
                     <li key={item.id}>
+                      {/* native: list row */}
                       <button
                         type="button"
                         className="flex w-full min-w-0 flex-col items-start rounded-md px-2 py-2 text-left hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"

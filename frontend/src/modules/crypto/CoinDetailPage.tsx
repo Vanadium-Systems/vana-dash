@@ -35,7 +35,7 @@ export interface CandlesResponse {
 function ChangePct({ value, label }: { value: number | null; label: string }) {
   if (value == null) return null
   return (
-    <span className={cn('tnum font-mono text-xs', value >= 0 ? 'text-success-text' : 'text-destructive-text')}>
+    <span className={cn('tnum text-xs', value >= 0 ? 'text-success-text' : 'text-destructive-text')}>
       {label} {value >= 0 ? '+' : ''}
       {value.toFixed(2)}%
     </span>
@@ -46,7 +46,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   return (
     <div className="rounded-md border p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="tnum mt-0.5 font-mono text-sm">{value}</p>
+      <p className="tnum mt-0.5 text-sm">{value}</p>
       {sub ? <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p> : null}
     </div>
   )
@@ -176,7 +176,7 @@ export function CoinDetailPage() {
             {coin.rank ? <Badge variant="secondary">#{coin.rank}</Badge> : null}
           </h1>
           <p className="flex items-baseline gap-3">
-            <span className="tnum font-mono text-lg">{formatUsd(coin.priceUsd)}</span>
+            <span className="tnum text-lg">{formatUsd(coin.priceUsd)}</span>
             <ChangePct value={coin.change24h} label="24h" />
             <ChangePct value={coin.change7d} label="7z" />
             <ChangePct value={coin.change30d} label="30z" />
@@ -188,7 +188,7 @@ export function CoinDetailPage() {
         <CardContent className="pt-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className={cn('tnum font-mono text-xs', rangeUp ? 'text-success-text' : 'text-destructive-text')}>
+              <span className={cn('tnum text-xs', rangeUp ? 'text-success-text' : 'text-destructive-text')}>
                 {first != null && last != null ? t('crypto:chart.changeInRange', { value: (((last - first) / first) * 100).toFixed(2) }) : '—'}
               </span>
               <div className="flex gap-1">

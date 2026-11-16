@@ -4,6 +4,7 @@ import { t } from '@/shared/lib/i18n'
 /** Round button centred over the thread's bottom edge, with the messages that came in meanwhile (#13). */
 export function JumpToBottom({ count, onClick }: { count: number; onClick: () => void }) {
   return (
+    // native: floating round button
     <button
       type="button"
       onClick={onClick}
@@ -12,7 +13,7 @@ export function JumpToBottom({ count, onClick }: { count: number; onClick: () =>
     >
       <ChevronDown className="h-5 w-5" aria-hidden="true" />
       {count > 0 ? (
-        <span className="absolute -top-1.5 -right-1 min-w-5 rounded-full bg-primary px-1 text-center text-[11px] font-medium leading-5 text-primary-foreground tnum">
+        <span className="absolute -top-1.5 -right-1 min-w-5 rounded-full bg-primary px-1 text-center text-xs font-medium leading-5 text-primary-foreground tnum">
           {count > 99 ? '99+' : count}
         </span>
       ) : null}

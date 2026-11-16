@@ -14,6 +14,7 @@ import { BlocklistCard, LabelsCard, RulesCard, SuppressionsCard } from './Organi
 import { SettingsGroup, SettingsSection, SignatureEditor } from './SettingsLayout'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 
 function SignatureLogoCard() {
   const queryClient = useQueryClient()
@@ -82,6 +83,7 @@ function SignatureLogoCard() {
           <Button type="button" variant="outline" disabled={uploadLogo.isPending} onClick={() => logoInputRef.current?.click()}>
             {uploadLogo.isPending ? t('common:states.loading') : t('email:settings.uploadLogo')}
           </Button>
+          {/* native: hidden file picker */}
           <input
             ref={logoInputRef}
             type="file"
@@ -144,7 +146,7 @@ function SpamCard() {
   return (
     <SettingsSection title={t('email:settings.spamTitle')} description={t('email:settings.spamHint')}>
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={form.autoSpamEnabled} onChange={(e) => setForm((f) => ({ ...f, autoSpamEnabled: e.target.checked }))} />
+        <Checkbox checked={form.autoSpamEnabled} onChange={(e) => setForm((f) => ({ ...f, autoSpamEnabled: e.target.checked }))} />
         {t('common:states.activeF')}
       </label>
       <div className="space-y-2">
@@ -237,7 +239,7 @@ function OutreachCapCard() {
           />
         </div>
         <label className="flex items-center gap-2 pb-2 text-sm">
-          <input type="checkbox" checked={weekdaysOnly} onChange={(e) => setWeekdaysOnly(e.target.checked)} />
+          <Checkbox checked={weekdaysOnly} onChange={(e) => setWeekdaysOnly(e.target.checked)} />
           {t('email:settings.weekdaysOnly')}
         </label>
       </div>
@@ -369,8 +371,7 @@ function ReadingCard() {
   return (
     <SettingsSection title={t('email:reading.title')}>
       <label className="flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
+        <Checkbox
           className="mt-1"
           checked={autoLoad}
           onChange={(e) => {

@@ -10,6 +10,7 @@ import type { AlertCondition, AlertRule, AlertRuleTestResult, AlertSeverity } fr
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
 
 
@@ -141,7 +142,7 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
             </div>
             <div className="flex items-end pb-1.5">
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" className="h-4 w-4 rounded border-input" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+                <Checkbox checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
                 {t('common:states.activeF')}
               </label>
             </div>

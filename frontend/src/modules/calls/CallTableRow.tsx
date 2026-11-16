@@ -39,7 +39,7 @@ export function CallTableRow({ call }: { call: CallRow }) {
           : t('calls:minutes', { count: Math.round(call.durationSeconds / 60) })}
       </TableCell>
       <TableCell priority="lg" className="text-right tabular-nums">{call.participantCount ?? '–'}</TableCell>
-      <TableCell priority="md" className="max-w-[12rem] truncate">
+      <TableCell priority="md" className="max-w-48 truncate">
         {call.prospect?.name ?? call.billingClient?.name ?? (call.bookingId ? t('calls:booking') : '–')}
       </TableCell>
       <TableCell priority="md">
