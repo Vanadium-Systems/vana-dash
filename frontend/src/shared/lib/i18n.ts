@@ -1,4 +1,3 @@
-import i18next from 'i18next'
 import type roResources from '@/locales/ro'
 import { isLocale, type Locale } from './locale'
 
@@ -31,6 +30,9 @@ const LOADERS: Record<Locale, () => Promise<{ default: Record<string, object> }>
 }
 
 let activeLocale: Locale = FALLBACK_LOCALE
+let activeResources: Record<string, Record<string, unknown>> = {}
+let pluralRules = new Intl.PluralRules(FALLBACK_LOCALE)
+let numberFormatter = new Intl.NumberFormat(FALLBACK_LOCALE)
 
 export function getLocale(): Locale {
   return activeLocale
@@ -43,24 +45,54 @@ export function localized(text: Localized): string {
   return text[activeLocale]
 }
 
+function lookupPath(root: Record<string, unknown> | undefined, path: string): unknown {
+  let cur: unknown = root
+  for (const part of path.split('.')) {
+    if (!cur || typeof cur !== 'object') return undefined
+    cur = (cur as Record<string, unknown>)[part]
+  }
+  return cur
+}
+
+function interpolate(template: string, params?: TParams): string {
+  if (!params) return template
+  return template.replace(/\{\{\s*([^,}]+?)(?:\s*,\s*([^}]+?))?\s*\}\}/g, (match, rawName: string, format?: string) => {
+    const val = params[rawName]
+    if (val === undefined || val === null) return match
+    if (format === 'number' && typeof val === 'number') {
+      return numberFormatter.format(val)
+    }
+    return String(val)
+  })
+}
+
 export function t(key: TKey, params?: TParams): string {
-  return (i18next.t as (key: string, options?: TParams) => string)(key, params)
+  const colonIdx = key.indexOf(':')
+  const ns = colonIdx === -1 ? 'common' : key.slice(0, colonIdx)
+  const path = colonIdx === -1 ? key : key.slice(colonIdx + 1)
+  const nsRoot = activeResources[ns]
+
+  let template: unknown
+  if (params && typeof params.count === 'number') {
+    const category = pluralRules.select(params.count)
+    template =
+      lookupPath(nsRoot, `${path}_${category}`) ??
+      lookupPath(nsRoot, `${path}_other`) ??
+      lookupPath(nsRoot, path)
+  } else {
+    template = lookupPath(nsRoot, path)
+  }
+
+  if (typeof template !== 'string') return key
+  return interpolate(template, params)
 }
 
 /** Synchronous init with resources already in hand. Used by `initI18n` and by the test setup. */
 export function initWithResources(locale: Locale, resources: Record<string, object>): void {
   activeLocale = locale
-  void i18next.init({
-    lng: locale,
-    fallbackLng: false,
-    resources: { [locale]: resources },
-    ns: Object.keys(resources),
-    defaultNS: 'common',
-    // React escapes what it renders.
-    interpolation: { escapeValue: false },
-    returnNull: false,
-    initAsync: false,
-  })
+  activeResources = resources as Record<string, Record<string, unknown>>
+  pluralRules = new Intl.PluralRules(locale)
+  numberFormatter = new Intl.NumberFormat(locale)
   if (typeof document !== 'undefined') document.documentElement.lang = locale
 }
 
