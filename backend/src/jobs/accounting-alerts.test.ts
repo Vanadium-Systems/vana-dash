@@ -329,18 +329,18 @@ describe('checkAccountingAlerts — declaration_no_receipt', () => {
     const threeDaysAgo = new Date(Date.now() - 3 * DAY_MS)
     await db.insert(declarationFilings).values([
       { code: 'D301', period: '2027-09', anafIndex: '1000000093', filedAt: threeDaysAgo },
-      { code: 'D390', period: '2027-10', anafIndex: '1000000104', filedAt: threeDaysAgo },
+      { code: 'D390', period: '2027-10', anafIndex: '1000000094', filedAt: threeDaysAgo },
     ])
     await checkAccountingAlerts()
     const open = async (index: string) =>
       (await alertsFor('accounting.declaration_no_receipt')).filter((r) => r.message.includes(index) && r.acknowledgedAt === null)
     expect(await open('1000000093')).toHaveLength(1)
-    expect(await open('1000000104')).toHaveLength(1)
+    expect(await open('1000000094')).toHaveLength(1)
 
     await saveFiling('D301', { month: '2027-09', anafIndex: '1000000093', receiptConfirmed: true })
-    await confirmFilingFromReceipt('D390', '2027-10', '1000000105', new Date())
+    await confirmFilingFromReceipt('D390', '2027-10', '1000000095', new Date())
 
     expect(await open('1000000093')).toHaveLength(0)
-    expect(await open('1000000104')).toHaveLength(0)
+    expect(await open('1000000094')).toHaveLength(0)
   })
 })
