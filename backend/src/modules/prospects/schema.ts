@@ -45,6 +45,16 @@ const financialFields = {
   inventory: z.number().nullable().optional(),
 }
 
+const researchFields = {
+  researchFines: z.enum(RESEARCH_FIELDS.researchFines).nullable().optional(),
+  researchNews: z.enum(RESEARCH_FIELDS.researchNews).nullable().optional(),
+  researchBadNews: z.enum(RESEARCH_FIELDS.researchBadNews).nullable().optional(),
+  researchGrowth: z.enum(RESEARCH_FIELDS.researchGrowth).nullable().optional(),
+  researchCompetitor: z.enum(RESEARCH_FIELDS.researchCompetitor).nullable().optional(),
+  researchCompetitorName: z.string().trim().max(200).nullable().optional(),
+  researchedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+}
+
 export const CreateProspectSchema = z.object({
   name: z.string().trim().min(1).max(255),
   cif: z.string().trim().min(1).max(20).optional(),
@@ -58,20 +68,19 @@ export const CreateProspectSchema = z.object({
   foundingYear: z.number().int().min(1900).max(2100).nullable().optional(),
   employeeCount: z.number().int().nonnegative().nullable().optional(),
   ...financialFields,
+  // Turnover of the year before `revenueYear`, for the growth signal.
+  revenuePrev: z.number().nullable().optional(),
+  revenueYear: z.number().int().min(1990).max(2100).nullable().optional(),
+  // Marks `contactName` as the person who decides.
+  contactIsDecisionMaker: z.boolean().optional(),
+  // null = nobody's (free, for whoever takes it); left out = the creator's. Giving it to someone
+  // else goes through the assign route, which checks `clienti.repartizare`.
+  assignedUserId: z.null().optional(),
+  ...researchFields,
   isActive: z.boolean().optional(),
   source: z.string().trim().max(255).optional(),
   platformId: z.string().uuid().optional(),
 })
-
-const researchFields = {
-  researchFines: z.enum(RESEARCH_FIELDS.researchFines).nullable().optional(),
-  researchNews: z.enum(RESEARCH_FIELDS.researchNews).nullable().optional(),
-  researchBadNews: z.enum(RESEARCH_FIELDS.researchBadNews).nullable().optional(),
-  researchGrowth: z.enum(RESEARCH_FIELDS.researchGrowth).nullable().optional(),
-  researchCompetitor: z.enum(RESEARCH_FIELDS.researchCompetitor).nullable().optional(),
-  researchCompetitorName: z.string().trim().max(200).nullable().optional(),
-  researchedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-}
 
 export const UpdateProspectSchema = z.object({
   name: z.string().trim().min(1).max(255).optional(),

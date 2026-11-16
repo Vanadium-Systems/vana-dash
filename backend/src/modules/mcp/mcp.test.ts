@@ -10,7 +10,7 @@ vi.mock('../../shared/lib/email.js', () => ({ sendEmail: vi.fn(async () => {}) }
 
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
-import { apiTokens, auditLog, prospects, roles, users } from '../../shared/db/schema/index.js'
+import { apiTokens, auditLog, prospectPeople, prospects, roles, users } from '../../shared/db/schema/index.js'
 
 const app = await buildServer()
 await app.ready()
@@ -52,7 +52,8 @@ const viewToken = await mint('mcp-view', ['clienti.view'])
 const writeToken = await mint('mcp-write', ['clienti.view', 'clienti.prospectare'])
 
 afterAll(async () => {
-  const created = await db.select({ id: prospects.id }).from(prospects).where(eq(prospects.name, `Acme MCP ${stamp}`))
+  const names = [`Acme MCP ${stamp}`, `Acme MCP research ${stamp}`, `Acme MCP bad ${stamp}`, `Acme MCP free ${stamp}`]
+  const created = await db.select({ id: prospects.id }).from(prospects).where(inArray(prospects.name, names))
   const prospectIds = created.map((row) => row.id)
   const tokenIds = (await db.select({ id: apiTokens.id }).from(apiTokens).where(inArray(apiTokens.userId, userIds))).map((row) => row.id)
   if (prospectIds.length) await db.delete(auditLog).where(inArray(auditLog.entityId, prospectIds))
@@ -131,6 +132,47 @@ describe('mcp endpoint', () => {
     const [row] = await db.select().from(auditLog).where(eq(auditLog.entityId, created.id))
     expect(row!.action).toBe('prospect.creat')
     expect(row!.apiTokenId).not.toBeNull()
+  })
+
+  it('add_prospect takes the research answers and update_prospect changes them later', async () => {
+    const body = {
+      name: `Acme MCP research ${stamp}`,
+      revenue: 2_000_000,
+      revenuePrev: 1_500_000,
+      revenueYear: 2025,
+      contactName: 'Ion Popescu',
+      contactIsDecisionMaker: true,
+      researchFines: 'no',
+      researchNews: 'sometimes',
+      researchGrowth: 'yes',
+      researchedAt: '2026-11-16',
+    }
+    const created = await rpc('tools/call', { name: 'add_prospect', arguments: { body } }, withToken(writeToken))
+    expect(created.json().result.isError).toBeFalsy()
+    const { id } = JSON.parse(created.json().result.content[0].text) as { id: string }
+
+    const updated = await rpc('tools/call', { name: 'update_prospect', arguments: { id, body: { researchFines: 'yes', researchCompetitor: 'yes', researchCompetitorName: 'Acme Waste' } } }, withToken(writeToken))
+    expect(updated.json().result.isError).toBeFalsy()
+
+    const [row] = await db.select().from(prospects).where(eq(prospects.id, id))
+    expect(row).toMatchObject({ revenuePrev: '1500000.00', revenueYear: 2025, researchFines: 'yes', researchNews: 'sometimes', researchGrowth: 'yes', researchCompetitor: 'yes', researchCompetitorName: 'Acme Waste', researchedAt: '2026-11-16' })
+    const [person] = await db.select().from(prospectPeople).where(eq(prospectPeople.prospectId, id))
+    expect(person!.isDecisionMaker).toBe(true)
+  })
+
+  it('add_prospect with assignedUserId null leaves the prospect free for the team', async () => {
+    const created = await rpc('tools/call', { name: 'add_prospect', arguments: { body: { name: `Acme MCP free ${stamp}`, assignedUserId: null } } }, withToken(writeToken))
+    expect(created.json().result.isError).toBeFalsy()
+    const { id } = JSON.parse(created.json().result.content[0].text) as { id: string }
+    const [row] = await db.select().from(prospects).where(eq(prospects.id, id))
+    expect(row).toMatchObject({ assignedUserId: null, claimedAt: null })
+  })
+
+  it('update_prospect refuses an answer outside the list', async () => {
+    const created = await rpc('tools/call', { name: 'add_prospect', arguments: { body: { name: `Acme MCP bad ${stamp}` } } }, withToken(writeToken))
+    const { id } = JSON.parse(created.json().result.content[0].text) as { id: string }
+    const res = await rpc('tools/call', { name: 'update_prospect', arguments: { id, body: { researchFines: 'maybe' } } }, withToken(writeToken))
+    expect(res.json().result.isError).toBe(true)
   })
 
   it('add_prospect called on a view-only token fails and creates nothing', async () => {

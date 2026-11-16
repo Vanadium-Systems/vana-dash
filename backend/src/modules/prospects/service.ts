@@ -695,18 +695,30 @@ export async function createProspect(me: Me, input: CreateInput) {
         cash: numericOrUndefined(input.cash),
         receivables: numericOrUndefined(input.receivables),
         inventory: numericOrUndefined(input.inventory),
+        revenuePrev: numericOrUndefined(input.revenuePrev),
+        revenueYear: input.revenueYear,
+        researchFines: input.researchFines,
+        researchNews: input.researchNews,
+        researchBadNews: input.researchBadNews,
+        researchGrowth: input.researchGrowth,
+        researchCompetitor: input.researchCompetitor,
+        researchCompetitorName: input.researchCompetitorName,
+        researchedAt: input.researchedAt,
         isActive: input.isActive,
         source: input.source,
         platformId: input.platformId,
-        assignedUserId: me.id,
-        claimedAt: new Date(),
+        assignedUserId: input.assignedUserId === null ? null : me.id,
+        claimedAt: input.assignedUserId === null ? null : new Date(),
         lastActivityAt: new Date(),
       })
       .returning()
     if (!created) throw new Error('prospect insert returned nothing')
     let personId: string | null = null
     if (input.contactName?.trim()) {
-      const [person] = await tx.insert(prospectPeople).values({ prospectId: created.id, name: input.contactName.trim() }).returning()
+      const [person] = await tx
+        .insert(prospectPeople)
+        .values({ prospectId: created.id, name: input.contactName.trim(), isDecisionMaker: input.contactIsDecisionMaker ?? false })
+        .returning()
       personId = person?.id ?? null
     }
     const points = [

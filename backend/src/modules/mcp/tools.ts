@@ -52,6 +52,14 @@ export const TOOLS: ToolDef[] = [
     input: z.object({ body: freeBody }),
   },
   {
+    name: 'update_prospect',
+    description: 'Change fields of a prospect (research answers, financials, status...). Body as accepted by PATCH /api/prospects/:id (see api_routes).',
+    method: 'PATCH',
+    route: '/api/prospects/:id',
+    pathParams: ['id'],
+    input: z.object({ id: id('Prospect'), body: freeBody }),
+  },
+  {
     name: 'add_prospect_note',
     description: 'Add a note on a prospect.',
     method: 'POST',
