@@ -25,7 +25,7 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
-    publishedAt: '2026-11-16T22:15:00Z',
+    publishedAt: '2026-11-16T22:01:00Z',
     title: {
       ro: 'Palete de culori în Profilul meu',
       en: 'Colour palettes in My profile',
