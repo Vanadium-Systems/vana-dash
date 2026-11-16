@@ -1,13 +1,11 @@
 /**
- * Port 1:1 dintr-un script Python intern de scoring (v2, cold outreach).
- * Funcții pure, fără dependență DB — testabile izolat (test de paritate în scoring.test.ts).
- *
- * Două adaptări față de Python, impuse de schema `prospects` aprobată (PLAN.md):
- * - Python calculează equity ca `capital / (active imobilizate + active circulante)`; schema nu
- *   colectează activele — folosim `equity / revenue` ca proxy de scară (același tanh scale 0.35).
- * - Python alege "recency" din care an de bilanț a găsit date (4 trepte); schema nu ține anul
- *   exact al bilanțului — colapsat la un boolean `hasRecentFinancials` (are/nu are date
- *   financiare deloc), calculat de caller.
+ * Prospect scoring (v3). Started as a port of an internal Python script; v3 changes the rules
+ * on missing data:
+ * - an unknown value is left out of its weighted mean (`null`), never read as zero;
+ * - missing financials or a negative equity no longer zero or halve the score: they set a
+ *   ceiling (`ScoreCeiling`) that keeps the company out of the top labels until the data is
+ *   there, applied after the criteria so points cannot lift it past.
+ * `equity / revenue` stands in for equity / total assets, which the schema does not collect.
  */
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -37,7 +35,8 @@ function wmean(items: Array<[number | null, number]>): number | null {
  * ~23% mai mare decât cele respinse. Bands identice cu Python.
  */
 export function ageScore(foundingYear: number | null | undefined): number | null {
-  if (foundingYear === null || foundingYear === undefined) return null
+  // 0, 1800 or a future year is an import error, not a company age.
+  if (foundingYear === null || foundingYear === undefined || foundingYear < 1900 || foundingYear > CURRENT_YEAR) return null
   const age = CURRENT_YEAR - foundingYear
   if (age <= 4) return 1.0
   if (age <= 8) return 0.85
@@ -65,7 +64,8 @@ export function scoreBudget(input: BudgetInput): number | null {
   let cashRatio: number | null = null
   if (debt !== null && debt > 0 && cash !== null) {
     cashRatio = norm01(tanh(cash / debt, 0.5))
-  } else if (debt === 0) {
+  } else if (debt === 0 && cash !== null) {
+    // A balance sheet with cash and no debt; debt 0 alone is also what an empty row looks like.
     cashRatio = 1.0
   }
 
@@ -87,8 +87,15 @@ export function scoreBudget(input: BudgetInput): number | null {
 export interface NeedInput {
   employeeCount: number | null
   revenue: number | null
+  revenuePrev?: number | null
   inventory: number | null
   receivables: number | null
+}
+
+/** Turnover growth year on year: +20% → 0.76, flat → 0.5, -20% → 0.24. */
+export function growthScore(revenue: number | null, revenuePrev: number | null | undefined): number | null {
+  if (revenue === null || revenuePrev === null || revenuePrev === undefined || revenuePrev <= 0 || revenue < 0) return null
+  return norm01(tanh(revenue / revenuePrev - 1, 0.2))
 }
 
 /**
@@ -97,82 +104,121 @@ export interface NeedInput {
  * person who decides.
  */
 export function scoreNeed(input: NeedInput): number | null {
-  const ang = input.employeeCount ?? 0
-  const venit = input.revenue && input.revenue > 0 ? input.revenue : 0
-
-  let sizeScore: number
-  if (ang <= 0) sizeScore = 0.05
-  else if (ang <= 3) sizeScore = 0.2
-  else if (ang <= 7) sizeScore = 0.8
-  else if (ang <= 20) sizeScore = 1.0
-  else if (ang <= 40) sizeScore = 0.75
-  else if (ang <= 60) sizeScore = 0.4
-  else if (ang <= 100) sizeScore = 0.15
-  else sizeScore = 0.05
-
-  let complexity: number | null = null
-  if (venit > 0) {
-    const stocRatio = (input.inventory ?? 0) / venit
-    const creanRatio = (input.receivables ?? 0) / venit
-    complexity = norm01(tanh(stocRatio + creanRatio, 0.3))
+  const ang = input.employeeCount
+  let sizeScore: number | null = null
+  if (ang !== null) {
+    if (ang <= 0) sizeScore = 0.05
+    else if (ang <= 3) sizeScore = 0.2
+    else if (ang <= 7) sizeScore = 0.8
+    else if (ang <= 20) sizeScore = 1.0
+    else if (ang <= 40) sizeScore = 0.75
+    else if (ang <= 60) sizeScore = 0.4
+    else if (ang <= 100) sizeScore = 0.15
+    else sizeScore = 0.05
   }
 
-  const cifraScore = venit > 0 ? norm01(tanh(venit / 1_500_000, 1.0)) : 0.0
+  const venit = input.revenue
+  let cifraScore: number | null = null
+  if (venit !== null) cifraScore = venit > 0 ? norm01(tanh(venit / 1_500_000, 1.0)) : 0.0
+
+  let complexity: number | null = null
+  if (venit !== null && venit > 0 && (input.inventory !== null || input.receivables !== null)) {
+    complexity = norm01(tanh(((input.inventory ?? 0) + (input.receivables ?? 0)) / venit, 0.3))
+  }
 
   return wmean([
-    [sizeScore, 0.5],
-    [cifraScore, 0.25],
-    [complexity, 0.25],
+    [sizeScore, 0.45],
+    [cifraScore, 0.2],
+    [complexity, 0.2],
+    [growthScore(venit, input.revenuePrev), 0.15],
   ])
 }
 
 export interface TechInput {
   foundingYear: number | null
   hasWebsite: boolean
-  hasRecentFinancials: boolean
+  revenueYear?: number | null
+}
+
+/** A balance sheet for year Y is filed in Y+1, so one year behind is as fresh as it gets. */
+export function recencyScore(revenueYear: number | null | undefined): number | null {
+  if (revenueYear === null || revenueYear === undefined) return null
+  const age = CURRENT_YEAR - revenueYear
+  if (age <= 1) return 1.0
+  if (age <= 2) return 0.7
+  if (age <= 3) return 0.4
+  return 0.2
 }
 
 export function scoreTechReceptivity(input: TechInput): number | null {
-  const newnessScore = ageScore(input.foundingYear)
-  const siteScore = input.hasWebsite ? 1.0 : 0.2
-  const recencyScore = input.hasRecentFinancials ? 1.0 : 0.4
-
   return wmean([
-    [newnessScore, 0.5],
-    [siteScore, 0.25],
-    [recencyScore, 0.25],
+    [ageScore(input.foundingYear), 0.4],
+    [input.hasWebsite ? 1.0 : 0.2, 0.35],
+    [recencyScore(input.revenueYear), 0.25],
   ])
 }
 
 export interface ContactInput {
   hasPhone: boolean
   hasEmail: boolean
-  hasWebsite: boolean
   hasContactName: boolean
 }
 
+// The website counts once, in tech receptivity: a site is not a channel you can call or write to.
 export function scoreContact(input: ContactInput): number {
   let s = 0
-  if (input.hasPhone) s += 0.4
-  if (input.hasEmail) s += 0.25
-  if (input.hasWebsite) s += 0.2
-  if (input.hasContactName) s += 0.15
+  if (input.hasPhone) s += 0.5
+  if (input.hasEmail) s += 0.3
+  if (input.hasContactName) s += 0.2
   return s
 }
 
 export interface GateInput {
   isActive?: boolean
   equity: number | null
-  hasAnyFinancialData: boolean
+  revenue: number | null
 }
 
-/** 0 = SKIP forțat, 0.5 = capital negativ (viabil dar șubred), 1 = OK. */
-export function viabilityGate(input: GateInput): 0 | 0.5 | 1 {
-  if (input.isActive === false) return 0
-  if (input.equity !== null && input.equity < -500_000) return 0
-  if (!input.hasAnyFinancialData) return 0
-  if (input.equity !== null && input.equity < 0) return 0.5
-  return 1
+/**
+ * The only hard exclusions: struck off, or equity so negative it outweighs a year of turnover
+ * (and at least 500,000). Everything else lowers the score or caps it, it does not zero it.
+ */
+export function isExcluded(input: GateInput): boolean {
+  if (input.isActive === false) return true
+  const { equity, revenue } = input
+  return equity !== null && equity < -Math.max(500_000, revenue ?? 0)
+}
+
+/**
+ * The highest label a company can reach on what we know. `nurture`: no financial data at all,
+ * so it needs research before anyone calls it a target. `warm`: negative equity, or too little
+ * known about it (under half of the key fields).
+ */
+export type ScoreCeiling = 'warm' | 'nurture' | null
+
+export interface CeilingInput {
+  hasAnyFinancialData: boolean
+  equity: number | null
+  coverage: number
+}
+
+export function scoreCeiling(input: CeilingInput): ScoreCeiling {
+  if (!input.hasAnyFinancialData) return 'nurture'
+  if ((input.equity !== null && input.equity < 0) || input.coverage < 0.5) return 'warm'
+  return null
+}
+
+/** Share of the key fields that are known, 0..1. Contact flags are always known, so they are not counted. */
+export function dataCoverage(input: Pick<ScoringInput, 'revenue' | 'profit' | 'debt' | 'equity' | 'cash' | 'employeeCount' | 'foundingYear'>): number {
+  const fields = [input.revenue, input.profit, input.debt, input.equity, input.cash, input.employeeCount, input.foundingYear]
+  return fields.filter((v) => v !== null && v !== undefined).length / fields.length
+}
+
+/** The score with its ceiling applied: one point below the label it may not reach. */
+export function capScore(score: number, ceiling: ScoreCeiling, thresholds: ScoringThresholds): number {
+  if (ceiling === 'nurture') return Math.min(score, thresholds.warmThreshold - 0.1)
+  if (ceiling === 'warm') return Math.min(score, thresholds.hotThreshold - 0.1)
+  return score
 }
 
 export interface ScoringWeights {
@@ -194,30 +240,34 @@ export interface ScoringInput extends BudgetInput, NeedInput {
   hasPhone: boolean
   hasEmail: boolean
   hasContactName: boolean
-  hasRecentFinancials: boolean
+  revenueYear?: number | null
   hasAnyFinancialData: boolean
   isActive?: boolean
 }
 
-/** Combină cele 4 sub-scoruri cu ponderile din config, înmulțește cu gate, clamp [0,100]. */
-export function computeScore(input: ScoringInput, weights: ScoringWeights): number {
-  const gate = viabilityGate({ isActive: input.isActive, equity: input.equity, hasAnyFinancialData: input.hasAnyFinancialData })
-  if (gate === 0) return 0
+export interface ScoreResult {
+  /** 0..100, before criteria and before the ceiling. */
+  score: number
+  ceiling: ScoreCeiling
+}
 
-  const budgetS = scoreBudget(input)
-  const needS = scoreNeed(input)
-  const techS = scoreTechReceptivity(input)
-  const contactS = scoreContact(input)
+/** Weighted mean of the four sub-scores with the configured weights, 0..100. */
+export function computeScore(input: ScoringInput, weights: ScoringWeights): ScoreResult {
+  if (isExcluded({ isActive: input.isActive, equity: input.equity, revenue: input.revenue })) return { score: 0, ceiling: null }
 
   const composite = wmean([
-    [budgetS, weights.budgetWeight],
-    [needS, weights.needWeight],
-    [techS, weights.techWeight],
-    [contactS, weights.contactWeight],
+    [scoreBudget(input), weights.budgetWeight],
+    [scoreNeed(input), weights.needWeight],
+    [scoreTechReceptivity(input), weights.techWeight],
+    [scoreContact(input), weights.contactWeight],
   ])
-  if (composite === null) return 0
+  // All four weights at 0 (the config refuses it, older rows may not).
+  if (composite === null) return { score: 0, ceiling: null }
 
-  return Math.round(clamp(composite * gate * 100, 0, 100) * 10) / 10
+  return {
+    score: Math.round(clamp(composite * 100, 0, 100) * 10) / 10,
+    ceiling: scoreCeiling({ hasAnyFinancialData: input.hasAnyFinancialData, equity: input.equity, coverage: dataCoverage(input) }),
+  }
 }
 
 export type Priority = 'HOT' | 'WARM' | 'NURTURE' | 'SKIP'
@@ -250,7 +300,8 @@ export function maxCriteriaPoints(criteria: ScoreCriterion[]): number {
  * Without criteria it is the base score as is (also when B = 0, which would divide by zero).
  */
 export function computeFinalScore(base: number, matched: string[], config: FinalScoreConfig): number {
-  // A struck-off company (base 0 from the viability gate) does not become a target through criteria.
+  // An excluded company (base 0: struck off) does not become a target through criteria. The
+  // ceiling is applied after this, by `capScore`, so criteria cannot lift past it either.
   if (base === 0) return 0
   const maxPoints = maxCriteriaPoints(config.criteria)
   if (maxPoints === 0) return base

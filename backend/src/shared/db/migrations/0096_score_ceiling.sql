@@ -1,0 +1,1 @@
+ALTER TABLE "prospects" ADD COLUMN "score_ceiling" text;

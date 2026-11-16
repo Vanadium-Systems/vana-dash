@@ -79,13 +79,20 @@ const idList = (ids: string[]) =>
 
 // ── Final score ──────────────────────────────────────────────────────────────
 
-/** SQL twin of `computeFinalScore`: the matched criteria are evaluated by the filter compiler, per row. */
+/** SQL twin of `capScore(computeFinalScore(...))`: the matched criteria are evaluated by the filter compiler, per row. */
 function finalScoreSql(baseWeight: number, criteria: Criterion[], ctx: FilterContext): SQL {
   const maxPoints = maxCriteriaPoints(criteria)
-  if (maxPoints === 0) return sql`${prospects.scoreBase}`
   const matched = criteria.map((c) => sql`(CASE WHEN ${compileProspectFilters(c.filters, ctx)} THEN ${c.points}::numeric ELSE 0 END)`)
-  // Base 0 is the viability gate (a struck-off company): criteria do not lift it.
-  return sql`(CASE WHEN ${prospects.scoreBase} = 0 THEN 0 ELSE round(100 * (${prospects.scoreBase} * ${baseWeight}::numeric + ${sql.join(matched, sql` + `)}) / (100 * ${baseWeight}::numeric + ${maxPoints}::numeric), 1) END)`
+  // Base 0 is an excluded company (struck off): criteria do not lift it.
+  const withCriteria =
+    maxPoints === 0
+      ? sql`${prospects.scoreBase}`
+      : sql`(CASE WHEN ${prospects.scoreBase} = 0 THEN 0 ELSE round(100 * (${prospects.scoreBase} * ${baseWeight}::numeric + ${sql.join(matched, sql` + `)}) / (100 * ${baseWeight}::numeric + ${maxPoints}::numeric), 1) END)`
+  // The ceiling goes on last, so criteria points cannot carry a company without data into HOT.
+  return sql`(CASE ${prospects.scoreCeiling}
+    WHEN 'nurture' THEN LEAST(${withCriteria}, ${ctx.thresholds.warm}::numeric - 0.1)
+    WHEN 'warm' THEN LEAST(${withCriteria}, ${ctx.thresholds.hot}::numeric - 0.1)
+    ELSE ${withCriteria} END)`
 }
 
 /** Writes the final score (base + criteria) for the given prospects, or for all of them. */

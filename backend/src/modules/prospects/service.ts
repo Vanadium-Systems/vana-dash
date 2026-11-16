@@ -593,7 +593,19 @@ async function contactFlags(prospectId: string) {
 
 type FinancialRow = Pick<
   typeof prospects.$inferSelect,
-  'revenue' | 'profit' | 'debt' | 'equity' | 'cash' | 'receivables' | 'inventory' | 'employeeCount' | 'foundingYear' | 'website' | 'isActive'
+  | 'revenue'
+  | 'revenuePrev'
+  | 'revenueYear'
+  | 'profit'
+  | 'debt'
+  | 'equity'
+  | 'cash'
+  | 'receivables'
+  | 'inventory'
+  | 'employeeCount'
+  | 'foundingYear'
+  | 'website'
+  | 'isActive'
 >
 
 export function baseScore(p: FinancialRow, flags: { hasPhone: boolean; hasEmail: boolean; hasContactName: boolean }, weights: ScoringWeights) {
@@ -603,6 +615,8 @@ export function baseScore(p: FinancialRow, flags: { hasPhone: boolean; hasEmail:
   return computeScore(
     {
       revenue,
+      revenuePrev: num(p.revenuePrev),
+      revenueYear: p.revenueYear,
       profit: num(p.profit),
       debt: num(p.debt),
       equity: num(p.equity),
@@ -613,7 +627,6 @@ export function baseScore(p: FinancialRow, flags: { hasPhone: boolean; hasEmail:
       foundingYear: p.foundingYear,
       hasWebsite: Boolean(p.website),
       ...flags,
-      hasRecentFinancials: hasAnyFinancialData,
       hasAnyFinancialData,
       isActive: p.isActive ?? undefined,
     },
@@ -627,7 +640,10 @@ export async function refreshScore(prospectId: string) {
   if (!p) return
   const weights = toScoringWeights(await getScoringConfig())
   const base = baseScore(p, await contactFlags(prospectId), weights)
-  await db.update(prospects).set({ scoreBase: String(base), score: String(base) }).where(eq(prospects.id, prospectId))
+  await db
+    .update(prospects)
+    .set({ scoreBase: String(base.score), score: String(base.score), scoreCeiling: base.ceiling })
+    .where(eq(prospects.id, prospectId))
   await scoreHooks.afterBase(prospectId)
 }
 
@@ -972,10 +988,13 @@ function scoringRows(where: SQL) {
 }
 
 async function writeBaseScores(batch: Awaited<ReturnType<typeof scoringRows>>, weights: ScoringWeights) {
-  const values = batch.map((p) => sql`(${p.id}::uuid, ${String(baseScore(p, p, weights))}::numeric)`)
+  const values = batch.map((p) => {
+    const base = baseScore(p, p, weights)
+    return sql`(${p.id}::uuid, ${String(base.score)}::numeric, ${base.ceiling}::text)`
+  })
   await db.execute(sql`
-    UPDATE ${prospects} SET "score_base" = v.score, "score" = v.score
-      FROM (VALUES ${sql.join(values, sql`, `)}) AS v(id, score)
+    UPDATE ${prospects} SET "score_base" = v.score, "score" = v.score, "score_ceiling" = v.ceiling
+      FROM (VALUES ${sql.join(values, sql`, `)}) AS v(id, score, ceiling)
      WHERE ${PROSPECT_ID} = v.id`)
 }
 

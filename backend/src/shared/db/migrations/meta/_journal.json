@@ -673,6 +673,13 @@
       "when": 1794778520310,
       "tag": "0095_home_layout",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1794829138873,
+      "tag": "0096_score_ceiling",
+      "breakpoints": true
     }
   ]
 }

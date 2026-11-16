@@ -57,8 +57,10 @@ export const prospects = pgTable(
     // Previous year's revenue and the year of `revenue`, for the growth signal.
     revenuePrev: numeric('revenue_prev', { precision: 14, scale: 2 }),
     revenueYear: smallint('revenue_year'),
-    // Financial score before criteria; `score` is the final, normalized one.
+    // Base score (budget, need, tech, contact) before criteria; `score` is the final, normalized one.
     scoreBase: numeric('score_base', { precision: 5, scale: 1 }),
+    // The highest label the final score may reach: 'warm' | 'nurture' | null (see scoring.ts).
+    scoreCeiling: text('score_ceiling'),
     // Set when merged into another prospect; old links follow it.
     mergedIntoId: uuid('merged_into_id').references((): AnyPgColumn => prospects.id),
   },

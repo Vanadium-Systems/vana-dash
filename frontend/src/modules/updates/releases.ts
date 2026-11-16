@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T12:00:00Z',
+    title: {
+      ro: 'Prospecți: scorul nu mai pedepsește datele lipsă',
+      en: 'Prospects: the score no longer punishes missing data',
+    },
+    body: {
+      ro: 'Un câmp necunoscut nu mai trage scorul în jos ca și cum ar fi zero, iar firmele fără bilanț nu mai ajung automat la SKIP: rămân cel mult NURTURE, până le completezi datele. O firmă cu capital propriu negativ sau cu prea puține date nu mai poate fi HOT, nici cu criterii. Scorul ține cont acum și de creșterea cifrei de afaceri și de cât de recent e bilanțul.',
+      en: 'An unknown field no longer drags the score down as if it were zero, and companies without a balance sheet no longer drop to SKIP: they stay NURTURE at most until you fill in their data. A company with negative equity or too little data can no longer be HOT, not even through criteria. The score now also weighs turnover growth and how recent the balance sheet is.',
+    },
+    features: ['clienti.prospectare'],
+  },
+  {
     publishedAt: '2026-11-16T10:00:00Z',
     title: {
       ro: 'Mesaje și Arhivă: două reparații mici',
