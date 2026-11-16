@@ -1,6 +1,42 @@
-import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps, cn } from '@/shared/lib/utils'
 import * as React from 'react'
+
+function mergeRefs<T>(...refs: Array<React.Ref<T> | undefined>): React.RefCallback<T> {
+  return (node) => {
+    for (const ref of refs) {
+      if (typeof ref === 'function') ref(node)
+      else if (ref && typeof ref === 'object') (ref as React.MutableRefObject<T | null>).current = node
+    }
+  }
+}
+
+const Slot = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }>(
+  ({ children, ...slotProps }, ref) => {
+    if (!React.isValidElement(children)) return null
+    const childProps = children.props as Record<string, unknown>
+    const merged: Record<string, unknown> = { ...slotProps, ...childProps }
+
+    for (const key of Object.keys(slotProps)) {
+      const slotVal = (slotProps as Record<string, unknown>)[key]
+      const childVal = childProps[key]
+      if (key === 'className') {
+        merged.className = cn(slotVal as string, childVal as string)
+      } else if (key === 'style' && slotVal && childVal) {
+        merged.style = { ...(slotVal as React.CSSProperties), ...(childVal as React.CSSProperties) }
+      } else if (/^on[A-Z]/.test(key) && typeof slotVal === 'function' && typeof childVal === 'function') {
+        merged[key] = (...args: unknown[]) => {
+          ;(childVal as (...a: unknown[]) => void)(...args)
+          ;(slotVal as (...a: unknown[]) => void)(...args)
+        }
+      }
+    }
+
+    const childRef = (children as unknown as { ref?: React.Ref<HTMLElement> }).ref
+    merged.ref = mergeRefs(ref, childRef)
+    return React.cloneElement(children, merged)
+  },
+)
+Slot.displayName = 'Slot'
 
 const buttonVariants = cva(
   'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[transform,background-color] duration-150 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&_svg]:size-4 [&_svg]:shrink-0 disabled:pointer-events-none disabled:opacity-50',
@@ -35,7 +71,7 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button'
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref as React.Ref<never>} {...props} />
   },
 )
 Button.displayName = 'Button'
