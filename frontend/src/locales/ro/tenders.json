@@ -1,4 +1,9 @@
 {
+  "archive": {
+    "afterDays": "Arhivează achizițiile directe fără termen după (zile)",
+    "saved": "Salvat",
+    "hint": "Licitațiile închise, cele cu termenul trecut și achizițiile directe mai vechi de atâtea zile trec în „Arată arhivate”. Nu se șterge nimic."
+  },
   "rules": {
     "deleted": "Regulă ștearsă",
     "active": "activă",

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { CreateWatchRuleSchema, ListTendersQuerySchema, UpdateTenderSchema, UpdateWatchRuleSchema } from './schema.js'
+import { CreateWatchRuleSchema, ListTendersQuerySchema, TenderSettingsSchema, UpdateTenderSchema, UpdateWatchRuleSchema } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -10,6 +10,14 @@ export async function tendersRoutes(app: FastifyInstance) {
   server.get('/api/tenders', { preHandler: [app.authenticate], schema: { querystring: ListTendersQuerySchema } }, async (req) => {
     const rows = await service.listTenderOpportunities(req.query)
     return { success: true, data: rows }
+  })
+
+  server.get('/api/tenders/settings', { preHandler: [app.authenticate] }, async () => {
+    return { success: true, data: await service.getTenderSettings() }
+  })
+
+  server.put('/api/tenders/settings', { preHandler: [app.authenticate], schema: { body: TenderSettingsSchema } }, async (req) => {
+    return { success: true, data: await service.setTenderSettings(req.body) }
   })
 
   server.patch(

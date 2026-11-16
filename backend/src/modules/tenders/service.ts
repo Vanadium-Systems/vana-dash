@@ -1,8 +1,8 @@
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
-import { tenderOpportunities, tenderWatchRules } from '../../shared/db/schema/index.js'
-import type { CreateWatchRuleSchema, ListTendersQuerySchema, UpdateWatchRuleSchema } from './schema.js'
+import { dashboardConfig, tenderOpportunities, tenderWatchRules } from '../../shared/db/schema/index.js'
+import type { CreateWatchRuleSchema, ListTendersQuerySchema, TenderSettingsSchema, UpdateWatchRuleSchema } from './schema.js'
 import type { NormalizedTenderRow } from './types.js'
 
 type ListQuery = z.infer<typeof ListTendersQuerySchema>
@@ -11,16 +11,50 @@ type UpdateWatchRuleInput = z.infer<typeof UpdateWatchRuleSchema>
 
 // ── Oportunități ──────────────────────────────────────────────────────────
 
+const SETTINGS_KEY = 'tenders.settings'
+type TenderSettings = z.infer<typeof TenderSettingsSchema>
+// A direct acquisition carries no deadline in the SICAP listing, so "still open" never ends on its
+// own. Offers on one are usually due within days; a month covers the slow ones.
+const DEFAULT_SETTINGS: TenderSettings = { archiveAfterDays: 30 }
+
+export async function getTenderSettings(): Promise<TenderSettings> {
+  const [row] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, SETTINGS_KEY))
+  return { ...DEFAULT_SETTINGS, ...(row?.value as Partial<TenderSettings> | undefined) }
+}
+
+export async function setTenderSettings(input: TenderSettings): Promise<TenderSettings> {
+  await db
+    .insert(dashboardConfig)
+    .values({ key: SETTINGS_KEY, value: input })
+    .onConflictDoUpdate({ target: [dashboardConfig.tenantId, dashboardConfig.key], set: { value: sql`excluded.value`, updatedAt: new Date() } })
+  return input
+}
+
+/** Still worth an offer: open, before its deadline, or (with no deadline) published recently. */
+function stillOpen(archiveAfterDays: number) {
+  return and(
+    eq(tenderOpportunities.isOpen, true),
+    or(
+      gte(tenderOpportunities.deadlineAt, sql`now()`),
+      and(
+        isNull(tenderOpportunities.deadlineAt),
+        sql`coalesce(${tenderOpportunities.publicationDate}, ${tenderOpportunities.createdAt}) >= now() - make_interval(days => ${archiveAfterDays})`,
+      ),
+    ),
+  )!
+}
+
 export async function listTenderOpportunities(query: ListQuery) {
-  const conditions = [query.dismissed === 'only' ? isNotNull(tenderOpportunities.dismissedAt) : isNull(tenderOpportunities.dismissedAt)]
-  // Lista principală arată doar ce se mai poate depune. is_open singur nu ajunge: un anunț
-  // care iese din rezultatele SICAP nu mai e actualizat și rămâne „deschis" după termen.
-  if (query.dismissed !== 'only') {
-    conditions.push(
-      eq(tenderOpportunities.isOpen, true),
-      or(isNull(tenderOpportunities.deadlineAt), gte(tenderOpportunities.deadlineAt, sql`now()`))!,
-    )
-  }
+  // Archived = not interested, or no longer open. Nothing is deleted: the archive stays searchable.
+  // An `is_open` flag alone is not enough: a notice that drops out of the SICAP results is no
+  // longer updated and would stay "open" past its deadline.
+  const open = stillOpen((await getTenderSettings()).archiveAfterDays)
+  const conditions = [
+    query.dismissed === 'only'
+      ? // coalesce: with no deadline the comparison is NULL, and NOT NULL would hide the row from both lists.
+        or(isNotNull(tenderOpportunities.dismissedAt), sql`NOT coalesce(${open}, false)`)!
+      : and(isNull(tenderOpportunities.dismissedAt), open)!,
+  ]
   if (query.source) conditions.push(eq(tenderOpportunities.source, query.source))
   if (query.isPriority !== undefined) conditions.push(eq(tenderOpportunities.isPriority, query.isPriority))
   if (query.search) {

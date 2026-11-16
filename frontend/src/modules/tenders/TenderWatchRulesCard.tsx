@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, Plus, Star, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { TenderWatchRule } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
@@ -167,6 +168,51 @@ function NewRuleForm() {
   )
 }
 
+interface TenderSettings {
+  archiveAfterDays: number
+}
+
+// A direct acquisition has no deadline in SICAP: after this many days it moves to the archive.
+function ArchiveAfterField() {
+  const queryClient = useQueryClient()
+  const settings = useQuery({ queryKey: ['tenders', 'settings'], queryFn: () => api.get<TenderSettings>('/api/tenders/settings') })
+  const [days, setDays] = useState('')
+  useEffect(() => {
+    if (settings.data) setDays(String(settings.data.archiveAfterDays))
+  }, [settings.data])
+
+  const save = useMutation({
+    mutationFn: () => api.put<TenderSettings>('/api/tenders/settings', { archiveAfterDays: Number(days) }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['tenders', 'settings'], data)
+      void queryClient.invalidateQueries({ queryKey: ['tenders'], exact: false })
+      toast.success(t('tenders:archive.saved'))
+    },
+    onError: (err) => toast.error(err.message),
+  })
+  const value = Number(days)
+  const valid = Number.isInteger(value) && value >= 1 && value <= 365
+
+  return (
+    <form
+      className="flex flex-wrap items-center gap-2 border-t pt-3"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (valid) save.mutate()
+      }}
+    >
+      <Label htmlFor="tenders-archive-after" className="text-sm">
+        {t('tenders:archive.afterDays')}
+      </Label>
+      <Input id="tenders-archive-after" type="number" inputMode="numeric" min={1} max={365} className="w-20" value={days} onChange={(e) => setDays(e.target.value)} />
+      <Button type="submit" variant="outline" disabled={!valid || save.isPending || value === settings.data?.archiveAfterDays}>
+        {t('common:actions.save')}
+      </Button>
+      <p className="w-full text-xs text-muted-foreground">{t('tenders:archive.hint')}</p>
+    </form>
+  )
+}
+
 export function TenderWatchRulesCard() {
   const [open, setOpen] = useState(false)
 
@@ -196,6 +242,7 @@ export function TenderWatchRulesCard() {
             </div>
           )}
           <NewRuleForm />
+          <ArchiveAfterField />
         </CardContent>
       )}
     </Card>
