@@ -2,6 +2,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { formatMoney, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { LINE_CURSOR } from '@/shared/components/charts/chart-cursor'
 
 export interface BnrRatePoint {
   date: string
@@ -73,7 +74,7 @@ export function BnrRateChart({ data, decimals = 4, height = 220 }: BnrRateChartP
           width={70}
           tickFormatter={(value: number) => value.toFixed(decimals)}
         />
-        <Tooltip content={<ChartTooltip decimals={decimals} />} />
+        <Tooltip cursor={LINE_CURSOR} content={<ChartTooltip decimals={decimals} />} />
         <Area
           type="monotone"
           dataKey="value"

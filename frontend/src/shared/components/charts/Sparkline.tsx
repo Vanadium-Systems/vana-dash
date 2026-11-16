@@ -2,6 +2,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 import { chartColor } from '@/shared/lib/chart-colors'
 import type { HealthHistoryPoint } from '@/shared/lib/types'
 import { intlTag } from '@/shared/lib/format'
+import { LINE_CURSOR } from '@/shared/components/charts/chart-cursor'
 
 interface SparklineProps {
   data: HealthHistoryPoint[]
@@ -18,6 +19,7 @@ export function Sparkline({ data, height = 220 }: SparklineProps) {
         <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={40} />
         <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={35} />
         <Tooltip
+          cursor={LINE_CURSOR}
           formatter={(value: number, name: string) => [`${value.toFixed(1)}%`, name]}
           contentStyle={{
             background: 'hsl(var(--card))',

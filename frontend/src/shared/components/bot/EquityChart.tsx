@@ -7,6 +7,7 @@ import { cn } from '@/shared/lib/utils'
 import { formatPct, REFERENCE_KEY, strategyColor, type BotStrategy, type EquityPoint, type Market } from './types'
 import { t } from '@/shared/lib/i18n'
 import { intlTag } from '@/shared/lib/format'
+import { LINE_CURSOR } from '@/shared/components/charts/chart-cursor'
 
 const RANGES = [
   { key: '7', label: '7z' },
@@ -116,6 +117,7 @@ export function EquityChart({ strategies, market }: { strategies: BotStrategy[];
               />
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.5} />
               <Tooltip
+                cursor={LINE_CURSOR}
                 labelFormatter={(ts: string) =>
                   new Date(ts).toLocaleString(intlTag(), {
                     dateStyle: 'medium',

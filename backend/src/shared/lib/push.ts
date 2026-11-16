@@ -122,6 +122,7 @@ async function notifyWebPush(eventType: PushEventType, payload: PushContent, use
     const subs = await db
       .select({
         id: pushSubscriptions.id,
+        ownerUserId: pushSubscriptions.ownerUserId,
         endpoint: pushSubscriptions.endpoint,
         p256dhKey: pushSubscriptions.p256dhKey,
         authKey: pushSubscriptions.authKey,
@@ -146,6 +147,8 @@ async function notifyWebPush(eventType: PushEventType, payload: PushContent, use
             },
             JSON.stringify(payloadFor(payload, sub.locale)),
           )
+          const tag = payloadFor(payload, sub.locale).tag
+          if (tag && sub.ownerUserId) shownTags.set(shownKey(sub.ownerUserId, tag), Date.now())
         } catch (err) {
           const statusCode = (err as { statusCode?: number }).statusCode
           if (statusCode === 404 || statusCode === 410) {
@@ -163,6 +166,41 @@ async function notifyWebPush(eventType: PushEventType, payload: PushContent, use
   } catch (err) {
     // Failure izolat — notifyPush nu blochează niciodată fluxul principal care-l apelează.
     console.error(`[push] notifyPush('${eventType}') eșuat: ${String(err)}`)
+  }
+}
+
+// The tags a person has been shown on the web and not yet read, so a "close" push goes out only
+// when there is something to close. Chrome asks every push to show a notification
+// (userVisibleOnly); a push that closes nothing spends its small allowance of silent pushes and,
+// once that is gone, Chrome shows a generic notification of its own. In memory: after a restart
+// a notification shown before it simply stays until clicked, as it did before.
+const SHOWN_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const shownTags = new Map<string, number>()
+const shownKey = (userId: string, tag: string) => `${userId}\u0000${tag}`
+
+/**
+ * The person has read what a notification was about (a conversation, an email thread) on some
+ * device: close it on their other browsers. Never throws.
+ */
+export async function closePushNotification(userId: string, tag: string): Promise<void> {
+  const key = shownKey(userId, tag)
+  const shownAt = shownTags.get(key)
+  if (shownAt === undefined) return
+  shownTags.delete(key)
+  if (Date.now() - shownAt > SHOWN_TTL_MS) return
+  try {
+    if (!ensureVapid()) return
+    const subs = await db
+      .select({ id: pushSubscriptions.id, endpoint: pushSubscriptions.endpoint, p256dhKey: pushSubscriptions.p256dhKey, authKey: pushSubscriptions.authKey })
+      .from(pushSubscriptions)
+      .where(and(eq(pushSubscriptions.ownerUserId, userId), isNull(pushSubscriptions.deletedAt)))
+    for (const sub of subs) {
+      await webpush
+        .sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dhKey, auth: sub.authKey } }, JSON.stringify({ type: 'close', tag }))
+        .catch((err: unknown) => console.error(`[push] close for subscription ${sub.id} failed: ${String(err)}`))
+    }
+  } catch (err) {
+    console.error(`[push] close '${tag}' failed: ${String(err)}`)
   }
 }
 

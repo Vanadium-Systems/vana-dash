@@ -5,13 +5,14 @@
  */
 import { randomUUID } from 'node:crypto'
 import argon2 from 'argon2'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
-import { emailLabels, emailRules, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
+import { emailLabels, emailMessages, emailRules, emailThreads, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
 import { soleMailboxHolder } from './mailboxes.js'
-import { createLabel, createRule, evaluateRulesForMessage } from './organize-service.js'
+import { createLabel, createRule, evaluateRulesForMessage, isLabelUsableBy } from './organize-service.js'
+import type { SessionUser } from '../../shared/lib/session.js'
 
 const app = await buildServer()
 await app.ready()
@@ -159,14 +160,64 @@ describe('rules', () => {
 })
 
 describe('soleMailboxHolder', () => {
-  it('names the person when exactly one holds the mailbox, null when shared or held by nobody', async () => {
+  it('names the person when exactly one holds the mailbox, null when shared', async () => {
     const key = `solo-${RUN}`
-    expect(await soleMailboxHolder(key)).toBeNull()
+    // Held by nobody: the admin reads it alone, so it is the admin's when there is exactly one.
+    const admins = await db
+      .select({ id: users.id })
+      .from(users)
+      .innerJoin(roles, eq(roles.id, users.roleId))
+      .where(and(eq(roles.kind, 'admin'), isNull(users.deletedAt)))
+      .limit(2)
+    expect(await soleMailboxHolder(key)).toBe(admins.length === 1 ? admins[0]!.id : null)
 
     await db.insert(userMailboxes).values({ userId: anna.id, identityKey: key })
     expect(await soleMailboxHolder(key)).toBe(anna.id)
 
     await db.insert(userMailboxes).values({ userId: bogdan.id, identityKey: key })
     expect(await soleMailboxHolder(key)).toBeNull()
+  })
+})
+
+describe('isLabelUsableBy', () => {
+  it("lets a person put the company's labels and their own on a message, never a colleague's", async () => {
+    const companyLabel = await createLabel({ name: `Company usable ${RUN}`, notificationsEnabled: true })
+    labelIds.push(companyLabel!.id)
+    const annasLabel = await ownLabel(anna, 'usable')
+    const asAnna = { id: anna.id } as SessionUser
+    const asBogdan = { id: bogdan.id } as SessionUser
+
+    expect(await isLabelUsableBy(asAnna, companyLabel!.id)).toBe(true)
+    expect(await isLabelUsableBy(asAnna, annasLabel)).toBe(true)
+    expect(await isLabelUsableBy(asBogdan, companyLabel!.id)).toBe(true)
+    expect(await isLabelUsableBy(asBogdan, annasLabel)).toBe(false)
+    expect(await isLabelUsableBy(asAnna, randomUUID())).toBe(false)
+  })
+
+  it("answers 404 when a colleague's label is put on a message, even for an admin", async () => {
+    const annasLabel = await ownLabel(anna, 'patch')
+    const [adminRole] = await db.insert(roles).values({ name: `Test organize admin ${RUN}`, kind: 'admin', features: [] }).returning()
+    roleIds.push(adminRole!.id)
+    const [adminRow] = await db
+      .insert(users)
+      .values({ email: `admin-${RUN}@example.com`, passwordHash: await argon2.hash('acme-test-password'), displayName: 'admin', roleId: adminRole!.id })
+      .returning()
+    userIds.push(adminRow!.id)
+    const admin = { token: await app.jwt.sign({ sub: adminRow!.id, sv: 1 }) }
+
+    const [thread] = await db.insert(emailThreads).values({ subject: `Label ${RUN}`, participants: ['a@example.com'], lastMessageAt: new Date() }).returning()
+    const [message] = await db
+      .insert(emailMessages)
+      .values({ threadId: thread!.id, direction: 'in', fromAddress: 'a@example.com', toAddress: `box-${RUN}@example.com`, subject: `Label ${RUN}`, receivedAt: new Date() })
+      .returning()
+    try {
+      const refused = await call(admin, 'PATCH', `/api/email/messages/${message!.id}`, { labelId: annasLabel })
+      expect(refused.statusCode).toBe(404)
+      const cleared = await call(admin, 'PATCH', `/api/email/messages/${message!.id}`, { labelId: null })
+      expect(cleared.statusCode, cleared.body).toBe(200)
+    } finally {
+      await db.delete(emailMessages).where(eq(emailMessages.id, message!.id))
+      await db.delete(emailThreads).where(eq(emailThreads.id, thread!.id))
+    }
   })
 })

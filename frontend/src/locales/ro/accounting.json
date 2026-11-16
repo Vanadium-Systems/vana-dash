@@ -242,7 +242,9 @@
       "saved": "Indexul a fost salvat",
       "notFiled": "Nedepusă încă. Pune indexul primit în SPV după upload.",
       "confirmedOn": "Recipisă primită pe {{date}}",
-      "awaitingReceipt": "Încărcată pe {{date}}, fără recipisă încă"
+      "awaitingReceipt": "Încărcată pe {{date}}, fără recipisă încă",
+      "confirmReceipt": "Am recipisa",
+      "receiptSaved": "Recipisa a fost confirmată"
     }
   },
   "labels": {

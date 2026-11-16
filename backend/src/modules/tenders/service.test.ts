@@ -170,14 +170,33 @@ describe('listTenderOpportunities — doar ce se mai poate depune', () => {
       makeRow({ externalId: 'QA-LIVE', deadlineAt: daysFromNow(3) }),
       makeRow({ externalId: 'QA-STALE-OPEN', deadlineAt: daysFromNow(-2), isOpen: true }),
       makeRow({ externalId: 'QA-CLOSED', deadlineAt: daysFromNow(3), isOpen: false }),
-      makeRow({ externalId: 'QA-NO-DEADLINE', deadlineAt: null }),
+      makeRow({ externalId: 'QA-NO-DEADLINE', deadlineAt: null, publicationDate: daysFromNow(-3) }),
+      makeRow({ externalId: 'QA-NO-DEADLINE-OLD', deadlineAt: null, publicationDate: daysFromNow(-45) }),
     ])
     opportunityIds.push(...rows.map((r) => r.id))
 
-    const listed = new Set((await service.listTenderOpportunities({})).map((r) => r.externalId))
-    expect(listed.has('QA-LIVE')).toBe(true)
-    expect(listed.has('QA-NO-DEADLINE')).toBe(true)
-    expect(listed.has('QA-STALE-OPEN')).toBe(false)
-    expect(listed.has('QA-CLOSED')).toBe(false)
+    const before = await service.getTenderSettings()
+    try {
+      await service.setTenderSettings({ archiveAfterDays: 30 })
+      const listed = new Set((await service.listTenderOpportunities({})).map((r) => r.externalId))
+      expect(listed.has('QA-LIVE')).toBe(true)
+      expect(listed.has('QA-NO-DEADLINE')).toBe(true)
+      expect(listed.has('QA-NO-DEADLINE-OLD')).toBe(false)
+      expect(listed.has('QA-STALE-OPEN')).toBe(false)
+      expect(listed.has('QA-CLOSED')).toBe(false)
+
+      // Nothing is deleted: everything that left the list is in the archive, and searchable there.
+      const archived = new Set((await service.listTenderOpportunities({ dismissed: 'only' })).map((r) => r.externalId))
+      expect(archived.has('QA-NO-DEADLINE-OLD')).toBe(true)
+      expect(archived.has('QA-STALE-OPEN')).toBe(true)
+      expect(archived.has('QA-CLOSED')).toBe(true)
+      expect(archived.has('QA-LIVE')).toBe(false)
+
+      await service.setTenderSettings({ archiveAfterDays: 60 })
+      const longer = new Set((await service.listTenderOpportunities({})).map((r) => r.externalId))
+      expect(longer.has('QA-NO-DEADLINE-OLD')).toBe(true)
+    } finally {
+      await service.setTenderSettings(before)
+    }
   })
 })

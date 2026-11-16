@@ -12,10 +12,10 @@ import {
 } from '../../shared/db/schema/index.js'
 import { computeSpamScore } from '../../shared/lib/email-spam-heuristic.js'
 import { fetchReceivedEmail } from '../../shared/lib/email.js'
-import { notifyPush } from '../../shared/lib/push.js'
+import { closePushNotification, notifyPush } from '../../shared/lib/push.js'
 import { saveDocument } from '../../shared/lib/storage.js'
 import { htmlToPlainText } from './html-to-text.js'
-import { evaluateRulesForMessage, isAddressBlocked, labelAllowsNotifications } from './organize-service.js'
+import { evaluateRulesForMessage, isAddressBlocked, isLabelUsableBy, labelAllowsNotifications } from './organize-service.js'
 import type { BulkUpdateSchema, MessagePatchSchema, ThreadsQuerySchema } from './inbound-schema.js'
 import type { PreparedSend } from './scheduled-send.js'
 import { stopSequencesForReplyFrom } from './sequences-service.js'
@@ -760,6 +760,7 @@ export async function getThreadWithMessages(
 
   // Deschiderea firului marchează citit pentru omul ăsta și numai pentru el.
   await markThreadRead(me, id)
+  void closePushNotification(me.id, `thread-${id}`)
 
   const attachments = messages.length
     ? await db
@@ -806,12 +807,16 @@ export async function patchMessage(
         message.threadId,
         patch.isRead ? (message.receivedAt ?? new Date()) : new Date(Date.now() - 1),
       )
+      if (patch.isRead) void closePushNotification(me.id, `thread-${message.threadId}`)
     }
   }
   if (patch.isStarred !== undefined) changes.isStarred = patch.isStarred
   if (patch.folder !== undefined) changes.folder = patch.folder
   if (patch.snoozedUntil !== undefined) changes.snoozedUntil = patch.snoozedUntil ? new Date(patch.snoozedUntil) : null
-  if (patch.labelId !== undefined) changes.labelId = patch.labelId
+  if (patch.labelId !== undefined) {
+    if (patch.labelId && !(await isLabelUsableBy(me, patch.labelId))) return null
+    changes.labelId = patch.labelId
+  }
 
   const [row] = await db
     .update(emailMessages)
@@ -852,7 +857,10 @@ export async function bulkUpdateMessages(
   if (patch.isRead !== undefined) changes.isRead = patch.isRead
   if (patch.folder !== undefined) changes.folder = patch.folder
   if (patch.snoozedUntil !== undefined) changes.snoozedUntil = patch.snoozedUntil ? new Date(patch.snoozedUntil) : null
-  if (patch.labelId !== undefined) changes.labelId = patch.labelId
+  if (patch.labelId !== undefined) {
+    if (patch.labelId && !(await isLabelUsableBy(me, patch.labelId))) return 0
+    changes.labelId = patch.labelId
+  }
 
   const rows = await db
     .update(emailMessages)
@@ -863,6 +871,7 @@ export async function bulkUpdateMessages(
   if (patch.isRead !== undefined) {
     for (const threadId of new Set(rows.map((r) => r.threadId))) {
       await markThreadRead(me, threadId, patch.isRead ? new Date() : new Date(Date.now() - 1))
+      if (patch.isRead) void closePushNotification(me.id, `thread-${threadId}`)
     }
   }
   return rows.length

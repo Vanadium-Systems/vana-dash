@@ -33,6 +33,21 @@ export async function listLabels(me: SessionUser) {
     .orderBy(emailLabels.name)
 }
 
+/** A message may carry only a label the person sees: the company's or their own. */
+export async function isLabelUsableBy(me: SessionUser, labelId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: emailLabels.id })
+    .from(emailLabels)
+    .where(
+      and(
+        eq(emailLabels.id, labelId),
+        isNull(emailLabels.deletedAt),
+        or(isNull(emailLabels.ownerUserId), eq(emailLabels.ownerUserId, me.id)),
+      ),
+    )
+  return Boolean(row)
+}
+
 export async function listOwnLabels(owner: string) {
   return db
     .select()

@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gt, gte, inArray, isNull, like, lt, ne, notLike, or, sql } from 'drizzle-orm'
+import { closePushNotification } from '../../shared/lib/push.js'
 import { db } from '../../shared/db/client.js'
 import {
   conversationMembers,
@@ -786,6 +787,8 @@ export async function sendMessage(
     .update(conversationMembers)
     .set({ lastReadMessageId: row!.id })
     .where(and(eq(conversationMembers.conversationId, conversationId), eq(conversationMembers.userId, me.id)))
+  // Replying means the conversation was read: its notification closes on the author's other devices.
+  void closePushNotification(me.id, `chat-${conversationId}`)
 
   return (await attachToMessages([row!], me))[0]!
 }
@@ -1074,6 +1077,7 @@ export async function markRead(me: SessionUser, conversationId: string, messageI
     .update(conversationMembers)
     .set({ lastReadMessageId: messageId })
     .where(and(eq(conversationMembers.conversationId, conversationId), eq(conversationMembers.userId, me.id)))
+  void closePushNotification(me.id, `chat-${conversationId}`)
 }
 
 /**

@@ -10,7 +10,8 @@ import type { DeclarationPreview } from '@/shared/lib/types'
 import { formatDate } from './badges'
 
 // The index ANAF shows after the upload to SPV. There is no API to read it back, so it is typed
-// in here; a month with an index counts as filed and its deadline alert stops.
+// in here; a month with an index counts as filed and its deadline alert stops. The receipt
+// comes from the SPV email or, when it is not sent there, is confirmed here by hand.
 export function DeclarationFilingRow({
   endpoint,
   month,
@@ -31,6 +32,16 @@ export function DeclarationFilingRow({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['accounting', endpoint, month] })
       toast.success(t('accounting:declarations.filing.saved'))
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  // The receipt of a declaration on a special VAT code never comes by email: it is read in SPV.
+  const confirmReceipt = useMutation({
+    mutationFn: () => api.put(`/api/accounting/${endpoint}/filing`, { month, anafIndex: filing!.anafIndex, receiptConfirmed: true }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['accounting', endpoint, month] })
+      toast.success(t('accounting:declarations.filing.receiptSaved'))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -57,6 +68,11 @@ export function DeclarationFilingRow({
             ? t('accounting:declarations.filing.confirmedOn', { date: formatDate(filing.confirmedAt) })
             : t('accounting:declarations.filing.awaitingReceipt', { date: formatDate(filing.filedAt) })}
       </span>
+      {filing && !filing.confirmedAt && (
+        <Button type="button" variant="outline" disabled={confirmReceipt.isPending} onClick={() => confirmReceipt.mutate()}>
+          {t('accounting:declarations.filing.confirmReceipt')}
+        </Button>
+      )}
     </form>
   )
 }

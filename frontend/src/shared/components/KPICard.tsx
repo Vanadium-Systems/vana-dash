@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { NumberRoll } from '@/shared/components/NumberRoll'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
@@ -53,6 +54,11 @@ function SparklinePath({ points }: { points: number[] }) {
   )
 }
 
+function figureChars(value: KPICardProps['value'], unit: KPICardProps['unit'], converted: KPICardProps['converted']): number {
+  if (value === null || value === undefined) return 1
+  return formatNumber(value, unit).length + (converted ? 2 : 0)
+}
+
 export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, deltaLabel, sparkline, converted }: KPICardProps) {
   const deltaRising = deltaPct != null && deltaPct >= 0
   // Săgeata e semantică pe direcția cifrei, nu pe semn: pentru o valoare "bună" creșterea e verde.
@@ -73,10 +79,14 @@ export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, d
       </CardHeader>
       <CardContent className="px-4 pb-4">
         <div className="flex min-w-0 items-start justify-between gap-2">
+          <div className="kpi-figure-box min-w-0 flex-1">
           {isPending ? (
             <Skeleton className="h-8 w-28" />
           ) : (
-            <div className={cn('tnum min-w-0 whitespace-nowrap text-2xl font-semibold', tone && TONE_CLASS[tone])}>
+            <div
+              className={cn('kpi-figure tnum min-w-0 whitespace-nowrap font-semibold', tone && TONE_CLASS[tone])}
+              style={{ '--figure-chars': figureChars(value, unit, converted) } as CSSProperties}
+            >
               {value === null || value === undefined ? (
                 '—'
               ) : (
@@ -91,6 +101,7 @@ export function KPICard({ label, value, unit, isPending, hint, tone, deltaPct, d
               )}
             </div>
           )}
+          </div>
           {sparkline ? <SparklinePath points={sparkline} /> : null}
         </div>
         {deltaPct != null && !isPending ? (

@@ -17,6 +17,7 @@ import { OrderDialog } from './OrderDialog'
 import { CATEGORY_LABEL, formatUsd, type AssetCategory, type AssetDetail, type ChartBar, type WatchEntry } from './types'
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { LINE_CURSOR } from '@/shared/components/charts/chart-cursor'
 
 // Pagina unui simbol (cerință Stefan: „cum e pe Crypto") — schelet identic CoinDetailPage:
 // grafic cu intervale + candele, statistici, favorite + ordin direct de aici. Graficul vine din
@@ -254,6 +255,7 @@ export function AssetDetailPage() {
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={48} />
                 <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={70} tickFormatter={(v: number) => formatUsd(v)} />
                 <Tooltip
+                  cursor={LINE_CURSOR}
                   formatter={(v) => [formatUsd(Number(v)), a.symbol]}
                   contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 6, color: 'hsl(var(--card-foreground))' }}
                 />

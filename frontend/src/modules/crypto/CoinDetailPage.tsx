@@ -16,6 +16,7 @@ import { OrderDialog } from './OrderDialog'
 import { formatUsd, type ChartPoint, type CoinDetails, type WatchEntry } from './types'
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { LINE_CURSOR } from '@/shared/components/charts/chart-cursor'
 
 // Pagina unei monede (cerință Stefan: „cum e pe Binance") — grafic cu intervale, statistici
 // complete din /coins/{id}, descriere, favorite + ordin direct de aici.
@@ -258,6 +259,7 @@ export function CoinDetailPage() {
                   tickFormatter={(v: number) => formatUsd(v)}
                 />
                 <Tooltip
+                  cursor={LINE_CURSOR}
                   formatter={(v) => [formatUsd(Number(v)), coin.symbol]}
                   contentStyle={{
                     background: 'hsl(var(--card))',

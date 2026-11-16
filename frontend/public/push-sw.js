@@ -11,6 +11,14 @@ self.addEventListener('push', (event) => {
     payload = { title: 'VanaDash', body: event.data ? event.data.text() : '' }
   }
 
+  // Read on another device: close what is still shown about it here.
+  if (payload.type === 'close') {
+    event.waitUntil(
+      self.registration.getNotifications({ tag: payload.tag }).then((shown) => shown.forEach((n) => n.close())),
+    )
+    return
+  }
+
   event.waitUntil(
     self.registration.showNotification(payload.title || 'VanaDash', {
       body: payload.body || '',

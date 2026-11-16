@@ -968,6 +968,10 @@ const SOURCES: GuideSource[] = [
         ro: 'Semnează cu certificatul calificat, salvează și încarcă PDF-ul în SPV, la Depunere declarații.',
         en: 'Sign with the qualified certificate, save and upload the PDF in SPV, under declaration filing.',
       },
+      {
+        ro: 'Treci în „Index SPV” indexul primit la încărcare. Recipisa se confirmă singură când vine emailul ANAF; dacă depui pe codul special de TVA, emailul nu vine, așa că apeși „Am recipisa” după ce o vezi în SPV. Alerta „fără recipisă” se închide atunci.',
+        en: 'Type the index SPV gave at upload under “SPV index”. The receipt confirms itself when the ANAF email arrives; filed on a special VAT code, that email never comes, so press “I have the receipt” once you see it in SPV. The “no receipt” alert closes then.',
+      },
     ],
   },
   {

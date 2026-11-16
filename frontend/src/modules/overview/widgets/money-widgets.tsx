@@ -91,8 +91,6 @@ export function RevenueWidget({ size, preview }: WidgetProps) {
   const average = workedDays > 0 ? actual.filter((b) => b.kind === 'past').reduce((sum, b) => sum + b.value, 0) / workedDays : 0
   const forecastTotal = bars.filter((b) => b.kind === 'forecast').reduce((sum, b) => sum + b.value, 0)
   const hidden = session?.hideAmounts
-  // A wide or band row is 11rem: header, figure and footer leave about 56px for the columns.
-  const height = size === 'l' ? 220 : 56
 
   return (
     <WidgetFrame
@@ -104,19 +102,22 @@ export function RevenueWidget({ size, preview }: WidgetProps) {
       onRetry={() => void series.refetch()}
       preview={preview}
     >
+      {/* The body has a fixed height (rows of 11rem): the chart takes what the figure leaves, so
+          its axis is never cut at the bottom whatever the size. */}
+      <div className="flex h-full min-h-0 flex-col">
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1">
         <span className="text-lg font-semibold tnum">
           <Money amount={data?.total ?? 0} currency={currency} />
         </span>
         {data?.delta && size !== 's' ? <Delta delta={data.delta} currency={currency} against={previousMonthName()} /> : null}
-        {forecastTotal > 0 && !hidden ? (
+        {forecastTotal > 0 && !hidden && size !== 'w' ? (
           <span className="text-xs text-muted-foreground">
             {t('overview:widgets.forecastToMonthEnd', { value: formatMoney((data?.total ?? 0) + forecastTotal, currency) })}
           </span>
         ) : null}
       </div>
       {hidden ? null : (
-        <div className="mt-2" style={{ height }} aria-hidden={preview || undefined}>
+        <div className="mt-2 min-h-0 flex-1" aria-hidden={preview || undefined}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={bars} margin={{ top: 4, right: 0, bottom: 0, left: 0 }} barCategoryGap={2}>
               <defs>
@@ -125,7 +126,7 @@ export function RevenueWidget({ size, preview }: WidgetProps) {
                   <line x1="0" y1="0" x2="0" y2="4" strokeWidth="1.5" style={{ stroke: 'var(--hatch)' }} />
                 </pattern>
               </defs>
-              <XAxis dataKey="label" tickLine={false} axisLine={false} interval={size === 'band' ? 1 : 4} tick={{ fontSize: 11, fill: 'hsl(var(--text-3))' }} />
+              <XAxis dataKey="label" height={16} tickLine={false} axisLine={false} interval={size === 'band' ? 1 : 4} tick={{ fontSize: 11, fill: 'hsl(var(--text-3))' }} />
               <YAxis hide domain={[0, 'auto']} />
               <Tooltip
                 cursor={{ fill: 'hsl(var(--accent))' }}
@@ -151,6 +152,7 @@ export function RevenueWidget({ size, preview }: WidgetProps) {
         </div>
       )}
       {average > 0 && size === 'l' ? <p className="mt-1 text-xs text-text-3">{t('overview:widgets.average', { value: formatMoney(average, currency) })}</p> : null}
+      </div>
     </WidgetFrame>
   )
 }

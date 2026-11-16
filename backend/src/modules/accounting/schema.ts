@@ -54,6 +54,8 @@ export const DeclarationExportQuerySchema = DeclarationMonthQuerySchema.extend({
 export const DeclarationFilingBodySchema = DeclarationMonthQuerySchema.extend({
   anafIndex: z.string().trim().min(1).max(30),
   filedAt: z.coerce.date().optional(),
+  /** true: the receipt is in hand (seen in SPV); false: drop a confirmation; absent: keep it. */
+  receiptConfirmed: z.boolean().optional(),
 })
 
 export const DeclarationLineParamsSchema = z.object({ id: z.string().uuid() })

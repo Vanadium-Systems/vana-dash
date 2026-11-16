@@ -4,9 +4,13 @@ import { lazyTr } from '../../shared/lib/i18n.js'
 export const ListTendersQuerySchema = z.object({
   source: z.enum(['direct_acquisition', 'contract_notice']).optional(),
   isPriority: z.coerce.boolean().optional(),
-  // implicit: doar active (nu arhivate/dismissed). 'only' — doar cele "nu mă interesează".
+  // Default: what can still get an offer. 'only': the archive (not interested, closed, expired).
   dismissed: z.enum(['only']).optional(),
   search: z.string().trim().optional(),
+})
+
+export const TenderSettingsSchema = z.object({
+  archiveAfterDays: z.number().int().min(1).max(365),
 })
 
 export const UpdateTenderSchema = z.object({

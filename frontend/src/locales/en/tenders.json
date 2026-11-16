@@ -1,4 +1,9 @@
 {
+  "archive": {
+    "afterDays": "Archive direct acquisitions with no deadline after (days)",
+    "saved": "Saved",
+    "hint": "Closed tenders, those past their deadline and direct acquisitions older than this move to “Show archived”. Nothing is deleted."
+  },
   "rules": {
     "deleted": "Rule deleted",
     "active": "active",

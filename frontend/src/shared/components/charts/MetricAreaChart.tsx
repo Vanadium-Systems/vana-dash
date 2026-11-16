@@ -1,6 +1,7 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { SeriesPoint } from '@/shared/lib/types'
 import { formatNumber, intlTag } from '@/shared/lib/format'
+import { LINE_CURSOR } from '@/shared/components/charts/chart-cursor'
 
 interface MetricAreaChartProps {
   data: SeriesPoint[]
@@ -37,6 +38,7 @@ export function MetricAreaChart({ data, unit, height = 300, decimals, yDomain = 
           tickFormatter={decimals === undefined ? undefined : (value: number) => value.toFixed(decimals)}
         />
         <Tooltip
+          cursor={LINE_CURSOR}
           formatter={(value: number) => [format(value), '']}
           contentStyle={{
             background: 'hsl(var(--card))',
