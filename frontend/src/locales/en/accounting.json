@@ -240,7 +240,9 @@
       "saved": "Index saved",
       "notFiled": "Not filed yet. Enter the index SPV gives you after the upload.",
       "confirmedOn": "Receipt received on {{date}}",
-      "awaitingReceipt": "Uploaded on {{date}}, no receipt yet"
+      "awaitingReceipt": "Uploaded on {{date}}, no receipt yet",
+      "confirmReceipt": "I have the receipt",
+      "receiptSaved": "Receipt confirmed"
     }
   },
   "labels": {

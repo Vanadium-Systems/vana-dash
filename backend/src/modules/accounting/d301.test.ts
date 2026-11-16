@@ -246,4 +246,16 @@ describe('saveFiling', () => {
     expect((await generateD301Preview(FILING_PERIOD)).filing?.anafIndex).toBe('1000000002')
     expect((await generateD390Preview(FILING_PERIOD)).filing).toBeNull()
   })
+
+  it('keeps the receipt when the same index is saved again, drops it for a new index', async () => {
+    await saveFiling('D301', { month: FILING_PERIOD, anafIndex: '1000000002', receiptConfirmed: true })
+    const confirmed = (await generateD301Preview(FILING_PERIOD)).filing?.confirmedAt
+    expect(confirmed).toBeInstanceOf(Date)
+
+    await saveFiling('D301', { month: FILING_PERIOD, anafIndex: '1000000002' })
+    expect((await generateD301Preview(FILING_PERIOD)).filing?.confirmedAt).toEqual(confirmed)
+
+    await saveFiling('D301', { month: FILING_PERIOD, anafIndex: '1000000003' })
+    expect((await generateD301Preview(FILING_PERIOD)).filing?.confirmedAt).toBeNull()
+  })
 })

@@ -122,14 +122,16 @@ async function raiseAlert(
   rules: Map<string, { id: string; severity: string; email: boolean; enabled: boolean }>,
   ruleKey: string,
   text: LocalizedText,
+  opts: { once?: boolean } = {},
 ): Promise<void> {
   const rule = rules.get(ruleKey)
   if (!rule || !rule.enabled) return
   const message = textFor(text, config.defaultLocale)
+  // `once`: an alert already seen is not raised again for the same thing.
   const [existing] = await db
     .select({ id: alerts.id })
     .from(alerts)
-    .where(and(eq(alerts.ruleId, rule.id), eq(alerts.message, message), isNull(alerts.acknowledgedAt)))
+    .where(and(eq(alerts.ruleId, rule.id), eq(alerts.message, message), opts.once ? undefined : isNull(alerts.acknowledgedAt)))
   if (existing) return
 
   await db.insert(alerts).values({
@@ -299,8 +301,8 @@ export async function checkAccountingAlerts(): Promise<void> {
     }
   }
 
-  // 7b. declaration_no_receipt: an index was entered, no SPV receipt confirmed it. The message
-  // has no day count, so the alert is raised once per filing, not every morning.
+  // 7b. declaration_no_receipt: an index was entered, no SPV receipt confirmed it. Raised once
+  // per filing and index: seeing the alert does not bring it back the next morning.
   const unconfirmed = await db
     .select({ code: declarationFilings.code, period: declarationFilings.period, anafIndex: declarationFilings.anafIndex })
     .from(declarationFilings)
@@ -312,7 +314,7 @@ export async function checkAccountingAlerts(): Promise<void> {
       ),
     )
   for (const filing of unconfirmed) {
-    await raiseAlert(rules, 'accounting.declaration_no_receipt', tl('alerts.accounting.declarationNoReceipt', filing))
+    await raiseAlert(rules, 'accounting.declaration_no_receipt', tl('alerts.accounting.declarationNoReceipt', filing), { once: true })
   }
 
   // 8. d301_deadline_approaching / d390_deadline_approaching — termen 25 luna curentă

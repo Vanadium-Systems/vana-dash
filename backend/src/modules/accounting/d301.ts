@@ -5,7 +5,9 @@ import { buildD390 } from '../../connectors/anaf/declarations/d390-builder.js'
 import { D301_TEMPLATE, D390_TEMPLATE, fillXfaDatasets } from '../../connectors/anaf/declarations/xfa-pdf.js'
 import type { DeclarationLine } from '../../connectors/anaf/declarations/types.js'
 import { db } from '../../shared/db/client.js'
-import { declarationFilings, financialRecords } from '../../shared/db/schema/index.js'
+import { alertRules, alerts, declarationFilings, financialRecords } from '../../shared/db/schema/index.js'
+import { config } from '../../shared/config.js'
+import { textFor, tl } from '../../shared/lib/i18n.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
 import { getCompany, requireSeller } from '../../shared/lib/company.js'
 import { CompanyProfileIncompleteError } from '../../countries/types.js'
@@ -142,20 +144,29 @@ async function getFiling(code: DeclarationCode, period: string): Promise<Declara
 }
 
 export async function saveFiling(code: DeclarationCode, input: z.infer<typeof DeclarationFilingBodySchema>): Promise<DeclarationFiling> {
+  const anafIndex = input.anafIndex.trim()
   const filedAt = input.filedAt ?? new Date()
+  const before = await getFiling(code, input.month)
+  // Typing the same index again keeps the receipt; a new index needs a new one. The receipt of a
+  // declaration filed on a special VAT code never reaches the company's SPV email, so it can
+  // also be confirmed by hand.
+  const keptConfirmation = before?.anafIndex === anafIndex ? before.confirmedAt : null
+  const confirmedAt = input.receiptConfirmed === true ? (keptConfirmation ?? new Date()) : input.receiptConfirmed === false ? null : keptConfirmation
   const [row] = await db
     .insert(declarationFilings)
-    .values({ code, period: input.month, anafIndex: input.anafIndex.trim(), filedAt })
+    .values({ code, period: input.month, anafIndex, filedAt, confirmedAt })
     .onConflictDoUpdate({
       target: [declarationFilings.tenantId, declarationFilings.code, declarationFilings.period],
-      set: { anafIndex: input.anafIndex.trim(), filedAt, confirmedAt: null, deletedAt: null, updatedAt: new Date() },
+      set: { anafIndex, filedAt, confirmedAt, deletedAt: null, updatedAt: new Date() },
     })
     .returning({ anafIndex: declarationFilings.anafIndex, filedAt: declarationFilings.filedAt, confirmedAt: declarationFilings.confirmedAt })
+  if (row!.confirmedAt && before) await closeNoReceiptAlert(code, input.month, before.anafIndex)
   return row!
 }
 
 /** The SPV receipt is the proof the declaration was registered; its index wins over a typed one. */
 export async function confirmFilingFromReceipt(code: DeclarationCode, period: string, anafIndex: string, receivedAt: Date): Promise<void> {
+  const before = await getFiling(code, period)
   await db
     .insert(declarationFilings)
     .values({ code, period, anafIndex, filedAt: receivedAt, confirmedAt: receivedAt })
@@ -163,6 +174,22 @@ export async function confirmFilingFromReceipt(code: DeclarationCode, period: st
       target: [declarationFilings.tenantId, declarationFilings.code, declarationFilings.period],
       set: { anafIndex, confirmedAt: receivedAt, deletedAt: null, updatedAt: new Date() },
     })
+  if (before) await closeNoReceiptAlert(code, period, before.anafIndex)
+}
+
+/** A confirmed filing no longer lacks a receipt: its open alert closes by itself. */
+async function closeNoReceiptAlert(code: DeclarationCode, period: string, anafIndex: string): Promise<void> {
+  const message = textFor(tl('alerts.accounting.declarationNoReceipt', { code, period, anafIndex }), config.defaultLocale)
+  await db
+    .update(alerts)
+    .set({ acknowledgedAt: new Date(), updatedAt: new Date() })
+    .where(
+      and(
+        isNull(alerts.acknowledgedAt),
+        eq(alerts.message, message),
+        sql`${alerts.ruleId} IN (SELECT ${alertRules.id} FROM ${alertRules} WHERE ${alertRules.metricKey} = 'accounting.declaration_no_receipt')`,
+      ),
+    )
 }
 
 export async function generateD301Preview(period: string): Promise<DeclarationPreview> {

@@ -23,6 +23,7 @@ import {
   financialRecords,
 } from '../shared/db/schema/index.js'
 import { checkAccountingAlerts } from './accounting-alerts.js'
+import { confirmFilingFromReceipt, saveFiling } from '../modules/accounting/d301.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const ANAF_LAST_REFRESHED = new Date(Date.now() - 340 * DAY_MS) // < 30d de la expirarea estimată (365d)
@@ -292,7 +293,7 @@ describe('checkAccountingAlerts — anaf_token_expiring', () => {
 
 describe('checkAccountingAlerts — declaration_no_receipt', () => {
   afterAll(async () => {
-    await db.delete(declarationFilings).where(inArray(declarationFilings.period, ['2027-07', '2027-08']))
+    await db.delete(declarationFilings).where(inArray(declarationFilings.period, ['2027-07', '2027-08', '2027-09', '2027-10']))
     await db.delete(alerts).where(like(alerts.message, '%10000000%'))
   })
 
@@ -309,5 +310,37 @@ describe('checkAccountingAlerts — declaration_no_receipt', () => {
     const raised = await alertsFor('accounting.declaration_no_receipt')
     expect(raised.filter((r) => r.message.includes('1000000071'))).toHaveLength(1)
     expect(raised.filter((r) => r.message.includes('1000000082'))).toHaveLength(0)
+  })
+
+  it('does not raise it again the morning after it was seen', async () => {
+    const rule = await ruleRow('accounting.declaration_no_receipt')
+    await db
+      .update(alerts)
+      .set({ acknowledgedAt: new Date() })
+      .where(and(eq(alerts.ruleId, rule!.id), like(alerts.message, '%1000000071%')))
+
+    await checkAccountingAlerts()
+
+    const raised = await alertsFor('accounting.declaration_no_receipt')
+    expect(raised.filter((r) => r.message.includes('1000000071'))).toHaveLength(1)
+  })
+
+  it('closes the open alert when the receipt is confirmed by hand or arrives by email', async () => {
+    const threeDaysAgo = new Date(Date.now() - 3 * DAY_MS)
+    await db.insert(declarationFilings).values([
+      { code: 'D301', period: '2027-09', anafIndex: '1000000093', filedAt: threeDaysAgo },
+      { code: 'D390', period: '2027-10', anafIndex: '1000000104', filedAt: threeDaysAgo },
+    ])
+    await checkAccountingAlerts()
+    const open = async (index: string) =>
+      (await alertsFor('accounting.declaration_no_receipt')).filter((r) => r.message.includes(index) && r.acknowledgedAt === null)
+    expect(await open('1000000093')).toHaveLength(1)
+    expect(await open('1000000104')).toHaveLength(1)
+
+    await saveFiling('D301', { month: '2027-09', anafIndex: '1000000093', receiptConfirmed: true })
+    await confirmFilingFromReceipt('D390', '2027-10', '1000000105', new Date())
+
+    expect(await open('1000000093')).toHaveLength(0)
+    expect(await open('1000000104')).toHaveLength(0)
   })
 })

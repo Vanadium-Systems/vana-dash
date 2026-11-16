@@ -34,6 +34,13 @@ describe('parseSpvDocumentsEmail', () => {
     })
   })
 
+  it('reads a D390 receipt the same way', () => {
+    const [receipt] = parseSpvDocumentsEmail(
+      '- CIF 90000014: recipisa pentru CIF 90000014, tip D390, numar_inregistrare INTERNT-1000000002-2026/02-11-2026, perioada raportare 10.2026',
+    )
+    expect(receipt).toMatchObject({ kind: 'receipt', declarationCode: 'D390', period: '2026-10', anafIndex: '1000000002' })
+  })
+
   it('treats anything it does not know as important', () => {
     const items = parseSpvDocumentsEmail(WITH_RECEIPT)
     expect(items.find((i) => i.text.startsWith('Notificare'))?.kind).toBe('important')
