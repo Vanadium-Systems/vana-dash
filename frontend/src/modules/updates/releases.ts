@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T14:00:00Z',
+    title: {
+      ro: 'Scorul prospecților: criteriile adaugă puncte',
+      en: 'Prospect score: criteria add points',
+    },
+    body: {
+      ro: 'Un criteriu din Setări adaugă acum punctele lui la scorul firmelor care îl bifează, iar celelalte rămân cum erau; înainte, un criteriu nou cobora scorul tuturor celor care nu-l bifau. Firmele cu bilanț depus, dar fără cifră de afaceri și fără angajați rămân SKIP, iar o firmă profitabilă cu capital propriu puțin negativ nu mai e oprită la WARM.',
+      en: 'A criterion in Settings now adds its points to the companies that match it and leaves the rest as they were; before, a new criterion lowered everyone who did not match it. Companies with a filed balance sheet but no turnover and no employees stay SKIP, and a profitable company with slightly negative equity is no longer held at WARM.',
+    },
+    features: ['clienti.prospectare'],
+  },
+  {
     publishedAt: '2026-11-16T12:00:00Z',
     title: {
       ro: 'Prospecți: scorul nu mai pedepsește datele lipsă',

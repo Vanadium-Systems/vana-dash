@@ -7,7 +7,6 @@ import { tr } from '../../shared/lib/i18n.js'
 import { canReassign, PROSPECT_ID } from '../../shared/lib/prospect-access.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { compileProspectFilters, ProspectFiltersSchema, type FilterContext } from './filters.js'
-import { maxCriteriaPoints } from './scoring.js'
 import { ScoreCriterionSchema } from './schema.js'
 import type { CreateSignalSchema, ScoringPreviewSchema, UpdateSignalSchema } from './score-signals-schema.js'
 import { getScoringConfig, scoreHooks } from './service.js'
@@ -80,16 +79,16 @@ const idList = (ids: string[]) =>
 // ── Final score ──────────────────────────────────────────────────────────────
 
 /** SQL twin of `capScore(computeFinalScore(...))`: the matched criteria are evaluated by the filter compiler, per row. */
-function finalScoreSql(baseWeight: number, criteria: Criterion[], ctx: FilterContext): SQL {
-  const maxPoints = maxCriteriaPoints(criteria)
+function finalScoreSql(criteria: Criterion[], ctx: FilterContext): SQL {
   const matched = criteria.map((c) => sql`(CASE WHEN ${compileProspectFilters(c.filters, ctx)} THEN ${c.points}::numeric ELSE 0 END)`)
   // Base 0 is an excluded company (struck off): criteria do not lift it.
   const withCriteria =
-    maxPoints === 0
+    matched.length === 0
       ? sql`${prospects.scoreBase}`
-      : sql`(CASE WHEN ${prospects.scoreBase} = 0 THEN 0 ELSE round(100 * (${prospects.scoreBase} * ${baseWeight}::numeric + ${sql.join(matched, sql` + `)}) / (100 * ${baseWeight}::numeric + ${maxPoints}::numeric), 1) END)`
+      : sql`(CASE WHEN ${prospects.scoreBase} = 0 THEN 0 ELSE LEAST(100, GREATEST(0, round(${prospects.scoreBase} + ${sql.join(matched, sql` + `)}, 1))) END)`
   // The ceiling goes on last, so criteria points cannot carry a company without data into HOT.
   return sql`(CASE ${prospects.scoreCeiling}
+    WHEN 'skip' THEN LEAST(${withCriteria}, ${ctx.thresholds.nurture}::numeric - 0.1)
     WHEN 'nurture' THEN LEAST(${withCriteria}, ${ctx.thresholds.warm}::numeric - 0.1)
     WHEN 'warm' THEN LEAST(${withCriteria}, ${ctx.thresholds.hot}::numeric - 0.1)
     ELSE ${withCriteria} END)`
@@ -98,7 +97,7 @@ function finalScoreSql(baseWeight: number, criteria: Criterion[], ctx: FilterCon
 /** Writes the final score (base + criteria) for the given prospects, or for all of them. */
 export async function applyCriteria(ids?: string[]) {
   const config = await getScoringConfig()
-  const final = finalScoreSql(Number(config.baseWeight), parseCriteria(config.criteria), await companyContext(config))
+  const final = finalScoreSql(parseCriteria(config.criteria), await companyContext(config))
   for await (const batch of idBatches(ids)) {
     await db.execute(sql`
       UPDATE ${prospects} SET "score" = ${final}
@@ -110,7 +109,7 @@ export async function applyCriteria(ids?: string[]) {
 export async function previewScoring(draft: z.infer<typeof ScoringPreviewSchema>) {
   const config = await getScoringConfig()
   const labels = draft.labels ?? effectiveLabels(config)
-  const final = finalScoreSql(draft.baseWeight ?? Number(config.baseWeight), draft.criteria ?? parseCriteria(config.criteria), await companyContext(config))
+  const final = finalScoreSql(draft.criteria ?? parseCriteria(config.criteria), await companyContext(config))
   const [row] = await db.transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL statement_timeout = '3s'`)
     return tx.execute<{ total: number; excellent: number; good: number; fit: number }>(sql`

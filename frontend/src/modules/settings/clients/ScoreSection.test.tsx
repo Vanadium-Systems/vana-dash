@@ -18,7 +18,6 @@ const CONFIG = {
   needWeight: '0.25',
   techWeight: '0.25',
   contactWeight: '0.25',
-  baseWeight: '0.5',
   hotThreshold: 80,
   warmThreshold: 60,
   nurtureThreshold: 40,
@@ -89,7 +88,7 @@ describe('ScoreSection distribution preview', () => {
     expect(previewCalls()).toHaveLength(0)
     await advance(500)
     expect(previewCalls()).toHaveLength(1)
-    expect(previewCalls()[0]![1]).toMatchObject({ labels: { excellent: 84, good: 60, fit: 40 }, baseWeight: 0.5 })
+    expect(previewCalls()[0]![1]).toMatchObject({ labels: { excellent: 84, good: 60, fit: 40 } })
   })
 
   it('the wait restarts on every edit', async () => {

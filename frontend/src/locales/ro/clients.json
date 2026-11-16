@@ -1048,10 +1048,9 @@
       "neverRun": "Nu a rulat încă."
     },
     "score": {
-      "base": "Baza financiară",
-      "baseHint": "Cât contează scorul calculat din datele firmei față de criteriile de mai jos.",
-      "criteria": "Criterii",
-      "noCriteria": "Niciun criteriu: scorul e doar baza financiară.",
+            "criteria": "Criterii",
+      "criteriaHint": "Fiecare criteriu bifat adaugă punctele lui la scorul calculat din datele firmei, până la 100. Criteriile nebifate nu scad nimic.",
+      "noCriteria": "Niciun criteriu: scorul e cel calculat din datele firmei.",
       "criterionName": "Nume",
       "addCriterion": "Adaugă criteriu",
       "removeCriterion": "Șterge criteriul",

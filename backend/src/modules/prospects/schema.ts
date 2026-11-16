@@ -150,7 +150,6 @@ export const UpdateScoringConfigSchema = z.object({
   hotThreshold: z.number().min(0).max(100),
   warmThreshold: z.number().min(0).max(100),
   nurtureThreshold: z.number().min(0).max(100),
-  baseWeight: z.number().min(0).max(1).optional(),
   criteria: z.array(ScoreCriterionSchema).max(30).optional(),
   labels: ScoreLabelsSchema.nullable().optional(),
 })

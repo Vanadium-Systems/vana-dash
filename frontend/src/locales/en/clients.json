@@ -1012,10 +1012,9 @@
       "neverRun": "Has not run yet."
     },
     "score": {
-      "base": "Financial base",
-      "baseHint": "How much the score computed from company data counts against the criteria below.",
-      "criteria": "Criteria",
-      "noCriteria": "No criteria: the score is only the financial base.",
+            "criteria": "Criteria",
+      "criteriaHint": "Each matched criterion adds its points to the score computed from the company data, up to 100. Unmatched criteria take nothing away.",
+      "noCriteria": "No criteria: the score is the one computed from the company data.",
       "criterionName": "Name",
       "addCriterion": "Add criterion",
       "removeCriterion": "Delete criterion",

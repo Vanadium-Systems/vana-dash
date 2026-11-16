@@ -97,14 +97,12 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
   )
   const fields = useClauseFields(signalField)
 
-  const [baseWeight, setBaseWeight] = useState(1)
   const [criteria, setCriteria] = useState<ScoreCriterion[]>([])
   const [labels, setLabels] = useState<Record<keyof ScoreLabels, string>>({ excellent: '', good: '', fit: '' })
 
   useEffect(() => {
     const data = config.data
     if (!data) return
-    setBaseWeight(Number(data.baseWeight))
     setCriteria(data.criteria)
     const l = data.labels ?? { excellent: Number(data.hotThreshold), good: Number(data.warmThreshold), fit: Number(data.nurtureThreshold) }
     setLabels({ excellent: String(l.excellent), good: String(l.good), fit: String(l.fit) })
@@ -114,7 +112,7 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
   const labelsValid = Object.values(numericLabels).every((n) => Number.isFinite(n) && n >= 0 && n <= 100) && numericLabels.excellent >= numericLabels.good && numericLabels.good >= numericLabels.fit
   const complete = criteria.every((c) => c.name.trim() && c.filters.length > 0)
   // A criterion still being written would be refused by the server; the preview skips it, saving waits for it.
-  const draft: ScoreDraft | null = labelsValid ? { baseWeight, criteria: criteria.filter((c) => c.name.trim() && c.filters.length > 0), labels: numericLabels } : null
+  const draft: ScoreDraft | null = labelsValid ? { criteria: criteria.filter((c) => c.name.trim() && c.filters.length > 0), labels: numericLabels } : null
   // Compared by value: a new object on every render would restart the wait forever.
   const settledKey = useDebounced(JSON.stringify(draft), 500)
   const settled = useMemo(() => JSON.parse(settledKey) as ScoreDraft | null, [settledKey])
@@ -134,28 +132,9 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
     // arbitrary: no token for a fixed-side-column grid
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="min-w-0 space-y-6">
-        <section className="space-y-2">
-          <h3 className="text-sm font-semibold">{t('clients:settings.score.base')}</h3>
-          <p className="text-sm text-muted-foreground">{t('clients:settings.score.baseHint')}</p>
-          <div className="flex items-center gap-3">
-            {/* native: range slider */}
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={baseWeight}
-              disabled={!canEdit}
-              aria-label={t('clients:settings.score.base')}
-              onChange={(e) => setBaseWeight(Number(e.target.value))}
-              className="w-full max-w-xs accent-primary"
-            />
-            <span className="w-12 text-sm tabular-nums">{formatNumber(Math.round(baseWeight * 100), '%')}</span>
-          </div>
-        </section>
-
         <section className="space-y-1">
           <h3 className="text-sm font-semibold">{t('clients:settings.score.criteria')}</h3>
+          <p className="text-sm text-muted-foreground">{t('clients:settings.score.criteriaHint')}</p>
           {criteria.length === 0 ? <p className="text-sm text-muted-foreground">{t('clients:settings.score.noCriteria')}</p> : null}
           <ul className="divide-y">
             {criteria.map((criterion) => (

@@ -33,7 +33,6 @@ export interface ScoreLabels {
 
 /** `GET /api/prospects/scoring-config`: the row, with the criteria and labels of the score. */
 export interface ScoringConfigFull extends ProspectScoringConfig {
-  baseWeight: string
   criteria: ScoreCriterion[]
   labels: ScoreLabels | null
 }

@@ -59,7 +59,7 @@ export const prospects = pgTable(
     revenueYear: smallint('revenue_year'),
     // Base score (budget, need, tech, contact) before criteria; `score` is the final, normalized one.
     scoreBase: numeric('score_base', { precision: 5, scale: 1 }),
-    // The highest label the final score may reach: 'warm' | 'nurture' | null (see scoring.ts).
+    // The highest label the final score may reach: 'warm' | 'nurture' | 'skip' | null (see scoring.ts).
     scoreCeiling: text('score_ceiling'),
     // Set when merged into another prospect; old links follow it.
     mergedIntoId: uuid('merged_into_id').references((): AnyPgColumn => prospects.id),
@@ -107,6 +107,7 @@ export const prospectScoringConfig = pgTable('prospect_scoring_config', {
   hotThreshold: numeric('hot_threshold', { precision: 5, scale: 1 }).notNull().default('65'),
   warmThreshold: numeric('warm_threshold', { precision: 5, scale: 1 }).notNull().default('50'),
   nurtureThreshold: numeric('nurture_threshold', { precision: 5, scale: 1 }).notNull().default('35'),
+  // Unused since criteria became an additive bonus; kept so the column needs no migration.
   baseWeight: numeric('base_weight', { precision: 3, scale: 2 }).notNull().default('1'),
   criteria: jsonb('criteria').notNull().default([]),
   labels: jsonb('labels'),

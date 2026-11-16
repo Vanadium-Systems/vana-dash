@@ -157,7 +157,6 @@ export async function updateScoringConfig(input: ScoringConfigInput) {
       hotThreshold: String(thresholds.hot),
       warmThreshold: String(thresholds.warm),
       nurtureThreshold: String(thresholds.nurture),
-      ...(input.baseWeight !== undefined && { baseWeight: String(input.baseWeight) }),
       ...(input.criteria !== undefined && { criteria: input.criteria }),
       ...(input.labels !== undefined && { labels: input.labels }),
       updatedAt: new Date(),

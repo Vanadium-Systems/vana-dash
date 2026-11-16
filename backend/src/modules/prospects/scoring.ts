@@ -69,11 +69,12 @@ export function scoreBudget(input: BudgetInput): number | null {
     cashRatio = 1.0
   }
 
+  // Signed against turnover, so -1 and +1 RON score almost the same; without a turnover a
+  // negative equity is all we know, and it scores 0.
   let equityScore: number | null = null
   if (equity !== null && revenue !== null && revenue > 0) {
     equityScore = norm01(tanh(equity / revenue, 0.35))
-  }
-  if (equity !== null && equity < 0) {
+  } else if (equity !== null && equity < 0) {
     equityScore = 0.0
   }
 
@@ -190,21 +191,36 @@ export function isExcluded(input: GateInput): boolean {
 }
 
 /**
- * The highest label a company can reach on what we know. `nurture`: no financial data at all,
- * so it needs research before anyone calls it a target. `warm`: negative equity, or too little
+ * The highest label a company can reach on what we know. `skip`: a filed balance sheet with no
+ * turnover and no employees, a dormant company. `nurture`: no financial data at all,
+ * so it needs research before anyone calls it a target. `warm`: serious negative equity, or too little
  * known about it (under half of the key fields).
  */
-export type ScoreCeiling = 'warm' | 'nurture' | null
+export type ScoreCeiling = 'warm' | 'nurture' | 'skip' | null
 
 export interface CeilingInput {
+  dormant: boolean
   hasAnyFinancialData: boolean
   equity: number | null
+  revenue: number | null
+  profit: number | null
   coverage: number
 }
 
+/**
+ * Negative equity matters when it is deep for the company's size or it is still losing money;
+ * a profitable company 1% under water is not a risk worth capping.
+ */
+function seriousNegativeEquity(equity: number | null, revenue: number | null, profit: number | null): boolean {
+  if (equity === null || equity >= 0) return false
+  if (profit === null || profit <= 0) return true
+  return -equity > 0.1 * Math.max(revenue ?? 0, 250_000)
+}
+
 export function scoreCeiling(input: CeilingInput): ScoreCeiling {
+  if (input.dormant) return 'skip'
   if (!input.hasAnyFinancialData) return 'nurture'
-  if ((input.equity !== null && input.equity < 0) || input.coverage < 0.5) return 'warm'
+  if (seriousNegativeEquity(input.equity, input.revenue, input.profit) || input.coverage < 0.5) return 'warm'
   return null
 }
 
@@ -216,6 +232,7 @@ export function dataCoverage(input: Pick<ScoringInput, 'revenue' | 'profit' | 'd
 
 /** The score with its ceiling applied: one point below the label it may not reach. */
 export function capScore(score: number, ceiling: ScoreCeiling, thresholds: ScoringThresholds): number {
+  if (ceiling === 'skip') return Math.min(score, thresholds.nurtureThreshold - 0.1)
   if (ceiling === 'nurture') return Math.min(score, thresholds.warmThreshold - 0.1)
   if (ceiling === 'warm') return Math.min(score, thresholds.hotThreshold - 0.1)
   return score
@@ -266,7 +283,14 @@ export function computeScore(input: ScoringInput, weights: ScoringWeights): Scor
 
   return {
     score: Math.round(clamp(composite * 100, 0, 100) * 10) / 10,
-    ceiling: scoreCeiling({ hasAnyFinancialData: input.hasAnyFinancialData, equity: input.equity, coverage: dataCoverage(input) }),
+    ceiling: scoreCeiling({
+      dormant: input.revenueYear != null && (input.revenue ?? 0) <= 0 && !(input.employeeCount && input.employeeCount > 0),
+      hasAnyFinancialData: input.hasAnyFinancialData,
+      equity: input.equity,
+      revenue: input.revenue,
+      profit: input.profit,
+      coverage: dataCoverage(input),
+    }),
   }
 }
 
@@ -284,31 +308,17 @@ export interface ScoreCriterion {
   points: number
 }
 
-export interface FinalScoreConfig {
-  baseWeight: number
-  criteria: ScoreCriterion[]
-}
-
-/** The sum of the points of every criterion: the denominator's variable part. */
-export function maxCriteriaPoints(criteria: ScoreCriterion[]): number {
-  return criteria.reduce((sum, c) => sum + c.points, 0)
-}
-
 /**
- * Final score = the base score and the points of the matched criteria, as a share of the most they
- * could add up to: 100 * (base * B + matched points) / (100 * B + all points), rounded to 0.1.
- * Without criteria it is the base score as is (also when B = 0, which would divide by zero).
+ * Final score = the base score plus the points of the matched criteria, clamped to 0..100.
+ * Additive on purpose: adding a criterion must not lower the companies that do not match it.
  */
-export function computeFinalScore(base: number, matched: string[], config: FinalScoreConfig): number {
+export function computeFinalScore(base: number, matched: string[], criteria: ScoreCriterion[]): number {
   // An excluded company (base 0: struck off) does not become a target through criteria. The
   // ceiling is applied after this, by `capScore`, so criteria cannot lift past it either.
   if (base === 0) return 0
-  const maxPoints = maxCriteriaPoints(config.criteria)
-  if (maxPoints === 0) return base
   const matchedSet = new Set(matched)
-  const points = config.criteria.filter((c) => matchedSet.has(c.id)).reduce((sum, c) => sum + c.points, 0)
-  const b = config.baseWeight
-  return Math.round(((100 * (base * b + points)) / (100 * b + maxPoints)) * 10) / 10
+  const points = criteria.filter((c) => matchedSet.has(c.id)).reduce((sum, c) => sum + c.points, 0)
+  return Math.round(clamp(base + points, 0, 100) * 10) / 10
 }
 
 /** `{{firma}}`, `{{caen}}`, `{{crestere_ca}}` (turnover growth in %, empty when unknown), `{{angajati}}`. */

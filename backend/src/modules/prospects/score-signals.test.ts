@@ -77,23 +77,18 @@ afterAll(async () => {
 describe('computeFinalScore', () => {
   const c = (id: string, points: number) => ({ id, points })
 
-  it('is the base score as is without criteria, also with a zero base weight', () => {
-    expect(computeFinalScore(73.4, [], { baseWeight: 1, criteria: [] })).toBe(73.4)
-    expect(computeFinalScore(73.4, [], { baseWeight: 0, criteria: [] })).toBe(73.4)
+  it('is the base score as is when nothing matches, however many criteria exist', () => {
+    expect(computeFinalScore(73.4, [], [])).toBe(73.4)
+    expect(computeFinalScore(70, [], [c('a', 20), c('b', 20), c('c', 20)])).toBe(70)
   })
 
-  it('counts only the matched criteria against the sum of all of them', () => {
-    // 100 * (60 * 0.5 + 20) / (100 * 0.5 + 30)
-    expect(computeFinalScore(60, ['a'], { baseWeight: 0.5, criteria: [c('a', 20), c('b', 10)] })).toBe(62.5)
+  it('adds the points of the matched criteria, up to 100', () => {
+    expect(computeFinalScore(60, ['a'], [c('a', 20), c('b', 10)])).toBe(80)
+    expect(computeFinalScore(95, ['a', 'b'], [c('a', 20), c('b', 10)])).toBe(100)
   })
 
   it('keeps a zero base at zero whatever matches', () => {
-    expect(computeFinalScore(0, ['a'], { baseWeight: 0.5, criteria: [c('a', 20)] })).toBe(0)
-  })
-
-  it('leaves the criteria alone when the base weight is zero', () => {
-    expect(computeFinalScore(60, ['a'], { baseWeight: 0, criteria: [c('a', 20), c('b', 20)] })).toBe(50)
-    expect(computeFinalScore(60, [], { baseWeight: 0, criteria: [c('a', 20)] })).toBe(0)
+    expect(computeFinalScore(0, ['a'], [c('a', 20)])).toBe(0)
   })
 })
 
@@ -111,9 +106,9 @@ describe('criteria in the database', () => {
     const match = await newProspect('match', { caenCode: CAEN })
     const miss = await newProspect('miss', { caenCode: '1111' })
     await scoreSignals.applyCriteria([match, miss])
-    expect(await scoreOf(match)).toBe(62.5)
-    // 100 * 30 / 80
-    expect(await scoreOf(miss)).toBe(37.5)
+    // base 60 + 20; the criterion it does not match takes nothing away
+    expect(await scoreOf(match)).toBe(80)
+    expect(await scoreOf(miss)).toBe(60)
   })
 
   it('keeps base 0 at 0 and applies signals and criteria to every prospect of a batch', async () => {

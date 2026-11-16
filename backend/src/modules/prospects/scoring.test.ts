@@ -38,7 +38,7 @@ const healthy: ScoringInput = {
 
 const finalLabel = (input: ScoringInput, matched: string[] = [], criteria: { id: string; points: number }[] = []) => {
   const base = computeScore(input, WEIGHTS)
-  const final = computeFinalScore(base.score, matched, { baseWeight: 1, criteria })
+  const final = computeFinalScore(base.score, matched, criteria)
   return priorityForScore(capScore(final, base.ceiling, THRESHOLDS), THRESHOLDS)
 }
 
@@ -121,8 +121,20 @@ describe('exclusion and ceiling', () => {
     expect(finalLabel(noData)).toBe('NURTURE')
   })
 
-  it('never lets negative equity reach HOT, whatever the criteria', () => {
-    const negative = { ...healthy, equity: -50_000 }
+  it('does not cap a profitable company only slightly under water', () => {
+    const large = { ...healthy, revenue: 50_000_000, revenuePrev: 45_000_000, profit: 4_000_000, cash: 5_000_000, debt: 8_000_000, equity: -550_000 }
+    expect(isExcluded(large)).toBe(false)
+    expect(computeScore(large, WEIGHTS).ceiling).toBeNull()
+  })
+
+  it('moves the score a little, not off a cliff, between +1 and -1 RON of equity', () => {
+    const plus = computeScore({ ...healthy, equity: 1 }, WEIGHTS).score
+    const minus = computeScore({ ...healthy, equity: -1 }, WEIGHTS).score
+    expect(Math.abs(plus - minus)).toBeLessThan(0.5)
+  })
+
+  it('never lets serious negative equity reach HOT, whatever the criteria', () => {
+    const negative = { ...healthy, equity: -800_000 }
     const criteria = [{ id: 'a', points: 20 }]
     expect(computeScore(negative, WEIGHTS).ceiling).toBe('warm')
     expect(finalLabel(negative, ['a'], criteria)).not.toBe('HOT')
@@ -131,6 +143,26 @@ describe('exclusion and ceiling', () => {
   it('caps a company with under half the key fields known at WARM', () => {
     const thin = { ...healthy, profit: null, debt: null, equity: null, cash: null }
     expect(computeScore(thin, WEIGHTS).ceiling).toBe('warm')
+  })
+})
+
+describe('dormant company', () => {
+  it('keeps a filed balance sheet with no turnover and no employees at SKIP', () => {
+    const dormant: ScoringInput = {
+      ...healthy,
+      revenue: 0,
+      revenuePrev: null,
+      profit: 0,
+      debt: 0,
+      equity: 200,
+      cash: null,
+      receivables: null,
+      inventory: null,
+      employeeCount: 0,
+      foundingYear: YEAR - 1,
+    }
+    expect(computeScore(dormant, WEIGHTS).ceiling).toBe('skip')
+    expect(finalLabel(dormant, ['a'], [{ id: 'a', points: 20 }])).toBe('SKIP')
   })
 })
 

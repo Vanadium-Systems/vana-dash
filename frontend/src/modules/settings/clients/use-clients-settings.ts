@@ -32,7 +32,6 @@ export function useScoringConfig() {
 }
 
 export interface ScoreDraft {
-  baseWeight: number
   criteria: ScoreCriterion[]
   labels: ScoreLabels
 }
@@ -59,7 +58,6 @@ export function useSaveScoring() {
         hotThreshold: draft.labels.excellent,
         warmThreshold: draft.labels.good,
         nurtureThreshold: draft.labels.fit,
-        baseWeight: draft.baseWeight,
         criteria: draft.criteria,
         labels: draft.labels,
       }),
