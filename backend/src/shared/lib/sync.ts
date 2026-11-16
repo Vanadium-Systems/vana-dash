@@ -3,7 +3,7 @@ import { getConnector } from '../../connectors/index.js'
 import type { PlatformMetric } from '../../connectors/types.js'
 import { db } from '../db/client.js'
 import { platformMetrics, platforms, syncLog } from '../db/schema/index.js'
-import { decryptApiKey } from './crypto.js'
+import { decryptField } from './crypto.js'
 
 type PlatformRow = typeof platforms.$inferSelect
 
@@ -47,7 +47,7 @@ export async function runConnectorSync(platform: PlatformRow): Promise<void> {
       name: platform.name,
       type: platform.type,
       apiUrl: platform.apiUrl,
-      apiKey: decryptApiKey(platform.apiKeyEnc),
+      apiKey: await decryptField(platform.apiKeyEnc),
       metricMappings: platform.metricMappings ?? undefined,
       healthPath: platform.healthPath,
     }
@@ -68,7 +68,7 @@ export async function runConnectorSync(platform: PlatformRow): Promise<void> {
       .where(eq(platforms.id, platform.id))
   } catch (err) {
     // Mesajul de eroare poate conține detalii de la platformă, dar niciodată API key-ul
-    // (decryptApiKey nu include cheia în erori, iar fetch-ul nu loghează headerele).
+    // (decryptField nu include cheia în erori, iar fetch-ul nu loghează headerele).
     await db
       .update(syncLog)
       .set({ status: 'FAILED', errorMessage: String(err), finishedAt: new Date() })

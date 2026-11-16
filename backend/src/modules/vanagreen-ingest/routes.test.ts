@@ -10,7 +10,7 @@ import { buildServer } from '../../app.js'
 import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
 import { billingClients, dashboardConfig, platforms } from '../../shared/db/schema/index.js'
-import { encryptApiKey } from '../../shared/lib/crypto.js'
+import { encryptField } from '../../shared/lib/crypto.js'
 import { upsertConfig } from '../pricing/service.js'
 import { setSelfServePricingEnabled } from './service.js'
 
@@ -54,7 +54,7 @@ const MINIMAL_CONFIG = {
 async function makeVanagreenPlatform() {
   const [row] = await db
     .insert(platforms)
-    .values({ name: 'QA Route VanaGreen', type: 'vanagreen', apiUrl: 'https://vanagreen.example.com', apiKeyEnc: encryptApiKey('x') })
+    .values({ name: 'QA Route VanaGreen', type: 'vanagreen', apiUrl: 'https://vanagreen.example.com', apiKeyEnc: await encryptField('x') })
     .returning()
   platformIds.push(row!.id)
   return row!

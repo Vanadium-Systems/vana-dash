@@ -11,7 +11,7 @@ import {
   paymentMatches,
   vanagreenExtensionLog,
 } from '../../shared/db/schema/index.js'
-import { decryptApiKey, encryptApiKey } from '../../shared/lib/crypto.js'
+import { decryptField, encryptField } from '../../shared/lib/crypto.js'
 import { sendPaymentConfirmationEmail } from '../../shared/lib/payment-confirmation.js'
 import { notifyPush } from '../../shared/lib/push.js'
 import { addPayment, isDraftSql, PaymentError, recalculatePaymentStatus, remainingSql, removePayment } from '../../shared/lib/payments.js'
@@ -65,7 +65,7 @@ export async function createAccount(input: z.infer<typeof BankAccountCreateSchem
   const { apiKey, ...rest } = input
   const [row] = await db
     .insert(bankAccounts)
-    .values({ ...rest, ...(apiKey ? { apiKeyEnc: encryptApiKey(apiKey) } : {}) })
+    .values({ ...rest, ...(apiKey ? { apiKeyEnc: await encryptField(apiKey) } : {}) })
     .returning(accountColumns)
   return row
 }
@@ -73,7 +73,7 @@ export async function createAccount(input: z.infer<typeof BankAccountCreateSchem
 export async function updateAccount(id: string, input: z.infer<typeof BankAccountUpdateSchema>) {
   const { apiKey, ...rest } = input
   const changes: Record<string, unknown> = { ...rest, updatedAt: new Date() }
-  if (apiKey) changes.apiKeyEnc = encryptApiKey(apiKey)
+  if (apiKey) changes.apiKeyEnc = await encryptField(apiKey)
   const [row] = await db
     .update(bankAccounts)
     .set(changes)
@@ -97,7 +97,7 @@ export async function listTransactions(query: z.infer<typeof TransactionsQuerySc
   if (query.direction) conditions.push(eq(bankTransactions.direction, query.direction))
   if (query.unmatchedOnly) conditions.push(isNull(paymentMatches.id))
 
-  return db
+  const rows = await db
     .select({
       id: bankTransactions.id,
       bankAccountId: bankTransactions.bankAccountId,
@@ -105,6 +105,7 @@ export async function listTransactions(query: z.infer<typeof TransactionsQuerySc
       currency: bankTransactions.currency,
       counterpartyName: bankTransactions.counterpartyName,
       counterpartyIban: bankTransactions.counterpartyIban,
+      counterpartyIbanEnc: bankTransactions.counterpartyIbanEnc,
       reference: bankTransactions.reference,
       valueDate: bankTransactions.valueDate,
       direction: bankTransactions.direction,
@@ -122,6 +123,13 @@ export async function listTransactions(query: z.infer<typeof TransactionsQuerySc
     .where(and(...conditions))
     .orderBy(desc(bankTransactions.valueDate))
     .limit(query.limit)
+  // The plaintext column is only read for rows from before scripts/encrypt-v1.ts.
+  return Promise.all(
+    rows.map(async ({ counterpartyIbanEnc, ...row }) => ({
+      ...row,
+      counterpartyIban: counterpartyIbanEnc ? await decryptField(counterpartyIbanEnc) : row.counterpartyIban,
+    })),
+  )
 }
 
 /** Manual match: links the transaction to the invoice and records a bank payment against the rest. */
@@ -351,7 +359,7 @@ export async function generateCertificateForAccount(id: string) {
     .update(bankAccounts)
     .set({
       certificatePem,
-      privateKeyEnc: encryptApiKey(privateKeyPem),
+      privateKeyEnc: await encryptField(privateKeyPem),
       updatedAt: new Date(),
     })
     .where(and(eq(bankAccounts.id, id), isNull(bankAccounts.deletedAt)))
@@ -369,7 +377,7 @@ export async function exchangeRevolutCode(id: string, code: string) {
     throw new Error(tr('errors.reconciliation.setClientIdFirst'))
   }
 
-  const privateKeyPem = decryptApiKey(row.privateKeyEnc)
+  const privateKeyPem = await decryptField(row.privateKeyEnc)
   const tokens = await exchangeCode(code, row.clientId, privateKeyPem)
   await saveRevolutTokens(id, tokens)
   return getAccount(id)

@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { config } from '../config.js'
 import { db } from '../db/client.js'
 import { tenantKeys, tenants } from '../db/schema/index.js'
-import { decryptField, encryptApiKey, encryptField, forgetDataKeys, isV1, rewrapTenantKeys } from './crypto.js'
+import { decryptField, encryptApiKey, encryptField, forgetDataKeys, hmacField, isV1, rewrapTenantKeys } from './crypto.js'
 import { runAsTenant, withRlsBypass } from './tenancy.js'
 
 const TEST_MASTER = config.masterEncryptionKey
@@ -103,5 +103,14 @@ describe('encryptField / decryptField (v1)', () => {
     config.masterEncryptionKeyNext = ''
     forgetDataKeys()
     expect(await decryptField(stored)).toBe('survives-rotation')
+  })
+})
+
+describe('hmacField', () => {
+  it('is stable for a company and differs between companies', async () => {
+    const a = await hmacField('RO49AAAA1B31007593840000')
+    expect(await hmacField('RO49AAAA1B31007593840000')).toBe(a)
+    expect(await hmacField('RO49AAAA1B31007593840001')).not.toBe(a)
+    expect(await runAsTenant(otherTenantId, () => hmacField('RO49AAAA1B31007593840000'))).not.toBe(a)
   })
 })

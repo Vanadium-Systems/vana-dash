@@ -16,7 +16,7 @@ import {
 import type { PlatformConfig } from '../../connectors/types.js'
 import { db } from '../../shared/db/client.js'
 import { billingClients, dashboardConfig, platforms, vanagreenExtensionLog } from '../../shared/db/schema/index.js'
-import { decryptApiKey } from '../../shared/lib/crypto.js'
+import { decryptField } from '../../shared/lib/crypto.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 // Sprint C, Track B: la o plată confirmată (auto-match bancar SAU mark-as-paid manual),
@@ -53,7 +53,7 @@ export async function getVanagreenPlatformConfig(): Promise<PlatformConfig | nul
     name: platform.name,
     type: platform.type,
     apiUrl: platform.apiUrl,
-    apiKey: decryptApiKey(platform.apiKeyEnc),
+    apiKey: await decryptField(platform.apiKeyEnc),
   }
 }
 
@@ -295,7 +295,7 @@ export async function maybeGrantReferralDiscount(config: PlatformConfig, client:
  * NU aruncă niciodată; eșecul se loghează, apelantul (ruta PATCH) nu blochează salvarea locală
  * pe el. Dacă platforma vanagreen nu e configurată, e tratat ca eșec izolat (log), nu excepție.
  */
-export async function pushLegalDetailsIfMapped(client: typeof billingClients.$inferSelect): Promise<void> {
+export async function pushLegalDetailsIfMapped(client: Omit<typeof billingClients.$inferSelect, 'ibanEnc' | 'ibanHmac'>): Promise<void> {
   if (!client.vanagreenTenantId) return
 
   const config = await getVanagreenPlatformConfig()
@@ -326,7 +326,7 @@ export async function pushLegalDetailsIfMapped(client: typeof billingClients.$in
  * `BillingBanner.tsx` (tenant-facing) și AdminTenantsPage (read-only, wave 6). NU aruncă
  * niciodată; eșecul se loghează, apelantul nu blochează pe el.
  */
-export async function pushBillingCycleIfMapped(client: typeof billingClients.$inferSelect): Promise<void> {
+export async function pushBillingCycleIfMapped(client: Omit<typeof billingClients.$inferSelect, 'ibanEnc' | 'ibanHmac'>): Promise<void> {
   if (!client.vanagreenTenantId) return
 
   const config = await getVanagreenPlatformConfig()

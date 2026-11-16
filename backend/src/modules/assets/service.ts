@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { assetBrokers, assetPaperOrders, assetPriceProviders, dashboardConfig, platforms, platformMetrics } from '../../shared/db/schema/index.js'
-import { decryptApiKey, encryptApiKey } from '../../shared/lib/crypto.js'
+import { decryptField, encryptField } from '../../shared/lib/crypto.js'
 import * as finnhub from './finnhub.js'
 import * as twelvedata from './twelvedata.js'
 import * as trading212 from './trading212.js'
@@ -61,9 +61,9 @@ export async function removeFromWatchlist(category: AssetCategory, symbol: strin
 
 // ── Chei provideri de preț ───────────────────────────────────────────────────
 
-function maskKey(apiKeyEnc: string): string {
+async function maskKey(apiKeyEnc: string): Promise<string> {
   try {
-    const plain = decryptApiKey(apiKeyEnc)
+    const plain = await decryptField(apiKeyEnc)
     return plain.length <= 8 ? '****' : `****${plain.slice(-4)}`
   } catch {
     return '****'
@@ -78,13 +78,13 @@ export interface PriceProviderStatus {
 
 export async function listPriceProviders(): Promise<PriceProviderStatus[]> {
   const rows = await db.select().from(assetPriceProviders).where(isNull(assetPriceProviders.deletedAt))
-  return rows.map((r) => ({ provider: r.provider, enabled: r.enabled, apiKeyMasked: maskKey(r.apiKeyEnc) }))
+  return Promise.all(rows.map(async (r) => ({ provider: r.provider, enabled: r.enabled, apiKeyMasked: await maskKey(r.apiKeyEnc) })))
 }
 
 export async function connectPriceProvider(input: { provider: 'finnhub' | 'twelvedata'; apiKey: string }): Promise<void> {
   await db
     .insert(assetPriceProviders)
-    .values({ provider: input.provider, apiKeyEnc: encryptApiKey(input.apiKey), enabled: true })
+    .values({ provider: input.provider, apiKeyEnc: await encryptField(input.apiKey), enabled: true })
     .onConflictDoUpdate({
       target: assetPriceProviders.provider,
       set: { apiKeyEnc: sql`excluded.api_key_enc`, enabled: true, deletedAt: null, updatedAt: new Date() },
@@ -101,7 +101,7 @@ async function getProviderKey(provider: 'finnhub' | 'twelvedata'): Promise<strin
     .from(assetPriceProviders)
     .where(and(eq(assetPriceProviders.provider, provider), eq(assetPriceProviders.enabled, true), isNull(assetPriceProviders.deletedAt)))
     .limit(1)
-  return row ? decryptApiKey(row.apiKeyEnc) : null
+  return row ? await decryptField(row.apiKeyEnc) : null
 }
 
 // ── Prețuri ───────────────────────────────────────────────────────────────────
@@ -332,7 +332,7 @@ export async function ensureAssetsPlatform(): Promise<string> {
       name: 'Assets',
       type: 'assets',
       apiUrl: 'https://finnhub.io',
-      apiKeyEnc: encryptApiKey(''),
+      apiKeyEnc: await encryptField(''),
       syncCron: '*/15 * * * *',
       healthStatus: 'healthy',
     })
@@ -381,7 +381,7 @@ export interface BrokerStatus {
 
 export async function listBrokers(): Promise<BrokerStatus[]> {
   const rows = await db.select().from(assetBrokers).where(isNull(assetBrokers.deletedAt)).orderBy(desc(assetBrokers.createdAt))
-  return rows.map((r) => ({ broker: r.broker, mode: r.mode, enabled: r.enabled, apiKeyMasked: maskKey(r.apiKeyEnc), connectedAt: r.createdAt.toISOString() }))
+  return Promise.all(rows.map(async (r) => ({ broker: r.broker, mode: r.mode, enabled: r.enabled, apiKeyMasked: await maskKey(r.apiKeyEnc), connectedAt: r.createdAt.toISOString() })))
 }
 
 export async function connectBroker(input: { broker: 'trading212'; apiKey?: string; mode: 'paper' | 'live'; enabled: boolean }): Promise<void> {
@@ -389,7 +389,7 @@ export async function connectBroker(input: { broker: 'trading212'; apiKey?: stri
   // placeMarketOrder/placeLimitOrder n-o citesc niciodată cât timp mode==='paper'.
   await db
     .insert(assetBrokers)
-    .values({ broker: input.broker, apiKeyEnc: encryptApiKey(input.apiKey ?? ''), mode: input.mode, enabled: input.enabled })
+    .values({ broker: input.broker, apiKeyEnc: await encryptField(input.apiKey ?? ''), mode: input.mode, enabled: input.enabled })
     .onConflictDoUpdate({
       target: assetBrokers.broker,
       set: { apiKeyEnc: sql`excluded.api_key_enc`, mode: sql`excluded.mode`, enabled: sql`excluded.enabled`, deletedAt: null, updatedAt: new Date() },
@@ -512,7 +512,7 @@ export async function placeOrder(input: {
 
   // Live — kill-switch obligatoriu (fail-closed: lipsă config = blocat).
   if (!(await isTradingEnabled())) throw new Error(tr('errors.trading.liveOff'))
-  const apiKey = decryptApiKey(row.apiKeyEnc)
+  const apiKey = await decryptField(row.apiKeyEnc)
   const result =
     input.type === 'market'
       ? await trading212.placeMarketOrder(apiKey, input.symbol, input.side === 'buy' ? input.quantity : -input.quantity)
@@ -615,7 +615,7 @@ export async function getPortfolio(brokerName: 'trading212'): Promise<{ position
   if (!row) return { positions: [], realizedPnlUsd: 0 }
 
   if (row.mode === 'live') {
-    const apiKey = decryptApiKey(row.apiKeyEnc)
+    const apiKey = await decryptField(row.apiKeyEnc)
     const raw = await trading212.getPositions(apiKey)
     return {
       positions: raw.map((p) => ({

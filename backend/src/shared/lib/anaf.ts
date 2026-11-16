@@ -4,7 +4,7 @@ import type { AnafTokens } from '../../connectors/anaf/types.js'
 import type { AnafSession } from '../../connectors/types.js'
 import { db } from '../db/client.js'
 import { anafCredentials } from '../db/schema/index.js'
-import { decryptApiKey, encryptApiKey } from './crypto.js'
+import { decryptField, encryptField } from './crypto.js'
 import { sendAlertEmail } from './email.js'
 import { tr } from './i18n.js'
 
@@ -22,8 +22,8 @@ export async function getAnafCredentialsRow() {
 export async function saveAnafTokens(cif: string, tokens: AnafTokens): Promise<void> {
   const existing = await getAnafCredentialsRow()
   const values = {
-    accessTokenEnc: encryptApiKey(tokens.accessToken),
-    refreshTokenEnc: encryptApiKey(tokens.refreshToken),
+    accessTokenEnc: await encryptField(tokens.accessToken),
+    refreshTokenEnc: await encryptField(tokens.refreshToken),
     expiresAt: tokens.expiresAt,
     lastRefreshedAt: new Date(),
     status: 'active' as const,
@@ -63,11 +63,11 @@ export async function getAnafSession(): Promise<AnafSession> {
 
   const needsRefresh = !row.expiresAt || row.expiresAt.getTime() - Date.now() < REFRESH_MARGIN_MS
   if (!needsRefresh) {
-    return { cif: row.cif, accessToken: decryptApiKey(row.accessTokenEnc) }
+    return { cif: row.cif, accessToken: await decryptField(row.accessTokenEnc) }
   }
 
   try {
-    const tokens = await refreshTokens(decryptApiKey(row.refreshTokenEnc))
+    const tokens = await refreshTokens(await decryptField(row.refreshTokenEnc))
     await saveAnafTokens(row.cif, tokens)
     return { cif: row.cif, accessToken: tokens.accessToken }
   } catch (err) {

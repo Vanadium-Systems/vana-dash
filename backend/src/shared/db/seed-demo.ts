@@ -3,7 +3,7 @@ import argon2 from 'argon2'
 import { createHash } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import { config } from '../config.js'
-import { encryptApiKey } from '../lib/crypto.js'
+import { encryptField } from '../lib/crypto.js'
 import { ensureSpaceRootOf } from '../../modules/archive/access.js'
 import { defaultIdentities } from '../../modules/email/settings-service.js'
 import { ENABLED_LOCALES, isLocale, type Locale } from '../lib/locale.js'
@@ -195,7 +195,7 @@ const [platform] = await db
     name: 'Acme Platform (demo)',
     type: 'generic',
     apiUrl: 'http://demo.invalid',
-    apiKeyEnc: encryptApiKey('demo'),
+    apiKeyEnc: await encryptField('demo'),
     // 30 February never comes: the row is display-only and must not be synced.
     syncCron: '0 0 30 2 *',
     healthStatus: 'healthy',

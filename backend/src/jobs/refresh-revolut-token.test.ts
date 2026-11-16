@@ -8,7 +8,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { refreshTokens } from '../connectors/revolut/oauth.js'
 import { db } from '../shared/db/client.js'
 import { bankAccounts } from '../shared/db/schema/index.js'
-import { decryptApiKey, encryptApiKey } from '../shared/lib/crypto.js'
+import { decryptField, encryptField } from '../shared/lib/crypto.js'
 import { refreshRevolutTokensIfNeeded } from './refresh-revolut-token.js'
 
 vi.mock('../connectors/revolut/oauth.js', () => ({
@@ -30,8 +30,8 @@ beforeAll(async () => {
       currency: 'RON',
       authStatus: 'active',
       clientId: 'client-broken',
-      privateKeyEnc: encryptApiKey('fake-private-key-broken'),
-      refreshTokenEnc: encryptApiKey('refresh-token-broken'),
+      privateKeyEnc: await encryptField('fake-private-key-broken'),
+      refreshTokenEnc: await encryptField('refresh-token-broken'),
       tokenExpiresAt: ALMOST_EXPIRED,
     })
     .returning({ id: bankAccounts.id })
@@ -45,8 +45,8 @@ beforeAll(async () => {
       currency: 'RON',
       authStatus: 'active',
       clientId: 'client-healthy',
-      privateKeyEnc: encryptApiKey('fake-private-key-healthy'),
-      refreshTokenEnc: encryptApiKey('refresh-token-healthy'),
+      privateKeyEnc: await encryptField('fake-private-key-healthy'),
+      refreshTokenEnc: await encryptField('refresh-token-healthy'),
       tokenExpiresAt: ALMOST_EXPIRED,
     })
     .returning({ id: bankAccounts.id })
@@ -83,7 +83,7 @@ describe('refreshRevolutTokensIfNeeded — per-account failure isolation', () =>
     const [healthyRow] = await db.select().from(bankAccounts).where(eq(bankAccounts.id, healthyAccountId))
     expect(healthyRow?.authStatus).toBe('active')
     expect(healthyRow?.accessTokenEnc).toBeTruthy()
-    expect(decryptApiKey(healthyRow!.accessTokenEnc!)).toBe('new-access-token')
+    expect(await decryptField(healthyRow!.accessTokenEnc!)).toBe('new-access-token')
     expect(healthyRow?.tokenExpiresAt?.getTime()).toBeGreaterThan(Date.now() + 30 * 60 * 1000)
 
     // refreshTokens a fost apelat pentru AMBELE conturi — eșecul primului nu a
@@ -100,8 +100,8 @@ describe('refreshRevolutTokensIfNeeded — per-account failure isolation', () =>
         currency: 'RON',
         authStatus: 'active',
         clientId: 'client-not-expiring',
-        privateKeyEnc: encryptApiKey('fake-private-key'),
-        refreshTokenEnc: encryptApiKey('refresh-token'),
+        privateKeyEnc: await encryptField('fake-private-key'),
+        refreshTokenEnc: await encryptField('refresh-token'),
         tokenExpiresAt: new Date(Date.now() + 39 * 60 * 1000), // well above 15 min threshold
       })
       .returning({ id: bankAccounts.id })

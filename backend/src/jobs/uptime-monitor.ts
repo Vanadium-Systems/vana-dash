@@ -3,7 +3,7 @@ import { isNull } from 'drizzle-orm'
 import { getConnector } from '../connectors/index.js'
 import { db } from '../shared/db/client.js'
 import { platforms } from '../shared/db/schema/index.js'
-import { decryptApiKey } from '../shared/lib/crypto.js'
+import { decryptField } from '../shared/lib/crypto.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
 import { tl, tr } from '../shared/lib/i18n.js'
 
@@ -61,7 +61,7 @@ export async function checkUptime(): Promise<void> {
         name: platform.name,
         type: platform.type,
         apiUrl: platform.apiUrl,
-        apiKey: decryptApiKey(platform.apiKeyEnc),
+        apiKey: await decryptField(platform.apiKeyEnc),
       })
       if (health.status !== 'healthy') {
         const ruleId = await ensureAlertRule(`platform_uptime.${platform.id}.backend`, tr('alerts.rules.backendDegraded', { name: platform.name }))

@@ -7,7 +7,8 @@ export const AUTO_MATCH_THRESHOLD = 0.8
 export interface MatchTxn {
   amount: number
   currency: string
-  counterpartyIban: string | null
+  // hmacField(normalizeIban(iban)): IBANs are compared without decrypting them.
+  counterpartyIbanHmac: string | null
   counterpartyName: string | null
   reference: string | null
 }
@@ -17,7 +18,7 @@ export interface MatchCandidate {
   currency: string
   documentNumber: string | null
   counterpartyName: string | null
-  clientIban: string | null
+  clientIbanHmac: string | null
 }
 
 function normalize(value: string): string {
@@ -31,7 +32,7 @@ export function scoreMatch(txn: MatchTxn, invoice: MatchCandidate): number {
 
   let score = 0.6
 
-  if (txn.counterpartyIban && invoice.clientIban && normalize(txn.counterpartyIban) === normalize(invoice.clientIban)) {
+  if (txn.counterpartyIbanHmac && txn.counterpartyIbanHmac === invoice.clientIbanHmac) {
     score += 0.3
   }
   if (

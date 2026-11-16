@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto'
 import { and, eq, isNull } from 'drizzle-orm'
 import { config } from '../config.js'
 import { db } from '../db/client.js'
@@ -124,6 +124,15 @@ export async function decryptField(stored: string): Promise<string> {
   return open(key, stored.slice(sep + 1)).toString('utf8')
 }
 
+/** HMAC-SHA256 under a key derived from the company's data key: lets two values be compared
+ *  (an IBAN against another) without decrypting either. Survives a master key rotation; a new
+ *  data key for the company would mean recomputing the stored HMACs (scripts/encrypt-v1.ts). */
+export async function hmacField(value: string): Promise<string> {
+  const { key } = await activeDataKey()
+  const hmacKey = Buffer.from(hkdfSync('sha256', key, Buffer.alloc(0), 'vana-dash field hmac v1', 32))
+  return createHmac('sha256', hmacKey).update(value, 'utf8').digest('base64url')
+}
+
 export function isV1(stored: string): boolean {
   return stored.startsWith(V1_PREFIX)
 }
@@ -154,11 +163,7 @@ export function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb)
 }
 
-// Pre-v1 API, kept until BE-K2 moves every caller to encryptField / decryptField.
+/** Writes a pre-v1 value (master key, no prefix). Only for tests of the conversion. */
 export function encryptApiKey(plaintext: string): string {
   return seal(masterKeys()[0]!, Buffer.from(plaintext, 'utf8'))
-}
-
-export function decryptApiKey(encoded: string): string {
-  return openWithMaster(encoded).toString('utf8')
 }

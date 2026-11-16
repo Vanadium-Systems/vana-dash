@@ -3,7 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import { refreshTokens } from '../connectors/revolut/oauth.js'
 import { db } from '../shared/db/client.js'
 import { bankAccounts } from '../shared/db/schema/index.js'
-import { decryptApiKey } from '../shared/lib/crypto.js'
+import { decryptField } from '../shared/lib/crypto.js'
 import { markNeedsReauth, saveRevolutTokens } from '../shared/lib/revolut.js'
 import { tr } from '../shared/lib/i18n.js'
 
@@ -53,8 +53,8 @@ async function refreshOne(row: typeof bankAccounts.$inferSelect): Promise<void> 
     !row.tokenExpiresAt || row.tokenExpiresAt.getTime() - Date.now() < REFRESH_IF_EXPIRES_WITHIN_MS
   if (!expiresSoon) return
 
-  const refreshToken = decryptApiKey(row.refreshTokenEnc)
-  const privateKeyPem = decryptApiKey(row.privateKeyEnc)
+  const refreshToken = await decryptField(row.refreshTokenEnc)
+  const privateKeyPem = await decryptField(row.privateKeyEnc)
 
   const tokens = await refreshTokens(refreshToken, row.clientId, privateKeyPem)
   await saveRevolutTokens(row.id, tokens)
