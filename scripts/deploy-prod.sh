@@ -39,6 +39,15 @@ fi
 
 # Migrations run at container start (the image CMD), before the server listens.
 docker compose -f infra/docker-compose.prod.yml --env-file .env up -d --no-build
+
+# The vanadash_app role (RLS_ENABLED=true connects as it). Idempotent, so it runs on every deploy
+# once APP_DB_PASSWORD is in .env: grants on tables created since then are re-applied. Read key by
+# key: .env is not valid shell (values with spaces).
+env_value() { grep -E "^$1=" .env | tail -1 | cut -d= -f2-; }
+if [ -n "$(env_value APP_DB_PASSWORD)" ]; then
+  APP_DB_PASSWORD=$(env_value APP_DB_PASSWORD) POSTGRES_USER=$(env_value POSTGRES_USER) \
+    POSTGRES_DB=$(env_value POSTGRES_DB) bash scripts/rls-role.sh
+fi
 # The Caddyfile is mounted as a single file. `git reset` replaces it with a new inode, and
 # the caddy container (unchanged in compose, so not recreated by `up -d`) keeps seeing the old
 # one. It is recreated only when the content changed since the last deploy.

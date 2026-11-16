@@ -1,9 +1,10 @@
 import cron from '../shared/lib/cron.js'
+import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { isNull } from 'drizzle-orm'
 import { getConnector } from '../connectors/index.js'
 import { db } from '../shared/db/client.js'
 import { platforms } from '../shared/db/schema/index.js'
-import { decryptApiKey } from '../shared/lib/crypto.js'
+import { decryptField } from '../shared/lib/crypto.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
 import { tl, tr } from '../shared/lib/i18n.js'
 
@@ -22,7 +23,8 @@ const SITE_FETCH_TIMEOUT_MS = 10_000
 
 export function startUptimeMonitorJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void checkUptime().catch((err) => console.error(`[uptime-monitor] ${String(err)}`))
+    // Owner-only integration (platforms are owner-only): runs as the platform owner, not per company.
+    void runAsTenant(getOwnerTenantId(), () => checkUptime()).catch((err) => console.error('[uptime-monitor] failed:', err))
   })
   console.log(`[uptime-monitor] Scheduled (${CRON_EXPR})`)
 }
@@ -61,7 +63,7 @@ export async function checkUptime(): Promise<void> {
         name: platform.name,
         type: platform.type,
         apiUrl: platform.apiUrl,
-        apiKey: decryptApiKey(platform.apiKeyEnc),
+        apiKey: await decryptField(platform.apiKeyEnc),
       })
       if (health.status !== 'healthy') {
         const ruleId = await ensureAlertRule(`platform_uptime.${platform.id}.backend`, tr('alerts.rules.backendDegraded', { name: platform.name }))

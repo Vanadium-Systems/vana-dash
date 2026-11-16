@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, eq, gte, inArray, isNull, lte, or } from 'drizzle-orm'
 import { db } from '../shared/db/client.js'
 import { calendarEventAttendees, calendarEventReminders, calendarEvents } from '../shared/db/schema/index.js'
@@ -19,7 +20,7 @@ const MAX_LOOKAHEAD_MINUTES = 40320
 
 export function startCalendarRemindersJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runCalendarReminders().catch((err) => console.error(`[calendar-reminders] ${String(err)}`))
+    void forEachTenant(() => runCalendarReminders()).catch((err) => console.error('[calendar-reminders] failed:', err))
   })
   console.log(`[calendar-reminders] Scheduled (${CRON_EXPR})`)
 }

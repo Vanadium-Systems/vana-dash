@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import type { z } from 'zod'
 import { db } from '../../../shared/db/client.js'
 import { assistantProviders, dashboardConfig, type AssistantProviderModel } from '../../../shared/db/schema/index.js'
-import { decryptApiKey, encryptApiKey } from '../../../shared/lib/crypto.js'
+import { decryptField, encryptField } from '../../../shared/lib/crypto.js'
 import { config } from '../../../shared/config.js'
 import { ASSISTANT_MODELS } from '../models.js'
 import { createAnthropicProvider } from './anthropic.js'
@@ -68,7 +68,7 @@ export async function listProviderSettings(): Promise<Array<{
   await ensureSeeded()
   const rows = await db.select().from(assistantProviders)
   const defaultProvider = await getDefaultProvider()
-  return ASSISTANT_PROVIDER_IDS.map((id) => {
+  return Promise.all(ASSISTANT_PROVIDER_IDS.map(async (id) => {
     const row = rows.find((r) => r.provider === id)
     const envFallback =
       id === 'anthropic'
@@ -79,7 +79,7 @@ export async function listProviderSettings(): Promise<Array<{
     let apiKeyPreview: string | null = null
     if (row?.apiKeyEnc) {
       try {
-        apiKeyPreview = maskKey(decryptApiKey(row.apiKeyEnc))
+        apiKeyPreview = maskKey(await decryptField(row.apiKeyEnc))
       } catch {
         apiKeyPreview = null
       }
@@ -100,7 +100,7 @@ export async function listProviderSettings(): Promise<Array<{
       models: row?.models ?? [],
       defaultModel: row?.defaultModel ?? null,
     }
-  })
+  }))
 }
 
 async function getDefaultProvider(): Promise<AssistantProviderId> {
@@ -117,7 +117,7 @@ export async function updateProvider(
 ): Promise<void> {
   await ensureSeeded()
   const changes: Record<string, unknown> = { updatedAt: new Date() }
-  if (input.apiKey) changes.apiKeyEnc = encryptApiKey(input.apiKey)
+  if (input.apiKey) changes.apiKeyEnc = await encryptField(input.apiKey)
   if (input.baseUrl !== undefined) changes.baseUrl = input.baseUrl || null
   if (input.models !== undefined) changes.models = input.models
   if (input.defaultModel !== undefined) changes.defaultModel = input.defaultModel || null
@@ -171,7 +171,7 @@ export async function buildActiveProvider(override: string | null | undefined): 
   const row = await getRow(id)
 
   if (id === 'anthropic') {
-    const apiKey = row?.apiKeyEnc ? decryptApiKey(row.apiKeyEnc) : config.anthropic.apiKey
+    const apiKey = row?.apiKeyEnc ? await decryptField(row.apiKeyEnc) : config.anthropic.apiKey
     if (!apiKey) throw new Error(tr('errors.assistant.anthropicKeyMissing'))
     return { provider: createAnthropicProvider(apiKey), id }
   }
@@ -180,7 +180,7 @@ export async function buildActiveProvider(override: string | null | undefined): 
     if (!row?.enabled) throw new Error(tr('errors.assistant.localOff'))
     const baseUrl = row.baseUrl || config.localAi.baseUrl
     if (!baseUrl) throw new Error(tr('errors.assistant.localNotConfigured'))
-    const apiKey = row.apiKeyEnc ? decryptApiKey(row.apiKeyEnc) : config.localAi.apiKey
+    const apiKey = row.apiKeyEnc ? await decryptField(row.apiKeyEnc) : config.localAi.apiKey
     return {
       provider: createOpenRouterProvider({
         apiKey,
@@ -196,7 +196,7 @@ export async function buildActiveProvider(override: string | null | undefined): 
   }
 
   if (row && !row.enabled) throw new Error(tr('errors.assistant.openRouterOff'))
-  const apiKey = row?.apiKeyEnc ? decryptApiKey(row.apiKeyEnc) : config.openrouter.apiKey
+  const apiKey = row?.apiKeyEnc ? await decryptField(row.apiKeyEnc) : config.openrouter.apiKey
   if (!apiKey) throw new Error(tr('errors.assistant.openRouterKeyMissing'))
   return { provider: createOpenRouterProvider({ apiKey, baseUrl: row?.baseUrl }), id }
 }

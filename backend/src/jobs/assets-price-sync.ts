@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import * as service from '../modules/assets/service.js'
 
 // Scrie prețurile assets în platform_metrics (metricKey `asset.<symbol>`, fără '/') pt. tot
@@ -33,7 +34,9 @@ export async function runAssetsPriceSync(): Promise<number> {
 
 export function startAssetsPriceSyncJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runAssetsPriceSync().catch((err) => console.error(`[assets-price-sync] ${String(err)}`))
+    void forEachTenant(async () => {
+      await runAssetsPriceSync()
+    }).catch((err) => console.error('[assets-price-sync] failed:', err))
   })
   console.log(`[assets-price-sync] Scheduled (${CRON_EXPR})`)
 }

@@ -16,7 +16,10 @@ export const bankTransactions = pgTable(
     amount: numeric('amount', { precision: 14, scale: 2 }).notNull(),
     currency: text('currency').notNull(),
     counterpartyName: text('counterparty_name'),
+    // Plaintext, read only until scripts/encrypt-v1.ts has copied it; dropped in part E.
     counterpartyIban: text('counterparty_iban'),
+    counterpartyIbanEnc: text('counterparty_iban_enc'),
+    counterpartyIbanHmac: text('counterparty_iban_hmac'),
     reference: text('reference'),
     valueDate: timestamp('value_date', { withTimezone: true }).notNull(),
     direction: text('direction', { enum: ['in', 'out'] }).notNull(),
@@ -25,5 +28,6 @@ export const bankTransactions = pgTable(
   (t) => [
     uniqueIndex('uq_bank_transactions_external').on(t.bankAccountId, t.externalId),
     index('ix_bank_transactions_value_date').on(t.bankAccountId, t.valueDate),
+    index('ix_bank_transactions_iban_hmac').on(t.counterpartyIbanHmac),
   ],
 )

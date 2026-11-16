@@ -8,7 +8,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { afterAll, afterEach, describe, expect, it } from 'vitest'
 import { db } from '../shared/db/client.js'
 import { alertRules, alerts, platforms } from '../shared/db/schema/index.js'
-import { encryptApiKey } from '../shared/lib/crypto.js'
+import { encryptField } from '../shared/lib/crypto.js'
 import { checkUptime } from './uptime-monitor.js'
 
 const platformIds: string[] = []
@@ -34,7 +34,7 @@ afterAll(async () => {
 async function createPlatform(apiUrl: string) {
   const [row] = await db
     .insert(platforms)
-    .values({ name: `QA uptime ${Date.now()}`, type: 'vanagreen', apiUrl, apiKeyEnc: encryptApiKey('qa-fake-key') })
+    .values({ name: `QA uptime ${Date.now()}`, type: 'vanagreen', apiUrl, apiKeyEnc: await encryptField('qa-fake-key') })
     .returning()
   platformIds.push(row!.id)
   return row!

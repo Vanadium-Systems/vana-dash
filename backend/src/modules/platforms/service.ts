@@ -4,7 +4,7 @@ import { connectors } from '../../connectors/index.js'
 import type { PlatformOpsSignals } from '../../connectors/types.js'
 import { db } from '../../shared/db/client.js'
 import { platforms, syncLog } from '../../shared/db/schema/index.js'
-import { decryptApiKey, encryptApiKey } from '../../shared/lib/crypto.js'
+import { decryptField, encryptField } from '../../shared/lib/crypto.js'
 import type { PlatformCreateSchema, PlatformUpdateSchema } from './schema.js'
 
 // Selecție explicită de coloane — apiKeyEnc nu părăsește niciodată service-ul.
@@ -41,7 +41,7 @@ export async function createPlatform(input: z.infer<typeof PlatformCreateSchema>
   const { apiKey, ...rest } = input
   const [row] = await db
     .insert(platforms)
-    .values({ ...rest, apiKeyEnc: encryptApiKey(apiKey) })
+    .values({ ...rest, apiKeyEnc: await encryptField(apiKey) })
     .returning(publicColumns)
   return row
 }
@@ -49,7 +49,7 @@ export async function createPlatform(input: z.infer<typeof PlatformCreateSchema>
 export async function updatePlatform(id: string, input: z.infer<typeof PlatformUpdateSchema>) {
   const { apiKey, ...rest } = input
   const changes: Record<string, unknown> = { ...rest, updatedAt: new Date() }
-  if (apiKey) changes.apiKeyEnc = encryptApiKey(apiKey)
+  if (apiKey) changes.apiKeyEnc = await encryptField(apiKey)
 
   // Mapările aparțin conectorului generic — pe orice alt tip sunt ignorate la update,
   // indiferent ce trimite clientul (defensiv; schema respinge deja combinarea explicită).
@@ -114,7 +114,7 @@ export async function getPlatformOpsSignals(id: string): Promise<PlatformOpsSign
       name: row.name,
       type: row.type,
       apiUrl: row.apiUrl,
-      apiKey: decryptApiKey(row.apiKeyEnc),
+      apiKey: await decryptField(row.apiKeyEnc),
     })
     return { found: true, supported: true, data }
   } catch (err) {

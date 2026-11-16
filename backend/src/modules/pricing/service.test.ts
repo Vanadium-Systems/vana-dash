@@ -6,7 +6,7 @@ import { inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { platforms, pricingConfigs } from '../../shared/db/schema/index.js'
-import { encryptApiKey } from '../../shared/lib/crypto.js'
+import { encryptField } from '../../shared/lib/crypto.js'
 import { getConfig, upsertConfig } from './service.js'
 
 const platformIds: string[] = []
@@ -14,7 +14,7 @@ const platformIds: string[] = []
 async function makePlatform(name: string) {
   const [row] = await db
     .insert(platforms)
-    .values({ name, type: 'qa-pricing-test', apiUrl: 'https://example.com', apiKeyEnc: encryptApiKey('x') })
+    .values({ name, type: 'qa-pricing-test', apiUrl: 'https://example.com', apiKeyEnc: await encryptField('x') })
     .returning()
   platformIds.push(row!.id)
   return row!

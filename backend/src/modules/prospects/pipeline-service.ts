@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull, lte, sql, type SQL } from 'drizzle-orm'
-import { db } from '../../shared/db/client.js'
+import { db, dbSubquery } from '../../shared/db/client.js'
 import { prospects, prospectStatuses } from '../../shared/db/schema/index.js'
 import { getCompany } from '../../shared/lib/company.js'
 import { isDisplayCurrency } from '../../shared/lib/locale.js'
@@ -47,7 +47,7 @@ export async function getBoard(me: Me, input: FilterInput, cardLimit = BOARD_PAG
 
   // A rate is read at today's BNR value: the board is a snapshot of what is open now, not a ledger.
   const converted = target ? displayAmountSql(prospects.valueAmount, prospects.valueCurrency, sql`now()`, target) : sql`NULL::numeric`
-  const ranked = db
+  const ranked = dbSubquery
     .select({
       id: prospects.id,
       rn: sql<number>`row_number() OVER (PARTITION BY ${prospects.status} ORDER BY ${nextDue} ASC NULLS LAST, ${prospects.score} DESC NULLS LAST, ${prospects.id})`.as('rn'),
@@ -72,7 +72,7 @@ export async function getBoard(me: Me, input: FilterInput, cardLimit = BOARD_PAG
     db
       .select(rowColumns(ctx))
       .from(prospects)
-      .where(inArray(prospects.id, db.select({ id: ranked.id }).from(ranked).where(lte(ranked.rn, cardLimit))))
+      .where(inArray(prospects.id, dbSubquery.select({ id: ranked.id }).from(ranked).where(lte(ranked.rn, cardLimit))))
       .orderBy(...cardOrder()),
   ])
 
@@ -169,7 +169,7 @@ export async function getFunnel(me: Me, input: FilterInput & { from: string; to:
   if (!stages.length) return { stages: [] }
 
   const values = sql.join(stages.map((s, i) => sql`(${s.key}::text, ${i}::int)`), sql`, `)
-  const visible = db.select({ id: prospects.id }).from(prospects).where(where)
+  const visible = dbSubquery.select({ id: prospects.id }).from(prospects).where(where)
   // The highest stage a prospect reached inside the interval; reaching stage 4 means passing 1-3.
   const rows = await db.execute<{ ord: number; reached: number }>(sql`
     WITH stages(key, ord) AS (VALUES ${values}),

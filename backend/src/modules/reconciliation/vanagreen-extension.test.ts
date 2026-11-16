@@ -15,7 +15,7 @@ import {
   platforms,
   vanagreenExtensionLog,
 } from '../../shared/db/schema/index.js'
-import { encryptApiKey } from '../../shared/lib/crypto.js'
+import { encryptField } from '../../shared/lib/crypto.js'
 
 const fetchTenantsMock = vi.fn()
 const fetchDemoTenantsMock = vi.fn()
@@ -78,7 +78,7 @@ async function makeVanagreenPlatform() {
       name: 'VanaGreen',
       type: 'vanagreen',
       apiUrl: 'https://vanagreen.example.com',
-      apiKeyEnc: encryptApiKey('plain-test-key'),
+      apiKeyEnc: await encryptField('plain-test-key'),
     })
     .returning()
   platformIds.push(row!.id)

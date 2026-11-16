@@ -19,6 +19,8 @@ export const config = {
   databaseUrlApp: process.env.DATABASE_URL_APP ?? '',
   jwtSecret: required('JWT_SECRET'),
   masterEncryptionKey: required('MASTER_ENCRYPTION_KEY'),
+  // Set only during a master key rotation (scripts/rotate-master-key.ts); see shared/lib/crypto.ts.
+  masterEncryptionKeyNext: process.env.MASTER_ENCRYPTION_KEY_NEXT ?? '',
   frontendOrigin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5174',
 
   // What a new person, a visitor before login and every job start with. Each person can then

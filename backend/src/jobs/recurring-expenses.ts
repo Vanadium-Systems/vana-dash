@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import * as accountingService from '../modules/accounting/service.js'
 
 // Zilnic: materializează fiecare recurring_expense activă și scadentă (nextDueDate <= azi) într-un
@@ -13,7 +14,7 @@ const CRON_EXPR = '30 7 * * *'
 
 export function startRecurringExpensesJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runRecurringExpensesJob()
+    void forEachTenant(() => runRecurringExpensesJob()).catch((err) => console.error('[recurring-expenses] failed:', err))
   })
   console.log(`[recurring-expenses] Scheduled (${CRON_EXPR})`)
 }

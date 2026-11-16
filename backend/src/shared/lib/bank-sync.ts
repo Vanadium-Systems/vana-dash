@@ -11,7 +11,8 @@ import {
   syncLog,
 } from '../db/schema/index.js'
 import { rollBillingDueDateOnPayment } from './billing-rollover.js'
-import { decryptApiKey } from './crypto.js'
+import { decryptField, hmacField } from './crypto.js'
+import { normalizeIban, protectIban } from './iban.js'
 import { AUTO_MATCH_THRESHOLD, scoreMatch } from './matching.js'
 import { sendPaymentConfirmationEmail } from './payment-confirmation.js'
 import { addPayment, isDraftSql, PaymentError, remainingSql } from './payments.js'
@@ -40,7 +41,7 @@ export async function runBankSync(account: BankAccountRow): Promise<void> {
     // zero `if (provider === 'revolut')` aici, doar consumăm interfața generică).
     const session = connector.prepareSession
       ? await connector.prepareSession(account.id)
-      : { accessToken: decryptApiKey(account.apiKeyEnc as string) }
+      : { accessToken: await decryptField(account.apiKeyEnc as string) }
     const accountConfig = {
       id: account.id,
       provider: account.provider,
@@ -56,16 +57,18 @@ export async function runBankSync(account: BankAccountRow): Promise<void> {
 
     const transactions = await connector.fetchTransactions(accountConfig, from, to)
     if (transactions.length > 0) {
+      const ibans = await Promise.all(transactions.map((t) => protectIban(t.counterpartyIban)))
       await db
         .insert(bankTransactions)
         .values(
-          transactions.map((t) => ({
+          transactions.map((t, i) => ({
             bankAccountId: account.id,
             externalId: t.externalId,
             amount: String(t.amount),
             currency: t.currency,
             counterpartyName: t.counterpartyName,
-            counterpartyIban: t.counterpartyIban,
+            counterpartyIbanEnc: ibans[i]!.enc,
+            counterpartyIbanHmac: ibans[i]!.hmac,
             reference: t.reference,
             valueDate: t.valueDate,
             direction: t.direction,
@@ -120,6 +123,7 @@ export async function autoMatchTransactions(): Promise<number> {
       currency: bankTransactions.currency,
       counterpartyName: bankTransactions.counterpartyName,
       counterpartyIban: bankTransactions.counterpartyIban,
+      counterpartyIbanHmac: bankTransactions.counterpartyIbanHmac,
       reference: bankTransactions.reference,
       valueDate: bankTransactions.valueDate,
     })
@@ -144,6 +148,7 @@ export async function autoMatchTransactions(): Promise<number> {
       documentNumber: financialRecords.documentNumber,
       counterpartyName: financialRecords.counterpartyName,
       clientIban: billingClients.iban,
+      clientIbanHmac: billingClients.ibanHmac,
       billingClientId: financialRecords.billingClientId,
       issuedAt: financialRecords.issuedAt,
     })
@@ -159,18 +164,24 @@ export async function autoMatchTransactions(): Promise<number> {
       ),
     )
 
+  // Rows written before scripts/encrypt-v1.ts ran still carry the IBAN in clear and no HMAC.
+  const hmacOf = async (stored: string | null, plain: string | null) =>
+    stored ?? (plain ? hmacField(normalizeIban(plain)) : null)
+  const txnHmacs = await Promise.all(unmatched.map((t) => hmacOf(t.counterpartyIbanHmac, t.counterpartyIban)))
+  const invoiceHmacs = await Promise.all(openInvoices.map((inv) => hmacOf(inv.clientIbanHmac, inv.clientIban)))
+
   let matched = 0
   const claimedInvoices = new Set<string>()
 
-  for (const txn of unmatched) {
+  for (const [txnIndex, txn] of unmatched.entries()) {
     let best: { invoiceId: string; billingClientId: string | null; issuedAt: Date; score: number } | null = null
-    for (const invoice of openInvoices) {
+    for (const [invoiceIndex, invoice] of openInvoices.entries()) {
       if (claimedInvoices.has(invoice.id)) continue
       const score = scoreMatch(
         {
           amount: Number(txn.amount),
           currency: txn.currency,
-          counterpartyIban: txn.counterpartyIban,
+          counterpartyIbanHmac: txnHmacs[txnIndex]!,
           counterpartyName: txn.counterpartyName,
           reference: txn.reference,
         },
@@ -179,7 +190,7 @@ export async function autoMatchTransactions(): Promise<number> {
           currency: invoice.currency,
           documentNumber: invoice.documentNumber,
           counterpartyName: invoice.counterpartyName,
-          clientIban: invoice.clientIban,
+          clientIbanHmac: invoiceHmacs[invoiceIndex]!,
         },
       )
       if (score >= AUTO_MATCH_THRESHOLD && (!best || score > best.score)) {

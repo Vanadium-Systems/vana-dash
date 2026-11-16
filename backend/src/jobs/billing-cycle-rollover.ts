@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, eq, isNotNull, isNull } from 'drizzle-orm'
 import { computeNextOccurrence, dayAfter, type BillingCycle } from '../shared/lib/billing-cycle.js'
 import { db } from '../shared/db/client.js'
@@ -32,7 +33,7 @@ function parseIsoDateUtc(value: string): Date | null {
 
 export function startBillingCycleRolloverJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runBillingCycleRolloverJob()
+    void forEachTenant(() => runBillingCycleRolloverJob()).catch((err) => console.error('[billing-cycle-rollover] failed:', err))
   })
   console.log(`[billing-cycle-rollover] Scheduled (${CRON_EXPR})`)
 }

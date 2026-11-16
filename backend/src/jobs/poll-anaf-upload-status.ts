@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm'
 import { anafConnector } from '../connectors/anaf/index.js'
 import { supplierParty } from '../connectors/anaf/supplier.js'
@@ -24,9 +25,7 @@ const CRON_EXPR = '*/10 * * * *'
 
 export function startAnafUploadPollJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void pollAnafUploadStatuses().catch((err) => {
-      console.error(`[poll-anaf-upload] ${String(err)}`)
-    })
+    void forEachTenant(() => pollAnafUploadStatuses()).catch((err) => console.error('[poll-anaf-upload] failed:', err))
   })
   console.log(`[poll-anaf-upload] Scheduled (${CRON_EXPR})`)
 }

@@ -7,7 +7,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { billingClients, dashboardConfig, platforms } from '../../shared/db/schema/index.js'
-import { encryptApiKey } from '../../shared/lib/crypto.js'
+import { encryptField } from '../../shared/lib/crypto.js'
 import { upsertConfig } from '../pricing/service.js'
 import {
   calculateSelfServeQuote,
@@ -63,7 +63,7 @@ function addonPrice(key: string): number {
 async function makeVanagreenPlatform() {
   const [row] = await db
     .insert(platforms)
-    .values({ name: 'QA VanaGreen', type: 'vanagreen', apiUrl: 'https://vanagreen.example.com', apiKeyEnc: encryptApiKey('x') })
+    .values({ name: 'QA VanaGreen', type: 'vanagreen', apiUrl: 'https://vanagreen.example.com', apiKeyEnc: await encryptField('x') })
     .returning()
   platformIds.push(row!.id)
   return row!

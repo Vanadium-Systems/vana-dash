@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { eq, isNotNull, sql as rawSql } from 'drizzle-orm'
 import { anafConnector } from '../connectors/anaf/index.js'
 import type { AnafInvoiceDocument } from '../connectors/types.js'
@@ -33,9 +34,9 @@ async function persistInvoiceDocuments(
 
 export function startAnafSyncJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runAnafSync().catch(() => {
-      /* deja logat în sync_log */
-    })
+    void forEachTenant(async () => {
+      await runAnafSync()
+    }).catch((err) => console.error('[sync-anaf] failed:', err))
   })
   console.log(`[sync-anaf] Scheduled (${CRON_EXPR})`)
 }

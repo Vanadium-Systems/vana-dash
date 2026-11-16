@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import * as archiveService from '../modules/archive/service.js'
 
 // Pe 1 ale lunii: pt. fiecare folder din Arhivă cu autoMonthlySubfolders activ (setat din UI,
@@ -11,7 +12,7 @@ const CRON_EXPR = '0 5 1 * *'
 
 export function startArchiveMonthlyFoldersJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runArchiveMonthlyFoldersJob()
+    void forEachTenant(() => runArchiveMonthlyFoldersJob()).catch((err) => console.error('[archive-monthly-folders] failed:', err))
   })
   console.log(`[archive-monthly-folders] Scheduled (${CRON_EXPR})`)
 }

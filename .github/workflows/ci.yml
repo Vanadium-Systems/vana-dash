@@ -64,13 +64,16 @@ jobs:
       - run: pnpm --filter @vana-dash/frontend test
 
   test-backend:
-    name: test (backend ${{ matrix.shard }}/3)
+    name: test (backend ${{ matrix.shard }}/3, RLS ${{ matrix.rls }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
+        # Production runs with RLS on, as the vanadash_app role; off stays covered until every
+        # installation has switched.
+        rls: [off, on]
 
     services:
       postgres:
@@ -101,4 +104,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate
       - run: pnpm db:seed
+      - if: matrix.rls == 'on'
+        run: bash scripts/rls-role.sh
+        env:
+          APP_DB_PASSWORD: ciThrowawayAppRolePassword2026
+          PSQL: psql -h localhost -p 5433 -U vanadash
+          PGPASSWORD: vanadash
+          DB: vanadash
+          OWNER: vanadash
       - run: pnpm --filter @vana-dash/backend exec vitest run --shard=${{ matrix.shard }}/3
+        env:
+          RLS_ENABLED: ${{ matrix.rls == 'on' }}
+          DATABASE_URL_APP: ${{ matrix.rls == 'on' && 'postgres://vanadash_app:ciThrowawayAppRolePassword2026@localhost:5433/vanadash' || '' }}

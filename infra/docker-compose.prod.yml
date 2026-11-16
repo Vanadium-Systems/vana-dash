@@ -37,6 +37,9 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-vanadash}
+      # The role of infra/rls-role.sql; used only with RLS_ENABLED=true (set in .env). Migrations
+      # and pg_dump keep DATABASE_URL.
+      DATABASE_URL_APP: postgres://vanadash_app:${APP_DB_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-vanadash}
       PORT: 3001
       JWT_SECRET: ${JWT_SECRET:?}
       MASTER_ENCRYPTION_KEY: ${MASTER_ENCRYPTION_KEY:?}

@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { getSecondaryHostSignals, SIGNAL_LABELS } from '../modules/monitoring/service.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
 import { tl, tr } from '../shared/lib/i18n.js'
@@ -12,7 +13,8 @@ const OFFLINE_AFTER_MS = 10 * 60 * 1000
 
 export function startServer1AlertsJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void checkServer1Alerts().catch((err) => console.error(`[server1-alerts] ${String(err)}`))
+    // Owner-only integration (the owner's server): runs as the platform owner, not per company.
+    void runAsTenant(getOwnerTenantId(), () => checkServer1Alerts()).catch((err) => console.error('[server1-alerts] failed:', err))
   })
   console.log(`[server1-alerts] Scheduled (${CRON_EXPR})`)
 }

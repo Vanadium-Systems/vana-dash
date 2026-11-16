@@ -9,7 +9,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { afterAll, afterEach, describe, expect, it } from 'vitest'
 import { db } from '../shared/db/client.js'
 import { alertRules, alerts, platforms } from '../shared/db/schema/index.js'
-import { encryptApiKey } from '../shared/lib/crypto.js'
+import { encryptField } from '../shared/lib/crypto.js'
 import { checkPlatformOpsAlerts } from './platform-ops-alerts.js'
 
 const platformIds: string[] = []
@@ -42,7 +42,7 @@ async function metricKeysForPlatforms() {
 async function createPlatform(apiUrl: string) {
   const [row] = await db
     .insert(platforms)
-    .values({ name: `QA ops-alerts ${Date.now()}`, type: 'vanagreen', apiUrl, apiKeyEnc: encryptApiKey('qa-fake-key') })
+    .values({ name: `QA ops-alerts ${Date.now()}`, type: 'vanagreen', apiUrl, apiKeyEnc: await encryptField('qa-fake-key') })
     .returning()
   platformIds.push(row!.id)
   return row!
@@ -130,7 +130,7 @@ describe('checkPlatformOpsAlerts', () => {
   it('ignoră o platformă al cărei connector nu implementează fetchOpsSignals', async () => {
     const [row] = await db
       .insert(platforms)
-      .values({ name: 'QA unsupported connector', type: 'nu-exista-asa-ceva', apiUrl: 'http://127.0.0.1:1', apiKeyEnc: encryptApiKey('x') })
+      .values({ name: 'QA unsupported connector', type: 'nu-exista-asa-ceva', apiUrl: 'http://127.0.0.1:1', apiKeyEnc: await encryptField('x') })
       .returning()
     platformIds.push(row!.id)
 

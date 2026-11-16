@@ -16,6 +16,8 @@ import {
   invoiceTemplates,
 } from '../../shared/db/schema/index.js'
 import { getAnafSession } from '../../shared/lib/anaf.js'
+import { decryptField } from '../../shared/lib/crypto.js'
+import { protectIban } from '../../shared/lib/iban.js'
 import { getCompany, getCompanyTimeZone } from '../../shared/lib/company.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
 import { generateInvoiceDocuments, renderInvoiceHtml } from '../../shared/lib/documents.js'
@@ -39,17 +41,34 @@ import { InvoicingError } from './errors.js'
 
 // ── Billing clients ──────────────────────────────────────────────────────────
 
+type ClientRow = typeof billingClients.$inferSelect
+
+// The IBAN is stored encrypted (iban_enc) with an HMAC for comparisons; the API and the documents
+// get it back as `iban`, as before. `iban` in the row is the plaintext left from before
+// scripts/encrypt-v1.ts, read only while that has not run.
+async function revealIban({ ibanEnc, ibanHmac: _ibanHmac, ...client }: ClientRow) {
+  return { ...client, iban: ibanEnc ? await decryptField(ibanEnc) : client.iban }
+}
+
+/** What to write for an IBAN given in an input: encrypted + HMAC, plaintext cleared. */
+async function ibanColumns(iban: string | null | undefined) {
+  if (iban === undefined) return {}
+  const { enc, hmac } = await protectIban(iban)
+  return { iban: null, ibanEnc: enc, ibanHmac: hmac }
+}
+
 // isDemo exclus aici — sunt scheletele sincronizate din tenanții demo vanagreen
 // (jobs/vanagreen-tenant-sync.ts), afișate SEPARAT în UI (ClientsTab.tsx, tabelul „Clienți
 // demo") ca să nu se amestece cu clienții reali în listă/dropdown-uri de facturare.
 // pendingDeletionAt exclus (2026-08-11) — tenant reziliat în vanagreen, afișat separat în
 // tabelul „Clienți în ștergere" (vezi listPendingDeletionClients mai jos).
 export async function listClients() {
-  return db
+  const rows = await db
     .select()
     .from(billingClients)
     .where(and(isNull(billingClients.deletedAt), eq(billingClients.isDemo, false), isNull(billingClients.pendingDeletionAt)))
     .orderBy(asc(billingClients.name))
+  return Promise.all(rows.map(revealIban))
 }
 
 /** The client picker of the invoice editor: who can issue invoices sees whom to bill, not the client file. */
@@ -62,11 +81,12 @@ export async function listClientsForInvoicing() {
 }
 
 export async function listDemoClients() {
-  return db
+  const rows = await db
     .select()
     .from(billingClients)
     .where(and(isNull(billingClients.deletedAt), eq(billingClients.isDemo, true), isNull(billingClients.pendingDeletionAt)))
     .orderBy(asc(billingClients.name))
+  return Promise.all(rows.map(revealIban))
 }
 
 /** Clienți al căror tenant vanagreen a fost reziliat (2026-08-11) — vor fi soft-deletați local
@@ -74,11 +94,12 @@ export async function listDemoClients() {
  *  purge-cron-ul din vanagreen. Tab separat ca Stefan să prindă din timp facturi neregularizate
  *  înainte de purjare. */
 export async function listPendingDeletionClients() {
-  return db
+  const rows = await db
     .select()
     .from(billingClients)
     .where(and(isNull(billingClients.deletedAt), isNotNull(billingClients.pendingDeletionAt)))
     .orderBy(asc(billingClients.pendingDeletionAt))
+  return Promise.all(rows.map(revealIban))
 }
 
 export async function getClient(id: string) {
@@ -86,7 +107,7 @@ export async function getClient(id: string) {
     .select()
     .from(billingClients)
     .where(and(eq(billingClients.id, id), isNull(billingClients.deletedAt)))
-  return row ?? null
+  return row ? revealIban(row) : null
 }
 
 // numeric(precision,scale) în drizzle cere string la insert/update — zod ne dă number.
@@ -106,9 +127,10 @@ function toNumericInput<T extends { subscriptionPriceLei?: number | null; subscr
 
 /** `executor` lets a caller create the client inside its own transaction (promoting a prospect). */
 export async function createClient(input: z.infer<typeof ClientCreateSchema>, executor: Pick<typeof db, 'insert'> = db) {
+  const { iban, ...rest } = input
   const [row] = await executor
     .insert(billingClients)
-    .values({ ...toNumericInput(input), ...createdByUserId(), ...updatedByUserId() })
+    .values({ ...toNumericInput(rest), ...(await ibanColumns(iban)), ...createdByUserId(), ...updatedByUserId() })
     .returning()
   await recordAudit({
     action: 'client.creat',
@@ -116,13 +138,14 @@ export async function createClient(input: z.infer<typeof ClientCreateSchema>, ex
     entityId: row?.id ?? null,
     changes: { name: [null, input.name] },
   })
-  return row
+  return row ? revealIban(row) : row
 }
 
 export async function updateClient(id: string, input: z.infer<typeof ClientUpdateSchema>) {
+  const { iban, ...rest } = input
   const [row] = await db
     .update(billingClients)
-    .set({ ...toNumericInput(input), updatedAt: new Date(), ...updatedByUserId() })
+    .set({ ...toNumericInput(rest), ...(await ibanColumns(iban)), updatedAt: new Date(), ...updatedByUserId() })
     .where(and(eq(billingClients.id, id), isNull(billingClients.deletedAt)))
     .returning()
   if (row) {
@@ -133,7 +156,7 @@ export async function updateClient(id: string, input: z.infer<typeof ClientUpdat
       changes: { fields: [null, Object.keys(input).join(', ')] },
     })
   }
-  return row ?? null
+  return row ? revealIban(row) : null
 }
 
 async function loadPricingPlan(id: string, input: ClientPricingInput) {
@@ -180,7 +203,7 @@ export async function applyClientPricing(id: string, input: ClientPricingInput) 
     .returning()
   if (!client) return null
   await recordAudit({ action: 'client.pret.aplicat', entityType: 'billing_client', entityId: id, changes: Object.fromEntries(changes.map((c) => [c.field, [c.from, c.to]])) })
-  return { client, changes, needsAddendum }
+  return { client: await revealIban(client), changes, needsAddendum }
 }
 
 /** Writes a prospect's saved offer on the client just created from it (no contract yet, so no addendum). */

@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, eq, isNull, not, or, lt, sql } from 'drizzle-orm'
 import { db } from '../shared/db/client.js'
 import { alertRules, alerts } from '../shared/db/schema/index.js'
@@ -15,7 +16,7 @@ const CRON_EXPR = '0 * * * *'
 
 export function startMetricAlertsJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void checkMetricAlerts().catch((err) => console.error(`[metric-alerts] ${String(err)}`))
+    void forEachTenant(() => checkMetricAlerts()).catch((err) => console.error('[metric-alerts] failed:', err))
   })
   console.log(`[metric-alerts] Scheduled (${CRON_EXPR})`)
 }

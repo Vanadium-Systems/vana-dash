@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import * as reportsService from '../modules/reports/service.js'
 import { config } from '../shared/config.js'
 import { sendEmail } from '../shared/lib/email.js'
@@ -11,7 +12,7 @@ const CRON_EXPR = '0 8 1 * *'
 
 export function startMonthlyReportEmailJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runMonthlyReportEmailJob().catch((err) => console.error(`[monthly-report-email] ${String(err)}`))
+    void forEachTenant(() => runMonthlyReportEmailJob()).catch((err) => console.error('[monthly-report-email] failed:', err))
   })
   console.log(`[monthly-report-email] Scheduled (${CRON_EXPR})`)
 }

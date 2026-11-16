@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, asc, eq, isNull, lt } from 'drizzle-orm'
 import { db } from '../shared/db/client.js'
 import { calls } from '../shared/db/schema/index.js'
@@ -17,7 +18,9 @@ export const CLOSE_BATCH = 20
 export function startCallsCloseJob(): void {
   if (!isDailyConfigured()) return
   cron.schedule(CRON_EXPR, () => {
-    void runCallsClose().catch((err) => console.error(`[calls-close] ${String(err)}`))
+    void forEachTenant(async () => {
+      await runCallsClose()
+    }).catch((err) => console.error('[calls-close] failed:', err))
   })
   console.log(`[calls-close] Scheduled (${CRON_EXPR})`)
 }

@@ -26,7 +26,7 @@ import {
 import { loadSessionUser, DEFAULT_NOTIFICATION_PREFS, type SessionUser } from '../../shared/lib/session.js'
 import { AcceptInviteSchema, ChangePasswordSchema, ConfirmPasswordSchema, SessionFamilyParamsSchema, ForgotPasswordSchema, LoginBodySchema, PatchMeSchema, ResetPasswordSchema } from './schema.js'
 import { isDemoInstall, verifyCredentials } from './service.js'
-import { withRlsBypass } from '../../shared/lib/tenancy.js'
+import { getOwnerTenantId, runAsTenant, withRlsBypass } from '../../shared/lib/tenancy.js'
 
 export const SESSION_COOKIE = 'vana_session'
 // The access cookie outlives its JWT (15 minutes) so the browser keeps sending it; an expired JWT
@@ -104,9 +104,15 @@ async function signAccess(reply: FastifyReply, user: { id: string; sessionVersio
   )
 }
 
+/** Runs `fn` in the person's own company. Sessions, password and devices live there, also while a
+ *  platform admin looks at another company (X-Tenant-Id moves the request's context, not these). */
+function asHome<T>(me: Pick<SessionUser, 'tenant'>, fn: () => Promise<T>): Promise<T> {
+  return runAsTenant(me.tenant?.id ?? getOwnerTenantId(), fn)
+}
+
 /** Starts a login session (new family) and sets both cookies. */
 async function issueSession(req: FastifyRequest, reply: FastifyReply, me: SessionUser, passwordTyped = true) {
-  const { sessionId, refreshToken } = await withRlsBypass(() =>
+  const { sessionId, refreshToken } = await asHome(me, () =>
     startSession(me.id, me.sessionVersion, { ip: req.ip, userAgent: req.headers['user-agent'] }, passwordTyped),
   )
   const accessJwt = await signAccess(reply, { id: me.id, sessionVersion: me.sessionVersion, tenantId: me.tenant?.id }, sessionId)
@@ -138,6 +144,7 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.code(401).send({ success: false, error: tr('errors.auth.invalidCredentials') })
       }
 
+      // One user by id, read before any company is in the context; the company comes from the row.
       const me = await withRlsBypass(() => loadSessionUser(user.id))
       if (!me) return reply.code(401).send({ success: false, error: tr('errors.auth.invalidCredentials') })
 
@@ -148,7 +155,7 @@ export async function authRoutes(app: FastifyInstance) {
 
   server.post('/api/auth/logout', { preHandler: [app.authenticate] }, async (req, reply) => {
     const familyId = req.session?.familyId
-    if (familyId) await withRlsBypass(() => revokeFamily(familyId, 'logout'))
+    if (familyId) await asHome(req.me, () => revokeFamily(familyId, 'logout'))
     return clearAuthCookies(reply).send({ success: true })
   })
 
@@ -162,6 +169,8 @@ export async function authRoutes(app: FastifyInstance) {
       const unauthorized = () => clearAuthCookies(reply).code(401).send({ success: false, error: 'SESSION_EXPIRED' })
       if (!presented) return unauthorized()
 
+      // No access token, so no company yet: the refresh token's row says which one. Looked up by
+      // the hash of a random secret.
       const result = await withRlsBypass(() => rotateSession(presented, { ip: req.ip, userAgent: req.headers['user-agent'] }))
       if (result.kind === 'reuse') {
         await recordAudit({ action: 'sesiune.refolosita', entityType: 'user', entityId: result.userId, actorUserId: null })
@@ -170,10 +179,10 @@ export async function authRoutes(app: FastifyInstance) {
       if (result.kind === 'invalid') return unauthorized()
 
       const session = result.session
-      const me = await withRlsBypass(() => loadSessionUser(session.userId))
+      const me = await runAsTenant(session.tenantId, () => loadSessionUser(session.userId))
       const tenantBlocked = me?.tenant && me.tenant.status !== 'active' && !me.tenant.isPlatformOwner
       if (!me || me.status !== 'active' || me.sessionVersion !== session.sessionVersion || tenantBlocked) {
-        await withRlsBypass(() => revokeFamily(session.familyId, me?.status === 'active' ? 'password' : 'disabled'))
+        await runAsTenant(session.tenantId, () => revokeFamily(session.familyId, me?.status === 'active' ? 'password' : 'disabled'))
         return unauthorized()
       }
       const accessJwt = await signAccess(reply, { id: me.id, sessionVersion: me.sessionVersion, tenantId: me.tenant?.id }, session.id)
@@ -200,18 +209,18 @@ export async function authRoutes(app: FastifyInstance) {
       schema: { body: ConfirmPasswordSchema },
     },
     async (req, reply) => {
-      const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id))
+      const [row] = await asHome(req.me, () => db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id)))
       if (!row || !(await argon2.verify(row.passwordHash, req.body.password))) {
         return reply.code(401).send({ success: false, error: tr('errors.auth.currentPasswordWrong') })
       }
       const familyId = req.session?.familyId
-      if (familyId) await withRlsBypass(() => markPasswordConfirmed(familyId))
+      if (familyId) await asHome(req.me, () => markPasswordConfirmed(familyId))
       return reply.send({ success: true })
     },
   )
 
   server.get('/api/me/sessions', { preHandler: [app.authenticate] }, async (req) => {
-    const devices = await withRlsBypass(() => listUserDevices(req.me.id))
+    const devices = await asHome(req.me, () => listUserDevices(req.me.id))
     return { success: true, data: devices.map((device) => ({ ...device, current: device.familyId === req.session?.familyId })) }
   })
 
@@ -219,18 +228,18 @@ export async function authRoutes(app: FastifyInstance) {
     '/api/me/sessions/:familyId',
     { preHandler: [app.authenticate], schema: { params: SessionFamilyParamsSchema } },
     async (req, reply) => {
-      const devices = await withRlsBypass(() => listUserDevices(req.me.id))
+      const devices = await asHome(req.me, () => listUserDevices(req.me.id))
       // Someone else's session (or one already gone) answers 404, as for any personal object.
       if (!devices.some((device) => device.familyId === req.params.familyId)) {
         return reply.code(404).send({ success: false, error: tr('errors.auth.sessionNotFound') })
       }
-      await withRlsBypass(() => revokeFamily(req.params.familyId, 'logout'))
+      await asHome(req.me, () => revokeFamily(req.params.familyId, 'logout'))
       return reply.send({ success: true })
     },
   )
 
   server.post('/api/me/sessions/revoke-others', { preHandler: [app.authenticate] }, async (req, reply) => {
-    await withRlsBypass(() => revokeUserSessions(req.me.id, 'logout', req.session?.familyId))
+    await asHome(req.me, () => revokeUserSessions(req.me.id, 'logout', req.session?.familyId))
     return reply.send({ success: true })
   })
 
@@ -281,10 +290,13 @@ export async function passwordRoutes(app: FastifyInstance) {
     { bodyLimit: PUBLIC_BODY_LIMIT, config: { rateLimit: { max: 5, timeWindow: '1 minute' } }, schema: { body: ForgotPasswordSchema } },
     async (req, reply) => {
       const { email } = req.body
-      const [user] = await db
-        .select({ id: users.id, email: users.email, displayName: users.displayName, status: users.status, locale: users.locale })
-        .from(users)
-        .where(and(eq(users.email, email.toLowerCase()), isNull(users.deletedAt)))
+      // No session: the address is unique across companies, and the row says whose it is.
+      const [user] = await withRlsBypass(() =>
+        db
+          .select({ id: users.id, email: users.email, displayName: users.displayName, status: users.status, locale: users.locale, tenantId: users.tenantId })
+          .from(users)
+          .where(and(eq(users.email, email.toLowerCase()), isNull(users.deletedAt))),
+      )
       // Same answer whether the address has an account or not. The email goes out after the
       // reply: awaiting it made a known address slower than an unknown one, and a provider
       // error turned into a 500 only for addresses that exist.
@@ -306,7 +318,7 @@ export async function passwordRoutes(app: FastifyInstance) {
             ].join('\n'),
           })
         }
-        void sendResetLink().catch((err) => req.log.error({ err }, '[auth] reset email not sent'))
+        void runAsTenant(user.tenantId, sendResetLink).catch((err) => req.log.error({ err }, '[auth] reset email not sent'))
       }
       return reply.code(204).send()
     },
@@ -326,14 +338,17 @@ export async function passwordRoutes(app: FastifyInstance) {
       if ('error' in consumed) {
         return reply.code(400).send({ success: false, error: { code: 'RESET_TOKEN_EXPIRED' } })
       }
-      // sv++ invalidează toate sesiunile, inclusiv cea din care s-a cerut resetarea.
-      await db
-        .update(users)
-        .set({ passwordHash: await argon2.hash(password), sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: new Date() })
-        .where(eq(users.id, consumed.userId))
-      await revokeUserApiTokens(consumed.userId)
-      await withRlsBypass(() => revokeUserSessions(consumed.userId, 'password'))
-      await recordAudit({ action: 'parola.resetata', entityType: 'user', entityId: consumed.userId })
+      const passwordHash = await argon2.hash(password)
+      await runAsTenant(consumed.tenantId, async () => {
+        // sv++ invalidează toate sesiunile, inclusiv cea din care s-a cerut resetarea.
+        await db
+          .update(users)
+          .set({ passwordHash, sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: new Date() })
+          .where(eq(users.id, consumed.userId))
+        await revokeUserApiTokens(consumed.userId)
+        await revokeUserSessions(consumed.userId, 'password')
+        await recordAudit({ action: 'parola.resetata', entityType: 'user', entityId: consumed.userId })
+      })
       return reply.code(204).send()
     },
   )
@@ -353,32 +368,34 @@ export async function passwordRoutes(app: FastifyInstance) {
         const code = consumed.error === 'TOKEN_USED' ? 'INVITE_USED' : 'INVITE_EXPIRED'
         return reply.code(400).send({ success: false, error: { code } })
       }
-      const [existing] = await db
-        .select({ status: users.status })
-        .from(users)
-        .where(and(eq(users.id, consumed.userId), isNull(users.deletedAt)))
-      // Omul a fost dezactivat între invitare și acceptare: linkul nu mai aduce nimic, altfel
-      // ar putea să-și redea singur accesul în aplicație.
-      if (!existing || existing.status === 'disabled') {
-        return reply.code(400).send({ success: false, error: { code: 'INVITE_EXPIRED' } })
-      }
-      const [user] = await db
-        .update(users)
-        .set({
-          passwordHash: await argon2.hash(password),
-          status: 'active',
-          sessionVersion: sql`${users.sessionVersion} + 1`,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, consumed.userId))
-        .returning()
-      if (!user) return reply.code(400).send({ success: false, error: { code: 'INVITE_EXPIRED' } })
+      return runAsTenant(consumed.tenantId, async () => {
+        const [existing] = await db
+          .select({ status: users.status })
+          .from(users)
+          .where(and(eq(users.id, consumed.userId), isNull(users.deletedAt)))
+        // Omul a fost dezactivat între invitare și acceptare: linkul nu mai aduce nimic, altfel
+        // ar putea să-și redea singur accesul în aplicație.
+        if (!existing || existing.status === 'disabled') {
+          return reply.code(400).send({ success: false, error: { code: 'INVITE_EXPIRED' } })
+        }
+        const [user] = await db
+          .update(users)
+          .set({
+            passwordHash: await argon2.hash(password),
+            status: 'active',
+            sessionVersion: sql`${users.sessionVersion} + 1`,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, consumed.userId))
+          .returning()
+        if (!user) return reply.code(400).send({ success: false, error: { code: 'INVITE_EXPIRED' } })
 
-      // Loghează omul imediat după acceptare — altfel ar trebui să scrie parola a doua oară.
-      const me = await withRlsBypass(() => loadSessionUser(user.id))
-      await recordAudit({ action: 'echipa.invitatie.acceptata', entityType: 'user', entityId: user.id })
-      if (me) await issueSession(req, reply, me)
-      return reply.send({ success: true, data: me ? sessionPayload(me) : null })
+        // Loghează omul imediat după acceptare — altfel ar trebui să scrie parola a doua oară.
+        const me = await loadSessionUser(user.id)
+        await recordAudit({ action: 'echipa.invitatie.acceptata', entityType: 'user', entityId: user.id })
+        if (me) await issueSession(req, reply, me)
+        return reply.send({ success: true, data: me ? sessionPayload(me) : null })
+      })
     },
   )
 
@@ -414,30 +431,33 @@ export async function passwordRoutes(app: FastifyInstance) {
   })
 
   server.post('/api/auth/me/password', { preHandler: [app.authenticate] }, async (req, reply) => {
-    const parsed = ChangePasswordSchema.safeParse(req.body)
-    if (!parsed.success) {
-      return reply.code(400).send({ success: false, error: tr('errors.auth.newPasswordInvalid') })
-    }
-    const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id))
-    if (!row || !(await argon2.verify(row.passwordHash, parsed.data.currentPassword))) {
-      return reply.code(401).send({ success: false, error: tr('errors.auth.currentPasswordWrong') })
-    }
-    const weak = assertPasswordStrength(parsed.data.newPassword)
-    if (weak) return reply.code(400).send({ success: false, error: weak })
+    // The person's own company: a platform admin looking at another one changes their own password.
+    return asHome(req.me, async () => {
+      const parsed = ChangePasswordSchema.safeParse(req.body)
+      if (!parsed.success) {
+        return reply.code(400).send({ success: false, error: tr('errors.auth.newPasswordInvalid') })
+      }
+      const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id))
+      if (!row || !(await argon2.verify(row.passwordHash, parsed.data.currentPassword))) {
+        return reply.code(401).send({ success: false, error: tr('errors.auth.currentPasswordWrong') })
+      }
+      const weak = assertPasswordStrength(parsed.data.newPassword)
+      if (weak) return reply.code(400).send({ success: false, error: weak })
 
-    // sv++ delogă celelalte dispozitive; sesiunea curentă rămâne validă doar dacă tokenul
-    // poartă noua valoare — de aceea semnăm un token nou mai jos.
-    const nextVersion = req.me.sessionVersion + 1
-    await db
-      .update(users)
-      .set({ passwordHash: await argon2.hash(parsed.data.newPassword), sessionVersion: nextVersion, updatedAt: new Date() })
-      .where(eq(users.id, req.me.id))
-    await revokeUserApiTokens(req.me.id)
-    await recordAudit({ action: 'parola.schimbata', entityType: 'user', entityId: req.me.id })
+      // sv++ delogă celelalte dispozitive; sesiunea curentă rămâne validă doar dacă tokenul
+      // poartă noua valoare — de aceea semnăm un token nou mai jos.
+      const nextVersion = req.me.sessionVersion + 1
+      await db
+        .update(users)
+        .set({ passwordHash: await argon2.hash(parsed.data.newPassword), sessionVersion: nextVersion, updatedAt: new Date() })
+        .where(eq(users.id, req.me.id))
+      await revokeUserApiTokens(req.me.id)
+      await recordAudit({ action: 'parola.schimbata', entityType: 'user', entityId: req.me.id })
 
-    // Every other device is logged out (session_version moved on); this one starts a fresh family.
-    await withRlsBypass(() => revokeUserSessions(req.me.id, 'password'))
-    await issueSession(req, reply, { ...req.me, sessionVersion: nextVersion })
-    return reply.send({ success: true, data: { otherSessionsRevoked: true } })
+      // Every other device is logged out (session_version moved on); this one starts a fresh family.
+      await revokeUserSessions(req.me.id, 'password')
+      await issueSession(req, reply, { ...req.me, sessionVersion: nextVersion })
+      return reply.send({ success: true, data: { otherSessionsRevoked: true } })
+    })
   })
 }

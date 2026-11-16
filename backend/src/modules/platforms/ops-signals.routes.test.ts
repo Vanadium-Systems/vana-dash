@@ -10,7 +10,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { platforms, users, roles } from '../../shared/db/schema/index.js'
-import { encryptApiKey } from '../../shared/lib/crypto.js'
+import { encryptField } from '../../shared/lib/crypto.js'
 
 // Rolul Admin (seedat de migrare) ca user de test să vadă tot, ca Stefan.
 const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))
@@ -51,7 +51,7 @@ describe('GET /api/platforms/:id/ops-signals', () => {
         name: 'QA no-ops-signals',
         type: 'nu-exista-un-asa-connector',
         apiUrl: 'http://127.0.0.1:1',
-        apiKeyEnc: encryptApiKey('fake-key'),
+        apiKeyEnc: await encryptField('fake-key'),
       })
       .returning()
     platformIds.push(platform!.id)
@@ -72,7 +72,7 @@ describe('GET /api/platforms/:id/ops-signals', () => {
         name: 'QA vanagreen unreachable',
         type: 'vanagreen',
         apiUrl: 'http://127.0.0.1:1',
-        apiKeyEnc: encryptApiKey('fake-key'),
+        apiKeyEnc: await encryptField('fake-key'),
       })
       .returning()
     platformIds.push(platform!.id)

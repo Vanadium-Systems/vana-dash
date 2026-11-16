@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { and, eq, isNull } from 'drizzle-orm'
 import * as invoicingService from '../modules/invoicing/service.js'
 import { db } from '../shared/db/client.js'
@@ -27,7 +28,8 @@ const CRON_EXPR = '30 11 * * *'
 
 export function startVanagreenBillingJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runVanagreenBillingJob()
+    // Owner-only integration (VanaGreen integration): runs as the platform owner, not per company.
+    void runAsTenant(getOwnerTenantId(), () => runVanagreenBillingJob()).catch((err) => console.error('[vanagreen-billing] failed:', err))
   })
   console.log(`[vanagreen-billing] Scheduled (${CRON_EXPR})`)
 }

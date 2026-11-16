@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
+import { withRlsBypass } from '../../shared/lib/tenancy.js'
 import { billingClients, calls, prospects } from '../../shared/db/schema/index.js'
 import { callPublicUrl, closeCallRoom, openCallRoom, type CallRecord } from '../../shared/lib/call-rooms.js'
 import { createOwnerToken, DailyError, isDailyConfigured } from '../../shared/lib/daily.js'
@@ -149,7 +150,14 @@ export async function endCall(me: SessionUser, id: string): Promise<CallRow> {
 export async function getPublicCall(
   publicId: string,
 ): Promise<{ status: 'open' | 'ended'; opensAt: string | null; closesAt: string; roomUrl: string | null } | null> {
-  const [call] = await db.select().from(calls).where(and(eq(calls.publicId, publicId), isNull(calls.deletedAt)))
+  // The guest has no account, so no company: the link itself is the key (unique, random), and
+  // only the time window leaves this function.
+  const [call] = await withRlsBypass(() =>
+    db
+      .select({ status: calls.status, scheduledAt: calls.scheduledAt, expiresAt: calls.expiresAt, roomUrl: calls.roomUrl })
+      .from(calls)
+      .where(and(eq(calls.publicId, publicId), isNull(calls.deletedAt))),
+  )
   if (!call) return null
 
   const isOpen = call.status === 'open' && call.expiresAt.getTime() > Date.now()

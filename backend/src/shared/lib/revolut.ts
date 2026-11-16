@@ -3,7 +3,7 @@ import { refreshTokens } from '../../connectors/revolut/oauth.js'
 import type { RevolutTokens } from '../../connectors/revolut/types.js'
 import { db } from '../db/client.js'
 import { bankAccounts } from '../db/schema/index.js'
-import { decryptApiKey, encryptApiKey } from './crypto.js'
+import { decryptField, encryptField } from './crypto.js'
 import { sendAlertEmail } from './email.js'
 import { tr } from './i18n.js'
 
@@ -28,8 +28,8 @@ export async function saveRevolutTokens(accountId: string, tokens: RevolutTokens
   await db
     .update(bankAccounts)
     .set({
-      accessTokenEnc: encryptApiKey(tokens.accessToken),
-      refreshTokenEnc: encryptApiKey(tokens.refreshToken),
+      accessTokenEnc: await encryptField(tokens.accessToken),
+      refreshTokenEnc: await encryptField(tokens.refreshToken),
       tokenExpiresAt: tokens.expiresAt,
       lastRefreshedAt: new Date(),
       authStatus: 'active',
@@ -76,12 +76,12 @@ export async function getRevolutSession(accountId: string): Promise<{ accessToke
 
   const needsRefresh = !row.tokenExpiresAt || row.tokenExpiresAt.getTime() - Date.now() < REFRESH_MARGIN_MS
   if (!needsRefresh) {
-    return { accessToken: decryptApiKey(row.accessTokenEnc) }
+    return { accessToken: await decryptField(row.accessTokenEnc) }
   }
 
   try {
-    const refreshToken = decryptApiKey(row.refreshTokenEnc)
-    const privateKeyPem = decryptApiKey(row.privateKeyEnc)
+    const refreshToken = await decryptField(row.refreshTokenEnc)
+    const privateKeyPem = await decryptField(row.privateKeyEnc)
     const tokens = await refreshTokens(refreshToken, row.clientId, privateKeyPem)
     await saveRevolutTokens(accountId, tokens)
     return { accessToken: tokens.accessToken }

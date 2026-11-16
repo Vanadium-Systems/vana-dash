@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, eq, isNull, lte } from 'drizzle-orm'
 import { db } from '../shared/db/client.js'
 import { assistantConversations, dashboardConfig, scheduledRuns, users } from '../shared/db/schema/index.js'
@@ -158,7 +159,7 @@ export function startScheduledTickJob(): void {
   cron.schedule(CRON_EXPR, () => {
     if (ticking) return
     ticking = true
-    void runScheduledTick()
+    void forEachTenant(() => runScheduledTick()).catch((err) => console.error('[scheduled-tick] failed:', err))
       .catch((err) => console.error(`[scheduled-tick] ${String(err)}`))
       .finally(() => {
         ticking = false
@@ -166,5 +167,5 @@ export function startScheduledTickJob(): void {
   })
   console.log(`[scheduled-tick] Scheduled (${CRON_EXPR})`)
   // Recuperare pending-uri pierdute în downtime — tick-ul de boot le execută exact o dată.
-  void runScheduledTick().catch((err) => console.error(`[scheduled-tick] recuperare boot: ${String(err)}`))
+  void forEachTenant(() => runScheduledTick()).catch((err) => console.error(`[scheduled-tick] recuperare boot: ${String(err)}`))
 }

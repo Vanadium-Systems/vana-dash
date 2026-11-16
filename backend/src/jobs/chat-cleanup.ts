@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { purgeUnattachedAttachments } from '../modules/chat/attachments.js'
 
 // Atașamentele încărcate în Mesaje dar niciodată trimise (composerul închis, uploadul
@@ -8,7 +9,7 @@ const CRON_EXPR = '17 4 * * *'
 
 export function startChatCleanupJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runChatCleanupJob()
+    void forEachTenant(() => runChatCleanupJob()).catch((err) => console.error('[chat-cleanup] failed:', err))
   })
   console.log(`[chat-cleanup] Scheduled (${CRON_EXPR})`)
 }

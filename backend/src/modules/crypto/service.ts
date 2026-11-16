@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { cryptoExchanges, cryptoPaperOrders, dashboardConfig, platforms, platformMetrics } from '../../shared/db/schema/index.js'
-import { decryptApiKey, encryptApiKey } from '../../shared/lib/crypto.js'
+import { decryptField, encryptField } from '../../shared/lib/crypto.js'
 import * as coingecko from './coingecko.js'
 import type { MarketCoin } from './coingecko.js'
 import * as binance from './binance.js'
@@ -152,7 +152,7 @@ export async function ensureCryptoPlatform(): Promise<string> {
       name: 'Crypto',
       type: 'crypto',
       apiUrl: 'https://api.coingecko.com',
-      apiKeyEnc: encryptApiKey(''),
+      apiKeyEnc: await encryptField(''),
       syncCron: '*/5 * * * *',
       healthStatus: 'healthy',
     })
@@ -202,9 +202,9 @@ export interface ExchangeStatus {
   connectedAt: string
 }
 
-function maskKey(apiKeyEnc: string): string {
+async function maskKey(apiKeyEnc: string): Promise<string> {
   try {
-    const plain = decryptApiKey(apiKeyEnc)
+    const plain = await decryptField(apiKeyEnc)
     return plain.length <= 8 ? '****' : `****${plain.slice(-4)}`
   } catch {
     return '****'
@@ -217,13 +217,13 @@ export async function listExchanges(): Promise<ExchangeStatus[]> {
     .from(cryptoExchanges)
     .where(isNull(cryptoExchanges.deletedAt))
     .orderBy(desc(cryptoExchanges.createdAt))
-  return rows.map((r) => ({
+  return Promise.all(rows.map(async (r) => ({
     exchange: r.exchange,
     mode: r.mode,
     enabled: r.enabled,
-    apiKeyMasked: maskKey(r.apiKeyEnc),
+    apiKeyMasked: await maskKey(r.apiKeyEnc),
     connectedAt: r.createdAt.toISOString(),
-  }))
+  })))
 }
 
 export async function connectExchange(input: {
@@ -237,8 +237,8 @@ export async function connectExchange(input: {
     .insert(cryptoExchanges)
     .values({
       exchange: input.exchange,
-      apiKeyEnc: encryptApiKey(input.apiKey),
-      apiSecretEnc: encryptApiKey(input.apiSecret),
+      apiKeyEnc: await encryptField(input.apiKey),
+      apiSecretEnc: await encryptField(input.apiSecret),
       mode: input.mode,
       enabled: input.enabled,
     })
@@ -277,8 +277,8 @@ async function getEnabledExchange(exchange: 'binance' | 'binance_testnet'): Prom
   return row ?? null
 }
 
-function keysOf(row: ExchangeRow): binance.BinanceKeys {
-  return { apiKey: decryptApiKey(row.apiKeyEnc), apiSecret: decryptApiKey(row.apiSecretEnc) }
+async function keysOf(row: ExchangeRow): Promise<binance.BinanceKeys> {
+  return { apiKey: await decryptField(row.apiKeyEnc), apiSecret: await decryptField(row.apiSecretEnc) }
 }
 
 // ── Ordine ────────────────────────────────────────────────────────────────────
@@ -362,7 +362,7 @@ export async function placeOrder(input: {
 
   // Live — kill-switch obligatoriu (fail-closed: lipsă config = blocat).
   if (!(await isTradingEnabled())) throw new Error(tr('errors.trading.liveOff'))
-  const result = await binance.placeOrder(input.exchange, keysOf(row), {
+  const result = await binance.placeOrder(input.exchange, await keysOf(row), {
     symbol: input.symbol,
     side: input.side.toUpperCase() as 'BUY' | 'SELL',
     type: input.type.toUpperCase() as 'MARKET' | 'LIMIT',
@@ -439,7 +439,7 @@ export async function listTrades(exchangeName: 'binance' | 'binance_testnet', sy
 
   if (row.mode === 'live') {
     if (!symbol) throw new Error(tr('errors.trading.liveHistoryNeedsSymbol'))
-    const trades = await binance.myTrades(exchangeName, keysOf(row), symbol, 50)
+    const trades = await binance.myTrades(exchangeName, await keysOf(row), symbol, 50)
     return trades.map((t) => ({
       source: 'live',
       symbol,
@@ -529,7 +529,7 @@ export async function getPortfolio(exchangeName: 'binance' | 'binance_testnet'):
   if (row.mode === 'live') {
     // Balance-urile Binance sunt per asset (BTC, ETH, USDT...). Le prețuiesc pe perechea
     // <ASSET>USDT când există; USDT în sine = 1 USD, restul fără pereche rămân neevaluați.
-    const balances = await binance.getAccountBalances(exchangeName, keysOf(row))
+    const balances = await binance.getAccountBalances(exchangeName, await keysOf(row))
     for (const b of balances) {
       const qty = b.free + b.locked
       if (qty <= 0) continue

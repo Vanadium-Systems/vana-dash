@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, eq, isNull } from 'drizzle-orm'
 import { alertRules } from '../shared/db/schema/index.js'
 import { db } from '../shared/db/client.js'
@@ -88,7 +89,9 @@ export async function runCryptoPriceSync(): Promise<number> {
 
 export function startCryptoPriceSyncJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void runCryptoPriceSync().catch((err) => console.error(`[crypto-price-sync] ${String(err)}`))
+    void forEachTenant(async () => {
+      await runCryptoPriceSync()
+    }).catch((err) => console.error('[crypto-price-sync] failed:', err))
   })
   console.log(`[crypto-price-sync] Scheduled (${CRON_EXPR})`)
 }

@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, eq, gte, ilike, isNull, or, sql } from 'drizzle-orm'
 import { parseForm150Email, parseSpvDocumentsEmail, type SpvNotificationItem } from '../connectors/anaf/spv-notifications.js'
 import { confirmFilingFromReceipt } from '../modules/accounting/d301.js'
@@ -21,7 +22,9 @@ const DECLARATIONS_WITH_FILINGS = new Set(['D301', 'D390'])
 
 export function startSpvNotificationsJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void processSpvNotifications().catch((err) => console.error(`[spv-notifications] ${String(err)}`))
+    void forEachTenant(async () => {
+      await processSpvNotifications()
+    }).catch((err) => console.error('[spv-notifications] failed:', err))
   })
   console.log(`[spv-notifications] Scheduled (${CRON_EXPR})`)
 }

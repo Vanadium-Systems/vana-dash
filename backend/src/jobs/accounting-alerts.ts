@@ -1,4 +1,5 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, desc, eq, isNull, like, lt, sql } from 'drizzle-orm'
 import { generateD301Preview, generateD390Preview } from '../modules/accounting/d301.js'
 import { db } from '../shared/db/client.js'
@@ -71,7 +72,7 @@ const ACCOUNTING_RULES = [
 
 export function startAccountingAlertsJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void checkAccountingAlerts().catch((err) => console.error(`[accounting-alerts] ${String(err)}`))
+    void forEachTenant(() => checkAccountingAlerts()).catch((err) => console.error('[accounting-alerts] failed:', err))
   })
   console.log(`[accounting-alerts] Scheduled (${CRON_EXPR})`)
 }

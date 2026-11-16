@@ -1,4 +1,5 @@
 import cron, { type ScheduledTask } from '../shared/lib/cron.js'
+import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { isNull } from 'drizzle-orm'
 import { getConnector } from '../connectors/index.js'
 import { db } from '../shared/db/client.js'
@@ -40,7 +41,8 @@ export async function rescheduleSyncJobs(): Promise<void> {
     }
     const task = cron.schedule(platform.syncCron, () => {
       // runConnectorSync nu aruncă niciodată (failure izolat în sync_log)
-      void runConnectorSync(platform)
+      // Owner-only integration (platforms are owner-only): runs as the platform owner, not per company.
+      void runAsTenant(getOwnerTenantId(), () => runConnectorSync(platform)).catch((err) => console.error('[sync-runner] failed:', err))
     })
     jobs.set(platform.id, task)
   }

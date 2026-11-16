@@ -4,6 +4,19 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-16: Per-company encryption keys and row-level security
+
+### Added
+- Envelope encryption: each company has a data key in `tenant_keys`, wrapped with `MASTER_ENCRYPTION_KEY`. Secrets are stored as `v1:<keyId>:<payload>`; values from before still decrypt until `scripts/encrypt-v1.ts` converts them (`--dry-run` counts first).
+- Master key rotation without touching the data: set `MASTER_ENCRYPTION_KEY_NEXT`, run `scripts/rotate-master-key.ts`, then swap the keys. The script refuses while unconverted values remain.
+- Client and counterparty IBANs are stored encrypted, with an HMAC for matching; the API still returns `iban` / `counterpartyIban` as before.
+- `infra/rls-role.sql` + `scripts/rls-role.sh` create the `vanadash_app` role (no superuser, no `BYPASSRLS`); `deploy-prod.sh` runs it when `APP_DB_PASSWORD` is set. Migration 0102 forces RLS on every company table, and a test keeps it that way.
+- CI runs the backend suite a second time with `RLS_ENABLED=true` as `vanadash_app`.
+
+### Fixed
+- With `RLS_ENABLED=true`, raw `db.execute` queries (archive folders, calendar, prospect reports) ran without a company and returned nothing; two subqueries built from `db` recursed forever.
+- With a second company: invitation, password reset, forgot-password and session refresh now run as the token's company; sessions, devices and password changes stay in the person's own company while a platform admin views another one. Cron jobs run once per company, or as the owner for owner-only integrations.
+
 ## 2026-11-16: Per-user colour palettes
 
 ### Added

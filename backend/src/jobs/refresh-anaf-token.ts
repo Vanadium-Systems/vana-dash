@@ -1,7 +1,8 @@
 import cron from '../shared/lib/cron.js'
+import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { refreshTokens } from '../connectors/anaf/oauth.js'
 import { getAnafCredentialsRow, markNeedsReauth, saveAnafTokens } from '../shared/lib/anaf.js'
-import { decryptApiKey } from '../shared/lib/crypto.js'
+import { decryptField } from '../shared/lib/crypto.js'
 
 // Reînnoiește access token-ul ANAF înainte de expirare. Dacă refresh-ul pică
 // (refresh token expirat/revocat), marchează needs_reauth + email — NU putem
@@ -12,7 +13,7 @@ const REFRESH_IF_EXPIRES_WITHIN_MS = 48 * 60 * 60 * 1000
 
 export function startAnafTokenRefreshJob(): void {
   cron.schedule(CRON_EXPR, () => {
-    void refreshAnafTokenIfNeeded()
+    void forEachTenant(() => refreshAnafTokenIfNeeded()).catch((err) => console.error('[refresh-anaf-token] failed:', err))
   })
   console.log(`[refresh-anaf-token] Scheduled (${CRON_EXPR})`)
 }
@@ -25,7 +26,7 @@ export async function refreshAnafTokenIfNeeded(): Promise<void> {
   if (!expiresSoon) return
 
   try {
-    const tokens = await refreshTokens(decryptApiKey(row.refreshTokenEnc))
+    const tokens = await refreshTokens(await decryptField(row.refreshTokenEnc))
     await saveAnafTokens(row.cif, tokens)
     console.log('[refresh-anaf-token] Token ANAF reînnoit')
   } catch (err) {
