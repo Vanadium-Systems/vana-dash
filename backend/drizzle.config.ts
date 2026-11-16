@@ -1,8 +1,8 @@
-import dotenv from 'dotenv'
+import { existsSync } from 'node:fs'
 import { defineConfig } from 'drizzle-kit'
 
-dotenv.config({ path: '../.env' })
-dotenv.config()
+// Same files as src/shared/load-env.ts; vars already set win.
+for (const envPath of ['../.env', '.env']) if (existsSync(envPath)) process.loadEnvFile(envPath)
 
 export default defineConfig({
   dialect: 'postgresql',
