@@ -21,6 +21,8 @@ const CONFIG = {
   hotThreshold: 80,
   warmThreshold: 60,
   nurtureThreshold: 40,
+  idealEmployeesMin: 4,
+  idealEmployeesMax: 20,
   labels: { excellent: 80, good: 60, fit: 40 },
   criteria: [{ id: 'c1', name: 'Has website', points: 10, filters: [{ field: 'website', op: 'is_set' }] }],
 }
@@ -60,7 +62,10 @@ afterEach(() => {
 
 const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)))
 const previewCalls = () => api.post.mock.calls.filter(([url]) => url === '/api/prospects/scoring/preview')
-const thresholdInputs = () => [...container.querySelectorAll<HTMLInputElement>('input[inputmode="numeric"]')]
+// The first two numeric inputs are the ideal size, the last three the label thresholds.
+const numericInputs = () => [...container.querySelectorAll<HTMLInputElement>('input[inputmode="numeric"]')]
+const thresholdInputs = () => numericInputs().slice(-3)
+const sizeInputs = () => numericInputs().slice(0, 2)
 const type = (input: HTMLInputElement, value: string) =>
   act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
@@ -116,5 +121,19 @@ describe('ScoreSection distribution preview', () => {
     await act(async () => add.click())
     await advance(1000)
     expect(previewCalls()).toHaveLength(0)
+  })
+
+  it('saves the ideal size and refuses a range that ends before it starts', async () => {
+    api.put.mockResolvedValue({ recalculated: 3 })
+    const [min, max] = sizeInputs()
+    await type(min!, '20')
+    await type(max!, '150')
+    const save = () => [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(t('pricing:scoring.save')))!
+    await act(async () => save().click())
+    expect(api.put.mock.calls[0]![1]).toMatchObject({ idealEmployeesMin: 20, idealEmployeesMax: 150 })
+
+    await type(max!, '10')
+    expect(container.textContent).toContain(t('clients:settings.score.sizeInvalid'))
+    expect(save().disabled).toBe(true)
   })
 })

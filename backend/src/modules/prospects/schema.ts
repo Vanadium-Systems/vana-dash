@@ -174,7 +174,9 @@ export const UpdateScoringConfigSchema = z.object({
   nurtureThreshold: z.number().min(0).max(100),
   criteria: z.array(ScoreCriterionSchema).max(30).optional(),
   labels: ScoreLabelsSchema.nullable().optional(),
-})
+  idealEmployeesMin: z.number().int().min(1).max(100_000).optional(),
+  idealEmployeesMax: z.number().int().min(1).max(100_000).optional(),
+}).refine((c) => c.idealEmployeesMin === undefined || c.idealEmployeesMax === undefined || c.idealEmployeesMin <= c.idealEmployeesMax)
 
 // 500 → 1000 (2026-09-03, Stefan: are ~800 de clienți de arhivat dintr-o dată, „select all"
 // din ProspectareTab.tsx lovea plafonul de 500 pe un singur request).

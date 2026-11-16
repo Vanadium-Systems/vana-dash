@@ -119,5 +119,8 @@ export const prospectScoringConfig = pgTable('prospect_scoring_config', {
   // Unused since criteria became an additive bonus; kept so the column needs no migration.
   baseWeight: numeric('base_weight', { precision: 3, scale: 2 }).notNull().default('1'),
   criteria: jsonb('criteria').notNull().default([]),
+  // The company size the product sells best to, in employees; the need score peaks inside it.
+  idealEmployeesMin: integer('ideal_employees_min').notNull().default(4),
+  idealEmployeesMax: integer('ideal_employees_max').notNull().default(20),
   labels: jsonb('labels'),
 })

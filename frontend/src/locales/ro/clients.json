@@ -1097,6 +1097,11 @@
         "lowersMuch": "Scade mult scorul",
         "custom": "{{points}} puncte"
       },
+      "size": "Mărimea ideală a firmei",
+      "sizeHint": "Câți angajați au firmele cărora le vinzi cel mai ușor. În intervalul ăsta firma ia punctaj maxim la mărime, iar sub el sau mult peste el, mai puțin.",
+      "sizeMin": "De la (angajați)",
+      "sizeMax": "Până la (angajați)",
+      "sizeInvalid": "Cel puțin 1, iar „până la” nu mai mic decât „de la”.",
       "thresholds": "Etichete",
       "thresholdsHint": "Scorul de la care începe fiecare etichetă. Sub «Potrivit» prospectul e nepotrivit.",
       "thresholdsInvalid": "Praguri între 0 și 100, în ordine descrescătoare.",

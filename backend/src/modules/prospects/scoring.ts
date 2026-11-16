@@ -109,24 +109,36 @@ export function growthScore(revenue: number | null, revenuePrev: number | null |
   return norm01(tanh(revenue / revenuePrev - 1, 0.2))
 }
 
+export interface SizeRange {
+  min: number
+  max: number
+}
+
+/** The range VanaGreen's recycling companies were checked against: 4 to 20 employees. */
+export const DEFAULT_SIZE_RANGE: SizeRange = { min: 4, max: 20 }
+
 /**
- * The sweet spot, checked against one county's outreach results, is 4 to 20 employees. Below 4
- * the answer is "we are too small" even at a high turnover. Above 60 you do not reach the
- * person who decides.
+ * The bands checked on one county's outreach, scaled to the configured range. Below the bottom
+ * stays a flat 0.2 on purpose: under 4 employees the answer was "we are too small" whatever the
+ * turnover, so it is not smoothed away. From the bottom to twice the bottom it climbs from 0.8 to
+ * 1; above the top it falls as a multiple of the top (twice 0.75, three times 0.4, five times 0.15).
  */
-export function scoreNeed(input: NeedInput): number | null {
-  const ang = input.employeeCount
-  let sizeScore: number | null = null
-  if (ang !== null) {
-    if (ang <= 0) sizeScore = 0.05
-    else if (ang <= 3) sizeScore = 0.2
-    else if (ang <= 7) sizeScore = 0.8
-    else if (ang <= 20) sizeScore = 1.0
-    else if (ang <= 40) sizeScore = 0.75
-    else if (ang <= 60) sizeScore = 0.4
-    else if (ang <= 100) sizeScore = 0.15
-    else sizeScore = 0.05
+export function sizeScore(employees: number, range: SizeRange): number {
+  if (employees <= 0) return 0.05
+  if (employees < range.min) return 0.2
+  if (employees <= range.max) return Math.min(1, 0.8 + (0.2 * (employees - range.min)) / range.min)
+  const r = employees / range.max
+  const points: Array<[number, number]> = [[1, 1], [2, 0.75], [3, 0.4], [5, 0.15]]
+  for (let i = 1; i < points.length; i++) {
+    const [r0, s0] = points[i - 1]!
+    const [r1, s1] = points[i]!
+    if (r <= r1) return s0 + ((s1 - s0) * (r - r0)) / (r1 - r0)
   }
+  return 0.05
+}
+
+export function scoreNeed(input: NeedInput, range: SizeRange = DEFAULT_SIZE_RANGE): number | null {
+  const sizeScoreValue = input.employeeCount === null ? null : sizeScore(input.employeeCount, range)
 
   const venit = input.revenue
   let cifraScore: number | null = null
@@ -138,7 +150,7 @@ export function scoreNeed(input: NeedInput): number | null {
   }
 
   return wmean([
-    [sizeScore, 0.45],
+    [sizeScoreValue, 0.45],
     [cifraScore, 0.2],
     [complexity, 0.2],
     [growthScore(venit, input.revenuePrev), 0.15],
@@ -240,6 +252,7 @@ export interface ScoringWeights {
   budgetWeight: number
   needWeight: number
   techWeight: number
+  idealEmployees?: SizeRange
 }
 
 export interface ScoringThresholds {
@@ -272,7 +285,7 @@ export function computeScore(input: ScoringInput, weights: ScoringWeights): Scor
 
   const composite = wmean([
     [scoreBudget(input), weights.budgetWeight],
-    [scoreNeed(input), weights.needWeight],
+    [scoreNeed(input, weights.idealEmployees), weights.needWeight],
     [scoreTechReceptivity(input), weights.techWeight],
   ])
   // All three weights at 0 (the config refuses it, older rows may not).

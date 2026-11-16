@@ -157,6 +157,8 @@ export async function updateScoringConfig(input: ScoringConfigInput) {
       hotThreshold: String(thresholds.hot),
       warmThreshold: String(thresholds.warm),
       nurtureThreshold: String(thresholds.nurture),
+      ...(input.idealEmployeesMin !== undefined && { idealEmployeesMin: input.idealEmployeesMin }),
+      ...(input.idealEmployeesMax !== undefined && { idealEmployeesMax: input.idealEmployeesMax }),
       ...(input.criteria !== undefined && { criteria: input.criteria }),
       ...(input.labels !== undefined && { labels: input.labels }),
       updatedAt: new Date(),
@@ -172,6 +174,7 @@ export function toScoringWeights(config: Awaited<ReturnType<typeof getScoringCon
     budgetWeight: Number(config.budgetWeight),
     needWeight: Number(config.needWeight),
     techWeight: Number(config.techWeight),
+    idealEmployees: { min: config.idealEmployeesMin, max: config.idealEmployeesMax },
   }
 }
 

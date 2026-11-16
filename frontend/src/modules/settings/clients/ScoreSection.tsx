@@ -101,6 +101,8 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
 
   const [criteria, setCriteria] = useState<ScoreCriterion[]>([])
   const [labels, setLabels] = useState<Record<keyof ScoreLabels, string>>({ excellent: '', good: '', fit: '' })
+  const [sizeMin, setSizeMin] = useState('')
+  const [sizeMax, setSizeMax] = useState('')
 
   useEffect(() => {
     const data = config.data
@@ -108,10 +110,14 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
     setCriteria(data.criteria)
     const l = data.labels ?? { excellent: Number(data.hotThreshold), good: Number(data.warmThreshold), fit: Number(data.nurtureThreshold) }
     setLabels({ excellent: String(l.excellent), good: String(l.good), fit: String(l.fit) })
+    setSizeMin(String(data.idealEmployeesMin))
+    setSizeMax(String(data.idealEmployeesMax))
   }, [config.data])
 
   const numericLabels = { excellent: Number(labels.excellent), good: Number(labels.good), fit: Number(labels.fit) }
   const labelsValid = Object.values(numericLabels).every((n) => Number.isFinite(n) && n >= 0 && n <= 100) && numericLabels.excellent >= numericLabels.good && numericLabels.good >= numericLabels.fit
+  const idealEmployees = { min: Number(sizeMin), max: Number(sizeMax) }
+  const sizeValid = Number.isInteger(idealEmployees.min) && idealEmployees.min >= 1 && idealEmployees.max >= idealEmployees.min
   const complete = criteria.every((c) => c.name.trim() && c.filters.length > 0)
   // A criterion still being written would be refused by the server; the preview skips it, saving waits for it.
   const draft: ScoreDraft | null = labelsValid ? { criteria: criteria.filter((c) => c.name.trim() && c.filters.length > 0), labels: numericLabels } : null
@@ -120,9 +126,9 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
   const settled = useMemo(() => JSON.parse(settledKey) as ScoreDraft | null, [settledKey])
 
   const submit = () => {
-    if (!config.data || !draft || !complete) return
+    if (!config.data || !draft || !complete || !sizeValid) return
     save.mutate(
-      { config: config.data, draft },
+      { config: config.data, draft, idealEmployees },
       { onSuccess: (done) => toast.success(t('pricing:scoring.saved', { count: done.recalculated })), onError: (err) => toast.error(err.message) },
     )
   }
@@ -158,6 +164,19 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
         </section>
 
         <section className="space-y-2">
+          <h3 className="text-sm font-semibold">{t('clients:settings.score.size')}</h3>
+          <p className="text-sm text-muted-foreground">{t('clients:settings.score.sizeHint')}</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label={t('clients:settings.score.sizeMin')}>
+              <Input inputMode="numeric" value={sizeMin} disabled={!canEdit} onChange={(e) => setSizeMin(digits(e.target.value))} />
+            </Field>
+            <Field label={t('clients:settings.score.sizeMax')} error={sizeValid ? null : t('clients:settings.score.sizeInvalid')}>
+              <Input inputMode="numeric" value={sizeMax} disabled={!canEdit} onChange={(e) => setSizeMax(digits(e.target.value))} />
+            </Field>
+          </div>
+        </section>
+
+        <section className="space-y-2">
           <h3 className="text-sm font-semibold">{t('clients:settings.score.thresholds')}</h3>
           <p className="text-sm text-muted-foreground">{t('clients:settings.score.thresholdsHint')}</p>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -170,7 +189,7 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
         </section>
 
         {canEdit ? (
-          <Button type="button" disabled={save.isPending || !draft || !complete} onClick={submit}>
+          <Button type="button" disabled={save.isPending || !draft || !complete || !sizeValid} onClick={submit}>
             {save.isPending ? t('common:states.saving') : t('pricing:scoring.save')}
           </Button>
         ) : null}

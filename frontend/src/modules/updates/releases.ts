@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T19:00:00Z',
+    title: {
+      ro: 'Scorul prospecților: mărimea ideală a firmei se alege din Setări',
+      en: 'Prospect score: the ideal company size is set in Settings',
+    },
+    body: {
+      ro: 'În Setări, la scor, alegi câți angajați au firmele cărora le vinzi cel mai ușor (implicit 4–20). Când treci pe altă nișă, de pildă firme de 50–200 de oameni, scorul le dă lor punctajul maxim la mărime.',
+      en: 'In the score settings you pick how many employees the companies you sell to most easily have (4–20 by default). When you move to another niche, say companies of 50–200 people, the score gives them full marks for size.',
+    },
+    features: ['clienti.prospectare'],
+  },
+  {
     publishedAt: '2026-11-16T17:00:00Z',
     title: {
       ro: 'Prospecți: ce s-a aflat despre firmă intră în scor',

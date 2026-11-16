@@ -1,0 +1,2 @@
+ALTER TABLE "prospect_scoring_config" ADD COLUMN "ideal_employees_min" integer DEFAULT 4 NOT NULL;--> statement-breakpoint
+ALTER TABLE "prospect_scoring_config" ADD COLUMN "ideal_employees_max" integer DEFAULT 20 NOT NULL;

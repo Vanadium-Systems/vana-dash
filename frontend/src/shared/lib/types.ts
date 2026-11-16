@@ -1733,6 +1733,8 @@ export interface ProspectScoringConfig {
   hotThreshold: string
   warmThreshold: string
   nurtureThreshold: string
+  idealEmployeesMin: number
+  idealEmployeesMax: number
 }
 
 export interface ProspectImportResult {

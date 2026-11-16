@@ -49,7 +49,7 @@ export function useSaveScoring() {
   const queryClient = useQueryClient()
   return useMutation({
     // The four sub-score weights are not editable here; they go back unchanged because the route requires them.
-    mutationFn: ({ config, draft }: { config: ScoringConfigFull; draft: ScoreDraft }) =>
+    mutationFn: ({ config, draft, idealEmployees }: { config: ScoringConfigFull; draft: ScoreDraft; idealEmployees: { min: number; max: number } }) =>
       api.put<{ recalculated: number }>('/api/prospects/scoring-config', {
         budgetWeight: Number(config.budgetWeight),
         needWeight: Number(config.needWeight),
@@ -60,6 +60,8 @@ export function useSaveScoring() {
         nurtureThreshold: draft.labels.fit,
         criteria: draft.criteria,
         labels: draft.labels,
+        idealEmployeesMin: idealEmployees.min,
+        idealEmployeesMax: idealEmployees.max,
       }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['prospects'] }),
   })

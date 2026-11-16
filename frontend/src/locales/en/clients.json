@@ -1061,6 +1061,11 @@
         "lowersMuch": "Lowers the score a lot",
         "custom": "{{points}} points"
       },
+      "size": "Ideal company size",
+      "sizeHint": "How many employees the companies you sell to most easily have. Inside this range a company gets full marks for size; below it or far above it, less.",
+      "sizeMin": "From (employees)",
+      "sizeMax": "To (employees)",
+      "sizeInvalid": "At least 1, and “to” no smaller than “from”.",
       "thresholds": "Labels",
       "thresholdsHint": "The score where each label starts. Below \"Fit\" a prospect is unfit.",
       "thresholdsInvalid": "Cut-offs between 0 and 100, in descending order.",

@@ -10,6 +10,7 @@ import {
   priorityForScore,
   scoreBudget,
   scoreNeed,
+  sizeScore,
   type ScoringInput,
 } from './scoring.js'
 
@@ -70,6 +71,30 @@ describe('turnoverScore', () => {
     expect(turnoverScore(1_000_000)).toBe(0.5)
     expect(turnoverScore(10_000_000)).toBe(1)
     expect(turnoverScore(2_400_000)).toBeGreaterThan(turnoverScore(1_100_000) + 0.15)
+  })
+})
+
+describe('sizeScore', () => {
+  const recycling = { min: 4, max: 20 }
+
+  it('keeps the bands checked on outreach for the default range', () => {
+    expect(sizeScore(0, recycling)).toBe(0.05)
+    expect(sizeScore(3, recycling)).toBe(0.2)
+    expect(sizeScore(4, recycling)).toBe(0.8)
+    expect(sizeScore(8, recycling)).toBe(1)
+    expect(sizeScore(20, recycling)).toBe(1)
+    expect(sizeScore(40, recycling)).toBeCloseTo(0.75)
+    expect(sizeScore(60, recycling)).toBeCloseTo(0.4)
+    expect(sizeScore(100, recycling)).toBeCloseTo(0.15)
+    expect(sizeScore(500, recycling)).toBe(0.05)
+  })
+
+  it('follows the range set for another niche', () => {
+    const large = { min: 50, max: 200 }
+    expect(sizeScore(120, large)).toBe(1)
+    expect(sizeScore(60, large)).toBeCloseTo(0.84)
+    expect(sizeScore(90, recycling)).toBeLessThan(0.25)
+    expect(sizeScore(10, large)).toBeLessThan(sizeScore(60, large))
   })
 })
 
