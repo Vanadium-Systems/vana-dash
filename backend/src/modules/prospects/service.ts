@@ -172,7 +172,6 @@ export function toScoringWeights(config: Awaited<ReturnType<typeof getScoringCon
     budgetWeight: Number(config.budgetWeight),
     needWeight: Number(config.needWeight),
     techWeight: Number(config.techWeight),
-    contactWeight: Number(config.contactWeight),
   }
 }
 
@@ -578,18 +577,6 @@ export async function prospectTimeline(me: Me, id: string, cursor?: string, limi
 
 // ── Score ────────────────────────────────────────────────────────────────────
 
-async function contactFlags(prospectId: string) {
-  const [row] = await db
-    .select({
-      hasPhone: sql<boolean>`bool_or(${prospectContactPoints.kind} = 'phone')`,
-      hasEmail: sql<boolean>`bool_or(${prospectContactPoints.kind} = 'email')`,
-      hasPerson: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${prospectId} AND pp."deleted_at" IS NULL)`,
-    })
-    .from(prospectContactPoints)
-    .where(and(eq(prospectContactPoints.prospectId, prospectId), isNull(prospectContactPoints.deletedAt)))
-  return { hasPhone: Boolean(row?.hasPhone), hasEmail: Boolean(row?.hasEmail), hasContactName: Boolean(row?.hasPerson) }
-}
-
 type FinancialRow = Pick<
   typeof prospects.$inferSelect,
   | 'revenue'
@@ -607,7 +594,7 @@ type FinancialRow = Pick<
   | 'isActive'
 >
 
-export function baseScore(p: FinancialRow, flags: { hasPhone: boolean; hasEmail: boolean; hasContactName: boolean }, weights: ScoringWeights) {
+export function baseScore(p: FinancialRow, weights: ScoringWeights) {
   const num = (v: string | null) => (v === null ? null : Number(v))
   const revenue = num(p.revenue)
   const hasAnyFinancialData = Boolean((revenue && revenue > 500) || (p.employeeCount && p.employeeCount > 0))
@@ -625,7 +612,6 @@ export function baseScore(p: FinancialRow, flags: { hasPhone: boolean; hasEmail:
       employeeCount: p.employeeCount,
       foundingYear: p.foundingYear,
       hasWebsite: Boolean(p.website),
-      ...flags,
       hasAnyFinancialData,
       isActive: p.isActive ?? undefined,
     },
@@ -638,7 +624,7 @@ export async function refreshScore(prospectId: string) {
   const [p] = await db.select().from(prospects).where(eq(prospects.id, prospectId))
   if (!p) return
   const weights = toScoringWeights(await getScoringConfig())
-  const base = baseScore(p, await contactFlags(prospectId), weights)
+  const base = baseScore(p, weights)
   await db
     .update(prospects)
     .set({ scoreBase: String(base.score), score: String(base.score), scoreCeiling: base.ceiling })
@@ -975,20 +961,12 @@ export async function promoteProspect(me: Me, id: string, input: PromoteInput) {
 
 /** A prospect row plus the contact flags the base score reads. */
 function scoringRows(where: SQL) {
-  return db
-    .select({
-      ...getTableColumns(prospects),
-      hasPhone: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."kind" = 'phone' AND cp."deleted_at" IS NULL)`,
-      hasEmail: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectContactPoints} cp WHERE cp."prospect_id" = ${PROSPECT_ID} AND cp."kind" = 'email' AND cp."deleted_at" IS NULL)`,
-      hasContactName: sql<boolean>`EXISTS (SELECT 1 FROM ${prospectPeople} pp WHERE pp."prospect_id" = ${PROSPECT_ID} AND pp."deleted_at" IS NULL)`,
-    })
-    .from(prospects)
-    .where(where)
+  return db.select().from(prospects).where(where)
 }
 
 async function writeBaseScores(batch: Awaited<ReturnType<typeof scoringRows>>, weights: ScoringWeights) {
   const values = batch.map((p) => {
-    const base = baseScore(p, p, weights)
+    const base = baseScore(p, weights)
     return sql`(${p.id}::uuid, ${String(base.score)}::numeric, ${base.ceiling}::text)`
   })
   await db.execute(sql`

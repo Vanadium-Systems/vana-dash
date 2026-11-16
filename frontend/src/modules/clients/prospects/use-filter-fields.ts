@@ -55,6 +55,16 @@ export function useFilterFields(kind: ProspectKind, statuses: ProspectStatusEntr
       { key: 'email', label: t('clients:health.fields.email'), type: 'text', group: health, ops: ['is_empty', 'not_empty'] },
       { key: 'contactStatus', label: t('clients:health.fields.contactStatus'), type: 'enum', group: health, options: contactStatuses },
       {
+        key: 'reachable',
+        label: t('clients:health.fields.reachable'),
+        type: 'enum',
+        group: sales,
+        options: [
+          { value: 'yes', label: t('clients:health.fields.reachableYes') },
+          { value: 'no', label: t('clients:health.fields.reachableNo') },
+        ],
+      },
+      {
         key: 'isActive',
         label: t('clients:health.fields.isActive'),
         type: 'enum',

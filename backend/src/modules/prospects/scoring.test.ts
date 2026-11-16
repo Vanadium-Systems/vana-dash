@@ -6,13 +6,14 @@ import {
   computeScore,
   growthScore,
   isExcluded,
+  turnoverScore,
   priorityForScore,
   scoreBudget,
   scoreNeed,
   type ScoringInput,
 } from './scoring.js'
 
-const WEIGHTS = { budgetWeight: 0.25, needWeight: 0.3, techWeight: 0.25, contactWeight: 0.2 }
+const WEIGHTS = { budgetWeight: 0.25, needWeight: 0.3, techWeight: 0.25 }
 const THRESHOLDS = { hotThreshold: 65, warmThreshold: 50, nurtureThreshold: 35 }
 const YEAR = new Date().getFullYear()
 
@@ -29,9 +30,6 @@ const healthy: ScoringInput = {
   employeeCount: 12,
   foundingYear: YEAR - 6,
   hasWebsite: true,
-  hasPhone: true,
-  hasEmail: true,
-  hasContactName: true,
   hasAnyFinancialData: true,
   isActive: true,
 }
@@ -62,6 +60,16 @@ describe('scoreNeed', () => {
   it('rewards growth over decline', () => {
     const base = { employeeCount: 10, revenue: 1_000_000, inventory: null, receivables: null }
     expect(scoreNeed({ ...base, revenuePrev: 700_000 })!).toBeGreaterThan(scoreNeed({ ...base, revenuePrev: 1_400_000 })!)
+  })
+})
+
+describe('turnoverScore', () => {
+  it('tells apart the turnovers of the prospect list instead of giving them all ~0.9', () => {
+    expect(turnoverScore(0)).toBe(0)
+    expect(turnoverScore(100_000)).toBe(0)
+    expect(turnoverScore(1_000_000)).toBe(0.5)
+    expect(turnoverScore(10_000_000)).toBe(1)
+    expect(turnoverScore(2_400_000)).toBeGreaterThan(turnoverScore(1_100_000) + 0.15)
   })
 })
 
@@ -140,8 +148,24 @@ describe('exclusion and ceiling', () => {
     expect(finalLabel(negative, ['a'], criteria)).not.toBe('HOT')
   })
 
-  it('caps a company with under half the key fields known at WARM', () => {
-    const thin = { ...healthy, profit: null, debt: null, equity: null, cash: null }
+  it('does not cap the usual imported row: turnover, profit and employees, nothing else', () => {
+    const imported: ScoringInput = {
+      ...healthy,
+      revenuePrev: null,
+      revenueYear: null,
+      debt: null,
+      equity: null,
+      cash: null,
+      receivables: null,
+      inventory: null,
+      foundingYear: null,
+    }
+    expect(computeScore(imported, WEIGHTS).ceiling).toBeNull()
+    expect(finalLabel(imported)).toBe('HOT')
+  })
+
+  it('caps at WARM when only one of turnover, profit and employees is known', () => {
+    const thin = { ...healthy, profit: null, employeeCount: null }
     expect(computeScore(thin, WEIGHTS).ceiling).toBe('warm')
   })
 })

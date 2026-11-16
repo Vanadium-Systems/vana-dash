@@ -93,6 +93,16 @@ export interface NeedInput {
   receivables: number | null
 }
 
+/**
+ * Log scale, 0 at 100,000 and 1 at 10,000,000. The old `tanh(revenue / 1.5M)` gave 0.82 to 1.0 to
+ * nine companies in ten of the prospect list (median 2.4M), so turnover told them apart by
+ * almost nothing.
+ */
+export function turnoverScore(revenue: number): number {
+  if (revenue <= 0) return 0
+  return clamp((Math.log10(revenue) - 5) / 2, 0, 1)
+}
+
 /** Turnover growth year on year: +20% → 0.76, flat → 0.5, -20% → 0.24. */
 export function growthScore(revenue: number | null, revenuePrev: number | null | undefined): number | null {
   if (revenue === null || revenuePrev === null || revenuePrev === undefined || revenuePrev <= 0 || revenue < 0) return null
@@ -120,7 +130,7 @@ export function scoreNeed(input: NeedInput): number | null {
 
   const venit = input.revenue
   let cifraScore: number | null = null
-  if (venit !== null) cifraScore = venit > 0 ? norm01(tanh(venit / 1_500_000, 1.0)) : 0.0
+  if (venit !== null) cifraScore = turnoverScore(venit)
 
   let complexity: number | null = null
   if (venit !== null && venit > 0 && (input.inventory !== null || input.receivables !== null)) {
@@ -159,21 +169,6 @@ export function scoreTechReceptivity(input: TechInput): number | null {
   ])
 }
 
-export interface ContactInput {
-  hasPhone: boolean
-  hasEmail: boolean
-  hasContactName: boolean
-}
-
-// The website counts once, in tech receptivity: a site is not a channel you can call or write to.
-export function scoreContact(input: ContactInput): number {
-  let s = 0
-  if (input.hasPhone) s += 0.5
-  if (input.hasEmail) s += 0.3
-  if (input.hasContactName) s += 0.2
-  return s
-}
-
 export interface GateInput {
   isActive?: boolean
   equity: number | null
@@ -194,7 +189,7 @@ export function isExcluded(input: GateInput): boolean {
  * The highest label a company can reach on what we know. `skip`: a filed balance sheet with no
  * turnover and no employees, a dormant company. `nurture`: no financial data at all,
  * so it needs research before anyone calls it a target. `warm`: serious negative equity, or too little
- * known about it (under half of the key fields).
+ * known about it (under two of turnover, profit and employees).
  */
 export type ScoreCeiling = 'warm' | 'nurture' | 'skip' | null
 
@@ -224,9 +219,12 @@ export function scoreCeiling(input: CeilingInput): ScoreCeiling {
   return null
 }
 
-/** Share of the key fields that are known, 0..1. Contact flags are always known, so they are not counted. */
-export function dataCoverage(input: Pick<ScoringInput, 'revenue' | 'profit' | 'debt' | 'equity' | 'cash' | 'employeeCount' | 'foundingYear'>): number {
-  const fields = [input.revenue, input.profit, input.debt, input.equity, input.cash, input.employeeCount, input.foundingYear]
+/**
+ * Share of turnover, profit and employees that is known, 0..1. Only these three: the lists we
+ * import carry them and almost never debt, equity or cash, so counting those would cap everyone.
+ */
+export function dataCoverage(input: Pick<ScoringInput, 'revenue' | 'profit' | 'employeeCount'>): number {
+  const fields = [input.revenue, input.profit, input.employeeCount]
   return fields.filter((v) => v !== null && v !== undefined).length / fields.length
 }
 
@@ -242,7 +240,6 @@ export interface ScoringWeights {
   budgetWeight: number
   needWeight: number
   techWeight: number
-  contactWeight: number
 }
 
 export interface ScoringThresholds {
@@ -254,9 +251,6 @@ export interface ScoringThresholds {
 export interface ScoringInput extends BudgetInput, NeedInput {
   foundingYear: number | null
   hasWebsite: boolean
-  hasPhone: boolean
-  hasEmail: boolean
-  hasContactName: boolean
   revenueYear?: number | null
   hasAnyFinancialData: boolean
   isActive?: boolean
@@ -268,7 +262,11 @@ export interface ScoreResult {
   ceiling: ScoreCeiling
 }
 
-/** Weighted mean of the four sub-scores with the configured weights, 0..100. */
+/**
+ * How well the company fits: budget, need and tech receptivity, 0..100. Whether we can reach it
+ * (phone, email) is left out on purpose: a good fit without a phone is a company to research,
+ * not a worse company. The list filters it with "Contact".
+ */
 export function computeScore(input: ScoringInput, weights: ScoringWeights): ScoreResult {
   if (isExcluded({ isActive: input.isActive, equity: input.equity, revenue: input.revenue })) return { score: 0, ceiling: null }
 
@@ -276,9 +274,8 @@ export function computeScore(input: ScoringInput, weights: ScoringWeights): Scor
     [scoreBudget(input), weights.budgetWeight],
     [scoreNeed(input), weights.needWeight],
     [scoreTechReceptivity(input), weights.techWeight],
-    [scoreContact(input), weights.contactWeight],
   ])
-  // All four weights at 0 (the config refuses it, older rows may not).
+  // All three weights at 0 (the config refuses it, older rows may not).
   if (composite === null) return { score: 0, ceiling: null }
 
   return {

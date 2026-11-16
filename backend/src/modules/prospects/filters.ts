@@ -41,6 +41,7 @@ export const FILTER_FIELDS = [
   'phone',
   'email',
   'contactStatus',
+  'reachable',
   'foundingYear',
   'people.role',
   'people.decisionMaker',
@@ -274,6 +275,14 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
       if (f.op === 'not_empty') return hasOkContactPoint(f.field)
       break
     }
+    case 'reachable':
+      // `yes`: a working phone or email, call it now; `no`: neither, research it first.
+      if (f.op === 'in' || f.op === 'not_in') {
+        const reachable = sql`(${hasOkContactPoint('phone')} OR ${hasOkContactPoint('email')})`
+        const cond = or(f.value.map((v) => (v === 'yes' ? reachable : sql`NOT ${reachable}`)))
+        return f.op === 'in' ? cond : sql`NOT ${cond}`
+      }
+      break
     case 'contactStatus':
       if (f.op === 'in' || f.op === 'not_in') {
         return existsOp(

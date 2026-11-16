@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-16T15:30:00Z',
+    title: {
+      ro: 'Prospecți: scorul arată potrivirea, filtrul Contact arată pe cine poți suna',
+      en: 'Prospects: the score shows fit, the Contact filter shows whom you can call',
+    },
+    body: {
+      ro: 'Scorul nu mai scade când lipsește telefonul: o firmă potrivită fără date de contact e de completat, nu mai slabă. Cu filtrul nou „Contact” vezi separat firmele de sunat acum și pe cele de completat. Cifra de afaceri contează pe o scară care chiar deosebește firmele din listă.',
+      en: 'The score no longer drops when the phone is missing: a good fit without contact details is one to research, not a weaker one. The new “Contact” filter splits the companies to call now from those to research. Turnover counts on a scale that actually tells the companies on the list apart.',
+    },
+    features: ['clienti.prospectare'],
+  },
+  {
     publishedAt: '2026-11-16T14:00:00Z',
     title: {
       ro: 'Scorul prospecților: criteriile adaugă puncte',

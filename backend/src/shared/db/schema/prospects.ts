@@ -103,6 +103,7 @@ export const prospectScoringConfig = pgTable('prospect_scoring_config', {
   budgetWeight: numeric('budget_weight', { precision: 4, scale: 3 }).notNull().default('0.25'),
   needWeight: numeric('need_weight', { precision: 4, scale: 3 }).notNull().default('0.30'),
   techWeight: numeric('tech_weight', { precision: 4, scale: 3 }).notNull().default('0.25'),
+  // Unused since the score measures fit only (contact is the list's Contact filter); kept, no migration.
   contactWeight: numeric('contact_weight', { precision: 4, scale: 3 }).notNull().default('0.20'),
   hotThreshold: numeric('hot_threshold', { precision: 5, scale: 1 }).notNull().default('65'),
   warmThreshold: numeric('warm_threshold', { precision: 5, scale: 1 }).notNull().default('50'),
