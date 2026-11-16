@@ -12,6 +12,7 @@ export function PasswordInput({ className, ...props }: React.InputHTMLAttributes
   return (
     <div className={cn('relative', className)}>
       <Input {...props} type={visible ? 'text' : 'password'} className="pr-10" />
+      {/* native: in-field toggle button */}
       <button
         type="button"
         onClick={() => setVisible((on) => !on)}

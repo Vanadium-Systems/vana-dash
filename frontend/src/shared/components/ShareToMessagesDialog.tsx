@@ -138,6 +138,7 @@ function GroupTitle({ children }: { children: string }) {
 
 function TargetRow({ label, group, selected, onClick }: { label: string; group?: boolean; selected: boolean; onClick: () => void }) {
   return (
+    // native: list row
     <button
       type="button"
       role="option"

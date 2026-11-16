@@ -47,6 +47,7 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
 
   return (
     <div className={cn('flex flex-wrap items-center gap-2 rounded-md border p-2', !rule.active ? 'opacity-50' : '')}>
+      {/* native: inline text link */}
       <button
         type="button"
         className="text-xs text-muted-foreground underline underline-offset-2"
@@ -55,6 +56,7 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
       >
         {rule.active ? t('tenders:rules.active') : t('tenders:rules.inactive')}
       </button>
+      {/* native: star toggle */}
       <button
         type="button"
         title={rule.highPriority ? t('tenders:rules.highPriorityOn') : t('tenders:rules.highPriorityOff')}
@@ -64,6 +66,7 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
       >
         <Star className="h-4 w-4" fill={rule.highPriority ? 'currentColor' : 'none'} />
       </button>
+      {/* native: icon toggle */}
       <button
         type="button"
         title={

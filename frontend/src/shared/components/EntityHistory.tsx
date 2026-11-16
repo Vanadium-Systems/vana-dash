@@ -85,6 +85,7 @@ export function EntityHistory({ entityType, entityId }: { entityType: string; en
           </>
         ) : null}
         {' · '}
+        {/* native: inline text link */}
         <button type="button" className="underline underline-offset-2 hover:text-foreground" onClick={() => setOpen(true)}>
           {t('common:nav.history')}
         </button>

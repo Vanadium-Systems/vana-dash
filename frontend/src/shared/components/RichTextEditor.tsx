@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { Button } from '@/shared/components/ui/button'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
@@ -100,6 +101,7 @@ interface ToolbarButtonProps {
 
 function ToolbarButton({ active, disabled, onClick, title, children }: ToolbarButtonProps) {
   return (
+    // native: editor toolbar button
     <button
       type="button"
       title={title}
@@ -198,6 +200,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className, au
         </ToolbarButton>
         <div className="mx-1 h-5 w-px bg-border" />
         {COLORS.map((color) => (
+          // native: color swatch
           <button
             key={color}
             type="button"
@@ -277,12 +280,11 @@ export function RichTextEditor({ id, value, onChange, placeholder, className, au
             placeholder={t('common:editor.importHtmlPlaceholder')}
           />
           <div className="flex flex-wrap justify-end gap-2">
-            <button type="button" className="rounded-md border px-2 py-1 text-xs hover:bg-muted" onClick={() => setHtmlImportOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setHtmlImportOpen(false)}>
               {t('common:actions.cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="rounded-md bg-primary px-2 py-1 text-xs text-primary-foreground hover:opacity-90"
               onClick={() => {
                 editor.commands.setContent(htmlDraft)
                 onChange(editor.getHTML())
@@ -290,7 +292,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className, au
               }}
             >
               {t('common:actions.apply')}
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

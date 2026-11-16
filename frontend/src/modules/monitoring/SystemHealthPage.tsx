@@ -70,6 +70,7 @@ export function SystemHealthPage() {
         actions={
           <div className="flex gap-1">
             {RANGES.map((r) => (
+              // native: segmented control
               <button
                 key={r.value}
                 type="button"

@@ -58,6 +58,7 @@ export function FileViewer({
   if (!file) return null
 
   const download = onDownload ? (
+    // native: dark overlay viewer button
     <button type="button" onClick={() => onDownload(file)} className={viewerButtonClass} aria-label={t('common:actions.download')}>
       <Download className="h-5 w-5" />
     </button>
@@ -77,6 +78,7 @@ export function FileViewer({
       className="fixed inset-0 z-[60] flex flex-col bg-black text-white focus:outline-none"
     >
       <div className="flex items-center gap-2 px-2 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
+        {/* native: dark overlay viewer button */}
         <button type="button" onClick={onClose} className={viewerButtonClass} aria-label={t('common:actions.close')}>
           <X className="h-5 w-5" />
         </button>
@@ -92,6 +94,7 @@ export function FileViewer({
       <div className="safe-bottom relative flex min-h-0 flex-1 items-center justify-center">
         <Preview file={file} download={download} />
         {index > 0 ? (
+          // native: dark overlay viewer button
           <button
             type="button"
             onClick={() => onIndexChange(index - 1)}
@@ -102,6 +105,7 @@ export function FileViewer({
           </button>
         ) : null}
         {index < files.length - 1 ? (
+          // native: dark overlay viewer button
           <button
             type="button"
             onClick={() => onIndexChange(index + 1)}

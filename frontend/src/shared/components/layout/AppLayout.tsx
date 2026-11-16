@@ -302,22 +302,23 @@ export function AppLayout() {
         </div>
       )}
       <div className={cn('flex gap-1.5 px-2 pt-2', compact && 'flex-col items-center')}>
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => {
             onClose?.()
             setPaletteOpen(true)
           }}
           title={compact ? `${t('common:actions.search')} (${PALETTE_SHORTCUT})` : undefined}
           className={cn(
-            'flex h-control-md w-full items-center gap-2 rounded-md border border-border px-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            compact && 'justify-center',
+            'w-full bg-transparent px-2 font-normal text-muted-foreground hover:bg-accent/60',
+            compact ? 'justify-center' : 'justify-start',
           )}
         >
           <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className={compact ? 'sr-only' : undefined}>{t('common:actions.search')}</span>
           {compact ? null : <kbd className="ml-auto hidden font-sans text-xs md:inline">{PALETTE_SHORTCUT}</kbd>}
-        </button>
+        </Button>
         <NotificationBell />
       </div>
       <SidebarNav
@@ -392,18 +393,19 @@ export function AppLayout() {
           </DropdownMenuContent>
         </DropdownMenu>
         {!onClose && sidebar.canToggle ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={sidebar.toggle}
             title={compact ? t('common:shell.expandSidebar') : undefined}
             className={cn(
-              'mt-1 flex h-control-md w-full items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground',
-              compact && 'justify-center',
+              'mt-1 w-full px-2 font-normal text-muted-foreground hover:bg-accent/60',
+              compact ? 'justify-center' : 'justify-start',
             )}
           >
             {compact ? <PanelLeftOpen className="h-4 w-4" aria-hidden="true" /> : <PanelLeftClose className="h-4 w-4" aria-hidden="true" />}
             <span className={compact ? 'sr-only' : undefined}>{compact ? t('common:shell.expandSidebar') : t('common:shell.collapseSidebar')}</span>
-          </button>
+          </Button>
         ) : null}
       </div>
     </>
@@ -510,6 +512,7 @@ export function AppLayout() {
               </NavLink>
             )
           })}
+          {/* native: bottom nav item */}
           <button
             type="button"
             className="flex h-16 w-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground"

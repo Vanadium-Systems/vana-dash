@@ -25,6 +25,7 @@ function LanguageSwitch() {
   return (
     <div className="mt-8 flex gap-3 text-sm" role="group" aria-label={t('auth:languageSwitch')}>
       {enabled.map((locale) => (
+        // native: inline text link
         <button
           key={locale}
           type="button"

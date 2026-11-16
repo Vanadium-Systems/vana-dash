@@ -32,6 +32,7 @@ export function EntityChip({ type, id, label }: { type: string; id: string; labe
 
   const Icon = REF_ICONS[type] ?? Link2
   return (
+    // native: inline entity chip
     <button
       type="button"
       data-testid="assistant-entity-ref"

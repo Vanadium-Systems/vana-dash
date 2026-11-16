@@ -129,6 +129,7 @@ export function TendersPage() {
           <label className="text-xs text-muted-foreground">{t('common:labels.source')}</label>
           <div className="flex flex-wrap gap-1">
             {SOURCE_FILTERS.map((s) => (
+              // native: segmented control
               <button
                 key={s.key}
                 type="button"

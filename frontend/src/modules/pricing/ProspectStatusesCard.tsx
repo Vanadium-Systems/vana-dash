@@ -56,6 +56,7 @@ function StatusRow({ status }: { status: ProspectStatusEntry }) {
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn('flex flex-wrap items-center gap-2 rounded-md border p-2', isDragging ? 'opacity-50' : '')}
     >
+      {/* native: drag handle */}
       <button type="button" className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing" {...attributes} {...listeners}>
         <GripVertical className="h-4 w-4" />
       </button>

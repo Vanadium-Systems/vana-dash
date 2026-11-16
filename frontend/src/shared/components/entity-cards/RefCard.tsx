@@ -62,6 +62,7 @@ export function RefCard({
               {card.title || t('messages:refs.untitled')}
             </Link>
           ) : attachmentId && onOpenFile ? (
+            // native: inline text link
             <button
               type="button"
               onClick={() => onOpenFile(attachmentId)}
@@ -79,6 +80,7 @@ export function RefCard({
             {onRequestAccess && !entry?.asksAccess?.(refItem) && (!refItem.grantors || refItem.grantors.length > 0) ? (
               <>
                 {' · '}
+                {/* native: inline text link */}
                 <button type="button" className="underline underline-offset-2" onClick={() => onRequestAccess(refItem)}>
                   {t('messages:refs.requestAccess')}
                 </button>

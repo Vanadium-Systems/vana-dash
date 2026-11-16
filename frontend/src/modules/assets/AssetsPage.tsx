@@ -89,6 +89,7 @@ function SearchSection({ onAdd }: { onAdd: (entry: WatchEntry) => void }) {
             <p className="p-3 text-xs text-muted-foreground">{t('assets:search.noResult')}</p>
           ) : (
             search.data.map((r) => (
+              // native: list row
               <button
                 key={r.symbol}
                 type="button"
@@ -228,6 +229,7 @@ export function AssetsPage() {
 
         <div className="flex flex-wrap items-center gap-1">
           {(['all', 'stock', 'etf', 'metal'] as const).map((c) => (
+            // native: segmented control
             <button
               key={c}
               type="button"
@@ -242,6 +244,7 @@ export function AssetsPage() {
           ))}
           <span className="mx-1 text-muted-foreground">·</span>
           {METALS.map((m) => (
+            // native: filter toggle chip
             <button
               key={m.symbol}
               type="button"
@@ -300,17 +303,18 @@ export function AssetsPage() {
                               {CATEGORY_LABEL[entry.category]}
                             </Badge>
                           </p>
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon"
                             aria-label={t('crypto:favorites.remove')}
-                            className="rounded p-1 hover:bg-accent"
                             onClick={(e) => {
                               e.stopPropagation()
                               toggleWatchlist(entry, true)
                             }}
                           >
                             <X className="h-3.5 w-3.5 text-muted-foreground" />
-                          </button>
+                          </Button>
                         </div>
                         <div className="flex items-end justify-between gap-2">
                           <div className="min-w-0">
@@ -435,6 +439,7 @@ export function AssetsPage() {
                 />
                 <div className="flex gap-1">
                   {[25, 50].map((n) => (
+                    // native: segmented control
                     <button
                       key={n}
                       type="button"
@@ -482,6 +487,7 @@ export function AssetsPage() {
                               data-testid="assets-index-row"
                             >
                               <TableCell>
+                                {/* native: star toggle */}
                                 <button
                                   type="button"
                                   aria-label={watched ? t('crypto:favorites.remove') : t('crypto:favorites.add')}

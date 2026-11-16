@@ -26,6 +26,7 @@ interface Figure {
 /** A figure you can inspect: dotted underline, the inspector opens under the band (DESIGN.md "Figures and money"). */
 function FigureButton({ figure, primary, open, onToggle }: { figure: Figure; primary?: boolean; open: boolean; onToggle: () => void }) {
   return (
+    // native: inspectable figure trigger
     <button
       type="button"
       aria-expanded={open}

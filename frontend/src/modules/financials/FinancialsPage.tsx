@@ -409,6 +409,7 @@ function ExchangeRateCard() {
         <div className="flex flex-wrap gap-2">
           <div className="inline-flex overflow-hidden rounded-md border">
             {(['EUR', 'USD'] as const).map((c) => (
+              // native: segmented control
               <button
                 key={c}
                 type="button"
@@ -421,6 +422,7 @@ function ExchangeRateCard() {
           </div>
           <div className="inline-flex overflow-hidden rounded-md border">
             {BNR_RANGE_OPTIONS.map(([value, label]) => (
+              // native: segmented control
               <button
                 key={value}
                 type="button"

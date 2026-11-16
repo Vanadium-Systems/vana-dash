@@ -83,6 +83,7 @@ function GoalCard({ goal, mrrRon, onEdit, handle }: GoalCardProps) {
 
   return (
     <div className={cn('flex flex-wrap items-start gap-3 rounded-lg border p-4', STATUS_STYLES[goal.status])}>
+      {/* native: drag handle */}
       <button type="button" className={HANDLE_CLASS} aria-label={t('plan:dnd.handle', { title: goal.title })} title={t('plan:dnd.handle', { title: goal.title })} {...handle}>
         <GripVertical className="h-4 w-4" />
       </button>

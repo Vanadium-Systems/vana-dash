@@ -32,6 +32,7 @@ export function TabbedSection({ title, tabs }: { title: string; tabs: SectionTab
     visible.length > 1 ? (
       <div role="tablist" aria-label={title} className="flex flex-wrap gap-x-1 border-b">
         {visible.map((tab) => (
+          // native: tab trigger
           <button
             key={tab.key}
             type="button"

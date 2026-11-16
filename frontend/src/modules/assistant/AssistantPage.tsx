@@ -376,11 +376,13 @@ export function AssistantPage() {
                       <span className="max-w-56 truncate">{c.title || t('assistant:newConversation')}</span>
                       <span className="text-xs text-muted-foreground">{relativeTime(c.lastMessageAt)}</span>
                     </span>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon-sm"
                       aria-label={c.title ? t('assistant:deleteConversation', { title: c.title }) : t('assistant:deleteNewConversation')}
                       data-testid="assistant-delete-conversation"
-                      className="ml-auto rounded p-1 text-muted-foreground hover:bg-accent hover:text-destructive"
+                      className="ml-auto text-muted-foreground hover:text-destructive"
                       onClick={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
@@ -388,7 +390,7 @@ export function AssistantPage() {
                       }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -405,6 +407,7 @@ export function AssistantPage() {
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((suggestion) => (
+                // native: suggestion pill chip
                 <button
                   key={suggestion}
                   type="button"
@@ -464,6 +467,7 @@ export function AssistantPage() {
               <span className="tnum shrink-0 font-mono text-xs">
                 {new Date(run.runAt).toLocaleString(intlTag(), { timeZone: companyTimeZone(), day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </span>
+              {/* native: chip remove button */}
               <button
                 type="button"
                 aria-label={t('assistant:cancelScheduled')}

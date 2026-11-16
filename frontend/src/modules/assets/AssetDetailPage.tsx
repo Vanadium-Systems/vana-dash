@@ -199,6 +199,7 @@ export function AssetDetailPage() {
               </span>
               <div className="flex gap-1">
                 {([['line', t('crypto:chart.line')], ['candles', t('crypto:chart.candles')]] as const).map(([mode, label]) => (
+                  // native: segmented control
                   <button
                     key={mode}
                     type="button"
@@ -216,6 +217,7 @@ export function AssetDetailPage() {
             </div>
             <div className="flex gap-1">
               {RANGES.map((r) => (
+                // native: segmented control
                 <button
                   key={r.days}
                   type="button"

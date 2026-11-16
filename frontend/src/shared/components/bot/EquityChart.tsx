@@ -68,6 +68,7 @@ export function EquityChart({ strategies, market }: { strategies: BotStrategy[];
         </h2>
         <div role="group" aria-label={t('common:labels.period')} className="flex rounded-md bg-muted p-0.5">
           {RANGES.map((r) => (
+            // native: segmented control
             <button
               key={r.key}
               type="button"

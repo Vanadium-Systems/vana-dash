@@ -106,6 +106,7 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol, liveMode }: Ord
               <Label>{t('crypto:order.side')}</Label>
               <div className="flex gap-1">
                 {(['buy', 'sell'] as const).map((s) => (
+                  // native: segmented control
                   <button
                     key={s}
                     type="button"
@@ -131,6 +132,7 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol, liveMode }: Ord
 
           <div className="flex gap-1">
             {(['market', 'limit'] as const).map((orderType) => (
+              // native: segmented control
               <button
                 key={orderType}
                 type="button"

@@ -37,6 +37,7 @@ export function BotReviews({ reviews, standalone = false }: { reviews: ReviewMet
             const sev = SEVERITY[r.severity]
             return (
               <li key={r.id}>
+                {/* native: list row */}
                 <button
                   type="button"
                   onClick={() => setOpenReviewId(r.id)}

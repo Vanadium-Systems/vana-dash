@@ -184,7 +184,7 @@ export function RankedBars({ rows, currency, activeId, onSelect }: { rows: Share
         return (
           <li key={row.id}>
             {onSelect ? (
-              // A plain row-sized button: the whole row is the target, a Button primitive would add its own padding and centring.
+              // native: list row — the whole row is the target, a Button primitive would add its own padding and centring.
               <button type="button" aria-pressed={active} className={cn('relative flex min-h-control-md w-full items-center gap-3 rounded-sm px-2 text-sm', active && 'font-medium', 'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')} onClick={() => onSelect(row)}>
                 {content}
               </button>

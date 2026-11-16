@@ -26,6 +26,7 @@ function SortableRow({ entry, label, onToggle }: { entry: NavEntry; label: strin
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`flex items-center gap-2 rounded-md border bg-card px-3 py-1 ${isDragging ? 'z-10 shadow-md' : ''}`}
     >
+      {/* native: drag handle */}
       <button
         type="button"
         className="touch-target -my-1 -ml-1 flex h-8 w-6 cursor-grab items-center justify-center rounded-sm text-muted-foreground hover:bg-accent active:cursor-grabbing"

@@ -98,6 +98,7 @@ function SearchSection({ onAdd }: { onAdd: (entry: WatchEntry) => void }) {
           ) : (
             <>
               {search.data.coins.map((coin) => (
+                // native: list row
                 <button
                   key={`cex-${coin.id}`}
                   type="button"
@@ -116,6 +117,7 @@ function SearchSection({ onAdd }: { onAdd: (entry: WatchEntry) => void }) {
                 </button>
               ))}
               {search.data.pools.map((pool) => (
+                // native: list row
                 <button
                   key={`dex-${pool.poolId}`}
                   type="button"
@@ -178,23 +180,26 @@ function AlertThresholdButton({ metricKey, label }: { metricKey: string; label: 
 
   return (
     <div className="relative">
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         aria-label={t('crypto:alert.create')}
         data-testid="crypto-price-alert"
-        className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="text-muted-foreground hover:text-foreground"
         onClick={(e) => {
           e.stopPropagation()
           setOpen((o) => !o)
         }}
       >
         <Bell className="h-3.5 w-3.5" />
-      </button>
+      </Button>
       {open ? (
         <div className="absolute right-0 z-20 mt-1 w-56 space-y-2 rounded-md border bg-popover p-3 shadow-lg">
           <p className="text-xs font-medium">{t('crypto:alert.whenPrice')}</p>
           <div className="flex gap-1">
             {([['gt', t('crypto:alert.above')], ['lt', t('crypto:alert.below')]] as const).map(([cond, lbl]) => (
+              // native: segmented control
               <button
                 key={cond}
                 type="button"
@@ -355,17 +360,18 @@ export function CryptoPage() {
                             </p>
                             <div className="flex shrink-0 items-center gap-0.5">
                               <AlertThresholdButton metricKey={entry.kind === 'cex' ? `crypto.${entry.id}` : `crypto.dex.${entry.id}`} label={entry.symbol} />
-                              <button
+                              <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
                                 aria-label={t('crypto:favorites.remove')}
-                                className="rounded p-1 hover:bg-accent"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   toggleWatchlist(entry, true)
                                 }}
                               >
                                 <X className="h-3.5 w-3.5 text-muted-foreground" />
-                              </button>
+                              </Button>
                             </div>
                           </div>
                           <div className="flex items-end justify-between gap-2">
@@ -475,6 +481,7 @@ export function CryptoPage() {
                 <div className="flex flex-wrap items-center gap-1">
                   <div className="mr-1 flex gap-1">
                     {[25, 50].map((n) => (
+                      // native: segmented control
                       <button
                         key={n}
                         type="button"
@@ -490,6 +497,7 @@ export function CryptoPage() {
                     ))}
                   </div>
                   {CATEGORIES.map((c) => (
+                    // native: segmented control
                     <button
                       key={c.key}
                       type="button"
@@ -541,6 +549,7 @@ export function CryptoPage() {
                             >
                               {/* The star needs no row padding; at 360px the 12px saved keep the table inside the card. */}
                               <TableCell className="w-8 pl-1 pr-0">
+                                {/* native: star toggle */}
                                 <button
                                   type="button"
                                   aria-label={isWatched('cex', coin.id) ? t('crypto:favorites.remove') : t('crypto:favorites.add')}

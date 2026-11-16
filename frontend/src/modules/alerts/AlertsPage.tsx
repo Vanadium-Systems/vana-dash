@@ -133,6 +133,7 @@ function ActiveAlertsSection() {
     return (
       <p className="text-sm">
         {t('alerts:loadFailed')}{' '}
+        {/* native: inline text link */}
         <button type="button" className="underline underline-offset-2" onClick={() => void alerts.refetch()}>
           {t('common:actions.retry')}
         </button>
@@ -172,6 +173,7 @@ function ActiveAlertsSection() {
                     <StatePill tone={SEVERITY_TONE[alert.severity]} className="w-16 justify-center">
                       {SEVERITY_LABEL[alert.severity]}
                     </StatePill>
+                    {/* native: list row */}
                     <button
                       type="button"
                       className="min-w-0 flex-1 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
