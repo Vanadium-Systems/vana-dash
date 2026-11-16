@@ -3,7 +3,7 @@
 -- owner (the role that runs the migrations and owns the tables). Run through scripts/rls-role.sh.
 --
 -- NOSUPERUSER NOBYPASSRLS: the policies apply to it. Not the table owner: FORCE ROW LEVEL
--- SECURITY (migration 0101) makes them apply to the owner as well, but the owner can still
+-- SECURITY (migration 0102) makes them apply to the owner as well, but the owner can still
 -- ALTER TABLE ... DISABLE ROW LEVEL SECURITY, and this role must not be able to.
 \set ON_ERROR_STOP on
 
