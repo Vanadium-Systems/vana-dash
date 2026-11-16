@@ -1045,8 +1045,8 @@ const SOURCES: GuideSource[] = [
         en: 'Click your name at the bottom of the left bar (on the phone, under “More”) and pick My profile.',
       },
       {
-        ro: 'La Afișare alegi limba interfeței și moneda în care vezi totalurile. Pagina se reîncarcă în limba nouă.',
-        en: 'Under Display you pick the interface language and the currency totals are shown in. The page reloads in the new language.',
+        ro: 'La Afișare alegi paleta de culori, limba interfeței și moneda în care vezi totalurile. Paleta se salvează pe contul tău; la schimbarea limbii pagina se reîncarcă.',
+        en: 'Under Display you pick the colour palette, interface language and the currency totals are shown in. The palette is saved to your account; changing the language reloads the page.',
       },
       {
         ro: 'La Parolă scrii parola de acum și una nouă, de minim 12 caractere. Celelalte dispozitive sunt delogate.',

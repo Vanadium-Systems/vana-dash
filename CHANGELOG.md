@@ -4,6 +4,11 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-16: Per-user colour palettes
+
+### Added
+- Five colour palettes (`vanadium`, `grafit`, `padure`, `chihlimbar`, `ardezie`), each with day and night tokens and verified WCAG contrast, selectable in My profile (`users.theme_palette`, `GET/PATCH /api/auth/me`, cached in `localStorage` before first paint).
+
 ## 2026-11-16: Fewer third-party dependencies
 
 ### Changed
