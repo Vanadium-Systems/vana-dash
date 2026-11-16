@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { getSecondaryHostSignals, SIGNAL_LABELS } from '../modules/monitoring/service.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
 import { tl, tr } from '../shared/lib/i18n.js'

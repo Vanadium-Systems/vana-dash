@@ -2,6 +2,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { Button } from './button'
 import { Checkbox } from './checkbox'
 import { ConfirmDialog } from './confirm-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './dropdown-menu'
@@ -11,6 +12,7 @@ import { Input } from './input'
 import { Select } from './select'
 import { StatePill } from './state-pill'
 import { Switch } from './switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs'
 import { Tooltip } from './tooltip'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -315,5 +317,58 @@ describe('Tooltip', () => {
       </Tooltip>,
     )
     expect((container.querySelector('.tooltip-anchor') as HTMLElement).tabIndex).toBe(-1)
+  })
+})
+
+describe('Button asChild (Slot)', () => {
+  it('merges className, ref, and event handlers onto the child element', () => {
+    const onParentClick = vi.fn()
+    const onChildClick = vi.fn()
+    const ref = { current: null as HTMLAnchorElement | null }
+    render(
+      <Button asChild variant="outline" onClick={onParentClick} className="parent-cls">
+        <a ref={ref} href="#go" onClick={onChildClick} className="child-cls">
+          Mergi
+        </a>
+      </Button>,
+    )
+    const link = container.querySelector('a')!
+    expect(link).not.toBeNull()
+    expect(link.className).toContain('parent-cls')
+    expect(link.className).toContain('child-cls')
+    expect(ref.current).toBe(link)
+    act(() => link.click())
+    expect(onChildClick).toHaveBeenCalledOnce()
+    expect(onParentClick).toHaveBeenCalledOnce()
+  })
+})
+
+describe('Tabs', () => {
+  it('switches panels on click and ArrowRight/ArrowLeft', () => {
+    const onValueChange = vi.fn()
+    render(
+      <Tabs defaultValue="a" onValueChange={onValueChange}>
+        <TabsList>
+          <TabsTrigger value="a">Tab A</TabsTrigger>
+          <TabsTrigger value="b">Tab B</TabsTrigger>
+        </TabsList>
+        <TabsContent value="a">Panel A</TabsContent>
+        <TabsContent value="b">Panel B</TabsContent>
+      </Tabs>,
+    )
+    const tabs = [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+    expect(tabs[0]!.getAttribute('aria-selected')).toBe('true')
+    expect(tabs[1]!.getAttribute('aria-selected')).toBe('false')
+    expect(container.textContent).toContain('Panel A')
+    expect(container.textContent).not.toContain('Panel B')
+
+    act(() => {
+      tabs[0]!.focus()
+      tabs[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    })
+    expect(onValueChange).toHaveBeenCalledWith('b')
+    expect(tabs[1]!.getAttribute('aria-selected')).toBe('true')
+    expect(container.textContent).toContain('Panel B')
+    expect(container.textContent).not.toContain('Panel A')
   })
 })

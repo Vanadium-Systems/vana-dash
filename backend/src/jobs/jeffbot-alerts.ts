@@ -1,5 +1,5 @@
 import { and, eq, gte } from 'drizzle-orm'
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { getLatestReview, getState, STALE_AFTER_MS } from '../modules/jeffbot/service.js'
 import { db } from '../shared/db/client.js'
 import { alerts } from '../shared/db/schema/index.js'

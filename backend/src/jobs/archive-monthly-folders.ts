@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import * as archiveService from '../modules/archive/service.js'
 
 // Pe 1 ale lunii: pt. fiecare folder din Arhivă cu autoMonthlySubfolders activ (setat din UI,

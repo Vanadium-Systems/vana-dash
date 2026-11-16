@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { eq, isNotNull, sql as rawSql } from 'drizzle-orm'
 import { anafConnector } from '../connectors/anaf/index.js'
 import type { AnafInvoiceDocument } from '../connectors/types.js'

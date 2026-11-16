@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { and, desc, eq, isNull, like, lt, sql } from 'drizzle-orm'
 import { generateD301Preview, generateD390Preview } from '../modules/accounting/d301.js'
 import { db } from '../shared/db/client.js'

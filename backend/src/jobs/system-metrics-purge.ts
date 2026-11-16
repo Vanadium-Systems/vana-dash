@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { lt } from 'drizzle-orm'
 import { db } from '../shared/db/client.js'
 import { systemMetricsSnapshots } from '../shared/db/schema/index.js'

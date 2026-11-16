@@ -1,9 +1,5 @@
-import cookie from '@fastify/cookie'
-import cors from '@fastify/cors'
-import helmet from '@fastify/helmet'
 import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
-import sensible from '@fastify/sensible'
 import Fastify, { type FastifyError } from 'fastify'
 import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { accessRoutes } from './modules/access/routes.js'
@@ -76,6 +72,8 @@ import { tr } from './shared/lib/i18n.js'
 import { validationMessage } from './shared/lib/validation-messages.js'
 import { authPlugin } from './shared/middleware/auth.js'
 import { featureGuardPlugin } from './shared/middleware/feature-guard.js'
+import { cookiePlugin } from './shared/plugins/cookie.js'
+import { securityHeadersPlugin } from './shared/plugins/security-headers.js'
 
 export async function buildServer() {
   const app = Fastify({
@@ -122,9 +120,8 @@ export async function buildServer() {
     return reply.code(statusCode).send({ success: false, error: statusCode >= 500 ? tr('errors.internal') : error.message })
   })
 
-  await app.register(helmet)
-  await app.register(cors, { origin: config.frontendOrigin, credentials: true })
-  await app.register(cookie)
+  await app.register(securityHeadersPlugin, { origin: config.frontendOrigin })
+  await app.register(cookiePlugin)
   await app.register(jwt, {
     secret: config.jwtSecret,
     cookie: { cookieName: SESSION_COOKIE, signed: false },
@@ -137,7 +134,6 @@ export async function buildServer() {
   // A personal API token also gets its own budget, keyed on the verified token (see `authenticate`):
   // keying here, before the token is checked, would let a random Bearer value open a fresh bucket.
   await app.register(rateLimit, { max: 900, timeWindow: '1 minute' })
-  await app.register(sensible)
   await app.register(authPlugin)
   // După authPlugin: hook-ul lui mută `authenticate` în preValidation, iar guard-ul trebuie
   // să vadă astea ca să știe care rute sunt autentificate.

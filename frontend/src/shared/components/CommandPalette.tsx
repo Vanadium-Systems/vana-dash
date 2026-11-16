@@ -1,25 +1,20 @@
-import * as DialogPrimitive from '@radix-ui/react-dialog'
-import { Command } from 'cmdk'
 import { useQuery } from '@tanstack/react-query'
 import { BarChart3, CalendarOff, CalendarPlus, FilePlus2, Gift, LineChart, Mail, Rocket, Search, StickyNote } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Highlight } from '@/shared/components/Highlight'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
+import { t } from '@/shared/lib/i18n'
 import { NAV_ITEMS, navGroupLabel, canOpenNavItem } from '@/shared/lib/nav-items'
 import { useRegisteredPageActions } from '@/shared/lib/page-actions'
 import type { FeatureKey } from '@/shared/lib/types'
 import { normalizeForSearch } from '@/shared/lib/utils'
-import { t } from '@/shared/lib/i18n'
 
-// Ctrl K (DESIGN.md): fără animație la deschidere, pentru că pornește din tastatură de zeci de
-// ori pe zi. Paginile vin din NAV_ITEMS, mai însă filtrate pe funcționalități — un item
-// ascuns aici s-ar deschide într-un 403. Căutarea în date merge pe server (`/api/search`,
-// BE-9): acolo e filtrul pe funcționalități și pe cutiile de email ale omului, deci niciun
-// rezultat nu poate veni pe o rută necubată.
+// Ctrl K (DESIGN.md): no opening animation because it is triggered from the keyboard dozens of
+// times a day. Pages come from NAV_ITEMS filtered by features; data search goes through `/api/search`.
 
 interface PaletteAction {
   id: string
@@ -38,7 +33,6 @@ const ACTIONS: PaletteAction[] = [
   { id: 'block', label: t('common:palette.blockBookingSlot'), icon: CalendarOff, to: '/calendar?block=1', feature: 'calendar.programari', keywords: ['programari', 'ocupat', 'site', 'bookings', 'busy', 'block'] },
 ]
 
-// Pagini care nu mai au item propriu în meniu (tab-uri sau comutator în pagina gazdă).
 const SUB_PAGES: Array<{ to: string; label: string; icon: LucideIcon; parent: string; feature?: FeatureKey; keywords?: string[] }> = [
   { to: '/financials?tab=rapoarte', label: t('common:nav.reports'), icon: BarChart3, parent: 'Financiar', feature: 'financiar.rapoarte', keywords: ['rapoarte', 'reports'] },
   { to: '/notes?tab=plan', label: t('common:nav.plan'), icon: Rocket, parent: t('common:nav.notes'), feature: 'notite.view', keywords: ['obiective', 'goals'] },
@@ -59,18 +53,23 @@ interface SearchGroup {
   items: SearchItem[]
 }
 
+interface PaletteEntry {
+  key: string
+  group: string
+  onSelect: () => void
+  content: ReactNode
+}
+
 export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 export const PALETTE_SHORTCUT = isMac ? '⌘K' : 'Ctrl K'
 
-function paletteFilter(value: string, search: string, keywords?: string[]) {
+function paletteScore(value: string, search: string, keywords?: string[]): number {
   const needle = normalizeForSearch(search.trim())
   if (!needle) return 1
   const haystack = normalizeForSearch([value, ...(keywords ?? [])].join(' '))
   if (haystack.startsWith(needle)) return 1
   return haystack.includes(needle) ? 0.5 : 0
 }
-
-const GROUP_CLASS = '[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-muted-foreground'
 
 const ITEM_CLASS =
   'flex h-control-md cursor-pointer select-none items-center gap-2.5 rounded-sm px-2 text-sm text-muted-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground'
@@ -79,12 +78,15 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const navigate = useNavigate()
   const { can } = useMe()
   const [search, setSearch] = useState('')
+  const [activeIndex, setActiveIndex] = useState(0)
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const listId = useId()
+
   const term = search.trim()
   const debouncedTerm = useDebounced(term, 250)
 
-  // Sub 2 caractere serverul nu caută nimic (`/api/search` cere minimum 2), deci nici
-  // interogăm — cu un prefix scurt ar întreba trei tabele pentru orice.
-  // Without `cautare.view` the palette only jumps between pages: the server would answer 403.
   const canSearch = can('cautare.view')
   const results = useQuery({
     queryKey: ['search', debouncedTerm],
@@ -96,11 +98,28 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const close = () => {
     onOpenChange(false)
     setSearch('')
+    setActiveIndex(0)
   }
+
   const go = (to: string) => {
     close()
     navigate(to)
   }
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    if (open) {
+      if (!dialog.open) {
+        if (typeof dialog.showModal === 'function') dialog.showModal()
+        else dialog.setAttribute('open', '')
+      }
+      inputRef.current?.focus()
+    } else if (dialog.open) {
+      if (typeof dialog.close === 'function') dialog.close()
+      else dialog.removeAttribute('open')
+    }
+  }, [open])
 
   const pages = NAV_ITEMS.filter((item) => canOpenNavItem(item, can))
   const subPages = SUB_PAGES.filter((page) => can(page.feature))
@@ -108,112 +127,197 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const pageActions = useRegisteredPageActions().filter((action) => can(action.feature))
   const groups = (results.data ?? []).filter((group) => can(group.feature))
   const searching = canSearch && term.length >= 2
-  // Cât timp răspunde serverul, arătăm doar starea de căutare, nu paginile: o listă care
-  // se schimbă sub cursorul omului e mai derutantă decât o așteptare scurtă.
   const waiting = searching && (results.isPending || debouncedTerm !== term)
 
+  const entries = useMemo<PaletteEntry[]>(() => {
+    const list: PaletteEntry[] = []
+
+    const pushIfMatches = (label: string, keywords: string[] | undefined, entry: PaletteEntry) => {
+      if (paletteScore(label, term, keywords) > 0) list.push(entry)
+    }
+
+    for (const action of pageActions) {
+      pushIfMatches(action.label, undefined, {
+        key: `pa:${action.id}`,
+        group: t('common:palette.thisPage'),
+        onSelect: () => {
+          close()
+          action.run()
+        },
+        content: (
+          <>
+            {action.icon ? <action.icon className="h-4 w-4" aria-hidden="true" /> : null}
+            {action.label}
+          </>
+        ),
+      })
+    }
+
+    if (!searching || waiting) {
+      for (const action of actions) {
+        pushIfMatches(action.label, action.keywords, {
+          key: `act:${action.id}`,
+          group: t('common:labels.actions'),
+          onSelect: () => go(action.to),
+          content: (
+            <>
+              <action.icon className="h-4 w-4" aria-hidden="true" />
+              {action.label}
+            </>
+          ),
+        })
+      }
+
+      for (const item of pages) {
+        pushIfMatches(item.label, item.keywords, {
+          key: `page:${item.to}`,
+          group: t('common:palette.pages'),
+          onSelect: () => go(item.to),
+          content: (
+            <>
+              <item.icon className="h-4 w-4" aria-hidden="true" />
+              {item.label}
+              <span className="ml-auto text-xs text-muted-foreground">{navGroupLabel(item.group)}</span>
+            </>
+          ),
+        })
+      }
+
+      for (const page of subPages) {
+        pushIfMatches(page.label, page.keywords, {
+          key: `sub:${page.to}`,
+          group: t('common:palette.pages'),
+          onSelect: () => go(page.to),
+          content: (
+            <>
+              <page.icon className="h-4 w-4" aria-hidden="true" />
+              {page.label}
+              <span className="ml-auto text-xs text-muted-foreground">{page.parent}</span>
+            </>
+          ),
+        })
+      }
+    }
+
+    if (searching && !waiting) {
+      for (const group of groups) {
+        for (const item of group.items) {
+          list.push({
+            key: `srv:${group.group}:${item.id}`,
+            group: group.group,
+            onSelect: () => go(item.to),
+            content: (
+              <>
+                <span className="min-w-0 flex-1 truncate">
+                  <Highlight text={item.label} query={term} />
+                </span>
+                {item.sublabel ? <span className="max-w-[45%] shrink-0 truncate text-xs text-muted-foreground">{item.sublabel}</span> : null}
+              </>
+            ),
+          })
+        }
+      }
+    }
+
+    return list
+  }, [pageActions, searching, waiting, actions, pages, subPages, groups, term])
+
+  const clampedIndex = entries.length > 0 ? Math.min(activeIndex, entries.length - 1) : 0
+
+  useEffect(() => {
+    setActiveIndex(0)
+  }, [term])
+
+  useEffect(() => {
+    const activeEl = listRef.current?.querySelector<HTMLElement>('[data-selected="true"]')
+    activeEl?.scrollIntoView?.({ block: 'nearest' })
+  }, [clampedIndex, entries.length])
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, Array<PaletteEntry & { index: number }>>()
+    entries.forEach((entry, index) => {
+      const arr = map.get(entry.group) ?? []
+      arr.push({ ...entry, index })
+      map.set(entry.group, arr)
+    })
+    return [...map.entries()]
+  }, [entries])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (entries.length > 0) setActiveIndex((i) => (i + 1) % entries.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (entries.length > 0) setActiveIndex((i) => (i - 1 + entries.length) % entries.length)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      entries[clampedIndex]?.onSelect()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      close()
+    }
+  }
+
   return (
-    <DialogPrimitive.Root
-      open={open}
-      onOpenChange={(next) => {
-        onOpenChange(next)
-        if (!next) setSearch('')
+    <dialog
+      ref={dialogRef}
+      aria-label={t('common:palette.title')}
+      onCancel={(e) => {
+        e.preventDefault()
+        close()
       }}
+      onClick={(e) => {
+        if (e.target === dialogRef.current) close()
+      }}
+      onKeyDown={handleKeyDown}
+      className="fixed inset-x-2 top-[max(0.5rem,env(safe-area-inset-top,0px))] z-50 m-0 w-[calc(100%-1rem)] max-w-none overflow-hidden rounded-lg border bg-surface-overlay p-0 text-popover-foreground backdrop:bg-black/50 md:left-1/2 md:right-auto md:top-[15vh] md:w-full md:max-w-lg md:-translate-x-1/2"
     >
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
-        <DialogPrimitive.Content
-          aria-describedby={undefined}
-          className="fixed inset-x-2 top-[max(0.5rem,env(safe-area-inset-top,0px))] z-50 overflow-hidden rounded-lg border bg-surface-overlay text-popover-foreground md:left-1/2 md:right-auto md:top-[15vh] md:w-full md:max-w-lg md:-translate-x-1/2"
-        >
-          <DialogPrimitive.Title className="sr-only">{t('common:palette.title')}</DialogPrimitive.Title>
-          <Command filter={paletteFilter} loop>
-            <div className="flex items-center gap-2 border-b px-3">
-              <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <Command.Input
-                value={search}
-                onValueChange={setSearch}
-                placeholder={t('common:palette.placeholder')}
-                className="h-11 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
-              />
-            </div>
-            <Command.List className="max-h-[min(60dvh,24rem)] overflow-y-auto overscroll-contain p-1">
-              {pageActions.length > 0 ? (
-                <Command.Group heading={t('common:palette.thisPage')} className={GROUP_CLASS}>
-                  {pageActions.map((action) => (
-                    <Command.Item
-                      key={action.id}
-                      value={action.label}
-                      onSelect={() => {
-                        close()
-                        action.run()
-                      }}
-                      className={ITEM_CLASS}
-                    >
-                      {action.icon ? <action.icon className="h-4 w-4" aria-hidden="true" /> : null}
-                      {action.label}
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-              ) : null}
-              {!searching || waiting ? (
-                <>
-                  {actions.length > 0 ? (
-                    <Command.Group heading={t('common:labels.actions')} className={GROUP_CLASS}>
-                      {actions.map((action) => (
-                        <Command.Item key={action.id} value={action.label} keywords={action.keywords} onSelect={() => go(action.to)} className={ITEM_CLASS}>
-                          <action.icon className="h-4 w-4" aria-hidden="true" />
-                          {action.label}
-                        </Command.Item>
-                      ))}
-                    </Command.Group>
-                  ) : null}
+      <div className="flex items-center gap-2 border-b px-3">
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <input
+          ref={inputRef}
+          type="text"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-activedescendant={entries[clampedIndex] ? `${listId}-opt-${clampedIndex}` : undefined}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('common:palette.placeholder')}
+          className="h-11 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
+        />
+      </div>
+      <div ref={listRef} id={listId} role="listbox" className="max-h-[min(60dvh,24rem)] overflow-y-auto overscroll-contain p-1">
+        {grouped.map(([groupName, groupItems]) => (
+          <div key={groupName} role="group" aria-label={groupName}>
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">{groupName}</div>
+            {groupItems.map((item) => {
+              const isSelected = item.index === clampedIndex
+              return (
+                <div
+                  key={item.key}
+                  id={`${listId}-opt-${item.index}`}
+                  role="option"
+                  aria-selected={isSelected}
+                  data-selected={isSelected ? 'true' : undefined}
+                  onMouseEnter={() => setActiveIndex(item.index)}
+                  onClick={item.onSelect}
+                  className={ITEM_CLASS}
+                >
+                  {item.content}
+                </div>
+              )
+            })}
+          </div>
+        ))}
 
-                  <Command.Group heading={t('common:palette.pages')} className={GROUP_CLASS}>
-                    {pages.map((item) => (
-                      <Command.Item key={item.to} value={item.label} keywords={item.keywords} onSelect={() => go(item.to)} className={ITEM_CLASS}>
-                        <item.icon className="h-4 w-4" aria-hidden="true" />
-                        {item.label}
-                        <span className="ml-auto text-xs text-muted-foreground">{navGroupLabel(item.group)}</span>
-                      </Command.Item>
-                    ))}
-                    {subPages.map((page) => (
-                      <Command.Item key={page.to} value={page.label} keywords={page.keywords} onSelect={() => go(page.to)} className={ITEM_CLASS}>
-                        <page.icon className="h-4 w-4" aria-hidden="true" />
-                        {page.label}
-                        <span className="ml-auto text-xs text-muted-foreground">{page.parent}</span>
-                      </Command.Item>
-                    ))}
-                  </Command.Group>
-                </>
-              ) : null}
-
-              {searching && !waiting ? (
-                groups.length > 0 ? (
-                  groups.map((group) => (
-                    <Command.Group key={group.group} heading={group.group} className={GROUP_CLASS}>
-                      {group.items.map((item) => (
-                        <Command.Item key={item.id} value={`${group.group} ${item.label} ${item.sublabel ?? ''}`} onSelect={() => go(item.to)} className={ITEM_CLASS}>
-                          <span className="min-w-0 flex-1 truncate">
-                            <Highlight text={item.label} query={term} />
-                          </span>
-                          {item.sublabel ? <span className="max-w-[45%] shrink-0 truncate text-xs text-muted-foreground">{item.sublabel}</span> : null}
-                        </Command.Item>
-                      ))}
-                    </Command.Group>
-                  ))
-                ) : (
-                  <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                    {results.isError
-                      ? t('common:palette.searchFailed')
-                      : t('common:palette.nothingFor', { term })}
-                  </p>
-                )
-              ) : null}
-            </Command.List>
-          </Command>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+        {searching && !waiting && groups.length === 0 ? (
+          <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+            {results.isError ? t('common:palette.searchFailed') : t('common:palette.nothingFor', { term })}
+          </p>
+        ) : null}
+      </div>
+    </dialog>
   )
 }

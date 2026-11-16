@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import {
   beginSicapRun,
   fetchContractNoticeEligibility,

@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import * as service from '../modules/assets/service.js'
 
 // Scrie prețurile assets în platform_metrics (metricKey `asset.<symbol>`, fără '/') pt. tot

@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { config } from '../shared/config.js'
 import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { runViewAlerts } from '../modules/prospects/views-service.js'

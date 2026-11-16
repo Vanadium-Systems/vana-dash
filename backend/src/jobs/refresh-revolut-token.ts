@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { and, eq, isNull } from 'drizzle-orm'
 import { refreshTokens } from '../connectors/revolut/oauth.js'
 import { db } from '../shared/db/client.js'

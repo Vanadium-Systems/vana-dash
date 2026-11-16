@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { db } from '../shared/db/client.js'
 import { syncLog } from '../shared/db/schema/index.js'
 import { countBatchObjects, listExpiredBatches, purgeBatches } from '../modules/archive/trash.js'

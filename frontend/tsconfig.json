@@ -16,7 +16,11 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] },
+    "paths": {
+      "@/*": ["src/*"],
+      "sonner": ["src/shared/components/ui/toast.tsx"],
+      "lucide-react": ["src/shared/components/icons/index.ts"]
+    },
     "types": ["vite/client", "vite-plugin-pwa/client"]
   },
   "include": ["src", "vite.config.ts"]

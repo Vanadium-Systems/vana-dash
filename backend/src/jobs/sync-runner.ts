@@ -1,4 +1,4 @@
-import cron, { type ScheduledTask } from 'node-cron'
+import cron, { type ScheduledTask } from '../shared/lib/cron.js'
 import { isNull } from 'drizzle-orm'
 import { getConnector } from '../connectors/index.js'
 import { db } from '../shared/db/client.js'

@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { and, eq, isNotNull, isNull } from 'drizzle-orm'
 import { computeNextOccurrence, dayAfter, type BillingCycle } from '../shared/lib/billing-cycle.js'
 import { db } from '../shared/db/client.js'

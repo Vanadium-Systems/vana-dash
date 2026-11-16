@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { and, eq, gte, ilike, isNull, or, sql } from 'drizzle-orm'
 import { parseForm150Email, parseSpvDocumentsEmail, type SpvNotificationItem } from '../connectors/anaf/spv-notifications.js'
 import { confirmFilingFromReceipt } from '../modules/accounting/d301.js'

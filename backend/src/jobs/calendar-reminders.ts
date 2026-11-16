@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { and, eq, gte, inArray, isNull, lte, or } from 'drizzle-orm'
 import { db } from '../shared/db/client.js'
 import { calendarEventAttendees, calendarEventReminders, calendarEvents } from '../shared/db/schema/index.js'

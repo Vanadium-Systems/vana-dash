@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { registerAutomationListeners, runNoNextStep } from '../modules/prospects/automations-service.js'
 

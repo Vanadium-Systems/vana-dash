@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { isNull } from 'drizzle-orm'
 import { getConnector } from '../connectors/index.js'
 import { db } from '../shared/db/client.js'

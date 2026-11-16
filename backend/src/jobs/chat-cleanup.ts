@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { purgeUnattachedAttachments } from '../modules/chat/attachments.js'
 
 // Atașamentele încărcate în Mesaje dar niciodată trimise (composerul închis, uploadul
