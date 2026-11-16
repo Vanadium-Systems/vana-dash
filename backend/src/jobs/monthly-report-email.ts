@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import * as reportsService from '../modules/reports/service.js'
 import { config } from '../shared/config.js'
 import { sendEmail } from '../shared/lib/email.js'

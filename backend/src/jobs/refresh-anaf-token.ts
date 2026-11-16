@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { refreshTokens } from '../connectors/anaf/oauth.js'
 import { getAnafCredentialsRow, markNeedsReauth, saveAnafTokens } from '../shared/lib/anaf.js'
 import { decryptApiKey } from '../shared/lib/crypto.js'

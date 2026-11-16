@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { dispatchOverdueSends } from '../modules/email/scheduled-send.js'
 
 // Every minute: scheduled sends whose in-process timer is gone (a restart or deploy inside the

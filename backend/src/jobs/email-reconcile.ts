@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { eq } from 'drizzle-orm'
 import { listSentEmails } from '../connectors/resend/reconcile.js'
 import { updateSendStatusFromWebhook, type DeliveryStatus } from '../modules/email/service.js'

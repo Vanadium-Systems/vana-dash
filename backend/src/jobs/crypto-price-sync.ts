@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { and, eq, isNull } from 'drizzle-orm'
 import { alertRules } from '../shared/db/schema/index.js'
 import { db } from '../shared/db/client.js'

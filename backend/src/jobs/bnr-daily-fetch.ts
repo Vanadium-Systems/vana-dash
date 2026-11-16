@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { fetchAndStoreLatestBnrRates } from '../shared/lib/bnr.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
 import { getOpsJobToggles } from '../modules/settings/service.js'

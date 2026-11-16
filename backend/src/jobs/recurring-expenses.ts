@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import * as accountingService from '../modules/accounting/service.js'
 
 // Zilnic: materializează fiecare recurring_expense activă și scadentă (nextDueDate <= azi) într-un

@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { purgeExpiredBookings } from '../modules/booking/service.js'
 
 // Contract E (docs/BOOKING.md, Legal): datele vizitatorilor dispar la 90 de zile după apel.

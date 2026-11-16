@@ -1,6 +1,6 @@
 import { activeAdminIds } from '../shared/lib/notify.js'
 import { createHash } from 'node:crypto'
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { and, asc, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import { getOutreachCapStatus, sendCampaignEmail } from '../modules/email/service.js'
 import {

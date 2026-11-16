@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { expirePendingActions } from '../modules/assistant/service.js'
 
 // La fiecare 5 minute: acțiuni "confirm" (assistant_pending_actions) care au trecut de

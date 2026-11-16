@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { recomputeDuplicates } from '../modules/prospects/health-service.js'
 

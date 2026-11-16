@@ -1,4 +1,4 @@
-import cron from 'node-cron'
+import cron from '../shared/lib/cron.js'
 import { deleteOldSessions } from '../shared/lib/sessions.js'
 import { withRlsBypass } from '../shared/lib/tenancy.js'
 
