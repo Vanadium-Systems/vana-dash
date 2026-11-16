@@ -23,12 +23,13 @@ function LocationProbe() {
 }
 
 beforeAll(() => {
-  // cmdk măsoară elementele și derulează la itemul selectat; jsdom nu are aceste API-uri.
-  globalThis.ResizeObserver ??= class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  } as unknown as typeof ResizeObserver
+  // jsdom does not implement HTMLDialogElement.showModal/close or scrollIntoView.
+  HTMLDialogElement.prototype.showModal ??= function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.close ??= function () {
+    this.removeAttribute('open')
+  }
   Element.prototype.scrollIntoView ??= () => {}
 })
 
@@ -85,7 +86,7 @@ afterEach(() => {
 })
 
 function type(text: string) {
-  const input = document.querySelector('[cmdk-input]') as HTMLInputElement
+  const input = document.querySelector('input') as HTMLInputElement
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
   act(() => {
     setter.call(input, text)
@@ -95,7 +96,7 @@ function type(text: string) {
 }
 
 function items() {
-  return [...document.querySelectorAll('[cmdk-item]')].map((el) => el.textContent)
+  return [...document.querySelectorAll('[role="option"]')].map((el) => el.textContent)
 }
 
 describe('CommandPalette', () => {
@@ -155,7 +156,7 @@ describe('CommandPalette', () => {
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/search?q=acme'), expect.anything())
     expect(items().join('|')).toContain('Acme SRL')
 
-    act(() => document.querySelector('[cmdk-item]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+    act(() => document.querySelector('[role="option"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
     expect(currentPath).toBe('/clients?prospect=p1')
   })
 
@@ -176,10 +177,10 @@ describe('CommandPalette', () => {
   it('acțiunile paginii deschise apar primele, în „Pe pagina asta”, și rulează', () => {
     const run = vi.fn()
     render(<PageWithActions run={run} />)
-    const groups = [...document.querySelectorAll('[cmdk-group]')]
+    const groups = [...document.querySelectorAll('[role="group"]')]
     expect(groups[0]?.textContent).toContain('Pe pagina asta')
     expect(groups[0]?.textContent).toContain('Mergi la: Clienți activi')
-    const item = [...document.querySelectorAll('[cmdk-item]')].find((el) => el.textContent === 'Mergi la: Clienți activi')
+    const item = [...document.querySelectorAll('[role="option"]')].find((el) => el.textContent === 'Mergi la: Clienți activi')
     act(() => item?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
     expect(run).toHaveBeenCalledOnce()
   })
