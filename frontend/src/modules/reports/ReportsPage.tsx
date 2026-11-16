@@ -8,11 +8,12 @@ import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { ChartEmpty, ChartError, ChartSkeleton } from '@/shared/components/charts/chart-states'
 import { MetricBarChart } from '@/shared/components/charts/MetricBarChart'
+import { ClientsEvolutionChart } from './ClientsEvolutionChart'
 import { KPICard } from '@/shared/components/KPICard'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { PeriodSelector, usePeriod } from '@/shared/components/PeriodSelector'
 import { cn } from '@/shared/lib/utils'
-import { CHART_NEUTRAL, chartColor } from '@/shared/lib/chart-colors'
+import { chartColor } from '@/shared/lib/chart-colors'
 import { formatNumber } from '@/shared/lib/format'
 import type {
   ExpenseBreakdownTrendPoint,
@@ -111,14 +112,7 @@ function MrrAndClientsSection() {
           ) : !chartData.length ? (
             <ChartEmpty label={t('common:states.noData')} />
           ) : (
-            <MetricBarChart
-              data={chartData}
-              series={[
-                { key: 'active', label: t('reports:clients.active'), color: 'hsl(var(--primary))' },
-                { key: 'demo', label: t('reports:clients.demo'), color: CHART_NEUTRAL },
-              ]}
-              unit="count"
-            />
+            <ClientsEvolutionChart data={chartData} activeLabel={t('reports:clients.active')} demoLabel={t('reports:clients.demo')} />
           )}
         </CardContent>
       </Card>

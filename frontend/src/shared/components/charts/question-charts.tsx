@@ -4,6 +4,7 @@ import { formatMoney, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import type { SeriesPoint } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
+import { LINE_CURSOR } from './chart-cursor'
 
 // The chart shapes of the style (DESIGN.md "Charts"): the shape follows the question. Neutral,
 // only today / what matters lit in the V blue; estimates hatched; no pie, funnel or stacked columns.
@@ -109,7 +110,7 @@ export function ComparisonLine({
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={24} tick={AXIS_TICK} />
           <YAxis hide domain={[0, 'auto']} />
-          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value: number, name) => [formatMoney(value, currency), name === 'previous' ? t('common:charts.previous') : t('common:charts.current')]} />
+          <Tooltip cursor={LINE_CURSOR} contentStyle={TOOLTIP_STYLE} formatter={(value: number, name) => [formatMoney(value, currency), name === 'previous' ? t('common:charts.previous') : t('common:charts.current')]} />
           <Line dataKey="previous" stroke="hsl(var(--primary))" strokeOpacity={0.45} strokeDasharray="2 4" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           <Line dataKey="current" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} isAnimationActive={false} connectNulls={false} />
           {/* The running bucket: dotted, it is still filling up. */}

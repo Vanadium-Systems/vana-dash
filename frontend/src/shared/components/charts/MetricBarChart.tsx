@@ -1,5 +1,6 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { formatNumber } from '@/shared/lib/format'
+import { BAR_CURSOR } from '@/shared/components/charts/chart-cursor'
 
 interface BarSeriesDef {
   key: string
@@ -26,6 +27,7 @@ export function MetricBarChart({ data, series, unit, height = 300, stacked }: Me
         <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
         <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={70} />
         <Tooltip
+          cursor={BAR_CURSOR}
           formatter={(value: number, name: string) => [formatNumber(value, unit), labelByKey.get(name) ?? name]}
           contentStyle={{
             background: 'hsl(var(--card))',
