@@ -9,7 +9,8 @@ import { isEmojiOnly } from './emoji-only'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-vi.mock('@/shared/lib/api', () => ({ api: { post: vi.fn(async () => ({})), get: vi.fn() } }))
+vi.mock('@/shared/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/lib/api')>()), api: { post: vi.fn(async () => ({})), get: vi.fn() } }))
 
 describe('isEmojiOnly', () => {
   it('accepts one to three emoji, with or without spaces', () => {

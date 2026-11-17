@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Every calendar write answers with a revert token (server-side undo, modules/calendar/revert.ts).
 // The toast says exactly what happened and offers "Undo"; Ctrl+Z does the same while the toast is
@@ -20,7 +21,7 @@ async function revert(token: string, queryClient: QueryClient) {
     await api.post(`/api/calendar/events/revert/${token}`)
     toast(t('common:undo.done'))
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : t('common:undo.failed'))
+    toastError(err, t('common:undo.failed'))
   } finally {
     void queryClient.invalidateQueries({ queryKey: ['calendar'] })
   }

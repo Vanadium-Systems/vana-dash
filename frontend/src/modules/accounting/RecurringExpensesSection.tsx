@@ -14,6 +14,7 @@ import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { Checkbox } from '@/shared/components/ui/checkbox'
+import { toastError } from '@/shared/lib/errors'
 
 interface FormState {
   description: string
@@ -118,7 +119,7 @@ export function RecurringExpensesSection() {
       toast.success(t('accounting:recurring.saved'))
       setEditingId(null)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const toggleActive = useMutation({
@@ -127,7 +128,7 @@ export function RecurringExpensesSection() {
       void invalidate()
       toast.success(t('common:states.updated'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const toggleShowInCalendar = useMutation({
@@ -138,7 +139,7 @@ export function RecurringExpensesSection() {
       void queryClient.invalidateQueries({ queryKey: ['calendar'] })
       toast.success(t('common:states.updated'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -147,7 +148,7 @@ export function RecurringExpensesSection() {
       void invalidate()
       toast.success(t('accounting:recurring.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

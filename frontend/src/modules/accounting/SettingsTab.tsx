@@ -18,6 +18,7 @@ import { tNodes } from '@/shared/lib/i18n-nodes'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { openExternal } from '@/shared/lib/open-file'
 import { SupplierRulesCard } from './SupplierRulesCard'
+import { toastError } from '@/shared/lib/errors'
 
 function currentQuarter(): string {
   const now = new Date()
@@ -60,7 +61,7 @@ function QuarterlyPackageCard() {
       void queryClient.invalidateQueries({ queryKey: ['accounting', 'quarterly-package', quarter] })
       toast.success(t('accounting:quarterly.generated'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (
@@ -121,7 +122,7 @@ function AnafConnectionCard() {
   const openAuthorize = useMutation({
     mutationFn: () => api.get<{ url: string }>('/api/accounting/anaf/authorize-url'),
     onSuccess: ({ url }) => openExternal(url),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const exchange = useMutation({
@@ -131,7 +132,7 @@ function AnafConnectionCard() {
       setCode('')
       toast.success(t('accounting:anaf.connectedToast'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const refresh = useMutation({
@@ -140,7 +141,7 @@ function AnafConnectionCard() {
       void queryClient.invalidateQueries({ queryKey: ['anaf-status'] })
       toast.success(t('accounting:anaf.refreshedToast'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (status.isPending) return <Skeleton className="h-40 w-full" />
@@ -244,7 +245,7 @@ function SequenceCard() {
       setDefaultPaymentTermsDays(null)
       toast.success(t('accounting:sequence.updated'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (sequence.isPending) return <Skeleton className="h-32 w-full" />

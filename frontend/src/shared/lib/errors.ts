@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { toast, type ToastOptions } from 'sonner'
 import { ApiError } from './api'
 import { t, type TKey } from './i18n'
 
@@ -36,8 +36,9 @@ function codeWorthShowing(err: unknown): string | null {
   return err.status >= 500 || /_(UNAVAILABLE|FAILED|UNREACHABLE)$/.test(err.code) ? err.code : null
 }
 
-export function toastError(err: unknown, fallback?: string): void {
+export function toastError(err: unknown, fallback?: string, options?: ToastOptions): void {
   const known = err instanceof Error
   const code = codeWorthShowing(err)
-  toast.error(known || !fallback ? errorText(err) : fallback, code ? { description: t('common:errors.codeLine', { code }) } : undefined)
+  const description = code ? { description: t('common:errors.codeLine', { code }) } : undefined
+  toast.error(known || !fallback ? errorText(err) : fallback, options || description ? { ...options, ...description } : undefined)
 }

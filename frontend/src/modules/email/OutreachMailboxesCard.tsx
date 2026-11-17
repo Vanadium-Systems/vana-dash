@@ -21,6 +21,7 @@ import { t } from '@/shared/lib/i18n'
 import type { EmailSettings, OutreachMailbox } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { SettingsSection } from './SettingsLayout'
+import { errorText, toastError } from '@/shared/lib/errors'
 
 interface MailboxFormState {
   address: string
@@ -94,7 +95,7 @@ export function OutreachMailboxesCard() {
     onSuccess: (data) => {
       queryClient.setQueryData(['email', 'settings'], data)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const saveMailbox = useMutation({
@@ -124,7 +125,7 @@ export function OutreachMailboxesCard() {
       setEditing(null)
       toast.success(t('email:outreachMailboxes.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const toggleStatus = useMutation({
@@ -134,7 +135,7 @@ export function OutreachMailboxesCard() {
       void queryClient.invalidateQueries({ queryKey: ['email', 'outreach-mailboxes'] })
       void queryClient.invalidateQueries({ queryKey: ['email', 'outreach-summary'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const removeMailbox = useMutation({
@@ -144,7 +145,7 @@ export function OutreachMailboxesCard() {
       void queryClient.invalidateQueries({ queryKey: ['email', 'outreach-summary'] })
       toast.success(t('email:outreachMailboxes.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const testMailbox = useMutation({
@@ -155,7 +156,7 @@ export function OutreachMailboxesCard() {
     },
     onError: (err) => {
       void queryClient.invalidateQueries({ queryKey: ['email', 'outreach-mailboxes'] })
-      toast.error(t('email:outreachMailboxes.testFailed', { code: err.message }))
+      toast.error(t('email:outreachMailboxes.testFailed', { code: errorText(err) }))
     },
   })
 

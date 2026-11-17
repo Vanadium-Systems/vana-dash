@@ -58,6 +58,7 @@ import { StoragePanel } from './StoragePanel'
 import { TrashView } from './TrashView'
 import { UploadPanel } from './UploadPanel'
 import { enqueueUploads, useUploads } from './uploads'
+import { toastError } from '@/shared/lib/errors'
 
 const VIEW_MODE_KEY = 'archive-view-mode'
 const VIEWS: ArchiveView[] = ['own', 'shared', 'all', 'recent', 'starred', 'trash', 'space']
@@ -294,7 +295,7 @@ export function ArchivePage() {
       queryClient.setQueryData(['archive', 'shares', shareTarget?.id], data)
       toast.success(t('archive:toasts.accessSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const removeShare = useMutation({
     mutationFn: (userId: string) => api.delete<AccessShare[]>(`/api/archive/folders/${shareTarget!.id}/shares/${userId}`),
@@ -302,7 +303,7 @@ export function ArchivePage() {
       queryClient.setQueryData(['archive', 'shares', shareTarget?.id], data)
       toast.success(t('archive:toasts.accessRemoved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   async function guarded(work: () => Promise<unknown>) {
@@ -310,7 +311,7 @@ export function ArchivePage() {
     try {
       await work()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('common:states.changeNotSaved'))
+      toastError(err, t('common:states.changeNotSaved'))
     } finally {
       setBusy(false)
     }
@@ -329,7 +330,7 @@ export function ArchivePage() {
 
   const actions: ItemActions = {
     open: (item) => (item.kind === 'folder' ? openFolder(item.id) : openFile(item.id)),
-    download: (targets) => void downloadItems(targets).catch((err: Error) => toast.error(err.message)),
+    download: (targets) => void downloadItems(targets).catch((err: Error) => toastError(err)),
     rename: (item) => setNameTarget({ type: 'rename', item }),
     move: (targets) => setMoveTargets(targets),
     toggleStar: (targets) => {
@@ -339,7 +340,7 @@ export function ArchivePage() {
           invalidate()
           toast.success(add ? t('archive:toasts.starred', { count: targets.length }) : t('archive:toasts.unstarred', { count: targets.length }))
         },
-        (err: Error) => toast.error(err.message),
+        (err: Error) => toastError(err),
       )
     },
     trash: (targets) =>
@@ -354,7 +355,7 @@ export function ArchivePage() {
     sendNative: (item) =>
       void shareFileNatively(item.id, item.name).catch((err: unknown) => {
         if (err instanceof Error && err.name === 'AbortError') return // closed from the system sheet
-        toast.error(err instanceof Error ? err.message : t('common:errors.unknown'))
+        toastError(err, t('common:errors.unknown'))
       }),
     toggleMonthly: (item) =>
       void guarded(async () => {
@@ -865,7 +866,7 @@ export function ArchivePage() {
           index={viewerIndex}
           onIndexChange={(index) => setParam('file', viewerFiles[index]?.id ?? null, { replace: true })}
           onClose={closeViewer}
-          onDownload={(file) => void api.download(`/api/archive/files/${file.id}/download`, file.name).catch((err: Error) => toast.error(err.message))}
+          onDownload={(file) => void api.download(`/api/archive/files/${file.id}/download`, file.name).catch((err: Error) => toastError(err))}
           toolbar={
             viewerCurrent ? (
               <>
@@ -876,7 +877,7 @@ export function ArchivePage() {
                   aria-label={starredIds.has(viewerCurrent.id) ? t('archive:menu.unstar') : t('archive:menu.star')}
                   onClick={() => {
                     const add = !starredIds.has(viewerCurrent.id)
-                    void setStarred([{ kind: 'file', id: viewerCurrent.id }], add).then(invalidate, (err: Error) => toast.error(err.message))
+                    void setStarred([{ kind: 'file', id: viewerCurrent.id }], add).then(invalidate, (err: Error) => toastError(err))
                   }}
                 >
                   <Star className={starredIds.has(viewerCurrent.id) ? 'h-5 w-5 fill-warning text-warning' : 'h-5 w-5'} />

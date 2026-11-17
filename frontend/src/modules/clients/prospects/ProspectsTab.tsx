@@ -2,7 +2,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Archive, ArchiveRestore, Calculator, Columns3, Download, ListPlus, MoreHorizontal, Rows3, TrendingUp, Mail, MessageSquareShare, Phone, Plus, Trash2, Upload, UserPlus, Workflow } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { toast } from 'sonner'
 import { AddToSequenceDialog, type SequenceTarget } from '@/modules/pricing/AddToSequenceDialog'
 import { BoardSkeleton, ProspectBoard } from '../board/ProspectBoard'
 import { ForecastView } from '../board/ForecastView'
@@ -56,6 +55,7 @@ import { useProspectSettings, useSearchHistory } from './use-prospect-settings'
 import { useViewActions } from './use-view-actions'
 import { ViewDirtyBar, ViewMenu } from './ViewMenu'
 import { isViewDirty, nextSort, settingsFromView, type SearchEntry } from './view-state'
+import { toastError } from '@/shared/lib/errors'
 
 const DEFAULT_PAGE_SIZE = 25
 
@@ -142,7 +142,7 @@ export function ProspectsTab() {
     )
 
   const exportFile = (format: 'xlsx' | 'csv') =>
-    void api.download(`/api/prospects/export?${filterParams(f, q, { format })}`, `prospects.${format}`).catch((err: Error) => toast.error(err.message))
+    void api.download(`/api/prospects/export?${filterParams(f, q, { format })}`, `prospects.${format}`).catch((err: Error) => toastError(err))
 
   // The model writes a date range as plain days; the list's own date filters close the last day at 23:59:59.
   const phraseToClauses = async (text: string) => {

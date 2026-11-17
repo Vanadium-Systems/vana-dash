@@ -16,6 +16,7 @@ import { SequenceEditor } from './sequence/SequenceEditor'
 import { OutreachMailboxesSummary } from './OutreachMailboxesSummary'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const FROM_LABEL: Record<string, string> = {
   contact: t('email:identity.contact'),
@@ -41,13 +42,13 @@ export function SequencesTab() {
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences'] })
       toast.success(t('email:sequences.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const toggleActive = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) => api.patch(`/api/email/sequences/${id}`, { active }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['email', 'sequences'] }),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const editing = editorTarget && editorTarget !== 'new' ? sequences.data?.find((s) => s.id === editorTarget) : undefined

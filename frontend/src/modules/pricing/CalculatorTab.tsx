@@ -20,6 +20,7 @@ import { Select } from '@/shared/components/ui/select'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
+import { toastError } from '@/shared/lib/errors'
 
 function exportCalculatorCsv(result: PricingResult, platformName: string) {
   downloadCsv(`calculator-pret-${new Date().toISOString().slice(0, 10)}.csv`, [
@@ -152,7 +153,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
     onMutate: () => setLocalResult(null),
     onError: (err) => {
       if (config.data?.config) setLocalResult(calculatePrice(config.data.config, { platformId, ...calcInput() }))
-      toast.error(err.message)
+      toastError(err)
     },
   })
 
@@ -165,7 +166,7 @@ export function CalculatorTab({ platformId, setPlatformId, platforms }: Calculat
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
       toast.success(t('pricing:apply.offer.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // `calc.data`, not a local result: an offline estimate never reaches a client or a prospect.

@@ -12,6 +12,7 @@ import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { Checkbox } from '@/shared/components/ui/checkbox'
+import { toastError } from '@/shared/lib/errors'
 
 interface PastRecordFormDialogProps {
   open: boolean
@@ -129,7 +130,7 @@ export function PastRecordFormDialog({ open, onOpenChange, direction }: PastReco
       toast.success(t('accounting:past.added'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

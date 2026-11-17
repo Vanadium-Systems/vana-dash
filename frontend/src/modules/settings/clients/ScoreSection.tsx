@@ -13,6 +13,7 @@ import { ClauseEditor } from './ClauseEditor'
 import type { ScoreCriterion, ScoreLabelKey, ScoreLabels } from './types'
 import { useClauseFields } from './use-clause-fields'
 import { useScoringConfig, useScoringPreview, useSaveScoring, useSignals, type ScoreDraft } from './use-clients-settings'
+import { toastError } from '@/shared/lib/errors'
 
 const IMPACTS: Array<{ points: number; label: TKey }> = [
   { points: 20, label: 'clients:settings.score.impact.high' },
@@ -129,7 +130,7 @@ export function ScoreSection({ canEdit }: { canEdit: boolean }) {
     if (!config.data || !draft || !complete || !sizeValid) return
     save.mutate(
       { config: config.data, draft, idealEmployees },
-      { onSuccess: (done) => toast.success(t('pricing:scoring.saved', { count: done.recalculated })), onError: (err) => toast.error(err.message) },
+      { onSuccess: (done) => toast.success(t('pricing:scoring.saved', { count: done.recalculated })), onError: (err) => toastError(err) },
     )
   }
 

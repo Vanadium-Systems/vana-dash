@@ -20,6 +20,7 @@ import type { SupportTicket, SupportTicketDetail, SupportTicketStatus } from '@/
 import { formatRelativeTime } from '@/shared/lib/format'
 import { STATUS_LABEL, STATUS_TONE, SUPPORT_PATHS, type SupportScope } from './support-api'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const STATUS_FILTERS: SupportTicketStatus[] = ['deschis', 'raspuns', 'inchis']
 
@@ -160,7 +161,7 @@ function NewTicketDialog({ open, onOpenChange, page }: { open: boolean; onOpenCh
       toast.success(t('support:form.sent'))
       navigate(`/support/${ticket.id}`)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const submit = (event: FormEvent) => {

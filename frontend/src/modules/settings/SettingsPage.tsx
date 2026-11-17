@@ -16,12 +16,13 @@ import { OpsJobsSettingsCard } from './OpsJobsSettingsCard'
 import { AnalyticsSettingsCard } from './AnalyticsSettingsCard'
 import { LiveKitSettingsCard } from './LiveKitSettingsCard'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 function MobileAppCard() {
   const download = useMutation({
     mutationFn: downloadApk,
     onSuccess: () => toast.success(t('common:shell.apkDownloaded')),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const installed = useQuery({ queryKey: ['native', 'app-info'], queryFn: () => App.getInfo(), enabled: isNative, staleTime: Infinity })
 

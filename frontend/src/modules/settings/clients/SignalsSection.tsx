@@ -1,6 +1,5 @@
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
@@ -16,6 +15,7 @@ import { ClauseEditor } from './ClauseEditor'
 import { SIGNAL_GROUPS, type Signal, type SignalGroup, type SignalInput } from './types'
 import { useClauseFields } from './use-clause-fields'
 import { useSignalActions, useSignals } from './use-clients-settings'
+import { toastError } from '@/shared/lib/errors'
 
 const GROUP_TEXTS: Record<SignalGroup, TKey> = {
   company: 'clients:settings.signals.groups.company',
@@ -49,7 +49,7 @@ function SignalDialog({ signal, open, onOpenChange }: { signal: Signal | null; o
     if (!form.name.trim()) return setError(t('clients:settings.signals.nameRequired'))
     if (!builtin && form.filters.length === 0) return setError(t('clients:settings.signals.filtersRequired'))
     const body = { ...form, name: form.name.trim(), description: form.description?.trim() || null, talkingTip: form.talkingTip?.trim() || null }
-    const done = { onSuccess: () => onOpenChange(false), onError: (err: Error) => toast.error(err.message) }
+    const done = { onSuccess: () => onOpenChange(false), onError: (err: Error) => toastError(err) }
     if (signal) {
       const { filters, groupKey, ...texts } = body
       actions.update.mutate({ id: signal.id, ...(builtin ? texts : { ...texts, filters, groupKey }) }, done)
@@ -115,7 +115,7 @@ export function SignalsSection({ canEdit }: { canEdit: boolean }) {
 
   const remove = (signal: Signal) =>
     void confirm({ title: t('clients:settings.signals.deleteTitle', { name: signal.name }), consequence: t('clients:settings.signals.deleteBody'), confirmLabel: t('common:actions.delete'), destructive: true }).then(
-      (ok) => ok && actions.remove.mutate(signal.id, { onError: (err) => toast.error(err.message) }),
+      (ok) => ok && actions.remove.mutate(signal.id, { onError: (err) => toastError(err) }),
     )
 
   return (
@@ -150,7 +150,7 @@ export function SignalsSection({ canEdit }: { canEdit: boolean }) {
                       checked={signal.enabled}
                       disabled={!canEdit || actions.update.isPending}
                       label={signal.name}
-                      onCheckedChange={(enabled) => actions.update.mutate({ id: signal.id, enabled }, { onError: (err) => toast.error(err.message) })}
+                      onCheckedChange={(enabled) => actions.update.mutate({ id: signal.id, enabled }, { onError: (err) => toastError(err) })}
                     />
                     {canEdit ? (
                       <>

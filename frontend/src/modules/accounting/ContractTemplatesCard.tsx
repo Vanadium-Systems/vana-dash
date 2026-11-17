@@ -11,6 +11,7 @@ import { api } from '@/shared/lib/api'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
+import { toastError } from '@/shared/lib/errors'
 
 interface PlaceholderDoc {
   token: string
@@ -68,7 +69,7 @@ function TemplateEditor() {
       queryClient.setQueryData<ContractTemplate[]>(['contract-templates'], (prev) => prev?.map((template) => (template.key === row.key ? row : template)))
       toast.success(t('accounting:templates.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const restore = useMutation({
@@ -78,7 +79,7 @@ function TemplateEditor() {
       setBody(row.bodyHtml)
       toast.success(t('accounting:templates.restored'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (templates.isPending) return <Skeleton className="h-40 w-full" />
@@ -177,7 +178,7 @@ function TermsEditor() {
       setDraft(null)
       toast.success(t('accounting:terms.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (terms.isPending) return null
@@ -224,7 +225,7 @@ const BLANK_DOCUMENTS = [
 function BlankDocuments() {
   const download = useMutation({
     mutationFn: (key: string) => api.download(`/api/contracts/templates/${key}/blank`, `${key}-gol.pdf`),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

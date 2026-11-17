@@ -2,6 +2,7 @@ import { toast } from 'sonner'
 import { api, ApiError } from '@/shared/lib/api'
 import type { EmailScheduledSend, EmailSendOutcome } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const POLL_MS = 2000
 const MAX_POLLS = 20
@@ -37,7 +38,7 @@ export function trackScheduledSend(scheduled: EmailScheduledSend, handlers: Send
     } catch (err) {
       undone = false
       if (err instanceof ApiError && err.code === 'SEND_ALREADY_DISPATCHED') toast(t('email:send.tooLate'), { id: toastId })
-      else toast.error(err instanceof Error ? err.message : t('email:send.undoFailed'), { id: toastId })
+      else toastError(err, t('email:send.undoFailed'), { id: toastId })
     }
   }
 

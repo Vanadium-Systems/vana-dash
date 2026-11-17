@@ -14,6 +14,7 @@ import { cn } from '@/shared/lib/utils'
 import { useAssignees, useStatuses } from '../prospects/use-prospect-data'
 import type { MergeField, MergeFieldRow, MergeMoves, Side } from './types'
 import { useMerge, useMergePreview, useDuplicates } from './use-health'
+import { errorText, toastError } from '@/shared/lib/errors'
 
 const FIELD_TEXTS: Record<MergeField, TKey> = {
   name: 'clients:health.merge.fields.name',
@@ -116,7 +117,7 @@ export function MergeView({ masterId, otherId, onSwap, onClose }: { masterId: st
           toast.success(t('clients:health.merge.done', { name: masterName }))
           navigate(`/clients/${masterId}`)
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toastError(err),
       },
     )
   }
@@ -135,7 +136,7 @@ export function MergeView({ masterId, otherId, onSwap, onClose }: { masterId: st
         </Button>
       </div>
       {preview.isPending ? <ListSkeleton /> : null}
-      {preview.isError ? <EmptyState kind="filtered" title={preview.error.message} onReset={onClose} /> : null}
+      {preview.isError ? <EmptyState kind="filtered" title={errorText(preview.error)} onReset={onClose} /> : null}
       {preview.data ? (
         <>
           <Card>

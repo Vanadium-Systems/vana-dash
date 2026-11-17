@@ -6,6 +6,7 @@ import { skippedSummary } from '../lists/skipped'
 import type { AddMembersResult } from '../lists/types'
 import type { BulkTarget } from './bulk'
 import { bulkPatchBody, listMembersBody, type BulkAction } from './bulk'
+import { toastError } from '@/shared/lib/errors'
 
 export const LOST_REASON_REQUIRED = 'LOST_REASON_REQUIRED'
 
@@ -15,7 +16,7 @@ export const errorCode = (err: unknown): string | undefined => (err instanceof A
 export function useProspectActions() {
   const queryClient = useQueryClient()
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ['prospects'] })
-  const onError = (err: Error) => toast.error(err.message)
+  const onError = (err: Error) => toastError(err)
 
   const patch = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) => api.patch(`/api/prospects/${id}`, body),

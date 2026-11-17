@@ -10,7 +10,8 @@ import { t } from '@/shared/lib/i18n'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }))
-vi.mock('@/shared/lib/api', () => ({ api }))
+vi.mock('@/shared/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/lib/api')>()), api }))
 const confirm = vi.hoisted(() => vi.fn())
 vi.mock('@/shared/components/ui/confirm-dialog', () => ({ useConfirm: () => confirm }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))

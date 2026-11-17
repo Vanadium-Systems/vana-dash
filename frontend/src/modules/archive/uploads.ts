@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { apiErrorOf } from '@/shared/lib/api'
 import { getLocale, t } from '@/shared/lib/i18n'
 import { getTenantOverride } from '@/shared/lib/tenant-override'
 
@@ -51,12 +52,13 @@ function failureOf(xhr: XMLHttpRequest): UploadFailure {
   } catch {
     // Not JSON: a proxy page. The status decides.
   }
-  if (xhr.status === 413 && body?.code === 'STORAGE_FULL') {
-    return { reason: 'storageFull', usedBytes: body.usedBytes ?? 0, limitBytes: body.limitBytes ?? 0 }
+  const error = apiErrorOf(xhr.status, body)
+  const details = (body?.error && typeof body.error === 'object' ? body.error : body ?? {}) as ErrorBody
+  if (xhr.status === 413 && (body?.code ?? error.code) === 'STORAGE_FULL') {
+    return { reason: 'storageFull', usedBytes: details.usedBytes ?? 0, limitBytes: details.limitBytes ?? 0 }
   }
   if (xhr.status === 413) return { reason: 'tooLarge' }
-  const message = typeof body?.error === 'string' && body.error ? body.error : t('common:errors.api.generic', { status: xhr.status })
-  return { reason: 'other', message }
+  return { reason: 'other', message: error.message }
 }
 
 function start(item: UploadItem) {

@@ -20,6 +20,7 @@ import { NoteEditor } from './NoteEditor'
 import { LabelsField } from './LabelsField'
 import { ColorMenu } from './NoteMenus'
 import { noteDetailKey, useNoteActions, type LabelCount } from './notes-api'
+import { toastError } from '@/shared/lib/errors'
 
 export const NEW_NOTE = 'new'
 export const NEW_LIST = 'new-list'
@@ -69,7 +70,8 @@ function NoteDialogContent({ target, labels, canShare, actions, onClose }: Omit<
   useEffect(() => {
     if (!detail.isError) return
     const gone = detail.error instanceof ApiError && detail.error.status === 404
-    toast.error(gone ? t('notes:notFound') : detail.error.message)
+    if (gone) toast.error(t('notes:notFound'))
+    else toastError(detail.error)
     onClose()
   }, [detail.isError])
 

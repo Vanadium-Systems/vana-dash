@@ -17,6 +17,7 @@ import { Tooltip } from '@/shared/components/ui/tooltip'
 import { api, ApiError } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Ce poate face fiecare rol, pagină cu pagină (PLAN.md C2, fișa „Module"). O matrice, nu
 // o listă de roluri: rolurile sunt puține (Admin, Manager și câteva custom), deci le vezi
@@ -260,7 +261,7 @@ export function ModulesPage() {
             setDeleting(null)
             refetchAll()
           } catch (error) {
-            toast.error(error instanceof ApiError ? error.message : t('access:roles.notDeleted'))
+            toastError(error, t('access:roles.notDeleted'))
           }
         }}
       />

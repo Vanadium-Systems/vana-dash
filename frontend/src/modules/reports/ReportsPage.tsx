@@ -1,7 +1,6 @@
 import { Download } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Input } from '@/shared/components/ui/input'
@@ -27,6 +26,7 @@ import { useMoneyQuery } from '@/shared/hooks/use-money-query'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { openFile } from '@/shared/lib/open-file'
 import { categoryLabel } from '@/shared/lib/financial-utils'
+import { toastError } from '@/shared/lib/errors'
 
 // Convertește ?period= (7d|30d|90d|mtd|ytd) în {from,to} ISO — mirror al
 // shared/lib/period.ts din backend (resolvePeriod), dar rutele /api/reports/* cer
@@ -259,7 +259,7 @@ function MonthlySnapshotSection() {
               try {
                 await downloadMonthlySnapshotPdf(month)
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : t('reports:pdfError'))
+                toastError(err, t('reports:pdfError'))
               } finally {
                 setDownloading(false)
               }

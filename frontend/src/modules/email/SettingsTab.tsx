@@ -17,6 +17,7 @@ import { t } from '@/shared/lib/i18n'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { useMe } from '@/shared/hooks/use-me'
 import { OutreachMailboxesCard } from './OutreachMailboxesCard'
+import { toastError } from '@/shared/lib/errors'
 
 function SignatureLogoCard() {
   const queryClient = useQueryClient()
@@ -42,7 +43,7 @@ function SignatureLogoCard() {
       setForm({ ...data.signatures })
       toast.success(t('email:settings.signaturesSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const uploadLogo = useMutation({
@@ -54,7 +55,7 @@ function SignatureLogoCard() {
       void queryClient.invalidateQueries({ queryKey: ['email', 'settings'] })
       toast.success(t('email:settings.logoUpdated'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (!form) return <Skeleton className="h-48 w-full" />
@@ -140,7 +141,7 @@ function SpamCard() {
       void queryClient.invalidateQueries({ queryKey: ['email', 'settings'] })
       toast.success(t('email:settings.spamSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (settings.isPending) return <Skeleton className="h-48 w-full" />
@@ -212,7 +213,7 @@ function OutreachCapCard() {
       void queryClient.invalidateQueries({ queryKey: ['email', 'settings'] })
       toast.success(t('email:settings.outreachSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (settings.isPending) return <Skeleton className="h-48 w-full" />
@@ -274,7 +275,7 @@ function IdentitiesCard() {
       setRows(data.identities ?? [])
       toast.success(t('email:identities.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (!rows) return null
@@ -365,7 +366,7 @@ function ReadingCard() {
       })
       toast.success(data.autoLoadImages ? t('email:reading.imagesAuto') : t('email:reading.imagesConfirm'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (autoLoad === null) return null

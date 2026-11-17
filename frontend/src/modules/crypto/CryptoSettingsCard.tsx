@@ -7,6 +7,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Conexiunea exchange + kill-switch (Setări → Crypto, Contract D). Cheile pleacă o singură
 // dată spre backend (criptate AES-GCM în DB) și nu se mai afișează niciodată — doar masked.
@@ -33,7 +34,7 @@ export function CryptoSettingsCard() {
       setApiSecret('')
       void queryClient.invalidateQueries({ queryKey: ['crypto'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const disconnect = useMutation({
@@ -42,7 +43,7 @@ export function CryptoSettingsCard() {
       toast.success(t('crypto:settings.disconnected'))
       void queryClient.invalidateQueries({ queryKey: ['crypto'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const toggleKillSwitch = useMutation({
@@ -51,7 +52,7 @@ export function CryptoSettingsCard() {
       void queryClient.invalidateQueries({ queryKey: ['crypto', 'settings'] })
       toast.success(result.tradingEnabled ? t('crypto:settings.liveOn') : t('crypto:settings.liveOff'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const binance = exchanges.data?.find((e) => e.exchange === 'binance')

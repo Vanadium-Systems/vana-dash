@@ -1,13 +1,16 @@
 // SSE peste POST — EventSource nativ nu suportă POST cu body, deci parsăm manual
 // `data: {...}\n\n` dintr-un ReadableStream (pattern standard pt. acest caz, vezi
 // PLAN_INAPP_AGENT.md).
+import { ApiError, apiErrorOf } from '@/shared/lib/api'
 
 export type AssistantSseEvent =
   | { type: 'text_delta'; text: string }
   | { type: 'tool_call'; toolName: string }
   | { type: 'confirm_required'; actionId: string; toolName: string; toolInput: unknown; summary: string }
   | { type: 'done' }
-  | { type: 'error'; message: string }
+  | { type: 'error'; error: ApiError }
+
+type WireEvent = Exclude<AssistantSseEvent, { type: 'error' }> | { type: 'error'; message: string; code?: string }
 
 export async function postSse(path: string, body: unknown, onEvent: (event: AssistantSseEvent) => void): Promise<void> {
   const res = await fetch(path, {
@@ -22,8 +25,7 @@ export async function postSse(path: string, body: unknown, onEvent: (event: Assi
     return
   }
   if (!res.ok || !res.body) {
-    const errBody = (await res.json().catch(() => null)) as { error?: string } | null
-    onEvent({ type: 'error', message: errBody?.error ?? `HTTP ${res.status}` })
+    onEvent({ type: 'error', error: apiErrorOf(res.status, await res.json().catch(() => null)) })
     return
   }
 
@@ -42,7 +44,8 @@ export async function postSse(path: string, body: unknown, onEvent: (event: Assi
       buffer = buffer.slice(sepIndex + 2)
       if (chunk.startsWith('data: ')) {
         try {
-          onEvent(JSON.parse(chunk.slice(6)) as AssistantSseEvent)
+          const event = JSON.parse(chunk.slice(6)) as WireEvent
+          onEvent(event.type === 'error' ? { type: 'error', error: new ApiError(res.status, event.message, event.code) } : event)
         } catch {
           // chunk trunchiat/necorespunzător — ignorat, nu oprim streamul pentru un frame corupt
         }

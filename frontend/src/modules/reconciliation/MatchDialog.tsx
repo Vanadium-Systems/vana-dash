@@ -10,6 +10,7 @@ import type { BankTransactionRow, OpenInvoice } from '@/shared/lib/types'
 import { formatDate } from '../accounting/badges'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface MatchDialogProps {
   open: boolean
@@ -40,7 +41,7 @@ export function MatchDialog({ open, onOpenChange, transaction }: MatchDialogProp
       toast.success(t('reconciliation:match.saved'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (!transaction) return null

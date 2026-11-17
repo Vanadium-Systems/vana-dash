@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
@@ -15,6 +14,7 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { Snippet } from './types'
 import { useSnippets } from './use-tasks-data'
+import { toastError } from '@/shared/lib/errors'
 
 interface Draft {
   id: string | null
@@ -42,12 +42,12 @@ export function SnippetsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
       void queryClient.invalidateQueries({ queryKey: ['snippets'] })
       setDraft(null)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`/api/snippets/${id}`),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['snippets'] }),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const submit = () => {

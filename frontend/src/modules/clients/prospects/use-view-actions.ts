@@ -4,6 +4,7 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { ProspectView } from './types'
 import { viewBody, type ViewSettings } from './view-state'
+import { toastError } from '@/shared/lib/errors'
 
 export interface NewViewInput {
   name: string
@@ -14,7 +15,7 @@ export interface NewViewInput {
 export function useViewActions() {
   const queryClient = useQueryClient()
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ['prospects', 'views'] })
-  const onError = (err: Error) => toast.error(err.message)
+  const onError = (err: Error) => toastError(err)
 
   const create = useMutation({
     mutationFn: ({ input, settings, layout = 'list' }: { input: NewViewInput; settings: ViewSettings; layout?: ProspectView['layout'] }) =>

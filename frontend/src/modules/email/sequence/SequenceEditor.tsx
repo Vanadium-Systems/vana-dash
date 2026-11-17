@@ -21,6 +21,7 @@ import { EnrollListDialog } from './EnrollListDialog'
 import { SequenceDiagnostics } from './SequenceDiagnostics'
 import { StepCard } from './StepCard'
 import { emptyStep, stepIsComplete, stepsFromSequence, stepsPayload, type StepDraft } from './steps'
+import { toastError } from '@/shared/lib/errors'
 
 interface SequenceEditorProps {
   /** `null` is a new sequence. The parent remounts the editor (key) when the sequence changes. */
@@ -82,13 +83,13 @@ export function SequenceEditor({ sequence, onClose }: SequenceEditorProps) {
       toast.success(sequence ? t('email:sequences.updated') : t('email:sequences.created'))
       if (!sequence) onClose()
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const toggleActive = useMutation({
     mutationFn: (active: boolean) => api.patch(`/api/email/sequences/${sequence!.id}`, { active }),
     onSuccess: refresh,
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const leave = () => {

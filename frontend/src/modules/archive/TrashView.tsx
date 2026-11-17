@@ -13,6 +13,7 @@ import { t } from '@/shared/lib/i18n'
 import type { ArchiveTrashEntry } from '@/shared/lib/types'
 import { formatBytes } from '@/shared/lib/utils'
 import { FolderGlyph } from './FolderGlyph'
+import { toastError } from '@/shared/lib/errors'
 
 const TRASH_KEY = ['archive', 'trash'] as const
 
@@ -48,7 +49,7 @@ export function TrashView({ onOpenFolder }: { onOpenFolder: (id: string) => void
         action: { label: t('common:actions.view'), onClick: () => onOpenFolder(result.restoredTo.id) },
       })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const purge = useMutation({
@@ -57,7 +58,7 @@ export function TrashView({ onOpenFolder }: { onOpenFolder: (id: string) => void
       void queryClient.invalidateQueries({ queryKey: ['archive'] })
       toast.success(t('archive:trash.purged', { name: entry.rootName }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   function askPurge(entry: ArchiveTrashEntry) {

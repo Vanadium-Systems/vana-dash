@@ -17,6 +17,7 @@ import { PlatformOpsSignalsDialog } from './PlatformOpsSignalsDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { formatDateTime, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 export function PlatformsPage() {
   const confirm = useConfirm()
@@ -45,7 +46,7 @@ export function PlatformsPage() {
       setSelectedId(id)
       toast.success(t('platforms:syncDone'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -54,7 +55,7 @@ export function PlatformsPage() {
       void queryClient.invalidateQueries({ queryKey: ['platforms'] })
       toast.success(t('platforms:deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

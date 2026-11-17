@@ -9,7 +9,8 @@ import { t } from '@/shared/lib/i18n'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }))
-vi.mock('@/shared/lib/api', () => ({ api }))
+vi.mock('@/shared/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/lib/api')>()), api }))
 vi.mock('./use-clause-fields', () => ({ useClauseFields: () => [] }))
 vi.mock('./ClauseEditor', () => ({ ClauseEditor: () => null }))
 

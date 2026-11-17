@@ -5,6 +5,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { ChatMessageRef } from '@/shared/lib/types'
+import { toastError } from '@/shared/lib/errors'
 
 interface SheetFacts {
   assignedUserId: string | null
@@ -40,7 +41,7 @@ export function ProspectCardActions({ refItem }: { refItem: ChatMessageRef }) {
         toast.success(done)
         void queryClient.invalidateQueries({ queryKey: ['prospects'] })
       },
-      (err: Error) => toast.error(err.message),
+      (err: Error) => toastError(err),
     )
   const request = (kind: 'transfer' | 'access') => void run(`/api/prospects/${prospectId}/transfer-requests`, { kind }, t('clients:sheet.team.requestSent'))
 

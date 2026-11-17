@@ -1,7 +1,6 @@
 import { Pause, Play, SlidersHorizontal } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog'
@@ -18,6 +17,7 @@ import { formatDate } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { setTenantOverride } from '@/shared/lib/tenant-override'
 import type { TenantRow } from './types'
+import { toastError } from '@/shared/lib/errors'
 
 // The companies on this installation, for the platform admin only. Creating a second one is
 // refused while RLS is off, so the table shows the platform company alone until isolation is on.
@@ -39,7 +39,7 @@ export function TenantsPage() {
       await api.patch(`/api/platform/tenants/${tenant.id}`, { status })
       void queryClient.invalidateQueries({ queryKey: TENANTS_QUERY_KEY })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     }
   }
 
@@ -254,7 +254,7 @@ function FeaturesDialog({ tenant, onClose }: { tenant: TenantRow; onClose: () =>
       setFeatures(data.features)
       void queryClient.invalidateQueries({ queryKey: TENANTS_QUERY_KEY })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     }
   }
 

@@ -23,6 +23,7 @@ import { OrderDialog } from './OrderDialog'
 import { formatUsd, type MarketCoin, type PaperOrderRow, type PortfolioPosition, type SearchCoin, type DexPool, type WatchEntry, type WatchPrice } from './types'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
+import { toastError } from '@/shared/lib/errors'
 
 // Pagina Crypto (PLAN.md Contract D + ajustări Stefan 2026-08-26): căutare first-class
 // (CEX + DEX cu badge de rețea), stânga = Favorite + Portofoliu + Ordine recente, dreapta =
@@ -177,7 +178,7 @@ function AlertThresholdButton({ metricKey, label }: { metricKey: string; label: 
       toast.success(t('crypto:alert.created'))
       setOpen(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (
@@ -287,7 +288,7 @@ export function CryptoPage() {
       .then(() => {
         void queryClient.invalidateQueries({ queryKey: ['crypto', 'watchlist-prices'] })
       })
-      .catch((err) => toast.error(err instanceof Error ? err.message : String(err)))
+      .catch((err) => toastError(err))
   }
 
   function isWatched(kind: WatchEntry['kind'], id: string): boolean {

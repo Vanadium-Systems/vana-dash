@@ -9,6 +9,7 @@ import { t } from '@/shared/lib/i18n'
 import { PastRecordFormDialog } from './PastRecordFormDialog'
 import { RecordsList } from './RecordsList'
 import { RecurringExpensesSection } from './RecurringExpensesSection'
+import { toastError } from '@/shared/lib/errors'
 
 export function PrimiteTab() {
   const queryClient = useQueryClient()
@@ -22,7 +23,7 @@ export function PrimiteTab() {
       void queryClient.invalidateQueries({ queryKey: ['accounting'] })
       toast.success(t('accounting:received.syncDone', { imported: data.imported }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

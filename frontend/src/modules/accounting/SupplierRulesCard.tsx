@@ -42,6 +42,7 @@ import {
   useSupplierRules,
   useUpdateSupplierRule,
 } from './hooks'
+import { errorText, toastError } from '@/shared/lib/errors'
 
 interface RuleFormState {
   id: string | null
@@ -167,7 +168,7 @@ export function SupplierRulesCard() {
             }),
           )
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toastError(err),
       },
     )
   }
@@ -205,7 +206,7 @@ export function SupplierRulesCard() {
             toast.success(t('accounting:supplierRules.savedToast'))
             setDialogOpen(false)
           },
-          onError: (err) => toast.error(err.message),
+          onError: (err) => toastError(err),
         },
       )
       return
@@ -216,7 +217,7 @@ export function SupplierRulesCard() {
         toast.success(t('accounting:supplierRules.savedToast'))
         setDialogOpen(false)
       },
-      onError: (err) => toast.error(err.message),
+      onError: (err) => toastError(err),
     })
   }
 
@@ -230,7 +231,7 @@ export function SupplierRulesCard() {
       if (!ok) return
       deleteRule.mutate(rule.id, {
         onSuccess: () => toast.success(t('accounting:supplierRules.deletedToast')),
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toastError(err),
       })
     })
   }
@@ -286,7 +287,7 @@ export function SupplierRulesCard() {
           {rulesQuery.isPending ? (
             <ListSkeleton rows={3} />
           ) : rulesQuery.isError ? (
-            <Alert tone="critical" title={rulesQuery.error.message} />
+            <Alert tone="critical" title={errorText(rulesQuery.error)} />
           ) : rules.length === 0 ? (
             <EmptyState kind="new" title={t('accounting:supplierRules.empty')} />
           ) : (

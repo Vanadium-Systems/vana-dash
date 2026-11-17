@@ -20,6 +20,7 @@ import {
   useFulfillExpectedRow,
   useUploadRecordPdf,
 } from './hooks'
+import { toastError } from '@/shared/lib/errors'
 
 export type ConfirmSupplierInvoiceDialogTarget =
   | {
@@ -173,7 +174,7 @@ export function ConfirmSupplierInvoiceDialog({
             toast.success(t('accounting:monthClose.confirmDialog.confirmedToast'))
             onOpenChange(false)
           },
-          onError: (err) => toast.error(err.message),
+          onError: (err) => toastError(err),
         },
       )
       return
@@ -198,7 +199,7 @@ export function ConfirmSupplierInvoiceDialog({
               toast.success(t('accounting:monthClose.confirmDialog.uploadedToast'))
               onOpenChange(false)
             },
-            onError: (err) => toast.error(err.message),
+            onError: (err) => toastError(err),
           },
         )
         return
@@ -233,12 +234,12 @@ export function ConfirmSupplierInvoiceDialog({
             toast.success(t('accounting:monthClose.confirmDialog.uploadedToast'))
             onOpenChange(false)
           },
-          onError: (err) => toast.error(err.message),
+          onError: (err) => toastError(err),
         },
       )
     } catch (err) {
       setReadingFile(false)
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     }
   }
 

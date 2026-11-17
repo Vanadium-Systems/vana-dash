@@ -23,6 +23,7 @@ import { applyMotionPref, type MotionPref } from '@/shared/lib/motion'
 import { applyPalette, PALETTE_SWATCHES, THEME_PALETTES, type ThemePalette } from '@/shared/lib/palette'
 import { cn } from '@/shared/lib/utils'
 import { LOCALE_NAMES, type DisplayCurrency, type Locale } from '@/shared/lib/locale'
+import { toastError } from '@/shared/lib/errors'
 
 // „Profilul meu" (fișa din PLAN.md): trei secțiuni pe o pagină, fără tab-uri — profil,
 // parolă, notificări. Setările rămân ale firmei; aici stau doar ale omului. Cutiile lui de
@@ -66,7 +67,7 @@ export function ProfilePage() {
       setProfileSaved(true)
       window.setTimeout(() => setProfileSaved(false), 2000)
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : t('auth:profile.nameNotSaved')),
+    onError: (error) => toastError(error, t('auth:profile.nameNotSaved')),
   })
 
   const changePassword = useMutation({
@@ -82,7 +83,7 @@ export function ProfilePage() {
   const savePrefs = useMutation({
     mutationFn: (patch: { chat?: 'all' | 'dm' | 'none'; emailNew?: boolean; alerts?: boolean }) => api.patch('/api/auth/me', { notificationPrefs: patch }),
     onSuccess: (data) => queryClient.setQueryData(['auth', 'me'], data),
-    onError: (error) => toast.error(error instanceof Error ? error.message : t('auth:profile.settingNotSaved')),
+    onError: (error) => toastError(error, t('auth:profile.settingNotSaved')),
   })
 
   const saveDisplayCurrency = useMutation({
@@ -92,12 +93,12 @@ export function ProfilePage() {
       // Every total on screen was computed in the old currency.
       void queryClient.invalidateQueries()
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : t('auth:profile.display.notSaved')),
+    onError: (error) => toastError(error, t('auth:profile.display.notSaved')),
   })
 
   const saveLocale = useMutation({
     mutationFn: (locale: Locale) => changeLocale(locale, () => api.patch('/api/auth/me', { locale })),
-    onError: (error) => toast.error(error instanceof Error ? error.message : t('auth:profile.display.notSaved')),
+    onError: (error) => toastError(error, t('auth:profile.display.notSaved')),
   })
 
   const saveDisplayPrefs = useMutation({
@@ -108,7 +109,7 @@ export function ProfilePage() {
       applyMotionPref(data.motionPref ?? 'system')
       if (data.themePalette) applyPalette(data.themePalette)
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : t('auth:profile.display.notSaved')),
+    onError: (error) => toastError(error, t('auth:profile.display.notSaved')),
   })
 
   const prefs = session?.notificationPrefs

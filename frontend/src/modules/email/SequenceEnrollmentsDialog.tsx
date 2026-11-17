@@ -10,6 +10,7 @@ import type { EmailSequence, EmailSequenceEnrollment, EmailSequenceEnrollmentSta
 import { StatePill, type StateTone } from '@/shared/components/ui/state-pill'
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const STATUS_LABEL: Record<EmailSequenceEnrollmentStatus, string> = {
   active: t('common:states.active'),
@@ -93,7 +94,7 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences', sequence?.id, 'enrollments'] })
       toast.success(t('email:enrollments.stoppedToast'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // Backstop pt. euristica de reply — dacă un enrollment a fost oprit greșit (ex: matching pe
@@ -104,7 +105,7 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences', sequence?.id, 'enrollments'] })
       toast.success(t('email:enrollments.resumedToast'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // Backstop invers — un răspuns real care n-a trecut prin hook-ul automat de reply (caz real,
@@ -115,7 +116,7 @@ export function SequenceEnrollmentsDialog({ sequence, onOpenChange }: SequenceEn
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences', sequence?.id, 'enrollments'] })
       toast.success(t('email:enrollments.markedReplied'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (!sequence) return null

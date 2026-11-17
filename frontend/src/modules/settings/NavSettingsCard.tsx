@@ -12,6 +12,7 @@ import { api } from '@/shared/lib/api'
 import { useMe } from '@/shared/hooks/use-me'
 import { NAV_ITEMS, canOpenNavItem } from '@/shared/lib/nav-items'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface NavEntry {
   to: string
@@ -75,7 +76,7 @@ export function NavSettingsCard() {
       setDirty(false)
       toast.success(t('settings:nav.updated'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {

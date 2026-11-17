@@ -8,6 +8,7 @@ import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import type { BrokerStatus, PriceProviderStatus } from './types'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Broker + provideri de preț + kill-switch (Setări → Assets, Track D Wave 8). Cheile pleacă o
 // singură dată spre backend (criptate AES-GCM în DB) și nu se mai afișează niciodată — doar masked.
@@ -44,7 +45,7 @@ export function AssetsSettingsCard() {
       setBrokerKey('')
       void queryClient.invalidateQueries({ queryKey: ['assets'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const disconnectBroker = useMutation({
@@ -53,7 +54,7 @@ export function AssetsSettingsCard() {
       toast.success(t('assets:settings.disconnected'))
       void queryClient.invalidateQueries({ queryKey: ['assets'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const connectProvider = useMutation({
@@ -65,7 +66,7 @@ export function AssetsSettingsCard() {
       setTwelvedataKey('')
       void queryClient.invalidateQueries({ queryKey: ['assets', 'price-providers'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const disconnectProvider = useMutation({
@@ -74,7 +75,7 @@ export function AssetsSettingsCard() {
       toast.success(t('assets:settings.providerDisconnected'))
       void queryClient.invalidateQueries({ queryKey: ['assets', 'price-providers'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const toggleKillSwitch = useMutation({
@@ -83,7 +84,7 @@ export function AssetsSettingsCard() {
       void queryClient.invalidateQueries({ queryKey: ['assets', 'settings'] })
       toast.success(result.tradingEnabled ? t('crypto:settings.liveOn') : t('crypto:settings.liveOff'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const t212 = brokers.data?.find((b) => b.broker === 'trading212')

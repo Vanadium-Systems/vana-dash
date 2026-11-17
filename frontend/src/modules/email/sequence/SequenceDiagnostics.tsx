@@ -11,6 +11,7 @@ import { formatDate, formatNumber } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import type { EmailSequence, SequenceDiagnostics as Diagnostics, SequenceDiagnosticsVariant } from '@/shared/lib/types'
 import { parseBounceReason, stepKindLabel } from './steps'
+import { toastError } from '@/shared/lib/errors'
 
 const NUMBER = 'text-right tabular-nums'
 
@@ -34,7 +35,7 @@ function PauseBand({ sequence, paused, rule }: { sequence: EmailSequence; paused
       void queryClient.invalidateQueries({ queryKey: ['email', 'sequences'] })
       toast.success(t('email:sequences.diag.resumed'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   return (
     <Alert

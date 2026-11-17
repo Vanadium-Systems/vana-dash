@@ -1,7 +1,6 @@
 import { ArrowRight, Ban, ExternalLink, Phone, SkipForward, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { toast } from 'sonner'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button, buttonVariants } from '@/shared/components/ui/button'
 import { ListSkeleton } from '@/shared/components/ui/skeleton'
@@ -15,6 +14,7 @@ import { CallVoiceNote } from '../sheet/voice/CallVoiceNote'
 import { CompletionFields, OUTCOME_LABEL } from './CompletionFields'
 import { CALL_OUTCOMES, type CallOutcome, type TaskRow, type TaskScope } from './types'
 import { useTaskList } from './use-tasks-data'
+import { toastError } from '@/shared/lib/errors'
 
 const QUEUE_SIZE = 100
 const KEY_ESC = 'Esc'
@@ -175,7 +175,7 @@ export function CallSession() {
       refresh()
       next()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('common:states.changeNotSaved'))
+      toastError(err, t('common:states.changeNotSaved'))
     } finally {
       setSaving(false)
     }

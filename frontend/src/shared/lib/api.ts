@@ -116,6 +116,12 @@ function errorDetails(status: number, body: ApiEnvelope<unknown> | null): { mess
   return { message: userMessage(status, body) }
 }
 
+/** An error answer read outside `request` (XHR uploads, streams), in the same shape. */
+export function apiErrorOf(status: number, body: unknown): ApiError {
+  const { message, code } = errorDetails(status, body as ApiEnvelope<unknown> | null)
+  return new ApiError(status, message, code, body)
+}
+
 function userMessage(status: number, body: ApiEnvelope<unknown> | null): string {
   if (import.meta.env.DEV && body) console.warn(`[api] ${status}`, body)
   if (status === 429) return t('common:errors.api.tooManyRequests')
@@ -187,8 +193,8 @@ async function fetchBlob(path: string, refreshed = false): Promise<{ blob: Blob;
     return handleUnauthorized()
   }
   if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as ApiEnvelope<unknown> | null
-    throw new ApiError(res.status, userMessage(res.status, body))
+    // Read like any other answer, so a page can decide on the code (ZIP_TOO_LARGE).
+    throw apiErrorOf(res.status, await res.json().catch(() => null))
   }
   const disposition = res.headers.get('Content-Disposition')
   const match = disposition ? /filename="?([^";]+)"?/.exec(disposition) : null

@@ -27,6 +27,7 @@ import { HtmlMessageBody } from './HtmlMessageBody'
 import { ImportEmailInvoiceDialog, type ImportEmailInvoiceTarget } from './ImportEmailInvoiceDialog'
 import { SnoozeMenu } from './SnoozeMenu'
 import { Avatar, senderName, type MoveFolder } from './ThreadRow'
+import { errorCode, toastError } from '@/shared/lib/errors'
 
 const COLLAPSED_RUN_LIMIT = 4
 
@@ -212,7 +213,7 @@ export function ThreadView({
       onBack()
       toast.success(t('email:snooze.done', { when: formatDateTime(until) }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const toggleStar = useMutation({
     mutationFn: (message: EmailMessage) => api.patch(`/api/email/messages/${message.id}`, { isStarred: !message.isStarred }),
@@ -525,7 +526,7 @@ export function ThreadView({
                       onClick={() =>
                         void api
                           .download(`/api/email/messages/${m.id}/attachments.zip`, `${(thread.subject || 'attachments').slice(0, 60)}.zip`)
-                          .catch((err: Error) => toast.error(err instanceof ApiError && err.code === 'ZIP_TOO_LARGE' ? t('email:thread.zipTooLarge') : err.message))
+                          .catch((err: unknown) => (errorCode(err) === 'ZIP_TOO_LARGE' ? toast.error(t('email:thread.zipTooLarge')) : toastError(err)))
                       }
                     >
                       <Download className="h-3.5 w-3.5" /> {t('email:thread.downloadAll')}
@@ -553,7 +554,7 @@ export function ThreadView({
           index={viewerIndex}
           onIndexChange={setViewerIndex}
           onClose={() => setViewerIndex(null)}
-          onDownload={(file) => void api.download(file.url, file.name).catch((err: Error) => toast.error(err.message))}
+          onDownload={(file) => void api.download(file.url, file.name).catch((err: Error) => toastError(err))}
         />
       ) : null}
       <ImportEmailInvoiceDialog

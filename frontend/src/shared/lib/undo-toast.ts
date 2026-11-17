@@ -1,5 +1,6 @@
 import { toast } from 'sonner'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const UNDO_WINDOW_MS = 6000
 
@@ -18,7 +19,7 @@ export async function undoToast<T = unknown>(
   try {
     result = await effect()
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : t('common:states.changeNotSaved'))
+    toastError(err, t('common:states.changeNotSaved'))
     return false
   }
   toast.success(typeof message === 'function' ? message(result) : message, {
@@ -28,7 +29,7 @@ export async function undoToast<T = unknown>(
       onClick: () => {
         undo(result).then(
           () => toast(t('common:undo.done')),
-          (err: unknown) => toast.error(err instanceof Error ? err.message : t('common:undo.failed')),
+          (err: unknown) => toastError(err, t('common:undo.failed')),
         )
       },
     },

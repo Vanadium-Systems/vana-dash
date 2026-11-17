@@ -19,6 +19,7 @@ import { BYDAY_CODES, buildRecurrence, describeRule, parseRecurrence, recurrence
 import { revertableToast } from './calendar-undo'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Stored as `tag-<n>` (the shared category palette); null = the owner's own colour, as in chat.
 const TAG_VALUES = TAG_COLORS.map((n) => `tag-${n}`)
@@ -217,7 +218,7 @@ export function EventFormDialog({ open, onOpenChange, occurrence, prefill, writa
       if (!occurrence) onShowEvent?.(new Date(startAt))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // Același interval, dar ca blocare pentru programări: nu apare în calendar ca eveniment,

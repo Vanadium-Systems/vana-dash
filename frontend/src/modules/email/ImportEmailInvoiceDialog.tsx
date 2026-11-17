@@ -21,6 +21,7 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { ReverseChargeType } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
+import { errorText, toastError } from '@/shared/lib/errors'
 
 export interface ImportEmailInvoiceTarget {
   messageId: string
@@ -141,7 +142,7 @@ export function ImportEmailInvoiceDialog({ target, onOpenChange }: ImportEmailIn
       toast.success(t('email:importInvoiceDialog.successToast'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (
@@ -155,7 +156,7 @@ export function ImportEmailInvoiceDialog({ target, onOpenChange }: ImportEmailIn
         {prefill.isPending ? (
           <ListSkeleton rows={4} />
         ) : prefill.isError ? (
-          <Alert tone="critical" title={prefill.error.message} />
+          <Alert tone="critical" title={errorText(prefill.error)} />
         ) : (
           <form
             onSubmit={(e) => {

@@ -3,7 +3,6 @@ import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { EmailDraft } from '@/shared/lib/types'
@@ -12,6 +11,7 @@ import { closeCompose, openCompose, setComposeMinimized, setComposeTitle, useCom
 import { ComposeForm } from './ComposeForm'
 import type { SendFlowHandlers } from './send-flow'
 import { Button } from '@/shared/components/ui/button'
+import { toastError } from '@/shared/lib/errors'
 
 const phoneQuery = window.matchMedia?.('(max-width: 767px)')
 
@@ -30,7 +30,7 @@ export async function openDraftById(draftId: string): Promise<void> {
   try {
     openCompose({ kind: 'draft', draft: await api.get<EmailDraft>(`/api/email/drafts/${draftId}`) })
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : t('email:compose.draftMissing'))
+    toastError(err, t('email:compose.draftMissing'))
   }
 }
 

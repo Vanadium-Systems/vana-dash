@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
@@ -9,6 +8,7 @@ import { Input } from '@/shared/components/ui/input'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { LabelCount } from './notes-api'
+import { toastError } from '@/shared/lib/errors'
 
 // "Manage labels": rename and delete across all of the person's notes (N18).
 export function LabelManager({ open, onOpenChange, labels }: { open: boolean; onOpenChange: (open: boolean) => void; labels: LabelCount[] }) {
@@ -23,12 +23,12 @@ export function LabelManager({ open, onOpenChange, labels }: { open: boolean; on
       setDrafts(({ [name]: _gone, ...rest }) => rest)
       void refresh()
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const remove = useMutation({
     mutationFn: (name: string) => api.delete(`/api/notes/labels/${encodeURIComponent(name)}`),
     onSuccess: () => void refresh(),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

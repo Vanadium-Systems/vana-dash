@@ -16,6 +16,7 @@ import type { BillingClient } from '@/shared/lib/types'
 import { ClientFormDialog } from './ClientFormDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const PENDING_DELETION_PURGE_DAYS = 30
 
@@ -144,7 +145,7 @@ export function ClientsTab() {
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
       toast.success(t('accounting:clients.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // Rulare manuală a jobs/vanagreen-tenant-sync.ts (cronul zilnic la 06:30) — nu mai aștepți
@@ -155,7 +156,7 @@ export function ClientsTab() {
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
       toast.success(t('accounting:clients.syncedWithVanagreen'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const needingBillingInfo = clients.data?.filter((c) => c.needsBillingInfo) ?? []

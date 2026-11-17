@@ -9,6 +9,7 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { Switch } from '@/shared/components/ui/switch'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface LiveKitSettingsView {
   url: string
@@ -53,7 +54,7 @@ export function LiveKitSettingsCard() {
       setApiSecret('')
       toast.success(t('common:states.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const test = useMutation({
@@ -64,7 +65,7 @@ export function LiveKitSettingsCard() {
         ...(apiSecret.trim() ? { apiSecret: apiSecret.trim() } : {}),
       }),
     onSuccess: (data) => toast.success(t('settings:livekit.testOk', { count: data.roomCount })),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (settings.isPending || !settings.data) return null

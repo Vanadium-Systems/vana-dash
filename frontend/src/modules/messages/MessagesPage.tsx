@@ -1,7 +1,6 @@
 import { MessageSquarePlus, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
@@ -15,6 +14,7 @@ import { ConversationList } from './ConversationList'
 import { ThreadView } from './ThreadView'
 import { E2EGate } from './crypto/E2ESetup'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Pagina Mesaje (fișa din PLAN.md): desktop = coloană de conversații + fir în dreapta; mobil =
 // listă și fir sunt ecrane separate (`/messages/:id`), cu înapoi. Streamul e în App.tsx, deasupra
@@ -146,7 +146,7 @@ export function NewConversationDialog({
       close()
       onOpened(id)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setSaving(false)
     }

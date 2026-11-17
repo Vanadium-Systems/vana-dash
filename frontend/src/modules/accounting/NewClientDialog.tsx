@@ -9,6 +9,7 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { BillingClient } from '@/shared/lib/types'
 import { INVOICING_CLIENTS_KEY } from './records-api'
+import { errorText } from '@/shared/lib/errors'
 
 interface CompanyLookup {
   name: string
@@ -117,7 +118,7 @@ function NewClientForm({ initialName, onCreated, onCancel }: { initialName: stri
           <Input value={county} onChange={(e) => setCounty(e.target.value)} />
         </Field>
       </div>
-      {create.isError ? <Alert tone="critical">{create.error.message}</Alert> : null}
+      {create.isError ? <Alert tone="critical">{errorText(create.error)}</Alert> : null}
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>

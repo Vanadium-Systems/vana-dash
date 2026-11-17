@@ -11,6 +11,7 @@ import { openFile } from '@/shared/lib/open-file'
 import type { FinancialRecord } from '@/shared/lib/types'
 import type { DocumentKind } from './invoice-editor-logic'
 import { useInvalidateRecords } from './records-api'
+import { errorText } from '@/shared/lib/errors'
 
 interface IssueConfirmDialogProps {
   open: boolean
@@ -86,7 +87,7 @@ export function IssueConfirmDialog({ open, onOpenChange, kind, recordId, clientN
         {next.isError ? <Alert tone="warning">{t('accounting:editor.confirm.numberFailed')}</Alert> : null}
         {issue.isError ? (
           <Alert tone="critical" title={t('accounting:editor.confirm.failed')}>
-            <span className="whitespace-pre-line">{issue.error.message}</span>
+            <span className="whitespace-pre-line">{errorText(issue.error)}</span>
           </Alert>
         ) : null}
         <DialogFooter>

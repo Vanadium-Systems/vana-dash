@@ -23,6 +23,7 @@ import { StatusDot } from './status-colors'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Select } from '@/shared/components/ui/select'
 import { t, type TKey } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Wave 0/1, sprint de-hardcodare (2026-08-20) — gestiunea catalogului de statusuri prospect,
 // înlocuiește STATUS_OPTIONS/STATUS_LABELS/STATUS_COLORS hardcodate. Pattern reorder identic
@@ -38,7 +39,7 @@ function StatusRow({ status }: { status: ProspectStatusEntry }) {
     mutationFn: (patch: { label?: string; colorToken?: StatusColorToken; kind?: StatusKind }) =>
       api.patch<ProspectStatusEntry>(`/api/prospects/statuses/${status.id}`, patch),
     onSuccess: (data) => queryClient.setQueryData<ProspectStatusEntry[]>(['prospects', 'statuses'], (rows) => rows?.map((r) => (r.id === data.id ? data : r))),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -47,7 +48,7 @@ function StatusRow({ status }: { status: ProspectStatusEntry }) {
       void queryClient.invalidateQueries({ queryKey: ['prospects', 'statuses'] })
       toast.success(t('pricing:statuses.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (
@@ -125,7 +126,7 @@ function NewStatusForm() {
       setLabel('')
       toast.success(t('pricing:statuses.added'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (
@@ -173,7 +174,7 @@ export function ProspectStatusesCard({ embedded = false }: { embedded?: boolean 
     mutationFn: (orderedIds: string[]) => api.post<ProspectStatusEntry[]>('/api/prospects/statuses/reorder', { orderedIds }),
     onSuccess: (data) => queryClient.setQueryData(['prospects', 'statuses'], data),
     onError: (err) => {
-      toast.error(err.message)
+      toastError(err)
       void queryClient.invalidateQueries({ queryKey: ['prospects', 'statuses'] })
     },
   })

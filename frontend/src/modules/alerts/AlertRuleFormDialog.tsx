@@ -12,6 +12,7 @@ import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 
 const CONDITION_LABELS: Record<AlertCondition, string> = { lt: '<', lte: '≤', gt: '>', gte: '≥' }
@@ -65,7 +66,7 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
       toast.success(rule ? t('alerts:rule.updated') : t('alerts:rule.created'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -75,13 +76,13 @@ export function AlertRuleFormDialog({ open, onOpenChange, rule }: AlertRuleFormD
       toast.success(t('alerts:rule.deleted'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const test = useMutation({
     mutationFn: () => api.post<AlertRuleTestResult>(`/api/alert-rules/${rule?.id}/test`),
     onSuccess: (result) => setTestResult(result),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

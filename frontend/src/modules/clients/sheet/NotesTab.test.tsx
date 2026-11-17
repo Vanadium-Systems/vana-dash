@@ -10,7 +10,8 @@ import type { SheetNote, VoiceNote } from './types'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const data = vi.hoisted(() => ({ notes: [] as unknown[], voices: [] as unknown[] }))
-vi.mock('@/shared/lib/api', () => ({
+vi.mock('@/shared/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/lib/api')>()),
   api: { get: async (url: string) => (url.endsWith('/voice-notes') ? data.voices : data.notes) },
 }))
 vi.mock('@/shared/hooks/use-me', () => ({ useMe: () => ({ session: { user: { id: 'u1' } } }) }))

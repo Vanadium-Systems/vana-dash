@@ -207,7 +207,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
       invalidate()
       toast.success(t('accounting:issued.issuedToast', { documentNumber: invoice.documentNumber }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const sendAnaf = useMutation({
     mutationFn: () => api.post<FinancialRecord>(`/api/invoicing/invoices/${record.id}/send-anaf`),
@@ -215,7 +215,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
       invalidate()
       toast.success(t('accounting:issued.sentToAnaf'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const removeDraft = useMutation({
     mutationFn: () => api.delete<void>(`/api/invoicing/${isProforma ? 'proformas' : 'invoices'}/${record.id}`),
@@ -233,7 +233,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
       toast.success(t('accounting:records.page.duplicated'))
       navigate(`/accounting/records/${draft.id}`)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // The buttons are the transitions out of the current state, one primary at most.
@@ -550,7 +550,7 @@ function Payments({ data, canIssue, canPay, onPay }: { data: RecordDetail; canIs
       if (!ok) return
       remove.mutate(payment.id, {
         onSuccess: () => toast.success(t('accounting:records.payments.removed', { amount: formatMoney(payment.amount, payment.currency) })),
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toastError(err),
       })
     })
   }

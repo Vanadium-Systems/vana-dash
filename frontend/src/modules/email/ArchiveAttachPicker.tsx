@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Eye, File as FileIcon } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Input } from '@/shared/components/ui/input'
@@ -11,6 +10,7 @@ import { fileFromUrl, type PendingAttachment } from '@/shared/lib/attachments'
 import type { ArchiveDownloadUrl, ArchiveSearchResult } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
 import { openExternal } from '@/shared/lib/open-file'
+import { toastError } from '@/shared/lib/errors'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -49,7 +49,7 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
       onOpenChange(false)
       setQ('')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('email:attach.fromArchiveFailed'))
+      toastError(err, t('email:attach.fromArchiveFailed'))
     } finally {
       setDownloadingId(null)
     }
@@ -64,7 +64,7 @@ export function ArchiveAttachPicker({ open, onOpenChange, onSelect }: ArchiveAtt
       const { url } = await api.get<ArchiveDownloadUrl>(`/api/archive/files/${file.id}/download-url`)
       openExternal(url)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('email:attach.previewFailed'))
+      toastError(err, t('email:attach.previewFailed'))
     } finally {
       setPreviewingId(null)
     }

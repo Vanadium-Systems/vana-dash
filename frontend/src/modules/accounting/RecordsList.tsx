@@ -30,6 +30,7 @@ import { PaymentPeek } from './PaymentPeek'
 import { useInvalidateRecords, useRecordsPage } from './records-api'
 import { canRecordPayment } from './records-logic'
 import { AmountCell, DueDate, RecordPaymentBadge, TotalsBand } from './records-ui'
+import { toastError } from '@/shared/lib/errors'
 
 const TABS_OUT: RecordTab[] = ['all', 'draft', 'open', 'overdue', 'paid', 'rejected']
 const TABS_IN: RecordTab[] = ['all', 'open', 'overdue', 'paid']
@@ -98,7 +99,7 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
       invalidate()
       toast.success(t('accounting:issued.issuedToast', { documentNumber: invoice.documentNumber }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const sendAnaf = useMutation({
     mutationFn: (id: string) => api.post<FinancialRecord>(`/api/invoicing/invoices/${id}/send-anaf`),
@@ -106,7 +107,7 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
       invalidate()
       toast.success(t('accounting:issued.sentToAnaf'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const removeDraft = useMutation({
     mutationFn: (id: string) => api.delete<void>(`/api/invoicing/invoices/${id}`),
@@ -114,7 +115,7 @@ export function RecordsList({ direction, onCreate }: RecordsListProps) {
       invalidate()
       toast.success(t('accounting:issued.draftDeleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const open = (id: string) => navigate(`/accounting/records/${id}`)
