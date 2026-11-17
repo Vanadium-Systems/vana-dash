@@ -384,6 +384,11 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
             ) : null}
           </p>
           <LinkedDocs data={data} />
+          {rejected && record.anafRejectionReason ? (
+            <Alert tone="critical" title={t('accounting:records.page.anafRejectedTitle')} data-testid="anaf-rejection-reason">
+              <span className="whitespace-pre-line break-words">{record.anafRejectionReason}</span>
+            </Alert>
+          ) : null}
           {isProforma && (proformaStatus === 'invoiced' || proformaStatus === 'cancelled') ? (
             <p className="text-sm text-muted-foreground">{proformaStatus === 'invoiced' ? t('accounting:proformas.invoicedHint') : t('accounting:proformas.cancelledHint')}</p>
           ) : null}

@@ -47,6 +47,8 @@ export const financialRecords = pgTable(
     anafMessageId: text('anaf_message_id').unique(),
     anafUploadId: text('anaf_upload_id'),
     anafStatus: text('anaf_status', { enum: ['draft', 'pending', 'validated', 'rejected'] }),
+    // ANAF's own words when it rejects an upload (the errors of its validation), one per line.
+    anafRejectionReason: text('anaf_rejection_reason'),
     xmlStoragePath: text('xml_storage_path'),
     pdfStoragePath: text('pdf_storage_path'),
     // Sprint D, Track A — taxare inversă TVA la achiziții de servicii (direction='in'). 'none' =

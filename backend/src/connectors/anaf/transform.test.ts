@@ -5,6 +5,8 @@ import {
   parseUblInvoice,
   parseUblInvoiceOutgoing,
   parseUploadResponse,
+  parseUploadDownloadId,
+  parseUploadErrors,
   parseUploadStatusResponse,
 } from './transform.js'
 import type { AnafEfacturaMessage } from './types.js'
@@ -101,5 +103,20 @@ describe('anaf transform', () => {
     expect(parseUploadStatusResponse('<header stare="ok"/>')).toBe('validated')
     expect(parseUploadStatusResponse('<header stare="nok"/>')).toBe('rejected')
     expect(parseUploadStatusResponse('<header stare="in prelucrare"/>')).toBe('pending')
+  })
+
+  it('reads the archive id and the validation errors of a rejected upload', () => {
+    expect(parseUploadDownloadId('<header stare="nok" id_descarcare="3001"/>')).toBe('3001')
+    expect(parseUploadDownloadId('<header stare="in prelucrare"/>')).toBeNull()
+    const answer =
+      '<?xml version="1.0" encoding="UTF-8"?><header xmlns="mfp:anaf:dgti:efactura:mesajEroriFactuta:v1" Index_incarcare="42" Cif_emitent="1">' +
+      '<Error errorMessage="E: validari globale eroare: [BR-RO-110] adresa cumparatorului lipseste"/>' +
+      '<Error errorMessage="E: [BR-CO-15] total TVA gresit"/></header>'
+    expect(parseUploadErrors(answer)).toEqual([
+      'E: validari globale eroare: [BR-RO-110] adresa cumparatorului lipseste',
+      'E: [BR-CO-15] total TVA gresit',
+    ])
+    expect(parseUploadErrors('<header><Error errorMessage="E: unic"/></header>')).toEqual(['E: unic'])
+    expect(parseUploadErrors('<header/>')).toEqual([])
   })
 })

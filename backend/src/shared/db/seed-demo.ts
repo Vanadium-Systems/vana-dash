@@ -325,6 +325,7 @@ const stateRow = (
     documentNumber: string | null
     paymentStatus?: 'unpaid' | 'partial' | 'paid'
     anafStatus?: 'validated' | 'rejected'
+    anafRejectionReason?: string
   },
 ) => ({
   ...issued[0]!,
@@ -349,7 +350,12 @@ const stateRows = await db
     stateRow(0, 3, '1500.00', { documentNumber: null }),
     stateRow(1, 20, '2000.00', { documentNumber: partialNumber, paymentStatus: 'partial' }),
     stateRow(2, 25, '900.00', { documentNumber: splitNumber, paymentStatus: 'paid', paidAt: daysAgo(12) }),
-    stateRow(0, 8, '1100.00', { documentNumber: nextNumber(), anafStatus: 'rejected' }),
+    stateRow(0, 8, '1100.00', {
+      documentNumber: nextNumber(),
+      anafStatus: 'rejected',
+      // The shape ANAF writes its validation errors in.
+      anafRejectionReason: 'E: validari globale eroare: [BR-RO-110] Adresa cumparatorului (BT-50) lipseste.',
+    }),
     stateRow(1, 15, '750.00', { documentNumber: nextNumber(), anafStatus: 'validated' }),
     // Due in 2 days (Home "deadlines") and a plainly overdue one (Home "to collect").
     stateRow(3, 12, '1800.00', { documentNumber: nextNumber() }),

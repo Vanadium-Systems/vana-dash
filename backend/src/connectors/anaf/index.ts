@@ -12,6 +12,8 @@ import {
   isCreditNoteXml,
   parseUblInvoice,
   parseUblInvoiceOutgoing,
+  parseUploadDownloadId,
+  parseUploadErrors,
   parseUploadResponse,
   parseUploadStatusResponse,
   transformSpvMessage,
@@ -215,6 +217,16 @@ export const anafConnector: AccountingConnector = {
   async checkUploadStatus(session: AnafSession, uploadId: string): Promise<AnafUploadStatus> {
     const res = await anafGet(session, `${baseUrl()}/stareMesaj?id_incarcare=${uploadId}`)
     return parseUploadStatusResponse(await res.text())
+  },
+
+  async fetchUploadErrors(session: AnafSession, uploadId: string): Promise<string[]> {
+    const status = await anafGet(session, `${baseUrl()}/stareMesaj?id_incarcare=${uploadId}`)
+    const downloadId = parseUploadDownloadId(await status.text())
+    if (!downloadId) return []
+    const res = await anafGet(session, `${baseUrl()}/descarcare?id=${downloadId}`, DOWNLOAD_TIMEOUT_MS)
+    const files = unzipSync(new Uint8Array(await res.arrayBuffer()))
+    const name = Object.keys(files).find((file) => file.endsWith('.xml') && !file.startsWith('semnatura'))
+    return name ? parseUploadErrors(new TextDecoder('utf-8').decode(files[name])) : []
   },
 
   async checkHealth(session: AnafSession): Promise<PlatformHealth> {

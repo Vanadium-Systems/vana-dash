@@ -178,6 +178,8 @@ export interface FinancialRecord {
   reverseChargeVatRate: string | null
   anafUploadId: string | null
   anafStatus: AnafStatus | null
+  /** Only on the document page: ANAF's validation errors, one per line, when it rejected the upload. */
+  anafRejectionReason?: string | null
   hasXml: boolean
   hasPdf: boolean
   hasAnafPdf: boolean

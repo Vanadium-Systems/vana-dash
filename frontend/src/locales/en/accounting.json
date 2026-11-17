@@ -558,7 +558,8 @@
       "lineTotal": "Line total",
       "net": "Net",
       "vatAmount": "VAT",
-      "grossTotal": "Total"
+      "grossTotal": "Total",
+      "anafRejectedTitle": "ANAF rejected the invoice. The reason, in ANAF's words:"
     },
     "timeline": {
       "system": "System",

@@ -99,6 +99,7 @@ export async function pollAnafUploadStatuses(): Promise<void> {
       })
 
       if (status === 'rejected') {
+        await storeRejectionReason(session, record.id, record.anafUploadId!)
         await sendAlertEmail(
           tr('emails.efactura.rejectedSubject', { documentNumber: record.documentNumber ?? record.id }),
           tr('emails.efactura.rejectedBody1', { documentNumber: record.documentNumber ?? record.id }) +
@@ -283,5 +284,19 @@ async function buildInvoiceInputForEmail(
       unitPrice: Number(line.unitPrice),
       vatRate: Number(line.vatRate),
     })),
+  }
+}
+
+/** Best effort: without ANAF's reasons the invoice still shows as rejected, as before. */
+async function storeRejectionReason(session: Parameters<typeof anafConnector.fetchUploadErrors>[0], recordId: string, uploadId: string) {
+  try {
+    const reasons = await anafConnector.fetchUploadErrors(session, uploadId)
+    if (reasons.length === 0) return
+    await db
+      .update(financialRecords)
+      .set({ anafRejectionReason: reasons.join('\n').slice(0, 4000) })
+      .where(eq(financialRecords.id, recordId))
+  } catch (err) {
+    console.error(`[poll-anaf-upload] rejection reason not read for ${recordId}: ${String(err)}`)
   }
 }

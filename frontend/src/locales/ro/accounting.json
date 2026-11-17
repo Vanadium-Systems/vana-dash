@@ -562,7 +562,8 @@
       "lineTotal": "Total linie",
       "net": "Net",
       "vatAmount": "TVA",
-      "grossTotal": "Total"
+      "grossTotal": "Total",
+      "anafRejectedTitle": "ANAF a respins factura. Motivul, în cuvintele ANAF:"
     },
     "timeline": {
       "system": "Sistem",

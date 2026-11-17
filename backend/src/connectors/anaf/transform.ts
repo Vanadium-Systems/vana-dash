@@ -143,3 +143,21 @@ export function parseUploadStatusResponse(xml: string): 'pending' | 'validated' 
   if (stare === 'nok') return 'rejected'
   return 'pending'
 }
+
+/** The `id_descarcare` /stareMesaj gives for a finished upload: the archive with ANAF's answer. */
+export function parseUploadDownloadId(xml: string): string | null {
+  const doc = parser.parse(xml) as Record<string, unknown>
+  const header = (doc.header ?? {}) as Record<string, unknown>
+  const id = String(header['@_id_descarcare'] ?? '')
+  return id || null
+}
+
+/** The validation errors in the archive of a rejected upload: `<Error errorMessage="…"/>`. */
+export function parseUploadErrors(xml: string): string[] {
+  const doc = parser.parse(xml) as Record<string, unknown>
+  const header = (doc.header ?? {}) as Record<string, unknown>
+  const errors = header.Error === undefined ? [] : Array.isArray(header.Error) ? header.Error : [header.Error]
+  return errors
+    .map((error) => String((error as Record<string, unknown>)['@_errorMessage'] ?? '').trim())
+    .filter(Boolean)
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "financial_records" ADD COLUMN "anaf_rejection_reason" text;
