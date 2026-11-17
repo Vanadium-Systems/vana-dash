@@ -28,6 +28,8 @@ export const CloudflareInboundWebhookSchema = z.object({
   references: z.string().nullable().optional(),
   // Rezultatul DMARC de la MX-ul Cloudflare (`pass` / `fail` / `none`…), extras de Worker.
   dmarc: z.string().nullable().optional(),
+  // Cc: header addresses. Older Workers do not send it.
+  cc: z.array(z.string().max(320)).max(100).default([]),
   attachments: z
     .array(
       z.object({

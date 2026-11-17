@@ -456,6 +456,7 @@ export function ThreadView({
                     onClick={() => setDetailsFor((id) => (id === m.id ? null : m.id))}
                   >
                     {ownAddresses.has(bare(m.toAddress)) ? t('email:thread.toMe') : t('email:thread.toAddress', { address: bare(m.toAddress) })}
+                    {m.ccAddresses?.length ? <span className="min-w-0 truncate">{t('email:thread.ccSummary', { addresses: m.ccAddresses.map(bare).join(', ') })}</span> : null}
                     <ChevronDown className="h-3 w-3" />
                   </button>
                   {detailsFor === m.id ? (
@@ -464,6 +465,14 @@ export function ThreadView({
                       <dd className="min-w-0 [overflow-wrap:anywhere]">{m.fromAddress}</dd>
                       <dt>{t('common:labels.to')}</dt>
                       <dd className="min-w-0 [overflow-wrap:anywhere]">{m.toAddress}</dd>
+                      {m.ccAddresses?.length ? (
+                        <>
+                          <dt>{t('email:compose.cc')}</dt>
+                          <dd className="min-w-0 [overflow-wrap:anywhere]" data-testid="message-cc">
+                            {m.ccAddresses.join(', ')}
+                          </dd>
+                        </>
+                      ) : null}
                       <dt>{t('email:thread.date')}</dt>
                       <dd>{formatDateTime(date)}</dd>
                     </dl>

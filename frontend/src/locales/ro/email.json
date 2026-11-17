@@ -216,7 +216,8 @@
     "toMe": "către mine",
     "unstar": "Scoate steaua",
     "zipTooLarge": "Atașamentele trec de 100 MB; descarcă-le pe rând.",
-    "showQuotedShort": "…"
+    "showQuotedShort": "…",
+    "ccSummary": "· Cc: {{addresses}}"
   },
   "list": {
     "searchAria": "Caută în email",

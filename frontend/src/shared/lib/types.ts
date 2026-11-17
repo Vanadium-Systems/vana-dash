@@ -1061,6 +1061,8 @@ export interface EmailMessage {
   resendEmailId: string | null
   fromAddress: string
   toAddress: string
+  /** The Cc: addresses; empty on messages from before 2026-11. */
+  ccAddresses?: string[]
   /** Where replies go when the sender set it (bulk senders often do). */
   replyToAddress: string | null
   subject: string
