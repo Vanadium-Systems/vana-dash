@@ -21,6 +21,7 @@ export interface CryptoStore {
   get<T>(store: StoreName, key: string): Promise<T | undefined>
   put(store: StoreName, key: string, value: unknown): Promise<void>
   delete(store: StoreName, key: string): Promise<void>
+  clear(store: StoreName): Promise<void>
   values<T>(store: StoreName): Promise<T[]>
 }
 
@@ -50,6 +51,9 @@ export async function openCryptoStore(userId: string): Promise<CryptoStore> {
     delete: async (store, key) => {
       await request(tx(store, 'readwrite').delete(key))
     },
+    clear: async (store) => {
+      await request(tx(store, 'readwrite').clear())
+    },
     values: <T>(store: StoreName) => request(tx(store, 'readonly').getAll()) as Promise<T[]>,
   }
 }
@@ -64,6 +68,9 @@ export function memoryCryptoStore(): CryptoStore {
     },
     delete: async (store, key) => {
       data.get(store)!.delete(key)
+    },
+    clear: async (store) => {
+      data.get(store)!.clear()
     },
     values: async <T>(store: StoreName) => [...data.get(store)!.values()].map((value) => structuredClone(value)) as T[],
   }

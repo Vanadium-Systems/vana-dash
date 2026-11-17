@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-17T12:00:00Z',
+    title: {
+      ro: 'Mesajele sunt criptate de la un capăt la altul',
+      en: 'Messages are end-to-end encrypted',
+    },
+    body: {
+      ro: 'Textul și fișierele din Mesaje se criptează pe dispozitivul tău și le citesc doar dispozitivele celor din conversație, nu și serverul. Prima dată faci o cheie de recuperare: păstreaz-o, fără ea și fără alt dispozitiv logat mesajele vechi nu se mai pot citi pe un dispozitiv nou. Un telefon sau un browser nou se aprobă de pe unul deja logat. Căutarea din conversație caută în mesajele deschise pe dispozitivul tău, iar notificarea spune doar „Mesaj nou”. Tot acum: „Info” pe mesajele tale arată cine le-a văzut și când, iar emoji-urile se aleg scriind două puncte și numele lor (:sob) sau din iconița de lângă câmp.',
+      en: 'Text and files in Messages are encrypted on your device and read only by the devices of the people in the conversation, not by the server. The first time, you make a recovery key: keep it; without it and without another signed-in device, old messages cannot be read on a new device. A new phone or browser is approved from one where you are already signed in. Search in a conversation looks through the messages opened on your device, and notifications only say “New message”. Also new: “Info” on your messages shows who has seen them and when, and emoji are picked by typing a colon and their name (:sob) or from the icon next to the field.',
+    },
+    features: ['mesaje.view'],
+  },
+  {
     publishedAt: '2026-11-16T22:01:00Z',
     title: {
       ro: 'Palete de culori în Profilul meu',

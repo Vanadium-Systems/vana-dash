@@ -287,12 +287,13 @@ export class E2EEngine {
 
       let me = this.deviceId ? await this.api.me(this.deviceId) : null
       if (!this.deviceId || !me?.devices.some((device) => device.id === this.deviceId)) {
-        // New here, or the server dropped this device (session revoked): start a fresh account,
-        // so a key the server no longer vouches for is not reused.
+        // New here, or the server dropped this device (session revoked): start a fresh account
+        // and drop cached session/plaintext stores so a revoked session leaves nothing behind.
         if (this.deviceId) {
           this.account = new this.vz.Account()
           this.secrets = null
           await this.store.delete('meta', 'secrets')
+          await Promise.all(['olm', 'outbound', 'inbound', 'plain'].map((s) => this.store.clear(s as 'olm')))
         }
         await this.registerDevice()
         me = await this.api.me(this.deviceId)

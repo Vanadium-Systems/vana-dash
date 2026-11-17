@@ -433,17 +433,25 @@ const SOURCES: GuideSource[] = [
       en: 'Talking to a colleague or a group',
     },
     summary: {
-      ro: 'Mesajele ajung pe loc la cine are aplicația deschisă; ceilalți primesc notificare. Poți răspunde la un mesaj, reacționa și trimite obiecte din aplicație.',
-      en: 'Messages reach whoever has the app open right away; the others get a notification. You can reply to a message, react and send objects from the app.',
+      ro: 'Mesajele sunt criptate de la un capăt la altul: le citesc doar dispozitivele celor din conversație. Ajung pe loc la cine are aplicația deschisă; ceilalți primesc notificare. Poți răspunde la un mesaj, reacționa și trimite obiecte din aplicație.',
+      en: 'Messages are end-to-end encrypted: only the devices of the people in the conversation read them. They reach whoever has the app open right away; the others get a notification. You can reply to a message, react and send objects from the app.',
     },
     steps: [
+      {
+        ro: 'Prima dată când deschizi Mesaje faci o cheie de recuperare: o vezi o singură dată, așa că păstreaz-o într-un manager de parole. Pe un dispozitiv nou (alt browser, telefonul) îl aprobi de pe unul deja logat, după ce compari codul de 6 cifre de pe cele două ecrane, sau scrii cheia de recuperare. Fără ea și fără alt dispozitiv logat, mesajele vechi se pierd: nici adminul nu le poate recupera. La logout, cheile de pe acel dispozitiv se șterg.',
+        en: 'The first time you open Messages you make a recovery key: you see it once, so keep it in a password manager. A new device (another browser, your phone) is approved from one where you are already signed in, after comparing the 6-digit code on both screens, or with the recovery key. Without it and without another signed-in device, old messages are lost: an admin cannot recover them either. Signing out removes the keys from that device.',
+      },
+      {
+        ro: 'Ce vede serverul: cine scrie, cui, când și cât de mare e un mesaj sau un fișier, plus reacțiile și obiectele trimise din aplicație (acestea vin din pagini necriptate). Ce nu vede: textul și fișierele. Notificarea spune doar „Mesaj nou”. Limita oricărei aplicații web: codul vine de la server, deci criptarea apără de cine citește baza de date, copiile de siguranță sau traficul, nu de un server compromis care ar servi alt cod.',
+        en: 'What the server sees: who writes, to whom, when and how big a message or file is, plus reactions and objects sent from the app (those come from pages that are not encrypted). What it does not see: text and files. The notification only says “New message”. The limit of any web app: the code comes from the server, so encryption protects against whoever reads the database, the backups or the traffic, not against a compromised server serving other code.',
+      },
       {
         ro: 'Apasă pe iconița de conversație nouă, apoi „Scrie cuiva” pentru un coleg sau „Grup nou” pentru mai mulți.',
         en: 'Press the new conversation icon, then “Write to someone” for a colleague or “New group” for several.',
       },
       {
-        ro: 'Scrie în câmpul de jos și trimite. Un fișier de până la 15 MB se pune din „Atașează”.',
-        en: 'Type in the field at the bottom and send. A file of up to 15 MB is added with “Attach”.',
+        ro: 'Scrie în câmpul de jos și trimite. Un fișier de până la 50 MB se pune din „Atașează”. Emoji: după două puncte și două litere (:so) apar emoji-urile cu numele acela, Enter alege; sau iconița de lângă câmp.',
+        en: 'Type in the field at the bottom and send. A file of up to 50 MB is added with “Attach”. Emoji: a colon and two letters (:so) list the emoji with that name, Enter picks; or the icon next to the field.',
       },
       {
         ro: 'Pe orice mesaj, al tău sau al altuia, ai „Răspunde” și reacțiile rapide: săgeata din colțul mesajului, care apare la trecerea mouse-ului, click dreapta (R răspunde, C copiază, E editează, Del șterge) sau, pe telefon, apăsare lungă. Tot pe telefon, glisezi mesajul spre dreapta ca să răspunzi.',
@@ -458,8 +466,8 @@ const SOURCES: GuideSource[] = [
         en: 'The date pinned at the top is a menu: jump to today, last week, last month or a date you pick. The “N new messages” line shows where you left off, and the round down arrow takes you to the end.',
       },
       {
-        ro: 'Butoanele din antet deschid panoul conversației: membri, oprirea notificărilor, pozele și fișierele trimise și căutarea în conversație (găsește și fără diacritice). Cine a făcut grupul adaugă oameni din „Adaugă oameni” și îi scoate cu butonul de lângă nume. Bulina verde de pe inițiale arată cine e acum în aplicație.',
-        en: 'The header buttons open the conversation panel: members, mute, photos and files sent, and search inside the conversation (it matches without diacritics too). Whoever made the group adds people with “Add people” and removes them with the button next to their name. The green dot on the initials shows who is in the app right now.',
+        ro: 'Butoanele din antet deschid panoul conversației: membri, oprirea notificărilor, pozele și fișierele trimise și căutarea în conversație (găsește și fără diacritice, doar în mesajele deschise deja pe dispozitivul tău). Cine a făcut grupul adaugă oameni din „Adaugă oameni” și îi scoate cu butonul de lângă nume. Bulina verde de pe inițiale arată cine e acum în aplicație.',
+        en: 'The header buttons open the conversation panel: members, mute, photos and files sent, and search inside the conversation (it matches without diacritics too, only in messages already opened on your device). Whoever made the group adds people with “Add people” and removes them with the button next to their name. The green dot on the initials shows who is in the app right now.',
       },
       {
         ro: 'Din câmpul de scris, ↑ te duce la ultimul mesaj; apoi ↑ ↓ mută, R, E, C și Del acționează, Esc te întoarce la câmp.',
@@ -474,8 +482,8 @@ const SOURCES: GuideSource[] = [
         en: 'The card of a client or an invoice shows today’s data, if you have access to their page. An email, an event, a file and a note show what the sender saw, and the original opens only for whoever already has access. If you do not, the card says “No access”; “Ask for access” fills in a reply in the conversation.',
       },
       {
-        ro: 'Din același meniu, un mesaj de-al tău se editează sau se șterge.',
-        en: 'From the same menu, one of your messages is edited or deleted.',
+        ro: 'Din același meniu, un mesaj de-al tău se editează sau se șterge, iar „Info” arată cine l-a văzut și când.',
+        en: 'From the same menu, one of your messages is edited or deleted, and “Info” shows who has seen it and when.',
       },
       {
         ro: 'Câte notificări primești se alege în Profilul meu, la Notificări.',
