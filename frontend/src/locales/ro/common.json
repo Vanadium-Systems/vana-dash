@@ -578,7 +578,9 @@
     "clear": "Golește selecția",
     "all": "Selectează tot",
     "count": "{{count}} selectate",
-    "pageOf": "toate de pe pagină, din {{total}}"
+    "pageOf": "toate de pe pagină, din {{total}}",
+    "selectEverything": "Selectează toate cele {{total}}",
+    "everything": "Toate cele {{total}} sunt selectate"
   },
   "keys": {
     "shift": "Shift",

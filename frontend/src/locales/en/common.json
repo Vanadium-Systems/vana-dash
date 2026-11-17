@@ -572,7 +572,9 @@
     "clear": "Clear selection",
     "all": "Select all",
     "count": "{{count}} selected",
-    "pageOf": "all on this page, of {{total}}"
+    "pageOf": "all on this page, of {{total}}",
+    "selectEverything": "Select all {{total}}",
+    "everything": "All {{total}} are selected"
   },
   "keys": {
     "shift": "Shift",

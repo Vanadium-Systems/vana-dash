@@ -26,6 +26,7 @@ import type {
   AccessShare,
   ArchiveDetails,
   ArchiveDownloadUrl,
+  ArchiveFile,
   ArchiveFilesPage,
   ArchiveFolder,
   ArchiveFolderPath,
@@ -260,7 +261,37 @@ export function ArchivePage() {
 
   const itemIds = useMemo(() => items.map((item) => item.id), [items])
   const selection = useSelection(itemIds)
-  const selectedItems = useMemo(() => items.filter((item) => selection.selected.has(item.id)), [items, selection.selected])
+  // "Select all N": every file of the folder, past this page, read page by page (the list caps a page at 50).
+  const [everything, setEverything] = useState<ArchiveItem[] | null>(null)
+  const [loadingEverything, setLoadingEverything] = useState(false)
+  useEffect(() => {
+    if (everything && !selection.allSelected) setEverything(null)
+  }, [selection.allSelected, everything])
+  useEffect(() => setEverything(null), [currentFolderId, page, pageSize, sort, filters.type, filters.modified, filters.tag])
+  const selectEverything = () =>
+    void guarded(async () => {
+      setLoadingEverything(true)
+      try {
+        const all: ArchiveFile[] = []
+        for (let next = 1; ; next++) {
+          const params = new URLSearchParams({ page: String(next), pageSize: '50', sort })
+          if (currentFolderId) params.set('folderId', currentFolderId)
+          if (filters.type) params.set('type', filters.type)
+          if (filters.modified) params.set('modifiedAfter', modifiedAfterIso(filters.modified))
+          if (filters.tag) params.set('tags', filters.tag)
+          const chunk = await api.get<ArchiveFilesPage>(`/api/archive/files?${params.toString()}`)
+          all.push(...chunk.items)
+          if (chunk.items.length === 0 || all.length >= chunk.total) break
+        }
+        const here = currentLevel === 'edit' && canEdit
+        const folderRows = items.filter((item) => item.kind === 'folder')
+        setEverything([...folderRows, ...all.map((file) => fileItem(file, { starred: starredIds.has(file.id), canWrite: here }))])
+      } finally {
+        setLoadingEverything(false)
+      }
+    })
+  const pageSelection = useMemo(() => items.filter((item) => selection.selected.has(item.id)), [items, selection.selected])
+  const selectedItems = everything ?? pageSelection
   const selectedBytes = selectedItems.reduce((sum, item) => sum + item.sizeBytes, 0)
   const targetsFor = (item: ArchiveItem) => (selection.selected.has(item.id) && selectedItems.length > 1 ? selectedItems : [item])
 
@@ -677,7 +708,15 @@ export function ArchivePage() {
       ) : null}
     </>
   )
-  const selectionBarProps = { count: selection.count, allSelected: selection.allSelected, onSelectAll: selection.selectAll, onClear: selection.clear, total: pagination?.total }
+  const selectionBarProps = {
+    count: everything?.length ?? selection.count,
+    allSelected: selection.allSelected,
+    onSelectAll: selection.selectAll,
+    onClear: selection.clear,
+    total: pagination ? pagination.total + (page === 1 ? items.filter((item) => item.kind === 'folder').length : 0) : undefined,
+    onSelectEverything: pagination && !loadingEverything ? selectEverything : undefined,
+    everythingSelected: everything !== null,
+  }
 
   function body() {
     if (view === 'trash') return <TrashView onOpenFolder={openFolder} />
