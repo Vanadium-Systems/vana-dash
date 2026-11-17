@@ -28,8 +28,11 @@ export const CloudflareInboundWebhookSchema = z.object({
   references: z.string().nullable().optional(),
   // Rezultatul DMARC de la MX-ul Cloudflare (`pass` / `fail` / `none`…), extras de Worker.
   dmarc: z.string().nullable().optional(),
-  // Cc: header addresses. Older Workers do not send it.
-  cc: z.array(z.string().max(320)).max(100).default([]),
+  // Cc: header addresses. Older Workers do not send it. Cap instead of rejecting the whole email.
+  cc: z
+    .array(z.string())
+    .default([])
+    .transform((list) => list.filter((addr) => addr.length <= 320).slice(0, 100)),
   attachments: z
     .array(
       z.object({

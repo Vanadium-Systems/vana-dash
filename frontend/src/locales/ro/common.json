@@ -271,7 +271,7 @@
   "errors": {
     "boundary": {
       "title": "Ceva nu a mers bine",
-      "body": "A apărut o eroare neașteptată. Încearcă să reîncarci pagina — dacă problema persistă, revino mai târziu.",
+      "body": "Pagina a dat o eroare. Reîncarc-o; dacă se repetă, revino mai târziu.",
       "reload": "Reîncarcă pagina"
     },
     "api": {
@@ -289,7 +289,7 @@
     "push": {
       "unsupported": "Browserul acesta nu suportă notificări push",
       "denied": "Permisiune refuzată pt. notificări",
-      "vapidMissing": "VAPID neconfigurat pe server — contactează administratorul",
+      "vapidMissing": "Notificările push nu sunt configurate pe server. Spune-i administratorului.",
       "invalidSubscription": "Subscripție push invalidă (lipsesc cheile)"
     },
     "shareToArchive": "Share în Arhivă eșuat: {{message}}",

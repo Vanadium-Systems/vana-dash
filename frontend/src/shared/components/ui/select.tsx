@@ -317,7 +317,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               aria-activedescendant={withSearch ? undefined : activeId}
               onKeyDown={onListKey}
               style={{ left: place.left, top: place.top, bottom: place.bottom, width: place.width, maxHeight: place.maxHeight }}
-              className="menu-pop glass fixed z-[60] flex flex-col overflow-hidden rounded-lg border shadow-float outline-none"
+              className="menu-pop glass fixed z-viewer flex flex-col overflow-hidden rounded-lg border shadow-float outline-none"
             >
               {withSearch && (
                 <div className="flex shrink-0 items-center gap-2 border-b px-3">

@@ -178,7 +178,7 @@ function CreateTokenDialog({ open, onClose }: { open: boolean; onClose: () => vo
       {
         onSuccess: (data) => setCreated(data.token),
         onError: (error) => {
-          if (error instanceof ApiError && (error.message === 'FEATURES_NOT_IN_ROLE' || error.code === 'FEATURES_NOT_IN_ROLE')) setFeaturesError(t('auth:apiTokens.create.notInRole'))
+          if (error instanceof ApiError && error.code === 'FEATURES_NOT_IN_ROLE') setFeaturesError(t('auth:apiTokens.create.notInRole'))
           else setNameError(error instanceof ApiError ? error.message : t('auth:apiTokens.create.failed'))
         },
       },

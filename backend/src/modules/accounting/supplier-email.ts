@@ -11,6 +11,7 @@ import {
 import { createdByUserId, recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
 import { archiveInvoiceDocuments } from '../../shared/lib/financial-archive.js'
 import { httpError } from '../../shared/lib/http-error.js'
+import { tr } from '../../shared/lib/i18n.js'
 import { extractInvoiceHintsFromPdf } from '../../shared/lib/pdf-text.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
@@ -36,6 +37,7 @@ export { SupplierEmailNotFoundError }
 
 export class SupplierEmailBadRequestError extends Error {
   readonly statusCode = 400
+  readonly userFacing = true
   constructor(message: string) {
     super(message)
     this.name = 'SupplierEmailBadRequestError'
@@ -324,7 +326,7 @@ export async function ingestSupplierEmailAttachment(
   // 2. Read the PDF from local storage, validate magic bytes, copy into supplier-invoices/, extract hints.
   const buffer = await readDocument(attachment.storagePath)
   if (!buffer || buffer.byteLength < 8 || !buffer.subarray(0, 5).equals(Buffer.from('%PDF-'))) {
-    throw new SupplierEmailBadRequestError('Attachment is not a valid PDF document')
+    throw new SupplierEmailBadRequestError(tr('errors.codes.INVALID_PDF_UPLOAD'))
   }
 
   const safeFilename = attachment.filename.replace(/[^A-Za-z0-9._-]/g, '_') || 'invoice.pdf'

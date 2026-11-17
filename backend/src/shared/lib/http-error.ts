@@ -118,9 +118,9 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
     request.log.error(error)
     return reply.code(statusCode).send(errorBody(statusCode, 'INTERNAL'))
   }
-  // A domain error of ours (a class with `statusCode`, its message written with tr()) keeps its
-  // text until its route maps it to a code; anything from Fastify or a plugin does not.
-  const ownError = !error.code?.startsWith('FST_') && Object.getPrototypeOf(error) !== Error.prototype && statusCode !== 429
+  // A domain error of ours (explicitly marked `userFacing = true`, its message written with tr())
+  // keeps its text until its route maps it to a code; third-party or Fastify errors do not.
+  const ownError = (error as { userFacing?: unknown }).userFacing === true && statusCode < 500
   const code = ownError && /^[A-Z][A-Z0-9_]+$/.test(error.code ?? '') ? error.code : genericCode(statusCode)
   return reply.code(statusCode).send(errorBody(statusCode, code, ownError ? { message: error.message } : {}))
 }

@@ -77,13 +77,15 @@ export async function pollAnafUploadStatuses(): Promise<void> {
 
   const session = await getAnafSession()
   for (const record of pending) {
-    // Failure izolat per factură — un stareMesaj picat nu blochează restul.
+    const uploadId = record.anafUploadId
+    if (!uploadId) continue
+    // Isolated failure per invoice: one failed stareMesaj does not stop the rest.
     try {
-      const status = await anafConnector.checkUploadStatus(session, record.anafUploadId!)
+      const status = await anafConnector.checkUploadStatus(session, uploadId)
       if (status === 'pending') continue
 
-      // The status and its timeline entry commit together. The response of /stareMesaj carries no
-      // rejection reason through the connector, so only the new state is recorded.
+      // The status and its timeline entry commit together; when rejected, the exact ANAF reason
+      // is fetched and stored right after.
       await db.transaction(async (tx) => {
         await tx
           .update(financialRecords)
@@ -99,7 +101,7 @@ export async function pollAnafUploadStatuses(): Promise<void> {
       })
 
       if (status === 'rejected') {
-        await storeRejectionReason(session, record.id, record.anafUploadId!)
+        await storeRejectionReason(session, record.id, uploadId)
         await sendAlertEmail(
           tr('emails.efactura.rejectedSubject', { documentNumber: record.documentNumber ?? record.id }),
           tr('emails.efactura.rejectedBody1', { documentNumber: record.documentNumber ?? record.id }) +

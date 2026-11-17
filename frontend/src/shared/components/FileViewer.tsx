@@ -75,7 +75,7 @@ export function FileViewer({
       aria-modal="true"
       aria-label={file.name}
       tabIndex={-1}
-      className="fixed inset-0 z-[60] flex flex-col bg-black text-white focus:outline-none"
+      className="fixed inset-0 z-viewer flex flex-col bg-black text-white focus:outline-none"
     >
       <div className="flex items-center gap-2 px-2 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
         {/* native: dark overlay viewer button */}

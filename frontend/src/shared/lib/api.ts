@@ -97,12 +97,11 @@ async function handleUnauthorized(): Promise<never> {
 }
 
 /**
- * Mesajul pe care îl vede omul când o cerere pică. Rutele aplicației trimit `{ success: false,
- * error }` cu text scris pentru om, care trece neschimbat — inclusiv forma nouă, cu obiect
- * `{ code, message }` (acces, cutii de email). Restul (500 de la Fastify, validare zod,
- * rate limit, fără rețea) devine un mesaj care spune ce urmează; detaliul tehnic rămâne în
- * consolă, doar în dev. Singurul loc unde se decide asta, ca paginile să poată face
- * `toast.error(err.message)` fără să arate „Internal Server Error".
+ * Extracts the human-facing message and optional error code when an API request fails.
+ * Application routes return `{ success: false, error: { code, message, ... } }` (or a legacy
+ * string) in the caller's language; Fastify 5xx, Zod validation, rate-limit, and network failures
+ * fall back to localized generic copy while dev builds log the raw body to the console.
+ * Pages display errors through `toastError` / `errorText` (`shared/lib/errors.ts`).
  */
 function errorDetails(status: number, body: ApiEnvelope<unknown> | null): { message: string; code?: string } {
   const raw = body?.error

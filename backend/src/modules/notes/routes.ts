@@ -1,12 +1,15 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { z } from 'zod'
 import { BulkNotesSchema, CreateNoteSchema, ListNotesQuerySchema, RenameLabelSchema, UpdateNoteSchema } from './schema.js'
 import * as service from './service.js'
 import { NoteChangedError, NoteInputError, NoteNotFoundError } from './service.js'
 import * as versions from './versions.js'
 import { fail } from '../../shared/lib/http-error.js'
 
-type IdParams = { id: string }
+const IdParamsSchema = z.object({ id: z.string().uuid() })
+const VersionParamsSchema = z.object({ id: z.string().uuid(), vid: z.string().uuid() })
+const LabelParamsSchema = z.object({ name: z.string().min(1) })
 
 export async function notesRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -33,17 +36,21 @@ export async function notesRoutes(app: FastifyInstance) {
 
   server.patch(
     '/api/notes/labels/:name',
-    { preHandler: [app.authenticate], schema: { body: RenameLabelSchema } },
+    { preHandler: [app.authenticate], schema: { params: LabelParamsSchema, body: RenameLabelSchema } },
     async (req) => ({
       success: true,
-      data: await service.changeLabel(req.me, (req.params as { name: string }).name, req.body.newName),
+      data: await service.changeLabel(req.me, req.params.name, req.body.newName),
     }),
   )
 
-  server.delete('/api/notes/labels/:name', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await service.changeLabel(req.me, (req.params as { name: string }).name, null),
-  }))
+  server.delete(
+    '/api/notes/labels/:name',
+    { preHandler: [app.authenticate], schema: { params: LabelParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await service.changeLabel(req.me, req.params.name, null),
+    }),
+  )
 
   server.post(
     '/api/notes/bulk',
@@ -59,10 +66,14 @@ export async function notesRoutes(app: FastifyInstance) {
     data: await service.emptyTrash(req.me),
   }))
 
-  server.get('/api/notes/:id', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await service.getNote(req.me, (req.params as IdParams).id),
-  }))
+  server.get(
+    '/api/notes/:id',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await service.getNote(req.me, req.params.id),
+    }),
+  )
 
   server.post(
     '/api/notes',
@@ -72,43 +83,71 @@ export async function notesRoutes(app: FastifyInstance) {
 
   server.patch(
     '/api/notes/:id',
-    { preHandler: [app.authenticate], schema: { body: UpdateNoteSchema } },
-    async (req) => ({ success: true, data: await service.updateNote(req.me, (req.params as IdParams).id, req.body) }),
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: UpdateNoteSchema } },
+    async (req) => ({ success: true, data: await service.updateNote(req.me, req.params.id, req.body) }),
   )
 
-  server.patch('/api/notes/:id/archive', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await service.setArchived(req.me, (req.params as IdParams).id, true),
-  }))
+  server.patch(
+    '/api/notes/:id/archive',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await service.setArchived(req.me, req.params.id, true),
+    }),
+  )
 
-  server.patch('/api/notes/:id/unarchive', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await service.setArchived(req.me, (req.params as IdParams).id, false),
-  }))
+  server.patch(
+    '/api/notes/:id/unarchive',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await service.setArchived(req.me, req.params.id, false),
+    }),
+  )
 
-  server.delete('/api/notes/:id', { preHandler: [app.authenticate] }, async (req) => {
-    const row = await service.deleteNote(req.me, (req.params as IdParams).id)
-    if (!row) throw new NoteNotFoundError()
-    return { success: true }
-  })
+  server.delete(
+    '/api/notes/:id',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => {
+      const row = await service.deleteNote(req.me, req.params.id)
+      if (!row) throw new NoteNotFoundError()
+      return { success: true }
+    },
+  )
 
-  server.post('/api/notes/:id/restore', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await service.restoreNote(req.me, (req.params as IdParams).id),
-  }))
+  server.post(
+    '/api/notes/:id/restore',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await service.restoreNote(req.me, req.params.id),
+    }),
+  )
 
-  server.get('/api/notes/:id/versions', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await versions.listVersions(req.me, (req.params as IdParams).id),
-  }))
+  server.get(
+    '/api/notes/:id/versions',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await versions.listVersions(req.me, req.params.id),
+    }),
+  )
 
-  server.get('/api/notes/:id/versions/:vid', { preHandler: [app.authenticate] }, async (req) => {
-    const { id, vid } = req.params as { id: string; vid: string }
-    return { success: true, data: await versions.getVersion(req.me, id, vid) }
-  })
+  server.get(
+    '/api/notes/:id/versions/:vid',
+    { preHandler: [app.authenticate], schema: { params: VersionParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await versions.getVersion(req.me, req.params.id, req.params.vid),
+    }),
+  )
 
-  server.post('/api/notes/:id/versions/:vid/restore', { preHandler: [app.authenticate] }, async (req) => {
-    const { id, vid } = req.params as { id: string; vid: string }
-    return { success: true, data: await versions.restoreVersion(req.me, id, vid) }
-  })
+  server.post(
+    '/api/notes/:id/versions/:vid/restore',
+    { preHandler: [app.authenticate], schema: { params: VersionParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await versions.restoreVersion(req.me, req.params.id, req.params.vid),
+    }),
+  )
 }

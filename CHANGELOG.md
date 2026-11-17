@@ -4,6 +4,21 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-17: Consistent API error shape and Wave B fixes
+
+### Changed
+- **API error shape (Part E):** Every 4xx and 5xx error response now uses `{ success: false, error: { code, message, ...details } }` with stable `UPPER_SNAKE` codes and localized messages (`backend/src/locales/{ro,en}/errors.json`) via `HttpError` / `fail()` (`backend/src/shared/lib/http-error.ts`). Raw exception text (`err.message`, `String(err)`) no longer reaches API responses; external service failures log server-side and return integration codes (`ANAF_UNAVAILABLE`, `BANK_UNAVAILABLE`, `MAIL_SEND_FAILED`, `PUSH_FAILED`, `ASSISTANT_PROVIDER_FAILED`, `PLATFORM_UNREACHABLE`). Legacy exceptions documented in `docs/API.md`: `/api/v1/public/booking` (string codes) and `/api/{assets,crypto}/.../quote` (`200` with `{ success: false, error }`). Unexpected DB errors on contracts routes now return `500 INTERNAL` instead of `404`/`400`, and non-PDF signed contract uploads return `415 UNSUPPORTED_MEDIA_TYPE`.
+- **Frontend error display:** Pages now display errors through `toastError` / `errorText` (`frontend/src/shared/lib/errors.ts`) with localized code overrides in `common:errors.codes`, showing `Cod: <CODE>` in the toast description for server and integration errors (`5xx`, `*_UNAVAILABLE`, `*_FAILED`, `*_UNREACHABLE`). Both backend and frontend ESLint configs enforce these patterns (`error` level).
+- **Schema cleanup (`0108_s6_cleanup.sql`):** Dropped legacy `prospects.phone`, `prospects.email`, `prospects.contact_name`, `calendar_events.reminder_minutes_before`, and `calendar_events.reminder_sent_at` columns superseded since S6.
+
+### Added
+- **Invoicing / ANAF (`0106_anaf_rejection_reason.sql`):** Persist and display ANAF's e-Factura rejection reason on the invoice page (`Poll` extracts structured errors from ANAF's status response); proforma filter tabs now show SQL `COUNT(*) FILTER` counts.
+- **Email (`0107_email_cc.sql`):** Persist and display `Cc:` recipients on inbound and outbound messages (`CloudflareInboundWebhookSchema`, `ThreadView.tsx`) and include them in thread participants.
+- **Archive & Clients:** Folder-wide "Select all N in folder" across pages (`ArchivePage.tsx`), image dimensions in `DetailsPeek.tsx`, item menu inside `FileViewer.tsx` (`z-viewer-menu`), "Remove from list" row action, client card link (`?client=`) from invoices, and prospect actions (`Call / Write / Schedule`) in Command Palette (`Ctrl K`).
+
+### Fixed
+- **Security & hardening:** Switched `ownError` in `http-error.ts` to an explicit `userFacing` allowlist, validated `:id`/`:batchId`/`:ownerUserId` UUID params on Archive and Notes routes, prevented moving an Archive space root under another folder, set `fflate.zipSync` to `{ level: 0 }` for folder downloads, sanitized `.` / `..` zip entry names in email attachment zips, rejected non-array `marks` in `sanitizeTiptapDoc`, and sanitized `SentTab` HTML previews with `DOMPurify`.
+
 ## 2026-11-17: End-to-end encrypted audio and video calls (LiveKit Cloud)
 
 ### Added

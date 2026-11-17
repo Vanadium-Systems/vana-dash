@@ -217,7 +217,7 @@ export async function closePushNotification(userId: string, tag: string): Promis
  * (buton explicit "Trimite test" în Settings, nu un eveniment real).
  */
 export async function sendTestPush(ownerUserId: string): Promise<{ sent: number; failed: number }> {
-  if (!ensureVapid()) throw httpError(400, 'PUSH_NOT_CONFIGURED', {}, {}).causedBy('VAPID keys missing')
+  if (!ensureVapid()) throw httpError(503, 'PUSH_NOT_CONFIGURED').causedBy('VAPID keys missing')
 
   const subs = await db
     .select()

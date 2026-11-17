@@ -238,6 +238,8 @@ export async function updateFolder(
   // A folder with no parent would be a new space root, and it would skip every check below.
   if (input.parentId === null) throw httpError(400, 'ARCHIVE_FOLDER_ROOT_MOVE')
   if (input.parentId !== undefined) {
+    // A space root cannot be moved under another folder.
+    if (!folder.parentId) throw new ArchiveNotFoundError(id)
     if (input.parentId === id) throw new ArchiveConflictError(tr('errors.archive.folderOwnParent'))
     if (await wouldCreateCycle(id, input.parentId)) {
       throw new ArchiveConflictError(tr('errors.archive.moveCycle'))
@@ -951,7 +953,8 @@ export async function buildFolderZipBuffer(me: SessionUser, folderId: string): P
     }
   }
 
-  return { buffer: Buffer.from(zipSync(zipEntries)), fileName: `${folder.name}.zip` }
+  // Stored (level: 0) rather than deflated so a large folder does not block the single-CPU event loop.
+  return { buffer: Buffer.from(zipSync(zipEntries, { level: 0 })), fileName: `${folder.name}.zip` }
 }
 
 // ── Spațiu R2 (plan gratuit Cloudflare: 10GB) ───────────────────────────────

@@ -124,7 +124,10 @@ async function buildPayload(rawBuffer: ArrayBuffer, envelope: Envelope): Promise
     inReplyTo: parsed.inReplyTo ?? null,
     references: Array.isArray(parsed.references) ? parsed.references.join(' ') : (parsed.references ?? null),
     dmarc: envelope.dmarc,
-    cc: (parsed.cc ?? []).map(mailboxAddress).filter((address): address is string => address !== null),
+    cc: (parsed.cc ?? [])
+      .map(mailboxAddress)
+      .filter((address): address is string => address !== null && address.length <= 320)
+      .slice(0, 100),
     attachments: parsed.attachments.map((a) => ({
       filename: a.filename ?? 'attachment',
       contentType: a.mimeType ?? null,

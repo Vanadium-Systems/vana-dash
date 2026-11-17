@@ -56,6 +56,7 @@ export type CompanyField = 'name' | 'cui' | 'county' | 'city' | 'street' | 'decl
 export class CompanyProfileIncompleteError extends Error {
   // Shown to the user as is (app.ts hides the message of a 5xx): it says which field to fill in.
   readonly statusCode = 422
+  readonly userFacing = true
 
   constructor(readonly fields: CompanyField[]) {
     super(tr('errors.company.incomplete', { fields: fields.map((f) => tr(`errors.company.fields.${f}` as TrKey)).join(', ') }))

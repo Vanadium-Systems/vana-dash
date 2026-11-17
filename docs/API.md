@@ -72,7 +72,10 @@ the field), `BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND` (also for an
 external service answers with a code of its own: `ANAF_UNAVAILABLE`, `BANK_UNAVAILABLE`,
 `MAIL_SEND_FAILED`, `PUSH_FAILED`, `ASSISTANT_PROVIDER_FAILED`, `PLATFORM_UNREACHABLE`.
 
-Until 2026-11 `error` was a string on most routes. It is now always an object.
+Until 2026-11 `error` was a string on most routes. It is now always an object. Two legacy exceptions
+remain: `/api/v1/public/booking` keeps string codes (`slot_taken`, `daily_cap`, `not_found`,
+`too_late`, `validation`) for compatibility with external callers, and live-quote lookups under
+`/api/assets` and `/api/crypto` return status `200` with `{ success: false, error }`.
 
 ## Routes without a session
 

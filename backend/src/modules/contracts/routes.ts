@@ -23,7 +23,7 @@ import { tr } from '../../shared/lib/i18n.js'
 const MAX_SIGNED_PDF_SIZE = 50 * 1024 * 1024 // 50MB — document contractual, nu streaming
 
 export async function contractsRoutes(app: FastifyInstance) {
-  // Scoped la rutele acestui plugin (encapsulare Fastify, pattern identic archive/routes.ts).
+  // Scoped to this plugin's routes (Fastify encapsulation, same pattern as archive/routes.ts).
   await app.register(multipart, { limits: { fileSize: MAX_SIGNED_PDF_SIZE, files: 1 } })
 
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -141,7 +141,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     },
   )
 
-  // ── Șabloane editabile + termeni comerciali (sprint de-hardcodare) ─────────────────────────
+  // ── Editable templates and commercial terms ─────────────────────────────────────────────────
 
   server.get('/api/contracts/templates', { preHandler: [app.authenticate] }, async () => {
     return { success: true, data: await templatesService.listTemplates() }
@@ -193,7 +193,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     },
   )
 
-  // ── Numere rezervate (ocupate în afara dash-ului) ──────────────────────────────────────────
+  // ── Reserved numbers (allocated outside the dashboard) ──────────────────────────────────────
 
   server.get('/api/contracts/reserved-numbers', { preHandler: [app.authenticate] }, async () => {
     return { success: true, data: await reservedNumbers.listReservedNumbers() }
@@ -214,7 +214,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     },
   )
 
-  // ── Semnătură digitală — tab „Semnează" ────────────────────────────────────────────────────
+  // ── Digital signature — Sign tab ────────────────────────────────────────────────────────────
 
   server.patch(
     '/api/contracts/documents/:id/signature-rect',
@@ -249,7 +249,7 @@ export async function contractsRoutes(app: FastifyInstance) {
       const data = await req.file()
       if (!data) return fail(reply, 400, 'FILE_MISSING', { message: tr('errors.files.missing') })
       if (data.mimetype !== 'application/pdf') {
-        return fail(reply, 400, 'UNSUPPORTED_MEDIA_TYPE', { message: tr('errors.contracts.pdfOnly') })
+        return fail(reply, 415, 'UNSUPPORTED_MEDIA_TYPE', { message: tr('errors.contracts.pdfOnly') })
       }
       const buffer = await data.toBuffer()
       if (data.file.truncated) {

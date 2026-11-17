@@ -12,6 +12,12 @@ import { runWithFreshActor } from './request-context.js'
 
 class CompanyRuleError extends Error {
   readonly statusCode = 400
+  readonly userFacing = true
+}
+
+class ThirdPartyClientError extends Error {
+  readonly statusCode = 400
+  readonly code = 'ERR_UPSTREAM_LEAK'
 }
 
 const app = Fastify()
@@ -37,6 +43,9 @@ app.get('/crash', async () => {
 app.get('/domain', async () => {
   throw new CompanyRuleError('Fusul orar nu e valid.')
 })
+app.get('/third-party', async () => {
+  throw new ThirdPartyClientError('secret endpoint https://internal:8443 rejected key')
+})
 app.post('/json', async () => ({ success: true }))
 app.post('/validated', { schema: { body: z.object({ amount: z.number().positive() }) } }, async () => ({ success: true }))
 await app.ready()
@@ -48,8 +57,8 @@ describe('error shape', () => {
   it('translates a thrown HttpError and keeps its details', async () => {
     const ro = await get('/thrown')
     expect(ro.statusCode).toBe(404)
-    expect(ro.json()).toEqual({ success: false, error: { code: 'NOT_FOUND', message: 'Nu există sau a fost șters.', clientId: 'c-1' } })
-    expect((await get('/thrown', 'en')).json().error.message).toBe("It doesn't exist or was deleted.")
+    expect(ro.json()).toEqual({ success: false, error: { code: 'NOT_FOUND', message: 'Nu am găsit ce cauți. Poate a fost șters.', clientId: 'c-1' } })
+    expect((await get('/thrown', 'en')).json().error.message).toBe("We couldn't find what you asked for. It may have been deleted.")
   })
 
   it('answers through fail() with the same shape', async () => {
@@ -76,6 +85,17 @@ describe('error shape', () => {
 
   it('keeps the text of a domain error that is still not mapped to a code', async () => {
     expect((await get('/domain')).json().error).toEqual({ code: 'BAD_REQUEST', message: 'Fusul orar nu e valid.' })
+  })
+
+  it('masks a third-party error subclass that carries statusCode and code', async () => {
+    const res = await get('/third-party', 'en')
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error).toEqual({
+      code: 'BAD_REQUEST',
+      message: 'The request is not valid. Check the data and try again.',
+    })
+    expect(res.body).not.toContain('internal:8443')
+    expect(res.body).not.toContain('ERR_UPSTREAM_LEAK')
   })
 
   it("does not pass on Fastify's own 4xx text", async () => {
@@ -105,7 +125,7 @@ describe('error shape', () => {
 
 describe('HttpError message', () => {
   it('is the text, for code that reads err.message', () => {
-    expect(httpError(404, 'NOT_FOUND').message).toBe('Nu există sau a fost șters.')
+    expect(httpError(404, 'NOT_FOUND').message).toBe('Nu am găsit ce cauți. Poate a fost șters.')
   })
 
   it('keeps the reason in the message for the log, not in the answer', async () => {
