@@ -8,7 +8,7 @@ import argon2 from 'argon2'
 import { generateKeyPairSync, randomBytes, sign } from 'node:crypto'
 import { and, eq, inArray, like, sql } from 'drizzle-orm'
 import type { InjectOptions, LightMyRequestResponse } from 'fastify'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { conversationMembers, conversations, messages, roles, userSessions, users } from '../../shared/db/schema/index.js'
@@ -16,6 +16,15 @@ import { deviceSignaturePayload, registerDevice as registerDeviceDirect } from '
 import { purgeLegacyPlaintext } from './service.js'
 
 type InjectPayload = NonNullable<InjectOptions['payload']>
+
+// What a notification would carry; nothing leaves for a real push service.
+const pushes = vi.hoisted(() => [] as { title: string; body: string }[])
+vi.mock('../../shared/lib/push.js', async (original) => ({
+  ...(await original<typeof import('../../shared/lib/push.js')>()),
+  notifyPush: vi.fn(async (_kind: string, build: (locale: string) => { title: string; body: string }) => {
+    pushes.push(build('ro'))
+  }),
+}))
 
 const app = await buildServer()
 await app.ready()
@@ -532,6 +541,10 @@ describe('serverul nu primește niciodată textul în clar (QA-M6, parțial)', (
       encrypted: { v: 1, ciphertext: b64('opaque-2'), senderDeviceId: senderDevice.id },
     })
     expect(sent.statusCode).toBe(200)
+    // The reader has no stream open, so they get a push: it says who wrote, never what.
+    await vi.waitFor(() => expect(pushes.length).toBeGreaterThan(0))
+    expect(JSON.stringify(pushes)).not.toContain('opaque')
+    expect(pushes.at(-1)!.body).toBe('Mesaj nou')
     await call('POST', '/api/chat/keys/to-device', sender, {
       senderDeviceId: senderDevice.id,
       messages: [{ deviceId: readerDevice.id, messageType: 0, ciphertext: b64('opaque-olm') }],

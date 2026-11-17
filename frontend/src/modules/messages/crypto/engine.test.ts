@@ -153,7 +153,7 @@ async function read(engine: E2EEngine, message: Parameters<E2EEngine['decrypt']>
 }
 
 describe('end-to-end engine', () => {
-  it('a group of 3 people on 4 devices reads; a removed member does not read what comes after', async () => {
+  it('a group of 3 people on 2 devices each reads; a removed member does not read what comes after', async () => {
     const server = new FakeServer()
     const ana1 = await server.device('ana')
     const ana2 = await server.device('ana')
@@ -168,14 +168,21 @@ describe('end-to-end engine', () => {
     await ana1.approve(ana1.approvals[0]!)
     await ana2.syncToDevice()
     expect(ana2.currentStatus).toBe('ready')
-    await bob.createIdentity()
-    await cris.createIdentity()
+    const bobKey = await bob.createIdentity()
+    const crisKey = await cris.createIdentity()
+    // Bob and Cris add a second device with their recovery keys.
+    const bob2 = await server.device('bob')
+    const cris2 = await server.device('cris')
+    expect(await bob2.restoreWithRecoveryKey(bobKey)).toBe(true)
+    expect(await cris2.restoreWithRecoveryKey(crisKey)).toBe(true)
     server.members.set(CONVERSATION, ['ana', 'bob', 'cris'])
 
     const hello = await send(server, ana1, 'Salut grup, parolaSecreta42')
     expect(await read(ana2, hello)).toBe('Salut grup, parolaSecreta42')
     expect(await read(bob, hello)).toBe('Salut grup, parolaSecreta42')
     expect(await read(cris, hello)).toBe('Salut grup, parolaSecreta42')
+    expect(await read(bob2, hello)).toBe('Salut grup, parolaSecreta42')
+    expect(await read(cris2, hello)).toBe('Salut grup, parolaSecreta42')
     // The sender reads its own message too.
     expect(await read(ana1, hello)).toBe('Salut grup, parolaSecreta42')
 
@@ -187,6 +194,12 @@ describe('end-to-end engine', () => {
     // Cris's devices leave the target list: the session rotates.
     const secret = await send(server, ana1, 'După plecarea lui Cris')
     expect(await read(bob, secret)).toBe('După plecarea lui Cris')
+    expect(await read(bob2, secret)).toBe('După plecarea lui Cris')
+    expect(await read(cris, secret)).toBe('missing-key')
+    expect(await read(cris2, secret)).toBe('missing-key')
+    // Asking for the key does not help: Ana answers only current members.
+    await cris.whenIdle()
+    await ana1.syncToDevice()
     expect(await read(cris, secret)).toBe('missing-key')
 
     // Nothing that crossed the wire holds the clear text.
