@@ -132,7 +132,9 @@
       "deleted_one": "{{count}} prospect deleted",
       "deleted_other": "{{count}} prospects deleted",
       "deleteTitle_one": "Delete {{count}} prospect",
-      "deleteTitle_other": "Delete {{count}} prospects"
+      "deleteTitle_other": "Delete {{count}} prospects",
+      "listRemoved_one": "{{count}} prospect removed from the list",
+      "listRemoved_other": "{{count}} prospects removed from the list"
     },
     "lost": {
       "title": "Why was it lost?",
@@ -652,7 +654,8 @@
       "doneTitle": "List \"{{name}}\"",
       "backToSearch": "Back to the search",
       "openList": "Open the list"
-    }
+    },
+    "removeMember": "Remove from the list"
   },
   "tasks": {
     "tabs": {

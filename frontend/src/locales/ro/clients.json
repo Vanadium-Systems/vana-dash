@@ -140,7 +140,10 @@
       "deleted_other": "{{count}} de prospecți șterși",
       "deleteTitle_one": "Șterge {{count}} prospect",
       "deleteTitle_few": "Șterge {{count}} prospecți",
-      "deleteTitle_other": "Șterge {{count}} de prospecți"
+      "deleteTitle_other": "Șterge {{count}} de prospecți",
+      "listRemoved_one": "{{count}} prospect scos din listă",
+      "listRemoved_few": "{{count}} prospecți scoși din listă",
+      "listRemoved_other": "{{count}} de prospecți scoși din listă"
     },
     "lost": {
       "title": "De ce s-a pierdut?",
@@ -671,7 +674,8 @@
       "doneTitle": "Lista „{{name}}”",
       "backToSearch": "Înapoi la căutare",
       "openList": "Deschide lista"
-    }
+    },
+    "removeMember": "Scoate din listă"
   },
   "tasks": {
     "tabs": {

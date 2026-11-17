@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Archive, ArchiveRestore, Calculator, Columns3, Download, ListPlus, MoreHorizontal, Rows3, TrendingUp, Mail, MessageSquareShare, Phone, Plus, Trash2, Upload, UserPlus, Workflow } from 'lucide-react'
+import { Archive, ArchiveRestore, Calculator, Columns3, Download, ListMinus, ListPlus, Mail, MessageSquareShare, MoreHorizontal, Phone, Plus, Rows3, Trash2, TrendingUp, Upload, UserPlus, Workflow } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AddToSequenceDialog, type SequenceTarget } from '@/modules/pricing/AddToSequenceDialog'
@@ -224,12 +224,19 @@ export function ProspectsTab() {
       actions.remove.mutate(rows.map((row) => row.id))
     })
 
+  // A list opened as a filter (one list, nothing else on that field): its rows can leave it.
+  const listClauses = f.filter((clause) => clause.field === 'list')
+  const openListId = listClauses.length === 1 && listClauses[0]!.op === 'in' && listClauses[0]!.value.length === 1 ? String(listClauses[0]!.value[0]) : null
+
   const rowMenu = (row: ProspectRow): RowAction[] => [
     { key: 'call', icon: Phone, label: t('clients:prospects.rowAction.call'), disabled: !row.primaryPhone, onClick: () => runRowAction('call', row) },
     { key: 'write', icon: Mail, label: t('clients:prospects.rowAction.write'), disabled: !row.primaryEmail, onClick: () => runRowAction('write', row) },
     { key: 'sequence', icon: Workflow, label: t('clients:prospects.rowAction.sequence'), disabled: !row.primaryEmail, onClick: () => runRowAction('sequence', row) },
     { key: 'price', icon: Calculator, label: t('pricing:prospects.calculatePrice'), onClick: () => navigate(`/clients?tab=calculator&prospectId=${row.id}`) },
     ...(!row.billingClientId && row.canEdit ? [{ key: 'promote', icon: UserPlus, label: t('pricing:prospects.promote'), onClick: () => setPromoteTarget(row) }] : []),
+    ...(openListId
+      ? [{ key: 'list-remove', icon: ListMinus, label: t('clients:lists.removeMember'), onClick: () => actions.removeFromList.mutate({ listId: openListId, ids: [row.id] }) }]
+      : []),
     ...(canShare ? [{ key: 'share', icon: MessageSquareShare, label: t('messages:share.action'), onClick: () => share({ type: 'prospect', id: row.id, title: row.name }) }] : []),
     archivedView
       ? { key: 'unarchive', icon: ArchiveRestore, label: t('pricing:prospects.unarchive'), onClick: () => archiveRows([row.id], false) }

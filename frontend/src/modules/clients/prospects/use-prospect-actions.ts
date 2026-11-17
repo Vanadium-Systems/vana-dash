@@ -59,6 +59,15 @@ export function useProspectActions() {
     onError,
   })
 
+  const removeFromList = useMutation({
+    mutationFn: ({ listId, ids }: { listId: string; ids: string[] }) => api.delete<{ removed: number }>(`/api/prospects/lists/${listId}/members`, { ids }),
+    onSuccess: (data) => {
+      refresh()
+      toast.success(t('clients:prospects.bulk.listRemoved', { count: data.removed }))
+    },
+    onError,
+  })
+
   const remove = useMutation({
     // One request per id: there is no bulk delete, and a page holds at most 50 rows.
     mutationFn: async (ids: string[]) => {
@@ -75,5 +84,5 @@ export function useProspectActions() {
     },
   })
 
-  return { patch, transfer, bulk, addToList, remove, refresh }
+  return { patch, transfer, bulk, addToList, removeFromList, remove, refresh }
 }
