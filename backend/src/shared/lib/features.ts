@@ -258,6 +258,7 @@ export const FEATURES: FeatureDef[] = [
       '/api/email/sends/recent-batches',
       '/api/email/send-quota',
       '/api/email/platform-clients',
+      '/api/email/outreach-summary',
     ),
   },
   {
@@ -288,6 +289,11 @@ export const FEATURES: FeatureDef[] = [
     key: 'email.cutii',
     page: 'email',
     routes: all('/api/team/members/:id/mailboxes'),
+  },
+  {
+    key: 'email.outreach_cutii',
+    page: 'email',
+    routes: all('/api/email/outreach-mailboxes'),
   },
 
   // ── Calendar ──────────────────────────────────────────────────────────────

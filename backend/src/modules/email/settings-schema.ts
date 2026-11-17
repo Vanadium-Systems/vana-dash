@@ -35,6 +35,7 @@ export const EmailSettingsUpdateSchema = z.object({
   outreachDailyCap: z.number().int().min(1).max(1000).optional(),
   outreachSendHour: z.number().int().min(0).max(23).optional(),
   outreachSendWeekdaysOnly: z.boolean().optional(),
+  outreachRealSendingEnabled: z.boolean().optional(),
   identities: z.array(EmailIdentitySchema).min(1).max(10).optional(),
   // Imagini externe încărcate automat la deschiderea mailului (default OFF — pattern Gmail:
   // fără confirmare tăcută către expeditor). ON = fără butonul "Arată imaginile".

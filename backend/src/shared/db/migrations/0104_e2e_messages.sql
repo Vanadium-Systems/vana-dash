@@ -76,7 +76,8 @@ CREATE INDEX "idx_to_device_messages_recipient" ON "to_device_messages" USING bt
 CREATE UNIQUE INDEX "uq_user_device_keys" ON "user_device_keys" USING btree ("device_id","key_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_user_devices_identity_key" ON "user_devices" USING btree ("tenant_id","public_identity_key");--> statement-breakpoint
 CREATE INDEX "idx_user_devices_user" ON "user_devices" USING btree ("user_id");--> statement-breakpoint
-ALTER TABLE "messages" ADD CONSTRAINT "messages_sender_device_id_user_devices_id_fk" FOREIGN KEY ("sender_device_id") REFERENCES "public"."user_devices"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "messages" ADD CONSTRAINT "messages_sender_device_id_user_devices_id_fk" FOREIGN KEY ("sender_device_id") REFERENCES "public"."user_devices"("id") ON DELETE set null ON UPDATE no action;
+--> statement-breakpoint
 ALTER TABLE "user_devices" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "user_devices" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE POLICY "tenant_isolation" ON "user_devices" USING ("tenant_id" = NULLIF(current_setting('app.tenant_id', true), '')::uuid OR current_setting('app.bypass_rls', true) = 'on') WITH CHECK ("tenant_id" = NULLIF(current_setting('app.tenant_id', true), '')::uuid OR current_setting('app.bypass_rls', true) = 'on');

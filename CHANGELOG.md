@@ -8,7 +8,7 @@ dated rather than versioned. What users see is also listed in the app, under Upd
 
 ### Added
 - Messages, edits, replies and attachments are encrypted on the sender's device with Olm/Megolm (`@towns-protocol/vodozemac`, the WASM build of `matrix-org/vodozemac`, pinned at 0.1.0) and decrypted only on the members' devices. The server stores ciphertext (`messages.ciphertext`, `enc_version`, `sender_device_id`) and refuses clear text on every route that writes a message or uploads a file.
-- Key directory and transport under `/api/chat/keys/*` (cookie sessions only): devices tied to the login that registered them, one-time keys claimed atomically, a to-device queue woken over the chat stream, and the key backup. Migration 0103, RLS forced on every new table.
+- Key directory and transport under `/api/chat/keys/*` (cookie sessions only): devices tied to the login that registered them, one-time keys claimed atomically, a to-device queue woken over the chat stream, and the key backup. Migration 0104, RLS forced on every new table.
 - Cross-signing: each person has an Ed25519 master key that signs their devices; colleagues send message keys only to signed devices and pin the master key on first sight. A new device is approved from another one (six-digit code on both screens) or with the recovery key, shown once.
 - Key requests: a device missing a key asks the author's devices, which answer only current members; forwarded keys are accepted only from the author or one's own devices.
 - Attachments are encrypted with a key per file; thumbnails (WebP, up to 480 px) are made and encrypted in the browser. The server keeps only the size and whether it is an image.
@@ -22,6 +22,15 @@ dated rather than versioned. What users see is also listed in the app, under Upd
 - Old clear-text messages are re-encrypted in place when shown (by their author, or by a member when the author has no approved device left); their clear text is cleared a week later by the daily chat job.
 - Deleting a message clears its text and ciphertext in the database.
 - Signing out removes the device's keys (IndexedDB); revoking a login removes its device from every key list.
+
+## 2026-11-17: Dedicated SMTP mailboxes for outreach
+
+### Added
+- `outreach_mailboxes` table (migration `0103_outreach_mailboxes.sql`) with `v1:` encrypted credentials, daily cap, optional warm-up ramp (`warmup_until`), and `FORCE ROW LEVEL SECURITY`.
+- `shared/lib/smtp.ts` (`nodemailer`) with per-mailbox connection pooling, timeouts, safe error codes (`SMTP_AUTH_FAILED`, `SMTP_UNREACHABLE`, `SMTP_REJECTED`, `SMTP_FAILED`), round-robin selection, SQL daily quota counting, and synchronous bounce suppression.
+- `modules/email/outreach-bounce-imap.ts` (`imapflow`) and `jobs/email-outreach-bounces.ts` cron job that parses RFC 3464 DSN permanent bounces and suppresses dead addresses without storing message bodies.
+- Company legal guard (`outreachRealSendingEnabled`, off by default) blocking external SMTP sends until legal sign-off while allowing local Mailpit testing (`infra/docker-compose.yml`).
+- Email → Company settings → Outreach mailboxes CRUD & test UI (`email.outreach_cutii`) and active mailbox quota summary in Bulk Send and Sequences (`GET /api/email/outreach-summary` under `email.bulk`).
 
 ## 2026-11-16: Per-company encryption keys and row-level security
 

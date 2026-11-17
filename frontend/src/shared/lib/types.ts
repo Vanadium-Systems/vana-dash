@@ -1173,8 +1173,49 @@ export interface EmailSettings {
   outreachDailyCap: number
   outreachSendHour: number
   outreachSendWeekdaysOnly: boolean
+  outreachRealSendingEnabled?: boolean
   identities?: EmailIdentity[] | null
   autoLoadImages?: boolean
+}
+
+export type OutreachMailboxStatus = 'active' | 'paused' | 'error'
+
+export interface OutreachMailbox {
+  id: string
+  address: string
+  displayName: string
+  smtpHost: string
+  smtpPort: number
+  smtpSecure: boolean
+  imapHost: string | null
+  imapPort: number | null
+  imapSecure: boolean
+  authKind: 'password' | 'oauth2'
+  dailyCap: number
+  effectiveCap: number
+  usedToday: number
+  remainingToday: number
+  warmupUntil: string | null
+  status: OutreachMailboxStatus
+  lastErrorCode: string | null
+  lastSentAt: string | null
+  lastTestedAt: string | null
+  lastImapCheckAt: string | null
+  createdAt: string
+}
+
+export interface OutreachMailboxSummary {
+  id: string
+  address: string
+  displayName: string
+  status: OutreachMailboxStatus
+  dailyCap: number
+  effectiveCap: number
+  usedToday: number
+  remainingToday: number
+  warmupUntil: string | null
+  lastSentAt: string | null
+  lastErrorCode: string | null
 }
 
 /** `GET /api/email/sender-options`: only the person's own mailboxes and their signatures. */

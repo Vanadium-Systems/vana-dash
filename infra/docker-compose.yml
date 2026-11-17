@@ -55,6 +55,12 @@ services:
     depends_on:
       - backend
 
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
 volumes:
   pgdata:
   backend_node_modules:

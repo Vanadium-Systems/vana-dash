@@ -37,6 +37,18 @@ const SOURCES: ReleaseSource[] = [
     features: ['mesaje.view'],
   },
   {
+    publishedAt: '2026-11-17T09:00:00Z',
+    title: {
+      ro: 'Cutii SMTP dedicate pentru outreach',
+      en: 'Dedicated SMTP mailboxes for outreach',
+    },
+    body: {
+      ro: 'În Email → Setările firmei poți adăuga cutii SMTP dedicate pentru outreach, cu plafon zilnic, rampă de încălzire, buton de test și citire automată a bounce-urilor prin IMAP. Trimiterile în masă și secvențele de pe identitatea Outreach rotesc automat între cutiile active și arată cota rămasă pe fiecare.',
+      en: 'In Email → Company settings you can add dedicated SMTP mailboxes for outreach, with daily caps, warm-up ramps, a test button, and automatic IMAP bounce detection. Bulk sends and sequences using the Outreach identity rotate across active mailboxes and show the remaining daily quota for each.',
+    },
+    features: ['email.bulk', 'email.outreach_cutii'],
+  },
+  {
     publishedAt: '2026-11-16T22:01:00Z',
     title: {
       ro: 'Palete de culori în Profilul meu',
