@@ -24,6 +24,7 @@ import { bulkMove, putBack } from './bulk.js'
 import { ArchiveConflictError, ArchiveNotFoundError, ArchiveStorageFullError } from './service.js'
 import { ensureSpaceRoot } from './access.js'
 import { storageUsage } from '../../shared/lib/storage-quota.js'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { contentDisposition } from '../../shared/lib/text.js'
 
@@ -38,19 +39,17 @@ export async function archiveRoutes(app: FastifyInstance) {
 
   server.setErrorHandler((error, _req, reply) => {
     if (error instanceof ArchiveNotFoundError) {
-      return reply.code(404).send({ success: false, error: error.message, itemId: error.itemId })
+      return fail(reply, 404, 'ARCHIVE_NOT_FOUND', {
+        message: error.message,
+        details: error.itemId ? { itemId: error.itemId } : undefined,
+      })
     }
-    if (error instanceof ArchiveConflictError) {
-      return reply.code(409).send({ success: false, error: error.message })
-    }
+    if (error instanceof ArchiveConflictError) return fail(reply, 409, 'ARCHIVE_CONFLICT', { message: error.message })
     if (error instanceof ArchiveStorageFullError) {
       const gb = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(1)} GB`
-      return reply.code(413).send({
-        success: false,
-        error: tr('errors.archive.storageFull', { used: gb(error.usedBytes), limit: gb(error.limitBytes) }),
-        code: 'STORAGE_FULL',
-        usedBytes: error.usedBytes,
-        limitBytes: error.limitBytes,
+      return fail(reply, 413, 'STORAGE_FULL', {
+        message: tr('errors.archive.storageFull', { used: gb(error.usedBytes), limit: gb(error.limitBytes) }),
+        details: { usedBytes: error.usedBytes, limitBytes: error.limitBytes },
       })
     }
     throw error
@@ -154,7 +153,7 @@ export async function archiveRoutes(app: FastifyInstance) {
   // conține doar ce a fost parsat până la file part).
   server.post('/api/archive/files', { preHandler: [app.authenticate] }, async (req, reply) => {
     const data = await req.file()
-    if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
+    if (!data) return fail(reply, 400, 'FILE_MISSING', { message: tr('errors.files.missing') })
 
     // Multipart nu trece prin `schema:` Zod (mecanismul standard nu se aplică pe form-data) —
     // validăm manual. Fără asta, un folderId invalid pică urât cu 500 la INSERT (coloană uuid),
@@ -165,7 +164,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     const folderIdRaw = folderIdField && 'value' in folderIdField ? String(folderIdField.value) : ''
     const folderId = folderIdRaw || undefined
     if (folderId && !UUID_RE.test(folderId)) {
-      return reply.code(400).send({ success: false, error: tr('errors.archive.invalidFolderId') })
+      return fail(reply, 400, 'ARCHIVE_FOLDER_ID_INVALID', { message: tr('errors.archive.invalidFolderId') })
     }
     const tagsField = data.fields.tags
     const tagsRaw = tagsField && 'value' in tagsField ? String(tagsField.value) : ''
@@ -180,7 +179,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     if (data.mimetype === 'application/pdf') {
       const buffer = await data.toBuffer()
       if (data.file.truncated) {
-        return reply.code(413).send({ success: false, error: tr('errors.archive.fileTooLarge') })
+        return fail(reply, 413, 'PAYLOAD_TOO_LARGE', { message: tr('errors.archive.fileTooLarge') })
       }
       await service.assertStorageAvailable(buffer.byteLength)
       try {
@@ -193,41 +192,52 @@ export async function archiveRoutes(app: FastifyInstance) {
         })
         return { success: true, data: row }
       } catch (err) {
-        return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
+        // A refused folder is a 404 from the access check, not a storage problem.
+        if (err instanceof ArchiveNotFoundError || err instanceof ArchiveStorageFullError) throw err
+        req.log.warn({ err }, 'archive pdf upload failed')
+        return fail(reply, 502, 'STORAGE_UNAVAILABLE')
       }
     }
 
     // The size of a streamed part is unknown up front: refuse when the bucket is already full,
     // and check again with the real size once the upload is done.
     await service.assertStorageAvailable(1)
+    // Write access first: nothing reaches the bucket for a folder the person cannot write to.
+    const targetFolderId = await service.resolveUploadFolder(req.me, folderId)
     const safeName = data.filename.replace(/[/\\]/g, '_')
     const r2Key = `archive/${randomUUID()}-${safeName}`
     try {
       await uploadToR2(r2Key, data.file, data.mimetype)
     } catch (err) {
-      return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
+      req.log.warn({ err }, 'archive upload to storage failed')
+      return fail(reply, 502, 'STORAGE_UNAVAILABLE')
     }
     if (data.file.truncated) {
       // busboy nu aruncă la depășirea fileSize — trunchiază stream-ul silențios (`file.truncated
       // = true`, fără eroare), deci uploadToR2 de mai sus a reușit deja cu conținutul trunchiat.
       // Fără ștergerea explicită de aici, obiectul orfan (fără rând DB) ar rămâne definitiv în R2.
       await deleteFromR2(r2Key).catch(() => {})
-      return reply.code(413).send({ success: false, error: tr('errors.archive.fileTooLarge') })
+      return fail(reply, 413, 'PAYLOAD_TOO_LARGE', { message: tr('errors.archive.fileTooLarge') })
     }
     await service.assertStorageAvailable(data.file.bytesRead).catch(async (err) => {
       await deleteFromR2(r2Key).catch(() => {})
       throw err
     })
 
-    const row = await service.createFileRecord(req.me, {
-      folderId,
-      name: data.filename,
-      mimeType: data.mimetype,
-      sizeBytes: data.file.bytesRead,
-      r2Key,
-      tags,
-    })
-    return { success: true, data: row }
+    try {
+      const row = await service.createFileRecord(req.me, {
+        folderId: targetFolderId,
+        name: data.filename,
+        mimeType: data.mimetype,
+        sizeBytes: data.file.bytesRead,
+        r2Key,
+        tags,
+      })
+      return { success: true, data: row }
+    } catch (err) {
+      await deleteFromR2(r2Key).catch(() => {})
+      throw err
+    }
   })
 
   server.get(
@@ -294,7 +304,7 @@ export async function archiveRoutes(app: FastifyInstance) {
   // navigare directă, nesupusă CORS).
   server.get('/api/archive/files/:id/download', { preHandler: [app.authenticate] }, async (req, reply) => {
     const result = await service.getFileBufferForDownload(req.me, (req.params as { id: string }).id)
-    if (!result) return reply.code(404).send({ success: false, error: tr('errors.archive.fileNotFound') })
+    if (!result) return fail(reply, 404, 'ARCHIVE_FILE_NOT_FOUND', { message: tr('errors.archive.fileNotFound') })
     reply.header('Content-Disposition', contentDisposition('attachment', result.name))
     return reply.type(result.mimeType).send(result.buffer)
   })
@@ -353,7 +363,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate] },
     async (req, reply) => {
       const result = await service.buildFolderZipBuffer(req.me, (req.params as { id: string }).id)
-      if (!result) return reply.code(404).send({ success: false, error: tr('errors.archive.folderNotFound') })
+      if (!result) return fail(reply, 404, 'ARCHIVE_NOT_FOUND', { message: tr('errors.archive.folderNotFound') })
       reply.header('Content-Disposition', contentDisposition('attachment', result.fileName))
       return reply.type('application/zip').send(result.buffer)
     },
@@ -374,7 +384,7 @@ export async function archiveRoutes(app: FastifyInstance) {
         throw err
       },
     )
-    if (!path) return reply.code(404).send({ success: false, error: tr('errors.archive.folderNotFound') })
+    if (!path) return fail(reply, 404, 'ARCHIVE_NOT_FOUND', { message: tr('errors.archive.folderNotFound') })
     return { success: true, data: path }
   })
 }

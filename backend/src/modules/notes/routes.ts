@@ -4,6 +4,7 @@ import { BulkNotesSchema, CreateNoteSchema, ListNotesQuerySchema, RenameLabelSch
 import * as service from './service.js'
 import { NoteChangedError, NoteInputError, NoteNotFoundError } from './service.js'
 import * as versions from './versions.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 type IdParams = { id: string }
 
@@ -11,10 +12,10 @@ export async function notesRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
 
   server.setErrorHandler((error, _req, reply) => {
-    if (error instanceof NoteNotFoundError) return reply.code(404).send({ success: false, error: error.message })
-    if (error instanceof NoteInputError) return reply.code(400).send({ success: false, error: error.message, code: error.code })
+    if (error instanceof NoteNotFoundError) return fail(reply, 404, 'NOTE_NOT_FOUND', { message: error.message })
+    if (error instanceof NoteInputError) return fail(reply, 400, error.code, { message: error.message })
     if (error instanceof NoteChangedError) {
-      return reply.code(409).send({ success: false, error: error.message, code: 'NOTE_CHANGED', data: error.current })
+      return fail(reply, 409, 'NOTE_CHANGED', { message: error.message, details: { current: error.current } })
     }
     throw error
   })

@@ -32,6 +32,7 @@ import { DeviceNotFoundError, KeysConflictError } from './keys.js'
 import { keyRoutes } from './keys-routes.js'
 import { ChatCallError, ChatRequestError, ConversationForbiddenError, GroupPermissionError, MessageBodyError } from './service.js'
 import { RefFileTooLargeError } from '../../shared/lib/entity-refs.js'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr, trFor } from '../../shared/lib/i18n.js'
 
 const HEARTBEAT_INTERVAL_MS = 25_000
@@ -51,26 +52,18 @@ export async function chatRoutes(app: FastifyInstance) {
 
   server.setErrorHandler((error, _req, reply) => {
     if (error instanceof ConversationForbiddenError) {
-      return reply.code(404).send({ success: false, error: error.message })
+      return fail(reply, 404, 'CONVERSATION_NOT_FOUND', { message: error.message })
     }
-    if (error instanceof ChatRequestError) {
-      return reply.code(400).send({ success: false, error: { code: error.code } })
-    }
+    if (error instanceof ChatRequestError) return fail(reply, 400, error.code)
     if (error instanceof RefFileTooLargeError) {
-      return reply.code(413).send({ success: false, error: { code: 'REF_FILE_TOO_LARGE', message: tr('errors.chat.refFileTooLarge') } })
+      return fail(reply, 413, 'REF_FILE_TOO_LARGE', { message: tr('errors.chat.refFileTooLarge') })
     }
-    if (error instanceof MessageBodyError) {
-      return reply.code(400).send({ success: false, error: error.message })
-    }
-    if (error instanceof GroupPermissionError) {
-      return reply.code(403).send({ success: false, error: error.message })
-    }
+    if (error instanceof MessageBodyError) return fail(reply, 400, 'CHAT_MESSAGE_INVALID', { message: error.message })
+    if (error instanceof GroupPermissionError) return fail(reply, 403, 'CHAT_GROUP_FORBIDDEN', { message: error.message })
     if (error instanceof DeviceNotFoundError) {
-      return reply.code(404).send({ success: false, error: tr('errors.chat.deviceNotFound') })
+      return fail(reply, 404, 'CHAT_DEVICE_NOT_FOUND', { message: tr('errors.chat.deviceNotFound') })
     }
-    if (error instanceof KeysConflictError) {
-      return reply.code(409).send({ success: false, error: { code: error.code } })
-    }
+    if (error instanceof KeysConflictError) return fail(reply, 409, error.code)
     if (error instanceof ChatCallError) {
       const key =
         error.code === 'not_configured'
@@ -78,7 +71,8 @@ export async function chatRoutes(app: FastifyInstance) {
           : error.code === 'provider'
             ? 'errors.calls.providerError'
             : 'errors.calls.notFound'
-      return reply.code(error.status).send({ success: false, error: tr(key) })
+      const code = error.code === 'not_configured' ? 'CALLS_NOT_CONFIGURED' : error.code === 'provider' ? 'CALLS_PROVIDER_FAILED' : 'CALL_NOT_FOUND'
+      return fail(reply, error.status, code, { message: tr(key) })
     }
     throw error
   })
@@ -394,15 +388,15 @@ export async function chatRoutes(app: FastifyInstance) {
       }
     } catch (err) {
       if ((err as { code?: string }).code === 'FST_REQ_FILE_TOO_LARGE') {
-        return reply.code(413).send({ success: false, error: tr('errors.chat.fileTooLarge') })
+        return fail(reply, 413, 'PAYLOAD_TOO_LARGE', { message: tr('errors.chat.fileTooLarge') })
       }
       throw err
     }
     const data = files.file
-    if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
+    if (!data) return fail(reply, 400, 'FILE_MISSING', { message: tr('errors.files.missing') })
     // Clear files are refused like clear text: only Archive copies (made by the server, from a
     // module that is not end-to-end) are stored unencrypted.
-    if (fields.encrypted !== '1') return reply.code(400).send({ success: false, error: { code: 'NOT_ENCRYPTED' } })
+    if (fields.encrypted !== '1') return fail(reply, 400, 'NOT_ENCRYPTED')
     try {
       const stored = await uploadEncryptedAttachment(req.me, {
         buffer: data.buffer,
@@ -411,7 +405,8 @@ export async function chatRoutes(app: FastifyInstance) {
       })
       return { success: true, data: stored }
     } catch (err) {
-      return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
+      req.log.warn({ err }, 'chat attachment upload failed')
+      return fail(reply, 502, 'STORAGE_UNAVAILABLE')
     }
   })
 
@@ -420,7 +415,7 @@ export async function chatRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: AttachmentIdParamsSchema, querystring: AttachmentQuerySchema } },
     async (req, reply) => {
       const file = await readAttachment(req.me.id, req.params.id, req.query.download === '1', req.query.size === 'thumb')
-      if (!file) return reply.code(404).send({ success: false, error: tr('errors.chat.attachmentNotFound') })
+      if (!file) return fail(reply, 404, 'ATTACHMENT_NOT_FOUND', { message: tr('errors.chat.attachmentNotFound') })
       if (file.kind === 'redirect') return reply.redirect(file.url, 302)
       reply.header('X-Content-Type-Options', 'nosniff')
       // An attachment never changes after upload, so the phone keeps it for good instead of

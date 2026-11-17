@@ -7,6 +7,7 @@ import { assertStorageAvailable, StorageFullError, storageTotals } from '../../s
 import { db } from '../../shared/db/client.js'
 import { archiveFiles, archiveFolderShares, archiveFolders, archiveStars, users } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { downloadFromR2, getPresignedDownloadUrl, uploadToR2 } from '../../shared/lib/r2.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { generatePdfThumbnail } from '../../shared/lib/thumbnail.js'
@@ -234,7 +235,9 @@ export async function updateFolder(
   input: { name?: string; parentId?: string | null; autoMonthlySubfolders?: boolean; color?: number | null },
 ) {
   const folder = await requireFolder(me, id, EDIT_ACCESS)
-  if (input.parentId !== undefined && input.parentId !== null) {
+  // A folder with no parent would be a new space root, and it would skip every check below.
+  if (input.parentId === null) throw httpError(400, 'ARCHIVE_FOLDER_ROOT_MOVE')
+  if (input.parentId !== undefined) {
     if (input.parentId === id) throw new ArchiveConflictError(tr('errors.archive.folderOwnParent'))
     if (await wouldCreateCycle(id, input.parentId)) {
       throw new ArchiveConflictError(tr('errors.archive.moveCycle'))
@@ -278,6 +281,13 @@ export async function requireFolder(me: SessionUser, folderId: string, min: 1 | 
   if (!folder) throw new ArchiveNotFoundError()
   if ((await folderAccessLevel(me, folderId)) < min) throw new ArchiveNotFoundError()
   return folder
+}
+
+/** The folder an upload lands in, checked for write access before anything is stored. */
+export async function resolveUploadFolder(me: SessionUser, folderId?: string): Promise<string> {
+  const resolved = folderId ?? (await ensureSpaceRoot(me))
+  await assertAccess(me, resolved, EDIT_ACCESS)
+  return resolved
 }
 
 export async function createFileRecord(
@@ -865,6 +875,7 @@ export interface RecursiveArchiveFile {
   r2Key: string
   mimeType: string
   folderPathNames: string[]
+  sizeBytes: number
 }
 
 // Toate fișierele dintr-un folder ȘI toți descendenții lui — CTE recursiv, același pattern ca
@@ -877,6 +888,7 @@ export async function listFilesUnderFolderRecursive(rootFolderId: string): Promi
     r2Key: string
     mimeType: string
     folderPathNames: string[]
+    sizeBytes: number | string
   }>(sql`
     WITH RECURSIVE subfolders AS (
       SELECT id, ARRAY[id] AS path_ids, ARRAY[]::text[] AS path_names FROM archive_folders WHERE id = ${rootFolderId}
@@ -886,13 +898,26 @@ export async function listFilesUnderFolderRecursive(rootFolderId: string): Promi
       JOIN subfolders sf ON f.parent_id = sf.id
       WHERE f.deleted_at IS NULL AND NOT (f.id = ANY(sf.path_ids))
     )
-    SELECT af.id, af.name, af.r2_key AS "r2Key", af.mime_type AS "mimeType", sf.path_names AS "folderPathNames"
+    SELECT af.id, af.name, af.r2_key AS "r2Key", af.mime_type AS "mimeType", af.size_bytes AS "sizeBytes", sf.path_names AS "folderPathNames"
     FROM archive_files af
     JOIN subfolders sf ON af.folder_id = sf.id
     WHERE af.deleted_at IS NULL
     ORDER BY sf.path_names, af.name
   `)
-  return rows
+  return rows.map((row) => ({ ...row, sizeBytes: Number(row.sizeBytes) }))
+}
+
+// The zip is built in memory and the VPS has no swap.
+export const FOLDER_ZIP_LIMIT_MB = 300
+
+// Names are free text (rename does not clean them): a `/`, `\` or `..` would write outside the
+// folder when the archive is unpacked.
+export function zipEntryPath(folderPathNames: string[], fileName: string): string {
+  const clean = (segment: string) => {
+    const safe = segment.replace(/[/\\]/g, '_')
+    return safe === '.' || safe === '..' ? '_' : safe
+  }
+  return [...folderPathNames, fileName].map(clean).join('/')
 }
 
 export interface FolderZipResult {
@@ -912,11 +937,15 @@ export async function buildFolderZipBuffer(me: SessionUser, folderId: string): P
   if (!folder) return null
 
   const files = await listFilesUnderFolderRecursive(folderId)
+  const totalBytes = files.reduce((sum, file) => sum + file.sizeBytes, 0)
+  if (totalBytes > FOLDER_ZIP_LIMIT_MB * 1024 * 1024) {
+    throw httpError(413, 'ZIP_TOO_LARGE', { limitMb: FOLDER_ZIP_LIMIT_MB }, { limitMb: FOLDER_ZIP_LIMIT_MB })
+  }
   const zipEntries: Record<string, Uint8Array> = {}
   for (const file of files) {
     try {
       const buffer = await downloadFromR2(file.r2Key)
-      zipEntries[[...file.folderPathNames, file.name].join('/')] = new Uint8Array(buffer)
+      zipEntries[zipEntryPath(file.folderPathNames, file.name)] = new Uint8Array(buffer)
     } catch (err) {
       console.error(`[archive] nu am putut descărca "${file.name}" (${file.r2Key}) pt. zip folder: ${String(err)}`)
     }

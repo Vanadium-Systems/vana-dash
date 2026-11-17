@@ -22,6 +22,7 @@ vi.mock('../../shared/lib/thumbnail.js', () => ({
   generatePdfThumbnail: vi.fn().mockResolvedValue(null),
 }))
 
+const { downloadFromR2 } = await import('../../shared/lib/r2.js')
 const service = await import('./service.js')
 const trash = await import('./trash.js')
 
@@ -327,5 +328,40 @@ describe('arbore cu ciclu în date: interogările recursive se termină', () => 
     await expect(
       db.execute(sql`UPDATE archive_folders SET parent_id = id WHERE id = ${a.id}`),
     ).rejects.toMatchObject({ cause: { constraint_name: 'archive_folders_not_own_parent' } })
+  })
+})
+
+describe('reparații de securitate din review (B15)', () => {
+  it('PATCH cu parentId null e respins (400) și folderul rămâne sub părintele lui', async () => {
+    const parent = await folder(stefan, 'Părinte share')
+    const child = await folder(stefan, 'Copil share', parent.id)
+    await service.setShare(stefan, child.id, ana.id, 'edit')
+
+    await expect(service.updateFolder(ana, child.id, { parentId: null })).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'ARCHIVE_FOLDER_ROOT_MOVE',
+    })
+    const [row] = await db.select({ parentId: archiveFolders.parentId }).from(archiveFolders).where(eq(archiveFolders.id, child.id))
+    expect(row?.parentId).toBe(parent.id)
+  })
+
+  it('zip de folder peste plafon: 413 ZIP_TOO_LARGE, fără nicio descărcare din R2', async () => {
+    const big = await folder(stefan, 'Zip mare')
+    await file(stefan, { folderId: big.id, name: 'a.bin', sizeBytes: 200 * 1024 * 1024 })
+    await file(stefan, { folderId: big.id, name: 'b.bin', sizeBytes: 150 * 1024 * 1024 })
+    vi.mocked(downloadFromR2).mockClear()
+
+    await expect(service.buildFolderZipBuffer(stefan, big.id)).rejects.toMatchObject({
+      statusCode: 413,
+      code: 'ZIP_TOO_LARGE',
+      details: { limitMb: 300 },
+    })
+    expect(downloadFromR2).not.toHaveBeenCalled()
+  })
+
+  it('zipEntryPath curăță /, \\ și segmentele . / ..', () => {
+    expect(service.zipEntryPath(['ok', '..'], '../../etc/passwd')).toBe('ok/_/.._.._etc_passwd')
+    expect(service.zipEntryPath(['a\\b', '.'], 'c.txt')).toBe('a_b/_/c.txt')
+    expect(service.zipEntryPath([], '..')).toBe('_')
   })
 })
