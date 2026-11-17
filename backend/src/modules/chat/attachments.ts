@@ -12,10 +12,9 @@ import { isMember } from './service.js'
 // containerului de 1 vCPU decât la upload (bufferizat, ca să putem impune limita pe
 // dimensiune) și la descărcare. Prefixul `chat/` primește prefixul firmei în Etapa 3.
 //
-// Fără miniaturi generate: `message_attachments.thumbnail_path` rămâne null. O imagine
-// trimisă se afișează direct din endpoint (same-origin, cu verificare de membru), iar o
-// miniatură ar cere încă o dependență de decodare de imagine, pe un VPS mic, pentru un
-// câștig pe care interfața îl acoperă cu `object-contain` și lazy loading.
+// Old (clear) images get their thumbnail on the first `?size=thumb` request (readThumbnail).
+// Encrypted ones (part M) come with a thumbnail the browser made and encrypted itself, stored
+// at `thumbnail_path`: the server cannot decode either.
 
 // 50 MB: un video de 20-30 de secunde de pe telefon trece de 15 MB.
 export const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024
@@ -69,6 +68,34 @@ export async function uploadAttachment(
   return { id: row!.id, filename, contentType, sizeBytes: row!.sizeBytes }
 }
 
+/** An attachment encrypted in the browser: the server only learns its size and whether it is an image. */
+export async function uploadEncryptedAttachment(
+  me: SessionUser,
+  file: { buffer: Buffer; thumbnail: Buffer | null; mediaKind: 'image' | 'file' },
+): Promise<StoredAttachment> {
+  const storagePath = `chat/${randomUUID()}.enc`
+  const thumbnailPath = file.thumbnail ? `${storagePath}.thumb` : null
+  await uploadToR2(storagePath, Readable.from(file.buffer), ENCRYPTED_CONTENT_TYPE)
+  if (file.thumbnail && thumbnailPath) await uploadToR2(thumbnailPath, Readable.from(file.thumbnail), ENCRYPTED_CONTENT_TYPE)
+  const [row] = await db
+    .insert(messageAttachments)
+    .values({
+      uploadedByUserId: me.id,
+      storagePath,
+      thumbnailPath,
+      filename: ENCRYPTED_FILENAME,
+      contentType: ENCRYPTED_CONTENT_TYPE,
+      sizeBytes: file.buffer.byteLength,
+      encrypted: true,
+      mediaKind: file.mediaKind,
+    })
+    .returning({ id: messageAttachments.id })
+  return { id: row!.id, filename: ENCRYPTED_FILENAME, contentType: ENCRYPTED_CONTENT_TYPE, sizeBytes: file.buffer.byteLength }
+}
+
+const ENCRYPTED_CONTENT_TYPE = 'application/octet-stream'
+const ENCRYPTED_FILENAME = 'encrypted'
+
 // Videoul nu trece prin VPS la vizionare: playerul cere bucăți (Range) și ar descărca tot
 // fișierul din R2 în memorie la fiecare cerere. Îl trimitem spre un URL presemnat, după
 // verificarea de membru, iar R2 servește direct cu Range.
@@ -95,6 +122,8 @@ export async function readAttachment(
       filename: messageAttachments.filename,
       contentType: messageAttachments.contentType,
       uploadedByUserId: messageAttachments.uploadedByUserId,
+      encrypted: messageAttachments.encrypted,
+      thumbnailPath: messageAttachments.thumbnailPath,
       conversationId: messages.conversationId,
     })
     .from(messageAttachments)
@@ -104,6 +133,12 @@ export async function readAttachment(
 
   if (row.uploadedByUserId !== viewerId) {
     if (!row.conversationId || !(await isMember(row.conversationId, viewerId))) return null
+  }
+
+  if (row.encrypted) {
+    // The browser decrypts the whole file, so a video comes through here too, not as a redirect.
+    const path = thumbnail && row.thumbnailPath ? row.thumbnailPath : row.storagePath
+    return { kind: 'file', buffer: await downloadFromR2(path), filename: row.filename, contentType: row.contentType, inline: false }
   }
 
   if (!forDownload && VIDEO_CONTENT_TYPES.has(row.contentType)) {
@@ -142,7 +177,7 @@ async function readThumbnail(storagePath: string): Promise<Buffer | null> {
 /** Curățenia (job zilnic): încărcate, niciodată trimise, mai vechi de 24h. */
 export async function purgeUnattachedAttachments(): Promise<number> {
   const rows = await db
-    .select({ id: messageAttachments.id, storagePath: messageAttachments.storagePath })
+    .select({ id: messageAttachments.id, storagePath: messageAttachments.storagePath, thumbnailPath: messageAttachments.thumbnailPath })
     .from(messageAttachments)
     .where(
       and(
@@ -155,7 +190,7 @@ export async function purgeUnattachedAttachments(): Promise<number> {
 
   for (const row of rows) {
     await deleteFromR2(row.storagePath).catch(() => {})
-    await deleteFromR2(`${row.storagePath}.thumb.jpg`).catch(() => {})
+    await deleteFromR2(row.thumbnailPath ?? `${row.storagePath}.thumb.jpg`).catch(() => {})
   }
   await db.delete(messageAttachments).where(inArray(messageAttachments.id, rows.map((r) => r.id)))
   return rows.length

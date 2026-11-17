@@ -5,7 +5,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { notifyPush } from '../../shared/lib/push.js'
 import { contentDisposition } from '../../shared/lib/text.js'
-import { MAX_ATTACHMENT_BYTES, readAttachment, uploadAttachment } from './attachments.js'
+import { MAX_ATTACHMENT_BYTES, readAttachment, uploadAttachment, uploadEncryptedAttachment } from './attachments.js'
 import { hasOpenConnection, markAlive, openConnection, presenceFor, publish, closeConnection } from './presence.js'
 import type { ChatEvent } from './presence.js'
 import {
@@ -14,6 +14,7 @@ import {
   ConversationIdParamsSchema,
   CreateConversationSchema,
   EditMessageSchema,
+  EncryptLegacySchema,
   ListMessagesQuerySchema,
   MarkReadSchema,
   MediaQuerySchema,
@@ -21,19 +22,17 @@ import {
   ReactionParamsSchema,
   RecentTargetsQuerySchema,
   RefLookupQuerySchema,
-  SearchMessagesQuerySchema,
   SendMessageSchema,
   UpdateConversationSchema,
 } from './schema.js'
 import * as service from './service.js'
+import { DeviceNotFoundError, KeysConflictError } from './keys.js'
+import { keyRoutes } from './keys-routes.js'
 import { ChatRequestError, ConversationForbiddenError, GroupPermissionError, MessageBodyError } from './service.js'
 import { RefFileTooLargeError } from '../../shared/lib/entity-refs.js'
 import { tr, trFor } from '../../shared/lib/i18n.js'
 
 const HEARTBEAT_INTERVAL_MS = 25_000
-// Mesajul apare și în notificarea push; trunchiem ca unul lung să nu umple bara de
-// notificări a telefonului.
-const PUSH_BODY_MAX = 140
 // "Typing" is published at most this often per person and conversation.
 const TYPING_THROTTLE_MS = 3_000
 const lastTyping = new Map<string, number>()
@@ -43,7 +42,8 @@ function writeEvent(res: ServerResponse, event: ChatEvent): void {
 }
 
 export async function chatRoutes(app: FastifyInstance) {
-  await app.register(multipart, { limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1 } })
+  // Two files at most: an encrypted attachment comes with its encrypted thumbnail.
+  await app.register(multipart, { limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 2, fields: 4 } })
 
   const server = app.withTypeProvider<ZodTypeProvider>()
 
@@ -63,8 +63,16 @@ export async function chatRoutes(app: FastifyInstance) {
     if (error instanceof GroupPermissionError) {
       return reply.code(403).send({ success: false, error: error.message })
     }
+    if (error instanceof DeviceNotFoundError) {
+      return reply.code(404).send({ success: false, error: tr('errors.chat.deviceNotFound') })
+    }
+    if (error instanceof KeysConflictError) {
+      return reply.code(409).send({ success: false, error: { code: error.code } })
+    }
     throw error
   })
+
+  keyRoutes(app)
 
   // ── Stream (SSE) ───────────────────────────────────────────────────────────
   // O singură conexiune per om deschisă (FE-ul o ține pe toată sesiunea, pentru toate
@@ -213,7 +221,7 @@ export async function chatRoutes(app: FastifyInstance) {
       const { id: conversationId } = req.params
       const { messageId } = req.body
       await service.markRead(req.me, conversationId, messageId)
-      publish({ type: 'read', conversationId, userId: req.me.id, messageId }, await service.memberIds(conversationId))
+      publish({ type: 'read', conversationId, userId: req.me.id, messageId, at: new Date().toISOString() }, await service.memberIds(conversationId))
       return { success: true }
     },
   )
@@ -232,12 +240,6 @@ export async function chatRoutes(app: FastifyInstance) {
       }
       return { success: true }
     },
-  )
-
-  server.get(
-    '/api/chat/conversations/:id/search',
-    { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, querystring: SearchMessagesQuerySchema } },
-    async (req) => ({ success: true, data: await service.searchMessages(req.me, req.params.id, req.query.q) }),
   )
 
   server.get(
@@ -278,12 +280,24 @@ export async function chatRoutes(app: FastifyInstance) {
     '/api/chat/messages/:id',
     { preHandler: [app.authenticate], schema: { params: MessageIdParamsSchema, body: EditMessageSchema } },
     async (req) => {
-      const message = await service.editMessage(req.me, req.params.id, req.body.body)
+      const message = await service.editMessage(req.me, req.params.id, req.body.encrypted)
       publish(
         { type: 'message.updated', conversationId: message.conversationId, message },
         await service.memberIds(message.conversationId),
       )
       return { success: true, data: message }
+    },
+  )
+
+  server.post(
+    '/api/chat/messages/:id/encrypt',
+    { preHandler: [app.authenticate], schema: { params: MessageIdParamsSchema, body: EncryptLegacySchema } },
+    async (req) => {
+      const conversationId = await service.encryptLegacyMessage(req.me, req.params.id, req.body.encrypted)
+      // Members' apps swap the clear text for the encrypted copy; nothing changes on screen.
+      const [message] = await service.messagesById(req.me, [req.params.id])
+      if (message) publish({ type: 'message.updated', conversationId, message }, await service.memberIds(conversationId))
+      return { success: true }
     },
   )
 
@@ -302,21 +316,33 @@ export async function chatRoutes(app: FastifyInstance) {
   // ── Atașamente ─────────────────────────────────────────────────────────────
 
   server.post('/api/chat/attachments', { preHandler: [app.authenticate] }, async (req, reply) => {
-    const data = await req.file()
-    if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
-    // Bufferizat (nu streamed în R2) ca limita pe dimensiune să fie impusă înainte de a scrie
-    // ceva în bucket — altfel un fișier de 2 GB ar umple VPS-ul cu buffer înainte de refuz.
-    let buffer: Buffer
+    // Fields first, then `file` and, for an encrypted image, `thumbnail` (the client sends them
+    // in this order). Buffered, not streamed to R2, so the size limit applies before anything
+    // reaches the bucket: a 2 GB file would otherwise fill the VPS with buffer before the refusal.
+    const fields: Record<string, string> = {}
+    const files: Record<string, { buffer: Buffer; filename: string; mimetype: string }> = {}
     try {
-      buffer = await data.toBuffer()
+      for await (const part of req.parts()) {
+        if (part.type === 'field') fields[part.fieldname] = String(part.value)
+        else files[part.fieldname] = { buffer: await part.toBuffer(), filename: part.filename, mimetype: part.mimetype }
+      }
     } catch (err) {
       if ((err as { code?: string }).code === 'FST_REQ_FILE_TOO_LARGE') {
         return reply.code(413).send({ success: false, error: tr('errors.chat.fileTooLarge') })
       }
       throw err
     }
+    const data = files.file
+    if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
+    // Clear files are refused like clear text: only Archive copies (made by the server, from a
+    // module that is not end-to-end) are stored unencrypted.
+    if (fields.encrypted !== '1') return reply.code(400).send({ success: false, error: { code: 'NOT_ENCRYPTED' } })
     try {
-      const stored = await uploadAttachment(req.me, { filename: data.filename, contentType: data.mimetype, buffer })
+      const stored = await uploadEncryptedAttachment(req.me, {
+        buffer: data.buffer,
+        thumbnail: files.thumbnail?.buffer ?? null,
+        mediaKind: fields.kind === 'image' ? 'image' : 'file',
+      })
       return { success: true, data: stored }
     } catch (err) {
       return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
@@ -352,10 +378,16 @@ async function publishDelivered(userId: string, upTo: Date, conversationIds: str
 /**
  * Push doar către oamenii fără conexiune SSE deschisă: cine are fluxul deschis primește
  * mesajul prin el în aceeași secundă, iar o notificare pe telefon ar fi doar duplicat.
+ *
+ * End-to-end (part M): the notification carries who wrote, never what. The text is encrypted,
+ * and a push goes through Google (FCM) or the browser vendor's push service. Shared objects'
+ * titles stay out too, for the same reason.
  */
+const MAX_PUSH_CIPHERTEXT_CHARS = 2400
+
 async function notifyMembers(
   conversationId: string,
-  message: { authorUserId: string; body: string; refs: { card: { title: string } }[] },
+  message: { authorUserId: string; encrypted?: { ciphertext: string } | null },
 ): Promise<void> {
   try {
     const target = await service.pushTarget(conversationId, message.authorUserId)
@@ -363,22 +395,24 @@ async function notifyMembers(
     const offline = target.recipients.filter((userId) => !hasOpenConnection(userId))
     if (offline.length === 0) return
 
-    // A message with only a shared object reads as the object's title.
-    const text = message.body.trim() || (message.refs[0]?.card.title ?? '')
-    const summary = text.length > PUSH_BODY_MAX ? `${text.slice(0, PUSH_BODY_MAX)}…` : text
+    const ciphertext = message.encrypted?.ciphertext
+    const e2e =
+      ciphertext && ciphertext.length <= MAX_PUSH_CIPHERTEXT_CHARS
+        ? { conversationId, ciphertext, kind: target.kind, byline: target.byline }
+        : undefined
+
     await notifyPush(
       'mesaje',
       (locale) => ({
         title: target.title,
         body:
           target.kind === 'group'
-            ? summary
-              ? `${target.byline}: ${summary}`
-              : target.byline
-            : summary || trFor(locale, 'push.chat.attachment'),
+            ? `${target.byline}: ${trFor(locale, 'push.chat.newMessage')}`
+            : trFor(locale, 'push.chat.newMessage'),
         url: `/messages/${conversationId}`,
         // One notification per conversation, which the app clears once it is read anywhere.
         tag: `chat-${conversationId}`,
+        e2e,
       }),
       offline,
     )

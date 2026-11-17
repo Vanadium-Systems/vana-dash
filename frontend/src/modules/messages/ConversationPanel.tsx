@@ -15,11 +15,14 @@ import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
 import { formatDate, formatDateTime } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
-import type { ChatAttachment, ChatConversation } from '@/shared/lib/types'
-import { formatBytes } from '@/shared/lib/utils'
+import type { ChatConversation, ChatEncrypted } from '@/shared/lib/types'
+import { formatBytes, normalizeForSearch } from '@/shared/lib/utils'
 import { ChatAvatar } from './ChatAvatar'
 import { conversationTitle, presenceLabel } from './ConversationList'
 import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
+import { useDecrypted, useE2E, type ResolvedAttachment } from './crypto/E2EProvider'
+import { saveDecrypted } from './crypto/files'
+import { useAttachmentUrl } from './crypto/useAttachmentUrl'
 
 // The conversation's side panel (#24, #25), in the URL as `?panel=info|search`: members (added and
 // removed here by whoever manages the group), mute, the photos and files sent in it, and search
@@ -32,6 +35,10 @@ interface MediaItem {
   contentType: string
   sizeBytes: number
   createdAt: string
+  encrypted: boolean
+  mediaKind: 'image' | 'file' | null
+  authorUserId: string
+  messageEncrypted: ChatEncrypted | null
 }
 
 interface SearchHit {
@@ -57,7 +64,7 @@ export function ConversationPanel({
   panel: 'info' | 'search' | null
   onPanelChange: (panel: 'info' | 'search' | null) => void
   onJump: (messageId: string) => void
-  onOpenMedia: (attachment: ChatAttachment) => void
+  onOpenMedia: (attachment: ResolvedAttachment) => void
   onMutedChange: () => void
 }) {
   const close = () => onPanelChange(null)
@@ -70,6 +77,7 @@ export function ConversationPanel({
       {panel === 'search' ? (
         <SearchPanel
           conversationId={conversation.id}
+          members={conversation.members}
           onJump={(messageId) => {
             // On a phone the panel covers the thread, so it gets out of the way.
             if (isPhone()) close()
@@ -99,7 +107,7 @@ function InfoPanel({
 }: {
   conversation: ChatConversation
   meId: string
-  onOpenMedia: (attachment: ChatAttachment) => void
+  onOpenMedia: (attachment: ResolvedAttachment) => void
   onMutedChange: () => void
 }) {
   useMinuteTick()
@@ -242,7 +250,15 @@ function AddMembers({
   )
 }
 
-function MediaList({ conversationId, kind, onOpen }: { conversationId: string; kind: 'image' | 'file'; onOpen: (attachment: ChatAttachment) => void }) {
+function MediaList({
+  conversationId,
+  kind,
+  onOpen,
+}: {
+  conversationId: string
+  kind: 'image' | 'file'
+  onOpen: (attachment: ResolvedAttachment) => void
+}) {
   const media = useInfiniteQuery({
     queryKey: ['chat', 'media', conversationId, kind],
     queryFn: ({ pageParam }) =>
@@ -264,38 +280,13 @@ function MediaList({ conversationId, kind, onOpen }: { conversationId: string; k
       {kind === 'image' ? (
         <ul className="grid grid-cols-3 gap-1">
           {items.map((item) => (
-            <li key={item.id}>
-              {/* native: thumbnail tile */}
-              <button
-                type="button"
-                onClick={() => onOpen(item)}
-                className="block aspect-square w-full overflow-hidden rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={item.filename}
-              >
-                <img src={`/api/chat/attachments/${item.id}?size=thumb`} alt="" loading="lazy" className="h-full w-full object-cover" />
-              </button>
-            </li>
+            <MediaTile key={item.id} item={item} conversationId={conversationId} onOpen={onOpen} />
           ))}
         </ul>
       ) : (
         <ul className="divide-y">
           {items.map((item) => (
-            <li key={item.id}>
-              {/* native: list row */}
-              <button
-                type="button"
-                onClick={() => void api.download(`/api/chat/attachments/${item.id}?download=1`, item.filename).catch((err: Error) => toast.error(err.message))}
-                className="flex w-full items-center gap-3 py-2 text-left hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <FileTypeIcon filename={item.filename} contentType={item.contentType} size="sm" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm">{item.filename}</span>
-                  <span className="block text-xs text-muted-foreground tnum">
-                    {formatBytes(item.sizeBytes)} · {formatDate(item.createdAt)}
-                  </span>
-                </span>
-              </button>
-            </li>
+            <FileRow key={item.id} item={item} conversationId={conversationId} />
           ))}
         </ul>
       )}
@@ -310,18 +301,113 @@ function MediaList({ conversationId, kind, onOpen }: { conversationId: string; k
   )
 }
 
-function SearchPanel({ conversationId, onJump }: { conversationId: string; onJump: (messageId: string) => void }) {
+/** An attachment from the Media panel, named and keyed once its message is decrypted here. */
+function useMediaAttachment(item: MediaItem, conversationId: string): ResolvedAttachment | null {
+  const decrypted = useDecrypted(
+    item.encrypted
+      ? { id: item.messageId, conversationId, authorUserId: item.authorUserId, body: '', encrypted: item.messageEncrypted }
+      : null,
+  )
+  if (!item.encrypted) return item
+  if (decrypted.state !== 'ready') return null
+  const key = decrypted.content.attachments.find((candidate) => candidate.id === item.id)
+  return key ? { ...item, filename: key.name, contentType: key.type, sizeBytes: key.size, key } : null
+}
+
+function MediaTile({ item, conversationId, onOpen }: { item: MediaItem; conversationId: string; onOpen: (a: ResolvedAttachment) => void }) {
+  const attachment = useMediaAttachment(item, conversationId)
+  const url = useAttachmentUrl(attachment, 'thumb')
+  return (
+    <li>
+      {/* native: thumbnail tile */}
+      <button
+        type="button"
+        disabled={!attachment}
+        onClick={() => attachment && onOpen(attachment)}
+        className="block aspect-square w-full overflow-hidden rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={attachment?.filename ?? t('messages:e2e.decrypting')}
+      >
+        {url ? <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" /> : <span className="block h-full w-full animate-pulse bg-muted" />}
+      </button>
+    </li>
+  )
+}
+
+function FileRow({ item, conversationId }: { item: MediaItem; conversationId: string }) {
+  const attachment = useMediaAttachment(item, conversationId)
+  return (
+    <li>
+      {/* native: list row */}
+      <button
+        type="button"
+        disabled={!attachment}
+        onClick={() => {
+          if (!attachment) return
+          const saving = attachment.key
+            ? saveDecrypted(attachment.key)
+            : api.download(`/api/chat/attachments/${item.id}?download=1`, attachment.filename)
+          void saving.catch((err: Error) => toast.error(err.message))
+        }}
+        className="flex w-full items-center gap-3 py-2 text-left hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <FileTypeIcon filename={attachment?.filename ?? ''} contentType={attachment?.contentType ?? ''} size="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm">{attachment?.filename ?? t('messages:e2e.decrypting')}</span>
+          <span className="block text-xs text-muted-foreground tnum">
+            {formatBytes(attachment?.sizeBytes ?? item.sizeBytes)} · {formatDate(item.createdAt)}
+          </span>
+        </span>
+      </button>
+    </li>
+  )
+}
+
+const SEARCH_LIMIT = 50
+
+/**
+ * Local search: with end-to-end encryption the server cannot search, so this looks through what
+ * this device has decrypted in the conversation (opened messages), newest first.
+ */
+function SearchPanel({
+  conversationId,
+  members,
+  onJump,
+}: {
+  conversationId: string
+  members: ChatConversation['members']
+  onJump: (messageId: string) => void
+}) {
   const [term, setTerm] = useState('')
   const debounced = useDebounced(term.trim(), 250)
+  const { engine } = useE2E()
   const hits = useQuery({
     queryKey: ['chat', 'search', conversationId, debounced],
-    queryFn: () => api.get<SearchHit[]>(`/api/chat/conversations/${conversationId}/search?q=${encodeURIComponent(debounced)}`),
-    enabled: debounced.length >= 2,
+    enabled: debounced.length >= 2 && Boolean(engine),
+    queryFn: async (): Promise<SearchHit[]> => {
+      const needle = normalizeForSearch(debounced)
+      const nameOf = (userId: string) => {
+        const member = members.find((m) => m.id === userId)
+        return member ? (member.displayName ?? member.email) : '?'
+      }
+      const latest = new Map<string, SearchHit>()
+      for (const record of await engine!.decryptedIn(conversationId)) {
+        if (!normalizeForSearch(record.body).includes(needle)) continue
+        // An edited message has one record per version: the newest text wins.
+        latest.set(record.messageId, {
+          id: record.messageId,
+          createdAt: record.createdAt ?? '',
+          authorName: nameOf(record.authorUserId),
+          body: record.body,
+        })
+      }
+      return [...latest.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, SEARCH_LIMIT)
+    },
   })
 
   return (
     <div className="space-y-3">
       <Input autoFocus type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder={t('messages:panel.searchPlaceholder')} aria-label={t('messages:panel.search')} />
+      <p className="text-xs text-muted-foreground">{t('messages:e2e.localSearch')}</p>
       {debounced.length < 2 ? null : hits.isPending ? (
         <p className="text-sm text-muted-foreground">{t('common:states.loading')}</p>
       ) : (hits.data ?? []).length === 0 ? (

@@ -4,6 +4,8 @@ import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { RequireFeature } from '@/shared/components/AccessDenied'
 import { ChatStreamProvider } from '@/shared/components/chat/ChatStreamProvider'
+import { E2EProvider } from '@/modules/messages/crypto/E2EProvider'
+import { ApprovalRequests } from '@/modules/messages/crypto/E2ESetup'
 import { AppLayout } from '@/shared/components/layout/AppLayout'
 import { LegacyAccountingTabs, RedirectPricing } from '@/shared/components/layout/LegacyRedirects'
 import { LinkedSection, RedirectToTab, TabbedSection } from '@/shared/components/layout/PageSection'
@@ -171,7 +173,7 @@ export function App() {
           {/* Provider-ul de flux stă deasupra lui AppLayout, nu în el: AppLayout folosește
               badge-ul de mesaje necitite, iar un context nu ajunge la propria componentă — pus
               în shell, ar arunca la fiecare pagină. */}
-          <Route element={<ChatStreamProvider><Outlet /></ChatStreamProvider>}>
+          <Route element={<ChatStreamProvider><E2EProvider><Outlet /><ApprovalRequests /></E2EProvider></ChatStreamProvider>}>
           <Route element={<AppLayout />}>
             <Route path="/accounting" element={<RequireFeature feature="facturi.view" page={t('common:nav.invoices')}><LegacyAccountingTabs><AccountingPage /></LegacyAccountingTabs></RequireFeature>} />
             <Route path="/accounting/invoices/new" element={<RequireFeature feature="facturi.emitere" page={t('common:nav.invoices')}><InvoiceEditorPage /></RequireFeature>} />

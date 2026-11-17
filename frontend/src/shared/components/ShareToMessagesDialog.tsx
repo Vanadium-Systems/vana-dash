@@ -13,6 +13,7 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { RefType } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
+import { useE2E } from '@/modules/messages/crypto/E2EProvider'
 
 // "Send to Messages" from any shareable object (MS1): pick a conversation (recent first) or a
 // colleague, add a comment if you like, send. A colleague without a DM gets one first, through the
@@ -38,6 +39,8 @@ export function ShareToMessagesDialog({ shared, onClose }: { shared: ShareRef | 
   const [picked, setPicked] = useState<Target | null>(null)
   const [sending, setSending] = useState(false)
   const debounced = useDebounced(term.trim(), 200)
+  const { engine } = useE2E()
+  const { session } = useMe()
 
   const targets = useQuery({
     queryKey: ['chat', 'recent-targets', debounced],
@@ -61,8 +64,14 @@ export function ShareToMessagesDialog({ shared, onClose }: { shared: ShareRef | 
         picked.kind === 'conversation'
           ? picked.id
           : (await api.post<{ id: string }>('/api/chat/conversations', { kind: 'dm', userId: picked.userId })).id
+      // The comment is encrypted like any message; the shared object travels as a reference.
+      const text = comment.trim()
+      if (text && engine?.currentStatus !== 'ready') throw new Error(t('messages:e2e.notReady'))
+      const members = picked.kind === 'conversation' ? picked.memberIds : [picked.userId, session?.user.id ?? '']
+      const encrypted = text ? await engine!.encrypt(conversationId, members, { body: text, attachments: [] }) : undefined
       await api.post(`/api/chat/conversations/${conversationId}/messages`, {
-        body: comment.trim(),
+        body: '',
+        encrypted,
         clientId: crypto.randomUUID(),
         refs: [{ type: shared.type, id: shared.id, quote: shared.quote }],
       })

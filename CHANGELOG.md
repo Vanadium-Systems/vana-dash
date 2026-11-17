@@ -4,6 +4,25 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-17: End-to-end encrypted messages
+
+### Added
+- Messages, edits, replies and attachments are encrypted on the sender's device with Olm/Megolm (`@towns-protocol/vodozemac`, the WASM build of `matrix-org/vodozemac`, pinned at 0.1.0) and decrypted only on the members' devices. The server stores ciphertext (`messages.ciphertext`, `enc_version`, `sender_device_id`) and refuses clear text on every route that writes a message or uploads a file.
+- Key directory and transport under `/api/chat/keys/*` (cookie sessions only): devices tied to the login that registered them, one-time keys claimed atomically, a to-device queue woken over the chat stream, and the key backup. Migration 0104, RLS forced on every new table.
+- Cross-signing: each person has an Ed25519 master key that signs their devices; colleagues send message keys only to signed devices and pin the master key on first sight. A new device is approved from another one (six-digit code on both screens) or with the recovery key, shown once.
+- Key requests: a device missing a key asks the author's devices, which answer only current members; forwarded keys are accepted only from the author or one's own devices.
+- Attachments are encrypted with a key per file; thumbnails (WebP, up to 480 px) are made and encrypted in the browser. The server keeps only the size and whether it is an image.
+- Message info: who has seen a message and when (`conversation_members.last_read_at`).
+- Emoji shortcodes (`:sob`), an emoji picker and large display for messages of one to three emoji (`emojibase-data`, loaded on first use).
+- Profile → Devices shows whether each login can read encrypted messages, with the start of its key.
+
+### Changed
+- Search inside a conversation runs on the device, over the messages it has decrypted; `GET /api/chat/conversations/:id/search` is gone.
+- Notifications say who wrote, never what.
+- Old clear-text messages are re-encrypted in place when shown (by their author, or by a member when the author has no approved device left); their clear text is cleared a week later by the daily chat job.
+- Deleting a message clears its text and ciphertext in the database.
+- Signing out removes the device's keys (IndexedDB); revoking a login removes its device from every key list.
+
 ## 2026-11-17: Dedicated SMTP mailboxes for outreach
 
 ### Added

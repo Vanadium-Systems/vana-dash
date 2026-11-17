@@ -20,11 +20,15 @@ export type ChatEvent =
   | { type: 'message.created'; conversationId: string; message: unknown }
   | { type: 'message.updated'; conversationId: string; message: unknown }
   | { type: 'conversation.updated'; conversationId: string }
-  | { type: 'read'; conversationId: string; userId: string; messageId: string }
+  | { type: 'read'; conversationId: string; userId: string; messageId: string; at: string }
   | { type: 'delivered'; conversationId: string; userId: string; at: string }
   | { type: 'presence'; userId: string; presence: 'online' | 'away'; lastSeenAt: string | null }
   | { type: 'typing'; conversationId: string; userId: string }
   | { type: 'reaction.updated'; conversationId: string; messageId: string; reactions: { emoji: string; userIds: string[] }[] }
+  // Only a wake-up: the device fetches its queue from /api/chat/keys/to-device.
+  | { type: 'keys.to_device' }
+  // A colleague's device list changed (new, approved or revoked device): drop cached device lists.
+  | { type: 'keys.devices'; userId: string }
 
 interface Connection {
   id: string

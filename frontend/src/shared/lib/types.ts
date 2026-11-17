@@ -1873,9 +1873,19 @@ export interface BookingSlots {
 
 export interface ChatAttachment {
   id: string
+  /** Placeholders when `encrypted`: the real name and type are inside the message. */
   filename: string
   contentType: string
   sizeBytes: number
+  encrypted: boolean
+  mediaKind: 'image' | 'file' | null
+}
+
+/** End-to-end encrypted content (PLAN.md part M): only the members' devices read it. */
+export interface ChatEncrypted {
+  v: number
+  ciphertext: string
+  senderDeviceId: string | null
 }
 
 export interface ChatMember {
@@ -1891,7 +1901,9 @@ export interface ChatMessage {
   conversationId: string
   authorUserId: string
   authorName: string
+  /** Empty when `encrypted` is set; clear only on messages from before part M. */
   body: string
+  encrypted: ChatEncrypted | null
   clientId: string
   createdAt: string
   editedAt: string | null
@@ -1904,8 +1916,10 @@ export interface ChatMessage {
 
 export interface ChatReplyPreview {
   id: string
+  authorUserId: string
   authorName: string
   body: string
+  encrypted: ChatEncrypted | null
   hasAttachment: boolean
   deleted: boolean
 }
@@ -1934,6 +1948,8 @@ export interface ChatReceipt {
   userId: string
   deliveredUpTo: string | null
   readUpTo: string | null
+  /** When their read watermark last moved: the "seen at" of a message's info. */
+  readAt: string | null
 }
 
 export interface ChatConversation {
@@ -1942,7 +1958,9 @@ export interface ChatConversation {
   name: string | null
   members: ChatMember[]
   lastMessage: {
+    id: string
     body: string
+    encrypted: ChatEncrypted | null
     authorId: string
     createdAt: string
     attachmentKind: 'image' | 'file' | null
@@ -1958,11 +1976,13 @@ export type ChatStreamEvent =
   | { type: 'message.created'; conversationId: string; message: ChatMessage }
   | { type: 'message.updated'; conversationId: string; message: Partial<ChatMessage> & { id: string } }
   | { type: 'conversation.updated'; conversationId: string }
-  | { type: 'read'; conversationId: string; userId: string; messageId: string }
+  | { type: 'read'; conversationId: string; userId: string; messageId: string; at: string }
   | { type: 'delivered'; conversationId: string; userId: string; at: string }
   | { type: 'presence'; userId: string; presence: 'online' | 'away'; lastSeenAt: string | null }
   | { type: 'typing'; conversationId: string; userId: string }
   | { type: 'reaction.updated'; conversationId: string; messageId: string; reactions: ChatReaction[] }
+  | { type: 'keys.to_device' }
+  | { type: 'keys.devices'; userId: string }
 
 export type RecordTab = 'all' | 'draft' | 'open' | 'overdue' | 'paid' | 'rejected'
 /** A client as the invoice editor's picker gets it, without the client file. */

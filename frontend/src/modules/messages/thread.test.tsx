@@ -4,11 +4,12 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { E2EProvider } from './crypto/E2EProvider'
 import { ChatStreamProvider } from '@/shared/components/chat/ChatStreamProvider'
 import { RefCard } from '@/shared/components/entity-cards/RefCard'
 import { ME_QUERY_KEY } from '@/shared/hooks/use-me'
 import { linkFor, parseDashLink } from '@/shared/lib/entity-links'
-import type { ChatConversation, ChatMessage, ChatMessageRef, RefType, SessionPayload } from '@/shared/lib/types'
+import type { ChatConversation, ChatEncrypted, ChatMessage, ChatMessageRef, RefType, SessionPayload } from '@/shared/lib/types'
 import { JumpToBottom } from './JumpToBottom'
 import { ThreadView } from './ThreadView'
 
@@ -16,6 +17,44 @@ import { ThreadView } from './ThreadView'
 // of an object the reader cannot open, and the links that cards and pasted URLs go through.
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+
+// A stand-in engine: "encrypting" is base64 of the JSON, so the test can read what would travel.
+const { fakeEngine } = vi.hoisted(() => {
+  const fakeEngine = {
+    currentStatus: 'ready',
+    encrypt: vi.fn(),
+    decrypt: vi.fn(),
+    decryptedIn: vi.fn(),
+    subscribe: vi.fn(() => () => {}),
+    approvals: [],
+    changedKeys: new Set<string>(),
+  }
+  return { fakeEngine }
+})
+
+// useDecrypted / useDecryptedRows read the context inside E2EProvider.tsx, so mocking `useE2E` would
+// not reach them: the real provider runs, on top of a stand-in engine and stubbed browser crypto.
+vi.mock('./crypto/engine', async (original) => ({
+  ...(await original<typeof import('./crypto/engine')>()),
+  E2EEngine: class {
+    currentStatus = fakeEngine.currentStatus
+    init = async () => 'ready'
+    syncToDevice = async () => {}
+    forgetDevices = () => {}
+    subscribe = fakeEngine.subscribe
+    encrypt = fakeEngine.encrypt
+    decrypt = fakeEngine.decrypt
+    decryptedIn = fakeEngine.decryptedIn
+    approvals = fakeEngine.approvals
+    changedKeys = fakeEngine.changedKeys
+  },
+}))
+vi.mock('./crypto/primitives', async (original) => ({
+  ...(await original<typeof import('./crypto/primitives')>()),
+  isSupported: () => true,
+  hasEd25519: async () => true,
+}))
+vi.mock('./crypto/store', () => ({ openCryptoStore: async () => ({}) }))
 
 const me = 'u1'
 const ana = 'a1'
@@ -44,6 +83,7 @@ function message(overrides: Partial<ChatMessage>): ChatMessage {
     authorUserId: ana,
     authorName: 'Ana',
     body: '',
+    encrypted: null,
     clientId: crypto.randomUUID(),
     createdAt: '2026-11-03T08:00:00.000Z',
     editedAt: null,
@@ -76,6 +116,15 @@ let queryClient: QueryClient
 let page: { messages: ChatMessage[]; lastReadMessageId: string | null }
 
 beforeEach(() => {
+  fakeEngine.encrypt.mockReset().mockImplementation(async (_c: string, _m: string[], content: unknown) => ({
+    v: 1,
+    ciphertext: btoa(JSON.stringify(content)),
+    senderDeviceId: 'device-1',
+  }))
+  fakeEngine.decrypt
+    .mockReset()
+    .mockImplementation(async (m: { encrypted: { ciphertext: string } }) => ({ status: 'ok', content: JSON.parse(atob(m.encrypted.ciphertext)) }))
+  fakeEngine.decryptedIn.mockReset().mockResolvedValue([])
   const session = {
     user: { id: me, email: 'ion@example.com', displayName: 'Ion', role: null, status: 'active' as const },
     features: ['mesaje.view'],
@@ -110,7 +159,12 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn()
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (url: string) => {
+    vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (init?.method === 'POST' && url.includes('/messages')) {
+        const sent = JSON.parse(init.body!) as { clientId: string; encrypted: ChatEncrypted }
+        const saved = message({ id: 'm-sent', authorUserId: me, authorName: 'Ion', clientId: sent.clientId, encrypted: sent.encrypted })
+        return { ok: true, status: 200, json: async () => ({ success: true, data: saved }) }
+      }
       const data = url.includes('/messages') ? { ...page, hasMore: false, hasNewer: false, receipts: [] } : null
       return { ok: true, status: 200, json: async () => ({ success: true, data }) }
     }),
@@ -127,13 +181,15 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function renderThread() {
+async function renderThread(url = '/') {
   await act(async () => {
     root.render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[url]}>
           <ChatStreamProvider>
-            <ThreadView conversation={conversation} meId={me} />
+            <E2EProvider>
+              <ThreadView conversation={conversation} meId={me} />
+            </E2EProvider>
           </ChatStreamProvider>
         </MemoryRouter>
       </QueryClientProvider>,
@@ -144,6 +200,11 @@ async function renderThread() {
     await new Promise((resolve) => setTimeout(resolve, 20))
   })
 }
+
+const settle = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  })
 
 describe('ThreadView', () => {
   it('draws the "New" line before the first message from someone else since the last visit', async () => {
@@ -192,7 +253,7 @@ describe('ThreadView', () => {
           authorName: 'Ion',
           body: 'raspunsul',
           createdAt: '2026-11-03T08:02:00.000Z',
-          replyTo: { id: 'm2', authorName: 'Ana', body: 'intrebarea', hasAttachment: false, deleted: false },
+          replyTo: { id: 'm2', authorUserId: ana, authorName: 'Ana', body: 'intrebarea', encrypted: null, hasAttachment: false, deleted: false },
         }),
       ],
     }
@@ -204,6 +265,63 @@ describe('ThreadView', () => {
       await new Promise((resolve) => setTimeout(resolve, 50))
     })
     expect(container.querySelector('[data-message-id="m2"]')?.classList.contains('msg-highlight')).toBe(true)
+  })
+})
+
+describe('ThreadView, end-to-end', () => {
+  it('sends an empty body and the ciphertext, then shows the saved message decrypted', async () => {
+    page = { lastReadMessageId: null, messages: [] }
+    queryClient.setQueryData(['chat', 'conversations'], [conversation])
+    await renderThread()
+    const field = container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Mesaj"]')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, 'salut')
+      field.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('button[aria-label="Trimite"]')!.click()
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+    expect(fakeEngine.encrypt).toHaveBeenCalledWith('c1', [me, ana], { body: 'salut', attachments: [] })
+    const post = vi.mocked(fetch).mock.calls.find(([url, init]) => (init as { method?: string } | undefined)?.method === 'POST' && String(url).endsWith('/messages'))!
+    const sent = JSON.parse((post[1] as { body: string }).body)
+    expect(sent.body).toBe('')
+    expect(sent.encrypted).toMatchObject({ v: 1, senderDeviceId: 'device-1' })
+    expect(JSON.stringify(sent)).not.toContain('salut')
+    await settle()
+    expect(container.querySelector('[data-message-id="m-sent"]')?.textContent).toContain('salut')
+  })
+
+  it('a message the device has no key for says it is waiting for the key', async () => {
+    fakeEngine.decrypt.mockResolvedValue({ status: 'missing-key' })
+    page = {
+      lastReadMessageId: 'm1',
+      messages: [message({ id: 'm1', encrypted: { v: 1, ciphertext: btoa('x'), senderDeviceId: 'device-2' } })],
+    }
+    await renderThread()
+    await settle()
+    expect(container.querySelector('[data-message-id="m1"]')?.textContent).toContain('Se așteaptă cheia mesajului…')
+  })
+
+  it('searches locally through what the engine decrypted, not on the server', async () => {
+    fakeEngine.decryptedIn.mockResolvedValue([
+      { messageId: 'm1', conversationId: 'c1', authorUserId: ana, createdAt: '2026-11-03T08:00:00.000Z', body: 'cumpar zmeura', attachments: [] },
+      { messageId: 'm2', conversationId: 'c1', authorUserId: ana, createdAt: '2026-11-03T08:01:00.000Z', body: 'altceva', attachments: [] },
+    ])
+    page = { lastReadMessageId: null, messages: [] }
+    await renderThread('/?panel=search')
+    const input = document.querySelector<HTMLInputElement>('input[type="search"]')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'zmeură')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      await new Promise((resolve) => setTimeout(resolve, 400))
+    })
+    await settle()
+    expect(fakeEngine.decryptedIn).toHaveBeenCalledWith('c1')
+    const results = document.querySelector('ul.divide-y')?.textContent ?? ''
+    expect(results).toContain('zmeura')
+    expect(results).not.toContain('altceva')
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('/search'))).toBe(false)
   })
 })
 

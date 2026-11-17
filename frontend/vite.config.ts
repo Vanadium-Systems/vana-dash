@@ -1,10 +1,41 @@
 import react from '@vitejs/plugin-react'
+import fs from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+
+const require = createRequire(import.meta.url)
+
+function bundlePushDecrypt(): Plugin {
+  return {
+    name: 'bundle-push-decrypt',
+    async buildStart() {
+      const viteRequire = createRequire(require.resolve('vite'))
+      const esbuild = viteRequire('esbuild') as { build(opts: Record<string, unknown>): Promise<unknown> }
+      const publicDir = path.resolve(__dirname, 'public')
+      await esbuild.build({
+        entryPoints: [path.resolve(__dirname, 'src/modules/messages/crypto/push-decrypt.ts')],
+        bundle: true,
+        format: 'iife',
+        globalName: 'VanaPushDecrypt',
+        platform: 'browser',
+        target: 'es2022',
+        minify: true,
+        define: { 'import.meta.url': 'self.location.href' },
+        outfile: path.join(publicDir, 'push-decrypt.js'),
+      })
+      const wasmSrc = path.join(path.dirname(require.resolve('@towns-protocol/vodozemac')), 'pkg/vodozemac_bg.wasm')
+      const pkgDir = path.join(publicDir, 'pkg')
+      fs.mkdirSync(pkgDir, { recursive: true })
+      fs.copyFileSync(wasmSrc, path.join(pkgDir, 'vodozemac_bg.wasm'))
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
+    bundlePushDecrypt(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -47,7 +78,7 @@ export default defineConfig({
         skipWaiting: true,
         // Convertorul HEIC din Mesaje (~3 MB) se încarcă doar la prima poză HEIC; în precache
         // l-ar descărca fiecare instalare, iar peste 2 MB build-ul pică.
-        globIgnores: ['**/heic-to-*.js'],
+        globIgnores: ['**/heic-to-*.js', '**/vodozemac_bg.wasm'],
         // Dashboard financiar — cifre stale dintr-un cache ar fi mai rău decât fără PWA.
         // /vanadash.apk exclus din fallback — altfel navigarea către APK primea index.html
         // (redirect la / în router), iar descărcarea directă din browsere era imposibilă.
@@ -113,6 +144,9 @@ export default defineConfig({
       },
     }),
   ],
+  // vodozemac finds its .wasm next to its own module (new URL(..., import.meta.url)). Pre-bundled
+  // into .vite/deps it would look for the file there and get index.html back.
+  optimizeDeps: { exclude: ['@towns-protocol/vodozemac'] },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

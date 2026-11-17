@@ -21,8 +21,8 @@
     "cancelledTitle": "Booking canceled"
   },
   "chat": {
-    "attachment": "Attachment",
-    "aColleague": "A colleague"
+    "aColleague": "A colleague",
+    "newMessage": "New message"
   },
   "payment": {
     "matchedTitle": "Payment matched",

@@ -1,8 +1,11 @@
 import { sql } from 'drizzle-orm'
-import { bigint, boolean, check, index, integer, jsonb, pgTable, smallint, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
+import { bigint, boolean, check, customType, index, integer, jsonb, pgTable, smallint, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { users } from './users.js'
 import { tenantColumns } from './tenant-column.js'
+import { userDevices } from './user-devices.js'
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' })
 
 // Messages between colleagues. Every table carries tenant_id; isolation is done by the RLS policies.
 
@@ -43,6 +46,8 @@ export const conversationMembers = pgTable(
     // Up to when this person's app has received the conversation's messages: the second tick.
     // Moved forward when they load the conversation list or the thread.
     deliveredUpTo: timestamp('delivered_up_to', { withTimezone: true }),
+    // When last_read_message_id last moved: the "seen 10:42" in a message's info.
+    lastReadAt: timestamp('last_read_at', { withTimezone: true }),
   },
   (t) => [uniqueIndex('uq_conversation_members_user').on(t.conversationId, t.userId)],
 )
@@ -64,6 +69,13 @@ export const messages = pgTable(
     clientId: uuid('client_id').notNull(),
     editedAt: timestamp('edited_at', { withTimezone: true }),
     replyToId: uuid('reply_to_id').references((): AnyPgColumn => messages.id, { onDelete: 'set null' }),
+    // End-to-end encrypted content (Megolm). With enc_version set, `body` is empty except for an
+    // old message re-encrypted in place, whose clear text a job clears 7 days after
+    // legacy_encrypted_at.
+    ciphertext: bytea('ciphertext'),
+    encVersion: smallint('enc_version'),
+    senderDeviceId: uuid('sender_device_id').references(() => userDevices.id, { onDelete: 'set null' }),
+    legacyEncryptedAt: timestamp('legacy_encrypted_at', { withTimezone: true }),
   },
   (t) => [
     uniqueIndex('uq_messages_client_id').on(t.conversationId, t.clientId),
@@ -88,6 +100,10 @@ export const messageAttachments = pgTable(
     width: integer('width'),
     height: integer('height'),
     thumbnailPath: text('thumbnail_path'),
+    // Encrypted in the browser: the name and type above are placeholders, the real ones travel
+    // inside the message. media_kind is what the server still knows, for the Media panel.
+    encrypted: boolean('encrypted').notNull().default(false),
+    mediaKind: text('media_kind', { enum: ['image', 'file'] }),
   },
   (t) => [
     index('idx_message_attachments_message').on(t.messageId),

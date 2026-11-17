@@ -13,6 +13,7 @@ import { memberName, useTeamMembers } from '@/shared/hooks/use-team'
 import { api } from '@/shared/lib/api'
 import { ConversationList } from './ConversationList'
 import { ThreadView } from './ThreadView'
+import { E2EGate } from './crypto/E2ESetup'
 import { t } from '@/shared/lib/i18n'
 
 // Pagina Mesaje (fișa din PLAN.md): desktop = coloană de conversații + fir în dreapta; mobil =
@@ -68,6 +69,7 @@ export function MessagesPage() {
       className="flex h-[calc(100dvh-6rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] min-h-0 flex-col md:h-[calc(100dvh-3rem)]"
      
     >
+      <E2EGate>
       <div className="flex min-h-0 flex-1 md:grid md:grid-cols-[300px_minmax(0,1fr)]">
         <aside
           className={id ? 'hidden min-h-0 border-r md:block' : 'min-h-0 flex-1 overflow-hidden md:border-r'}
@@ -104,6 +106,7 @@ export function MessagesPage() {
           )}
         </section>
       </div>
+      </E2EGate>
 
       <NewConversationDialog
         open={newOpen}

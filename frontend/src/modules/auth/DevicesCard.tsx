@@ -9,7 +9,7 @@ import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { formatDate, formatDateTime } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
-import { useDevices, useLogoutDevice, useLogoutOtherDevices, type SessionDevice } from './devices'
+import { useDevices, useLogoutDevice, useLogoutOtherDevices, useMessageKeys, type SessionDevice } from './devices'
 
 // Where the person is logged in, in "Profilul meu". Every row is one login family (one device).
 
@@ -17,8 +17,17 @@ function deviceName(device: SessionDevice): string {
   return device.deviceLabel ?? t('auth:devices.unknown')
 }
 
+/** Whether this login can read encrypted messages, with the start of its key to compare. */
+function messageKeyLabel(key: { approved: boolean; fingerprint: string } | undefined): string | null {
+  if (!key) return null
+  return key.approved
+    ? t('auth:devices.messageKeyApproved', { fingerprint: key.fingerprint })
+    : t('auth:devices.messageKeyPending', { fingerprint: key.fingerprint })
+}
+
 export function DevicesCard() {
   const devices = useDevices()
+  const messageKeys = useMessageKeys()
   const logout = useLogoutDevice()
   const logoutOthers = useLogoutOtherDevices()
   const [leaving, setLeaving] = useState<SessionDevice | null>(null)
@@ -74,6 +83,11 @@ export function DevicesCard() {
                         device.ip,
                       ]}
                     />
+                    {messageKeyLabel(messageKeys.data?.get(device.familyId)) ? (
+                      <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
+                        {messageKeyLabel(messageKeys.data?.get(device.familyId))}
+                      </p>
+                    ) : null}
                   </TableCell>
                   <TableCell priority="md" className="whitespace-nowrap">
                     {formatDateTime(device.lastUsedAt)}

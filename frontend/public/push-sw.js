@@ -3,6 +3,29 @@
 // generat de vite-plugin-pwa (generateSW), fără să atingă strategia de cache existentă.
 /* eslint-disable no-undef */
 
+try {
+  importScripts('push-decrypt.js')
+} catch {
+  // Decryption helper missing (e.g. before first build); falls back to payload.body.
+}
+
+async function resolveBody(payload) {
+  const fallback = payload.body || ''
+  if (!payload.e2e || !self.VanaPushDecrypt || !self.VanaPushDecrypt.decryptPush) return fallback
+  try {
+    const out = await Promise.race([
+      self.VanaPushDecrypt.decryptPush(payload.e2e),
+      new Promise((resolve) => setTimeout(() => resolve(null), 3000)),
+    ])
+    if (!out) return fallback
+    const text = (out.body || '').trim() || (out.hasAttachments ? '📎' : '')
+    if (!text) return fallback
+    return payload.e2e.kind === 'group' && payload.e2e.byline ? `${payload.e2e.byline}: ${text}` : text
+  } catch {
+    return fallback
+  }
+}
+
 self.addEventListener('push', (event) => {
   let payload = { title: 'VanaDash', body: '' }
   try {
@@ -20,14 +43,16 @@ self.addEventListener('push', (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'VanaDash', {
-      body: payload.body || '',
-      icon: '/pwa-192x192.png',
-      badge: '/pwa-192x192.png',
-      // Same tag = replaces the previous notification of that conversation or thread.
-      tag: payload.tag || undefined,
-      data: { url: payload.url || '/' },
-    }),
+    resolveBody(payload).then((body) =>
+      self.registration.showNotification(payload.title || 'VanaDash', {
+        body,
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        // Same tag = replaces the previous notification of that conversation or thread.
+        tag: payload.tag || undefined,
+        data: { url: payload.url || '/' },
+      }),
+    ),
   )
 })
 

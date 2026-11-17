@@ -197,25 +197,29 @@ async function fetchBlob(path: string, refreshed = false): Promise<{ blob: Blob;
 
 async function downloadFile(path: string, fallbackFileName: string): Promise<void> {
   const { blob, filename } = await fetchBlob(path)
-  const name = filename ?? fallbackFileName
+  await saveBlob(blob, filename ?? fallbackFileName)
+}
 
+/** Saves bytes made in the page (a decrypted attachment) like a downloaded file. */
+async function saveBlob(blob: Blob, name: string): Promise<void> {
+  const safeName = name.replace(/[/\\]/g, '_').replace(/^\.+/, '') || 'file'
   // În WebView nu există download manager — blob + <a download> nu face nimic. Scriem pe disc
   // prin plugin-ul nativ (MediaStore pe Android 10+, fără permisiuni) și confirmăm vizual.
   if (isNative) {
     await Filesystem.writeFile({
-      path: name,
+      path: safeName,
       data: await blobToBase64(blob),
       directory: Directory.Documents,
       recursive: true,
     })
-    toast.success(t('common:shell.savedToDocuments', { name }))
+    toast.success(t('common:shell.savedToDocuments', { name: safeName }))
     return
   }
 
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = name
+  a.download = safeName
   document.body.appendChild(a)
   a.click()
   a.remove()
@@ -244,5 +248,6 @@ export const api = {
     return { data: envelope.data, revertToken: (envelope as ApiEnvelope<T> & { revertToken: string }).revertToken }
   },
   download: downloadFile,
+  saveBlob,
   getBlob: (path: string) => fetchBlob(path),
 }

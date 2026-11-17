@@ -4,7 +4,8 @@
  * the sender can only share what they can see themselves.
  */
 import argon2 from 'argon2'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { randomBytes } from 'node:crypto'
+import { and, eq, inArray, isNull, like } from 'drizzle-orm'
 import type { InjectOptions, LightMyRequestResponse } from 'fastify'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../../app.js'
@@ -46,6 +47,41 @@ const folderIds: string[] = []
 interface TestSession {
   id: string
   token: string
+  deviceId: string
+}
+
+// Leftovers of a run that died before afterAll: same emails and role names would collide.
+const staleUsers = await db.select({ id: users.id }).from(users).where(like(users.email, 'qa-refs-%@test.local'))
+if (staleUsers.length) {
+  const staleIds = staleUsers.map((row) => row.id)
+  const staleMemberships = await db
+    .select({ id: conversationMembers.conversationId })
+    .from(conversationMembers)
+    .where(inArray(conversationMembers.userId, staleIds))
+  const staleCreated = await db.select({ id: conversations.id }).from(conversations).where(inArray(conversations.createdByUserId, staleIds))
+  const staleConversationIds = [...new Set([...staleMemberships, ...staleCreated].map((row) => row.id))]
+  if (staleConversationIds.length) {
+    await db.delete(conversationMembers).where(inArray(conversationMembers.conversationId, staleConversationIds))
+    await db.delete(messages).where(inArray(messages.conversationId, staleConversationIds))
+    await db.delete(conversations).where(inArray(conversations.id, staleConversationIds))
+  }
+  await db.delete(notes).where(inArray(notes.ownerUserId, staleIds))
+  await db.delete(users).where(inArray(users.id, staleIds))
+}
+await db.delete(roles).where(like(roles.name, 'Test: refs qa-refs-%'))
+await db.delete(prospects).where(eq(prospects.name, 'Acme Prospect QA SRL'))
+
+// The key is a stand-in with the right shape: the server only checks the format, never uses it.
+async function registerDevice(token: string): Promise<string> {
+  const publicKey = () => randomBytes(32).toString('base64').replace(/=+$/, '')
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/chat/keys/devices',
+    cookies: { vana_session: token },
+    payload: { publicIdentityKey: publicKey(), signingKey: publicKey(), label: 'QA' },
+  })
+  expect(res.statusCode).toBe(201)
+  return res.json().data.id as string
 }
 
 async function user(email: string, features: string[]): Promise<TestSession> {
@@ -56,7 +92,8 @@ async function user(email: string, features: string[]): Promise<TestSession> {
     .values({ email, passwordHash: await argon2.hash('parola-de-test-123'), displayName: email.split('@')[0], roleId: role!.id })
     .returning()
   userIds.push(row!.id)
-  return { id: row!.id, token: await app.jwt.sign({ sub: row!.id, sv: 1 }) }
+  const token = await app.jwt.sign({ sub: row!.id, sv: 1 })
+  return { id: row!.id, token, deviceId: await registerDevice(token) }
 }
 
 const sender = await user('qa-refs-sender@test.local', ['mesaje.view', 'clienti.view', 'arhiva.view'])
@@ -78,6 +115,15 @@ async function conversationWith(creator: TestSession, memberIds: string[]): Prom
 
 const sendRef = (conversationId: string, from: TestSession, ref: { type: string; id: string }) =>
   post(`/api/chat/conversations/${conversationId}/messages`, from, { body: '', clientId: crypto.randomUUID(), refs: [ref] })
+
+// A shared object can come with a text, which travels encrypted like any other.
+const sendRefWithText = (conversationId: string, from: TestSession, ref: { type: string; id: string }) =>
+  post(`/api/chat/conversations/${conversationId}/messages`, from, {
+    body: '',
+    clientId: crypto.randomUUID(),
+    refs: [ref],
+    encrypted: { v: 1, ciphertext: Buffer.from('opaque-ref-text').toString('base64'), senderDeviceId: from.deviceId },
+  })
 
 const readRefs = async (conversationId: string, reader: TestSession) => {
   const res = await get(`/api/chat/conversations/${conversationId}/messages`, reader)
@@ -173,6 +219,16 @@ describe('obiecte trimise în mesaje', () => {
     const res = await sendRef(id, sender, { type: 'archive_file', id: file!.id })
     expect(res.statusCode).toBe(413)
     expect(res.json().error.code).toBe('REF_FILE_TOO_LARGE')
+  })
+
+  it('un obiect trimis cu text criptat păstrează cardul, iar textul rămâne opac', async () => {
+    const id = await conversationWith(sender, [plainReader.id])
+    const sent = await sendRefWithText(id, sender, { type: 'note', id: note!.id })
+    expect(sent.statusCode).toBe(200)
+    expect(sent.json().data.body).toBe('')
+    expect(sent.json().data.encrypted).toMatchObject({ v: 1, senderDeviceId: sender.deviceId })
+    const [forReader] = await readRefs(id, plainReader)
+    expect(forReader!.state).toBe('snapshot')
   })
 
   it('ștergerea mesajului șterge și obiectele și reacțiile lui', async () => {
