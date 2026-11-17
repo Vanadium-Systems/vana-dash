@@ -4,6 +4,7 @@ import multipart from '@fastify/multipart'
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
+import { fail } from '../../shared/lib/http-error.js'
 import { StorageFullError, assertStorageAvailable } from '../../shared/lib/storage-quota.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { deleteFromR2, getPresignedDownloadUrl, uploadToR2 } from '../../shared/lib/r2.js'
@@ -15,14 +16,13 @@ const VoiceParams = z.object({ id: z.string().uuid(), vid: z.string().uuid() })
 const SNIFF_BYTES = 12
 
 function voiceErrorReply(reply: FastifyReply, err: unknown) {
-  if (err instanceof voice.VoiceNotYoursError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.voiceNotYours') } })
-  if (err instanceof voice.VoiceTaskInvalidError) return reply.code(400).send({ success: false, error: tr('errors.prospects.voiceTaskInvalid') })
+  if (err instanceof voice.VoiceNotYoursError) return fail(reply, 403, err.code, { message: tr('errors.prospects.voiceNotYours') })
+  if (err instanceof voice.VoiceTaskInvalidError) return fail(reply, 400, err.code, { message: tr('errors.prospects.voiceTaskInvalid') })
   if (err instanceof StorageFullError) {
     const gb = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(1)} GB`
-    return reply.code(413).send({
-      success: false,
-      error: tr('errors.archive.storageFull', { used: gb(err.usedBytes), limit: gb(err.limitBytes) }),
-      code: 'STORAGE_FULL',
+    return fail(reply, 413, 'STORAGE_FULL', {
+      message: tr('errors.archive.storageFull', { used: gb(err.usedBytes), limit: gb(err.limitBytes) }),
+      details: { usedBytes: err.usedBytes, limitBytes: err.limitBytes },
     })
   }
   return prospectErrorReply(reply, err)
@@ -33,8 +33,8 @@ export async function prospectVoiceNotesRoutes(app: FastifyInstance) {
 
   const server = app.withTypeProvider<ZodTypeProvider>()
   const auth = { preHandler: [app.authenticate] }
-  const notFound = (reply: FastifyReply) => reply.code(404).send({ success: false, error: tr('errors.prospects.voiceNotFound') })
-  const prospectNotFound = (reply: FastifyReply) => reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+  const notFound = (reply: FastifyReply) => fail(reply, 404, 'VOICE_NOTE_NOT_FOUND', { message: tr('errors.prospects.voiceNotFound') })
+  const prospectNotFound = (reply: FastifyReply) => fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
 
   server.get('/api/prospects/:id/voice-notes', { ...auth, schema: { params: ProspectParams } }, async (req, reply) => {
     const data = await voice.listVoiceNotes(req.me, req.params.id)
@@ -46,11 +46,11 @@ export async function prospectVoiceNotesRoutes(app: FastifyInstance) {
       const prospectId = req.params.id
       if (!(await voice.assertVoiceTarget(req.me, prospectId))) return prospectNotFound(reply)
       if (!voice.isVoiceStorageOn()) {
-        return reply.code(503).send({ success: false, error: tr('errors.prospects.voiceStorageOff'), code: 'VOICE_STORAGE_OFF' })
+        return fail(reply, 503, 'VOICE_STORAGE_OFF', { message: tr('errors.prospects.voiceStorageOff') })
       }
 
       const part = await req.file()
-      if (!part) return reply.code(400).send({ success: false, error: tr('errors.prospects.voiceNoFile') })
+      if (!part) return fail(reply, 400, 'VOICE_NO_FILE', { message: tr('errors.prospects.voiceNoFile') })
       const field = (name: string) => {
         const f = part.fields[name]
         return f && !Array.isArray(f) && 'value' in f ? String(f.value) : undefined
@@ -78,7 +78,7 @@ export async function prospectVoiceNotesRoutes(app: FastifyInstance) {
       const kind = voice.sniffAudio(headBuffer)
       if (!kind) {
         part.file.resume()
-        return reply.code(415).send({ success: false, error: tr('errors.prospects.voiceUnsupported'), code: 'VOICE_UNSUPPORTED' })
+        return fail(reply, 415, 'VOICE_UNSUPPORTED', { message: tr('errors.prospects.voiceUnsupported') })
       }
 
       await assertStorageAvailable(1)
@@ -98,12 +98,12 @@ export async function prospectVoiceNotesRoutes(app: FastifyInstance) {
       } catch (err) {
         await deleteFromR2(r2Key).catch(() => {})
         req.log.error({ err }, 'voice note upload failed')
-        return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
+        return fail(reply, 502, 'VOICE_UPLOAD_FAILED')
       }
       // busboy truncates silently past the limit: the object just uploaded is a cut-off file.
       if (part.file.truncated) {
         await deleteFromR2(r2Key).catch(() => {})
-        return reply.code(413).send({ success: false, error: tr('errors.prospects.voiceTooLarge') })
+        return fail(reply, 413, 'VOICE_TOO_LARGE', { message: tr('errors.prospects.voiceTooLarge') })
       }
       const sizeBytes = part.file.bytesRead
       try {

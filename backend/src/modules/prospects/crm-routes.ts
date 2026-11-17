@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import * as crm from './crm-service.js'
 import { prospectErrorReply } from './routes.js'
@@ -26,15 +27,16 @@ import {
 import { InvalidAssigneeError } from './service.js'
 
 function crmErrorReply(reply: FastifyReply, err: unknown) {
-  if (err instanceof crm.ContactExistsError) return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.contactExists') } })
-  if (err instanceof crm.NoteNotYoursError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.noteNotYours') } })
-  if (err instanceof InvalidAssigneeError) return reply.code(400).send({ success: false, error: tr('errors.prospects.assigneeInvalid') })
-  if (err instanceof crm.InviteeNotAllowedError) return reply.code(400).send({ success: false, error: { code: err.code, message: tr('errors.prospects.inviteeNotAllowed') } })
-  if (err instanceof crm.AttendeeInvalidError) return reply.code(400).send({ success: false, error: { code: err.code, message: tr('errors.prospects.attendeeInvalid') } })
-  if (err instanceof crm.AttendeesNeedCommonError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.attendeesNeedCommon') } })
+  if (err instanceof crm.ContactExistsError) return fail(reply, 409, err.code, { message: tr('errors.prospects.contactExists') })
+  if (err instanceof crm.NoteNotYoursError) return fail(reply, 403, err.code, { message: tr('errors.prospects.noteNotYours') })
+  if (err instanceof InvalidAssigneeError) return fail(reply, 400, 'ASSIGNEE_INVALID', { message: tr('errors.prospects.assigneeInvalid') })
+  if (err instanceof crm.InviteeNotAllowedError) return fail(reply, 400, err.code, { message: tr('errors.prospects.inviteeNotAllowed') })
+  if (err instanceof crm.AttendeeInvalidError) return fail(reply, 400, err.code, { message: tr('errors.prospects.attendeeInvalid') })
+  if (err instanceof crm.AttendeesNeedCommonError) return fail(reply, 403, err.code, { message: tr('errors.prospects.attendeesNeedCommon') })
   if (err instanceof crm.ForeignRefError) {
-    const error = tr(err.what === 'person' ? 'errors.prospects.personInvalid' : 'errors.prospects.contactPointInvalid')
-    return reply.code(400).send({ success: false, error })
+    return err.what === 'person'
+      ? fail(reply, 400, 'PERSON_INVALID', { message: tr('errors.prospects.personInvalid') })
+      : fail(reply, 400, 'CONTACT_POINT_INVALID', { message: tr('errors.prospects.contactPointInvalid') })
   }
   return prospectErrorReply(reply, err)
 }
@@ -44,7 +46,7 @@ export async function prospectCrmRoutes(app: FastifyInstance) {
   const auth = { preHandler: [app.authenticate] }
 
   const notFound = (reply: FastifyReply, key: 'errors.prospects.notFound' | 'errors.prospects.taskNotFound' = 'errors.prospects.notFound') =>
-    reply.code(404).send({ success: false, error: tr(key) })
+    fail(reply, 404, key === 'errors.prospects.taskNotFound' ? 'PROSPECT_TASK_NOT_FOUND' : 'PROSPECT_NOT_FOUND', { message: tr(key) })
 
   // ── People ──
   server.get('/api/prospects/:id/people', { ...auth, schema: { params: ProspectParamsSchema } }, async (req, reply) => {

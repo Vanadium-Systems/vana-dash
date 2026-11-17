@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { canReassign } from '../../shared/lib/prospect-access.js'
 import { prospectErrorReply } from './routes.js'
@@ -18,14 +19,14 @@ import * as team from './team-service.js'
 
 function teamErrorReply(reply: FastifyReply, err: unknown) {
   if (err instanceof team.ProspectTakenError) {
-    return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.taken', { owner: err.ownerName ?? '' }) }, ownerName: err.ownerName })
+    return fail(reply, 409, err.code, { message: tr('errors.prospects.taken', { owner: err.ownerName ?? '' }), details: { ownerName: err.ownerName } })
   }
-  if (err instanceof team.RequestExistsError) return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.requestExists') } })
-  if (err instanceof team.RequestDecidedError) return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.requestDecided') } })
-  if (err instanceof team.RequestNotAllowedError) return reply.code(403).send({ success: false, error: { code: err.code, message: tr('errors.prospects.requestNotAllowed') } })
-  if (err instanceof team.RequestInvalidError) return reply.code(400).send({ success: false, error: { code: err.code, message: tr('errors.prospects.requestInvalid') } })
+  if (err instanceof team.RequestExistsError) return fail(reply, 409, err.code, { message: tr('errors.prospects.requestExists') })
+  if (err instanceof team.RequestDecidedError) return fail(reply, 409, err.code, { message: tr('errors.prospects.requestDecided') })
+  if (err instanceof team.RequestNotAllowedError) return fail(reply, 403, err.code, { message: tr('errors.prospects.requestNotAllowed') })
+  if (err instanceof team.RequestInvalidError) return fail(reply, 400, err.code, { message: tr('errors.prospects.requestInvalid') })
   if (err instanceof team.InvalidRecipientError) {
-    return reply.code(400).send({ success: false, error: { code: err.code, message: tr(err.what === 'recipient' ? 'errors.prospects.recipientInvalid' : 'errors.prospects.collaboratorInvalid') } })
+    return fail(reply, 400, err.code, { message: tr(err.what === 'recipient' ? 'errors.prospects.recipientInvalid' : 'errors.prospects.collaboratorInvalid') })
   }
   return prospectErrorReply(reply, err)
 }
@@ -34,7 +35,7 @@ export async function prospectTeamRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
   const auth = { preHandler: [app.authenticate] }
   const notFound = (reply: FastifyReply, key: 'errors.prospects.notFound' | 'errors.prospects.requestNotFound' = 'errors.prospects.notFound') =>
-    reply.code(404).send({ success: false, error: tr(key) })
+    fail(reply, 404, key === 'errors.prospects.requestNotFound' ? 'TRANSFER_REQUEST_NOT_FOUND' : 'PROSPECT_NOT_FOUND', { message: tr(key) })
 
   server.post('/api/prospects/:id/claim', { ...auth, schema: { params: ProspectParamsSchema } }, async (req, reply) => {
     try {
@@ -115,7 +116,7 @@ export async function prospectTeamRoutes(app: FastifyInstance) {
   // The catalog gives writes under /api/prospects to `clienti.prospectare`; changing when prospects
   // fall back to the pool is a manager's call.
   server.put('/api/prospects/release-settings', { ...auth, schema: { body: ReleaseSettingsSchema } }, async (req, reply) => {
-    if (!canReassign(req.me)) return reply.code(403).send({ success: false, error: tr('errors.prospects.reassignOnly') })
+    if (!canReassign(req.me)) return fail(reply, 403, 'PROSPECT_REASSIGN_ONLY', { message: tr('errors.prospects.reassignOnly') })
     return { success: true, data: await team.setReleaseSettings(req.body) }
   })
 }

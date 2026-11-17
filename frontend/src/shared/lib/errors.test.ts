@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './api'
-import { errorCode, errorText, toastError } from './errors'
+import { errorCode, errorDetail, errorText, toastError } from './errors'
 
 const toastMock = vi.hoisted(() => ({ error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMock }))
@@ -60,5 +60,15 @@ describe('toastError', () => {
   it('uses the fallback for something that is not an error', () => {
     toastError('boom', 'Salvarea n-a mers.')
     expect(toastMock.error).toHaveBeenCalledWith('Salvarea n-a mers.', undefined)
+  })
+})
+
+describe('errorDetail', () => {
+  it('reads a detail on the error object, and at the top for older routes', () => {
+    const now = new ApiError(409, 'x', 'PROSPECT_EXISTS', { success: false, error: { code: 'PROSPECT_EXISTS', message: 'x', existing: { id: 'p1' } } })
+    expect(errorDetail(now, 'existing')).toEqual({ id: 'p1' })
+    const before = new ApiError(409, 'x', 'CONFLICT', { success: false, error: 'x', data: { id: 'n1' } })
+    expect(errorDetail(before, 'data')).toEqual({ id: 'n1' })
+    expect(errorDetail(new Error('x'), 'existing')).toBeUndefined()
   })
 })

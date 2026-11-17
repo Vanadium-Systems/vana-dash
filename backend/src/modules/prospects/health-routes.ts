@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { prospectErrorReply } from './routes.js'
@@ -7,19 +8,19 @@ import { DuplicatesQuerySchema, MergeBodySchema, MergePreviewQuerySchema } from 
 import * as health from './health-service.js'
 
 function healthErrorReply(reply: FastifyReply, err: unknown) {
-  if (err instanceof health.MergeSameError) return reply.code(400).send({ success: false, error: { code: err.code, message: tr('errors.prospects.mergeSame') } })
-  if (err instanceof health.MergeAlreadyMergedError) return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.mergeAlreadyMerged') } })
+  if (err instanceof health.MergeSameError) return fail(reply, 400, err.code, { message: tr('errors.prospects.mergeSame') })
+  if (err instanceof health.MergeAlreadyMergedError) return fail(reply, 409, err.code, { message: tr('errors.prospects.mergeAlreadyMerged') })
   return prospectErrorReply(reply, err)
 }
 
 export async function prospectHealthRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
   const auth = { preHandler: [app.authenticate] }
-  const notFound = (reply: FastifyReply) => reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+  const notFound = (reply: FastifyReply) => fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
   // The catalog opens GETs under /api/prospects to `clienti.view`; the health tab is for whoever can edit.
   const denied = (me: Pick<SessionUser, 'features'>, reply: FastifyReply) => {
     if (me.features.includes('clienti.prospectare')) return false
-    void reply.code(403).send({ success: false, error: tr('errors.prospects.healthForbidden') })
+    void fail(reply, 403, 'HEALTH_FORBIDDEN', { message: tr('errors.prospects.healthForbidden') })
     return true
   }
 

@@ -16,6 +16,14 @@ export function errorCode(err: unknown): string | null {
   return err instanceof ApiError && err.code ? err.code : null
 }
 
+/** A detail the server sent with the error (`existing`, `limit`): on the error object, or at the top for older routes. */
+export function errorDetail<T>(err: unknown, key: string): T | undefined {
+  if (!(err instanceof ApiError) || !err.body || typeof err.body !== 'object') return undefined
+  const body = err.body as Record<string, unknown>
+  const onError = body.error && typeof body.error === 'object' ? (body.error as Record<string, unknown>)[key] : undefined
+  return (onError ?? body[key]) as T | undefined
+}
+
 export function errorText(err: unknown): string {
   if (err instanceof ApiError) {
     const override = err.code ? overrideText(err.code) : null
