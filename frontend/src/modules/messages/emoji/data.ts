@@ -21,6 +21,34 @@ interface CompactEmoji {
 // Group 2 is skin-tone swatches and hair components; emoji without a group are regional indicators.
 const SKIPPED_GROUP = 2
 
+/**
+ * Filters out newer Unicode emoji (e.g. 16.0+) that the current device's font renders as a
+ * missing-glyph tofu box. Returns a predicate; in non-canvas environments (tests) keeps all.
+ */
+function makeSupportFilter(): (emoji: string) => boolean {
+  if (typeof document === 'undefined') return () => true
+  const canvas = document.createElement('canvas')
+  canvas.width = 16
+  canvas.height = 16
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) return () => true
+  ctx.font = '14px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
+  ctx.textBaseline = 'top'
+  const signature = (ch: string) => {
+    ctx.clearRect(0, 0, 16, 16)
+    ctx.fillText(ch, 0, 0)
+    const data = ctx.getImageData(0, 0, 16, 16).data
+    let sum = 0
+    for (let i = 3; i < data.length; i += 4) if (data[i]! > 0) sum += i * 31 + data[i]!
+    return sum
+  }
+  const tofu = signature('\uFFFF')
+  return (emoji: string) => {
+    const sig = signature(emoji)
+    return sig !== 0 && sig !== tofu
+  }
+}
+
 let loading: Promise<EmojiEntry[]> | null = null
 
 export function loadEmoji(): Promise<EmojiEntry[]> {
@@ -29,8 +57,9 @@ export function loadEmoji(): Promise<EmojiEntry[]> {
     import('emojibase-data/en/shortcodes/emojibase.json'),
   ]).then(([compact, shortcodes]) => {
     const codesByHex = shortcodes.default as Record<string, string | string[]>
+    const isSupported = makeSupportFilter()
     return (compact.default as CompactEmoji[])
-      .filter((e) => e.group !== undefined && e.group !== SKIPPED_GROUP)
+      .filter((e) => e.group !== undefined && e.group !== SKIPPED_GROUP && isSupported(e.unicode))
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((e) => ({
         emoji: e.unicode,

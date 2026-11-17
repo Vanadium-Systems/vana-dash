@@ -15,6 +15,17 @@ const Smile = createLucideIcon('Smile', [
 
 // Group ids of emojibase (2 = components, not shown).
 const GROUPS = [0, 1, 3, 4, 5, 6, 7, 8, 9] as const
+const GROUP_ICONS: Record<(typeof GROUPS)[number], string> = {
+  0: '😀',
+  1: '👋',
+  3: '🐻',
+  4: '🍔',
+  5: '🚗',
+  6: '⚽',
+  7: '💡',
+  8: '🔣',
+  9: '🏳️',
+}
 
 /** Button + panel with search and the grid by category; picking inserts and closes. */
 export function EmojiPicker({ onPick, disabled }: { onPick: (emoji: string) => void; disabled?: boolean }) {
@@ -23,6 +34,7 @@ export function EmojiPicker({ onPick, disabled }: { onPick: (emoji: string) => v
   const [query, setQuery] = useState('')
   const rootRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -30,7 +42,13 @@ export function EmojiPicker({ onPick, disabled }: { onPick: (emoji: string) => v
     void loadEmoji().then((loaded) => {
       if (!cancelled) setEntries(loaded)
     })
-    searchRef.current?.focus()
+    const isTouch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+    if (isTouch) {
+      // Dismiss the mobile keyboard so the emoji grid takes its place instead of stacking above it.
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    } else {
+      searchRef.current?.focus()
+    }
     const onPointerDown = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
     }
@@ -73,7 +91,7 @@ export function EmojiPicker({ onPick, disabled }: { onPick: (emoji: string) => v
             placeholder={t('messages:emoji.search')}
             aria-label={t('messages:emoji.search')}
           />
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             {entries.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{t('messages:emoji.loading')}</p>
             ) : found.length === 0 ? (
@@ -83,7 +101,7 @@ export function EmojiPicker({ onPick, disabled }: { onPick: (emoji: string) => v
                 const inGroup = found.filter((e) => e.group === group)
                 if (inGroup.length === 0) return null
                 return (
-                  <section key={group} className="mb-2">
+                  <section key={group} data-emoji-group={group} className="mb-2">
                     <h3 className="mb-1 text-xs font-medium text-muted-foreground">{t(`messages:emoji.groups.${group}`)}</h3>
                     <div className="grid grid-cols-8 gap-0.5">
                       {inGroup.map((entry) => (
@@ -105,6 +123,24 @@ export function EmojiPicker({ onPick, disabled }: { onPick: (emoji: string) => v
               })
             )}
           </div>
+          {!query.trim() && entries.length > 0 ? (
+            <div className="flex items-center justify-between border-t pt-1.5">
+              {GROUPS.map((group) => (
+                <button
+                  key={group}
+                  type="button"
+                  title={t(`messages:emoji.groups.${group}`)}
+                  aria-label={t(`messages:emoji.groups.${group}`)}
+                  onClick={() =>
+                    listRef.current?.querySelector(`[data-emoji-group="${group}"]`)?.scrollIntoView({ block: 'start' })
+                  }
+                  className="flex h-7 w-7 items-center justify-center rounded-sm text-base hover:bg-accent"
+                >
+                  {GROUP_ICONS[group]}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
       <Button
