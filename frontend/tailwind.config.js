@@ -6,6 +6,12 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      // Named layers. `sticky`: a sticky column above the cells it scrolls over. `overlay`: a
+      // floating card over the page and dialogs (the incoming call), still under the toasts.
+      zIndex: {
+        sticky: '1',
+        overlay: '60',
+      },
       fontFamily: {
         sans: ['Onest', 'system-ui', 'sans-serif'],
         // Codes only: CUI, IBAN, document numbers, keys (DESIGN.md). Not every number.
