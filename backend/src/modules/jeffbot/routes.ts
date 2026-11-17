@@ -5,6 +5,7 @@ import { requireIngestToken } from '../../shared/middleware/auth.js'
 import { EquityQuerySchema, JeffbotSnapshotSchema, OverviewQuerySchema, ReviewIdParamsSchema } from './schema.js'
 import { getEquity, getOverview, getReview, ingestSnapshot } from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 export async function jeffbotRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -42,7 +43,7 @@ export async function jeffbotRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ReviewIdParamsSchema } },
     async (req, reply) => {
       const review = await getReview(req.params.id)
-      if (!review) return reply.code(404).send({ success: false, error: tr('errors.jeffbot.reportNotFound') })
+      if (!review) return fail(reply, 404, 'JEFFBOT_REPORT_NOT_FOUND', { message: tr('errors.jeffbot.reportNotFound') })
       return { success: true, data: review }
     },
   )

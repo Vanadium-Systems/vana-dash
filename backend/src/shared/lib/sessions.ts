@@ -223,8 +223,6 @@ export function passwordConfirmRequired(session: { passwordConfirmedAt: Date | n
   return !session.passwordConfirmedAt || now - session.passwordConfirmedAt.getTime() > PASSWORD_CONFIRM_WINDOW_MS
 }
 
-export const PASSWORD_CONFIRM_REQUIRED = { success: false, error: { code: 'PASSWORD_CONFIRM_REQUIRED' } } as const
-
 /** Rows revoked or expired more than 30 days ago: nothing reads them any more. */
 export async function deleteOldSessions(now = new Date()): Promise<number> {
   const cutoff = new Date(now.getTime() - 30 * DAY_MS)

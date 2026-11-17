@@ -53,17 +53,17 @@ describe('language of an error', () => {
       headers: { 'x-locale': 'en' },
       payload: { email: 'nobody@example.com', password: 'x' },
     })
-    expect(res.json().error).toBe('Wrong email or password')
+    expect(res.json().error.message).toBe('Wrong email or password')
   })
 
   it('follows the person, not the installation', async () => {
-    expect((await wrongPassword(roCookie)).json().error).toBe('Parola curentă nu e corectă')
-    expect((await wrongPassword(enCookie)).json().error).toBe('The current password is not correct')
+    expect((await wrongPassword(roCookie)).json().error.message).toBe('Parola curentă nu e corectă')
+    expect((await wrongPassword(enCookie)).json().error.message).toBe('The current password is not correct')
   })
 
   it('is the installation default without a session', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { email: 'nobody@example.com', password: 'x' } })
-    expect(res.json().error).toBe('Email sau parolă greșită')
+    expect(res.json().error.message).toBe('Email sau parolă greșită')
   })
 
   it('ignores a language that is not offered, sent from a page before login', async () => {
@@ -73,7 +73,7 @@ describe('language of an error', () => {
       headers: { 'x-locale': 'fr' },
       payload: { email: 'nobody@example.com', password: 'x' },
     })
-    expect(res.json().error).toBe('Email sau parolă greșită')
+    expect(res.json().error.message).toBe('Email sau parolă greșită')
   })
 })
 
@@ -111,7 +111,7 @@ describe('PATCH /api/auth/me', () => {
     const res = await patch({ locale: 'en' })
     expect(res.statusCode).toBe(200)
     expect(res.json().data.locale).toBe('en')
-    expect((await wrongPassword(roCookie)).json().error).toBe('The current password is not correct')
+    expect((await wrongPassword(roCookie)).json().error.message).toBe('The current password is not correct')
     await patch({ locale: 'ro' })
   })
 })

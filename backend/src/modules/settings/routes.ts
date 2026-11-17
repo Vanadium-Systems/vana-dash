@@ -10,6 +10,7 @@ import {
 } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 export async function settingsRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -88,7 +89,7 @@ export async function settingsRoutes(app: FastifyInstance) {
         return { success: true, data: await service.testLiveKitConnection(req.body) }
       } catch (err) {
         if (err instanceof service.LiveKitError) {
-          return reply.code(err.status === 0 ? 400 : 502).send({ success: false, error: tr('errors.calls.providerError') })
+          return fail(reply, err.status === 0 ? 400 : 502, 'CALLS_PROVIDER_FAILED', { message: tr('errors.calls.providerError') })
         }
         throw err
       }

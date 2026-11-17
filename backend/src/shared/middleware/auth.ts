@@ -3,6 +3,7 @@ import type { FastifyReply, FastifyRequest, onRequestHookHandler } from 'fastify
 import fp from 'fastify-plugin'
 import { db } from '../db/client.js'
 import { apiTokens, platformAccessLog, users } from '../db/schema/index.js'
+import { fail } from '../lib/http-error.js'
 import { tr } from '../lib/i18n.js'
 import { findActiveTenant } from '../lib/tenant-loop.js'
 import { getOwnerTenantId, runAsTenant, withRlsBypass } from '../lib/tenancy.js'
@@ -78,24 +79,24 @@ export const authPlugin = fp(async (app) => {
     if (bearer !== null) {
       // The company is not known before the token row is read, as for the session user below.
       apiToken = bearer ? await withRlsBypass(() => findUsableApiToken(bearer)) : null
-      if (!apiToken) return await reply.code(401).send({ success: false, error: 'TOKEN_INVALID' })
+      if (!apiToken) return await fail(reply, 401, 'TOKEN_INVALID')
       const tokenUserId = apiToken.userId
       me = await runAsTenant(apiToken.tenantId, () => loadSessionUser(tokenUserId))
       // No session_version check: changing the password does not revoke tokens, revoking does.
-      if (!me || me.status !== 'active') return await reply.code(401).send({ success: false, error: 'TOKEN_INVALID' })
+      if (!me || me.status !== 'active') return await fail(reply, 401, 'TOKEN_INVALID')
       const routeUrl = req.routeOptions.url ?? req.url.split('?')[0] ?? req.url
       if (isPathDeniedToTokens(req.method, routeUrl)) {
-        return await reply.code(403).send({ success: false, error: 'TOKEN_NOT_ALLOWED' })
+        return await fail(reply, 403, 'TOKEN_NOT_ALLOWED')
       }
       // Looking at another company is for the platform admin in the browser, never through a token.
       if (req.headers['x-tenant-id'] !== undefined) {
-        return await reply.code(403).send({ success: false, error: 'TOKEN_NOT_ALLOWED' })
+        return await fail(reply, 403, 'TOKEN_NOT_ALLOWED')
       }
       req.apiToken = { id: apiToken.id, name: apiToken.name }
       const budget = await tokenRateLimit(req)
       if (!budget.isAllowed && budget.isExceeded) {
         reply.header('retry-after', budget.ttlInSeconds)
-        return await reply.code(429).send({ success: false, error: tr('errors.rateLimited') })
+        return await fail(reply, 429, 'RATE_LIMITED')
       }
       // A token never carries more than its features: no platform-admin powers and no checks that
       // look at the role kind instead of the features (archive / calendar sharing and the like).
@@ -110,20 +111,20 @@ export const authPlugin = fp(async (app) => {
       try {
         payload = await req.jwtVerify()
       } catch {
-        return await reply.code(401).send({ success: false, error: 'Unauthorized' })
+        return await fail(reply, 401, 'UNAUTHORIZED')
       }
 
       // The company is not known before this row is read, so the lookup crosses companies. It is
       // one user by id; the company comes from that row and the `tid` check below.
       me = await withRlsBypass(() => loadSessionUser(payload.sub))
-      if (!me) return await reply.code(401).send({ success: false, error: 'Unauthorized' })
+      if (!me) return await fail(reply, 401, 'UNAUTHORIZED')
       // Dezactivat sau cu sesiunea invalidată (parolă schimbată/resetată): delogat imediat,
       // fără să aștepte expirarea tokenului. 'invited' nu ajunge aici — n-are încă parolă.
       if (me.status !== 'active' || me.sessionVersion !== payload.sv) {
-        return await reply.code(401).send({ success: false, error: 'Unauthorized' })
+        return await fail(reply, 401, 'UNAUTHORIZED')
       }
       if (payload.tid && me.tenant && payload.tid !== me.tenant.id) {
-        return await reply.code(401).send({ success: false, error: 'Unauthorized' })
+        return await fail(reply, 401, 'UNAUTHORIZED')
       }
       // Logged out from "Dispozitive", or the family was revoked: the access token dies with it,
       // not 15 minutes later.
@@ -131,21 +132,21 @@ export const authPlugin = fp(async (app) => {
         const sessionId = payload.sid
         const session = await runAsTenant(me.tenant?.id ?? getOwnerTenantId(), () => isSessionUsable(sessionId))
         if (!session || session.userId !== me.id) {
-          return await reply.code(401).send({ success: false, error: 'Unauthorized' })
+          return await fail(reply, 401, 'UNAUTHORIZED')
         }
         req.session = { id: session.id, familyId: session.familyId, passwordConfirmedAt: session.passwordConfirmedAt }
       }
     }
     if (me.tenant && me.tenant.status !== 'active' && !me.tenant.isPlatformOwner) {
-      return await reply.code(403).send({ success: false, error: tr('errors.tenants.suspended') })
+      return await fail(reply, 403, 'TENANT_SUSPENDED', { message: tr('errors.tenants.suspended') })
     }
     // The platform admin can look at another company. Every request made that way is logged.
     let tenantId = me.tenant?.id
     const asked = req.headers['x-tenant-id']
     if (typeof asked === 'string' && asked !== tenantId) {
-      if (!me.isPlatformAdmin) return await reply.code(403).send({ success: false, error: tr('errors.tenants.headerForbidden') })
+      if (!me.isPlatformAdmin) return await fail(reply, 403, 'TENANT_HEADER_FORBIDDEN', { message: tr('errors.tenants.headerForbidden') })
       const target = /^[0-9a-f-]{36}$/i.test(asked) ? await findActiveTenant(asked) : null
-      if (!target) return await reply.code(404).send({ success: false, error: tr('errors.tenants.notFound') })
+      if (!target) return await fail(reply, 404, 'TENANT_NOT_FOUND', { message: tr('errors.tenants.notFound') })
       tenantId = target.id
       await db.insert(platformAccessLog).values({ userId: me.id, tenantId, method: req.method, path: req.url.split('?')[0] ?? req.url, ip: req.ip })
     }
@@ -154,9 +155,7 @@ export const authPlugin = fp(async (app) => {
     // acoperă toate rutele sau serverul nu pornește, vezi feature-guard.ts).
     const required = featureForRequest(req, app.featureGuard)
     if (required && !me.features.includes(required)) {
-      return await reply
-        .code(403)
-        .send({ success: false, error: { code: 'FEATURE_FORBIDDEN', feature: required } })
+      return await fail(reply, 403, 'FEATURE_FORBIDDEN', { details: { feature: required } })
     }
 
     req.me = me
@@ -212,7 +211,7 @@ export function requireIngestToken(header: string, getExpected: () => string, en
     const provided = Array.isArray(providedRaw) ? providedRaw[0] : providedRaw
     if (!expected) req.log.error(`${envName} neconfigurat — resping toate cererile pe ${req.url}`)
     if (!expected || typeof provided !== 'string' || provided.length === 0 || !safeEqual(provided, expected)) {
-      await reply.code(401).send({ success: false, error: `Missing or invalid ${header} header` })
+      await fail(reply, 401, 'INGEST_TOKEN_INVALID')
     }
   }
 }

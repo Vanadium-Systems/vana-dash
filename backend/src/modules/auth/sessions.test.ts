@@ -157,7 +157,7 @@ describe('refresh rotation', () => {
       .where(eq(userSessions.tokenHash, hashRefreshToken(cookies.vana_refresh)))
     const reuse = await refresh(cookies)
     expect(reuse.statusCode).toBe(401)
-    expect(reuse.json().error).toBe('SESSION_EXPIRED')
+    expect(reuse.json().error.code).toBe('SESSION_EXPIRED')
 
     const rows = await familyRows(person.id)
     expect(rows.length).toBe(2)
@@ -178,7 +178,7 @@ describe('refresh rotation', () => {
     await db.update(userSessions).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(userSessions.userId, person.id))
     const res = await refresh(cookies)
     expect(res.statusCode).toBe(401)
-    expect(res.json().error).toBe('SESSION_EXPIRED')
+    expect(res.json().error.code).toBe('SESSION_EXPIRED')
   })
 
   it('two parallel refreshes with the same cookie both succeed and leave one live row', async () => {
@@ -276,7 +276,7 @@ describe('devices', () => {
     const { token } = created.json().data
     const res = await app.inject({ method: 'GET', url: '/api/me/sessions', headers: { authorization: `Bearer ${token}` } })
     expect(res.statusCode).toBe(403)
-    expect(res.json().error).toBe('TOKEN_NOT_ALLOWED')
+    expect(res.json().error.code).toBe('TOKEN_NOT_ALLOWED')
   })
 })
 

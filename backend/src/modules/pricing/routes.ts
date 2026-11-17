@@ -14,6 +14,7 @@ import {
 } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 export async function pricingRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -35,7 +36,8 @@ export async function pricingRoutes(app: FastifyInstance) {
         const row = await service.upsertConfig(req.body.platformId, req.body.config)
         return { success: true, data: row }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        req.log.warn({ err }, 'pricing config save failed')
+        return fail(reply, 400, 'PRICING_CONFIG_SAVE_FAILED')
       }
     },
   )
@@ -46,9 +48,7 @@ export async function pricingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const configRow = await service.getConfig(req.body.platformId)
       if (!configRow) {
-        return reply
-          .code(404)
-          .send({ success: false, error: tr('errors.pricing.noConfig') })
+        return fail(reply, 404, 'PRICING_CONFIG_MISSING', { message: tr('errors.pricing.noConfig') })
       }
       const result = calculatePrice(configRow.config as PricingConfig, req.body)
       return { success: true, data: result }
@@ -64,12 +64,10 @@ export async function pricingRoutes(app: FastifyInstance) {
         getPlatform(req.query.platformId),
       ])
       if (!configRow) {
-        return reply
-          .code(404)
-          .send({ success: false, error: tr('errors.pricing.noConfig') })
+        return fail(reply, 404, 'PRICING_CONFIG_MISSING', { message: tr('errors.pricing.noConfig') })
       }
       if (!isPdfAvailable()) {
-        return reply.code(503).send({ success: false, error: tr('errors.pdf.unavailableRetry') })
+        return fail(reply, 503, 'PDF_GENERATION_UNAVAILABLE')
       }
       const html = renderPriceSheetHtml(configRow.config as PricingConfig, platform?.name ?? PRICE_SHEET_PLATFORM_FALLBACK)
       const pdf = await htmlToPdf(html)

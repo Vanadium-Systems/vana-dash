@@ -4,6 +4,7 @@ import { config } from '../../shared/config.js'
 import { safeEqual } from '../../shared/lib/crypto.js'
 import { handleSentryIssueWebhook } from './sentry-service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 /**
  * Webhook Sentry — `POST /api/webhooks/sentry` (PUBLIC, fără session/JWT — Sentry nu poate
@@ -25,30 +26,30 @@ export async function sentryWebhookRoutes(app: FastifyInstance) {
     instance.post('/api/webhooks/sentry', { bodyLimit: 1024 * 1024 }, async (req, reply) => {
       if (!config.sentryWebhookSecret) {
         req.log.error('[webhooks/sentry] SENTRY_WEBHOOK_SECRET neconfigurat — webhook respins (fail-closed)')
-        return reply.code(503).send({ success: false, error: tr('errors.webhooks.notConfigured') })
+        return fail(reply, 503, 'WEBHOOK_NOT_CONFIGURED', { message: tr('errors.webhooks.notConfigured') })
       }
 
       const signature = req.headers['sentry-hook-signature']
       if (typeof signature !== 'string' || signature.length === 0) {
-        return reply.code(400).send({ success: false, error: tr('errors.webhooks.sentrySignatureMissing') })
+        return fail(reply, 400, 'WEBHOOK_HEADERS_MISSING', { message: tr('errors.webhooks.sentrySignatureMissing') })
       }
 
       const rawBody = req.body
       if (!Buffer.isBuffer(rawBody)) {
-        return reply.code(400).send({ success: false, error: tr('errors.webhooks.invalidBody') })
+        return fail(reply, 400, 'WEBHOOK_BODY_INVALID', { message: tr('errors.webhooks.invalidBody') })
       }
 
       const expected = createHmac('sha256', config.sentryWebhookSecret).update(rawBody).digest('hex')
       if (!safeEqual(signature, expected)) {
         req.log.warn('[webhooks/sentry] semnătură invalidă')
-        return reply.code(401).send({ success: false, error: tr('errors.webhooks.invalidSignature') })
+        return fail(reply, 401, 'WEBHOOK_SIGNATURE_INVALID', { message: tr('errors.webhooks.invalidSignature') })
       }
 
       let payload: unknown
       try {
         payload = JSON.parse(rawBody.toString('utf8'))
       } catch {
-        return reply.code(400).send({ success: false, error: tr('errors.webhooks.invalidJson') })
+        return fail(reply, 400, 'WEBHOOK_BODY_INVALID', { message: tr('errors.webhooks.invalidJson') })
       }
 
       // Payload AUTENTIC de aici încolo — procesare izolată (regula #7 CLAUDE.md): o eroare

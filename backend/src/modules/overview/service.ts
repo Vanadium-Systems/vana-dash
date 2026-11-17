@@ -3,13 +3,12 @@ import { db } from '../../shared/db/client.js'
 import { dashboardConfig, users } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { DEFAULT_COMPANY_LAYOUT, WIDGETS, type HomeLayoutItem } from './widgets.js'
+import { httpError } from '../../shared/lib/http-error.js'
 
 const COMPANY_LAYOUT_KEY = 'home.layout'
 const LEGACY_KPIS_KEY = 'overview.visible_kpis'
 
 export type LayoutSource = 'user' | 'company' | 'default'
-
-export class LayoutForbiddenError extends Error {}
 
 function canSee(user: Pick<SessionUser, 'features'>, widget: string): boolean {
   const known = WIDGETS[widget]
@@ -55,7 +54,7 @@ export async function getHomeLayout(user: SessionUser): Promise<{ layout: HomeLa
 }
 
 export async function setOwnLayout(user: SessionUser, layout: HomeLayoutItem[]): Promise<void> {
-  if (layout.some((item) => !canSee(user, item.widget))) throw new LayoutForbiddenError('widget not available')
+  if (layout.some((item) => !canSee(user, item.widget))) throw httpError(400, 'WIDGET_NOT_AVAILABLE')
   await db.update(users).set({ homeLayout: layout }).where(eq(users.id, user.id))
 }
 

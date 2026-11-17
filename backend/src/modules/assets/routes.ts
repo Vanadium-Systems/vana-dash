@@ -16,6 +16,7 @@ import {
   WatchlistEntrySchema,
 } from './schema.js'
 import * as service from './service.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 
 export async function assetsRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -83,19 +84,25 @@ export async function assetsRoutes(app: FastifyInstance) {
     return { success: true, data: await service.listRecentOrders() }
   })
 
-  server.post('/api/assets/orders/preview', { preHandler: [app.authenticate], schema: { body: OrderPreviewSchema } }, async (req) => {
+  server.post('/api/assets/orders/preview', { preHandler: [app.authenticate], schema: { body: OrderPreviewSchema } }, async (req, reply) => {
     try {
       return { success: true, data: await service.previewOrder({ ...req.body, broker: 'trading212' }) }
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) }
+      // Answered with 200 as before: the client reads `success`, not the status.
+      if (err instanceof HttpError) return fail(reply, 200, err.code, { params: err.params })
+      req.log.warn({ err }, 'assets preview failed')
+      return fail(reply, 200, 'BROKER_REQUEST_FAILED')
     }
   })
 
-  server.post('/api/assets/orders', { preHandler: [app.authenticate], schema: { body: PlaceOrderSchema } }, async (req) => {
+  server.post('/api/assets/orders', { preHandler: [app.authenticate], schema: { body: PlaceOrderSchema } }, async (req, reply) => {
     try {
       return { success: true, data: await service.placeOrder({ ...req.body, broker: 'trading212' }) }
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) }
+      // Answered with 200 as before: the client reads `success`, not the status.
+      if (err instanceof HttpError) return fail(reply, 200, err.code, { params: err.params })
+      req.log.warn({ err }, 'assets order failed')
+      return fail(reply, 200, 'BROKER_REQUEST_FAILED')
     }
   })
 

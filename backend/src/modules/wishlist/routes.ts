@@ -9,6 +9,7 @@ import {
 import * as service from './service.js'
 import { moneyMeta } from '../../shared/lib/display-money.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 export async function wishlistRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -36,14 +37,14 @@ export async function wishlistRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: UpdateWishlistItemSchema } },
     async (req, reply) => {
       const row = await service.updateWishlistItem(req.me, (req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.wishlist.itemNotFound') })
+      if (!row) return fail(reply, 404, 'WISHLIST_ITEM_NOT_FOUND', { message: tr('errors.wishlist.itemNotFound') })
       return { success: true, data: row }
     },
   )
 
   server.delete('/api/wishlist/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.deleteWishlistItem(req.me, (req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: tr('errors.wishlist.itemNotFound') })
+    if (!row) return fail(reply, 404, 'WISHLIST_ITEM_NOT_FOUND', { message: tr('errors.wishlist.itemNotFound') })
     return { success: true }
   })
 
@@ -52,7 +53,7 @@ export async function wishlistRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: PurchaseWishlistItemSchema } },
     async (req, reply) => {
       const row = await service.purchaseWishlistItem(req.me, (req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.wishlist.itemNotFound') })
+      if (!row) return fail(reply, 404, 'WISHLIST_ITEM_NOT_FOUND', { message: tr('errors.wishlist.itemNotFound') })
       return { success: true, data: row }
     },
   )

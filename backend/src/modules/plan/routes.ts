@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { CompleteGoalSchema, CreatePlanGoalSchema, ReorderGoalsSchema, MoveGoalSchema, UpdatePlanGoalSchema } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 export async function planRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -26,11 +27,11 @@ export async function planRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const row = await service.updateGoal(req.me, (req.params as { id: string }).id, req.body)
-        if (!row) return reply.code(404).send({ success: false, error: tr('errors.plan.goalNotFound') })
+        if (!row) return fail(reply, 404, 'GOAL_NOT_FOUND', { message: tr('errors.plan.goalNotFound') })
         return { success: true, data: row }
       } catch (err) {
         if (err instanceof service.ThresholdValueRequiredError) {
-          return reply.code(400).send({ success: false, error: tr('errors.plan.thresholdRequired') })
+          return fail(reply, 400, 'GOAL_THRESHOLD_REQUIRED', { message: tr('errors.plan.thresholdRequired') })
         }
         throw err
       }
@@ -39,7 +40,7 @@ export async function planRoutes(app: FastifyInstance) {
 
   server.delete('/api/plan/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.deleteGoal(req.me, (req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: tr('errors.plan.goalNotFound') })
+    if (!row) return fail(reply, 404, 'GOAL_NOT_FOUND', { message: tr('errors.plan.goalNotFound') })
     return { success: true }
   })
 
@@ -48,7 +49,7 @@ export async function planRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: CompleteGoalSchema } },
     async (req, reply) => {
       const row = await service.setCompleted(req.me, (req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.plan.goalNotFound') })
+      if (!row) return fail(reply, 404, 'GOAL_NOT_FOUND', { message: tr('errors.plan.goalNotFound') })
       return { success: true, data: row }
     },
   )
@@ -62,7 +63,7 @@ export async function planRoutes(app: FastifyInstance) {
         return { success: true, data: rows }
       } catch (err) {
         if (err instanceof service.InvalidReorderError) {
-          return reply.code(400).send({ success: false, error: err.message })
+          return fail(reply, 400, 'GOAL_ORDER_MISMATCH', { message: err.message })
         }
         throw err
       }
@@ -74,7 +75,7 @@ export async function planRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: MoveGoalSchema } },
     async (req, reply) => {
       const row = await service.moveGoal(req.me, (req.params as { id: string }).id, req.body.tier, req.body.position)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.plan.goalNotFound') })
+      if (!row) return fail(reply, 404, 'GOAL_NOT_FOUND', { message: tr('errors.plan.goalNotFound') })
       return { success: true, data: row }
     },
   )

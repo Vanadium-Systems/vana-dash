@@ -10,21 +10,23 @@ import {
 } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
-const CALL_ERROR_TEXT = {
-  not_found: 'errors.calls.notFound',
-  closed: 'errors.calls.closed',
-  provider: 'errors.calls.providerError',
-  not_configured: 'errors.calls.notConfigured',
-  forbidden: 'errors.forbidden',
+const CALL_ERROR = {
+  not_found: { code: 'CALL_NOT_FOUND', text: 'errors.calls.notFound' },
+  closed: { code: 'CALL_CLOSED', text: 'errors.calls.closed' },
+  provider: { code: 'CALLS_PROVIDER_FAILED', text: 'errors.calls.providerError' },
+  not_configured: { code: 'CALLS_NOT_CONFIGURED', text: 'errors.calls.notConfigured' },
+  forbidden: { code: 'FORBIDDEN', text: 'errors.forbidden' },
 } as const
 
 function sendCallError(reply: FastifyReply, err: unknown) {
   if (err instanceof service.CallError) {
     if (err.code === 'forbidden' && err.feature) {
-      return reply.code(403).send({ success: false, error: { code: 'FEATURE_FORBIDDEN', feature: err.feature } })
+      return fail(reply, 403, 'FEATURE_FORBIDDEN', { details: { feature: err.feature } })
     }
-    return reply.code(err.status).send({ success: false, error: tr(CALL_ERROR_TEXT[err.code]) })
+    const { code, text } = CALL_ERROR[err.code]
+    return fail(reply, err.status, code, { message: tr(text) })
   }
   throw err
 }
@@ -114,7 +116,7 @@ export async function callsRoutes(app: FastifyInstance) {
     { config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, schema: { params: PublicCallParamsSchema } },
     async (req, reply) => {
       const call = await service.getPublicCall(req.params.publicId)
-      if (!call) return reply.code(404).send({ success: false, error: tr('errors.calls.notFound') })
+      if (!call) return fail(reply, 404, 'CALL_NOT_FOUND', { message: tr('errors.calls.notFound') })
       return { success: true, data: call }
     },
   )
