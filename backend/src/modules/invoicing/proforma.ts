@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, isNotNull, isNull, type SQL } from 'drizzle-orm'
+import { and, asc, count, desc, eq, isNotNull, isNull, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import { recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
@@ -29,7 +29,10 @@ export async function listProformas(query: z.infer<typeof ProformaListQuerySchem
   else if (query.status) conditions.push(isNotNull(financialRecords.documentNumber), eq(financialRecords.proformaStatus, query.status))
 
   const where = and(proformaFilter, ...conditions)
-  const [[totalRow], items] = await Promise.all([
+  const issued = sql`${financialRecords.documentNumber} IS NOT NULL`
+  const countWhere = (when: SQL) => sql<number>`COUNT(*) FILTER (WHERE ${when})`.mapWith(Number)
+  // The counts ignore the filter, so the numbers on the filter tabs stay put while switching.
+  const [[totalRow], items, [counts]] = await Promise.all([
     db.select({ total: count() }).from(financialRecords).where(where),
     db
       .select(invoiceColumns)
@@ -38,8 +41,18 @@ export async function listProformas(query: z.infer<typeof ProformaListQuerySchem
       .orderBy(desc(financialRecords.createdAt), desc(financialRecords.id))
       .limit(query.pageSize)
       .offset((query.page - 1) * query.pageSize),
+    db
+      .select({
+        all: sql<number>`COUNT(*)`.mapWith(Number),
+        draft: countWhere(sql`${financialRecords.documentNumber} IS NULL`),
+        open: countWhere(sql`${issued} AND ${financialRecords.proformaStatus} = 'open'`),
+        invoiced: countWhere(sql`${issued} AND ${financialRecords.proformaStatus} = 'invoiced'`),
+        cancelled: countWhere(sql`${issued} AND ${financialRecords.proformaStatus} = 'cancelled'`),
+      })
+      .from(financialRecords)
+      .where(proformaFilter),
   ])
-  return { items, total: totalRow?.total ?? 0 }
+  return { items, total: totalRow?.total ?? 0, counts: counts ?? { all: 0, draft: 0, open: 0, invoiced: 0, cancelled: 0 } }
 }
 
 export async function issueProforma(id: string) {

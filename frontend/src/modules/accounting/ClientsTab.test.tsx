@@ -54,6 +54,7 @@ describe('ClientsTab ?client=', () => {
       )
     })
     await vi.waitFor(() => expect(container.querySelector('[data-testid="card"]')?.textContent).toBe('Acme SRL'))
-    expect(container.querySelector('[data-testid="where"]')!.textContent).toBe('?tab=activi')
+    await vi.waitFor(() => expect(container.querySelector('[data-testid="where"]')!.textContent).toBe('?tab=activi'))
+    expect(container.querySelector('[data-testid="card"]')?.textContent).toBe('Acme SRL')
   })
 })

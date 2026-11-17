@@ -15,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useMe } from '@/shared/hooks/use-me'
 import { useUrlState } from '@/shared/hooks/use-url-state'
 import { api } from '@/shared/lib/api'
-import { formatDate } from '@/shared/lib/format'
+import { formatDate, formatNumber } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
 import type { FinancialRecord } from '@/shared/lib/types'
@@ -29,6 +29,7 @@ type ProformaState = 'draft' | 'open' | 'invoiced' | 'cancelled'
 interface ProformaPage {
   items: FinancialRecord[]
   total: number
+  counts: Record<ProformaFilter, number>
 }
 
 // The list has no isDraft flag: a proforma without a number has not been issued.
@@ -91,6 +92,7 @@ export function ProformasTab() {
           {FILTERS.map((entry) => (
             <TabsTrigger key={entry} value={entry} data-testid={`proformas-tab-${entry}`}>
               {t(`accounting:proformas.filters.${entry}` as const)}
+              {list.data?.counts ? <span className="ml-1.5 text-xs text-muted-foreground">{formatNumber(list.data.counts[entry])}</span> : null}
             </TabsTrigger>
           ))}
         </TabsList>
