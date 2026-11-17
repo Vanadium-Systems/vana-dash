@@ -6,7 +6,8 @@
  */
 import argon2 from 'argon2'
 import { Readable } from 'node:stream'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { randomBytes } from 'node:crypto'
+import { and, eq, inArray, isNull, like } from 'drizzle-orm'
 import type { InjectOptions, LightMyRequestResponse } from 'fastify'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 
@@ -58,7 +59,55 @@ const conversationIds: string[] = []
 interface TestSession {
   me: SessionUser
   token: string
+  deviceId: string
 }
+
+// Leftovers of a run that died before afterAll: same emails and role names would collide.
+const staleUsers = await db.select({ id: users.id }).from(users).where(like(users.email, 'qa-chat-%@test.local'))
+if (staleUsers.length) {
+  const staleIds = staleUsers.map((row) => row.id)
+  const staleMemberships = await db
+    .select({ id: conversationMembers.conversationId })
+    .from(conversationMembers)
+    .where(inArray(conversationMembers.userId, staleIds))
+  const staleCreated = await db.select({ id: conversations.id }).from(conversations).where(inArray(conversations.createdByUserId, staleIds))
+  const staleConversationIds = [...new Set([...staleMemberships, ...staleCreated].map((row) => row.id))]
+  await db.delete(messageAttachments).where(inArray(messageAttachments.uploadedByUserId, staleIds))
+  if (staleConversationIds.length) {
+    await db.delete(conversationMembers).where(inArray(conversationMembers.conversationId, staleConversationIds))
+    await db.delete(messages).where(inArray(messages.conversationId, staleConversationIds))
+    await db.delete(conversations).where(inArray(conversations.id, staleConversationIds))
+  }
+  await db.delete(users).where(inArray(users.id, staleIds))
+}
+await db.delete(roles).where(like(roles.name, 'Test: chat qa-chat-%'))
+
+// The key is a stand-in with the right shape: the server only checks the format, never uses it.
+async function registerDevice(token: string): Promise<string> {
+  const publicKey = () => randomBytes(32).toString('base64').replace(/=+$/, '')
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/chat/keys/devices',
+    cookies: { vana_session: token },
+    payload: { publicIdentityKey: publicKey(), signingKey: publicKey(), label: 'QA' },
+  })
+  expect(res.statusCode).toBe(201)
+  return res.json().data.id as string
+}
+
+let ciphertextCounter = 0
+// Opaque on purpose: the server stores whatever the author's device sent.
+const sealed = (u: TestSession) => ({
+  v: 1 as const,
+  ciphertext: Buffer.from(`opaque-${++ciphertextCounter}`).toString('base64'),
+  senderDeviceId: u.deviceId,
+})
+const text = (u: TestSession, extra: Record<string, unknown> = {}) => ({
+  body: '',
+  clientId: crypto.randomUUID(),
+  encrypted: sealed(u),
+  ...extra,
+})
 
 async function user(email: string, features: string[]): Promise<TestSession> {
   const [role] = await db
@@ -72,6 +121,8 @@ async function user(email: string, features: string[]): Promise<TestSession> {
     .returning()
   userIds.push(row!.id)
   const token = await app.jwt.sign({ sub: row!.id, sv: 1 })
+  // Without mesaje.view the key routes answer 403, so such a person has no device.
+  const deviceId = features.includes('mesaje.view') ? await registerDevice(token) : ''
   const me: SessionUser = {
     id: row!.id,
     email,
@@ -89,7 +140,7 @@ async function user(email: string, features: string[]): Promise<TestSession> {
     displayCurrency: 'RON',
     sessionVersion: 1,
   }
-  return { me, token }
+  return { me, token, deviceId }
 }
 
 const ana = await user('qa-chat-ana@test.local', ['mesaje.view'])
@@ -117,7 +168,8 @@ const group = await post('/api/chat/conversations', ana, { kind: 'group', name: 
 const groupId = group.json().data.id as string
 conversationIds.push(groupId)
 
-const sent = await post(`/api/chat/conversations/${dmId}/messages`, ana, { body: 'Salut, Ion', clientId: crypto.randomUUID() })
+const firstEncrypted = sealed(ana)
+const sent = await post(`/api/chat/conversations/${dmId}/messages`, ana, text(ana, { encrypted: firstEncrypted }))
 const firstMessageId = sent.json().data.id as string
 
 afterAll(async () => {
@@ -152,10 +204,10 @@ describe('izolarea între conversații', () => {
   })
 
   it('trimisul într-o conversație străină e 404 și nu creează mesaj', async () => {
-    const res = await post(`/api/chat/conversations/${dmId}/messages`, outsider, { body: 'intruse', clientId: crypto.randomUUID() })
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, outsider, text(outsider))
     expect(res.statusCode).toBe(404)
     const rows = await db.select().from(messages).where(eq(messages.conversationId, dmId))
-    expect(rows.some((m) => m.body === 'intruse')).toBe(false)
+    expect(rows.some((m) => m.authorUserId === outsider.me.id)).toBe(false)
   })
 
   it('marcatul citit într-o conversație străină e 404', async () => {
@@ -164,10 +216,11 @@ describe('izolarea între conversații', () => {
   })
 
   it('editarea unui mesaj al altuia e 404 — și mesajul rămâne neatins', async () => {
-    const res = await patch(`/api/chat/messages/${firstMessageId}`, ion, { body: 'rescris' })
+    const res = await patch(`/api/chat/messages/${firstMessageId}`, ion, { encrypted: sealed(ion) })
     expect(res.statusCode).toBe(404)
     const [row] = await db.select().from(messages).where(eq(messages.id, firstMessageId))
-    expect(row!.body).toBe('Salut, Ion')
+    expect(row!.ciphertext?.toString('base64')).toBe(firstEncrypted.ciphertext)
+    expect(row!.editedAt).toBeNull()
   })
 
   it('ștergerea unui mesaj al altuia e 404', async () => {
@@ -205,22 +258,78 @@ describe('izolarea între conversații', () => {
 
 describe('mesaje', () => {
   it('trimiterea avansează și citirea de pe conversăție', async () => {
-    const res = await post(`/api/chat/conversations/${dmId}/messages`, ion, { body: 'Salut, Ana', clientId: crypto.randomUUID() })
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, ion, text(ion))
     expect(res.statusCode).toBe(200)
     const id = res.json().data.id as string
     const read = await post(`/api/chat/conversations/${dmId}/read`, ana, { messageId: id })
     expect(read.statusCode).toBe(200)
   })
 
-  it('mesajul gol fără atașamente e refuzat cu 400', async () => {
-    const res = await post(`/api/chat/conversations/${dmId}/messages`, ana, { body: '   ', clientId: crypto.randomUUID() })
+  it('mesajul fără text criptat, atașamente sau obiecte e refuzat cu 400', async () => {
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, ana, { body: '', clientId: crypto.randomUUID() })
     expect(res.statusCode).toBe(400)
+  })
+
+  it('un body în clar e refuzat cu 400 și nu ajunge în baza de date', async () => {
+    const clientId = crypto.randomUUID()
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, ana, { body: 'în clar', clientId, encrypted: sealed(ana) })
+    expect(res.statusCode).toBe(400)
+    expect(await db.select().from(messages).where(eq(messages.clientId, clientId))).toHaveLength(0)
+  })
+
+  it('un dispozitiv care nu e al autorului e 400 UNKNOWN_DEVICE', async () => {
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, ana, text(ana, { encrypted: sealed(ion) }))
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error.code).toBe('UNKNOWN_DEVICE')
+  })
+
+  it('un dispozitiv revocat nu mai poate trimite', async () => {
+    const device = await registerDevice(ana.token)
+    const revoked = await app.inject({ method: 'DELETE', url: `/api/chat/keys/devices/${device}`, cookies: cookie(ana) })
+    expect(revoked.statusCode).toBe(200)
+    const res = await post(
+      `/api/chat/conversations/${dmId}/messages`,
+      ana,
+      text(ana, { encrypted: { ...sealed(ana), senderDeviceId: device } }),
+    )
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error.code).toBe('UNKNOWN_DEVICE')
+  })
+
+  it('textul criptat se întoarce identic, cu body gol, și se păstrează ca bytea', async () => {
+    const encrypted = sealed(ana)
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, ana, text(ana, { encrypted }))
+    expect(res.statusCode).toBe(200)
+    expect(res.json().data.body).toBe('')
+    expect(res.json().data.encrypted).toEqual(encrypted)
+    const [row] = await db.select().from(messages).where(eq(messages.id, res.json().data.id))
+    expect(row!.body).toBe('')
+    expect(row!.ciphertext?.toString('base64')).toBe(encrypted.ciphertext)
+  })
+
+  it('autorul își editează mesajul cu un text nou criptat', async () => {
+    const created = await post(`/api/chat/conversations/${groupId}/messages`, ana, text(ana))
+    const encrypted = sealed(ana)
+    const res = await patch(`/api/chat/messages/${created.json().data.id}`, ana, { encrypted })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().data.encrypted).toEqual(encrypted)
+    expect(res.json().data.editedAt).not.toBeNull()
+  })
+
+  it('un body la editare nu mai e acceptat', async () => {
+    const res = await patch(`/api/chat/messages/${firstMessageId}`, ana, { body: 'în clar' })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('căutarea pe server nu mai există', async () => {
+    const res = await get(`/api/chat/conversations/${dmId}/search?q=salut`, ana)
+    expect(res.statusCode).toBe(404)
   })
 
   it('aceeași clientId la retrimitere întoarce același mesaj, nu o copie', async () => {
     const clientId = crypto.randomUUID()
-    const first = await post(`/api/chat/conversations/${groupId}/messages`, ana, { body: 'Conectare lentă', clientId })
-    const second = await post(`/api/chat/conversations/${groupId}/messages`, ana, { body: 'Conectare lentă', clientId })
+    const first = await post(`/api/chat/conversations/${groupId}/messages`, ana, text(ana, { clientId }))
+    const second = await post(`/api/chat/conversations/${groupId}/messages`, ana, text(ana, { clientId }))
     expect(second.json().data.id).toBe(first.json().data.id)
     const rows = await db.select().from(messages).where(eq(messages.clientId, clientId))
     expect(rows).toHaveLength(1)
@@ -236,14 +345,18 @@ describe('mesaje', () => {
   })
 
   it('ștergerea de către autor e moale („Mesaj șters") și mesajul nu mai e necitit', async () => {
-    const created = await post(`/api/chat/conversations/${groupId}/messages`, ion, { body: 'se șterge', clientId: crypto.randomUUID() })
+    const created = await post(`/api/chat/conversations/${groupId}/messages`, ion, text(ion))
     const id = created.json().data.id as string
     const res = await app.inject({ method: 'DELETE', url: `/api/chat/messages/${id}`, cookies: cookie(ion) })
     expect(res.statusCode).toBe(200)
+    const [stored] = await db.select().from(messages).where(eq(messages.id, id))
+    expect(stored!.ciphertext).toBeNull()
+    expect(stored!.body).toBe('')
     const listed = await get(`/api/chat/conversations/${groupId}/messages?limit=50`, ana)
     const row = listed.json().data.messages.find((m: { id: string }) => m.id === id)
     expect(row.deletedAt).not.toBeNull()
     expect(row.body).toBe('')
+    expect(row.encrypted).toBeNull()
   })
 })
 
@@ -252,7 +365,7 @@ describe('necitite și „nu mai notifica"', () => {
     const conv = await post('/api/chat/conversations', ana, { kind: 'group', name: 'QA necitite', memberIds: [ion.me.id] })
     const id = conv.json().data.id as string
     conversationIds.push(id)
-    const created = await post(`/api/chat/conversations/${id}/messages`, ana, { body: 'pentru Ion', clientId: crypto.randomUUID() })
+    const created = await post(`/api/chat/conversations/${id}/messages`, ana, text(ana))
     const messageId = created.json().data.id as string
 
     const list = await get('/api/chat/conversations', ion)
@@ -261,13 +374,18 @@ describe('necitite și „nu mai notifica"', () => {
     await post(`/api/chat/conversations/${id}/read`, ion, { messageId })
     const afterRead = await get('/api/chat/conversations', ion)
     expect(afterRead.json().data.find((c: { id: string }) => c.id === id).unreadCount).toBe(0)
+    const [member] = await db
+      .select({ lastReadAt: conversationMembers.lastReadAt })
+      .from(conversationMembers)
+      .where(and(eq(conversationMembers.conversationId, id), eq(conversationMembers.userId, ion.me.id)))
+    expect(member!.lastReadAt).not.toBeNull()
   })
 
   it('bifele: trimis, livrat când Ion își încarcă lista, văzut după citire', async () => {
     const conv = await post('/api/chat/conversations', ana, { kind: 'group', name: 'QA bife', memberIds: [ion.me.id] })
     const id = conv.json().data.id as string
     conversationIds.push(id)
-    const created = await post(`/api/chat/conversations/${id}/messages`, ana, { body: 'ai primit?', clientId: crypto.randomUUID() })
+    const created = await post(`/api/chat/conversations/${id}/messages`, ana, text(ana))
     const { id: messageId, createdAt } = created.json().data as { id: string; createdAt: string }
     const receiptOfIon = async () =>
       (await get(`/api/chat/conversations/${id}/messages`, ana)).json().data.receipts.find((r: { userId: string }) => r.userId === ion.me.id)
@@ -287,7 +405,7 @@ describe('necitite și „nu mai notifica"', () => {
     const conv = await post('/api/chat/conversations', ana, { kind: 'group', name: 'QA mut', memberIds: [ion.me.id] })
     const id = conv.json().data.id as string
     conversationIds.push(id)
-    await post(`/api/chat/conversations/${id}/messages`, ana, { body: 'mute', clientId: crypto.randomUUID() })
+    await post(`/api/chat/conversations/${id}/messages`, ana, text(ana))
     const muted = await patch(`/api/chat/conversations/${id}`, ion, { muted: true })
     expect(muted.statusCode).toBe(200)
     const list = await get('/api/chat/conversations', ion)
@@ -300,81 +418,106 @@ describe('necitite și „nu mai notifica"', () => {
 describe('atașamente', () => {
   // `app.inject` nu serializează FormData în acest repo (niciun alt test nu face upload
   // multipart), deci corpul se construiește manual, cu boundary — altfel serverul răspunde
-  // 406 „the request is not multipart".
-  async function upload(u: TestSession, filename: string, contentType: string, content: string) {
+  // 406 „the request is not multipart". Câmpurile merg înaintea fișierelor, ca în client.
+  async function upload(
+    u: TestSession,
+    opts: { fields?: Record<string, string>; content?: string | Buffer; thumbnail?: string; filename?: string } = {},
+  ) {
     const boundary = `----qaChat${crypto.randomUUID()}`
-    const body =
-      `--${boundary}\r\n` +
-      `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
-      `Content-Type: ${contentType}\r\n\r\n` +
-      `${content}\r\n` +
-      `--${boundary}--\r\n`
+    const parts: Buffer[] = []
+    for (const [name, value] of Object.entries(opts.fields ?? { encrypted: '1', kind: 'image' })) {
+      parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`))
+    }
+    const file = (name: string, filename: string, content: string | Buffer) => [
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="${name}"; filename="${filename}"\r\n` +
+          `Content-Type: application/octet-stream\r\n\r\n`,
+      ),
+      Buffer.from(content),
+      Buffer.from('\r\n'),
+    ]
+    parts.push(...file('file', opts.filename ?? 'blob', opts.content ?? 'opaque-file-bytes'))
+    if (opts.thumbnail !== undefined) parts.push(...file('thumbnail', 'thumb', opts.thumbnail))
+    parts.push(Buffer.from(`--${boundary}--\r\n`))
     return app.inject({
       method: 'POST',
       url: '/api/chat/attachments',
       cookies: cookie(u),
       headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
-      payload: body,
+      payload: Buffer.concat(parts),
     })
   }
 
-  it('o poză se servește inline, un .html doar ca descărcare', async () => {
-    // Atașamentul se leagă de un mesaj, deci servirea lui se face pe baza membriei în
-    // conversația aceluia — un upload neatribuit e citibil doar de cel care l-a încărcat
-    // (testul următor).
-    const image = await upload(ana, 'poza.png', 'image/png', 'png-de-test')
-    const imageId = image.json().data.id as string
-    await post(`/api/chat/conversations/${dmId}/messages`, ana, {
-      body: 'cu poză',
-      clientId: crypto.randomUUID(),
-      attachmentIds: [imageId],
-    })
-    const inline = await get(`/api/chat/attachments/${imageId}`, ion)
-    expect(inline.statusCode).toBe(200)
-    expect(inline.headers['content-disposition']).toContain('inline')
-    expect(inline.headers['x-content-type-options']).toBe('nosniff')
+  it('un upload fără encrypted=1 e refuzat cu 400 NOT_ENCRYPTED și nu lasă rând', async () => {
+    const before = await db.select().from(messageAttachments).where(eq(messageAttachments.uploadedByUserId, ana.me.id))
+    const res = await upload(ana, { fields: { kind: 'image' } })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error.code).toBe('NOT_ENCRYPTED')
+    const after = await db.select().from(messageAttachments).where(eq(messageAttachments.uploadedByUserId, ana.me.id))
+    expect(after).toHaveLength(before.length)
+  })
 
-    const html = await upload(ana, 'capcana.html', 'text/html', '<script>alert(1)</script>')
-    const htmlId = html.json().data.id as string
-    await post(`/api/chat/conversations/${dmId}/messages`, ana, {
-      body: 'cu html',
-      clientId: crypto.randomUUID(),
-      attachmentIds: [htmlId],
-    })
-    const attachment = await get(`/api/chat/attachments/${htmlId}`, ion)
-    expect(attachment.statusCode).toBe(200)
-    expect(attachment.headers['content-disposition']).toContain('attachment')
-    expect(attachment.headers['x-content-type-options']).toBe('nosniff')
+  it('atașamentul criptat se servește ca descărcare octet-stream, iar miniatura pe ?size=thumb', async () => {
+    const image = await upload(ana, { content: 'full-bytes', thumbnail: 'thumb-bytes' })
+    expect(image.statusCode).toBe(200)
+    const imageId = image.json().data.id as string
+    const [row] = await db.select().from(messageAttachments).where(eq(messageAttachments.id, imageId))
+    expect(row).toMatchObject({ encrypted: true, mediaKind: 'image', contentType: 'application/octet-stream' })
+    expect(row!.thumbnailPath).not.toBeNull()
+
+    const sentMessage = await post(`/api/chat/conversations/${dmId}/messages`, ana, text(ana, { attachmentIds: [imageId] }))
+    expect(sentMessage.statusCode).toBe(200)
+    expect(sentMessage.json().data.attachments).toEqual([expect.objectContaining({ id: imageId, encrypted: true, mediaKind: 'image' })])
+
+    const full = await get(`/api/chat/attachments/${imageId}`, ion)
+    expect(full.statusCode).toBe(200)
+    expect(full.headers['content-type']).toContain('application/octet-stream')
+    expect(full.headers['content-disposition']).toContain('attachment')
+    expect(full.headers['x-content-type-options']).toBe('nosniff')
+    expect(full.rawPayload.toString()).toBe('full-bytes')
+
+    const thumb = await get(`/api/chat/attachments/${imageId}?size=thumb`, ion)
+    expect(thumb.statusCode).toBe(200)
+    expect(thumb.rawPayload.toString()).toBe('thumb-bytes')
+  })
+
+  it('fără miniatură, ?size=thumb întoarce fișierul', async () => {
+    const file = await upload(ana, { fields: { encrypted: '1', kind: 'file' }, content: 'only-full' })
+    const id = file.json().data.id as string
+    await post(`/api/chat/conversations/${dmId}/messages`, ana, text(ana, { attachmentIds: [id] }))
+    const res = await get(`/api/chat/attachments/${id}?size=thumb`, ion)
+    expect(res.statusCode).toBe(200)
+    expect(res.rawPayload.toString()).toBe('only-full')
   })
 
   it('un atașament al unei conversații din care nu faci parte e 404, cerut direct prin id', async () => {
-    const image = await upload(ion, 'secret.png', 'image/png', 'png-de-test')
+    const image = await upload(ion)
     const imageId = image.json().data.id as string
+    await post(`/api/chat/conversations/${dmId}/messages`, ion, text(ion, { attachmentIds: [imageId] }))
     const res = await get(`/api/chat/attachments/${imageId}`, outsider)
     expect(res.statusCode).toBe(404)
   })
 
   it('un upload netrimis e citibil doar de cel care l-a încărcat', async () => {
-    const image = await upload(ion, 'netrimis.png', 'image/png', 'png-de-test')
+    const image = await upload(ion)
     const imageId = image.json().data.id as string
     expect((await get(`/api/chat/attachments/${imageId}`, ion)).statusCode).toBe(200)
     expect((await get(`/api/chat/attachments/${imageId}`, ana)).statusCode).toBe(404)
   })
 
-  it('numele cu slash-uri nu ajunge ca drum în R2 sau în antetul de descărcare', async () => {
-    const res = await upload(ana, '../../etc/pa**sswd', 'text/plain', 'text')
+  it('numele fișierului nu ajunge în R2 sau în baza de date', async () => {
+    const res = await upload(ana, { filename: '../../etc/pa**sswd' })
     expect(res.statusCode).toBe(200)
     const id = res.json().data.id as string
     const [row] = await db.select().from(messageAttachments).where(eq(messageAttachments.id, id))
-    expect(row!.storagePath).toMatch(/^chat\/[0-9a-f-]{36}-/)
-    expect(row!.storagePath).not.toContain('..')
-    const download = await get(`/api/chat/attachments/${id}`, ana)
-    expect(download.headers['content-disposition']).not.toContain('/')
+    expect(row!.storagePath).toMatch(/^chat\/[0-9a-f-]{36}\.enc$/)
+    expect(row!.filename).toBe('encrypted')
+    expect(JSON.stringify(row)).not.toContain('sswd')
     await db.delete(messageAttachments).where(eq(messageAttachments.id, id))
   })
 
   it('un fișier peste 50 MB e refuzat cu 413', async () => {
-    const res = await upload(ana, 'mare.bin', 'application/octet-stream', 'x'.repeat(50 * 1024 * 1024 + 1024))
+    const res = await upload(ana, { content: Buffer.alloc(50 * 1024 * 1024 + 1024, 'x') })
     expect(res.statusCode).toBe(413)
   })
 })
@@ -433,24 +576,16 @@ describe('răspunsuri și reacții', () => {
   const reactionUrl = (messageId: string, emoji: string) => `/api/chat/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`
 
   it('un răspuns la un mesaj din altă conversație e 400 REPLY_NOT_IN_CONVERSATION', async () => {
-    const foreign = await post(`/api/chat/conversations/${otherDmId}/messages`, ion, { body: 'în altă parte', clientId: crypto.randomUUID() })
-    const res = await post(`/api/chat/conversations/${dmId}/messages`, ana, {
-      body: 'răspuns',
-      clientId: crypto.randomUUID(),
-      replyToId: foreign.json().data.id,
-    })
+    const foreign = await post(`/api/chat/conversations/${otherDmId}/messages`, ion, text(ion))
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, ana, text(ana, { replyToId: foreign.json().data.id }))
     expect(res.statusCode).toBe(400)
     expect(res.json().error.code).toBe('REPLY_NOT_IN_CONVERSATION')
   })
 
   it('un răspuns valid vine cu replyTo', async () => {
-    const res = await post(`/api/chat/conversations/${dmId}/messages`, ion, {
-      body: 'răspuns',
-      clientId: crypto.randomUUID(),
-      replyToId: firstMessageId,
-    })
+    const res = await post(`/api/chat/conversations/${dmId}/messages`, ion, text(ion, { replyToId: firstMessageId }))
     expect(res.statusCode).toBe(200)
-    expect(res.json().data.replyTo).toMatchObject({ id: firstMessageId, body: 'Salut, Ion', deleted: false })
+    expect(res.json().data.replyTo).toMatchObject({ id: firstMessageId, deleted: false })
   })
 
   it('reacția cuiva din afara conversației e 404', async () => {
@@ -459,7 +594,7 @@ describe('răspunsuri și reacții', () => {
   })
 
   it('reacția la un mesaj șters e 404', async () => {
-    const created = await post(`/api/chat/conversations/${groupId}/messages`, ion, { body: 'dispare', clientId: crypto.randomUUID() })
+    const created = await post(`/api/chat/conversations/${groupId}/messages`, ion, text(ion))
     const id = created.json().data.id as string
     await app.inject({ method: 'DELETE', url: `/api/chat/messages/${id}`, cookies: cookie(ion) })
     const res = await put(reactionUrl(id, '👍'), ana)
@@ -490,7 +625,7 @@ describe('răspunsuri și reacții', () => {
   })
 })
 
-describe('fereastra din jurul unui mesaj, căutare, tastare', () => {
+describe('fereastra din jurul unui mesaj, tastare', () => {
   it('around întoarce 25 mai vechi + 25 de la ancoră și hasNewer', async () => {
     const conv = await post('/api/chat/conversations', ana, { kind: 'group', name: 'QA around', memberIds: [ion.me.id] })
     const id = conv.json().data.id as string
@@ -526,18 +661,6 @@ describe('fereastra din jurul unui mesaj, căutare, tastare', () => {
     expect(middlePage.messages[25]!.body).toBe('mesaj 30')
     expect(middlePage.hasMore).toBe(true)
     expect(middlePage.hasNewer).toBe(true)
-  })
-
-  it('căutarea ignoră diacriticele', async () => {
-    const created = await post(`/api/chat/conversations/${dmId}/messages`, ana, { body: 'Mâine la ședință', clientId: crypto.randomUUID() })
-    const res = await get(`/api/chat/conversations/${dmId}/search?q=sedinta`, ion)
-    expect(res.statusCode).toBe(200)
-    expect(res.json().data.map((m: { id: string }) => m.id)).toContain(created.json().data.id)
-  })
-
-  it('căutarea într-o conversație străină e 404', async () => {
-    const res = await get(`/api/chat/conversations/${dmId}/search?q=salut`, outsider)
-    expect(res.statusCode).toBe(404)
   })
 
   it('tastarea ajunge la ceilalți membri, nu la cel care tastează', async () => {

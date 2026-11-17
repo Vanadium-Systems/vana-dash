@@ -15,9 +15,10 @@ import { createdByUserId } from '../../shared/lib/audit.js'
 import { refAdapter, type RefFile, type RefSnapshot, type RefType } from '../../shared/lib/entity-refs.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { effectiveFeatures, userName } from '../../shared/lib/session.js'
-import { foldDiacritics, foldedIlike } from '../../shared/lib/text.js'
+import { foldDiacritics } from '../../shared/lib/text.js'
 import type {
   CreateConversationSchema,
+  EncryptedContentSchema,
   ListMessagesQuerySchema,
   MediaQuerySchema,
   SendMessageSchema,
@@ -26,6 +27,7 @@ import type {
 import type { z } from 'zod'
 import { tr } from '../../shared/lib/i18n.js'
 import { qualified } from '../../shared/lib/sql-fx.js'
+import { hasSignedDevice, isOwnActiveDevice } from './keys.js'
 
 // Mesaje între oameni (PLAN.md C3). Un singur backend, deci bus-ul de evenimente e în
 // memorie (presence.ts) — dacă ajunge vreodată pe două instanțe, trece pe LISTEN/NOTIFY.
@@ -37,19 +39,31 @@ import { qualified } from '../../shared/lib/sql-fx.js'
 export type ConversationInput = z.infer<typeof CreateConversationSchema>
 export type ConversationPatch = z.infer<typeof UpdateConversationSchema>
 export type SendMessageInput = z.infer<typeof SendMessageSchema>
+type EncryptedInput = z.infer<typeof EncryptedContentSchema>
 export type ListMessagesQuery = z.infer<typeof ListMessagesQuerySchema>
 
 export interface ChatAttachment {
   id: string
+  /** Placeholders when `encrypted`: the real name and type are inside the message. */
   filename: string
   contentType: string
   sizeBytes: number
+  encrypted: boolean
+  mediaKind: 'image' | 'file' | null
+}
+
+/** End-to-end encrypted content: the server passes it along and cannot read it. */
+export interface ChatEncrypted {
+  v: number
+  ciphertext: string
+  senderDeviceId: string | null
 }
 
 export interface ChatReplyPreview {
   id: string
   authorName: string
   body: string
+  encrypted: ChatEncrypted | null
   hasAttachment: boolean
   deleted: boolean
 }
@@ -76,7 +90,9 @@ export interface ChatMessage {
   conversationId: string
   authorUserId: string
   authorName: string
+  /** Empty when `encrypted` is set. */
   body: string
+  encrypted: ChatEncrypted | null
   clientId: string
   createdAt: string
   editedAt: string | null
@@ -88,6 +104,21 @@ export interface ChatMessage {
 }
 
 const REPLY_PREVIEW_MAX = 200
+
+export function encryptedOf(row: {
+  ciphertext: Buffer | null
+  encVersion: number | null
+  senderDeviceId: string | null
+  deletedAt: Date | null
+}): ChatEncrypted | null {
+  if (row.deletedAt || !row.ciphertext || row.encVersion === null) return null
+  return { v: row.encVersion, ciphertext: row.ciphertext.toString('base64'), senderDeviceId: row.senderDeviceId }
+}
+
+// A re-encrypted old message keeps its clear text for a week as a safety net; it is not served.
+function visibleBody(row: { body: string; encVersion: number | null; deletedAt: Date | null }): string {
+  return row.deletedAt || row.encVersion !== null ? '' : row.body
+}
 
 export interface ChatMember {
   id: string
@@ -109,7 +140,10 @@ export interface ChatConversationSummary {
   name: string | null
   members: ChatMember[]
   lastMessage: {
+    /** Empty when `encrypted` is set: the app decrypts the preview. */
     body: string
+    encrypted: ChatEncrypted | null
+    id: string
     authorId: string
     createdAt: string
     attachmentKind: 'image' | 'file' | null
@@ -138,7 +172,7 @@ export class MessageBodyError extends Error {
 
 /** 400 with a code the client can branch on (`{ error: { code } }`). */
 export class ChatRequestError extends Error {
-  constructor(public readonly code: 'REPLY_NOT_IN_CONVERSATION') {
+  constructor(public readonly code: 'REPLY_NOT_IN_CONVERSATION' | 'UNKNOWN_DEVICE' | 'ALREADY_ENCRYPTED' | 'NOT_THE_AUTHOR') {
     super(code)
     this.name = 'ChatRequestError'
   }
@@ -190,6 +224,8 @@ async function attachToMessages(rows: (typeof messages.$inferSelect)[], reader: 
         filename: messageAttachments.filename,
         contentType: messageAttachments.contentType,
         sizeBytes: messageAttachments.sizeBytes,
+        encrypted: messageAttachments.encrypted,
+        mediaKind: messageAttachments.mediaKind,
       })
       .from(messageAttachments)
       .where(and(inArray(messageAttachments.messageId, messageIds), isNull(messageAttachments.deletedAt))),
@@ -200,6 +236,9 @@ async function attachToMessages(rows: (typeof messages.$inferSelect)[], reader: 
             id: messages.id,
             authorUserId: messages.authorUserId,
             body: messages.body,
+            ciphertext: messages.ciphertext,
+            encVersion: messages.encVersion,
+            senderDeviceId: messages.senderDeviceId,
             deletedAt: messages.deletedAt,
             hasAttachment: sql<boolean>`EXISTS (SELECT 1 FROM ${messageAttachments} a WHERE a.message_id = ${qualified(messages.id)} AND a.deleted_at IS NULL)`,
           })
@@ -222,7 +261,14 @@ async function attachToMessages(rows: (typeof messages.$inferSelect)[], reader: 
   for (const a of attachmentRows) {
     if (!a.messageId) continue
     const list = byMessage.get(a.messageId) ?? []
-    list.push({ id: a.id, filename: a.filename, contentType: a.contentType, sizeBytes: a.sizeBytes })
+    list.push({
+      id: a.id,
+      filename: a.filename,
+      contentType: a.contentType,
+      sizeBytes: a.sizeBytes,
+      encrypted: a.encrypted,
+      mediaKind: a.mediaKind,
+    })
     byMessage.set(a.messageId, list)
   }
   const nameById = new Map(authorRows.map((u) => [u.id, u.displayName ?? u.email]))
@@ -232,7 +278,8 @@ async function attachToMessages(rows: (typeof messages.$inferSelect)[], reader: 
       {
         id: r.id,
         authorName: nameById.get(r.authorUserId) ?? '',
-        body: r.deletedAt ? '' : r.body.slice(0, REPLY_PREVIEW_MAX),
+        body: visibleBody(r).slice(0, REPLY_PREVIEW_MAX),
+        encrypted: encryptedOf(r),
         hasAttachment: !r.deletedAt && Boolean(r.hasAttachment),
         deleted: Boolean(r.deletedAt),
       },
@@ -245,7 +292,8 @@ async function attachToMessages(rows: (typeof messages.$inferSelect)[], reader: 
     conversationId: row.conversationId,
     authorUserId: row.authorUserId,
     authorName: nameById.get(row.authorUserId) ?? '',
-    body: row.deletedAt ? '' : row.body,
+    body: visibleBody(row),
+    encrypted: encryptedOf(row),
     clientId: row.clientId,
     createdAt: row.createdAt.toISOString(),
     editedAt: row.editedAt?.toISOString() ?? null,
@@ -385,6 +433,10 @@ export async function listConversations(me: SessionUser): Promise<ChatConversati
       id: messages.id,
       conversationId: messages.conversationId,
       body: messages.body,
+      ciphertext: messages.ciphertext,
+      encVersion: messages.encVersion,
+      senderDeviceId: messages.senderDeviceId,
+      deletedAt: messages.deletedAt,
       authorId: messages.authorUserId,
       createdAt: messages.createdAt,
       position: sql<number>`row_number() OVER (PARTITION BY ${messages.conversationId} ORDER BY ${messages.createdAt} DESC, ${messages.id} DESC)::int`,
@@ -396,7 +448,11 @@ export async function listConversations(me: SessionUser): Promise<ChatConversati
   const [lastAttachments, lastRefs] = lastIds.length
     ? await Promise.all([
         db
-          .select({ messageId: messageAttachments.messageId, contentType: messageAttachments.contentType })
+          .select({
+            messageId: messageAttachments.messageId,
+            contentType: messageAttachments.contentType,
+            mediaKind: messageAttachments.mediaKind,
+          })
           .from(messageAttachments)
           .where(and(inArray(messageAttachments.messageId, lastIds), isNull(messageAttachments.deletedAt)))
           .orderBy(asc(messageAttachments.createdAt)),
@@ -410,10 +466,12 @@ export async function listConversations(me: SessionUser): Promise<ChatConversati
   for (const row of lastMessages) {
     const attachment = lastAttachments.find((a) => a.messageId === row.id)
     summaries.get(row.conversationId)!.lastMessage = {
-      body: row.body,
+      body: visibleBody(row),
+      encrypted: encryptedOf(row),
+      id: row.id,
       authorId: row.authorId,
       createdAt: row.createdAt.toISOString(),
-      attachmentKind: attachment ? (attachment.contentType.startsWith('image/') ? 'image' : 'file') : null,
+      attachmentKind: attachment ? (attachment.mediaKind ?? (attachment.contentType.startsWith('image/') ? 'image' : 'file')) : null,
       refType: lastRefs.find((r) => r.messageId === row.id)?.refType ?? null,
     }
   }
@@ -582,6 +640,12 @@ export interface MessagePage {
   lastReadMessageId: string | null
 }
 
+/** Messages by id, in the shape the API sends; the caller has checked membership. */
+export async function messagesById(me: SessionUser, ids: string[]): Promise<ChatMessage[]> {
+  if (ids.length === 0) return []
+  return attachToMessages(await db.select().from(messages).where(inArray(messages.id, ids)), me)
+}
+
 export async function listMessages(me: SessionUser, conversationId: string, query: ListMessagesQuery): Promise<MessagePage> {
   await assertMember(conversationId, me.id)
   const inConversation = eq(messages.conversationId, conversationId)
@@ -737,10 +801,10 @@ export async function sendMessage(
   copiedAttachmentIds: (string | undefined)[] = [],
 ): Promise<ChatMessage> {
   await assertMember(conversationId, me.id)
-  const trimmed = input.body.trim()
-  if (!trimmed && input.attachmentIds.length === 0 && prepared.rows.length === 0) {
+  if (!input.encrypted && input.attachmentIds.length === 0 && prepared.rows.length === 0) {
     throw new MessageBodyError(tr('errors.chat.emptyMessage'))
   }
+  const content = input.encrypted ? await encryptedColumns(me.id, input.encrypted) : null
 
   // Dedupe pe clientId (mesajul optimist din FE, retrimitere pe conexiune lentă): a doua
   // încercare întoarce același mesaj, nu o copie. Atașamentele încă neatinse se leagă de
@@ -750,7 +814,6 @@ export async function sendMessage(
     .from(messages)
     .where(and(eq(messages.conversationId, conversationId), eq(messages.clientId, input.clientId)))
   if (existing) {
-    if (trimmed && !existing.body) await db.update(messages).set({ body: trimmed }).where(eq(messages.id, existing.id))
     await attachAttachments(existing.id, conversationId, input.attachmentIds, me.id)
     const [row] = await db.select().from(messages).where(eq(messages.id, existing.id))
     return (await attachToMessages([row!], me))[0]!
@@ -766,7 +829,7 @@ export async function sendMessage(
 
   const [row] = await db
     .insert(messages)
-    .values({ conversationId, authorUserId: me.id, body: trimmed, clientId: input.clientId, replyToId: input.replyToId ?? null })
+    .values({ conversationId, authorUserId: me.id, body: '', ...content, clientId: input.clientId, replyToId: input.replyToId ?? null })
     .returning()
 
   const attachmentIds = [...input.attachmentIds, ...copiedAttachmentIds.filter((id): id is string => Boolean(id))]
@@ -823,10 +886,22 @@ async function attachAttachments(
   return updated.length
 }
 
-export async function editMessage(me: SessionUser, messageId: string, body: string): Promise<ChatMessage> {
+/** The columns of an encrypted message, once the device is checked to be the author's own. */
+async function encryptedColumns(userId: string, encrypted: EncryptedInput) {
+  if (!(await isOwnActiveDevice(userId, encrypted.senderDeviceId))) throw new ChatRequestError('UNKNOWN_DEVICE')
+  return {
+    ciphertext: Buffer.from(encrypted.ciphertext, 'base64'),
+    encVersion: encrypted.v,
+    senderDeviceId: encrypted.senderDeviceId,
+  }
+}
+
+export async function editMessage(me: SessionUser, messageId: string, encrypted: EncryptedInput): Promise<ChatMessage> {
+  const content = await encryptedColumns(me.id, encrypted)
   const [row] = await db
     .update(messages)
-    .set({ body: body.trim(), editedAt: new Date() })
+    // An old clear-text message edited after M becomes an encrypted one: its text goes now.
+    .set({ ...content, body: '', legacyEncryptedAt: null, editedAt: new Date() })
     .where(and(eq(messages.id, messageId), eq(messages.authorUserId, me.id), isNull(messages.deletedAt)))
     .returning()
   if (!row) throw new ConversationForbiddenError(tr('errors.chat.messageNotFound'))
@@ -837,7 +912,8 @@ export async function editMessage(me: SessionUser, messageId: string, body: stri
 export async function deleteMessage(me: SessionUser, messageId: string): Promise<{ id: string; conversationId: string }> {
   const [row] = await db
     .update(messages)
-    .set({ deletedAt: new Date() })
+    // The content goes with the deletion, not only out of the API.
+    .set({ deletedAt: new Date(), body: '', ciphertext: null })
     .where(and(eq(messages.id, messageId), eq(messages.authorUserId, me.id), isNull(messages.deletedAt)))
     .returning({ id: messages.id, conversationId: messages.conversationId })
   if (!row) throw new ConversationForbiddenError(tr('errors.chat.messageNotFound'))
@@ -847,6 +923,44 @@ export async function deleteMessage(me: SessionUser, messageId: string): Promise
     db.delete(messageReactions).where(eq(messageReactions.messageId, row.id)),
   ])
   return row
+}
+
+/**
+ * Re-encrypts an old clear-text message in place (Q-M2). The author does it for their own
+ * messages; anyone in the conversation may do it for an author who has no approved device left,
+ * so a departed colleague's messages do not stay readable on the server. The clear text stays
+ * a week as a safety net (purgeLegacyPlaintext), never served.
+ */
+export async function encryptLegacyMessage(me: SessionUser, messageId: string, encrypted: EncryptedInput): Promise<string> {
+  const [row] = await db
+    .select({ conversationId: messages.conversationId, authorUserId: messages.authorUserId, encVersion: messages.encVersion })
+    .from(messages)
+    .where(and(eq(messages.id, messageId), isNull(messages.deletedAt)))
+  if (!row) throw new ConversationForbiddenError(tr('errors.chat.messageNotFound'))
+  await assertMember(row.conversationId, me.id)
+  if (row.encVersion !== null) throw new ChatRequestError('ALREADY_ENCRYPTED')
+  if (row.authorUserId !== me.id && (await hasSignedDevice(row.authorUserId))) throw new ChatRequestError('NOT_THE_AUTHOR')
+  const content = await encryptedColumns(me.id, encrypted)
+  const updated = await db
+    .update(messages)
+    .set({ ...content, legacyEncryptedAt: new Date() })
+    .where(and(eq(messages.id, messageId), isNull(messages.encVersion)))
+    .returning({ id: messages.id })
+  if (updated.length === 0) throw new ChatRequestError('ALREADY_ENCRYPTED')
+  return row.conversationId
+}
+
+const LEGACY_PLAINTEXT_DAYS = 7
+
+/** Clears the clear text of old messages re-encrypted more than a week ago. */
+export async function purgeLegacyPlaintext(now = new Date()): Promise<number> {
+  const cutoff = new Date(now.getTime() - LEGACY_PLAINTEXT_DAYS * 24 * 60 * 60 * 1000)
+  const rows = await db
+    .update(messages)
+    .set({ body: '' })
+    .where(and(lt(messages.legacyEncryptedAt, cutoff), ne(messages.body, '')))
+    .returning({ id: messages.id })
+  return rows.length
 }
 
 /** Active colleagues who manage the team, so a "no access" card knows whom to ask. */
@@ -906,30 +1020,6 @@ export async function removeReaction(
 
 // ── Search, media, share targets ────────────────────────────────────────────
 
-const SEARCH_LIMIT = 50
-
-export async function searchMessages(
-  me: SessionUser,
-  conversationId: string,
-  q: string,
-): Promise<{ id: string; createdAt: string; authorName: string; body: string }[]> {
-  await assertMember(conversationId, me.id)
-  const rows = await db
-    .select({
-      id: messages.id,
-      createdAt: messages.createdAt,
-      body: messages.body,
-      displayName: users.displayName,
-      email: users.email,
-    })
-    .from(messages)
-    .innerJoin(users, eq(users.id, messages.authorUserId))
-    .where(and(eq(messages.conversationId, conversationId), isNull(messages.deletedAt), foldedIlike(messages.body, q)))
-    .orderBy(desc(messages.createdAt), desc(messages.id))
-    .limit(SEARCH_LIMIT)
-  return rows.map((r) => ({ id: r.id, createdAt: r.createdAt.toISOString(), authorName: r.displayName ?? r.email, body: r.body }))
-}
-
 export async function listMedia(
   me: SessionUser,
   conversationId: string,
@@ -944,6 +1034,9 @@ export async function listMedia(
     width: number | null
     height: number | null
     createdAt: string
+    encrypted: boolean
+    /** The message holding the file's key, for an encrypted attachment. */
+    messageEncrypted: ChatEncrypted | null
   }[]
   nextCursor: string | null
 }> {
@@ -952,7 +1045,9 @@ export async function listMedia(
     eq(messages.conversationId, conversationId),
     isNull(messages.deletedAt),
     isNull(messageAttachments.deletedAt),
-    query.kind === 'image' ? like(messageAttachments.contentType, 'image/%') : notLike(messageAttachments.contentType, 'image/%'),
+    query.kind === 'image'
+      ? or(eq(messageAttachments.mediaKind, 'image'), and(isNull(messageAttachments.mediaKind), like(messageAttachments.contentType, 'image/%')))
+      : or(eq(messageAttachments.mediaKind, 'file'), and(isNull(messageAttachments.mediaKind), notLike(messageAttachments.contentType, 'image/%'))),
   ]
   if (query.cursor) {
     const [cursor] = await db
@@ -978,6 +1073,11 @@ export async function listMedia(
       width: messageAttachments.width,
       height: messageAttachments.height,
       createdAt: messageAttachments.createdAt,
+      encrypted: messageAttachments.encrypted,
+      ciphertext: messages.ciphertext,
+      encVersion: messages.encVersion,
+      senderDeviceId: messages.senderDeviceId,
+      deletedAt: messages.deletedAt,
     })
     .from(messageAttachments)
     .innerJoin(messages, eq(messages.id, messageAttachments.messageId))
@@ -986,7 +1086,11 @@ export async function listMedia(
     .limit(query.limit + 1)
   const page = rows.slice(0, query.limit)
   return {
-    items: page.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+    items: page.map(({ ciphertext, encVersion, senderDeviceId, deletedAt, ...r }) => ({
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+      messageEncrypted: r.encrypted ? encryptedOf({ ciphertext, encVersion, senderDeviceId, deletedAt }) : null,
+    })),
     nextCursor: rows.length > query.limit ? page[page.length - 1]!.id : null,
   }
 }
@@ -1075,7 +1179,7 @@ export async function markRead(me: SessionUser, conversationId: string, messageI
   if (!message) throw new ConversationForbiddenError(tr('errors.chat.messageNotFound'))
   await db
     .update(conversationMembers)
-    .set({ lastReadMessageId: messageId })
+    .set({ lastReadMessageId: messageId, lastReadAt: new Date() })
     .where(and(eq(conversationMembers.conversationId, conversationId), eq(conversationMembers.userId, me.id)))
   void closePushNotification(me.id, `chat-${conversationId}`)
 }

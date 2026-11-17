@@ -56,7 +56,10 @@
     "emptyMessage": "Empty message",
     "messageNotFound": "The message does not exist",
     "refNotFound": "The object does not exist or you cannot see it",
-    "refFileTooLarge": "The file is too large for Messages (over 20 MB)"
+    "refFileTooLarge": "The file is too large for Messages (over 20 MB)",
+    "keysNeedSession": "Encryption keys are only used from the app, not with an API token.",
+    "deviceNotFound": "Device not found.",
+    "encryptionNotReady": "The message cannot be sent unencrypted."
   },
   "archive": {
     "spaceNotCreated": "The archive space could not be created",

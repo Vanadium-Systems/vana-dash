@@ -57,7 +57,10 @@
     "emptyMessage": "Mesaj gol",
     "messageNotFound": "Mesaj inexistent",
     "refNotFound": "Obiectul nu există sau nu ai acces la el",
-    "refFileTooLarge": "Fișierul e prea mare pentru Mesaje (peste 20 MB)"
+    "refFileTooLarge": "Fișierul e prea mare pentru Mesaje (peste 20 MB)",
+    "keysNeedSession": "Cheile de criptare se folosesc doar din aplicație, nu cu un token API.",
+    "deviceNotFound": "Dispozitivul nu există.",
+    "encryptionNotReady": "Mesajul nu poate fi trimis necriptat."
   },
   "archive": {
     "spaceNotCreated": "Nu am putut crea spațiul de arhivă",
