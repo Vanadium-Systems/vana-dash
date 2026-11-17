@@ -62,7 +62,8 @@
       "sabloane": "Șabloane",
       "setari": "Identități, reguli, blocklist",
       "setari_proprii": "Setările mele: semnătură, plafon, etichete și reguli proprii",
-      "cutii": "Atribuie cutii de email"
+      "cutii": "Atribuie cutii de email",
+      "outreach_cutii": "Cutii SMTP de outreach"
     },
     "calendar": {
       "view": "Vede calendarul",

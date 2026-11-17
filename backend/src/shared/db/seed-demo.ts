@@ -39,6 +39,7 @@ import {
   emailMessages,
   emailThreads,
   emailUserSettings,
+  outreachMailboxes,
   exchangeRates,
   financialRecords,
   invoiceLineItems,
@@ -1392,6 +1393,29 @@ await db.insert(emailSequenceEnrollments).values([
   enrollment(5, 3, 3),
   enrollment(6, 1, 1, { status: 'bounced', consecutiveFailures: 3 }),
   enrollment(7, 1, 1, { status: 'replied' }),
+])
+await db.insert(outreachMailboxes).values([
+  {
+    address: 'outreach1@example.com',
+    displayName: 'Acme Outreach 1',
+    smtpHost: 'mailpit',
+    smtpPort: 1025,
+    smtpSecure: false,
+    secretEnc: await encryptField(''),
+    dailyCap: 30,
+    warmupUntil: inDays(14, 0),
+    status: 'active',
+  },
+  {
+    address: 'outreach2@example.com',
+    displayName: 'Acme Outreach 2',
+    smtpHost: 'mailpit',
+    smtpPort: 1025,
+    smtpSecure: false,
+    secretEnc: await encryptField(''),
+    dailyCap: 30,
+    status: 'active',
+  },
 ])
 
 // ── Automations and signals ──────────────────────────────────────────────────

@@ -25,6 +25,7 @@ const KEYS = {
   outreachDailyCap: 'email.outreach_daily_cap',
   outreachSendHour: 'email.outreach_send_hour',
   outreachSendWeekdaysOnly: 'email.outreach_send_weekdays_only',
+  outreachRealSendingEnabled: 'email.outreach_real_sending_enabled',
   identities: 'email.identities',
   autoLoadImages: 'email.auto_load_images',
 } as const
@@ -89,6 +90,7 @@ export interface EmailSettings {
   outreachDailyCap: number
   outreachSendHour: number
   outreachSendWeekdaysOnly: boolean
+  outreachRealSendingEnabled: boolean
   identities: EmailIdentity[]
   autoLoadImages: boolean
 }
@@ -115,19 +117,31 @@ function resolveSignatures(stored: Record<string, string>, identities: EmailIden
 }
 
 export async function getEmailSettings(): Promise<EmailSettings> {
-  const [storedSignatures, logo, autoSpamEnabled, spamThreshold, spamKeywords, outreachDailyCap, outreachSendHour, outreachSendWeekdaysOnly, identities, autoLoadImages] =
-    await Promise.all([
-      getSignatureValues(),
-      getValue<LogoValue>(KEYS.logo),
-      getValue<boolean>(KEYS.autoSpamEnabled),
-      getValue<number>(KEYS.spamThreshold),
-      getValue<string[]>(KEYS.spamKeywords),
-      getValue<number>(KEYS.outreachDailyCap),
-      getValue<number>(KEYS.outreachSendHour),
-      getValue<boolean>(KEYS.outreachSendWeekdaysOnly),
-      getIdentities(),
-      getValue<boolean>(KEYS.autoLoadImages),
-    ])
+  const [
+    storedSignatures,
+    logo,
+    autoSpamEnabled,
+    spamThreshold,
+    spamKeywords,
+    outreachDailyCap,
+    outreachSendHour,
+    outreachSendWeekdaysOnly,
+    outreachRealSendingEnabled,
+    identities,
+    autoLoadImages,
+  ] = await Promise.all([
+    getSignatureValues(),
+    getValue<LogoValue>(KEYS.logo),
+    getValue<boolean>(KEYS.autoSpamEnabled),
+    getValue<number>(KEYS.spamThreshold),
+    getValue<string[]>(KEYS.spamKeywords),
+    getValue<number>(KEYS.outreachDailyCap),
+    getValue<number>(KEYS.outreachSendHour),
+    getValue<boolean>(KEYS.outreachSendWeekdaysOnly),
+    getValue<boolean>(KEYS.outreachRealSendingEnabled),
+    getIdentities(),
+    getValue<boolean>(KEYS.autoLoadImages),
+  ])
 
   // Absolut, nu relativ — semnătura ajunge într-un email citit de destinatari din afară, nu
   // există "origine curentă" ca într-un browser. Backend + frontend sunt pe același domeniu
@@ -143,6 +157,7 @@ export async function getEmailSettings(): Promise<EmailSettings> {
     outreachDailyCap: outreachDailyCap ?? DEFAULT_OUTREACH_DAILY_CAP,
     outreachSendHour: outreachSendHour ?? DEFAULT_OUTREACH_SEND_HOUR,
     outreachSendWeekdaysOnly: outreachSendWeekdaysOnly ?? DEFAULT_OUTREACH_SEND_WEEKDAYS_ONLY,
+    outreachRealSendingEnabled: outreachRealSendingEnabled ?? false,
     identities,
     autoLoadImages: autoLoadImages ?? false,
   }
@@ -159,6 +174,7 @@ export async function updateEmailSettings(input: z.infer<typeof EmailSettingsUpd
   if (input.outreachDailyCap !== undefined) writes.push(setValue(KEYS.outreachDailyCap, input.outreachDailyCap))
   if (input.outreachSendHour !== undefined) writes.push(setValue(KEYS.outreachSendHour, input.outreachSendHour))
   if (input.outreachSendWeekdaysOnly !== undefined) writes.push(setValue(KEYS.outreachSendWeekdaysOnly, input.outreachSendWeekdaysOnly))
+  if (input.outreachRealSendingEnabled !== undefined) writes.push(setValue(KEYS.outreachRealSendingEnabled, input.outreachRealSendingEnabled))
   if (input.identities !== undefined) writes.push(setValue(KEYS.identities, input.identities))
   if (input.autoLoadImages !== undefined) writes.push(setValue(KEYS.autoLoadImages, input.autoLoadImages))
   await Promise.all(writes)

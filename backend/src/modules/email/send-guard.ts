@@ -1,8 +1,9 @@
-import { and, eq, gte, isNull, ne, notInArray, sql, type SQL } from 'drizzle-orm'
+import { and, eq, gte, isNull, ne, notInArray, or, sql, type SQL } from 'drizzle-orm'
 import type { FastifyReply } from 'fastify'
 import { db } from '../../shared/db/client.js'
 import { emailSends, emailUserSettings } from '../../shared/db/schema/index.js'
 import { MailboxForbidden } from './mailboxes.js'
+import { getOutreachMailboxAggregateCap, hasConfiguredOutreachMailboxes } from './outreach-mailboxes-service.js'
 import { getEmailSettings, resolveFromAddress } from './settings-service.js'
 import { getSuppressedEmails } from './unsubscribe-service.js'
 
@@ -35,9 +36,10 @@ function startOfUtcDay(now = new Date()): Date {
  * two quick sends cannot both pass the last free slot; the dispatcher re-checks without its own row.
  */
 export async function countOutreachSendsToday(opts: { userId?: string; excludeSendId?: string } = {}): Promise<number> {
+  const outreachFrom = await resolveFromAddress(OUTREACH_IDENTITY)
   const conditions: SQL[] = [
     isNull(emailSends.deletedAt),
-    eq(emailSends.fromAddress, await resolveFromAddress(OUTREACH_IDENTITY)),
+    or(sql`${emailSends.outreachMailboxId} IS NOT NULL`, eq(emailSends.fromAddress, outreachFrom))!,
     gte(emailSends.createdAt, startOfUtcDay()),
     notInArray(emailSends.status, ['cancelled']),
   ]
@@ -71,9 +73,16 @@ export async function assertCanDeliver(input: {
 
   if (input.identityKey !== OUTREACH_IDENTITY) return
 
-  const { outreachDailyCap: companyCap } = await getEmailSettings()
-  const companyUsed = await countOutreachSendsToday({ excludeSendId: input.excludeSendId })
-  if (companyUsed + input.recipients.length > companyCap) throw new OutreachCapError(companyCap)
+  let companyCap: number
+  if (await hasConfiguredOutreachMailboxes()) {
+    const agg = await getOutreachMailboxAggregateCap()
+    companyCap = agg.cap
+    if (agg.remaining < input.recipients.length) throw new OutreachCapError(companyCap)
+  } else {
+    companyCap = (await getEmailSettings()).outreachDailyCap
+    const companyUsed = await countOutreachSendsToday({ excludeSendId: input.excludeSendId })
+    if (companyUsed + input.recipients.length > companyCap) throw new OutreachCapError(companyCap)
+  }
 
   if (!input.senderUserId) return
   const userCap = await getUserOutreachCap(input.senderUserId)

@@ -3,6 +3,7 @@ import { check, index, integer, jsonb, pgTable, text, timestamp, uuid } from 'dr
 import { standardColumns } from './helpers.js'
 import { emailSequenceEnrollments } from './email-sequences.js'
 import { emailTemplates } from './email-templates.js'
+import { outreachMailboxes } from './outreach-mailboxes.js'
 import { users } from './users.js'
 import { tenantColumns } from './tenant-column.js'
 
@@ -63,6 +64,7 @@ export const emailSends = pgTable(
     // Which sequence step and A/B variant produced this send (sequence diagnostics).
     sequenceStepId: uuid('sequence_step_id'),
     variant: text('variant', { enum: ['A', 'B'] }),
+    outreachMailboxId: uuid('outreach_mailbox_id').references(() => outreachMailboxes.id, { onDelete: 'set null' }),
   },
   (t) => [
     // dedup lookup la bulk send: (recipient, templateId) deja trimis?
@@ -72,6 +74,7 @@ export const emailSends = pgTable(
     index('idx_email_sends_scheduled').on(t.sendAfter).where(sql`${t.status} = 'scheduled'`),
     check('ck_email_sends_variant', sql`${t.variant} IS NULL OR ${t.variant} IN ('A', 'B')`),
     index('idx_email_sends_sequence_step').on(t.sequenceStepId).where(sql`${t.sequenceStepId} IS NOT NULL`),
+    index('idx_email_sends_outreach_mailbox').on(t.outreachMailboxId, t.createdAt).where(sql`${t.outreachMailboxId} IS NOT NULL`),
     check('ck_email_sends_kind', sql`${t.kind} IN ('single', 'reply', 'forward', 'draft', 'bulk', 'sequence')`),
   ],
 )

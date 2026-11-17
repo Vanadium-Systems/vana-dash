@@ -13,6 +13,7 @@ import { api } from '@/shared/lib/api'
 import type { EmailSequence } from '@/shared/lib/types'
 import { SequenceEnrollmentsDialog } from './SequenceEnrollmentsDialog'
 import { SequenceEditor } from './sequence/SequenceEditor'
+import { OutreachMailboxesSummary } from './OutreachMailboxesSummary'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { t } from '@/shared/lib/i18n'
 
@@ -56,6 +57,7 @@ export function SequencesTab() {
 
   return (
     <div className="space-y-4">
+      <OutreachMailboxesSummary />
       <div className="flex justify-end">
         <Button onClick={() => setEditorTarget('new')}>
           <Plus className="h-4 w-4" /> {t('email:sequences.new')}
