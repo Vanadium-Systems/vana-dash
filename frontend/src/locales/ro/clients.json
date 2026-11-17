@@ -803,14 +803,6 @@
       "template": "Descarcă modelul",
       "templateHint": "Modelul are coloanele pe care le recunoaștem și un rând exemplu."
     },
-    "errors": {
-      "IMPORT_TOO_MANY_ROWS": "Fișierul are prea multe rânduri. Împarte-l în fișiere de cel mult 5.000 de rânduri.",
-      "IMPORT_NO_NAME_COLUMN": "Nu am găsit nicio coloană cu numele firmei sau cu CUI-ul.",
-      "IMPORT_UNSUPPORTED_FILE": "Tipul fișierului nu e acceptat. Folosește .xlsx sau .csv.",
-      "IMPORT_UNREADABLE": "Fișierul nu poate fi citit. Verifică dacă nu e deteriorat sau protejat cu parolă.",
-      "IMPORT_TOKEN_EXPIRED": "Previzualizarea a expirat. Încarcă fișierul din nou.",
-      "IMPORT_NEEDS_REASSIGN": "Nu poți repartiza prospecții altor colegi."
-    },
     "preview": {
       "summary": "{{created}} noi · {{updated}} completează existenți · {{errors}} cu erori",
       "skipped_one": "{{count}} rând sărit (dublură în fișier)",
@@ -1079,7 +1071,7 @@
       "neverRun": "Nu a rulat încă."
     },
     "score": {
-            "criteria": "Criterii",
+      "criteria": "Criterii",
       "criteriaHint": "Fiecare criteriu bifat adaugă punctele lui la scorul calculat din datele firmei, până la 100. Criteriile nebifate nu scad nimic.",
       "noCriteria": "Niciun criteriu: scorul e cel calculat din datele firmei.",
       "criterionName": "Nume",

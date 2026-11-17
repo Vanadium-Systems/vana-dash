@@ -293,7 +293,21 @@
       "invalidSubscription": "Invalid push subscription (the keys are missing)"
     },
     "shareToArchive": "Sharing to the Archive failed: {{message}}",
-    "unknown": "unknown error"
+    "unknown": "unknown error",
+    "unexpected": "Something went wrong. Try again.",
+    "codeLine": "Code: {{code}}",
+    "codes": {
+      "IMPORT_NEEDS_REASSIGN": "You cannot assign prospects to other colleagues.",
+      "IMPORT_NO_NAME_COLUMN": "No column with the company name or tax ID was found.",
+      "IMPORT_TOKEN_EXPIRED": "The preview expired. Upload the file again.",
+      "IMPORT_TOO_MANY_ROWS": "The file has too many rows. Split it into files of at most 5,000 rows.",
+      "IMPORT_UNREADABLE": "The file cannot be read. Check that it is not damaged or password-protected.",
+      "IMPORT_UNSUPPORTED_FILE": "This file type is not supported. Use .xlsx or .csv.",
+      "PROFORMA_ALREADY_CONVERTED": "The proforma was already turned into an invoice.",
+      "PROFORMA_CANCELLED": "The proforma is cancelled.",
+      "PROFORMA_INVOICED": "The proforma is already invoiced.",
+      "PROFORMA_NOT_ISSUED": "The proforma is still a draft. Issue it first."
+    }
   },
   "kpi": {
     "vsPreviousPeriod": "vs. previous period"

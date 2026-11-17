@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, Tabl
 import { useCollapsingTitle } from '@/shared/hooks/use-collapsing-title'
 import { useMe } from '@/shared/hooks/use-me'
 import { api, ApiError } from '@/shared/lib/api'
+import { toastError } from '@/shared/lib/errors'
 import { formatDate, formatDateTime, formatMoney, formatNumber, formatRelativeTime } from '@/shared/lib/format'
 import { t, type TKey } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
@@ -26,7 +27,7 @@ import { cn } from '@/shared/lib/utils'
 import { AnafStatusBadge } from './badges'
 import { ConfirmSupplierInvoiceDialog, type ConfirmSupplierInvoiceDialogTarget } from './ConfirmSupplierInvoiceDialog'
 import { PaymentPeek } from './PaymentPeek'
-import { proformaMessage, useProformaActions } from './proforma-actions'
+import { useProformaActions } from './proforma-actions'
 import { useInvalidateRecords, useRecordDetail, useRemovePayment } from './records-api'
 import { canRecordPayment, daysOverdue, statusFor } from './records-logic'
 import { DueDate, RecordPaymentBadge, methodLabel, paymentWord } from './records-ui'
@@ -223,7 +224,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
       toast.success(isProforma ? t('accounting:proformas.deleted') : t('accounting:issued.draftDeleted'))
       navigate(`/accounting?tab=${isProforma ? 'proforme' : 'emise'}`, { replace: true })
     },
-    onError: (err) => toast.error(isProforma ? proformaMessage(err) : err.message),
+    onError: (err) => toastError(err),
   })
   const duplicate = useMutation({
     mutationFn: () => api.post<FinancialRecord>(`/api/invoicing/invoices/${record.id}/duplicate`),

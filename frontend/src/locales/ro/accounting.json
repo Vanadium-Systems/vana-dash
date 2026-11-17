@@ -762,14 +762,7 @@
     "deleteBody": "Nu consumă număr din seria proformelor.",
     "deleted": "Ciorna de proformă e ștearsă",
     "invoicedHint": "Proforma a fost facturată și nu se mai modifică.",
-    "cancelledHint": "Proforma e anulată și nu se mai modifică.",
-    "errors": {
-      "PROFORMA_ALREADY_CONVERTED": "Proforma a fost deja transformată în factură.",
-      "PROFORMA_NOT_ISSUED": "Proforma e încă ciornă. Emite-o întâi.",
-      "PROFORMA_CANCELLED": "Proforma e anulată.",
-      "PROFORMA_INVOICED": "Proforma e deja facturată.",
-      "generic": "Operațiunea nu s-a putut face. Încearcă din nou."
-    }
+    "cancelledHint": "Proforma e anulată și nu se mai modifică."
   },
   "monthClose": {
     "title": "Închidere lună",

@@ -2,19 +2,11 @@ import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
-import { api, ApiError } from '@/shared/lib/api'
+import { api } from '@/shared/lib/api'
+import { toastError } from '@/shared/lib/errors'
 import { t } from '@/shared/lib/i18n'
 import type { FinancialRecord } from '@/shared/lib/types'
 import { useInvalidateRecords } from './records-api'
-
-const SERVER_ERRORS = ['PROFORMA_ALREADY_CONVERTED', 'PROFORMA_NOT_ISSUED', 'PROFORMA_CANCELLED', 'PROFORMA_INVOICED'] as const
-
-export function proformaMessage(err: unknown): string {
-  if (err instanceof ApiError && err.code && (SERVER_ERRORS as readonly string[]).includes(err.code)) {
-    return t(`accounting:proformas.errors.${err.code as (typeof SERVER_ERRORS)[number]}` as const)
-  }
-  return t('accounting:proformas.errors.generic')
-}
 
 /** Convert and cancel are used from the document page and from the Proforme list, so the wording and the errors live once. */
 export function useProformaActions() {
@@ -29,7 +21,7 @@ export function useProformaActions() {
       toast.success(t('accounting:proformas.converted'))
       navigate(`/accounting/records/${draft.id}/edit`)
     },
-    onError: (err) => toast.error(proformaMessage(err)),
+    onError: (err) => toastError(err),
   })
 
   const cancel = useMutation({
@@ -41,7 +33,7 @@ export function useProformaActions() {
     onError: (err) => {
       // A conflict means the document moved under us (converted elsewhere): show it as it is now.
       invalidate()
-      toast.error(proformaMessage(err))
+      toastError(err)
     },
   })
 
