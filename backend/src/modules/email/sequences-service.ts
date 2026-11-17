@@ -15,6 +15,7 @@ import {
 } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
 import { isPublicEmailDomain } from '../../shared/lib/email-domains.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { activeAdminIds, notify } from '../../shared/lib/notify.js'
 import { visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import type { DrizzleTx } from '../../shared/lib/sequences.js'
@@ -273,7 +274,7 @@ export async function enrollRecipients(
     .from(emailSequenceSteps)
     .where(and(eq(emailSequenceSteps.sequenceId, sequenceId), eq(emailSequenceSteps.stepOrder, 1)))
     .limit(1)
-  if (!firstStep) throw new Error(tr('errors.email.sequenceNoSteps'))
+  if (!firstStep) throw httpError(400, 'SEQUENCE_NO_STEPS')
   const firstIsEmail = firstStep.kind === 'email'
 
   const candidates: Candidate[] = (recipients ?? []).map((r) => ({

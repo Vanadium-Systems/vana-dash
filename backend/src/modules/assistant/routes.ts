@@ -2,13 +2,13 @@ import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import * as service from './service.js'
-import type { AssistantSseEvent } from './service.js'
+import { errorEvent, type AssistantSseEvent } from './service.js'
 import * as quota from './quota.js'
 import * as scheduledService from './tools/scheduled.js'
 import * as providers from './providers/index.js'
 import { ProviderIdParamsSchema, ProviderUpdateSchema } from './providers-schema.js'
 import { ASSISTANT_PROVIDER_IDS } from './providers/types.js'
-import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 // Modelele nu mai sunt un enum hardcodat — vin din assistant_providers (editabile din UI),
 // cu fallback pe ASSISTANT_MODELS. Validarea rămâne la service (contra listei disponibile).
@@ -40,7 +40,7 @@ async function streamGenerator(reply: FastifyReply, generator: AsyncGenerator<As
       writeSseEvent(reply, event)
     }
   } catch (err) {
-    writeSseEvent(reply, { type: 'error', message: err instanceof Error ? err.message : String(err) })
+    writeSseEvent(reply, errorEvent(err, 'INTERNAL'))
   } finally {
     reply.raw.end()
   }
@@ -87,7 +87,7 @@ export async function assistantRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, body: UpdateConversationSchema } },
     async (req, reply) => {
       const row = await service.updateConversationModel(req.me, req.params.id, req.body.model as service.AssistantModelId, req.body.provider)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.chat.conversationNotFound') })
+      if (!row) return fail(reply, 404, 'ASSISTANT_CONVERSATION_NOT_FOUND')
       return { success: true, data: row }
     },
   )
@@ -97,7 +97,7 @@ export async function assistantRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema } },
     async (req, reply) => {
       const row = await service.deleteConversation(req.me, req.params.id)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.chat.conversationNotFound') })
+      if (!row) return fail(reply, 404, 'ASSISTANT_CONVERSATION_NOT_FOUND')
       return { success: true, data: row }
     },
   )
@@ -107,7 +107,7 @@ export async function assistantRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema } },
     async (req, reply) => {
       if (!(await service.ownsConversation(req.me, req.params.id))) {
-        return reply.code(404).send({ success: false, error: tr('errors.chat.conversationNotFound') })
+        return fail(reply, 404, 'ASSISTANT_CONVERSATION_NOT_FOUND')
       }
       const rows = await service.listConversationMessages(req.params.id)
       return { success: true, data: rows }
@@ -119,10 +119,10 @@ export async function assistantRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, body: SendMessageSchema } },
     async (req, reply) => {
       if (!(await service.ownsConversation(req.me, req.params.id))) {
-        return reply.code(404).send({ success: false, error: tr('errors.chat.conversationNotFound') })
+        return fail(reply, 404, 'ASSISTANT_CONVERSATION_NOT_FOUND')
       }
       const check = await quota.checkQuota(req.me)
-      if (!check.ok) return reply.code(429).send({ success: false, error: { code: check.code, message: check.message } })
+      if (!check.ok) return fail(reply, 429, check.code, { message: check.message })
       reply.hijack()
       await streamGenerator(reply, service.runConversationTurn(req.params.id, req.body.text))
     },
@@ -133,12 +133,12 @@ export async function assistantRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ActionIdParamsSchema } },
     async (req, reply) => {
       const result = await service.confirmPendingAction(req.me, req.params.id)
-      if (!result.ok) return reply.code(400).send({ success: false, error: result.error })
+      if (!result.ok) return fail(reply, 400, result.code, { params: result.params })
 
       // Confirmarea continuă conversația cu un tur nou de model — deci tot la plafon, tot 429,
       // cu același mesaj (C2).
       const check = await quota.checkQuota(req.me)
-      if (!check.ok) return reply.code(429).send({ success: false, error: { code: check.code, message: check.message } })
+      if (!check.ok) return fail(reply, 429, check.code, { message: check.message })
 
       reply.hijack()
       await streamGenerator(reply, await service.continueAfterAction(result.conversationId))
@@ -150,7 +150,7 @@ export async function assistantRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ActionIdParamsSchema } },
     async (req, reply) => {
       const result = await service.rejectPendingAction(req.me, req.params.id)
-      if (!result.ok) return reply.code(400).send({ success: false, error: result.error })
+      if (!result.ok) return fail(reply, 400, result.code, { params: result.params })
 
       reply.hijack()
       await streamGenerator(reply, await service.continueAfterAction(result.conversationId))
@@ -166,12 +166,8 @@ export async function assistantRoutes(app: FastifyInstance) {
   server.delete(
     '/api/assistant/scheduled/:id',
     { preHandler: [app.authenticate], schema: { params: ActionIdParamsSchema } },
-    async (req, reply) => {
-      try {
-        return { success: true, data: await scheduledService.cancelScheduledRun(req.me, req.params.id) }
-      } catch (err) {
-        return reply.code(400).send({ success: false, error: err instanceof Error ? err.message : String(err) })
-      }
+    async (req) => {
+      return { success: true, data: await scheduledService.cancelScheduledRun(req.me, req.params.id) }
     },
   )
 }

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { config } from '../../shared/config.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 import { DeviceTokenSchema, SubscribeSchema, UnsubscribeSchema, UpdatePreferencesSchema } from './schema.js'
 import * as service from './service.js'
 
@@ -50,7 +51,9 @@ export async function pushRoutes(app: FastifyInstance) {
       const result = await service.sendTest(req.me)
       return { success: true, data: result }
     } catch (err) {
-      return reply.code(400).send({ success: false, error: String((err as Error).message ?? err) })
+      if (err instanceof HttpError) throw err
+      req.log.warn({ err }, 'push test failed')
+      return fail(reply, 400, 'PUSH_FAILED')
     }
   })
 

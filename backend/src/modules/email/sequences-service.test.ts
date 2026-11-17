@@ -168,7 +168,7 @@ describe('enrollRecipients', () => {
     // Golim pașii direct în DB (updateSequence cere min 1 pas) — simulează o secvență inconsistentă.
     await db.delete(emailSequenceSteps).where(eq(emailSequenceSteps.sequenceId, created.id))
 
-    await expect(enrollRecipients(created.id, [{ email: 'no-step@example.com' }])).rejects.toThrow('Secvență fără niciun pas')
+    await expect(enrollRecipients(created.id, [{ email: 'no-step@example.com' }])).rejects.toMatchObject({ code: 'SEQUENCE_NO_STEPS' })
   })
 })
 

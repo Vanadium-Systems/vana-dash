@@ -3,6 +3,7 @@ import type { BetaRunnableTool } from '@anthropic-ai/sdk/lib/tools/BetaRunnableT
 import type { z } from 'zod/v4'
 import type { SessionUser } from '../../../shared/lib/session.js'
 import { userName } from '../../../shared/lib/session.js'
+import { ToolError, toolFailureText } from '../tool-error.js'
 
 // SDK-ul cere schema din 'zod/v4' pt. betaZodTool — nu schemele din 'zod' (v3 clasic) folosite
 // deja pe rutele REST existente. Tool-urile de mai jos redeclară inputul minim necesar per tool
@@ -37,7 +38,13 @@ export function autoTool<Schema extends z.ZodType>(options: {
     name: options.name,
     inputSchema: options.inputSchema,
     description: options.description,
-    run: async (args) => JSON.stringify(await options.run(args)),
+    run: async (args) => {
+      try {
+        return JSON.stringify(await options.run(args))
+      } catch (err) {
+        throw new ToolError(toolFailureText(err))
+      }
+    },
   })
 }
 

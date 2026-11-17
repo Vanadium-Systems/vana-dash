@@ -3,7 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { EmailSettingsUpdateSchema, LogoUploadSchema } from './settings-schema.js'
 import * as settings from './settings-service.js'
 import { selectableIdentities } from './mailboxes.js'
-import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 export async function emailSettingsRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -44,7 +44,7 @@ export async function emailSettingsRoutes(app: FastifyInstance) {
       try {
         await settings.uploadLogo(req.body)
       } catch (err) {
-        if (err instanceof settings.LogoTypeError) return reply.code(400).send({ success: false, error: err.message })
+        if (err instanceof settings.LogoTypeError) return fail(reply, 400, 'EMAIL_LOGO_TYPE_INVALID')
         throw err
       }
       return reply.code(201).send({ success: true })
@@ -56,7 +56,7 @@ export async function emailSettingsRoutes(app: FastifyInstance) {
   // SVG case: opened directly in a tab, an SVG is a document on this origin and could run script.
   server.get('/api/email/settings/logo', async (_req, reply) => {
     const logo = await settings.getLogoFile()
-    if (!logo) return reply.code(404).send({ success: false, error: tr('errors.email.logoNotConfigured') })
+    if (!logo) return fail(reply, 404, 'EMAIL_LOGO_NOT_CONFIGURED')
     return reply.header('Content-Security-Policy', "sandbox; default-src 'none'").type(logo.contentType).send(logo.buffer)
   })
 }
