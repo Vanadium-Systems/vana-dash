@@ -12,7 +12,7 @@ import { useUrlState } from '@/shared/hooks/use-url-state'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import { motionLevel } from '@/shared/lib/motion'
-import type { ChatAttachment, ChatConversation, ChatMessageRef, ChatReceipt, ChatReplyPreview } from '@/shared/lib/types'
+import type { ChatConversation, ChatMessageRef, ChatReceipt, ChatReplyPreview } from '@/shared/lib/types'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Composer, type ComposerHandle } from './Composer'
 import { ChatAvatar } from './ChatAvatar'
@@ -21,8 +21,14 @@ import { conversationTitle, presenceLabel } from './ConversationList'
 import { DaySeparator, dayKey } from './DaySeparator'
 import { JumpToBottom } from './JumpToBottom'
 import { MessageBubble, type ReceiptState, type ThreadRow } from './MessageBubble'
+import { MessageInfoDialog } from './MessageInfo'
 import { NewMessagesLine } from './NewMessagesLine'
 import { useThreadMessages } from './useThreadMessages'
+import { useDecryptedRows, type ResolvedAttachment } from './crypto/E2EProvider'
+import { saveDecrypted } from './crypto/files'
+import { ChangedKeysNotice } from './crypto/E2ESetup'
+import { useLegacyReencryption } from './crypto/legacy'
+import { useAttachmentUrl } from './crypto/useAttachmentUrl'
 import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
 
 // The thread: bubbles as in WhatsApp (yours on the right), the behaviour of Slack around them:
@@ -51,9 +57,10 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
   const pinnedRef = useRef(true)
   const [farFromEnd, setFarFromEnd] = useState(false)
   const [missed, setMissed] = useState(0)
-  const [viewing, setViewing] = useState<ChatAttachment | null>(null)
+  const [viewing, setViewing] = useState<ResolvedAttachment | null>(null)
   const [replyTo, setReplyTo] = useState<ChatReplyPreview | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [infoFor, setInfoFor] = useState<string | null>(null)
   const [focusedId, setFocusedId] = useState<string | null>(null)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
@@ -68,7 +75,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
     [conversation.members, meId],
   )
 
-  const rows = useMemo<ThreadRow[]>(
+  const rawRows = useMemo<ThreadRow[]>(
     () => [
       ...thread.messages.filter((m) => !hiddenIds.has(m.id)).map((message) => ({ ...message, pending: null, error: null })),
       // A pending row whose saved copy has arrived (POST answer or stream) is the same message.
@@ -100,6 +107,10 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
     ],
     [conversation.id, hiddenIds, meId, thread.messages, thread.pending],
   )
+  // Text and file names as this device decrypted them; everything below reads `body` as before.
+  const rows: ThreadRow[] = useDecryptedRows(rawRows)
+  const memberIds = useMemo(() => conversation.members.map((m) => m.id), [conversation.members])
+  useLegacyReencryption(conversation.id, memberIds, thread.messages, meId)
 
   // The "New" line: before the first message from someone else after the watermark of the opening.
   const newLine = useMemo(() => {
@@ -290,8 +301,11 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
     if (!row.id) return
     setReplyTo({
       id: row.id,
+      authorUserId: row.authorUserId,
       authorName: row.authorName,
+      // Already decrypted: only the composer's bar and the pending row show it.
       body: row.body.slice(0, 200),
+      encrypted: null,
       hasAttachment: row.attachments.length > 0,
       deleted: false,
     })
@@ -444,6 +458,8 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
         </p>
       ) : null}
 
+      <ChangedKeysNotice members={conversation.members} meId={meId} />
+
       <div className="relative min-h-0 flex-1">
         <div
           ref={scrollRef}
@@ -514,6 +530,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
                             onReact: (emoji) => react(row, emoji),
                             onCopy: () => copy(row),
                             onEditStart: () => row.id && setEditingId(row.id),
+                            onInfo: () => setInfoFor(row.createdAt),
                             onEditSave: (body) => {
                               setEditingId(null)
                               if (row.id) thread.edit(row.id, body).catch((err: Error) => toast.error(err.message))
@@ -566,15 +583,10 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
         }}
       />
 
-      {viewing ? (
-        <FileViewer
-          files={[{ id: viewing.id, name: viewing.filename, url: `/api/chat/attachments/${viewing.id}`, mimeType: viewing.contentType }]}
-          index={0}
-          onIndexChange={() => {}}
-          onClose={() => setViewing(null)}
-          onDownload={(file) => void api.download(`${file.url}?download=1`, file.name).catch((err: Error) => toast.error(err.message))}
-        />
+      {infoFor ? (
+        <MessageInfoDialog createdAt={infoFor} members={conversation.members} receipts={thread.receipts} meId={meId} onClose={() => setInfoFor(null)} />
       ) : null}
+      {viewing ? <AttachmentViewer attachment={viewing} onClose={() => setViewing(null)} /> : null}
 
       <ConversationPanel
         conversation={conversation}
@@ -625,4 +637,22 @@ function groupByDay(rows: ThreadRow[]): { key: string; rows: { row: ThreadRow; i
 function sameSeries(previous: ThreadRow | undefined, current: ThreadRow): boolean {
   if (!previous || previous.authorUserId !== current.authorUserId) return false
   return new Date(current.createdAt).getTime() - new Date(previous.createdAt).getTime() < SERIES_WINDOW_MS
+}
+
+/** The full-size viewer; an encrypted file opens once this device has decrypted it. */
+function AttachmentViewer({ attachment, onClose }: { attachment: ResolvedAttachment; onClose: () => void }) {
+  const url = useAttachmentUrl(attachment, 'original')
+  if (!url) return null
+  return (
+    <FileViewer
+      files={[{ id: attachment.id, name: attachment.filename, url, mimeType: attachment.contentType }]}
+      index={0}
+      onIndexChange={() => {}}
+      onClose={onClose}
+      onDownload={(file) => {
+        const saving = attachment.key ? saveDecrypted(attachment.key) : api.download(`${file.url}?download=1`, file.name)
+        void saving.catch((err: Error) => toast.error(err.message))
+      }}
+    />
+  )
 }

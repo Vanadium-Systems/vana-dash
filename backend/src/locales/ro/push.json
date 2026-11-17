@@ -21,8 +21,8 @@
     "cancelledTitle": "Programare anulată"
   },
   "chat": {
-    "attachment": "Atașament",
-    "aColleague": "Un coleg"
+    "aColleague": "Un coleg",
+    "newMessage": "Mesaj nou"
   },
   "payment": {
     "matchedTitle": "Plată matchuită",

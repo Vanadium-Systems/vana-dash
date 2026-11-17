@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { tr } from '../../shared/lib/i18n.js'
+import { deviceLabel } from '../../shared/lib/sessions.js'
 import * as keys from './keys.js'
 import { publish } from './presence.js'
 import { conversationPartnerIds } from './service.js'
@@ -42,7 +43,9 @@ export function keyRoutes(app: FastifyInstance) {
   }))
 
   server.post('/api/chat/keys/devices', { preHandler, schema: { body: RegisterDeviceSchema } }, async (req, reply) => {
-    const device = await keys.registerDevice(req.me.id, req.session?.familyId ?? null, req.body)
+    // Named like the login sessions in Profile, so the two lists read the same.
+    const label = req.body.label || deviceLabel(req.headers['user-agent']) || ''
+    const device = await keys.registerDevice(req.me.id, req.session?.familyId ?? null, { ...req.body, label })
     return reply.code(201).send({ success: true, data: device })
   })
 

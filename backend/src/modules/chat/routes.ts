@@ -33,9 +33,6 @@ import { RefFileTooLargeError } from '../../shared/lib/entity-refs.js'
 import { tr, trFor } from '../../shared/lib/i18n.js'
 
 const HEARTBEAT_INTERVAL_MS = 25_000
-// Mesajul apare și în notificarea push; trunchiem ca unul lung să nu umple bara de
-// notificări a telefonului.
-const PUSH_BODY_MAX = 140
 // "Typing" is published at most this often per person and conversation.
 const TYPING_THROTTLE_MS = 3_000
 const lastTyping = new Map<string, number>()
@@ -224,7 +221,7 @@ export async function chatRoutes(app: FastifyInstance) {
       const { id: conversationId } = req.params
       const { messageId } = req.body
       await service.markRead(req.me, conversationId, messageId)
-      publish({ type: 'read', conversationId, userId: req.me.id, messageId }, await service.memberIds(conversationId))
+      publish({ type: 'read', conversationId, userId: req.me.id, messageId, at: new Date().toISOString() }, await service.memberIds(conversationId))
       return { success: true }
     },
   )
@@ -381,30 +378,26 @@ async function publishDelivered(userId: string, upTo: Date, conversationIds: str
 /**
  * Push doar către oamenii fără conexiune SSE deschisă: cine are fluxul deschis primește
  * mesajul prin el în aceeași secundă, iar o notificare pe telefon ar fi doar duplicat.
+ *
+ * End-to-end (part M): the notification carries who wrote, never what. The text is encrypted,
+ * and a push goes through Google (FCM) or the browser vendor's push service. Shared objects'
+ * titles stay out too, for the same reason.
  */
-async function notifyMembers(
-  conversationId: string,
-  message: { authorUserId: string; body: string; refs: { card: { title: string } }[] },
-): Promise<void> {
+async function notifyMembers(conversationId: string, message: { authorUserId: string }): Promise<void> {
   try {
     const target = await service.pushTarget(conversationId, message.authorUserId)
     if (!target) return
     const offline = target.recipients.filter((userId) => !hasOpenConnection(userId))
     if (offline.length === 0) return
 
-    // A message with only a shared object reads as the object's title.
-    const text = message.body.trim() || (message.refs[0]?.card.title ?? '')
-    const summary = text.length > PUSH_BODY_MAX ? `${text.slice(0, PUSH_BODY_MAX)}…` : text
     await notifyPush(
       'mesaje',
       (locale) => ({
         title: target.title,
         body:
           target.kind === 'group'
-            ? summary
-              ? `${target.byline}: ${summary}`
-              : target.byline
-            : summary || trFor(locale, 'push.chat.attachment'),
+            ? `${target.byline}: ${trFor(locale, 'push.chat.newMessage')}`
+            : trFor(locale, 'push.chat.newMessage'),
         url: `/messages/${conversationId}`,
         // One notification per conversation, which the app clears once it is read anywhere.
         tag: `chat-${conversationId}`,

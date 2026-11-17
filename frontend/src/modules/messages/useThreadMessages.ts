@@ -2,7 +2,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useChatStream } from '@/shared/components/chat/ChatStreamProvider'
 import { api } from '@/shared/lib/api'
-import type { ChatAttachment, ChatMessage, ChatReaction, ChatReceipt, ChatReplyPreview, RefType } from '@/shared/lib/types'
+import { t } from '@/shared/lib/i18n'
+import type { ChatAttachment, ChatConversation, ChatMessage, ChatReaction, ChatReceipt, ChatReplyPreview, RefType } from '@/shared/lib/types'
+import type { AttachmentKey } from './crypto/engine'
+import { decryptNow, useE2E } from './crypto/E2EProvider'
 
 // The thread of one conversation. The latest page is a query, kept current by the stream. Older
 // pages loaded by scrolling up sit in `older`. A jump (a quoted message, a search hit, a date)
@@ -11,11 +14,17 @@ import type { ChatAttachment, ChatMessage, ChatReaction, ChatReceipt, ChatReplyP
 // does not reach the end. Returning to the latest drops the window.
 //
 // The server dedupes on `clientId`, so retrying a send is safe.
+//
+// Text and file keys are encrypted here, just before sending (PLAN.md part M); a retry encrypts
+// again, which is fine: the server keeps the first copy it got for that clientId.
+
+/** An uploaded attachment with the key that decrypts it, until it is sent inside a message. */
+export type OutgoingAttachment = ChatAttachment & { key: AttachmentKey }
 
 export interface PendingMessage {
   clientId: string
   body: string
-  attachments: ChatAttachment[]
+  attachments: OutgoingAttachment[]
   replyTo: ChatReplyPreview | null
   createdAt: string
   status: 'sending' | 'failed'
@@ -32,7 +41,7 @@ export interface RefInput {
 
 export interface SendInput {
   body: string
-  attachments: ChatAttachment[]
+  attachments: OutgoingAttachment[]
   replyTo?: ChatReplyPreview | null
   refs?: RefInput[]
 }
@@ -66,6 +75,7 @@ function appendUnique(list: ChatMessage[], extra: ChatMessage[]): ChatMessage[] 
 export function useThreadMessages(conversationId: string | undefined) {
   const queryClient = useQueryClient()
   const { subscribe } = useChatStream()
+  const { engine } = useE2E()
   const [older, setOlder] = useState<{ messages: ChatMessage[]; hasMore: boolean }>({ messages: [], hasMore: false })
   const [detached, setDetached] = useState<DetachedWindow | null>(null)
   const [arrivedWhileDetached, setArrivedWhileDetached] = useState(0)
@@ -125,7 +135,9 @@ export function useThreadMessages(conversationId: string | undefined) {
         if (event.type === 'read') {
           queryClient.setQueryData<ThreadPage>(queryKey, (current) => {
             const read = current?.messages.find((m) => m.id === event.messageId)
-            return current && read ? { ...current, receipts: advanceReceipt(current.receipts, event.userId, 'readUpTo', read.createdAt) } : current
+            if (!current || !read) return current
+            const receipts = advanceReceipt(current.receipts, event.userId, 'readUpTo', read.createdAt)
+            return { ...current, receipts: receipts.map((r) => (r.userId === event.userId ? { ...r, readAt: event.at } : r)) }
           })
         }
         if (event.type === 'delivered') {
@@ -174,15 +186,27 @@ export function useThreadMessages(conversationId: string | undefined) {
       // Your own message always brings you to the end.
       if (detachedRef.current) returnToLatest()
 
+      const members = async () => {
+        const list =
+          queryClient.getQueryData<ChatConversation[]>(['chat', 'conversations']) ??
+          (await api.get<ChatConversation[]>('/api/chat/conversations'))
+        return list.find((c) => c.id === conversationId)?.members.map((m) => m.id) ?? []
+      }
       const payload = {
-        body: input.body,
+        body: '',
         clientId,
         attachmentIds: input.attachments.map((a) => a.id),
         replyToId: input.replyTo?.id,
         refs: (input.refs ?? []).map(({ type, id, quote }) => ({ type, id, quote })),
       }
       try {
-        const saved = await api.post<ChatMessage>(base, payload)
+        // A message with only shared objects has nothing to encrypt; the objects are references.
+        const hasContent = input.body !== '' || input.attachments.length > 0
+        if (hasContent && engine?.currentStatus !== 'ready') throw new Error(t('messages:e2e.notReady'))
+        const encrypted = hasContent
+          ? await engine!.encrypt(conversationId, await members(), { body: input.body, attachments: input.attachments.map((a) => a.key) })
+          : undefined
+        const saved = await api.post<ChatMessage>(base, { ...payload, encrypted })
         // Saved copy first, optimistic one after: the thread hides a pending row once its clientId
         // is in the list, so it never shrinks for a frame (that made the thread jump).
         queryClient.setQueryData<ThreadPage>(queryKey, (current) =>
@@ -199,7 +223,7 @@ export function useThreadMessages(conversationId: string | undefined) {
         )
       }
     },
-    [base, conversationId, queryClient, queryKey, returnToLatest],
+    [base, conversationId, engine, queryClient, queryKey, returnToLatest],
   )
 
   const retry = useCallback(
@@ -293,10 +317,18 @@ export function useThreadMessages(conversationId: string | undefined) {
 
   const edit = useCallback(
     async (messageId: string, body: string) => {
-      const saved = await api.patch<ChatMessage>(`/api/chat/messages/${messageId}`, { body })
+      const message = messages.find((m) => m.id === messageId)
+      if (!message || !conversationId || engine?.currentStatus !== 'ready') throw new Error(t('messages:e2e.notReady'))
+      // The files stay: their keys go into the new ciphertext along with the new text.
+      const before = await decryptNow(engine, message)
+      const members =
+        queryClient.getQueryData<ChatConversation[]>(['chat', 'conversations'])?.find((c) => c.id === conversationId)?.members.map((m) => m.id) ??
+        [message.authorUserId]
+      const encrypted = await engine.encrypt(conversationId, members, { body, attachments: before?.attachments ?? [] })
+      const saved = await api.patch<ChatMessage>(`/api/chat/messages/${messageId}`, { encrypted })
       patchMessage(messageId, () => saved)
     },
-    [patchMessage],
+    [conversationId, engine, messages, patchMessage, queryClient],
   )
 
   const remove = useCallback(

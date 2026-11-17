@@ -61,6 +61,8 @@ export interface ChatEncrypted {
 
 export interface ChatReplyPreview {
   id: string
+  /** The app checks it against the key that decrypts the quoted message. */
+  authorUserId: string
   authorName: string
   body: string
   encrypted: ChatEncrypted | null
@@ -132,6 +134,8 @@ export interface ChatReceipt {
   userId: string
   deliveredUpTo: string | null
   readUpTo: string | null
+  /** When the read watermark last moved: the "seen at" of a message's info (FE-M7). */
+  readAt: string | null
 }
 
 export interface ChatConversationSummary {
@@ -277,6 +281,7 @@ async function attachToMessages(rows: (typeof messages.$inferSelect)[], reader: 
       r.id,
       {
         id: r.id,
+        authorUserId: r.authorUserId,
         authorName: nameById.get(r.authorUserId) ?? '',
         body: visibleBody(r).slice(0, REPLY_PREVIEW_MAX),
         encrypted: encryptedOf(r),
@@ -729,6 +734,7 @@ async function listReceipts(conversationId: string, viewerId: string): Promise<C
       userId: conversationMembers.userId,
       deliveredUpTo: conversationMembers.deliveredUpTo,
       readUpTo: sql<Date | null>`(SELECT m.created_at FROM messages m WHERE m.id = ${conversationMembers.lastReadMessageId})`,
+      readAt: conversationMembers.lastReadAt,
     })
     .from(conversationMembers)
     .where(and(eq(conversationMembers.conversationId, conversationId), ne(conversationMembers.userId, viewerId)))
@@ -736,6 +742,7 @@ async function listReceipts(conversationId: string, viewerId: string): Promise<C
     userId: r.userId,
     deliveredUpTo: r.deliveredUpTo?.toISOString() ?? null,
     readUpTo: r.readUpTo ? new Date(r.readUpTo).toISOString() : null,
+    readAt: r.readAt?.toISOString() ?? null,
   }))
 }
 
@@ -1035,6 +1042,7 @@ export async function listMedia(
     height: number | null
     createdAt: string
     encrypted: boolean
+    authorUserId: string
     /** The message holding the file's key, for an encrypted attachment. */
     messageEncrypted: ChatEncrypted | null
   }[]
@@ -1074,6 +1082,7 @@ export async function listMedia(
       height: messageAttachments.height,
       createdAt: messageAttachments.createdAt,
       encrypted: messageAttachments.encrypted,
+      authorUserId: messages.authorUserId,
       ciphertext: messages.ciphertext,
       encVersion: messages.encVersion,
       senderDeviceId: messages.senderDeviceId,

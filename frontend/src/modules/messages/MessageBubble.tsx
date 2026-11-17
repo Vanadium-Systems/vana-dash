@@ -1,4 +1,4 @@
-import { Check, CheckCheck, ChevronDown, Clock, Copy, Loader2, Paperclip, Pencil, Play, Reply, RotateCw, Trash2 } from 'lucide-react'
+import { Check, CheckCheck, ChevronDown, Clock, Copy, Info, Loader2, Paperclip, Pencil, Play, Reply, RotateCw, Trash2 } from 'lucide-react'
 import { forwardRef, useRef, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { RefCard } from '@/shared/components/entity-cards/RefCard'
@@ -15,9 +15,12 @@ import { companyTimeZone, formatDateTime, intlTag } from '@/shared/lib/format'
 import { haptic } from '@/shared/lib/haptics'
 import { t } from '@/shared/lib/i18n'
 import { linkify } from '@/shared/lib/linkify'
-import type { ChatAttachment, ChatMessageRef, ChatReaction, ChatReplyPreview } from '@/shared/lib/types'
+import type { ChatEncrypted, ChatMessageRef, ChatReaction, ChatReplyPreview } from '@/shared/lib/types'
 import { cn, formatBytes } from '@/shared/lib/utils'
 import { ChatAvatar, personColor } from './ChatAvatar'
+import { useDecrypted, type Decrypted, type ResolvedAttachment } from './crypto/E2EProvider'
+import { saveDecrypted } from './crypto/files'
+import { useAttachmentUrl } from './crypto/useAttachmentUrl'
 
 // One message. Yours on the right in the tinted bubble, the others' on the left; in a group, the
 // first bubble of a series has the author's avatar and name in their colour. Actions come from
@@ -43,8 +46,11 @@ export interface ThreadRow {
   conversationId: string
   authorUserId: string
   authorName: string
+  /** Already decrypted (useDecryptedRows); empty while `e2e` is not 'ready'. */
   body: string
-  attachments: ChatAttachment[]
+  encrypted?: ChatEncrypted | null
+  e2e?: Decrypted['state'] | null
+  attachments: ResolvedAttachment[]
   replyTo: ChatReplyPreview | null
   reactions: ChatReaction[]
   refs: ChatMessageRef[]
@@ -63,9 +69,11 @@ export interface BubbleActions {
   onEditSave: (body: string) => void
   onEditCancel: () => void
   onDelete: () => void
+  /** Own messages: who has seen it and when (FE-M7). */
+  onInfo: () => void
   onRetry: () => void
   onDiscard: () => void
-  onOpenMedia: (attachment: ChatAttachment) => void
+  onOpenMedia: (attachment: ResolvedAttachment) => void
   onJumpToQuote: (messageId: string) => void
   onRequestAccess: (refItem: ChatMessageRef) => void
 }
@@ -143,6 +151,10 @@ export const MessageBubble = forwardRef<
             <Pencil className="h-4 w-4" aria-hidden="true" />
             {t('common:actions.edit')}
             <MenuShortcut>E</MenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={actions.onInfo} disabled={Boolean(message.pending)}>
+            <Info className="h-4 w-4" aria-hidden="true" />
+            {t('messages:info.open')}
           </DropdownMenuItem>
           <DropdownMenuItem destructive onClick={actions.onDelete}>
             <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -272,7 +284,9 @@ export const MessageBubble = forwardRef<
               focused && 'ring-2 ring-ring',
             )}
           >
-            {message.replyTo ? <QuoteBlock reply={message.replyTo} onJump={actions.onJumpToQuote} /> : null}
+            {message.replyTo ? (
+              <QuoteBlock reply={message.replyTo} conversationId={message.conversationId} onJump={actions.onJumpToQuote} />
+            ) : null}
 
             {attachments.length > 0 ? (
               <ul className={cn('flex flex-col gap-1', (message.body || message.refs.length > 0) && 'mb-1')}>
@@ -305,6 +319,7 @@ export const MessageBubble = forwardRef<
               </div>
             ) : null}
 
+            {message.e2e && message.e2e !== 'ready' ? <Undecrypted state={message.e2e} /> : null}
             {message.body ? (
               <div className={cn('whitespace-pre-wrap break-words', emojiOnly ? 'text-4xl leading-tight' : 'text-sm')}>
                 {emojiOnly ? message.body : linkify(message.body, LINK_CLASS)}
@@ -357,6 +372,7 @@ export const MessageBubble = forwardRef<
         <SheetItem icon={Reply} label={t('messages:actions.reply')} onClick={() => (setSheetOpen(false), actions.onReply())} />
         {message.body ? <SheetItem icon={Copy} label={t('messages:actions.copy')} onClick={() => (setSheetOpen(false), actions.onCopy())} /> : null}
         {own && message.body ? <SheetItem icon={Pencil} label={t('common:actions.edit')} onClick={() => (setSheetOpen(false), actions.onEditStart())} /> : null}
+        {own && !message.pending ? <SheetItem icon={Info} label={t('messages:info.open')} onClick={() => (setSheetOpen(false), actions.onInfo())} /> : null}
         {own ? <SheetItem icon={Trash2} label={t('common:actions.delete')} destructive onClick={() => (setSheetOpen(false), actions.onDelete())} /> : null}
       </BottomSheet>
     </div>
@@ -442,7 +458,28 @@ function ReactionPills({
   )
 }
 
-function QuoteBlock({ reply, onJump }: { reply: ChatReplyPreview; onJump: (messageId: string) => void }) {
+/** Why a bubble has no text: still decrypting, the key has not reached this device, or refused. */
+function Undecrypted({ state }: { state: Decrypted['state'] }) {
+  const label =
+    state === 'pending'
+      ? t('messages:e2e.decrypting')
+      : state === 'missing-key'
+        ? t('messages:e2e.waitingKey')
+        : t('messages:e2e.invalid')
+  return <p className="text-sm italic text-muted-foreground">{label}</p>
+}
+
+function QuoteBlock({
+  reply,
+  conversationId,
+  onJump,
+}: {
+  reply: ChatReplyPreview
+  conversationId: string
+  onJump: (messageId: string) => void
+}) {
+  const decrypted = useDecrypted({ ...reply, conversationId, authorUserId: reply.authorUserId })
+  const body = decrypted.state === 'ready' ? decrypted.content.body.slice(0, 200) : ''
   return (
     // native: message bubble quote, whole block is clickable
     <button
@@ -455,8 +492,10 @@ function QuoteBlock({ reply, onJump }: { reply: ChatReplyPreview; onJump: (messa
       <span className="line-clamp-2 text-xs text-muted-foreground">
         {reply.deleted ? (
           <em>{t('messages:thread.deleted')}</em>
-        ) : reply.body ? (
-          reply.body
+        ) : body ? (
+          body
+        ) : decrypted.state !== 'ready' ? (
+          <em>{decrypted.state === 'pending' ? t('messages:e2e.decrypting') : t('messages:e2e.cannotDecrypt')}</em>
         ) : reply.hasAttachment ? (
           <span className="inline-flex items-center gap-1">
             <Paperclip className="h-3 w-3" aria-hidden="true" />
@@ -513,7 +552,7 @@ function AttachmentItem({
   onOpen,
   corner,
 }: {
-  attachment: ChatAttachment
+  attachment: ResolvedAttachment
   fill: boolean
   uploading: boolean
   onOpen: () => void
@@ -521,25 +560,40 @@ function AttachmentItem({
   corner: ReactNode
 }) {
   const href = `/api/chat/attachments/${attachment.id}`
-  if (IMAGE_TYPES.includes(attachment.contentType)) {
+  const isImage = IMAGE_TYPES.includes(attachment.contentType)
+  const isVideo = VIDEO_TYPES.includes(attachment.contentType)
+  const thumbUrl = useAttachmentUrl(attachment, 'thumb', isImage)
+  if (isImage) {
+    const box = attachment.key?.width && attachment.key.height ? { aspectRatio: `${attachment.key.width} / ${attachment.key.height}` } : undefined
     return (
       <li className="relative w-fit max-w-full">
         {/* native: thumbnail tile */}
         <button type="button" onClick={onOpen} className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          {/* The thumbnail (640px), not the original: a phone photo is megabytes. */}
-          <img
-            src={`${href}?size=thumb`}
-            alt={attachment.filename}
-            loading="lazy"
-            className={cn('max-h-80 rounded-md object-cover', fill ? 'w-[min(320px,100%)]' : 'max-w-[min(280px,100%)]')}
-          />
+          {/* The thumbnail, not the original: a phone photo is megabytes. An encrypted one keeps
+              its proportions from the message while it decrypts, so the thread does not jump. */}
+          {thumbUrl ? (
+            <img
+              src={thumbUrl}
+              alt={attachment.filename}
+              loading="lazy"
+              style={box}
+              className={cn('max-h-80 rounded-md object-cover', fill ? 'w-[min(320px,100%)]' : 'max-w-[min(280px,100%)]')}
+            />
+          ) : (
+            <span
+              role="img"
+              aria-label={attachment.filename}
+              style={box ?? { aspectRatio: '4 / 3' }}
+              className={cn('block max-h-80 animate-pulse rounded-md bg-muted', fill ? 'w-[min(320px,100%)]' : 'w-[min(280px,100%)]')}
+            />
+          )}
         </button>
         {uploading ? <Spinner /> : null}
         {corner}
       </li>
     )
   }
-  if (VIDEO_TYPES.includes(attachment.contentType)) {
+  if (isVideo) {
     return (
       <li className="relative">
         {/* native: thumbnail tile */}
@@ -549,8 +603,13 @@ function AttachmentItem({
           className="relative block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={t('messages:thread.play', { filename: attachment.filename })}
         >
-          {/* `#t=0.1` + metadata only: the first frame as the thumbnail, without pulling the video. */}
-          <video src={`${href}#t=0.1`} preload="metadata" muted playsInline className="max-h-72 max-w-[min(280px,100%)] rounded-md bg-black" />
+          {/* `#t=0.1` + metadata only: the first frame as the thumbnail, without pulling the video.
+              An encrypted video has to be downloaded whole to show anything: it loads on open. */}
+          {attachment.encrypted ? (
+            <span className="block h-40 w-[min(280px,100%)] rounded-md bg-black" />
+          ) : (
+            <video src={`${href}#t=0.1`} preload="metadata" muted playsInline className="max-h-72 max-w-[min(280px,100%)] rounded-md bg-black" />
+          )}
           <span className="absolute inset-0 flex items-center justify-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white">
               <Play className="h-5 w-5" aria-hidden="true" />
@@ -566,7 +625,10 @@ function AttachmentItem({
       {/* native: list row */}
       <button
         type="button"
-        onClick={() => void api.download(`${href}?download=1`, attachment.filename).catch((err: Error) => toast.error(err.message))}
+        onClick={() => {
+          const saving = attachment.key ? saveDecrypted(attachment.key) : api.download(`${href}?download=1`, attachment.filename)
+          void saving.catch((err: Error) => toast.error(err.message))
+        }}
         className="flex w-64 max-w-full items-center gap-2.5 rounded-md bg-background/50 p-1.5 pr-2.5 text-left hover:bg-background/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <FileTypeIcon filename={attachment.filename} contentType={attachment.contentType} />

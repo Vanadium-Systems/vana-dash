@@ -166,6 +166,8 @@ interface InboundRecord {
 export interface PlainRecord {
   messageId: string
   conversationId: string
+  authorUserId: string
+  createdAt?: string
   body: string
   attachments: AttachmentKey[]
 }
@@ -243,11 +245,28 @@ export class E2EEngine {
     await this.queue
   }
 
-  // Pickles and IndexedDB are read-modify-write: one operation at a time per tab.
+  // Pickles and IndexedDB are read-modify-write. One operation at a time per tab (the queue) and
+  // across the person's tabs (a Web Lock): two tabs advancing the same Olm or Megolm ratchet from
+  // the same pickle would break it, and two first starts would register two devices.
   private serial<T>(task: () => Promise<T>): Promise<T> {
-    const run = this.queue.then(task, task)
+    const locked = () => withLock(`vana-e2e-${this.userId}`, async () => {
+      await this.reloadFromStore()
+      return task()
+    })
+    const run = this.queue.then(locked, locked)
     this.queue = run.catch(() => undefined)
     return run
+  }
+
+  /** Another tab may have moved the account on (keys used, device approved) since we last looked. */
+  private async reloadFromStore(): Promise<void> {
+    if (!this.vz || !this.pickleKey) return
+    const pickle = await this.store.get<string>('meta', 'account')
+    if (pickle) {
+      this.account?.free()
+      this.account = this.vz.Account.from_pickle(pickle, this.pickleKey)
+    }
+    this.secrets = (await this.store.get<Secrets>('meta', 'secrets')) ?? null
   }
 
   // ── Start ─────────────────────────────────────────────────────────────────
@@ -640,6 +659,8 @@ export class E2EEngine {
     if (item.senderUserId !== this.userId) return
     if (payload.type === 'approval_request') {
       if (this.status !== 'ready') return
+      // The asking device registered a moment ago: never in the cached list.
+      this.directory.delete(this.userId)
       const device = (await this.trustedDevices(this.userId, true)).find((d) => d.id === item.senderDeviceId)
       if (!device || device.publicIdentityKey !== item.senderIdentityKey || device.masterSignature) return
       if (this.approvals.some((request) => request.requestId === payload.requestId)) return
@@ -687,7 +708,11 @@ export class E2EEngine {
    * session rotates when someone left (a device it was shared with is no longer a target), after
    * 100 messages or a week.
    */
-  encrypt(conversationId: string, memberUserIds: string[], content: MessageContent): Promise<EncryptedContent> {
+  encrypt(
+    conversationId: string,
+    memberUserIds: string[],
+    content: MessageContent & { legacy?: true },
+  ): Promise<EncryptedContent> {
     return this.serial(async () => {
       if (this.status !== 'ready') throw new Error('encryption not ready on this device')
       const targets: DirectoryDevice[] = []
@@ -746,6 +771,8 @@ export class E2EEngine {
     id: string
     conversationId: string
     authorUserId: string
+    /** Kept with the text for the local search's results. */
+    createdAt?: string
     encrypted: { v: number; ciphertext: string; senderDeviceId: string | null }
   }): Promise<DecryptResult> {
     return this.serial(async () => {
@@ -761,19 +788,22 @@ export class E2EEngine {
         return { status: 'missing-key' }
       }
       // A key from Ana's device decrypts only Ana's messages, in the conversation it was sent for.
-      if (record.conversationId !== message.conversationId || record.senderUserId !== message.authorUserId) {
-        return { status: 'invalid' }
-      }
+      if (record.conversationId !== message.conversationId) return { status: 'invalid' }
       const session = this.vz.InboundGroupSession.from_pickle(record.pickle, this.pickleKey)
       try {
         const decrypted = session.decrypt(packed.ciphertext)
-        const parsed = JSON.parse(decrypted.plaintext) as Partial<MessageContent> & { v?: number; conversationId?: string }
+        const parsed = JSON.parse(decrypted.plaintext) as Partial<MessageContent> & { v?: number; conversationId?: string; legacy?: boolean }
         decrypted.free()
         if (parsed.v !== 1 || parsed.conversationId !== message.conversationId) return { status: 'invalid' }
+        // The one case where the key is not the author's: an old clear message re-encrypted by a
+        // colleague because its author has no approved device left (the server allows nothing else).
+        if (record.senderUserId !== message.authorUserId && parsed.legacy !== true) return { status: 'invalid' }
         const content: MessageContent = { body: String(parsed.body ?? ''), attachments: parsed.attachments ?? [] }
         await this.store.put('plain', cacheKey, {
           messageId: message.id,
           conversationId: message.conversationId,
+          authorUserId: message.authorUserId,
+          createdAt: message.createdAt,
           ...content,
         } satisfies PlainRecord)
         return { status: 'ok', content }
@@ -897,6 +927,12 @@ export class E2EEngine {
       after = rows[rows.length - 1]!.id
     }
   }
+}
+
+function withLock<T>(name: string, task: () => Promise<T>): Promise<T> {
+  // Web Locks are everywhere the engine runs (Chrome 69, Safari 15.4, Firefox 96); tests have none.
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined
+  return locks ? (locks.request(name, task) as Promise<T>) : task()
 }
 
 function keyList(keys: unknown): { keyId: string; publicKey: string }[] {

@@ -5,6 +5,7 @@ import { unregisterNativeDeviceToken } from '@/shared/lib/native-push'
 import { resetAnalytics } from '@/shared/hooks/use-analytics'
 import { ME_QUERY_KEY, useMe } from '@/shared/hooks/use-me'
 import type { SessionPayload } from '@/shared/lib/types'
+import { wipeCryptoStore } from '@/modules/messages/crypto/store'
 
 // Setat la orice 200 pe /api/auth/me sau login reușit, șters explicit doar la un 401 REAL
 // sau logout — NU la o eroare de rețea. Bug 1a (offline → redirect greșit la /login): un
@@ -67,6 +68,9 @@ export function useLogout() {
       // Token-ul FCM al APK-ului nu mai primește notificări pe acest device (Contract C).
       await unregisterNativeDeviceToken().catch(() => {})
       resetAnalytics()
+      // Message keys go with the session; the server drops this device from key lists with it.
+      const userId = queryClient.getQueryData<SessionPayload>(ME_QUERY_KEY)?.user.id
+      if (userId) await wipeCryptoStore(userId)
       queryClient.clear()
       localStorage.removeItem(WAS_AUTHENTICATED_KEY)
       if ('caches' in window) {

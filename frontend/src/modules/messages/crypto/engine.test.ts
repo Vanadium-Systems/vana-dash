@@ -290,6 +290,21 @@ describe('end-to-end engine', () => {
     expect(await read(dan, fake)).toBe('missing-key')
   })
 
+  it('an approval request reaches a device that already has its own device list cached', async () => {
+    const server = new FakeServer()
+    const ana = await server.device('ana')
+    const bob = await server.device('bob')
+    await ana.createIdentity()
+    await bob.createIdentity()
+    server.members.set(CONVERSATION, ['ana', 'bob'])
+    // Sending loads Ana's own device list into the engine's cache.
+    await send(server, ana, 'Înainte de telefonul nou')
+    const phone = await server.device('ana')
+    const code = await phone.requestApproval()
+    await ana.syncToDevice()
+    expect(ana.approvals.map((request) => request.code)).toEqual([code])
+  })
+
   it('a message moved by the server into another conversation does not decrypt', async () => {
     const server = new FakeServer()
     const ana = await server.device('ana')

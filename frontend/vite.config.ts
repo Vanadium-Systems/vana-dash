@@ -113,6 +113,9 @@ export default defineConfig({
       },
     }),
   ],
+  // vodozemac finds its .wasm next to its own module (new URL(..., import.meta.url)). Pre-bundled
+  // into .vite/deps it would look for the file there and get index.html back.
+  optimizeDeps: { exclude: ['@towns-protocol/vodozemac'] },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

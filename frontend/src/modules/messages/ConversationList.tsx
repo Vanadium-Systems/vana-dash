@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { formatRelativeTime } from '@/shared/lib/format'
 import type { ChatConversation } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
+import { useDecrypted } from './crypto/E2EProvider'
 import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
 import { ChatAvatar } from './ChatAvatar'
 
@@ -189,6 +190,8 @@ function Row({ conversation, meId, typingIds }: { conversation: ChatConversation
 /** The last message in one line: what it carries (photo, file, object) before its text (#23). */
 function Preview({ conversation, meId, unread }: { conversation: ChatConversation; meId: string; unread: boolean }) {
   const last = conversation.lastMessage
+  // Decrypted here: the server only knows that there is a last message, not what it says.
+  const decrypted = useDecrypted(last ? { ...last, conversationId: conversation.id, authorUserId: last.authorId } : null)
   if (!last) return <span className="min-w-0 flex-1 truncate">{t('messages:list.noMessagesYet')}</span>
   const Icon = last.refType ? Hash : last.attachmentKind === 'image' ? Image : last.attachmentKind === 'file' ? Paperclip : null
   const fallback = last.refType
@@ -202,7 +205,7 @@ function Preview({ conversation, meId, unread }: { conversation: ChatConversatio
     <span className={cn('flex min-w-0 flex-1 items-center gap-1', unread && 'font-medium text-foreground')}>
       {last.authorId === meId ? <span className="shrink-0">{t('messages:list.youPrefix')}</span> : null}
       {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
-      <span className="min-w-0 truncate">{last.body || fallback}</span>
+      <span className="min-w-0 truncate">{(decrypted.state === 'ready' ? decrypted.content.body : '') || fallback}</span>
     </span>
   )
 }

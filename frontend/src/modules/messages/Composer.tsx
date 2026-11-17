@@ -19,10 +19,11 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { parseDashLink } from '@/shared/lib/entity-links'
 import { cn, formatBytes } from '@/shared/lib/utils'
-import type { ChatAttachment, ChatReplyPreview } from '@/shared/lib/types'
+import type { ChatReplyPreview } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
 import { RefPicker } from './RefPicker'
-import type { RefInput } from './useThreadMessages'
+import { uploadEncrypted } from './crypto/files'
+import type { OutgoingAttachment, RefInput } from './useThreadMessages'
 
 // Compunerea (fișa „Mesaje"): textarea care crește până la 6 rânduri, Enter trimite,
 // Shift+Enter rând nou. Atașamente: agrafă la vedere, drag & drop și lipire din clipboard pe
@@ -62,14 +63,14 @@ interface PendingUpload {
   localId: string
   file: File
   status: 'uploading' | 'done' | 'failed'
-  attachment: ChatAttachment | null
+  attachment: OutgoingAttachment | null
 }
 
 export const Composer = forwardRef<
   ComposerHandle,
   {
     conversationId: string
-    onSend: (input: { body: string; attachments: ChatAttachment[]; refs: RefInput[] }) => void
+    onSend: (input: { body: string; attachments: OutgoingAttachment[]; refs: RefInput[] }) => void
     replyTo?: ChatReplyPreview | null
     onCancelReply?: () => void
     onArrowUpEmpty?: () => void
@@ -153,9 +154,17 @@ export const Composer = forwardRef<
         file = await toJpeg(original)
         setUploads((current) => current.map((u) => (u.localId === localId ? { ...u, file } : u)))
       }
-      const form = new FormData()
-      form.append('file', file, file.name)
-      const attachment = await api.upload<ChatAttachment>('/api/chat/attachments', form)
+      // Encrypted here: the server stores bytes it cannot open, the key goes into the message.
+      const key = await uploadEncrypted(file)
+      const attachment: OutgoingAttachment = {
+        id: key.id,
+        filename: file.name,
+        contentType: key.type,
+        sizeBytes: file.size,
+        encrypted: true,
+        mediaKind: file.type.startsWith('image/') ? 'image' : 'file',
+        key,
+      }
       setUploads((current) => current.map((u) => (u.localId === localId ? { ...u, status: 'done', attachment } : u)))
     } catch {
       setUploads((current) => current.map((u) => (u.localId === localId ? { ...u, status: 'failed' } : u)))
