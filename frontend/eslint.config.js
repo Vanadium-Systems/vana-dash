@@ -89,7 +89,7 @@ export default tseslint.config(
     files: ['src/**/*.{ts,tsx}'],
     ignores: ['src/**/*.test.{ts,tsx}', 'src/shared/lib/errors.ts'],
     rules: {
-      'no-restricted-syntax': ['warn', ...ERROR_DISPLAY],
+      'no-restricted-syntax': ['error', ...ERROR_DISPLAY],
     },
   },
 )
