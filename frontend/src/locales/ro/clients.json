@@ -493,6 +493,11 @@
     },
     "cardActions": {
       "requestAccess": "Cere acces"
+    },
+    "palette": {
+      "call": "Sună: {{name}}",
+      "write": "Scrie: {{name}}",
+      "schedule": "Programează: {{name}}"
     }
   },
   "voice": {

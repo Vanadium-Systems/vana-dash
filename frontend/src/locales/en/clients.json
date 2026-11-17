@@ -479,6 +479,11 @@
     },
     "cardActions": {
       "requestAccess": "Request access"
+    },
+    "palette": {
+      "call": "Call {{name}}",
+      "write": "Write to {{name}}",
+      "schedule": "Schedule with {{name}}"
     }
   },
   "voice": {

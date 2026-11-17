@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Calculator, CalendarPlus, CircleSlash, ListPlus, MessageSquareShare, MessagesSquare, Send, UserCheck, UserPlus, Users, Video, Workflow } from 'lucide-react'
+import { Archive, ArchiveRestore, CalendarClock, Calculator, CalendarPlus, CircleSlash, ListPlus, MessageSquareShare, MessagesSquare, Send, UserCheck, UserPlus, Mail, Phone, Users, Video, Workflow } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { NewCallDialog } from '@/modules/calls/NewCallDialog'
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
+import { usePageActions } from '@/shared/lib/page-actions'
 import { AddToListDialog } from '../lists/AddToListDialog'
 import { useStatuses } from '../prospects/use-prospect-data'
 import { ActivityTab } from './ActivityTab'
@@ -125,6 +126,13 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
     { key: 'calls', label: t('clients:sheet.tabs.calls'), count: countOf('call'), show: true },
     { key: 'discussed', label: t('clients:sheet.tabs.discussed'), show: can('mesaje.view') },
   ]
+
+  // The header's actions in Ctrl K too, named after the prospect so the palette says whom they reach.
+  usePageActions([
+    ...(phone ? [{ id: 'prospect-call', label: t('clients:sheet.palette.call', { name: sheet.name }), icon: Phone, run: () => contact('call', phone.value) }] : []),
+    ...(email ? [{ id: 'prospect-write', label: t('clients:sheet.palette.write', { name: sheet.name }), icon: Mail, run: () => contact('write', email.value) }] : []),
+    ...(sheet.canEdit ? [{ id: 'prospect-schedule', label: t('clients:sheet.palette.schedule', { name: sheet.name }), icon: CalendarClock, run: () => setScheduleOpen(true) }] : []),
+  ])
 
   return (
     <div className="sheet-root">
