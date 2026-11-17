@@ -22,6 +22,7 @@ import * as inboundService from './inbound-service.js'
 import * as scheduled from './scheduled-send.js'
 import { sendErrorReply } from './send-guard.js'
 import { recordEngagementEvent, updateSendStatusFromWebhook, type DeliveryStatus } from './service.js'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { contentDisposition } from '../../shared/lib/text.js'
 import { buildMessageAttachmentsZip, ZIP_LIMIT_MB } from './attachments-zip.js'
@@ -97,17 +98,17 @@ export async function emailInboundRoutes(app: FastifyInstance) {
     instance.post('/api/webhooks/resend-inbound', { bodyLimit: 1024 * 1024 }, async (req, reply) => {
       if (!config.resendWebhookSecret) {
         req.log.error('[email] RESEND_WEBHOOK_SECRET neconfigurat — webhook respins (fail-closed)')
-        return reply.code(503).send({ success: false, error: tr('errors.webhooks.notConfigured') })
+        return fail(reply, 503, 'WEBHOOK_NOT_CONFIGURED', { message: tr('errors.webhooks.notConfigured') })
       }
 
       const svixHeaders = extractSvixHeaders(req.headers as Record<string, unknown>)
       if (!svixHeaders) {
-        return reply.code(400).send({ success: false, error: tr('errors.webhooks.svixHeadersMissing') })
+        return fail(reply, 400, 'WEBHOOK_HEADERS_MISSING', { message: tr('errors.webhooks.svixHeadersMissing') })
       }
 
       const rawBody = req.body
       if (!Buffer.isBuffer(rawBody)) {
-        return reply.code(400).send({ success: false, error: tr('errors.webhooks.invalidBody') })
+        return fail(reply, 400, 'WEBHOOK_BODY_INVALID', { message: tr('errors.webhooks.invalidBody') })
       }
 
       let verifiedPayload: unknown
@@ -119,7 +120,7 @@ export async function emailInboundRoutes(app: FastifyInstance) {
         } else {
           req.log.warn(`[email] verificare webhook eșuată: ${String(err)}`)
         }
-        return reply.code(401).send({ success: false, error: tr('errors.webhooks.invalidSignature') })
+        return fail(reply, 401, 'WEBHOOK_SIGNATURE_INVALID', { message: tr('errors.webhooks.invalidSignature') })
       }
 
       // De aici încolo payload-ul e AUTENTIC (semnat de Resend) — procesarea propriu-zisă
@@ -232,7 +233,7 @@ export async function emailInboundRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: ThreadIdParamsSchema } },
     async (req, reply) => {
       const result = await inboundService.getThreadWithMessages(req.me, req.params.id)
-      if (!result) return reply.code(404).send({ success: false, error: 'Thread not found' })
+      if (!result) return fail(reply, 404, 'EMAIL_THREAD_NOT_FOUND')
       return { success: true, data: result }
     },
   )
@@ -256,7 +257,7 @@ export async function emailInboundRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: MessageIdParamsSchema, body: MessagePatchSchema } },
     async (req, reply) => {
       const message = await inboundService.patchMessage(req.me, req.params.id, req.body)
-      if (!message) return reply.code(404).send({ success: false, error: 'Message not found' })
+      if (!message) return fail(reply, 404, 'EMAIL_MESSAGE_NOT_FOUND')
       return { success: true, data: message }
     },
   )
@@ -287,9 +288,9 @@ export async function emailInboundRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: MessageIdParamsSchema } },
     async (req, reply) => {
       const result = await buildMessageAttachmentsZip(req.me, req.params.id)
-      if (result.kind === 'not-found') return reply.code(404).send({ success: false, error: 'Message not found' })
+      if (result.kind === 'not-found') return fail(reply, 404, 'EMAIL_MESSAGE_NOT_FOUND')
       if (result.kind === 'too-large') {
-        return reply.code(413).send({ success: false, error: { code: 'ZIP_TOO_LARGE', limitMb: ZIP_LIMIT_MB } })
+        return fail(reply, 413, 'ZIP_TOO_LARGE', { params: { limitMb: ZIP_LIMIT_MB }, details: { limitMb: ZIP_LIMIT_MB } })
       }
       return reply
         .header('Content-Disposition', contentDisposition('attachment', result.fileName))
@@ -303,7 +304,7 @@ export async function emailInboundRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: AttachmentIdParamsSchema } },
     async (req, reply) => {
       const attachment = await inboundService.getMessageAttachment(req.me, req.params.id)
-      if (!attachment) return reply.code(404).send({ success: false, error: 'Attachment not found' })
+      if (!attachment) return fail(reply, 404, 'EMAIL_MESSAGE_NOT_FOUND')
       const content = await readDocument(attachment.storagePath)
       // The sender picks the type and the name. Only plain images and PDFs open in the tab;
       // anything else (HTML, SVG) would render on this origin, next to the session cookie.

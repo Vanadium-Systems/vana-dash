@@ -35,6 +35,7 @@ import {
 import type { SessionUser } from '../../shared/lib/session.js'
 import { buildSignature, escapeHtml, textToHtmlParagraph } from './signature.js'
 import { trFor, tr } from '../../shared/lib/i18n.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
 import { findProspectIdsByAddress } from '../../shared/lib/prospect-contact-status.js'
 import { qualified } from '../../shared/lib/sql-fx.js'
@@ -919,7 +920,7 @@ export async function prepareForward(
     .select()
     .from(emailMessages)
     .where(and(eq(emailMessages.id, messageId), isNull(emailMessages.deletedAt), messageVisibleTo(await mailboxAddresses(me))))
-  if (!original) throw new Error(tr('errors.email.messageNotFound'))
+  if (!original) throw httpError(400, 'EMAIL_MESSAGE_NOT_FOUND')
 
   // The forward leaves from the original's mailbox, but the check is on the person, not the
   // message's address (otherwise a direct id would bypass it).
@@ -1026,7 +1027,7 @@ export async function prepareReply(
     .select()
     .from(emailThreads)
     .where(and(eq(emailThreads.id, threadId), isNull(emailThreads.deletedAt), threadVisibleTo(ownAddresses)))
-  if (!thread) throw new Error(tr('errors.email.threadNotFound'))
+  if (!thread) throw httpError(400, 'EMAIL_THREAD_NOT_FOUND')
 
   const [lastInbound] = await db
     .select()
@@ -1034,7 +1035,7 @@ export async function prepareReply(
     .where(and(eq(emailMessages.threadId, threadId), eq(emailMessages.direction, 'in'), isNull(emailMessages.deletedAt)))
     .orderBy(desc(emailMessages.receivedAt))
     .limit(1)
-  if (!lastInbound) throw new Error(tr('errors.email.threadNoInbound'))
+  if (!lastInbound) throw httpError(400, 'EMAIL_THREAD_NO_INBOUND')
 
   // The reply leaves from the last received message's address, not from an identity picked in the dialog.
   const identities = await getIdentities()

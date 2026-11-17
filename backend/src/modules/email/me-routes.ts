@@ -6,6 +6,7 @@ import { IdParamsSchema, LabelCreateSchema, LabelUpdateSchema, RuleCreateSchema,
 import * as organize from './organize-service.js'
 import { organizeErrorReply } from './organize-routes.js'
 import { getSuppressionsOverview } from './unsubscribe-service.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 // A person's own email settings (email.setari_proprii), so a colleague does not need the
 // company's Settings (email.setari) for a signature, a lower outreach cap or their own labels.
@@ -25,10 +26,10 @@ export async function emailMeRoutes(app: FastifyInstance) {
         return { success: true, data: await me.updateMySettings(req.me, req.body) }
       } catch (err) {
         if (err instanceof me.CapAboveCompany) {
-          return reply.code(400).send({ success: false, error: { code: err.code, limit: err.limit } })
+          return fail(reply, 400, err.code, { details: { limit: err.limit } })
         }
         if (err instanceof me.MailboxNotMine) {
-          return reply.code(400).send({ success: false, error: { code: err.code, identityKey: err.identityKey } })
+          return fail(reply, 400, err.code, { details: { identityKey: err.identityKey } })
         }
         throw err
       }
@@ -59,7 +60,7 @@ export async function emailMeRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const label = await organize.updateLabel(req.params.id, req.body, req.me.id)
-        if (!label) return reply.code(404).send({ success: false, error: 'Label not found' })
+        if (!label) return fail(reply, 404, 'LABEL_NOT_FOUND')
         return { success: true, data: label }
       } catch (err) {
         return organizeErrorReply(reply, err)
@@ -72,7 +73,7 @@ export async function emailMeRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       if (!(await organize.deleteLabel(req.params.id, req.me.id))) {
-        return reply.code(404).send({ success: false, error: 'Label not found' })
+        return fail(reply, 404, 'LABEL_NOT_FOUND')
       }
       return { success: true }
     },
@@ -102,7 +103,7 @@ export async function emailMeRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const rule = await organize.updateRule(req.params.id, req.body, req.me.id)
-        if (!rule) return reply.code(404).send({ success: false, error: 'Rule not found' })
+        if (!rule) return fail(reply, 404, 'RULE_NOT_FOUND')
         return { success: true, data: rule }
       } catch (err) {
         return organizeErrorReply(reply, err)
@@ -115,7 +116,7 @@ export async function emailMeRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       if (!(await organize.deleteRule(req.params.id, req.me.id))) {
-        return reply.code(404).send({ success: false, error: 'Rule not found' })
+        return fail(reply, 404, 'RULE_NOT_FOUND')
       }
       return { success: true }
     },

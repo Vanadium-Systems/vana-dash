@@ -271,7 +271,7 @@ describe('trimiterea', () => {
       payload: { to: 'altcineva@extern.ro' },
     })
     expect(res.statusCode, res.body).toBe(400)
-    expect(res.body).toContain('Mesaj inexistent')
+    expect(res.json().error.code).toBe('EMAIL_MESSAGE_NOT_FOUND')
   })
 
   it('forward pe un mesaj trimis de el e refuzat: ar pleca de pe adresa destinatarului', async () => {

@@ -9,13 +9,15 @@ import {
   RuleUpdateSchema,
 } from './organize-schema.js'
 import * as organize from './organize-service.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 
 /** Shared with me-routes.ts: the same refusals for the company's labels/rules and a person's own. */
 export function organizeErrorReply(reply: FastifyReply, err: unknown) {
   if (err instanceof organize.LabelNameTaken || err instanceof organize.RuleLabelNotAllowed) {
-    return reply.code(err instanceof organize.LabelNameTaken ? 409 : 400).send({ success: false, error: { code: err.code } })
+    return fail(reply, err instanceof organize.LabelNameTaken ? 409 : 400, err.code)
   }
-  return reply.code(400).send({ success: false, error: String(err) })
+  reply.log.warn({ err }, 'email label or rule save failed')
+  return fail(reply, 400, 'EMAIL_ORGANIZE_FAILED')
 }
 
 export async function emailOrganizeRoutes(app: FastifyInstance) {
@@ -46,7 +48,7 @@ export async function emailOrganizeRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const label = await organize.updateLabel(req.params.id, req.body)
-        if (!label) return reply.code(404).send({ success: false, error: 'Label not found' })
+        if (!label) return fail(reply, 404, 'LABEL_NOT_FOUND')
         return { success: true, data: label }
       } catch (err) {
         return organizeErrorReply(reply, err)
@@ -59,7 +61,7 @@ export async function emailOrganizeRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const deleted = await organize.deleteLabel(req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Label not found' })
+      if (!deleted) return fail(reply, 404, 'LABEL_NOT_FOUND')
       return { success: true }
     },
   )
@@ -88,7 +90,7 @@ export async function emailOrganizeRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const rule = await organize.updateRule(req.params.id, req.body)
-        if (!rule) return reply.code(404).send({ success: false, error: 'Rule not found' })
+        if (!rule) return fail(reply, 404, 'RULE_NOT_FOUND')
         return { success: true, data: rule }
       } catch (err) {
         return organizeErrorReply(reply, err)
@@ -101,7 +103,7 @@ export async function emailOrganizeRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const deleted = await organize.deleteRule(req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Rule not found' })
+      if (!deleted) return fail(reply, 404, 'RULE_NOT_FOUND')
       return { success: true }
     },
   )
@@ -114,7 +116,9 @@ export async function emailOrganizeRoutes(app: FastifyInstance) {
         const affected = await organize.applyRuleToExisting(req.params.id)
         return { success: true, data: { affected } }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'apply rule to existing messages failed')
+        return fail(reply, 400, 'RULE_APPLY_FAILED')
       }
     },
   )
@@ -132,7 +136,8 @@ export async function emailOrganizeRoutes(app: FastifyInstance) {
       try {
         return reply.code(201).send({ success: true, data: await organize.addToBlocklist(req.body) })
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        req.log.warn({ err }, 'add to blocklist failed')
+        return fail(reply, 400, 'BLOCKLIST_ADD_FAILED')
       }
     },
   )
@@ -142,7 +147,7 @@ export async function emailOrganizeRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const deleted = await organize.removeFromBlocklist(req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Blocklist entry not found' })
+      if (!deleted) return fail(reply, 404, 'BLOCKLIST_ENTRY_NOT_FOUND')
       return { success: true }
     },
   )
@@ -155,7 +160,9 @@ export async function emailOrganizeRoutes(app: FastifyInstance) {
         const affected = await organize.applyBlocklistToExisting(req.params.id)
         return { success: true, data: { affected } }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'apply blocklist entry to existing messages failed')
+        return fail(reply, 400, 'BLOCKLIST_APPLY_FAILED')
       }
     },
   )
