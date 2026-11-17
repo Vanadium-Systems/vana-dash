@@ -168,8 +168,9 @@ export async function myKeys(userId: string, deviceId: string | undefined) {
     })
     .from(userCryptoIdentities)
     .where(eq(userCryptoIdentities.userId, userId))
+  // The login each device belongs to, for Profile → Devices; only ever in the person's own list.
   const devices = await db
-    .select(devicePublicFields)
+    .select({ ...devicePublicFields, sessionFamilyId: userDevices.sessionFamilyId })
     .from(userDevices)
     .where(and(eq(userDevices.userId, userId), deviceActive))
     .orderBy(asc(userDevices.createdAt))

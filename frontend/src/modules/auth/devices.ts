@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { useMe } from '@/shared/hooks/use-me'
 import { api, ApiError } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 
@@ -13,6 +14,31 @@ export interface SessionDevice {
 }
 
 const DEVICES_KEY = ['me', 'sessions'] as const
+
+/**
+ * The message keys of each login (PLAN.md part M), by session family. Signed = the device can
+ * read; the fingerprint is the start of its signing key, the same on every screen that shows it.
+ */
+export function useMessageKeys() {
+  const { can } = useMe()
+  return useQuery({
+    queryKey: ['chat', 'keys', 'me'],
+    enabled: can('mesaje.view'),
+    queryFn: async () => {
+      const keys = await api.get<{ devices: { sessionFamilyId: string | null; signingKey: string; masterSignature: string | null }[] }>(
+        '/api/chat/keys/me',
+      )
+      return new Map(
+        keys.devices
+          .filter((device) => device.sessionFamilyId)
+          .map((device) => [
+            device.sessionFamilyId!,
+            { approved: device.masterSignature !== null, fingerprint: device.signingKey.slice(0, 12).match(/.{4}/g)!.join(' ') },
+          ]),
+      )
+    },
+  })
+}
 
 export function useDevices() {
   return useQuery({ queryKey: DEVICES_KEY, queryFn: () => api.get<SessionDevice[]>('/api/me/sessions') })
