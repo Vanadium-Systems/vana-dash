@@ -35,6 +35,7 @@ import {
 import type { SessionUser } from '../../shared/lib/session.js'
 import { buildSignature, escapeHtml, textToHtmlParagraph } from './signature.js'
 import { trFor, tr } from '../../shared/lib/i18n.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
 import { findProspectIdsByAddress } from '../../shared/lib/prospect-contact-status.js'
 import { qualified } from '../../shared/lib/sql-fx.js'
@@ -190,6 +191,7 @@ export interface CloudflareInboundPayload {
   html: string | null
   messageId: string | null
   dmarc?: string | null
+  cc?: string[]
   attachments: Array<{
     filename: string
     contentType: string | null
@@ -246,7 +248,8 @@ export async function ingestCloudflareInboundEmail(data: CloudflareInboundPayloa
     }
   }
 
-  const participants = Array.from(new Set([data.from, data.to].filter((a) => a.length > 0)))
+  const cc = data.cc ?? []
+  const participants = Array.from(new Set([data.from, data.to, ...cc].filter((a) => a.length > 0)))
   const receivedAt = new Date()
   // `data.text` gol/absent (ex. ANAF SPV — trimite doar HTML) → convertim HTML-ul la text
   // simplu (nu-l stocăm brut, cu tag-uri vizibile — vezi html-to-text.ts).
@@ -267,6 +270,7 @@ export async function ingestCloudflareInboundEmail(data: CloudflareInboundPayloa
       fromAddress: data.from,
       replyToAddress: data.replyTo || null,
       toAddress: data.to,
+      ccAddresses: cc,
       subject: data.subject,
       bodyText,
       bodyHtml: data.html || null,
@@ -919,7 +923,7 @@ export async function prepareForward(
     .select()
     .from(emailMessages)
     .where(and(eq(emailMessages.id, messageId), isNull(emailMessages.deletedAt), messageVisibleTo(await mailboxAddresses(me))))
-  if (!original) throw new Error(tr('errors.email.messageNotFound'))
+  if (!original) throw httpError(400, 'EMAIL_MESSAGE_NOT_FOUND')
 
   // The forward leaves from the original's mailbox, but the check is on the person, not the
   // message's address (otherwise a direct id would bypass it).
@@ -990,6 +994,7 @@ export async function recordForwardSent(input: {
       resendEmailId: input.resendEmailId,
       fromAddress: input.fromAddress,
       toAddress: input.to.join(', '),
+      ccAddresses: input.cc,
       subject: input.subject,
       bodyText: input.bodyText,
       bodyHtml: input.bodyHtml,
@@ -1026,7 +1031,7 @@ export async function prepareReply(
     .select()
     .from(emailThreads)
     .where(and(eq(emailThreads.id, threadId), isNull(emailThreads.deletedAt), threadVisibleTo(ownAddresses)))
-  if (!thread) throw new Error(tr('errors.email.threadNotFound'))
+  if (!thread) throw httpError(400, 'EMAIL_THREAD_NOT_FOUND')
 
   const [lastInbound] = await db
     .select()
@@ -1034,7 +1039,7 @@ export async function prepareReply(
     .where(and(eq(emailMessages.threadId, threadId), eq(emailMessages.direction, 'in'), isNull(emailMessages.deletedAt)))
     .orderBy(desc(emailMessages.receivedAt))
     .limit(1)
-  if (!lastInbound) throw new Error(tr('errors.email.threadNoInbound'))
+  if (!lastInbound) throw httpError(400, 'EMAIL_THREAD_NO_INBOUND')
 
   // The reply leaves from the last received message's address, not from an identity picked in the dialog.
   const identities = await getIdentities()
@@ -1125,6 +1130,7 @@ export async function recordReplySent(input: {
   threadId: string
   fromAddress: string
   to: string[]
+  cc?: string[]
   subject: string
   bodyText: string
   bodyHtml: string
@@ -1140,6 +1146,7 @@ export async function recordReplySent(input: {
       resendEmailId: input.resendEmailId,
       fromAddress: input.fromAddress,
       toAddress: input.to.join(', '),
+      ccAddresses: input.cc ?? [],
       subject: input.subject,
       bodyText: input.bodyText,
       bodyHtml: input.bodyHtml,
@@ -1185,6 +1192,7 @@ export async function mirrorOutboundMessage(input: {
   attachments?: Array<{ filename: string; content: string }>
   /** Every address on the message (to + cc); defaults to `toAddress`. */
   participants?: string[]
+  cc?: string[]
 }): Promise<void> {
   const participants = Array.from(new Set([input.fromAddress, ...(input.participants ?? [input.toAddress])].filter((a) => a.length > 0)))
   const now = new Date()
@@ -1199,6 +1207,7 @@ export async function mirrorOutboundMessage(input: {
       resendEmailId: input.resendEmailId,
       fromAddress: input.fromAddress,
       toAddress: input.toAddress,
+      ccAddresses: input.cc ?? [],
       subject: input.subject,
       bodyText: htmlToPlainText(input.body),
       bodyHtml: input.body,

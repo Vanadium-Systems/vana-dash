@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Archive, Check, ChevronLeft, ChevronRight, Mail, RefreshCw, ShieldAlert, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { toast } from 'sonner'
 import { FileViewer } from '@/shared/components/FileViewer'
 import { Button } from '@/shared/components/ui/button'
 import { EmptyState } from '@/shared/components/ui/empty-state'
@@ -30,6 +29,7 @@ import { filterParams, MailSearch, useMailFilters } from './MailSearch'
 import { SnoozeMenu } from './SnoozeMenu'
 import { ThreadRow, type MoveFolder } from './ThreadRow'
 import { ThreadView } from './ThreadView'
+import { toastError } from '@/shared/lib/errors'
 
 // Archive, spam and trash say what they did and can be undone (E8); undo puts each thread back in
 // the folder it came from. Sequential on purpose: the bulk route shares the global rate limit.
@@ -205,12 +205,12 @@ export function MailboxView({ view }: { view: Extract<EmailView, { kind: 'mailbo
       invalidate()
       selection.clear()
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const star = useMutation({
     mutationFn: (thread: EmailThread) => api.patch(`/api/email/messages/${thread.latestMessageId}`, { isStarred: !thread.isStarred }),
     onSuccess: invalidate,
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const move = (targets: EmailThread[], folder: MoveFolder) => {
@@ -438,7 +438,7 @@ export function MailboxView({ view }: { view: Extract<EmailView, { kind: 'mailbo
           index={0}
           onIndexChange={() => undefined}
           onClose={() => setViewer(null)}
-          onDownload={(file) => void api.download(file.url, file.name).catch((err: Error) => toast.error(err.message))}
+          onDownload={(file) => void api.download(file.url, file.name).catch((err: Error) => toastError(err))}
         />
       ) : null}
     </div>

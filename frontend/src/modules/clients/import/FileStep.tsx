@@ -1,6 +1,5 @@
 import { Download, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { toast } from 'sonner'
 import { Alert } from '@/shared/components/ui/alert'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
@@ -9,6 +8,7 @@ import { formatNumber } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
 import { IMPORT_EXTENSIONS, IMPORT_MAX_BYTES, IMPORT_MAX_ROWS } from './types'
+import { toastError } from '@/shared/lib/errors'
 
 const hasAllowedExtension = (name: string) => IMPORT_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext))
 
@@ -60,7 +60,7 @@ export function FileStep({ pending, error, onFile }: { pending: boolean; error: 
           <Button
             type="button"
             variant="outline"
-            onClick={() => void api.download('/api/prospects/import/template.xlsx', 'prospects-template.xlsx').catch((err: Error) => toast.error(err.message))}
+            onClick={() => void api.download('/api/prospects/import/template.xlsx', 'prospects-template.xlsx').catch((err: Error) => toastError(err))}
           >
             <Download aria-hidden="true" /> {t('clients:import.file.template')}
           </Button>

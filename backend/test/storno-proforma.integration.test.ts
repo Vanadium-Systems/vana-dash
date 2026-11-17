@@ -202,6 +202,22 @@ describe('proforma', () => {
     expect(await auditActions(proforma.id)).toContain('proforma.anulata')
   })
 
+  it('the list counts every filter, whatever filter is picked', async () => {
+    const before = (await api('GET', '/api/invoicing/proformas?status=open')).body.data.counts
+    const client = await makeClient()
+    await createProforma(client.id)
+    const issued = await createProforma(client.id)
+    await api('POST', `/api/invoicing/proformas/${issued.id}/issue`)
+
+    const res = await api('GET', '/api/invoicing/proformas?status=cancelled')
+    expect(res.status).toBe(200)
+    const { counts } = res.body.data
+    expect(counts.draft).toBe(before.draft + 1)
+    expect(counts.open).toBe(before.open + 1)
+    expect(counts.all).toBe(before.all + 2)
+    expect(counts.all).toBe(counts.draft + counts.open + counts.invoiced + counts.cancelled)
+  })
+
   it('a proforma cannot be paid through the invoice routes', async () => {
     const client = await makeClient()
     const proforma = await createProforma(client.id)

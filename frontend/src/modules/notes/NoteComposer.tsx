@@ -1,13 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckSquare } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { Note, NoteDoc } from '@/shared/lib/types'
 import { EMPTY_TASK_DOC, isEmptyNote, plainToDoc } from './note-doc'
 import { NoteEditor } from './NoteEditor'
+import { toastError } from '@/shared/lib/errors'
 
 // The "Create a note…" bar above the grid (N5). It opens in place into title + body and saves when
 // it loses focus; a note with nothing in it is simply not created.
@@ -28,7 +28,7 @@ export function NoteComposer() {
       await api.post<Note>('/api/notes', { title: draft.title, bodyJson: draft.doc })
       void queryClient.invalidateQueries({ queryKey: ['notes'] })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('notes:saveFailed'))
+      toastError(err, t('notes:saveFailed'))
     }
   }
   const finishRef = useRef(finish)

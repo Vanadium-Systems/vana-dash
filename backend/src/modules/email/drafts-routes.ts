@@ -4,13 +4,15 @@ import { DraftSendSchema, DraftsQuerySchema, DraftUpdateSchema, DraftUpsertSchem
 import * as drafts from './drafts-service.js'
 import { sendDraft } from './scheduled-send.js'
 import { sendErrorReply } from './send-guard.js'
+import { fail } from '../../shared/lib/http-error.js'
+import { validationMessage } from '../../shared/lib/validation-messages.js'
 
 function draftErrorReply(reply: FastifyReply, err: unknown) {
   if (err instanceof drafts.DraftChangedError) {
-    return reply.code(409).send({ success: false, error: { code: err.code, updatedAt: err.updatedAt } })
+    return fail(reply, 409, err.code, { details: { updatedAt: err.updatedAt } })
   }
-  if (err instanceof drafts.DraftRefNotFound) return reply.code(404).send({ success: false, error: err.message })
-  if (err instanceof drafts.DraftAttachmentRejected) return reply.code(400).send({ success: false, error: err.message })
+  if (err instanceof drafts.DraftRefNotFound) return fail(reply, 404, 'DRAFT_REF_NOT_FOUND', { message: err.message })
+  if (err instanceof drafts.DraftAttachmentRejected) return fail(reply, 400, 'DRAFT_ATTACHMENT_REJECTED', { message: err.message })
   throw err
 }
 
@@ -28,7 +30,7 @@ export async function emailDraftsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const draft = await drafts.getDraft(req.me, req.params.id)
-      if (!draft) return reply.code(404).send({ success: false, error: 'Draft not found' })
+      if (!draft) return fail(reply, 404, 'DRAFT_NOT_FOUND')
       return { success: true, data: draft }
     },
   )
@@ -51,7 +53,7 @@ export async function emailDraftsRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const draft = await drafts.updateDraft(req.me, req.params.id, req.body)
-        if (!draft) return reply.code(404).send({ success: false, error: 'Draft not found' })
+        if (!draft) return fail(reply, 404, 'DRAFT_NOT_FOUND')
         return { success: true, data: draft }
       } catch (err) {
         return draftErrorReply(reply, err)
@@ -64,7 +66,7 @@ export async function emailDraftsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const deleted = await drafts.deleteDraft(req.me, req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Draft not found' })
+      if (!deleted) return fail(reply, 404, 'DRAFT_NOT_FOUND')
       return { success: true }
     },
   )
@@ -74,7 +76,7 @@ export async function emailDraftsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const body = DraftSendSchema.safeParse(req.body ?? {})
-      if (!body.success) return reply.code(400).send({ success: false, error: body.error.issues[0]?.message ?? 'Invalid body' })
+      if (!body.success) return fail(reply, 400, 'VALIDATION_FAILED', { message: validationMessage(body.error.issues) })
       try {
         return reply.code(202).send({ success: true, data: await sendDraft(req.me, req.params.id, body.data) })
       } catch (err) {

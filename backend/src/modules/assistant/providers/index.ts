@@ -9,6 +9,7 @@ import { createAnthropicProvider } from './anthropic.js'
 import { createOpenRouterProvider, OPENROUTER_DEFAULT_BASE_URL } from './openrouter.js'
 import { ASSISTANT_PROVIDER_IDS, type AssistantProvider, type AssistantProviderId } from './types.js'
 import { ProviderUpdateSchema } from '../providers-schema.js'
+import { httpError } from '../../../shared/lib/http-error.js'
 import { tr } from '../../../shared/lib/i18n.js'
 
 export { toNeutralTools } from './anthropic.js'
@@ -172,14 +173,14 @@ export async function buildActiveProvider(override: string | null | undefined): 
 
   if (id === 'anthropic') {
     const apiKey = row?.apiKeyEnc ? await decryptField(row.apiKeyEnc) : config.anthropic.apiKey
-    if (!apiKey) throw new Error(tr('errors.assistant.anthropicKeyMissing'))
+    if (!apiKey) throw httpError(400, 'ASSISTANT_ANTHROPIC_KEY_MISSING')
     return { provider: createAnthropicProvider(apiKey), id }
   }
 
   if (id === 'local') {
-    if (!row?.enabled) throw new Error(tr('errors.assistant.localOff'))
+    if (!row?.enabled) throw httpError(400, 'ASSISTANT_LOCAL_OFF')
     const baseUrl = row.baseUrl || config.localAi.baseUrl
-    if (!baseUrl) throw new Error(tr('errors.assistant.localNotConfigured'))
+    if (!baseUrl) throw httpError(400, 'ASSISTANT_LOCAL_NOT_CONFIGURED')
     const apiKey = row.apiKeyEnc ? await decryptField(row.apiKeyEnc) : config.localAi.apiKey
     return {
       provider: createOpenRouterProvider({
@@ -189,15 +190,15 @@ export async function buildActiveProvider(override: string | null | undefined): 
         label: 'Local',
         timeoutMs: config.localAi.timeoutMs,
         maxTokens: config.localAi.maxTokens,
-        offlineMessage: tr('errors.assistant.localOffline'),
+        offlineError: () => httpError(503, 'ASSISTANT_LOCAL_OFFLINE'),
       }),
       id,
     }
   }
 
-  if (row && !row.enabled) throw new Error(tr('errors.assistant.openRouterOff'))
+  if (row && !row.enabled) throw httpError(400, 'ASSISTANT_OPENROUTER_OFF')
   const apiKey = row?.apiKeyEnc ? await decryptField(row.apiKeyEnc) : config.openrouter.apiKey
-  if (!apiKey) throw new Error(tr('errors.assistant.openRouterKeyMissing'))
+  if (!apiKey) throw httpError(400, 'ASSISTANT_OPENROUTER_KEY_MISSING')
   return { provider: createOpenRouterProvider({ apiKey, baseUrl: row?.baseUrl }), id }
 }
 
@@ -207,6 +208,6 @@ export async function resolveModel(conversationModel: string | null | undefined,
   const row = await getRow(providerId)
   if (row?.defaultModel) return row.defaultModel
   if (providerId === 'anthropic') return config.anthropic.model
-  if (providerId === 'local') throw new Error(tr('errors.assistant.localNoDefaultModel'))
-  throw new Error(tr('errors.assistant.openRouterNoDefaultModel'))
+  if (providerId === 'local') throw httpError(400, 'ASSISTANT_LOCAL_NO_DEFAULT_MODEL')
+  throw httpError(400, 'ASSISTANT_OPENROUTER_NO_DEFAULT_MODEL')
 }

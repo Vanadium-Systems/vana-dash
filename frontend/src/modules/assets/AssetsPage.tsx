@@ -2,7 +2,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Search, ShieldAlert, Star, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
 import { StatePill } from '@/shared/components/ui/state-pill'
@@ -22,6 +21,7 @@ import { OrderDialog } from './OrderDialog'
 import { CATEGORY_LABEL, formatUsd, type AssetCategory, type IndexQuote, type PaperOrderRow, type PortfolioPosition, type SearchResult, type WatchEntry, type WatchPrice } from './types'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
+import { toastError } from '@/shared/lib/errors'
 
 // Pagina Assets (PLAN.md Track D, Wave 8 + listă „top" 2026-08-27): căutare + favorite pinned cu
 // sparkline + portofoliu + ordine recente + banner paper/live, plus listă S&P 500/Nasdaq 100
@@ -193,7 +193,7 @@ export function AssetsPage() {
       : api.post('/api/assets/watchlist', entry)
     void mutation
       .then(() => void queryClient.invalidateQueries({ queryKey: ['assets', 'watchlist-prices'] }))
-      .catch((err) => toast.error(err instanceof Error ? err.message : String(err)))
+      .catch((err) => toastError(err))
   }
 
   const t212Mode = brokers.data?.find((b) => b.broker === 'trading212')?.mode ?? 'paper'

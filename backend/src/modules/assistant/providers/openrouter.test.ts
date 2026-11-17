@@ -208,7 +208,7 @@ describe('createOpenRouterProvider — bucla de tool-uri', () => {
 
 describe('createOpenRouterProvider — local server options', () => {
   const local = (extra: Record<string, unknown> = {}) =>
-    createOpenRouterProvider({ apiKey: 'k', baseUrl: 'http://llm.example.com/v1', id: 'local', label: 'Local', maxTokens: 900, offlineMessage: 'OFFLINE', ...extra })
+    createOpenRouterProvider({ apiKey: 'k', baseUrl: 'http://llm.example.com/v1', id: 'local', label: 'Local', maxTokens: 900, offlineError: () => new Error('OFFLINE'), ...extra })
 
   async function drain(provider: ReturnType<typeof createOpenRouterProvider>) {
     const events: Array<Record<string, unknown>> = []

@@ -14,6 +14,7 @@ import { t } from '@/shared/lib/i18n'
 import type { RefType } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { useE2E } from '@/modules/messages/crypto/E2EProvider'
+import { toastError } from '@/shared/lib/errors'
 
 // "Send to Messages" from any shareable object (MS1): pick a conversation (recent first) or a
 // colleague, add a comment if you like, send. A colleague without a DM gets one first, through the
@@ -82,7 +83,7 @@ export function ShareToMessagesDialog({ shared, onClose }: { shared: ShareRef | 
         action: { label: t('messages:share.open'), onClick: () => navigate(`/messages/${conversationId}`) },
       })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setSending(false)
     }

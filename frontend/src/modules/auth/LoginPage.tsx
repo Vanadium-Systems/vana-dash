@@ -8,6 +8,7 @@ import { Input } from '@/shared/components/ui/input'
 import { useAuth, useLogin } from '@/shared/hooks/use-auth'
 import { PasswordInput } from './PasswordInput'
 import { t } from '@/shared/lib/i18n'
+import { errorText } from '@/shared/lib/errors'
 
 // Login (fișa „Login"). Eroarea stă sub formular și nu spune dacă emailul există —
 // enumerarea de adrese ar fi o metodă de aflare a conturilor.
@@ -49,7 +50,7 @@ export function LoginPage() {
             autoFocus
           />
         </Field>
-        <Field label={t('common:labels.password')} error={login.isError ? login.error.message : null}>
+        <Field label={t('common:labels.password')} error={login.isError ? errorText(login.error) : null}>
           <PasswordInput
             autoComplete="current-password"
             value={password}

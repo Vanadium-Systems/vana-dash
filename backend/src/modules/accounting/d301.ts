@@ -10,6 +10,7 @@ import { config } from '../../shared/config.js'
 import { textFor, tl } from '../../shared/lib/i18n.js'
 import { getRateForDate } from '../../shared/lib/bnr.js'
 import { getCompany, requireSeller } from '../../shared/lib/company.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { CompanyProfileIncompleteError } from '../../countries/types.js'
 import { isoCodeToCountyName } from '../../countries/ro/counties.js'
 import type { DeclarationFilingBodySchema, DeclarationLineUpdateSchema } from './schema.js'
@@ -260,7 +261,7 @@ async function d390For(period: string) {
   const lines = await confirmedLines(period)
   const { company, declarant } = await requireFiler()
   if (!company.vatIntraCommunityCode) {
-    throw new Error('Lipsește codul de TVA special din fișa firmei (Setări → Date firmă) — obligatoriu pt. D390')
+    throw httpError(400, 'VAT_INTRA_CODE_MISSING')
   }
   return buildD390(period, lines, company, declarant)
 }
@@ -313,7 +314,7 @@ export async function updateDeclarationLine(id: string, input: z.infer<typeof De
       .returning({ id: financialRecords.id })
     return row ?? null
   } catch (err) {
-    if (isUniqueViolation(err)) throw new Error(`Factura ${input.documentNumber} există deja în aplicație`)
+    if (isUniqueViolation(err)) throw httpError(400, 'DUPLICATE_DOCUMENT_NUMBER', { documentNumber: input.documentNumber })
     throw err
   }
 }

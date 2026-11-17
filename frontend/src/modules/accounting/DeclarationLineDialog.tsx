@@ -10,6 +10,7 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { DeclarationLine, ReverseChargeType } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
+import { toastError } from '@/shared/lib/errors'
 
 // Recurring expenses land with the subscription's amount and due date and no invoice number, so
 // the real invoice is copied here before the declaration is downloaded.
@@ -43,7 +44,7 @@ export function DeclarationLineDialog({ line, onOpenChange }: { line: Declaratio
       toast.success(t('common:states.updated'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

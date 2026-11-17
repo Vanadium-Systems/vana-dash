@@ -14,6 +14,7 @@ import type { ChatMessage } from '@/shared/lib/types'
 import { extractKeyFromHash, getCallKey, parseCallKeyFromInput, saveCallKey } from './call-keys'
 import { copyCallLink, useCalls, useEndCall, useJoinCall } from './calls-api'
 import { LiveKitRoomView } from './LiveKitRoomView'
+import { errorText } from '@/shared/lib/errors'
 
 export function CallRoomPage() {
   const { id = '' } = useParams()
@@ -108,7 +109,7 @@ export function CallRoomPage() {
       <div className="space-y-3">
         {back}
         <p className="text-sm text-muted-foreground">
-          {closed ? t('calls:room.closed') : join.error.message}
+          {closed ? t('calls:room.closed') : errorText(join.error)}
         </p>
       </div>
     )

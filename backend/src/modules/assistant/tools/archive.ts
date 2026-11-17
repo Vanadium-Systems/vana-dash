@@ -41,7 +41,7 @@ export function buildArchiveTools(ctx: ToolBuildContext) {
     }),
     autoTool({
       name: 'update_archive_folder',
-      inputSchema: z.object({ id: z.string(), name: z.string().min(1).optional(), parentId: z.string().nullable().optional() }),
+      inputSchema: z.object({ id: z.string(), name: z.string().min(1).optional(), parentId: z.string().optional() }),
       description: 'Redenumează/mută un folder din Arhivă.',
       run: ({ id, ...rest }) => archiveService.updateFolder(user, id, rest as never),
     }),

@@ -7,6 +7,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface AnalyticsSettings {
   posthogKey: string
@@ -31,7 +32,7 @@ export function AnalyticsSettingsCard() {
       void queryClient.invalidateQueries({ queryKey: ['analytics', 'client-config'] })
       toast.success(t('common:states.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (settings.isPending || !settings.data) return null

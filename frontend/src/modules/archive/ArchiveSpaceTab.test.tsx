@@ -14,7 +14,8 @@ const api = vi.hoisted(() => ({ get: vi.fn() }))
 const me = vi.hoisted(() => ({ features: new Set<string>() }))
 vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} unobserve() {} })
 vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} unobserve() {} })
-vi.mock('@/shared/lib/api', () => ({ api }))
+vi.mock('@/shared/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/lib/api')>()), api }))
 vi.mock('@/shared/hooks/use-me', () => ({
   useMe: () => ({ session: { user: { id: 'u1' } }, can: (f: string) => me.features.has(f), canAny: () => false, isPending: false, isError: false }),
 }))

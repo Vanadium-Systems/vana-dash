@@ -10,6 +10,7 @@ import type { Note, NoteVersion, NoteVersionSummary } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { useState } from 'react'
 import { NotePreview } from './NotePreview'
+import { toastError } from '@/shared/lib/errors'
 
 // Version history (N17): the list on the side, a read-only preview of the one picked, and the
 // restore. The current text becomes a version itself before the old one is put back (the server does that).
@@ -35,7 +36,7 @@ export function VersionsPeek({ noteId, onClose, onRestored }: { noteId: string |
       setPickedId(null)
       onRestored(note)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

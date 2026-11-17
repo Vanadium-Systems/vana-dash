@@ -18,6 +18,7 @@ import { tRich } from '@/shared/lib/i18n-nodes'
 import { t } from '@/shared/lib/i18n'
 import { openExternal } from '@/shared/lib/open-file'
 import { Checkbox } from '@/shared/components/ui/checkbox'
+import { toastError } from '@/shared/lib/errors'
 
 const GUIDE_STEPS = [
   'reconciliation:guide.step1',
@@ -100,7 +101,7 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
       invalidate()
       toast.success(t('reconciliation:revolut.clientIdSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const generateCert = useMutation({
@@ -109,13 +110,13 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
       invalidate()
       toast.success(t('reconciliation:revolut.certGenerated'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const openAuthorize = useMutation({
     mutationFn: () => api.get<{ url: string }>(`/api/reconciliation/accounts/${account.id}/authorize-url`),
     onSuccess: ({ url }) => openExternal(url),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const exchange = useMutation({
@@ -125,7 +126,7 @@ function RevolutAccountCard({ account }: { account: BankAccount }) {
       setCode('')
       toast.success(t('reconciliation:revolut.connectedToast'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const readyForConsent = Boolean(account.clientId && account.certificatePem)
@@ -235,7 +236,7 @@ function VanagreenExtensionCard() {
       queryClient.setQueryData(['vanagreen-settings'], data)
       toast.success(data.autoExtendEnabled ? t('reconciliation:extension.on') : t('reconciliation:extension.off'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

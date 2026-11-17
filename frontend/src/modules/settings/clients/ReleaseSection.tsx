@@ -6,6 +6,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Switch } from '@/shared/components/ui/switch'
 import { t } from '@/shared/lib/i18n'
 import { useReleaseSettings, useSaveReleaseSettings } from './use-clients-settings'
+import { toastError } from '@/shared/lib/errors'
 
 const digits = (value: string) => value.replace(/\D/g, '')
 
@@ -30,7 +31,7 @@ export function ReleaseSection({ canEdit }: { canEdit: boolean }) {
     if (!Number.isInteger(idle) || idle < 1 || idle > 365) return setError(t('clients:settings.release.idleInvalid'))
     if (!Number.isInteger(warn) || warn < 0 || warn >= idle) return setError(t('clients:settings.release.warnInvalid'))
     setError(null)
-    save.mutate({ enabled, idleDays: idle, warnDays: warn }, { onSuccess: () => toast.success(t('common:states.saved')), onError: (err) => toast.error(err.message) })
+    save.mutate({ enabled, idleDays: idle, warnDays: warn }, { onSuccess: () => toast.success(t('common:states.saved')), onError: (err) => toastError(err) })
   }
 
   if (settings.isPending) return <p className="text-sm text-muted-foreground">{t('common:states.loading')}</p>

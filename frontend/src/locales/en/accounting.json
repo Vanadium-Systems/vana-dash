@@ -558,7 +558,8 @@
       "lineTotal": "Line total",
       "net": "Net",
       "vatAmount": "VAT",
-      "grossTotal": "Total"
+      "grossTotal": "Total",
+      "anafRejectedTitle": "ANAF rejected the invoice. The reason, in ANAF's words:"
     },
     "timeline": {
       "system": "System",
@@ -756,14 +757,7 @@
     "deleteBody": "It does not use a number from the proforma series.",
     "deleted": "The proforma draft is deleted",
     "invoicedHint": "The proforma has been invoiced and can no longer change.",
-    "cancelledHint": "The proforma is cancelled and can no longer change.",
-    "errors": {
-      "PROFORMA_ALREADY_CONVERTED": "The proforma was already turned into an invoice.",
-      "PROFORMA_NOT_ISSUED": "The proforma is still a draft. Issue it first.",
-      "PROFORMA_CANCELLED": "The proforma is cancelled.",
-      "PROFORMA_INVOICED": "The proforma is already invoiced.",
-      "generic": "The operation failed. Try again."
-    }
+    "cancelledHint": "The proforma is cancelled and can no longer change."
   },
   "monthClose": {
     "title": "Month close",

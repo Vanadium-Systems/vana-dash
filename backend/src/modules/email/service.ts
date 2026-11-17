@@ -39,6 +39,7 @@ import { getCompany } from '../../shared/lib/company.js'
 import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
 import { pauseSequenceIfBouncing } from './sequences-service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { httpError } from '../../shared/lib/http-error.js'
 
 type EmailSendRow = typeof emailSends.$inferSelect
 
@@ -118,7 +119,7 @@ export async function prepareSingle(
   assertCanSendFrom(me, from)
   // Explicit check: a missing templateId would only fail at the FK, with a raw SQL error.
   if (templateId && !(await getTemplate(templateId))) {
-    throw new Error(tr('errors.email.templateNotFound'))
+    throw httpError(400, 'TEMPLATE_NOT_FOUND')
   }
   const fromAddress = await resolveFromAddress(from)
   const { text, html } = await composeWithSignature(body, from, me.id)
@@ -235,7 +236,7 @@ export interface SendCampaignEmailParams {
 export async function sendCampaignEmail(params: SendCampaignEmailParams): Promise<{ result: SendEmailResult; row: EmailSendRow }> {
   const { to, nume, templateId, from, batchId = null, sequenceEnrollmentId = null, sequenceStepId = null, variant = null, senderUserId = null, attachments } = params
   const template = await getTemplate(templateId)
-  if (!template) throw new Error(tr('errors.email.templateNotFound'))
+  if (!template) throw httpError(400, 'TEMPLATE_NOT_FOUND')
   await assertCanDeliver({ identityKey: from, recipients: [to], senderUserId })
 
   let fromAddress = await resolveFromAddress(from)
@@ -264,7 +265,7 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
     const { mailbox, pass } = picked
     const settings = await getEmailSettings()
     if (!settings.outreachRealSendingEnabled && !isLocalSmtpHost(mailbox.smtpHost)) {
-      throw new Error('OUTREACH_REAL_SENDING_DISABLED')
+      throw httpError(400, 'OUTREACH_REAL_SENDING_DISABLED')
     }
 
     fromAddress = formatMailboxFrom(mailbox)
@@ -373,7 +374,7 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
   const { templateId, recipients, from, attachments } = input
   assertCanSendFrom(me, from)
   const template = await getTemplate(templateId)
-  if (!template) throw new Error(tr('errors.email.templateNotFound'))
+  if (!template) throw httpError(400, 'TEMPLATE_NOT_FOUND')
 
   const batchId = randomUUID()
   const results: EmailSendRow[] = []

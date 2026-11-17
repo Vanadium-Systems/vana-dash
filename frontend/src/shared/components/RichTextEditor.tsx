@@ -19,12 +19,12 @@ import {
   Undo,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { api } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
 import { baseExtensions, LINK_OPTIONS, placeholderExtension } from './tiptap-base'
+import { toastError } from '@/shared/lib/errors'
 
 // 2026-08-11 — editor unic pt. Compose/Reply/Forward/Templates (nu mai există un mod separat
 // "text simplu" vs "HTML": dacă nu atingi toolbar-ul, iese text simplu; dacă vrei, adaugi
@@ -173,7 +173,7 @@ export function RichTextEditor({ id, value, onChange, placeholder, className, au
       const { url } = await api.upload<{ url: string }>('/api/email/images', fd)
       editor.chain().focus().insertContent(`<img src="${url}" style="${DEFAULT_UPLOADED_IMAGE_STYLE}">`).run()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('common:editor.imageUploadFailed'))
+      toastError(err, t('common:editor.imageUploadFailed'))
     }
   }
 

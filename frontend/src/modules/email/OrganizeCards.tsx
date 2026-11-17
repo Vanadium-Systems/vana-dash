@@ -9,13 +9,14 @@ import { Select } from '@/shared/components/ui/select'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
-import { api, ApiError } from '@/shared/lib/api'
+import { api } from '@/shared/lib/api'
 import { formatDate } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import type { EmailBlocklistEntry, EmailLabel, EmailRule, EmailRuleAction, EmailRuleMatchType, SuppressionsOverview } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { SettingsSection } from './SettingsLayout'
 import { Checkbox } from '@/shared/components/ui/checkbox'
+import { errorCode, toastError } from '@/shared/lib/errors'
 
 // The cards shared by the company's Email settings (email.setari) and a person's own settings
 // (email.setari_proprii): labels and rules per scope, the blocklist and unsubscribes read-only
@@ -46,7 +47,7 @@ export function LabelsCard({ scope }: { scope: Scope }) {
       setName('')
       refresh()
     },
-    onError: (err) => toast.error(err instanceof ApiError && err.code === 'LABEL_NAME_TAKEN' ? t('email:settings.labelTaken') : err.message),
+    onError: (err) => (errorCode(err) === 'LABEL_NAME_TAKEN' ? toast.error(t('email:settings.labelTaken')) : toastError(err)),
   })
 
   const remove = useMutation({
@@ -59,7 +60,7 @@ export function LabelsCard({ scope }: { scope: Scope }) {
   const toggleNotifications = useMutation({
     mutationFn: ({ id, notificationsEnabled }: { id: string; notificationsEnabled: boolean }) => api.patch(`${base}/${id}`, { notificationsEnabled }),
     onSuccess: refresh,
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (
@@ -165,7 +166,7 @@ export function RulesCard({ scope }: { scope: Scope }) {
       void queryClient.invalidateQueries({ queryKey: rulesKey })
       toast.success(t('email:rules.created'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -183,7 +184,7 @@ export function RulesCard({ scope }: { scope: Scope }) {
       })
       toast.success(t('email:rules.appliedTo', { affected: result.affected }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const labelName = (id: string | null) => labels.data?.find((l) => l.id === id)?.name ?? '—'
@@ -293,7 +294,7 @@ export function BlocklistCard({ readOnly = false }: { readOnly?: boolean }) {
       setAddress('')
       void queryClient.invalidateQueries({ queryKey: ['email', 'blocklist'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -311,7 +312,7 @@ export function BlocklistCard({ readOnly = false }: { readOnly?: boolean }) {
       })
       toast.success(t('email:blocklist.movedToTrash', { affected: result.affected }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (
@@ -401,7 +402,7 @@ export function SuppressionsCard({ readOnly = false }: { readOnly?: boolean }) {
       })
       toast.success(t('email:suppressions.removed'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (overview.isPending) return <Skeleton className="h-48 w-full" />

@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import DOMPurify from 'dompurify'
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Download, Eye, Search, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/shared/components/ui/button'
@@ -305,7 +306,7 @@ function SendDetailDialog({ send, onClose }: { send: EmailSend; onClose: () => v
           {send.errorMessage ? <p className="text-xs text-destructive">{send.errorMessage}</p> : null}
           <div className="max-h-[60vh] overflow-auto rounded-md border p-4">
             {send.bodyHtml ? (
-              <div dangerouslySetInnerHTML={{ __html: send.bodyHtml }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(send.bodyHtml) }} />
             ) : send.bodyText ? (
               <pre className="whitespace-pre-wrap font-sans text-sm">{send.bodyText}</pre>
             ) : (

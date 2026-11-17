@@ -117,6 +117,7 @@ export function isValidTimeZone(timeZone: string): boolean {
 /** Carries a 400 to the error handler in app.ts. */
 export class CompanySettingsError extends Error {
   readonly statusCode = 400
+  readonly userFacing = true
 }
 
 export async function updateCompany(input: { profile: CompanyProfile; timeZone: string; currency: string }): Promise<Company> {

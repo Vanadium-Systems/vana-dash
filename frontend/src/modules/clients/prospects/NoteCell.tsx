@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
-import { toast } from 'sonner'
 import { DropdownMenu, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu'
 import { ResponsiveMenuContent } from '@/shared/components/ui/responsive-menu'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { ProspectRow } from './types'
+import { toastError } from '@/shared/lib/errors'
 
 // A big editor in a popover (a bottom sheet on a phone) instead of a cramped textarea in the row.
 // Saves when it closes; Esc and a click outside both close it. The sheet keeps the full note history.
@@ -21,7 +21,7 @@ export function NoteCell({ row }: { row: Pick<ProspectRow, 'id' | 'name' | 'note
     mutationFn: (text: string) =>
       row.note ? api.patch(`/api/prospects/${row.id}/notes/${row.note.id}`, { body: text }) : api.post(`/api/prospects/${row.id}/notes`, { body: text }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['prospects'] }),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const onOpenChange = (next: boolean) => {

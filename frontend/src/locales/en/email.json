@@ -207,7 +207,8 @@
     "toMe": "to me",
     "unstar": "Remove star",
     "zipTooLarge": "The attachments are over 100 MB; download them one by one.",
-    "showQuotedShort": "…"
+    "showQuotedShort": "…",
+    "ccSummary": "· Cc: {{addresses}}"
   },
   "list": {
     "searchAria": "Search the email",

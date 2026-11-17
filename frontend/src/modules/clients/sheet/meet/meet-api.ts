@@ -7,6 +7,7 @@ import { api } from '@/shared/lib/api'
 import { formatDate } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import type { EmailScheduledSend, EmailSenderOptions } from '@/shared/lib/types'
+import { errorText } from '@/shared/lib/errors'
 
 export type InviteMethod = 'request' | 'cancel'
 export type InviteKind = 'request' | 'update' | 'cancel'
@@ -159,7 +160,7 @@ export function useSendInvitation() {
         })
         return true
       } catch (err) {
-        toast.error(t(FAILED_KEY[input.kind], { reason: err instanceof Error ? err.message : '' }), {
+        toast.error(t(FAILED_KEY[input.kind], { reason: errorText(err) }), {
           duration: 12_000,
           closeButton: true,
           action: { label: t('common:actions.retry'), onClick: () => void send(input) },

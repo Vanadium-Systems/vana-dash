@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { createMcpHandler, McpServer } from '@modelcontextprotocol/server'
 import { routeKey } from '../../shared/middleware/feature-guard.js'
 import { TOOLS, type ToolDef } from './tools.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 // MCP endpoint for Claude Code over the person's personal API token. Stateless (protocol
 // 2026-07-28, one POST per message; 2025 clients are served by the SDK's stateless fallback).
@@ -41,11 +42,13 @@ function buildUrl(tool: ToolDef, input: Record<string, unknown>): string {
 function errorText(statusCode: number, payload: string): string {
   try {
     const parsed = JSON.parse(payload) as { error?: unknown }
-    const error = parsed.error as { code?: string; feature?: string } | string | undefined
+    const error = parsed.error as { code?: string; message?: string; feature?: string } | string | undefined
     if (typeof error === 'object' && error?.code === 'FEATURE_FORBIDDEN') {
       return `HTTP 403: this token lacks the feature "${error.feature}".`
     }
-    return `HTTP ${statusCode}: ${typeof error === 'string' ? error : JSON.stringify(error ?? parsed)}`
+    // Our own answers are `{ code, message }`; the string form is kept for anything older.
+    const text = typeof error === 'string' ? error : error?.message ? `${error.code}: ${error.message}` : JSON.stringify(error ?? parsed)
+    return `HTTP ${statusCode}: ${text}`
   } catch {
     return `HTTP ${statusCode}`
   }
@@ -104,10 +107,10 @@ export async function mcpRoutes(app: FastifyInstance) {
       config: { rateLimit: { max: MCP_MESSAGES_PER_MIN, timeWindow: '1 minute' } },
     },
     async (req, reply) => {
-      if (!req.apiToken) return reply.code(403).send({ success: false, error: 'TOKEN_REQUIRED' })
+      if (!req.apiToken) return fail(reply, 403, 'TOKEN_REQUIRED')
       // The legitimate client is a CLI. A browser always sends Origin; refusing it keeps a web page
       // from driving the endpoint with a token it got hold of.
-      if (req.headers.origin !== undefined) return reply.code(403).send({ success: false, error: 'ORIGIN_NOT_ALLOWED' })
+      if (req.headers.origin !== undefined) return fail(reply, 403, 'ORIGIN_NOT_ALLOWED')
 
       // No tool emits notifications, so a held-open listen stream would only hold a socket. Clients
       // (Claude Code included) carry on without it.

@@ -39,6 +39,8 @@ interface CloudflareInboundPayload {
   inReplyTo: string | null
   references: string | null
   dmarc: string | null
+  /** Cc: header addresses; the app keeps them and adds them to the thread's participants. */
+  cc: string[]
   attachments: Array<{
     filename: string
     contentType: string | null
@@ -122,6 +124,10 @@ async function buildPayload(rawBuffer: ArrayBuffer, envelope: Envelope): Promise
     inReplyTo: parsed.inReplyTo ?? null,
     references: Array.isArray(parsed.references) ? parsed.references.join(' ') : (parsed.references ?? null),
     dmarc: envelope.dmarc,
+    cc: (parsed.cc ?? [])
+      .map(mailboxAddress)
+      .filter((address): address is string => address !== null && address.length <= 320)
+      .slice(0, 100),
     attachments: parsed.attachments.map((a) => ({
       filename: a.filename ?? 'attachment',
       contentType: a.mimeType ?? null,

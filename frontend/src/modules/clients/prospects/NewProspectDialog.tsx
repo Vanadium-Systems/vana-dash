@@ -8,6 +8,7 @@ import { Input } from '@/shared/components/ui/input'
 import { api, ApiError } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import { errorCode } from './use-prospect-actions'
+import { errorDetail, toastError } from '@/shared/lib/errors'
 
 export interface NewProspectSeed {
   name?: string
@@ -98,9 +99,9 @@ export function NewProspectDialog({ seed, onOpenChange, onOpenProspect }: { seed
       onOpenChange(false)
     },
     onError: (err) => {
-      const found = (err instanceof ApiError ? (err.body as { existing?: Existing } | undefined)?.existing : undefined) ?? null
+      const found = errorDetail<Existing>(err, 'existing') ?? null
       if (errorCode(err) === 'PROSPECT_EXISTS' && found) setExisting(found)
-      else toast.error(err.message)
+      else toastError(err)
     },
   })
 

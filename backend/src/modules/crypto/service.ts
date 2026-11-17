@@ -7,7 +7,7 @@ import type { MarketCoin } from './coingecko.js'
 import * as binance from './binance.js'
 import * as geckoterminal from './geckoterminal.js'
 import type { DexPool } from './geckoterminal.js'
-import { tr } from '../../shared/lib/i18n.js'
+import { httpError } from '../../shared/lib/http-error.js'
 
 // Modulul Crypto (PLAN.md Contract D). Datele de piață vin din CoinGecko (cache în memorie —
 // date externe, nu agregare DB), alertele reutilizează platform_metrics + sistemul existent de
@@ -304,7 +304,7 @@ export async function previewOrder(input: {
   limitPrice?: number
 }): Promise<OrderPreview> {
   const row = await getEnabledExchange(input.exchange)
-  if (!row) throw new Error(tr('errors.trading.exchangeNotConnected', { exchange: input.exchange }))
+  if (!row) throw httpError(400, 'EXCHANGE_NOT_CONNECTED', { exchange: input.exchange })
   const referencePrice = await binance.tickerPrice(input.exchange, input.symbol)
   const effective = input.type === 'limit' ? input.limitPrice! : referencePrice
   return {
@@ -322,7 +322,7 @@ export async function previewOrder(input: {
 
 async function fillMarketPaperOrder(exchangeRow: ExchangeRow, orderId: string, symbol: string): Promise<number> {
   const price = await binance.tickerPrice(exchangeRow.exchange, symbol)
-  if (price === null) throw new Error(tr('errors.trading.noLivePriceOn', { symbol, exchange: exchangeRow.exchange }))
+  if (price === null) throw httpError(400, 'CRYPTO_NO_LIVE_PRICE', { symbol, exchange: exchangeRow.exchange })
   await db
     .update(cryptoPaperOrders)
     .set({ executedPrice: String(price), status: 'filled', executedAt: new Date(), updatedAt: new Date() })
@@ -339,7 +339,7 @@ export async function placeOrder(input: {
   limitPrice?: number
 }): Promise<{ filled: boolean; paper: boolean; price: number | null }> {
   const row = await getEnabledExchange(input.exchange)
-  if (!row) throw new Error(tr('errors.trading.exchangeNotConnected', { exchange: input.exchange }))
+  if (!row) throw httpError(400, 'EXCHANGE_NOT_CONNECTED', { exchange: input.exchange })
 
   if (row.mode === 'paper') {
     const [order] = await db
@@ -361,7 +361,7 @@ export async function placeOrder(input: {
   }
 
   // Live — kill-switch obligatoriu (fail-closed: lipsă config = blocat).
-  if (!(await isTradingEnabled())) throw new Error(tr('errors.trading.liveOff'))
+  if (!(await isTradingEnabled())) throw httpError(400, 'TRADING_LIVE_OFF')
   const result = await binance.placeOrder(input.exchange, await keysOf(row), {
     symbol: input.symbol,
     side: input.side.toUpperCase() as 'BUY' | 'SELL',
@@ -438,7 +438,7 @@ export async function listTrades(exchangeName: 'binance' | 'binance_testnet', sy
   if (!row) return []
 
   if (row.mode === 'live') {
-    if (!symbol) throw new Error(tr('errors.trading.liveHistoryNeedsSymbol'))
+    if (!symbol) throw httpError(400, 'TRADING_HISTORY_NEEDS_SYMBOL')
     const trades = await binance.myTrades(exchangeName, await keysOf(row), symbol, 50)
     return trades.map((t) => ({
       source: 'live',

@@ -11,6 +11,7 @@ import { extractKeyFromHash } from './call-keys'
 import { usePublicCall, usePublicCallToken } from './calls-api'
 import { LiveKitRoomView } from './LiveKitRoomView'
 import type { PublicCallTokenResponse } from './types'
+import { errorText } from '@/shared/lib/errors'
 
 export function PublicCallPage() {
   const { publicId = '' } = useParams()
@@ -111,7 +112,7 @@ export function PublicCallPage() {
             />
           </Field>
           {mintToken.isError ? (
-            <p className="text-sm text-destructive-text">{mintToken.error.message}</p>
+            <p className="text-sm text-destructive-text">{errorText(mintToken.error)}</p>
           ) : null}
           <Button type="submit" className="w-full" disabled={mintToken.isPending}>
             {t('calls:public.join')}

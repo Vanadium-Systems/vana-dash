@@ -109,6 +109,8 @@ export interface AccountingConnector {
   fetchSpvMessages(session: AnafSession, days: number): Promise<SpvMessage[]>
   uploadInvoice(session: AnafSession, xml: string): Promise<{ uploadId: string }>
   checkUploadStatus(session: AnafSession, uploadId: string): Promise<AnafUploadStatus>
+  /** ANAF's validation errors for a rejected upload (two requests: the status, then its archive). */
+  fetchUploadErrors(session: AnafSession, uploadId: string): Promise<string[]>
   checkHealth(session: AnafSession): Promise<PlatformHealth>
 }
 

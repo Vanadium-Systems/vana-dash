@@ -3,7 +3,7 @@ import multipart from '@fastify/multipart'
 import type { FastifyInstance } from 'fastify'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import { ALLOWED_MIME_TO_EXT, contentTypeForImageFilename, emailImageStoragePath, IMAGE_FILENAME_RE, MAX_IMAGE_SIZE } from './images-service.js'
-import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 export async function emailImagesRoutes(app: FastifyInstance) {
   await app.register(multipart, { limits: { fileSize: MAX_IMAGE_SIZE, files: 1 } })
@@ -13,16 +13,16 @@ export async function emailImagesRoutes(app: FastifyInstance) {
   // o convertește într-un atașament MIME cu Content-ID (vezi comentariul de-acolo).
   app.post('/api/email/images', { preHandler: [app.authenticate] }, async (req, reply) => {
     const data = await req.file()
-    if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
+    if (!data) return fail(reply, 400, 'FILE_MISSING')
 
     const ext = ALLOWED_MIME_TO_EXT[data.mimetype]
     if (!ext) {
-      return reply.code(400).send({ success: false, error: tr('errors.email.imageTypeNotAccepted', { mimetype: data.mimetype }) })
+      return fail(reply, 400, 'EMAIL_IMAGE_TYPE_NOT_ACCEPTED', { params: { mimetype: data.mimetype } })
     }
 
     const buffer = await data.toBuffer()
     if (data.file.truncated) {
-      return reply.code(413).send({ success: false, error: tr('errors.email.imageTooLarge') })
+      return fail(reply, 413, 'EMAIL_IMAGE_TOO_LARGE')
     }
 
     const filename = `${randomUUID()}.${ext}`
@@ -38,7 +38,7 @@ export async function emailImagesRoutes(app: FastifyInstance) {
   app.get('/api/email-images/:filename', async (req, reply) => {
     const { filename } = req.params as { filename: string }
     if (!IMAGE_FILENAME_RE.test(filename)) {
-      return reply.code(404).send({ success: false, error: tr('errors.email.imageNotFound') })
+      return fail(reply, 404, 'EMAIL_IMAGE_NOT_FOUND')
     }
 
     try {
@@ -46,7 +46,7 @@ export async function emailImagesRoutes(app: FastifyInstance) {
       // Imutabil odată încărcat (nume generat, nu se suprascrie niciodată) — cache lung, sigur.
       return reply.header('Content-Type', contentTypeForImageFilename(filename)).header('Cache-Control', 'public, max-age=31536000, immutable').send(buffer)
     } catch {
-      return reply.code(404).send({ success: false, error: tr('errors.email.imageNotFound') })
+      return fail(reply, 404, 'EMAIL_IMAGE_NOT_FOUND')
     }
   })
 }

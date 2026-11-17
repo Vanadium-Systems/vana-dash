@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { fail } from '../../shared/lib/http-error.js'
 import {
   OutreachMailboxCreateSchema,
   OutreachMailboxIdParamsSchema,
@@ -29,7 +30,7 @@ export async function emailOutreachMailboxesRoutes(app: FastifyInstance) {
       } catch (err) {
         const pgErr = err as { code?: string }
         if (pgErr.code === '23505') {
-          return reply.code(409).send({ success: false, error: { code: 'OUTREACH_MAILBOX_EXISTS' } })
+          return fail(reply, 409, 'OUTREACH_MAILBOX_EXISTS')
         }
         throw err
       }
@@ -44,7 +45,7 @@ export async function emailOutreachMailboxesRoutes(app: FastifyInstance) {
     },
     async (req, reply) => {
       const updated = await service.updateOutreachMailbox(req.params.id, req.body)
-      if (!updated) return reply.code(404).send({ success: false, error: { code: 'OUTREACH_MAILBOX_NOT_FOUND' } })
+      if (!updated) return fail(reply, 404, 'OUTREACH_MAILBOX_NOT_FOUND')
       return { success: true, data: updated }
     },
   )
@@ -54,7 +55,7 @@ export async function emailOutreachMailboxesRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: OutreachMailboxIdParamsSchema } },
     async (req, reply) => {
       const deleted = await service.softDeleteOutreachMailbox(req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: { code: 'OUTREACH_MAILBOX_NOT_FOUND' } })
+      if (!deleted) return fail(reply, 404, 'OUTREACH_MAILBOX_NOT_FOUND')
       return { success: true }
     },
   )
@@ -66,10 +67,10 @@ export async function emailOutreachMailboxesRoutes(app: FastifyInstance) {
       const result = await service.testOutreachMailbox(req.params.id, req.me.email)
       if (!result.ok) {
         if (result.code === 'NOT_FOUND') {
-          return reply.code(404).send({ success: false, error: { code: 'OUTREACH_MAILBOX_NOT_FOUND' } })
+          return fail(reply, 404, 'OUTREACH_MAILBOX_NOT_FOUND')
         }
         const status = result.code === 'OUTREACH_REAL_SENDING_DISABLED' ? 403 : 422
-        return reply.code(status).send({ success: false, error: { code: result.code } })
+        return fail(reply, status, result.code)
       }
       return { success: true, data: { sentTo: req.me.email } }
     },

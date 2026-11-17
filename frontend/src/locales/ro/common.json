@@ -271,7 +271,7 @@
   "errors": {
     "boundary": {
       "title": "Ceva nu a mers bine",
-      "body": "A apărut o eroare neașteptată. Încearcă să reîncarci pagina — dacă problema persistă, revino mai târziu.",
+      "body": "Pagina a dat o eroare. Reîncarc-o; dacă se repetă, revino mai târziu.",
       "reload": "Reîncarcă pagina"
     },
     "api": {
@@ -289,11 +289,25 @@
     "push": {
       "unsupported": "Browserul acesta nu suportă notificări push",
       "denied": "Permisiune refuzată pt. notificări",
-      "vapidMissing": "VAPID neconfigurat pe server — contactează administratorul",
+      "vapidMissing": "Notificările push nu sunt configurate pe server. Spune-i administratorului.",
       "invalidSubscription": "Subscripție push invalidă (lipsesc cheile)"
     },
     "shareToArchive": "Share în Arhivă eșuat: {{message}}",
-    "unknown": "eroare necunoscută"
+    "unknown": "eroare necunoscută",
+    "unexpected": "Ceva n-a mers. Încearcă din nou.",
+    "codeLine": "Cod: {{code}}",
+    "codes": {
+      "IMPORT_NEEDS_REASSIGN": "Nu poți repartiza prospecții altor colegi.",
+      "IMPORT_NO_NAME_COLUMN": "Nu am găsit nicio coloană cu numele firmei sau cu CUI-ul.",
+      "IMPORT_TOKEN_EXPIRED": "Previzualizarea a expirat. Încarcă fișierul din nou.",
+      "IMPORT_TOO_MANY_ROWS": "Fișierul are prea multe rânduri. Împarte-l în fișiere de cel mult 5.000 de rânduri.",
+      "IMPORT_UNREADABLE": "Fișierul nu poate fi citit. Verifică dacă nu e deteriorat sau protejat cu parolă.",
+      "IMPORT_UNSUPPORTED_FILE": "Tipul fișierului nu e acceptat. Folosește .xlsx sau .csv.",
+      "PROFORMA_ALREADY_CONVERTED": "Proforma a fost deja transformată în factură.",
+      "PROFORMA_CANCELLED": "Proforma e anulată.",
+      "PROFORMA_INVOICED": "Proforma e deja facturată.",
+      "PROFORMA_NOT_ISSUED": "Proforma e încă ciornă. Emite-o întâi."
+    }
   },
   "kpi": {
     "vsPreviousPeriod": "vs. perioada anterioară"
@@ -564,7 +578,9 @@
     "clear": "Golește selecția",
     "all": "Selectează tot",
     "count": "{{count}} selectate",
-    "pageOf": "toate de pe pagină, din {{total}}"
+    "pageOf": "toate de pe pagină, din {{total}}",
+    "selectEverything": "Selectează toate cele {{total}}",
+    "everything": "Toate cele {{total}} sunt selectate"
   },
   "keys": {
     "shift": "Shift",

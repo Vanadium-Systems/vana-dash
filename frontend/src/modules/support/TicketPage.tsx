@@ -15,6 +15,7 @@ import { cn } from '@/shared/lib/utils'
 import { formatDateTime } from '@/shared/lib/format'
 import { STATUS_LABEL, STATUS_TONE, SUPPORT_PATHS, SUPPORT_UNREAD_KEY, type SupportScope } from './support-api'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 export function TicketPage({ scope }: { scope: SupportScope }) {
   const paths = SUPPORT_PATHS[scope]
@@ -47,7 +48,7 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
       onChanged(fresh)
       setBody('')
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const close = useMutation({
@@ -56,7 +57,7 @@ export function TicketPage({ scope }: { scope: SupportScope }) {
       onChanged(fresh)
       toast.success(t('support:ticket.closedToast'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const submit = (event: FormEvent) => {

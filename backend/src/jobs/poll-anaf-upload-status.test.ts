@@ -32,8 +32,9 @@ const generateInvoiceDocumentsMock =
   vi.fn<(invoiceId: string, input: { documentNumber: string; customer: { name: string } }) => Promise<{ xmlPath: string; pdfPath: string | null }>>()
 const readDocumentMock = vi.fn(async () => Buffer.from('%PDF-1.4 mock pdf bytes'))
 
+const fetchUploadErrorsMock = vi.fn<(session: unknown, uploadId: string) => Promise<string[]>>().mockResolvedValue([])
 vi.mock('../connectors/anaf/index.js', () => ({
-  anafConnector: { checkUploadStatus: checkUploadStatusMock },
+  anafConnector: { checkUploadStatus: checkUploadStatusMock, fetchUploadErrors: fetchUploadErrorsMock },
 }))
 vi.mock('../shared/lib/anaf.js', () => ({ getAnafSession: getAnafSessionMock }))
 vi.mock('../shared/lib/email.js', () => ({
@@ -58,6 +59,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   statusByUploadId.clear()
   checkUploadStatusMock.mockImplementation(async (_session, uploadId) => statusByUploadId.get(uploadId) ?? 'pending')
+  fetchUploadErrorsMock.mockResolvedValue([])
   getAnafSessionMock.mockImplementation(async () => ({ accessToken: 'fake-token-for-test' }))
   readDocumentMock.mockImplementation(async () => Buffer.from('%PDF-1.4 mock pdf bytes'))
 })
@@ -336,6 +338,31 @@ describe('pollAnafUploadStatuses — rejected (regression, pre-existing path)', 
     expect(sendAlertEmailMock.mock.calls[0]![0]).toMatch(/e-Factura respinsă/)
     expect(sendEmailMock).not.toHaveBeenCalled()
     expect(generateInvoiceDocumentsMock).not.toHaveBeenCalled()
+  })
+
+  it("keeps ANAF's reasons on the invoice", async () => {
+    const record = await makeRecord({ anafUploadId: 'rejected-2', pdfStoragePath: null })
+    statusByUploadId.set('rejected-2', 'rejected')
+    fetchUploadErrorsMock.mockResolvedValueOnce(['E: [BR-RO-110] adresa lipseste', 'E: [BR-CO-15] total TVA gresit'])
+
+    await pollAnafUploadStatuses()
+
+    const reloaded = await reloadRecord(record.id)
+    expect(reloaded.anafStatus).toBe('rejected')
+    expect(reloaded.anafRejectionReason).toBe('E: [BR-RO-110] adresa lipseste\nE: [BR-CO-15] total TVA gresit')
+  })
+
+  it('still marks the invoice rejected when the reasons cannot be read', async () => {
+    const record = await makeRecord({ anafUploadId: 'rejected-3', pdfStoragePath: null })
+    statusByUploadId.set('rejected-3', 'rejected')
+    fetchUploadErrorsMock.mockRejectedValueOnce(new Error('timeout'))
+
+    await pollAnafUploadStatuses()
+
+    const reloaded = await reloadRecord(record.id)
+    expect(reloaded.anafStatus).toBe('rejected')
+    expect(reloaded.anafRejectionReason).toBeNull()
+    expect(sendAlertEmailMock).toHaveBeenCalledTimes(1)
   })
 })
 

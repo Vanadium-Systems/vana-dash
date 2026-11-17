@@ -12,6 +12,7 @@ import { Select } from '@/shared/components/ui/select'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { toastError } from '@/shared/lib/errors'
 
 // Sprint D, Track 3; re-scope 2026-07-18 — template-uri de facturi PER PLATFORMĂ (aplicație
 // integrată), nu per client: 2-3 template-uri reutilizate de toți clienții unei platforme
@@ -108,7 +109,7 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
       toast.success(t('pricing:templates.saved'))
       setEditingId(null)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -117,7 +118,7 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
       void invalidate()
       toast.success(t('pricing:templates.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

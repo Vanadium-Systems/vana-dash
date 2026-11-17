@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { ApiError, api } from '@/shared/lib/api'
+import { api } from '@/shared/lib/api'
 import { t, type TKey } from '@/shared/lib/i18n'
 import type { Distribution, ImportPreview, ImportResult } from './types'
 
@@ -17,22 +17,6 @@ export function useCommitImport() {
   return useMutation({
     mutationFn: (input: { token: string; distribution: Distribution }) => api.post<ImportResult>('/api/prospects/import/commit', input),
   })
-}
-
-const ERROR_TEXTS: Record<string, TKey> = {
-  IMPORT_TOO_MANY_ROWS: 'clients:import.errors.IMPORT_TOO_MANY_ROWS',
-  IMPORT_NO_NAME_COLUMN: 'clients:import.errors.IMPORT_NO_NAME_COLUMN',
-  IMPORT_UNSUPPORTED_FILE: 'clients:import.errors.IMPORT_UNSUPPORTED_FILE',
-  IMPORT_UNREADABLE: 'clients:import.errors.IMPORT_UNREADABLE',
-  IMPORT_TOKEN_EXPIRED: 'clients:import.errors.IMPORT_TOKEN_EXPIRED',
-  IMPORT_NEEDS_REASSIGN: 'clients:import.errors.IMPORT_NEEDS_REASSIGN',
-}
-
-/** The app's own text for the server's code, else the message the server sent. */
-export function importErrorMessage(err: unknown): string {
-  const key = err instanceof ApiError && err.code ? ERROR_TEXTS[err.code] : undefined
-  if (key) return t(key)
-  return err instanceof Error ? err.message : t('common:states.loadFailed')
 }
 
 export const ROW_ERROR_TEXTS: Record<string, TKey> = {

@@ -10,6 +10,7 @@ import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import type { Prospect } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface PromoteProspectDialogProps {
   prospect: Pick<Prospect, 'id' | 'name' | 'cif'> | null
@@ -54,7 +55,7 @@ export function PromoteProspectDialog({ prospect, onOpenChange }: PromoteProspec
       })
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (!prospect) return null

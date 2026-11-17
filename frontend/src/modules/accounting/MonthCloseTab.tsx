@@ -47,6 +47,7 @@ import {
   useMonthClose,
   useSetMonthClosureStatus,
 } from './hooks'
+import { toastError } from '@/shared/lib/errors'
 
 export type MonthCloseFilterKey =
   | 'all'
@@ -174,7 +175,7 @@ export function MonthCloseTab() {
         onSuccess: (res) => {
           toast.success(t('accounting:monthClose.archivedToast', { count: res.archivedCount }))
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toastError(err),
       },
     )
   }
@@ -190,7 +191,7 @@ export function MonthCloseTab() {
               : t('accounting:monthClose.closureReopened'),
           )
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toastError(err),
       },
     )
   }
@@ -201,7 +202,7 @@ export function MonthCloseTab() {
       setDownloadingZip(true)
       await downloadMonthPackageZip(month)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setDownloadingZip(false)
     }
@@ -488,7 +489,7 @@ export function MonthCloseTab() {
                               toast.success(
                                 t('accounting:monthClose.archivedToast', { count: 1 }),
                               ),
-                            onError: (err) => toast.error(err.message),
+                            onError: (err) => toastError(err),
                           }),
                       }
                       if (inlineActions.length === 0) inlineActions.push(archiveAction)

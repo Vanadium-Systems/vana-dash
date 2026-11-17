@@ -325,6 +325,7 @@ const stateRow = (
     documentNumber: string | null
     paymentStatus?: 'unpaid' | 'partial' | 'paid'
     anafStatus?: 'validated' | 'rejected'
+    anafRejectionReason?: string
   },
 ) => ({
   ...issued[0]!,
@@ -349,7 +350,12 @@ const stateRows = await db
     stateRow(0, 3, '1500.00', { documentNumber: null }),
     stateRow(1, 20, '2000.00', { documentNumber: partialNumber, paymentStatus: 'partial' }),
     stateRow(2, 25, '900.00', { documentNumber: splitNumber, paymentStatus: 'paid', paidAt: daysAgo(12) }),
-    stateRow(0, 8, '1100.00', { documentNumber: nextNumber(), anafStatus: 'rejected' }),
+    stateRow(0, 8, '1100.00', {
+      documentNumber: nextNumber(),
+      anafStatus: 'rejected',
+      // The shape ANAF writes its validation errors in.
+      anafRejectionReason: 'E: validari globale eroare: [BR-RO-110] Adresa cumparatorului (BT-50) lipseste.',
+    }),
     stateRow(1, 15, '750.00', { documentNumber: nextNumber(), anafStatus: 'validated' }),
     // Due in 2 days (Home "deadlines") and a plainly overdue one (Home "to collect").
     stateRow(3, 12, '1800.00', { documentNumber: nextNumber() }),
@@ -540,10 +546,7 @@ const prospectRows = await db.insert(prospects).values(
     return {
       name: `Prospect ${String(i + 1).padStart(2, '0')} SRL`,
       cif: `RO2000${String(i + 1).padStart(4, '0')}`,
-      phone: `031000${String(1000 + i)}`,
-      email: `office@prospect${i + 1}.example.com`,
       website: `https://prospect${i + 1}.example.com`,
-      contactName: ['Andrei Pop', 'Laura Ene', 'Cristi Radu', 'Diana Luca', 'George Sima'][i % 5],
       foundingYear: 2008 + (i % 12),
       employeeCount: 4 + ((i * 7) % 40),
       revenue: String(revenue),
@@ -769,7 +772,7 @@ const inDays = (n: number, hour: number, minutes = 0) => {
   return d
 }
 const eventRows = await db.insert(calendarEvents).values([
-  { ownerUserId: admin.id, title: L({ ro: 'Apel Acme Recycling', en: 'Call with Acme Recycling' }), startAt: inDays(1, 8), endAt: inDays(1, 8, 30), reminderMinutesBefore: 15, createdByUserId: admin.id },
+  { ownerUserId: admin.id, title: L({ ro: 'Apel Acme Recycling', en: 'Call with Acme Recycling' }), startAt: inDays(1, 8), endAt: inDays(1, 8, 30), createdByUserId: admin.id },
   { ownerUserId: admin.id, title: L({ ro: 'Închidere lună', en: 'Month-end close' }), startAt: inDays(3, 7), endAt: inDays(3, 9), createdByUserId: admin.id },
   { ownerUserId: ana!.id, title: L({ ro: 'Revenit la Prospect 04', en: 'Follow up with Prospect 04' }), startAt: inDays(4, 9), endAt: inDays(4, 9, 30), createdByUserId: ana!.id },
   { ownerUserId: admin.id, title: 'Demo Cobalt Logistics', location: 'Online', startAt: inDays(6, 11), endAt: inDays(6, 12), createdByUserId: admin.id },
@@ -1196,15 +1199,17 @@ const [nordicA, nordicB, deltaA, deltaB] = await db
   )
   .returning()
 
+const demoPhone = (i: number) => `031000${String(1000 + i)}`
+const demoEmail = (i: number) => `office@prospect${i + 1}.example.com`
 await db.insert(prospectContactPoints).values([
-  ...prospectRows.slice(0, 6).flatMap((p) => [
-    point(p.id, 'phone', p.phone!, { isPrimary: true, label: L({ ro: 'Centrală', en: 'Switchboard' }) }),
-    point(p.id, 'email', p.email!, { isPrimary: true }),
+  ...prospectRows.slice(0, 6).flatMap((p, i) => [
+    point(p.id, 'phone', demoPhone(i), { isPrimary: true, label: L({ ro: 'Centrală', en: 'Switchboard' }) }),
+    point(p.id, 'email', demoEmail(i), { isPrimary: true }),
   ]),
   point(prospectAt(0).id, 'email', 'andrei.pop@prospect1.example.com', { personId: personNamed('Andrei Pop').id }),
   point(prospectAt(1).id, 'phone', '0721000221', { personId: personNamed('Laura Ene').id, label: L({ ro: 'Mobil', en: 'Mobile' }) }),
-  point(prospectAt(6).id, 'email', prospectAt(6).email!, { isPrimary: true, status: 'bounced' }),
-  point(prospectAt(7).id, 'phone', prospectAt(7).phone!, { isPrimary: true, status: 'invalid' }),
+  point(prospectAt(6).id, 'email', demoEmail(6), { isPrimary: true, status: 'bounced' }),
+  point(prospectAt(7).id, 'phone', demoPhone(7), { isPrimary: true, status: 'invalid' }),
   point(deltaA!.id, 'phone', '0721000900', { isPrimary: true }),
   point(deltaB!.id, 'phone', '0721000900', { isPrimary: true }),
   point(deltaA!.id, 'email', 'contact@delta.example.com', { isPrimary: true }),
@@ -1378,8 +1383,8 @@ await db.insert(emailSequenceSteps).values([
 const enrollment = (i: number, currentStep: number, nextSendInDays: number, extra: Partial<typeof emailSequenceEnrollments.$inferInsert> = {}) => ({
   sequenceId: outreach!.id,
   prospectId: prospectAt(i).id,
-  recipientEmail: prospectAt(i).email!,
-  recipientName: prospectAt(i).contactName,
+  recipientEmail: demoEmail(i),
+  recipientName: ['Andrei Pop', 'Laura Ene', 'Cristi Radu', 'Diana Luca', 'George Sima'][i % 5]!,
   currentStep,
   nextSendAt: inDays(nextSendInDays, 9),
   enrolledAt: daysAgo(currentStep * 3 + 1),

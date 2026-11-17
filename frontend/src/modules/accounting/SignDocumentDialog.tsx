@@ -10,6 +10,7 @@ import type { ContractDocument, SignatureRect } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
+import { toastError } from '@/shared/lib/errors'
 
 interface SignDocumentDialogProps {
   doc: ContractDocument | null
@@ -49,7 +50,7 @@ export function SignDocumentDialog({ doc, onOpenChange }: SignDocumentDialogProp
       void queryClient.invalidateQueries({ queryKey: ['contract-documents'] })
       toast.success(t('accounting:sign.rectSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const uploadSigned = useMutation({
@@ -63,7 +64,7 @@ export function SignDocumentDialog({ doc, onOpenChange }: SignDocumentDialogProp
       toast.success(t('accounting:sign.uploaded'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (!doc) return null
@@ -102,7 +103,7 @@ export function SignDocumentDialog({ doc, onOpenChange }: SignDocumentDialogProp
     try {
       await api.download(`/api/contracts/documents/${doc!.id}/sign-package`, `semnare_${doc!.id.slice(0, 8)}.zip`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setDownloading(false)
     }

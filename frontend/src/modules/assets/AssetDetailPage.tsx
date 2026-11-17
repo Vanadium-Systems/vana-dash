@@ -3,7 +3,6 @@ import { ArrowLeft, CandlestickChart, Star } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
@@ -18,6 +17,7 @@ import { CATEGORY_LABEL, formatUsd, type AssetCategory, type AssetDetail, type C
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { LINE_CURSOR } from '@/shared/components/charts/chart-cursor'
+import { toastError } from '@/shared/lib/errors'
 
 // Pagina unui simbol (cerință Stefan: „cum e pe Crypto") — schelet identic CoinDetailPage:
 // grafic cu intervale + candele, statistici, favorite + ordin direct de aici. Graficul vine din
@@ -106,7 +106,7 @@ export function AssetDetailPage() {
         ? api.delete(`/api/assets/watchlist/${category}/${encodeURIComponent(symbol)}`)
         : api.post('/api/assets/watchlist', { category, symbol, name: detail.data?.name ?? symbol }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['assets'] }),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (detail.isPending) {

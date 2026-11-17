@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
+import { errorText } from '@/shared/lib/errors'
 import { t, type TKey } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
 import { useAssignees } from '../prospects/use-prospect-data'
@@ -11,7 +12,7 @@ import { FileStep } from './FileStep'
 import { PreviewStep } from './PreviewStep'
 import { ResultStep, RunningStep } from './ResultStep'
 import type { Distribution, ImportPreview, ImportResult } from './types'
-import { importErrorMessage, useCommitImport, usePreviewImport } from './use-import'
+import { useCommitImport, usePreviewImport } from './use-import'
 
 type Step = 'file' | 'preview' | 'running' | 'result'
 const STEP_TEXTS = { file: 'clients:import.steps.file', preview: 'clients:import.steps.preview', result: 'clients:import.steps.result' } satisfies Record<string, TKey>
@@ -51,7 +52,7 @@ export function ImportPage() {
         setData(next)
         setStep('preview')
       },
-      onError: (err) => setFileError(importErrorMessage(err)),
+      onError: (err) => setFileError(errorText(err)),
     })
   }
 
@@ -67,7 +68,7 @@ export function ImportPage() {
         },
         onError: (err) => {
           setResult(null)
-          setFailure(importErrorMessage(err))
+          setFailure(errorText(err))
         },
         onSettled: () => {
           void queryClient.invalidateQueries({ queryKey: ['prospects'] })

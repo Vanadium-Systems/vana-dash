@@ -12,7 +12,8 @@ import { StoragePanel, usageTone } from './StoragePanel'
 vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} unobserve() {} })
 
 const api = vi.hoisted(() => ({ get: vi.fn() }))
-vi.mock('@/shared/lib/api', () => ({ api }))
+vi.mock('@/shared/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/lib/api')>()), api }))
 
 const GB = 1024 ** 3
 const usage = (usedBytes: number) => ({

@@ -20,6 +20,7 @@ import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { formatNumber, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 export function ConturiTab() {
   const confirm = useConfirm()
@@ -53,7 +54,7 @@ export function ConturiTab() {
       invalidate()
       toast.success(t('reconciliation:accounts.syncDone'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const removeAccount = useMutation({
@@ -62,7 +63,7 @@ export function ConturiTab() {
       invalidate()
       toast.success(t('reconciliation:accounts.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const unmatch = useMutation({
@@ -72,7 +73,7 @@ export function ConturiTab() {
       void queryClient.invalidateQueries({ queryKey: ['accounting'] })
       toast.success(t('reconciliation:transactions.matchCancelled'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

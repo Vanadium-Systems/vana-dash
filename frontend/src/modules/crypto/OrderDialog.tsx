@@ -15,6 +15,7 @@ import { cn, parseRoDecimal } from '@/shared/lib/utils'
 import { formatUsd, type OrderPreviewResult } from './types'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
+import { toastError } from '@/shared/lib/errors'
 
 interface OrderDialogProps {
   open: boolean
@@ -53,7 +54,7 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol }: OrderDialogPr
         ...(type === 'limit' ? { limitPrice: parseRoDecimal(limitPrice) } : {}),
       }),
     onSuccess: setPreview,
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const placeMutation = useMutation({
@@ -71,7 +72,7 @@ export function OrderDialog({ open, onOpenChange, defaultSymbol }: OrderDialogPr
       reset()
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const quantityValid = parseRoDecimal(quantity) > 0

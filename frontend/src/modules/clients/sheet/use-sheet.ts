@@ -4,6 +4,7 @@ import { api, ApiError } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import { filterParams } from '../prospects/use-prospect-data'
 import type { ContactCheck, DiscussedIn, ListState, Neighbors, ProspectSheet, ReleaseSettings, SheetNote, SheetTask, TimelinePage } from './types'
+import { toastError } from '@/shared/lib/errors'
 
 const isNotFound = (err: unknown) => err instanceof ApiError && err.status === 404
 
@@ -72,7 +73,7 @@ export function useWrite() {
       if (done) toast.success(done)
       return result
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('common:states.changeNotSaved'))
+      toastError(err, t('common:states.changeNotSaved'))
       return undefined
     }
   }

@@ -13,6 +13,7 @@ import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 
 interface PlanGoalFormProps {
@@ -63,7 +64,7 @@ export function PlanGoalForm({ goal, scope, onDone, onAddedBelow }: PlanGoalForm
       toast.success(goal ? t('plan:step.updated') : t('plan:step.added'))
       onDone()
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const addBelow = useMutation({
@@ -79,7 +80,7 @@ export function PlanGoalForm({ goal, scope, onDone, onAddedBelow }: PlanGoalForm
       await queryClient.invalidateQueries({ queryKey: ['plan'] })
       onAddedBelow?.(created)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -89,7 +90,7 @@ export function PlanGoalForm({ goal, scope, onDone, onAddedBelow }: PlanGoalForm
       toast.success(t('plan:step.deleted'))
       onDone()
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

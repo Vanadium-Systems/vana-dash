@@ -314,9 +314,7 @@ async function resolveClientSubscriptionPrice(
   const clientCurrency = client.subscriptionPriceCurrency === 'eur' ? 'EUR' : 'RON'
   const raw = client.subscriptionPriceCurrency === 'eur' ? client.subscriptionPriceEur : client.subscriptionPriceLei
   if (raw === null) {
-    throw new Error(
-      tr('errors.invoicing.noSubscriptionPrice', { name: client.name }),
-    )
+    throw new InvoicingError(400, 'NO_SUBSCRIPTION_PRICE', tr('errors.invoicing.noSubscriptionPrice', { name: client.name }))
   }
   const resolvedPrice = round2(await convertAmount(Number(raw), clientCurrency, targetCurrency, dateIso))
 
@@ -450,9 +448,9 @@ async function resolveDraftLines(client: BillingClient, input: DraftInput) {
   let discountConsumed = false
 
   if (input.templateId) {
-    if (!client.platformId) throw new Error(tr('errors.invoicing.clientNotMapped'))
+    if (!client.platformId) throw new InvoicingError(400, 'CLIENT_NOT_MAPPED', tr('errors.invoicing.clientNotMapped'))
     const template = await getPlatformTemplate(client.platformId, input.templateId)
-    if (!template) throw new Error(tr('errors.invoicing.templateNotFound'))
+    if (!template) throw new InvoicingError(400, 'TEMPLATE_NOT_FOUND', tr('errors.invoicing.templateNotFound'))
     currency = currency ?? template.currency
     if (!lines) {
       const dateIso = (input.issuedAt ?? new Date()).toISOString().slice(0, 10)
@@ -463,7 +461,7 @@ async function resolveDraftLines(client: BillingClient, input: DraftInput) {
   }
 
   if (!lines || lines.length === 0) {
-    throw new Error(tr('errors.invoicing.needsLine'))
+    throw new InvoicingError(400, 'INVOICE_NEEDS_LINE', tr('errors.invoicing.needsLine'))
   }
   return { lines, currency: currency ?? 'RON', discountConsumed }
 }
@@ -486,7 +484,7 @@ export interface DraftOptions {
 export async function createDraftInvoice(input: DraftInput, options: DraftOptions = {}) {
   const { kind = 'invoice', origin, inTransaction } = options
   const client = await getClient(input.billingClientId)
-  if (!client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
+  if (!client) throw new InvoicingError(400, 'BILLING_CLIENT_NOT_FOUND', tr('errors.invoicing.billingClientNotFound'))
 
   const { lines: finalLines, currency: finalCurrency, discountConsumed } = await resolveDraftLines(client, input)
   const finalIssuedAt = input.issuedAt ?? new Date()
@@ -560,7 +558,7 @@ export async function createDraftInvoice(input: DraftInput, options: DraftOption
 
 export async function updateDraftInvoice(id: string, input: z.infer<typeof InvoiceUpdateSchema>, kind: DocumentKind = 'invoice') {
   const client = input.billingClientId ? await getClient(input.billingClientId) : null
-  if (input.billingClientId && !client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
+  if (input.billingClientId && !client) throw new InvoicingError(400, 'BILLING_CLIENT_NOT_FOUND', tr('errors.invoicing.billingClientNotFound'))
 
   return db.transaction(async (tx) => {
     // Read under lock: the numbered check and the expectedUpdatedAt comparison must see the row the update will change.
@@ -570,7 +568,7 @@ export async function updateDraftInvoice(id: string, input: z.infer<typeof Invoi
       .where(and(eq(financialRecords.id, id), eq(financialRecords.source, 'generated'), eq(financialRecords.type, kind), isNull(financialRecords.deletedAt)))
       .for('update')
     if (!existing) return null
-    if (existing.documentNumber) throw new Error(tr('errors.invoicing.issuedNoEdit'))
+    if (existing.documentNumber) throw new InvoicingError(400, 'INVOICE_ISSUED_NO_EDIT', tr('errors.invoicing.issuedNoEdit'))
     // The lines of a storno were checked against what is left on the invoice it corrects; its note and dates stay editable.
     if (existing.correctsRecordId && (input.lines || input.billingClientId || input.currency)) {
       throw new InvoicingError(400, 'STORNO_LOCKED', tr('errors.invoicing.stornoLinesLocked'))
@@ -630,7 +628,7 @@ export async function updateDraftInvoice(id: string, input: z.infer<typeof Invoi
 export async function deleteDraftInvoice(id: string, kind: DocumentKind = 'invoice'): Promise<boolean> {
   const existing = await getGeneratedInvoice(id, kind)
   if (!existing) return false
-  if (existing.documentNumber) throw new Error(tr('errors.invoicing.issuedNoDelete'))
+  if (existing.documentNumber) throw new InvoicingError(400, 'INVOICE_ISSUED_NO_DELETE', tr('errors.invoicing.issuedNoDelete'))
   return db.transaction(async (tx) => {
     const [row] = await tx
       .update(financialRecords)
@@ -662,7 +660,7 @@ export async function companyToday(): Promise<Date> {
 /** The document HTML for a draft body, without a number and without touching the database. */
 export async function previewDraftInvoice(input: DraftInput, kind: DocumentKind = 'invoice'): Promise<string> {
   const client = await getClient(input.billingClientId)
-  if (!client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
+  if (!client) throw new InvoicingError(400, 'BILLING_CLIENT_NOT_FOUND', tr('errors.invoicing.billingClientNotFound'))
   const { lines, currency } = await resolveDraftLines(client, input)
   const issuedAt = input.issuedAt ?? (await companyToday())
   const document: UblInvoiceInput = {
@@ -702,7 +700,7 @@ export async function duplicateInvoice(id: string) {
   if (source.direction !== 'out' || source.type !== 'invoice' || source.correctsRecordId) {
     throw new InvoiceConflictError('NOT_DUPLICABLE', tr('errors.invoicing.notDuplicable'))
   }
-  if (!source.billingClientId) throw new Error(tr('errors.invoicing.clientGone'))
+  if (!source.billingClientId) throw new InvoicingError(400, 'CLIENT_GONE', tr('errors.invoicing.clientGone'))
 
   const lines = await db
     .select()
@@ -733,7 +731,9 @@ function customerParty(client: BillingClient, strict: boolean): UblInvoiceInput[
   // XML. ANAF rejects the invoice without it.
   const customerCountyCode = client.country === 'RO' ? countyNameToIsoCode(client.county) : undefined
   if (strict && client.country === 'RO' && !customerCountyCode) {
-    throw new Error(
+    throw new InvoicingError(
+      400,
+      'CLIENT_COUNTY_UNKNOWN',
       tr('errors.invoicing.countyUnknown1', { name: client.name, county: client.county ?? '—' }) +
         tr('errors.invoicing.countyUnknown2'),
     )
@@ -746,7 +746,9 @@ function customerParty(client: BillingClient, strict: boolean): UblInvoiceInput[
   if (customerCountyCode === 'RO-B') {
     const sector = extractBucharestSectorCode(client.city) ?? extractBucharestSectorCode(client.address)
     if (!sector && strict) {
-      throw new Error(
+      throw new InvoicingError(
+        400,
+        'CLIENT_SECTOR_UNKNOWN',
         tr('errors.invoicing.sectorUnknown1', { name: client.name, city: client.city ?? '—' }) +
           tr('errors.invoicing.sectorUnknown2'),
       )
@@ -775,7 +777,7 @@ export async function loadInvoiceInput(
   { strict = true }: { strict?: boolean } = {},
 ): Promise<UblInvoiceInput> {
   const client = record.billingClientId ? await getClient(record.billingClientId) : null
-  if (!client) throw new Error(tr('errors.invoicing.clientGone'))
+  if (!client) throw new InvoicingError(400, 'CLIENT_GONE', tr('errors.invoicing.clientGone'))
   const lines = await db
     .select()
     .from(invoiceLineItems)
@@ -791,7 +793,7 @@ export async function loadInvoiceInput(
       .select({ documentNumber: financialRecords.documentNumber, issuedAt: financialRecords.issuedAt })
       .from(financialRecords)
       .where(eq(financialRecords.id, record.correctsRecordId))
-    if (!original?.documentNumber) throw new Error(tr('errors.invoicing.invoiceGone'))
+    if (!original?.documentNumber) throw new InvoicingError(400, 'INVOICE_GONE', tr('errors.invoicing.invoiceGone'))
     corrects = { documentNumber: original.documentNumber, issuedAt: original.issuedAt }
   }
 
@@ -864,8 +866,8 @@ export async function issueInvoice(id: string) {
       .from(financialRecords)
       .where(and(eq(financialRecords.id, id), isNull(financialRecords.deletedAt)))
       .for('update')
-    if (!locked) throw new Error(tr('errors.invoicing.invoiceGone'))
-    if (locked.documentNumber) throw new Error(tr('errors.invoicing.alreadyIssued'))
+    if (!locked) throw new InvoicingError(400, 'INVOICE_GONE', tr('errors.invoicing.invoiceGone'))
+    if (locked.documentNumber) throw new InvoicingError(400, 'ALREADY_ISSUED', tr('errors.invoicing.alreadyIssued'))
     const number = await nextInvoiceNumber('invoice', tx)
     await tx
       .update(financialRecords)
@@ -923,9 +925,9 @@ export async function issueInvoice(id: string) {
 export async function sendInvoiceToAnaf(id: string) {
   const record = await getGeneratedInvoice(id)
   if (!record) return null
-  if (!record.documentNumber || !record.xmlStoragePath) throw new Error(tr('errors.invoicing.issueFirst'))
-  if (record.anafStatus === 'pending') throw new Error(tr('errors.invoicing.alreadySent'))
-  if (record.anafStatus === 'validated') throw new Error(tr('errors.invoicing.alreadyValidated'))
+  if (!record.documentNumber || !record.xmlStoragePath) throw new InvoicingError(400, 'INVOICE_NOT_ISSUED', tr('errors.invoicing.issueFirst'))
+  if (record.anafStatus === 'pending') throw new InvoicingError(400, 'ALREADY_SENT_TO_ANAF', tr('errors.invoicing.alreadySent'))
+  if (record.anafStatus === 'validated') throw new InvoicingError(400, 'ALREADY_VALIDATED', tr('errors.invoicing.alreadyValidated'))
 
   // Rejected before: the stored XML is the rejected one. Regenerate it from the client's
   // current data, or the same wrong XML goes out again.
@@ -1055,10 +1057,10 @@ export async function deletePlatformTemplate(platformId: string, id: string): Pr
  *  draft-ul, cu prețul CLIENTULUI ales (rămâne editabil după, nu e un link viu). */
 export async function resolveClientTemplateLines(billingClientId: string, templateId: string, currency?: string) {
   const client = await getClient(billingClientId)
-  if (!client) throw new Error(tr('errors.invoicing.billingClientNotFound'))
-  if (!client.platformId) throw new Error(tr('errors.invoicing.clientNotMapped'))
+  if (!client) throw new InvoicingError(400, 'BILLING_CLIENT_NOT_FOUND', tr('errors.invoicing.billingClientNotFound'))
+  if (!client.platformId) throw new InvoicingError(400, 'CLIENT_NOT_MAPPED', tr('errors.invoicing.clientNotMapped'))
   const template = await getPlatformTemplate(client.platformId, templateId)
-  if (!template) throw new Error(tr('errors.invoicing.templateNotFound'))
+  if (!template) throw new InvoicingError(400, 'TEMPLATE_NOT_FOUND', tr('errors.invoicing.templateNotFound'))
 
   const targetCurrency = currency ?? template.currency
   const dateIso = new Date().toISOString().slice(0, 10)

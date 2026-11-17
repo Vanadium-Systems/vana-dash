@@ -81,14 +81,15 @@ describe('assertContractDataComplete', () => {
 
   it('throws with the exact list of missing fields (billing_clients columns)', () => {
     const client = makeClient({ contactName: null, contactTitle: null, phone: null, contractPlan: null })
-    expect(() => assertContractDataComplete(client, completeDetails)).toThrow(
-      /Reprezentant client.*Funcție reprezentant.*Telefon client.*Plan/,
-    )
+    expect(() => assertContractDataComplete(client, completeDetails)).toThrow(expect.objectContaining({
+      code: 'CONTRACT_DATA_INCOMPLETE',
+      params: { fields: expect.stringMatching(/Reprezentant client.*Funcție reprezentant.*Telefon client.*Plan/) },
+    }))
   })
 
   it('throws when neither subscriptionPriceLei nor subscriptionPriceEur is set', () => {
     const client = makeClient({ subscriptionPriceEur: null, subscriptionPriceLei: null })
-    expect(() => assertContractDataComplete(client, completeDetails)).toThrow(/Tarif abonament/)
+    expect(() => assertContractDataComplete(client, completeDetails)).toThrow(expect.objectContaining({ params: { fields: expect.stringContaining('Tarif abonament') } }))
   })
 
   it('does not require subscriptionPriceEur when currency is lei and subscriptionPriceLei is set', () => {
@@ -97,9 +98,9 @@ describe('assertContractDataComplete', () => {
   })
 
   it('throws when contractDetails is missing nrContract/dataContract/taxaInitiere/facturareTip', () => {
-    expect(() => assertContractDataComplete(makeClient(), {})).toThrow(
-      /Număr contract.*Data contract.*Taxă de inițiere.*Ciclu de facturare/,
-    )
+    expect(() => assertContractDataComplete(makeClient(), {})).toThrow(expect.objectContaining({
+      params: { fields: expect.stringMatching(/Număr contract.*Data contract.*Taxă de inițiere.*Ciclu de facturare/) },
+    }))
   })
 })
 

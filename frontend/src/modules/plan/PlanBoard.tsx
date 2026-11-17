@@ -17,7 +17,6 @@ import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Circle, GripVertical, Lock } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
-import { toast } from 'sonner'
 import { Badge } from '@/shared/components/ui/badge'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { Button } from '@/shared/components/ui/button'
@@ -31,6 +30,7 @@ import { motionLevel } from '@/shared/lib/motion'
 import type { PlanGoal, PlanResponse, PlanScope } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { moveAcrossTiers, settleDrop, tierDropId, type TierItems } from './plan-board'
+import { toastError } from '@/shared/lib/errors'
 
 const STATUS_STYLES: Record<PlanGoal['status'], string> = {
   locked: 'border-muted bg-muted/30 text-muted-foreground',
@@ -74,7 +74,7 @@ function GoalCard({ goal, mrrRon, onEdit, handle }: GoalCardProps) {
       if (completed) void haptic('success')
       void queryClient.invalidateQueries({ queryKey: ['plan'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const thresholdValue = goal.thresholdValue ? Number(goal.thresholdValue) : null
@@ -201,7 +201,7 @@ export function PlanBoard({ scope, goals, tiers, mrrRon, onEdit, tierHeader }: P
       return api.post<PlanGoal[]>('/api/plan/reorder', { scope, tier, orderedIds: order })
     },
     onSettled: () => void queryClient.invalidateQueries({ queryKey: ['plan'] }),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const titleOf = (id: unknown) => goalsById.get(String(id))?.title ?? ''

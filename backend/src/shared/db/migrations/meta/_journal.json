@@ -743,6 +743,27 @@
       "when": 1794915781427,
       "tag": "0105_calls_livekit",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1794922600536,
+      "tag": "0106_anaf_rejection_reason",
+      "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1794923272388,
+      "tag": "0107_email_cc",
+      "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1794924034088,
+      "tag": "0108_s6_cleanup",
+      "breakpoints": true
     }
   ]
 }

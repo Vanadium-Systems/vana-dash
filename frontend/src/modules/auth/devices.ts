@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useMe } from '@/shared/hooks/use-me'
-import { api, ApiError } from '@/shared/lib/api'
+import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 export interface SessionDevice {
   familyId: string
@@ -52,7 +53,7 @@ function useDeviceMutation<TInput>(mutationFn: (input: TInput) => Promise<unknow
       void queryClient.invalidateQueries({ queryKey: DEVICES_KEY })
       toast.success(doneMessage())
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('auth:devices.failed')),
+    onError: (error) => toastError(error, t('auth:devices.failed')),
   })
 }
 

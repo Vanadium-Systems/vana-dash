@@ -32,6 +32,7 @@ import { NoteGrid } from './NoteGrid'
 import { ColorMenu, LabelMenu } from './NoteMenus'
 import { fetchNotes, NOTE_LABELS_KEY, notesListKey, useNoteActions, type LabelCount, type NotesFilter, type NotesView } from './notes-api'
 import { VersionsPeek } from './VersionsPeek'
+import { toastError } from '@/shared/lib/errors'
 
 const VIEWS: NotesView[] = ['active', 'archived', 'trash']
 
@@ -128,7 +129,7 @@ export function NotesPage() {
   const emptyTrash = useMutation({
     mutationFn: () => api.delete('/api/notes/trash'),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['notes'] }),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const askEmptyTrash = () =>
     void confirm({

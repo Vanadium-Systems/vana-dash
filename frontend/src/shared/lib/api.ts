@@ -97,12 +97,11 @@ async function handleUnauthorized(): Promise<never> {
 }
 
 /**
- * Mesajul pe care îl vede omul când o cerere pică. Rutele aplicației trimit `{ success: false,
- * error }` cu text scris pentru om, care trece neschimbat — inclusiv forma nouă, cu obiect
- * `{ code, message }` (acces, cutii de email). Restul (500 de la Fastify, validare zod,
- * rate limit, fără rețea) devine un mesaj care spune ce urmează; detaliul tehnic rămâne în
- * consolă, doar în dev. Singurul loc unde se decide asta, ca paginile să poată face
- * `toast.error(err.message)` fără să arate „Internal Server Error".
+ * Extracts the human-facing message and optional error code when an API request fails.
+ * Application routes return `{ success: false, error: { code, message, ... } }` (or a legacy
+ * string) in the caller's language; Fastify 5xx, Zod validation, rate-limit, and network failures
+ * fall back to localized generic copy while dev builds log the raw body to the console.
+ * Pages display errors through `toastError` / `errorText` (`shared/lib/errors.ts`).
  */
 function errorDetails(status: number, body: ApiEnvelope<unknown> | null): { message: string; code?: string } {
   const raw = body?.error
@@ -114,6 +113,12 @@ function errorDetails(status: number, body: ApiEnvelope<unknown> | null): { mess
     if (raw && typeof raw === 'object' && raw.code) return { message: userMessage(status, body), code: raw.code }
   }
   return { message: userMessage(status, body) }
+}
+
+/** An error answer read outside `request` (XHR uploads, streams), in the same shape. */
+export function apiErrorOf(status: number, body: unknown): ApiError {
+  const { message, code } = errorDetails(status, body as ApiEnvelope<unknown> | null)
+  return new ApiError(status, message, code, body)
 }
 
 function userMessage(status: number, body: ApiEnvelope<unknown> | null): string {
@@ -187,8 +192,8 @@ async function fetchBlob(path: string, refreshed = false): Promise<{ blob: Blob;
     return handleUnauthorized()
   }
   if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as ApiEnvelope<unknown> | null
-    throw new ApiError(res.status, userMessage(res.status, body))
+    // Read like any other answer, so a page can decide on the code (ZIP_TOO_LARGE).
+    throw apiErrorOf(res.status, await res.json().catch(() => null))
   }
   const disposition = res.headers.get('Content-Disposition')
   const match = disposition ? /filename="?([^";]+)"?/.exec(disposition) : null

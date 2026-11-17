@@ -165,7 +165,7 @@ describe('upload', () => {
   it('refuses a PNG with 415 and leaves nothing in R2', async () => {
     const res = await upload(a, mine, PNG)
     expect(res.statusCode).toBe(415)
-    expect(res.json().code).toBe('VOICE_UNSUPPORTED')
+    expect(res.json().error.code).toBe('VOICE_UNSUPPORTED')
     expect(r2.uploaded.size).toBe(0)
   })
 
@@ -188,7 +188,7 @@ describe('upload', () => {
     const res = await upload(a, mine)
     Object.assign(config.r2, saved)
     expect(res.statusCode).toBe(503)
-    expect(res.json().code).toBe('VOICE_STORAGE_OFF')
+    expect(res.json().error.code).toBe('VOICE_STORAGE_OFF')
   })
 })
 

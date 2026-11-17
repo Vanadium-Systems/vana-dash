@@ -26,6 +26,7 @@ import type { EmailIdentity, EmailSettings } from '@/shared/lib/types'
 import { cn, normalizeForSearch } from '@/shared/lib/utils'
 import { companyTimeZone, formatRelativeTime, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Cine e în echipă, ce rol are fiecare și cine n-a acceptat încă invitația (fișa „Echipă").
 // Lista e `self` — orice om activ o vede, ca să îi poată scrie cuiva din Mesaje; partea de
@@ -175,14 +176,14 @@ export function TeamPage() {
       // Confirmare pe rând, nu dialog: linkul a plecat, deci n-are ce anula.
       setSentReset({ id, email: target?.email ?? '' })
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('team:toasts.linkNotSent')),
+    onError: (error) => toastError(error, t('team:toasts.linkNotSent')),
   })
 
   // „Scrie" de pe rând (fișa Echipă): deschide DM-ul cu omul acela, creat dacă nu exista.
   const openDm = useMutation({
     mutationFn: (userId: string) => api.post<{ id: string }>('/api/chat/conversations', { kind: 'dm', userId }),
     onSuccess: (data) => navigate(`/messages/${data.id}`),
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('team:toasts.conversationFailed')),
+    onError: (error) => toastError(error, t('team:toasts.conversationFailed')),
   })
 
   const resendInvite = useMutation({
@@ -191,7 +192,7 @@ export function TeamPage() {
       refresh()
       toast.success(t('team:toasts.inviteResent'))
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('team:toasts.inviteNotSent')),
+    onError: (error) => toastError(error, t('team:toasts.inviteNotSent')),
   })
 
   const setStatus = useMutation({
@@ -208,7 +209,7 @@ export function TeamPage() {
         toast.success(t('team:toasts.reactivated'))
       }
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('common:states.changeNotSaved')),
+    onError: (error) => toastError(error, t('common:states.changeNotSaved')),
   })
 
   const deleteMember = useMutation({
@@ -217,7 +218,7 @@ export function TeamPage() {
       refresh()
       toast.success(t('team:toasts.deleted'))
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('common:states.changeNotSaved')),
+    onError: (error) => toastError(error, t('common:states.changeNotSaved')),
   })
 
   if (members.isPending) {
@@ -445,7 +446,7 @@ function AssignFoldersDialog({ from, members, onClose }: { from: TeamMember | nu
       setToUserId('')
       onClose()
     },
-    onError: (err) => toast.error(err instanceof ApiError ? err.message : t('team:folders.notMoved')),
+    onError: (err) => toastError(err, t('team:folders.notMoved')),
   })
 
   return (

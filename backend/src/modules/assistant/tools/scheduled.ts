@@ -1,6 +1,7 @@
 import { z } from 'zod/v4'
 import { and, desc, eq } from 'drizzle-orm'
 import { db } from '../../../shared/db/client.js'
+import { httpError } from '../../../shared/lib/http-error.js'
 import type { SessionUser } from '../../../shared/lib/session.js'
 import { calendarEvents, scheduledRuns } from '../../../shared/db/schema/index.js'
 import { autoTool, confirmTool, type ToolBuildContext } from './shared.js'
@@ -99,7 +100,7 @@ export async function cancelScheduledRun(me: SessionUser, id: string) {
     .set({ status: 'cancelled', updatedAt: new Date() })
     .where(and(eq(scheduledRuns.id, id), eq(scheduledRuns.status, 'pending'), eq(scheduledRuns.ownerUserId, me.id)))
     .returning()
-  if (!row) throw new Error('Task inexistent sau nu mai e pending')
+  if (!row) throw httpError(400, 'ASSISTANT_SCHEDULED_RUN_NOT_FOUND')
   return { cancelled: row.id }
 }
 

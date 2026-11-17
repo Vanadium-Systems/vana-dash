@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Alert } from '@/shared/components/ui/alert'
 import { Button } from '@/shared/components/ui/button'
 import { Checkbox } from '@/shared/components/ui/checkbox'
@@ -11,6 +10,7 @@ import { Label } from '@/shared/components/ui/label'
 import { t } from '@/shared/lib/i18n'
 import type { ChatMember } from '@/shared/lib/types'
 import { useE2E } from './E2EProvider'
+import { toastError } from '@/shared/lib/errors'
 
 // The screens of the end-to-end setup (FE-M4): the recovery key on the first device, then, on
 // every new one, approval from another device or the recovery key. Shown in place of Mesaje
@@ -56,7 +56,7 @@ function CreateIdentity({ reset = false, onKey }: { reset?: boolean; onKey: (rec
     try {
       onKey(await engine.createIdentity(reset))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setBusy(false)
     }
@@ -131,7 +131,7 @@ function ApproveThisDevice({ onKey }: { onKey: (recoveryKey: string) => void }) 
       setCode(await engine.requestApproval())
       setMode('waiting')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setBusy(false)
     }
@@ -248,7 +248,7 @@ export function ApprovalRequests() {
               setBusy(true)
               void engine
                 .approve(request)
-                .catch((err: Error) => toast.error(err.message))
+                .catch((err: Error) => toastError(err))
                 .finally(() => setBusy(false))
             }}
           >

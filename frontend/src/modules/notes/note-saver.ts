@@ -1,5 +1,6 @@
 import { ApiError } from '@/shared/lib/api'
 import type { Note, NoteDoc } from '@/shared/lib/types'
+import { errorDetail } from '@/shared/lib/errors'
 
 export interface NoteDraft {
   title: string
@@ -53,7 +54,7 @@ export function createNoteSaver({ send, onSaved, onStatus, onConflict, delayMs =
           if (err instanceof ApiError && err.status === 409) {
             conflicted = true
             onStatus('conflict')
-            const current = (err.body as { data?: Note } | undefined)?.data
+            const current = errorDetail<Note>(err, 'current') ?? errorDetail<Note>(err, 'data')
             if (current) onConflict(current)
             // The text stays in the editor; keeping it is a choice the banner offers.
             draft = sending

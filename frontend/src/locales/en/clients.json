@@ -132,7 +132,9 @@
       "deleted_one": "{{count}} prospect deleted",
       "deleted_other": "{{count}} prospects deleted",
       "deleteTitle_one": "Delete {{count}} prospect",
-      "deleteTitle_other": "Delete {{count}} prospects"
+      "deleteTitle_other": "Delete {{count}} prospects",
+      "listRemoved_one": "{{count}} prospect removed from the list",
+      "listRemoved_other": "{{count}} prospects removed from the list"
     },
     "lost": {
       "title": "Why was it lost?",
@@ -479,6 +481,11 @@
     },
     "cardActions": {
       "requestAccess": "Request access"
+    },
+    "palette": {
+      "call": "Call {{name}}",
+      "write": "Write to {{name}}",
+      "schedule": "Schedule with {{name}}"
     }
   },
   "voice": {
@@ -647,7 +654,8 @@
       "doneTitle": "List \"{{name}}\"",
       "backToSearch": "Back to the search",
       "openList": "Open the list"
-    }
+    },
+    "removeMember": "Remove from the list"
   },
   "tasks": {
     "tabs": {
@@ -779,14 +787,6 @@
       "tooBig": "The file is over 10 MB.",
       "template": "Download the template",
       "templateHint": "The template has the columns we recognize and an example row."
-    },
-    "errors": {
-      "IMPORT_TOO_MANY_ROWS": "The file has too many rows. Split it into files of at most 5,000 rows.",
-      "IMPORT_NO_NAME_COLUMN": "No column with the company name or tax ID was found.",
-      "IMPORT_UNSUPPORTED_FILE": "This file type is not supported. Use .xlsx or .csv.",
-      "IMPORT_UNREADABLE": "The file cannot be read. Check that it is not damaged or password-protected.",
-      "IMPORT_TOKEN_EXPIRED": "The preview expired. Upload the file again.",
-      "IMPORT_NEEDS_REASSIGN": "You cannot assign prospects to other colleagues."
     },
     "preview": {
       "summary": "{{created}} new · {{updated}} completing existing · {{errors}} with errors",
@@ -1043,7 +1043,7 @@
       "neverRun": "Has not run yet."
     },
     "score": {
-            "criteria": "Criteria",
+      "criteria": "Criteria",
       "criteriaHint": "Each matched criterion adds its points to the score computed from the company data, up to 100. Unmatched criteria take nothing away.",
       "noCriteria": "No criteria: the score is the one computed from the company data.",
       "criterionName": "Name",

@@ -12,6 +12,7 @@ import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { toastError } from '@/shared/lib/errors'
 
 
 interface WishlistItemFormDialogProps {
@@ -65,7 +66,7 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
       toast.success(item ? t('wishlist:item.updated') : t('wishlist:item.added'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -75,7 +76,7 @@ export function WishlistItemFormDialog({ open, onOpenChange, item, defaultScope 
       toast.success(t('wishlist:item.deleted'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

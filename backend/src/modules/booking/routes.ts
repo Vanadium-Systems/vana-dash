@@ -14,11 +14,15 @@ import {
 } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 // Rutele publice le cheamă doar Function-ul din vana-site, server-to-server (Turnstile e verificat
 // acolo), cu X-Booking-Token. Browserul nu ajunge la ele: CORS-ul rămâne cel al aplicației.
 
+// The public routes keep the bare string code (`slot_taken`, `validation`...): the Function in vana-site
+// reads `error` as a string and translates it, so the object form waits for a change on its side.
 function sendBookingError(reply: FastifyReply, err: unknown) {
+  // eslint-disable-next-line no-restricted-syntax -- contract with vana-site/functions/api/booking.ts
   if (err instanceof service.BookingError) return reply.code(err.status).send({ success: false, error: err.code })
   throw err
 }
@@ -29,6 +33,7 @@ export async function bookingRoutes(app: FastifyInstance) {
 
   // Validarea greșită răspunde 422 cu un cod stabil, fără detaliile zod (site-ul are propria validare).
   const publicErrorHandler = (error: Error & { validation?: unknown }, _req: unknown, reply: FastifyReply) => {
+    // eslint-disable-next-line no-restricted-syntax -- same contract with vana-site
     if (error.validation) return reply.code(422).send({ success: false, error: 'validation' })
     throw error
   }
@@ -105,7 +110,7 @@ export async function bookingRoutes(app: FastifyInstance) {
   )
 
   server.delete('/api/booking/blocks/:id', { preHandler: [app.authenticate], schema: { params: IdParamsSchema } }, async (req, reply) => {
-    if (!(await service.deleteBlock(req.params.id))) return reply.code(404).send({ success: false, error: tr('errors.booking.blockNotFound') })
+    if (!(await service.deleteBlock(req.params.id))) return fail(reply, 404, 'BOOKING_BLOCK_NOT_FOUND', { message: tr('errors.booking.blockNotFound') })
     return { success: true }
   })
 
@@ -119,7 +124,7 @@ export async function bookingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: z.object({ notifyVisitor: z.boolean().default(true) }).prefault({}) } },
     async (req, reply) => {
       if (!(await service.cancelById(req.params.id, req.body.notifyVisitor))) {
-        return reply.code(404).send({ success: false, error: tr('errors.booking.notFoundOrCancelled') })
+        return fail(reply, 404, 'BOOKING_NOT_FOUND', { message: tr('errors.booking.notFoundOrCancelled') })
       }
       return { success: true }
     },

@@ -4,6 +4,7 @@ import { connectors } from '../../connectors/index.js'
 import { rescheduleSyncJobs, triggerSyncNow } from '../../jobs/sync-runner.js'
 import { PlatformCreateSchema, PlatformIdParamsSchema, PlatformUpdateSchema } from './schema.js'
 import * as service from './service.js'
+import { fail } from '../../shared/lib/http-error.js'
 import { assertResolvesToPublicAddress, SsrfBlockedError } from '../../shared/lib/ssrf-guard.js'
 
 export async function platformRoutes(app: FastifyInstance) {
@@ -23,7 +24,7 @@ export async function platformRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: PlatformIdParamsSchema } },
     async (req, reply) => {
       const platform = await service.getPlatform(req.params.id)
-      if (!platform) return reply.code(404).send({ success: false, error: 'Platform not found' })
+      if (!platform) return fail(reply, 404, 'PLATFORM_NOT_FOUND')
       return { success: true, data: platform }
     },
   )
@@ -33,12 +34,12 @@ export async function platformRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: PlatformCreateSchema } },
     async (req, reply) => {
       if (!connectors[req.body.type]) {
-        return reply.code(400).send({ success: false, error: `Unknown platform type: ${req.body.type}` })
+        return fail(reply, 400, 'PLATFORM_TYPE_UNKNOWN', { params: { type: req.body.type } })
       }
       try {
         await assertResolvesToPublicAddress(req.body.apiUrl)
       } catch (err) {
-        if (err instanceof SsrfBlockedError) return reply.code(400).send({ success: false, error: err.message })
+        if (err instanceof SsrfBlockedError) return fail(reply, 400, 'PLATFORM_URL_BLOCKED', { message: err.message })
         throw err
       }
       const platform = await service.createPlatform(req.body)
@@ -55,18 +56,18 @@ export async function platformRoutes(app: FastifyInstance) {
     },
     async (req, reply) => {
       if (req.body.type && !connectors[req.body.type]) {
-        return reply.code(400).send({ success: false, error: `Unknown platform type: ${req.body.type}` })
+        return fail(reply, 400, 'PLATFORM_TYPE_UNKNOWN', { params: { type: req.body.type } })
       }
       if (req.body.apiUrl) {
         try {
           await assertResolvesToPublicAddress(req.body.apiUrl)
         } catch (err) {
-          if (err instanceof SsrfBlockedError) return reply.code(400).send({ success: false, error: err.message })
+          if (err instanceof SsrfBlockedError) return fail(reply, 400, 'PLATFORM_URL_BLOCKED', { message: err.message })
           throw err
         }
       }
       const platform = await service.updatePlatform(req.params.id, req.body)
-      if (!platform) return reply.code(404).send({ success: false, error: 'Platform not found' })
+      if (!platform) return fail(reply, 404, 'PLATFORM_NOT_FOUND')
       await rescheduleSyncJobs()
       return { success: true, data: platform }
     },
@@ -77,7 +78,7 @@ export async function platformRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: PlatformIdParamsSchema } },
     async (req, reply) => {
       const deleted = await service.softDeletePlatform(req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Platform not found' })
+      if (!deleted) return fail(reply, 404, 'PLATFORM_NOT_FOUND')
       await rescheduleSyncJobs()
       return { success: true }
     },
@@ -88,7 +89,7 @@ export async function platformRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: PlatformIdParamsSchema } },
     async (req, reply) => {
       const platform = await service.getPlatform(req.params.id)
-      if (!platform) return reply.code(404).send({ success: false, error: 'Platform not found' })
+      if (!platform) return fail(reply, 404, 'PLATFORM_NOT_FOUND')
       await triggerSyncNow(req.params.id)
       return { success: true, data: await service.listSyncLog(req.params.id, 1) }
     },
@@ -99,7 +100,7 @@ export async function platformRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: PlatformIdParamsSchema } },
     async (req, reply) => {
       const platform = await service.getPlatform(req.params.id)
-      if (!platform) return reply.code(404).send({ success: false, error: 'Platform not found' })
+      if (!platform) return fail(reply, 404, 'PLATFORM_NOT_FOUND')
       return { success: true, data: await service.listSyncLog(req.params.id) }
     },
   )
@@ -110,12 +111,13 @@ export async function platformRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const result = await service.getPlatformOpsSignals(req.params.id)
-        if (!result.found) return reply.code(404).send({ success: false, error: 'Platform not found' })
+        if (!result.found) return fail(reply, 404, 'PLATFORM_NOT_FOUND')
         if (!result.supported) return { success: true, data: { supported: false, signals: [], history: [] } }
         return { success: true, data: { supported: true, ...result.data } }
       } catch (err) {
         if (err instanceof service.OpsSignalsFetchError) {
-          return reply.code(502).send({ success: false, error: err.message })
+          req.log.warn({ err }, 'platform ops signals fetch failed')
+          return fail(reply, 502, 'PLATFORM_UNREACHABLE')
         }
         throw err
       }

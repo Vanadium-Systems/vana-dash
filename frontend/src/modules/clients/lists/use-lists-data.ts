@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { api } from '@/shared/lib/api'
 import { serializeClauses, type FilterClause } from '@/shared/lib/filters'
 import type { AddMembersResult, ListEntry, ListFolder, SkipRules } from './types'
+import { toastError } from '@/shared/lib/errors'
 
 export function useListFolders() {
   return useQuery({ queryKey: ['prospects', 'list-folders'], queryFn: () => api.get<ListFolder[]>('/api/prospects/list-folders') })
@@ -20,7 +20,7 @@ export const listFilterParam = (listId: string) => serializeClauses(listFilter(l
 export function useListActions() {
   const queryClient = useQueryClient()
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ['prospects'] })
-  const onError = (err: Error) => toast.error(err.message)
+  const onError = (err: Error) => toastError(err)
 
   const createFolder = useMutation({
     mutationFn: (body: { name: string; shared: boolean }) => api.post<ListFolder>('/api/prospects/list-folders', body),

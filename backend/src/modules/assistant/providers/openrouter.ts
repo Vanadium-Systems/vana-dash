@@ -1,6 +1,7 @@
 import type { BetaContentBlockParam, BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages.js'
 import type { AssistantProvider, ProviderTurnEvent, ProviderTurnParams } from './types.js'
 import { tr } from '../../../shared/lib/i18n.js'
+import { toolFailureText } from '../tool-error.js'
 
 // OpenRouterProvider (sprint multi-provider 2026-08-25) — API OpenAI-compatible
 // (POST /chat/completions, tools function-calling, stream SSE), cu buclă de tool-uri manuală.
@@ -142,7 +143,7 @@ export interface OpenRouterProviderOptions {
   timeoutMs?: number
   maxTokens?: number
   /** Replaces network errors and timeouts, so the person reads "server offline", not "fetch failed". */
-  offlineMessage?: string
+  offlineError?: () => Error
 }
 
 export function createOpenRouterProvider(options: OpenRouterProviderOptions): AssistantProvider {
@@ -179,7 +180,7 @@ export function createOpenRouterProvider(options: OpenRouterProviderOptions): As
             ...(options.timeoutMs ? { signal: AbortSignal.timeout(options.timeoutMs) } : {}),
           })
         } catch (err) {
-          if (options.offlineMessage && isNetworkFailure(err)) throw new Error(options.offlineMessage)
+          if (options.offlineError && isNetworkFailure(err)) throw options.offlineError()
           throw err
         }
         if (!res.ok) {
@@ -211,7 +212,7 @@ export function createOpenRouterProvider(options: OpenRouterProviderOptions): As
             }
           }
         } catch (err) {
-          if (options.offlineMessage && isNetworkFailure(err)) throw new Error(options.offlineMessage)
+          if (options.offlineError && isNetworkFailure(err)) throw options.offlineError()
           throw err
         }
 
@@ -232,7 +233,7 @@ export function createOpenRouterProvider(options: OpenRouterProviderOptions): As
           try {
             resultText = tool ? await tool.execute(call.id, JSON.parse(call.function.arguments || '{}')) : tr('errors.assistant.unknownTool', { name: call.function.name })
           } catch (err) {
-            resultText = tr('errors.assistant.toolFailed', { message: err instanceof Error ? err.message : String(err) })
+            resultText = tr('errors.assistant.toolFailed', { message: toolFailureText(err) })
           }
           messages.push({ role: 'tool', content: resultText, tool_call_id: call.id })
           results.push({ type: 'tool_result', tool_use_id: call.id, content: resultText })

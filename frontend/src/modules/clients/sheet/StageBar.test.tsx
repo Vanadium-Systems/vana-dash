@@ -9,7 +9,8 @@ import type { ProspectStatusEntry } from '@/shared/lib/types'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const patch = vi.hoisted(() => vi.fn())
-vi.mock('@/shared/lib/api', () => ({ api: { patch } }))
+vi.mock('@/shared/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/lib/api')>()), api: { patch } }))
 vi.mock('./use-sheet', () => ({ useWrite: () => (run: () => Promise<unknown>) => run() }))
 
 let container: HTMLDivElement

@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { CreateWatchRuleSchema, ListTendersQuerySchema, TenderSettingsSchema, UpdateTenderSchema, UpdateWatchRuleSchema } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 export async function tendersRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -26,7 +27,7 @@ export async function tendersRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const id = (req.params as { id: string }).id
       const row = req.body.dismissed ? await service.dismissTenderOpportunity(id) : await service.undismissTenderOpportunity(id)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.tenders.opportunityNotFound') })
+      if (!row) return fail(reply, 404, 'TENDER_OPPORTUNITY_NOT_FOUND', { message: tr('errors.tenders.opportunityNotFound') })
       return { success: true, data: row }
     },
   )
@@ -49,14 +50,14 @@ export async function tendersRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: UpdateWatchRuleSchema } },
     async (req, reply) => {
       const row = await service.updateWatchRule((req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.alerts.ruleNotFound') })
+      if (!row) return fail(reply, 404, 'ALERT_RULE_NOT_FOUND', { message: tr('errors.alerts.ruleNotFound') })
       return { success: true, data: row }
     },
   )
 
   server.delete('/api/tenders/watch-rules/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.deleteWatchRule((req.params as { id: string }).id)
-    if (!row) return reply.code(404).send({ success: false, error: tr('errors.alerts.ruleNotFound') })
+    if (!row) return fail(reply, 404, 'ALERT_RULE_NOT_FOUND', { message: tr('errors.alerts.ruleNotFound') })
     return { success: true }
   })
 }

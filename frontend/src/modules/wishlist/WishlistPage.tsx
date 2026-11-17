@@ -24,6 +24,7 @@ import { t } from '@/shared/lib/i18n'
 import { approx, MoneyNote } from '@/shared/components/MoneyNote'
 import { useMoneyQuery } from '@/shared/hooks/use-money-query'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { toastError } from '@/shared/lib/errors'
 
 const TABS = [
   { key: 'all', label: t('common:labels.all') },
@@ -70,7 +71,7 @@ function PurchaseDialog({
       onOpenChange(false)
       setAddExpense(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

@@ -10,7 +10,9 @@ import { localSystemPrompt, systemPrompt } from './system-prompt.js'
 import { repairHistory } from './history.js'
 import { toNeutralTools, buildActiveProvider, resolveModel, type AssistantProviderId } from './providers/index.js'
 import { getCompany } from '../../shared/lib/company.js'
+import { errorMessage, HttpError } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { toolFailureText } from './tool-error.js'
 
 export type { AssistantModelId } from './models.js'
 
@@ -63,7 +65,14 @@ export type AssistantSseEvent =
   | { type: 'confirm_required'; actionId: string; toolName: string; toolInput: unknown; summary: string }
   | { type: 'entity_refs'; refs: EntityRef[] }
   | { type: 'done' }
-  | { type: 'error'; message: string }
+  | { type: 'error'; code: string; message: string }
+
+/** The error event of a turn: our own errors keep their code, anything else is logged and gets `fallbackCode`. */
+export function errorEvent(err: unknown, fallbackCode: string): Extract<AssistantSseEvent, { type: 'error' }> {
+  if (err instanceof HttpError) return { type: 'error', code: err.code, message: errorMessage(err.code, err.params, err.statusCode) }
+  console.error('[assistant] turn failed', err)
+  return { type: 'error', code: fallbackCode, message: errorMessage(fallbackCode) }
+}
 
 // Referință la o entitate citată de asistent (Contract A) — chip clickabil în UI.
 export interface EntityRef {
@@ -166,11 +175,19 @@ async function* driveTurn(
   const user = await conversationOwner(conversationId)
   const quota = await checkQuota(user)
   if (!quota.ok) {
-    yield { type: 'error', message: quota.message }
+    yield { type: 'error', code: quota.code, message: quota.message }
     return
   }
-  const { provider, id: providerId } = await buildActiveProvider(providerOverride)
-  const effectiveModel = await resolveModel(model ?? null, providerId)
+  let providerSetup: Awaited<ReturnType<typeof buildActiveProvider>>
+  let effectiveModel: string
+  try {
+    providerSetup = await buildActiveProvider(providerOverride)
+    effectiveModel = await resolveModel(model ?? null, providerSetup.id)
+  } catch (err) {
+    yield errorEvent(err, 'ASSISTANT_PROVIDER_FAILED')
+    return
+  }
+  const { provider, id: providerId } = providerSetup
   // Local models only see what the person types: no tools, so no company data leaves for them.
   const isLocal = providerId === 'local'
   const companyName = (await getCompany()).profile.name
@@ -212,14 +229,14 @@ async function* driveTurn(
       }
     }
   } catch (err) {
-    yield { type: 'error', message: err instanceof Error ? err.message : String(err) }
+    yield errorEvent(err, 'ASSISTANT_PROVIDER_FAILED')
     return
   }
   // Consumul se numără după ce modelul a răspuns (usage vine per tur), ca un tur eșuat să nu
   // consume din plafon. Ridică și alerta de 80% la Stefan, dacă e cazul.
   await recordUsage(user, spentInputTokens, spentOutputTokens)
   if (!producedContent) {
-    yield { type: 'error', message: tr('errors.assistant.noAnswer') }
+    yield { type: 'error', code: 'ASSISTANT_NO_ANSWER', message: errorMessage('ASSISTANT_NO_ANSWER') }
     return
   }
 
@@ -236,21 +253,21 @@ async function* driveTurn(
 export async function confirmPendingAction(
   me: SessionUser,
   actionId: string,
-): Promise<{ ok: true; conversationId: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; conversationId: string } | { ok: false; code: string; params?: Record<string, string> }> {
   const [action] = await db
     .select()
     .from(assistantPendingActions)
     .where(and(eq(assistantPendingActions.id, actionId), eq(assistantPendingActions.status, 'pending')))
   if (!action || !(await ownsConversation(me, action.conversationId))) {
-    return { ok: false, error: tr('errors.assistant.actionGone') }
+    return { ok: false, code: 'ASSISTANT_ACTION_GONE' }
   }
   if (action.expiresAt < new Date()) {
     await db.update(assistantPendingActions).set({ status: 'expired', updatedAt: new Date() }).where(eq(assistantPendingActions.id, action.id))
-    return { ok: false, error: tr('errors.assistant.actionExpired') }
+    return { ok: false, code: 'ASSISTANT_ACTION_EXPIRED' }
   }
 
   const executor = confirmExecutors[action.toolName]
-  if (!executor) return { ok: false, error: tr('errors.assistant.unknownTool', { name: action.toolName }) }
+  if (!executor) return { ok: false, code: 'ASSISTANT_TOOL_UNKNOWN', params: { name: action.toolName } }
 
   const user = await conversationOwner(action.conversationId)
   // Drepturile se verifică din nou aici, nu doar la înregistrare: acțiunea poate avea 15 minute,
@@ -262,7 +279,7 @@ export async function confirmPendingAction(
       .update(assistantPendingActions)
       .set({ status: 'expired', updatedAt: new Date() })
       .where(eq(assistantPendingActions.id, action.id))
-    return { ok: false, error: tr('errors.assistant.actionNoLongerAllowed', { feature }) }
+    return { ok: false, code: 'ASSISTANT_ACTION_NOT_ALLOWED', params: { feature } }
   }
 
   let resultText: string
@@ -275,7 +292,7 @@ export async function confirmPendingAction(
     })
     resultText = tr('errors.assistant.actionDone', { result: JSON.stringify(result) })
   } catch (err) {
-    resultText = tr('errors.assistant.actionFailed', { message: err instanceof Error ? err.message : String(err) })
+    resultText = tr('errors.assistant.actionFailed', { message: toolFailureText(err) })
   }
 
   await db
@@ -301,13 +318,13 @@ export async function confirmPendingAction(
 export async function rejectPendingAction(
   me: SessionUser,
   actionId: string,
-): Promise<{ ok: true; conversationId: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; conversationId: string } | { ok: false; code: string; params?: Record<string, string> }> {
   const [action] = await db
     .select()
     .from(assistantPendingActions)
     .where(and(eq(assistantPendingActions.id, actionId), eq(assistantPendingActions.status, 'pending')))
   if (!action || !(await ownsConversation(me, action.conversationId))) {
-    return { ok: false, error: tr('errors.assistant.actionGone') }
+    return { ok: false, code: 'ASSISTANT_ACTION_GONE' }
   }
 
   const author = await conversationOwner(action.conversationId)

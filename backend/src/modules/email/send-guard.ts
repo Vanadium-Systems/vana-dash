@@ -2,6 +2,7 @@ import { and, eq, gte, isNull, ne, notInArray, or, sql, type SQL } from 'drizzle
 import type { FastifyReply } from 'fastify'
 import { db } from '../../shared/db/client.js'
 import { emailSends, emailUserSettings } from '../../shared/db/schema/index.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 import { MailboxForbidden } from './mailboxes.js'
 import { getOutreachMailboxAggregateCap, hasConfiguredOutreachMailboxes } from './outreach-mailboxes-service.js'
 import { getEmailSettings, resolveFromAddress } from './settings-service.js'
@@ -92,29 +93,28 @@ export async function assertCanDeliver(input: {
   if (userUsed + input.recipients.length > limit) throw new OutreachCapError(limit)
 }
 
-/** The HTTP answer for a refused delivery, or null when `err` is something else. */
-export function deliveryErrorResponse(err: unknown): { status: number; body: { success: false; error: Record<string, unknown> } } | null {
-  if (err instanceof EmailSuppressedError) {
-    return { status: 409, body: { success: false, error: { code: err.code, address: err.address } } }
-  }
-  if (err instanceof OutreachCapError) {
-    return { status: 429, body: { success: false, error: { code: err.code, limit: err.limit } } }
-  }
+/** The refusal for a blocked delivery as code + params, or null when `err` is something else. */
+export function deliveryRefusal(err: unknown): { status: number; code: string; params: Record<string, string | number> } | null {
+  if (err instanceof EmailSuppressedError) return { status: 409, code: err.code, params: { address: err.address } }
+  if (err instanceof OutreachCapError) return { status: 429, code: err.code, params: { limit: err.limit } }
   return null
 }
 
 /** The error answer shared by the four send routes (new, reply, forward, draft). */
 export function sendErrorReply(reply: FastifyReply, err: unknown) {
-  const refused = deliveryErrorResponse(err)
-  if (refused) return reply.code(refused.status).send(refused.body)
+  const refused = deliveryRefusal(err)
+  // The params are also the details the compose form reads (`address`, `limit`).
+  if (refused) return fail(reply, refused.status, refused.code, { params: refused.params, details: refused.params })
   // The reply leaves from the thread's mailbox: if that is not the person's, it is a mailbox refusal (403).
   if (err instanceof MailboxForbidden) {
-    return reply.code(403).send({ success: false, error: { code: err.code, feature: err.fromKey } })
+    return fail(reply, 403, err.code, { message: err.message, details: { feature: err.fromKey } })
   }
   // Double reply: 409 with who replied meanwhile, so the frontend can show "Ion replied 3 min ago".
   if (err instanceof Error && (err as { code?: string }).code === 'THREAD_REPLIED_MEANWHILE') {
     const e = err as unknown as { by: string | null; at: Date }
-    return reply.code(409).send({ success: false, error: { code: 'THREAD_REPLIED_MEANWHILE', by: e.by, at: e.at } })
+    return fail(reply, 409, 'THREAD_REPLIED_MEANWHILE', { details: { by: e.by, at: e.at } })
   }
-  return reply.code(400).send({ success: false, error: String(err) })
+  if (err instanceof HttpError) throw err
+  reply.log.warn({ err }, 'email send refused')
+  return fail(reply, 400, 'MAIL_SEND_FAILED')
 }

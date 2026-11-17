@@ -11,6 +11,7 @@ import { Select } from '@/shared/components/ui/select'
 import { ME_QUERY_KEY } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import { getLocale, t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface CompanyAddress {
   county: string
@@ -266,7 +267,7 @@ export function CompanyProfileCard() {
       void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY })
       toast.success(t('settings:company.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (query.isPending) return null

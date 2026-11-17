@@ -6,6 +6,7 @@ import { config } from '../../shared/config.js'
 import { db } from '../../shared/db/client.js'
 import { users } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
+import { errorBody, fail } from '../../shared/lib/http-error.js'
 import { tr, trFor } from '../../shared/lib/i18n.js'
 import { DISPLAY_CURRENCIES, ENABLED_LOCALES } from '../../shared/lib/locale.js'
 import { sendEmail } from '../../shared/lib/email.js'
@@ -141,12 +142,12 @@ export async function authRoutes(app: FastifyInstance) {
       // Un user dezactivat primește același răspuns ca unul inexistent — altfel formularul
       // de login ar confirma că adresa există.
       if (!user || user.status !== 'active') {
-        return reply.code(401).send({ success: false, error: tr('errors.auth.invalidCredentials') })
+        return fail(reply, 401, 'INVALID_CREDENTIALS', { message: tr('errors.auth.invalidCredentials') })
       }
 
       // One user by id, read before any company is in the context; the company comes from the row.
       const me = await withRlsBypass(() => loadSessionUser(user.id))
-      if (!me) return reply.code(401).send({ success: false, error: tr('errors.auth.invalidCredentials') })
+      if (!me) return fail(reply, 401, 'INVALID_CREDENTIALS', { message: tr('errors.auth.invalidCredentials') })
 
       await issueSession(req, reply, me)
       return reply.send({ success: true, data: sessionPayload(me) })
@@ -166,7 +167,7 @@ export async function authRoutes(app: FastifyInstance) {
     { bodyLimit: PUBLIC_BODY_LIMIT, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (req, reply) => {
       const presented = req.cookies[REFRESH_COOKIE]
-      const unauthorized = () => clearAuthCookies(reply).code(401).send({ success: false, error: 'SESSION_EXPIRED' })
+      const unauthorized = () => clearAuthCookies(reply).code(401).send(errorBody(401, 'SESSION_EXPIRED'))
       if (!presented) return unauthorized()
 
       // No access token, so no company yet: the refresh token's row says which one. Looked up by
@@ -211,7 +212,7 @@ export async function authRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const [row] = await asHome(req.me, () => db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id)))
       if (!row || !(await argon2.verify(row.passwordHash, req.body.password))) {
-        return reply.code(401).send({ success: false, error: tr('errors.auth.currentPasswordWrong') })
+        return fail(reply, 401, 'CURRENT_PASSWORD_WRONG', { message: tr('errors.auth.currentPasswordWrong') })
       }
       const familyId = req.session?.familyId
       if (familyId) await asHome(req.me, () => markPasswordConfirmed(familyId))
@@ -231,7 +232,7 @@ export async function authRoutes(app: FastifyInstance) {
       const devices = await asHome(req.me, () => listUserDevices(req.me.id))
       // Someone else's session (or one already gone) answers 404, as for any personal object.
       if (!devices.some((device) => device.familyId === req.params.familyId)) {
-        return reply.code(404).send({ success: false, error: tr('errors.auth.sessionNotFound') })
+        return fail(reply, 404, 'SESSION_NOT_FOUND', { message: tr('errors.auth.sessionNotFound') })
       }
       await asHome(req.me, () => revokeFamily(req.params.familyId, 'logout'))
       return reply.send({ success: true })
@@ -330,13 +331,13 @@ export async function passwordRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const { token, password } = req.body
       const weak = assertPasswordStrength(password)
-      if (weak) return reply.code(400).send({ success: false, error: weak })
+      if (weak) return fail(reply, 400, 'PASSWORD_TOO_SHORT', { message: weak })
 
       // Token invalid și token expirat primesc același cod: linkul expirat trebuie să poată cere
       // altul din pagina de resetare, nu să spună „adresă greșită".
       const consumed = await consumeUserToken(token, 'reset')
       if ('error' in consumed) {
-        return reply.code(400).send({ success: false, error: { code: 'RESET_TOKEN_EXPIRED' } })
+        return fail(reply, 400, 'RESET_TOKEN_EXPIRED')
       }
       const passwordHash = await argon2.hash(password)
       await runAsTenant(consumed.tenantId, async () => {
@@ -359,14 +360,14 @@ export async function passwordRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const { token, password } = req.body
       const weak = assertPasswordStrength(password)
-      if (weak) return reply.code(400).send({ success: false, error: weak })
+      if (weak) return fail(reply, 400, 'PASSWORD_TOO_SHORT', { message: weak })
 
       const consumed = await consumeUserToken(token, 'invite')
       if ('error' in consumed) {
         // Linkul folosit deja înseamnă de obicei un cont activ: pagina trimite la login, nu la
         // „cere altă invitație".
         const code = consumed.error === 'TOKEN_USED' ? 'INVITE_USED' : 'INVITE_EXPIRED'
-        return reply.code(400).send({ success: false, error: { code } })
+        return fail(reply, 400, code)
       }
       return runAsTenant(consumed.tenantId, async () => {
         const [existing] = await db
@@ -376,7 +377,7 @@ export async function passwordRoutes(app: FastifyInstance) {
         // Omul a fost dezactivat între invitare și acceptare: linkul nu mai aduce nimic, altfel
         // ar putea să-și redea singur accesul în aplicație.
         if (!existing || existing.status === 'disabled') {
-          return reply.code(400).send({ success: false, error: { code: 'INVITE_EXPIRED' } })
+          return fail(reply, 400, 'INVITE_EXPIRED')
         }
         const [user] = await db
           .update(users)
@@ -388,7 +389,7 @@ export async function passwordRoutes(app: FastifyInstance) {
           })
           .where(eq(users.id, consumed.userId))
           .returning()
-        if (!user) return reply.code(400).send({ success: false, error: { code: 'INVITE_EXPIRED' } })
+        if (!user) return fail(reply, 400, 'INVITE_EXPIRED')
 
         // Loghează omul imediat după acceptare — altfel ar trebui să scrie parola a doua oară.
         const me = await loadSessionUser(user.id)
@@ -405,7 +406,7 @@ export async function passwordRoutes(app: FastifyInstance) {
     const patch: Partial<typeof users.$inferInsert> = { updatedAt: new Date() }
     if (req.body.locale !== undefined) {
       if (!ENABLED_LOCALES.includes(req.body.locale)) {
-        return reply.code(400).send({ success: false, error: tr('errors.auth.localeNotEnabled') })
+        return fail(reply, 400, 'LOCALE_NOT_ENABLED', { message: tr('errors.auth.localeNotEnabled') })
       }
       patch.locale = req.body.locale
     }
@@ -435,14 +436,14 @@ export async function passwordRoutes(app: FastifyInstance) {
     return asHome(req.me, async () => {
       const parsed = ChangePasswordSchema.safeParse(req.body)
       if (!parsed.success) {
-        return reply.code(400).send({ success: false, error: tr('errors.auth.newPasswordInvalid') })
+        return fail(reply, 400, 'NEW_PASSWORD_INVALID', { message: tr('errors.auth.newPasswordInvalid') })
       }
       const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id))
       if (!row || !(await argon2.verify(row.passwordHash, parsed.data.currentPassword))) {
-        return reply.code(401).send({ success: false, error: tr('errors.auth.currentPasswordWrong') })
+        return fail(reply, 401, 'CURRENT_PASSWORD_WRONG', { message: tr('errors.auth.currentPasswordWrong') })
       }
       const weak = assertPasswordStrength(parsed.data.newPassword)
-      if (weak) return reply.code(400).send({ success: false, error: weak })
+      if (weak) return fail(reply, 400, 'PASSWORD_TOO_SHORT', { message: weak })
 
       // sv++ delogă celelalte dispozitive; sesiunea curentă rămâne validă doar dacă tokenul
       // poartă noua valoare — de aceea semnăm un token nou mai jos.

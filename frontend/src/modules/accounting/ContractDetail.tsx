@@ -15,6 +15,7 @@ import { SignDocumentDialog } from './SignDocumentDialog'
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
+import { toastError } from '@/shared/lib/errors'
 
 const DOC_TYPE_LABEL: Record<ContractDocument['docType'], string> = {
   contract: t('accounting:docTypes.contract'),
@@ -75,7 +76,7 @@ export function ContractDetail({ clientId }: { clientId: string }) {
       toast.success(t('accounting:contracts.documentGenerated', { type: DOC_TYPE_LABEL[doc.docType] }))
       openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf')
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const toggleSigned = useMutation({
@@ -85,7 +86,7 @@ export function ContractDetail({ clientId }: { clientId: string }) {
       void queryClient.invalidateQueries({ queryKey: ['contract-documents', clientId] })
       void queryClient.invalidateQueries({ queryKey: ['contracts', 'list'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const generateAddendumDoc = useMutation({
@@ -96,7 +97,7 @@ export function ContractDetail({ clientId }: { clientId: string }) {
       toast.success(t('accounting:contracts.addendumPdfGenerated'))
       openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf')
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const missing = selectedClient ? missingFields(selectedClient) : []

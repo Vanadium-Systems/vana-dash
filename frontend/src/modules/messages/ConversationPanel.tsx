@@ -23,6 +23,7 @@ import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
 import { useDecrypted, useE2E, type ResolvedAttachment } from './crypto/E2EProvider'
 import { saveDecrypted } from './crypto/files'
 import { useAttachmentUrl } from './crypto/useAttachmentUrl'
+import { toastError } from '@/shared/lib/errors'
 
 // The conversation's side panel (#24, #25), in the URL as `?panel=info|search`: members (added and
 // removed here by whoever manages the group), mute, the photos and files sent in it, and search
@@ -118,7 +119,7 @@ function InfoPanel({
       await api.patch(`/api/chat/conversations/${conversation.id}`, { muted })
       onMutedChange()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setSaving(false)
     }
@@ -132,7 +133,7 @@ function InfoPanel({
       onMutedChange()
       toast.success(done, undo ? { action: { label: t('common:undo.action'), onClick: undo } } : undefined)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setSaving(false)
     }
@@ -346,7 +347,7 @@ function FileRow({ item, conversationId }: { item: MediaItem; conversationId: st
           const saving = attachment.key
             ? saveDecrypted(attachment.key)
             : api.download(`/api/chat/attachments/${item.id}?download=1`, attachment.filename)
-          void saving.catch((err: Error) => toast.error(err.message))
+          void saving.catch((err: Error) => toastError(err))
         }}
         className="flex w-full items-center gap-3 py-2 text-left hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >

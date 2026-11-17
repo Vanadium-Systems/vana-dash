@@ -9,6 +9,7 @@ import {
   UpdateTenantSchema,
 } from './schema.js'
 import { tr, type TrKey } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 const ERROR_TEXT: Record<service.TenantError['code'], TrKey> = {
   not_found: 'errors.tenants.notFound',
@@ -21,12 +22,8 @@ const ERROR_TEXT: Record<service.TenantError['code'], TrKey> = {
 
 // The feature key lives on the request, not on the error, so the route hands it in.
 const sendTenantError = (reply: FastifyReply, err: service.TenantError, featureKey?: string) =>
-  reply.code(err.status).send({
-    success: false,
-    error: {
-      code: err.code.toUpperCase(),
-      message: tr(ERROR_TEXT[err.code], featureKey === undefined ? undefined : { feature: featureKey }),
-    },
+  fail(reply, err.status, err.code.toUpperCase(), {
+    message: tr(ERROR_TEXT[err.code], featureKey === undefined ? undefined : { feature: featureKey }),
   })
 
 export async function tenantsRoutes(app: FastifyInstance) {
@@ -40,7 +37,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
   // `/api/platform/*` routes have no catalog feature: they belong to the platform account.
   // For anyone else they do not exist (404, not 403).
   const platformOnly = async (req: FastifyRequest, reply: FastifyReply) => {
-    if (!req.me.isPlatformAdmin) return reply.code(404).send({ success: false, error: tr('errors.tenants.notFound') })
+    if (!req.me.isPlatformAdmin) return fail(reply, 404, 'TENANT_NOT_FOUND', { message: tr('errors.tenants.notFound') })
   }
 
   server.get('/api/platform/tenants', { preHandler: [app.authenticate, platformOnly] }, async () => ({

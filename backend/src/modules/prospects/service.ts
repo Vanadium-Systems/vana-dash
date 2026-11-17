@@ -34,6 +34,7 @@ import type {
   UpdateProspectStatusSchema,
   UpdateScoringConfigSchema,
 } from './schema.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { getCompany, getCompanyTimeZone } from '../../shared/lib/company.js'
 import { getCountryPack } from '../../countries/index.js'
@@ -949,7 +950,7 @@ export async function promoteProspect(me: Me, id: string, input: PromoteInput) {
   const prospect = await requireEditableProspect(me, id)
   if (!prospect) return null
   const cif = input.cif ?? prospect.cif
-  if (!cif) throw new Error(tr('errors.prospects.cifMissing'))
+  if (!cif) throw httpError(400, 'PROSPECT_CIF_MISSING')
   const [email] = await db
     .select({ value: prospectContactPoints.value })
     .from(prospectContactPoints)
@@ -972,7 +973,7 @@ export async function promoteProspect(me: Me, id: string, input: PromoteInput) {
       },
       tx,
     )
-    if (!client) throw new Error(tr('errors.prospects.clientNotCreated'))
+    if (!client) throw httpError(400, 'PROSPECT_CLIENT_NOT_CREATED')
     if (prospect.offer) await invoicingService.applyOfferToNewClient(tx, client, prospect.offer)
     const [won] = await tx
       .select({ key: prospectStatuses.key })

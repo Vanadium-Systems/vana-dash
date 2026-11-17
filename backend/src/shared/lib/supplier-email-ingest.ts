@@ -46,6 +46,7 @@ export function messageVisibleTo(addresses: string[] | null): SQL | undefined {
  */
 export class SupplierEmailNotFoundError extends Error {
   readonly statusCode = 404
+  readonly userFacing = true
   readonly code = 'EMAIL_ATTACHMENT_NOT_FOUND'
   constructor(message = 'Email attachment not found') {
     super(message)

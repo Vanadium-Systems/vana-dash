@@ -11,6 +11,7 @@ import {
 } from './schema.js'
 import * as service from './service.js'
 import { CalendarAccessError } from './service.js'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 export async function calendarRoutes(app: FastifyInstance) {
@@ -18,7 +19,7 @@ export async function calendarRoutes(app: FastifyInstance) {
 
   server.setErrorHandler((error, _req, reply) => {
     if (error instanceof CalendarAccessError) {
-      return reply.code(error.status).send({ success: false, error: { code: error.code, message: error.message } })
+      return fail(reply, error.status, error.code, { message: error.message })
     }
     throw error
   })
@@ -59,7 +60,7 @@ export async function calendarRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: UpdateEventSchema, querystring: SeriesScopeQuerySchema } },
     async (req, reply) => {
       const result = await service.updateEvent(req.me, (req.params as { id: string }).id, req.body, req.query)
-      if (!result) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
+      if (!result) return fail(reply, 404, 'EVENT_NOT_FOUND', { message: tr('errors.calendar.eventNotFound') })
       return { success: true, data: result.data, revertToken: result.revertToken }
     },
   )
@@ -69,7 +70,7 @@ export async function calendarRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { querystring: SeriesScopeQuerySchema } },
     async (req, reply) => {
       const result = await service.deleteEvent(req.me, (req.params as { id: string }).id, req.query)
-      if (!result) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
+      if (!result) return fail(reply, 404, 'EVENT_NOT_FOUND', { message: tr('errors.calendar.eventNotFound') })
       return { success: true, revertToken: result.revertToken }
     },
   )
@@ -79,7 +80,7 @@ export async function calendarRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: DuplicateEventSchema } },
     async (req, reply) => {
       const result = await service.duplicateEvent(req.me, (req.params as { id: string }).id, req.body.occurrence)
-      if (!result) return reply.code(404).send({ success: false, error: tr('errors.calendar.eventNotFound') })
+      if (!result) return fail(reply, 404, 'EVENT_NOT_FOUND', { message: tr('errors.calendar.eventNotFound') })
       return reply.code(201).send({ success: true, data: result.data, revertToken: result.revertToken })
     },
   )
@@ -87,7 +88,7 @@ export async function calendarRoutes(app: FastifyInstance) {
   server.post('/api/calendar/events/revert/:token', { preHandler: [app.authenticate] }, async (req, reply) => {
     const done = await service.revertWrite(req.me, (req.params as { token: string }).token)
     if (!done) {
-      return reply.code(404).send({ success: false, error: { code: 'REVERT_EXPIRED', message: tr('errors.calendar.revertExpired') } })
+      return fail(reply, 404, 'REVERT_EXPIRED', { message: tr('errors.calendar.revertExpired') })
     }
     return { success: true }
   })

@@ -13,6 +13,7 @@ import type { EmailTemplate } from '@/shared/lib/types'
 import { TemplateFormDialog } from './TemplateFormDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 export function TemplatesTab() {
   const confirm = useConfirm()
@@ -31,7 +32,7 @@ export function TemplatesTab() {
       void queryClient.invalidateQueries({ queryKey: ['email', 'templates'] })
       toast.success(t('email:templates.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

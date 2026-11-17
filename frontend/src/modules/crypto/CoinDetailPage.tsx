@@ -3,7 +3,6 @@ import { ArrowLeft, CandlestickChart, Star } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { toast } from 'sonner'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
@@ -17,6 +16,7 @@ import { formatUsd, type ChartPoint, type CoinDetails, type WatchEntry } from '.
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { LINE_CURSOR } from '@/shared/components/charts/chart-cursor'
+import { toastError } from '@/shared/lib/errors'
 
 // Pagina unei monede (cerință Stefan: „cum e pe Binance") — grafic cu intervale, statistici
 // complete din /coins/{id}, descriere, favorite + ordin direct de aici.
@@ -109,7 +109,7 @@ export function CoinDetailPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['crypto'] })
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (details.isPending) {

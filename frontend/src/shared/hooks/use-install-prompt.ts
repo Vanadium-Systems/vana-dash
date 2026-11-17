@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { downloadApk, isAndroidBrowser } from '@/shared/lib/native'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -39,7 +40,7 @@ export function useInstallPrompt() {
       promptInstall: () =>
         downloadApk().then(
           () => toast.success(t('common:shell.apkDownloaded')),
-          (err: Error) => toast.error(err.message),
+          (err: Error) => toastError(err),
         ),
     }
   }

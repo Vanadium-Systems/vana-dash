@@ -15,6 +15,7 @@ import {
 } from './schema.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 
 export async function cryptoRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -29,7 +30,7 @@ export async function cryptoRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: CoinIdParamsSchema } },
     async (req, reply) => {
       const coin = await service.getCoinDetails(req.params.id)
-      if (!coin) return reply.code(404).send({ success: false, error: tr('errors.trading.coinNotFound') })
+      if (!coin) return fail(reply, 404, 'COIN_NOT_FOUND', { message: tr('errors.trading.coinNotFound') })
       return { success: true, data: coin }
     },
   )
@@ -93,19 +94,25 @@ export async function cryptoRoutes(app: FastifyInstance) {
   )
 
   // Preview — primul pas din confirmarea în doi pași (nu execută nimic).
-  server.post('/api/crypto/orders/preview', { preHandler: [app.authenticate], schema: { body: OrderPreviewSchema } }, async (req) => {
+  server.post('/api/crypto/orders/preview', { preHandler: [app.authenticate], schema: { body: OrderPreviewSchema } }, async (req, reply) => {
     try {
       return { success: true, data: await service.previewOrder(req.body) }
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) }
+      // Answered with 200 as before: the client reads `success`, not the status.
+      if (err instanceof HttpError) return fail(reply, 200, err.code, { params: err.params })
+      req.log.warn({ err }, 'crypto preview failed')
+      return fail(reply, 200, 'EXCHANGE_REQUEST_FAILED')
     }
   })
 
-  server.post('/api/crypto/orders', { preHandler: [app.authenticate], schema: { body: PlaceOrderSchema } }, async (req) => {
+  server.post('/api/crypto/orders', { preHandler: [app.authenticate], schema: { body: PlaceOrderSchema } }, async (req, reply) => {
     try {
       return { success: true, data: await service.placeOrder(req.body) }
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) }
+      // Answered with 200 as before: the client reads `success`, not the status.
+      if (err instanceof HttpError) return fail(reply, 200, err.code, { params: err.params })
+      req.log.warn({ err }, 'crypto order failed')
+      return fail(reply, 200, 'EXCHANGE_REQUEST_FAILED')
     }
   })
 

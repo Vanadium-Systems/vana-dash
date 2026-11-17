@@ -22,10 +22,12 @@ import {
   UpdateScoringConfigSchema,
 } from './schema.js'
 import * as service from './service.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { ownerNameOf, ProspectNotYoursError } from '../../shared/lib/prospect-access.js'
 import { getCompany } from '../../shared/lib/company.js'
 import { getCountryPack } from '../../countries/index.js'
+import { LookupBlockedError } from '../../countries/ro/company-lookup.js'
 import { FilterOpError } from './filters.js'
 import { assertCanConfigureScoring } from './score-signals-service.js'
 import { nlFiltersRoutes } from './nl-filters-routes.js'
@@ -39,22 +41,21 @@ type Id = { id: string }
 export function prospectErrorReply(reply: FastifyReply, err: unknown) {
   if (err instanceof ProspectNotYoursError) {
     const error = err.ownerName ? tr('errors.prospects.notYours', { owner: err.ownerName }) : tr('errors.prospects.notYoursFree')
-    return reply.code(403).send({ success: false, error: { code: err.code, message: error }, ownerName: err.ownerName })
+    return fail(reply, 403, err.code, { message: error, details: { ownerName: err.ownerName } })
   }
   if (err instanceof service.ProspectExistsError) {
-    return reply.code(409).send({ success: false, error: { code: err.code, message: tr('errors.prospects.exists', { name: err.existing.name }) }, existing: err.existing })
+    return fail(reply, 409, err.code, { message: tr('errors.prospects.exists', { name: err.existing.name }), details: { existing: err.existing } })
   }
-  if (err instanceof service.LostReasonRequiredError) return reply.code(400).send({ success: false, error: { code: err.code, message: err.message } })
-  if (err instanceof service.InvalidProspectStatusError || err instanceof FilterOpError) {
-    return reply.code(400).send({ success: false, error: err.message })
-  }
+  if (err instanceof service.LostReasonRequiredError) return fail(reply, 400, err.code, { message: err.message })
+  if (err instanceof service.InvalidProspectStatusError) return fail(reply, 400, 'PROSPECT_STATUS_INVALID', { message: err.message })
+  if (err instanceof FilterOpError) return fail(reply, 400, 'FILTER_OPERATOR_UNSUPPORTED')
   throw err
 }
 
 /** Import errors carry their own status and code; a bad assignee is the same 400 the rest of the module gives. */
 function importErrorReply(reply: FastifyReply, err: unknown) {
-  if (err instanceof ImportError) return reply.code(err.status).send({ success: false, error: { code: err.code, message: err.message } })
-  if (err instanceof service.InvalidAssigneeError) return reply.code(400).send({ success: false, error: tr('errors.prospects.assigneeInvalid') })
+  if (err instanceof ImportError) return fail(reply, err.status, err.code, { message: err.message })
+  if (err instanceof service.InvalidAssigneeError) return fail(reply, 400, 'ASSIGNEE_INVALID', { message: tr('errors.prospects.assigneeInvalid') })
   return prospectErrorReply(reply, err)
 }
 
@@ -93,14 +94,16 @@ export async function prospectsRoutes(app: FastifyInstance) {
 
   server.get('/api/prospects/company-lookup', { preHandler: [app.authenticate], schema: { querystring: CompanyLookupQuerySchema } }, async (req, reply) => {
     const pack = getCountryPack((await getCompany()).country)
-    if (!pack.lookupCompany) return reply.code(404).send({ success: false, error: tr('errors.prospects.lookupUnavailable') })
+    if (!pack.lookupCompany) return fail(reply, 404, 'COMPANY_LOOKUP_UNAVAILABLE', { message: tr('errors.prospects.lookupUnavailable') })
     const existing = await service.findByCif(req.query.cui)
     try {
       const company = await pack.lookupCompany(req.query.cui)
       return { success: true, data: { company, existing: existing ? { id: existing.id, name: existing.name, ownerName: await ownerNameOf(existing.assignedUserId) } : null } }
     } catch (err) {
-      const status = (err as { statusCode?: number }).statusCode === 503 ? 503 : 400
-      return reply.code(status).send({ success: false, error: err instanceof Error ? err.message : tr('errors.prospects.lookupUnavailable') })
+      if (err instanceof HttpError) throw err
+      if (err instanceof LookupBlockedError) return fail(reply, 503, 'ANAF_LOOKUP_PAUSED')
+      req.log.warn({ err }, 'company lookup failed')
+      return fail(reply, 400, 'ANAF_LOOKUP_FAILED')
     }
   })
 
@@ -136,7 +139,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
         const row = await service.createProspectStatus(req.body)
         return reply.code(201).send({ success: true, data: row })
       } catch (err) {
-        if (err instanceof service.ProspectStatusKeyTakenError) return reply.code(409).send({ success: false, error: err.message })
+        if (err instanceof service.ProspectStatusKeyTakenError) return fail(reply, 409, 'PROSPECT_STATUS_KEY_TAKEN', { message: err.message })
         throw err
       }
     },
@@ -150,7 +153,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
         const rows = await service.reorderProspectStatuses(req.body.orderedIds)
         return { success: true, data: rows }
       } catch (err) {
-        if (err instanceof service.InvalidProspectStatusError) return reply.code(400).send({ success: false, error: err.message })
+        if (err instanceof service.InvalidProspectStatusError) return fail(reply, 400, 'PROSPECT_STATUS_INVALID', { message: err.message })
         throw err
       }
     },
@@ -161,7 +164,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: UpdateProspectStatusSchema } },
     async (req, reply) => {
       const row = await service.updateProspectStatus((req.params as { id: string }).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.statusNotFound') })
+      if (!row) return fail(reply, 404, 'PROSPECT_STATUS_NOT_FOUND', { message: tr('errors.prospects.statusNotFound') })
       return { success: true, data: row }
     },
   )
@@ -169,11 +172,11 @@ export async function prospectsRoutes(app: FastifyInstance) {
   server.delete('/api/prospects/statuses/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     try {
       const row = await service.deleteProspectStatus((req.params as { id: string }).id)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.statusNotFound') })
+      if (!row) return fail(reply, 404, 'PROSPECT_STATUS_NOT_FOUND', { message: tr('errors.prospects.statusNotFound') })
       return { success: true }
     } catch (err) {
       if (err instanceof service.ProspectStatusInUseError) {
-        return reply.code(409).send({ success: false, error: err.message, count: err.count })
+        return fail(reply, 409, 'PROSPECT_STATUS_IN_USE', { message: err.message, details: { count: err.count } })
       }
       throw err
     }
@@ -181,9 +184,9 @@ export async function prospectsRoutes(app: FastifyInstance) {
 
   server.post('/api/prospects/import/preview', { preHandler: [app.authenticate] }, async (req, reply) => {
     const upload = await req.file()
-    if (!upload) return reply.code(400).send({ success: false, error: tr('errors.prospects.csvMissing') })
+    if (!upload) return fail(reply, 400, 'FILE_MISSING', { message: tr('errors.prospects.csvMissing') })
     const buffer = await upload.toBuffer()
-    if (upload.file.truncated) return reply.code(413).send({ success: false, error: tr('errors.prospects.fileTooLarge') })
+    if (upload.file.truncated) return fail(reply, 413, 'PAYLOAD_TOO_LARGE', { message: tr('errors.prospects.fileTooLarge') })
     const sourceField = upload.fields?.source
     const source = sourceField && 'value' in sourceField ? String(sourceField.value) : undefined
     try {
@@ -212,7 +215,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
       reply.header('Content-Disposition', `attachment; filename="${file.filename}"`)
       return reply.type(file.contentType).send(file.body)
     } catch (err) {
-      if (err instanceof ExportTooManyError) return reply.code(400).send({ success: false, error: { code: err.code, message: err.message } })
+      if (err instanceof ExportTooManyError) return fail(reply, 400, err.code, { message: err.message })
       return prospectErrorReply(reply, err)
     }
   })
@@ -240,27 +243,27 @@ export async function prospectsRoutes(app: FastifyInstance) {
 
   server.get('/api/prospects/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await service.getProspectSheet(req.me, (req.params as Id).id)
-    if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+    if (!row) return fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
     return { success: true, data: row }
   })
 
   server.get('/api/prospects/:id/neighbors', { preHandler: [app.authenticate], schema: { querystring: NeighborsQuerySchema } }, async (req, reply) => {
     const data = await service.prospectNeighbors(req.me, (req.params as Id).id, req.query)
-    if (!data) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+    if (!data) return fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
     return { success: true, data }
   })
 
   server.get('/api/prospects/:id/timeline', { preHandler: [app.authenticate] }, async (req, reply) => {
     const cursor = (req.query as { cursor?: string }).cursor
     const data = await service.prospectTimeline(req.me, (req.params as Id).id, cursor && !Number.isNaN(Date.parse(cursor)) ? cursor : undefined)
-    if (!data) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+    if (!data) return fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
     return { success: true, data }
   })
 
   server.patch('/api/prospects/:id', { preHandler: [app.authenticate], schema: { body: UpdateProspectSchema } }, async (req, reply) => {
     try {
       const row = await service.updateProspect(req.me, (req.params as Id).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+      if (!row) return fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
       return { success: true, data: row }
     } catch (err) {
       return prospectErrorReply(reply, err)
@@ -270,7 +273,7 @@ export async function prospectsRoutes(app: FastifyInstance) {
   server.delete('/api/prospects/:id', { preHandler: [app.authenticate] }, async (req, reply) => {
     try {
       const row = await service.deleteProspect(req.me, (req.params as Id).id)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+      if (!row) return fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
       return { success: true }
     } catch (err) {
       return prospectErrorReply(reply, err)
@@ -279,13 +282,13 @@ export async function prospectsRoutes(app: FastifyInstance) {
 
   server.post('/api/prospects/:id/archive', { preHandler: [app.authenticate] }, async (req, reply) => {
     const [id] = await service.archiveProspects(req.me, [(req.params as Id).id])
-    if (!id) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+    if (!id) return fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
     return { success: true, data: { id } }
   })
 
   server.post('/api/prospects/:id/unarchive', { preHandler: [app.authenticate] }, async (req, reply) => {
     const [id] = await service.unarchiveProspects(req.me, [(req.params as Id).id])
-    if (!id) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+    if (!id) return fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
     return { success: true, data: { id } }
   })
 
@@ -301,14 +304,16 @@ export async function prospectsRoutes(app: FastifyInstance) {
 
   server.post('/api/prospects/:id/promote', { preHandler: [app.authenticate], schema: { body: PromoteProspectSchema } }, async (req, reply) => {
     // Promoting creates a billing client, so it needs that right as well.
-    if (!req.me.features.includes('facturi.clienti')) return reply.code(403).send({ success: false, error: tr('errors.prospects.promoteNeedsClients') })
+    if (!req.me.features.includes('facturi.clienti')) return fail(reply, 403, 'PROMOTE_NEEDS_CLIENTS', { message: tr('errors.prospects.promoteNeedsClients') })
     try {
       const row = await service.promoteProspect(req.me, (req.params as Id).id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.prospects.notFound') })
+      if (!row) return fail(reply, 404, 'PROSPECT_NOT_FOUND', { message: tr('errors.prospects.notFound') })
       return { success: true, data: row }
     } catch (err) {
       if (err instanceof ProspectNotYoursError) return prospectErrorReply(reply, err)
-      return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
+      if (err instanceof HttpError) throw err
+      req.log.warn({ err }, 'prospect promotion failed')
+      return fail(reply, 400, 'PROSPECT_PROMOTE_FAILED')
     }
   })
 

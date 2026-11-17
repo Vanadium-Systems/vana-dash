@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { prospectErrorReply } from './routes.js'
 import { FolderNotFoundError } from './lists-service.js'
@@ -15,12 +16,13 @@ import {
 import * as lists from './lists-service.js'
 
 type NotFoundKey = 'errors.prospects.listNotFound' | 'errors.prospects.folderNotFound'
+const NOT_FOUND_CODE = { 'errors.prospects.listNotFound': 'LIST_NOT_FOUND', 'errors.prospects.folderNotFound': 'FOLDER_NOT_FOUND' } as const
 
 /** List folders and static lists. Static paths win over `/api/prospects/:id`. */
 export async function prospectListsRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
   const auth = { preHandler: [app.authenticate] }
-  const notFound = (reply: FastifyReply, key: NotFoundKey) => reply.code(404).send({ success: false, error: tr(key) })
+  const notFound = (reply: FastifyReply, key: NotFoundKey) => fail(reply, 404, NOT_FOUND_CODE[key], { message: tr(key) })
   const listsErrorReply = (reply: FastifyReply, err: unknown) =>
     err instanceof FolderNotFoundError ? notFound(reply, 'errors.prospects.folderNotFound') : prospectErrorReply(reply, err)
 

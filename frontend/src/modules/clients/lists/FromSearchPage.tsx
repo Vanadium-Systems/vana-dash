@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 import { useFilterState, useSearchState } from '@/shared/components/FilterBar'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/shared/components/ui/button'
@@ -21,6 +20,7 @@ import { filterParams, useAssignees, useStatuses } from '../prospects/use-prospe
 import { skippedSummary } from './skipped'
 import type { AddMembersResult, SkipRules } from './types'
 import { listFilterParam, useListActions, useListFolders, useLists } from './use-lists-data'
+import { toastError } from '@/shared/lib/errors'
 
 const MAX_ROWS = 5000
 const MAX_NAME = 100
@@ -94,7 +94,7 @@ export function FromSearchPage() {
       const result = await actions.addFromSearch.mutateAsync({ listId, f, q, rules: effective, limit })
       setDone({ listId, listName, result })
     } catch (err) {
-      toast.error((err as Error).message)
+      toastError(err)
     } finally {
       setPending(false)
     }

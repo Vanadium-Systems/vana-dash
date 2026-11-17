@@ -1,7 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Field } from '@/shared/components/ui/field'
@@ -14,6 +13,7 @@ import { useAssignees } from '../prospects/use-prospect-data'
 import type { ProspectSheet } from './types'
 import { useContactCheck } from './use-sheet'
 import { useTeamActions } from './use-team-actions'
+import { toastError } from '@/shared/lib/errors'
 
 const personName = (person: { displayName: string | null; email: string }) => person.displayName ?? person.email
 
@@ -258,7 +258,7 @@ export function DiscussDialog({ sheet, open, onOpenChange }: { sheet: ProspectSh
       onOpenChange(false)
       navigate(`/messages/${id}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setSending(false)
     }

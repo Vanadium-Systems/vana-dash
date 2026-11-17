@@ -5,6 +5,7 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import { buildPublicCallUrl, getCallKey } from './call-keys'
 import type { CallFilter, CallKind, CallRow, CallTokenResponse, PublicCall, PublicCallTokenResponse } from './types'
+import { toastError } from '@/shared/lib/errors'
 
 export const CALLS_KEY = ['calls'] as const
 
@@ -56,7 +57,7 @@ export function useEndCall() {
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: CALLS_KEY }),
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toastError(err),
   })
   return async (call: Pick<CallRow, 'id' | 'title'> & { conversationId?: string | null }): Promise<boolean> => {
     const ok = await confirm({

@@ -13,7 +13,8 @@ const ZIP_LIMIT_BYTES = ZIP_LIMIT_MB * 1024 * 1024
 export function dedupeFileNames(names: string[]): string[] {
   const used = new Set<string>()
   return names.map((raw) => {
-    const clean = raw.replace(/[/\\]/g, '_').trim() || 'file'
+    const stripped = raw.replace(/[/\\]/g, '_').trim()
+    const clean = !stripped || stripped === '.' || stripped === '..' ? 'file' : stripped
     const dot = clean.lastIndexOf('.')
     const [base, ext] = dot > 0 ? [clean.slice(0, dot), clean.slice(dot)] : [clean, '']
     let candidate = clean

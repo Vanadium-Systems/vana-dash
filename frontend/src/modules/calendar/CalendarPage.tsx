@@ -47,6 +47,7 @@ import { MonthView } from './MonthView'
 import { QuickCreate } from './QuickCreate'
 import { SeriesScopeDialog } from './SeriesScopeDialog'
 import { occurrenceId, WeekView, type GridGhost, type TimeRange } from './WeekView'
+import { toastError } from '@/shared/lib/errors'
 
 type ViewMode = 'day' | 'week' | 'month' | 'agenda'
 const VIEWS: ViewMode[] = ['day', 'week', 'month', 'agenda']
@@ -289,7 +290,7 @@ export function CalendarPage() {
       revertableToast(t('calendar:toasts.movedTo', { title: occ.title, when: `${when}, ${formatTime(start)}` }), revertToken, queryClient)
     },
     // The block goes back where it was; the error stays until read.
-    onError: (err) => toast.error(err.message, { duration: Infinity }),
+    onError: (err) => toastError(err, undefined, { duration: Infinity }),
     onSettled: () => setPendingMove(null),
   })
 
@@ -310,7 +311,7 @@ export function CalendarPage() {
       invalidate()
       revertableToast(t('calendar:toasts.deletedNamed', { title: occ.title }), revertToken, queryClient)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   async function removeEvent(occ: CalendarOccurrence) {
@@ -330,7 +331,7 @@ export function CalendarPage() {
       invalidate()
       revertableToast(t('calendar:toasts.duplicatedNamed', { title: occ.title }), revertToken, queryClient)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const quickCreate = useMutation({
@@ -346,7 +347,7 @@ export function CalendarPage() {
       setDraft(null)
       revertableToast(t('calendar:toasts.eventCreatedNamed', { title }), revertToken, queryClient)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // ── Creating ──
@@ -451,7 +452,7 @@ export function CalendarPage() {
       void queryClient.invalidateQueries({ queryKey: ['calendar', 'calendars'] })
       toast.success(t('calendar:toasts.accessSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const removeShare = useMutation({
     mutationFn: (userId: string) => api.delete(`/api/calendar/shares/${myId}/${userId}`),
@@ -459,7 +460,7 @@ export function CalendarPage() {
       void queryClient.invalidateQueries({ queryKey: ['calendar', 'calendars'] })
       toast.success(t('calendar:toasts.accessRemoved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const panel = <BookingPanel focusBlockForm={focusBlockForm} onBookingClick={setBookingDetail} />

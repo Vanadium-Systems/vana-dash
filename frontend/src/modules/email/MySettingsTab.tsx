@@ -11,6 +11,7 @@ import { t } from '@/shared/lib/i18n'
 import type { EmailMySettings } from '@/shared/lib/types'
 import { BlocklistCard, LabelsCard, RulesCard, SuppressionsCard } from './OrganizeCards'
 import { SettingsGroup, SettingsSection, SignatureEditor } from './SettingsLayout'
+import { toastError } from '@/shared/lib/errors'
 
 const OUTREACH = 'outreach'
 
@@ -29,7 +30,7 @@ function SignaturesCard({ settings }: { settings: EmailMySettings }) {
       queryClient.setQueryData(['email', 'me', 'settings'], next)
       toast.success(t('email:mySettings.signatureSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (settings.mailboxes.length === 0) {

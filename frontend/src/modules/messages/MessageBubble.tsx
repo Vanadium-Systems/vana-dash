@@ -1,6 +1,5 @@
 import { Check, CheckCheck, ChevronDown, Clock, Copy, Info, Loader2, Paperclip, Pencil, Play, Reply, RotateCw, Trash2 } from 'lucide-react'
 import { forwardRef, useRef, useState, type ReactNode } from 'react'
-import { toast } from 'sonner'
 import { RefCard } from '@/shared/components/entity-cards/RefCard'
 import { FileTypeIcon } from '@/shared/components/FileTypeIcon'
 import { Button } from '@/shared/components/ui/button'
@@ -22,6 +21,7 @@ import { useDecrypted, type Decrypted, type ResolvedAttachment } from './crypto/
 import { saveDecrypted } from './crypto/files'
 import { useAttachmentUrl } from './crypto/useAttachmentUrl'
 import { isEmojiOnly } from './emoji/emoji-only'
+import { toastError } from '@/shared/lib/errors'
 
 // One message. Yours on the right in the tinted bubble, the others' on the left; in a group, the
 // first bubble of a series has the author's avatar and name in their colour. Actions come from
@@ -628,7 +628,7 @@ function AttachmentItem({
         type="button"
         onClick={() => {
           const saving = attachment.key ? saveDecrypted(attachment.key) : api.download(`${href}?download=1`, attachment.filename)
-          void saving.catch((err: Error) => toast.error(err.message))
+          void saving.catch((err: Error) => toastError(err))
         }}
         className="flex w-64 max-w-full items-center gap-2.5 rounded-md bg-background/50 p-1.5 pr-2.5 text-left hover:bg-background/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >

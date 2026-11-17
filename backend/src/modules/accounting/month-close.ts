@@ -393,10 +393,10 @@ export async function fulfillExpectedRow(
 ) {
   const buffer = Buffer.from(input.contentBase64, 'base64')
   if (buffer.byteLength > MAX_UPLOAD_PDF_BYTES) {
-    throw new InvalidPdfUploadError('PDF file exceeds the 15 MB limit')
+    throw new InvalidPdfUploadError(tr('errors.codes.INVALID_PDF_UPLOAD'))
   }
   if (buffer.byteLength < 8 || !buffer.subarray(0, 5).equals(Buffer.from('%PDF-'))) {
-    throw new InvalidPdfUploadError('File is not a valid PDF document')
+    throw new InvalidPdfUploadError(tr('errors.codes.INVALID_PDF_UPLOAD'))
   }
 
   const safeFilename = input.filename.replace(/[^A-Za-z0-9._-]/g, '_') || 'invoice.pdf'

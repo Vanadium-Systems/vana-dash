@@ -14,6 +14,7 @@ import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 import { bundleMonthlyTotal } from '@/modules/pricing/calc'
 import { Checkbox } from '@/shared/components/ui/checkbox'
+import { toastError } from '@/shared/lib/errors'
 
 interface ClientFormDialogProps {
   open: boolean
@@ -293,7 +294,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
       if (exists) toast.success(t('accounting:clientForm.tenantFound'))
       else toast.error(t('accounting:clientForm.tenantNotFound'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // Completare automată din ANAF după CIF — nume, adresă, oraș, județ (text liber, ca
@@ -311,7 +312,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
       if (info.stare !== 'activ') toast.warning(t('accounting:clientForm.anafFoundWithState', { stare: info.stare }))
       else toast.success(t('accounting:clientForm.anafFilled'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const save = useMutation({
@@ -361,7 +362,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
       toast.success(client ? t('accounting:clientForm.updated') : t('accounting:clientForm.added'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const nrContractConflict = contractNumberConflict(contractDetails.nrContract, clients.data, reservedNumbers.data ?? [], client?.id ?? null)

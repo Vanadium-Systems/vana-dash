@@ -44,6 +44,23 @@ const NOT_TEXT = [
   'Markdown',
 ]
 
+// PLAN E3: an error reaches the person through toastError / errorText (shared/lib/errors.ts),
+// never as the raw `.message` of what was thrown.
+const ERROR_DISPLAY = [
+  {
+    selector: "CallExpression[callee.object.name='toast'][callee.property.name='error'] MemberExpression[property.name='message']",
+    message: 'Show errors with toastError(err) from shared/lib/errors.ts.',
+  },
+  {
+    selector: "JSXExpressionContainer MemberExpression[property.name='message'][object.name=/^(err|error|e)$/]",
+    message: 'Show errors with errorText(err) from shared/lib/errors.ts.',
+  },
+  {
+    selector: "JSXExpressionContainer MemberExpression[property.name='message'][object.property.name=/^(err|error)$/]",
+    message: 'Show errors with errorText(err) from shared/lib/errors.ts.',
+  },
+]
+
 export default tseslint.config(
   ...tseslint.configs.recommended,
   {
@@ -66,6 +83,13 @@ export default tseslint.config(
           message: 'Text belongs in src/locales (ro and en); read it with t().',
         },
       ],
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}', 'src/shared/lib/errors.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', ...ERROR_DISPLAY],
     },
   },
 )

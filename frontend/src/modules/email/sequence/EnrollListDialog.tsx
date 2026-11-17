@@ -4,13 +4,13 @@ import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
 import { Label } from '@/shared/components/ui/label'
 import { Select } from '@/shared/components/ui/select'
-import { toast } from 'sonner'
 import { useLists } from '@/modules/clients/lists/use-lists-data'
 import type { ListEntry } from '@/modules/clients/lists/types'
 import { api } from '@/shared/lib/api'
 import { formatNumber } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import type { EmailSequence, EnrollResult, EnrollSkipReason } from '@/shared/lib/types'
+import { toastError } from '@/shared/lib/errors'
 
 interface EnrollListDialogProps {
   open: boolean
@@ -59,7 +59,7 @@ export function EnrollListDialog({ open, sequence, list, onOpenChange }: EnrollL
       void queryClient.invalidateQueries({ queryKey: ['prospects'] })
       setResult(data)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const close = (next: boolean) => {

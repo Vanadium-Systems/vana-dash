@@ -14,6 +14,7 @@ import type { ReservedContractNumber } from '@/shared/lib/types'
 import { formatContractDate } from './ClientFormDialog'
 import { companyTimeZone } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const RESERVED_NUMBERS_QUERY_KEY = ['contract-reserved-numbers']
 
@@ -34,7 +35,7 @@ export function ReservedNumbersCard() {
   const save = useMutation({
     mutationFn: (next: ReservedContractNumber[]) => api.put<ReservedContractNumber[]>('/api/contracts/reserved-numbers', next),
     onSuccess: (data) => queryClient.setQueryData(RESERVED_NUMBERS_QUERY_KEY, data),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const list = reserved.data ?? []

@@ -267,6 +267,6 @@ describe('POST /api/email/threads/:id/reply — thread fără niciun mesaj primi
     expect(res.statusCode).toBe(400)
     const body = res.json()
     expect(body.success).toBe(false)
-    expect(String(body.error)).toContain('Thread fără niciun mesaj primit')
+    expect(body.error.code).toBe('EMAIL_THREAD_NO_INBOUND')
   })
 })

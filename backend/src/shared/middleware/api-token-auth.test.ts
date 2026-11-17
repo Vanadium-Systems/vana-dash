@@ -70,7 +70,7 @@ describe('api token auth', () => {
     expect((await asToken('GET', '/api/prospects', token)).statusCode).toBe(200)
     const created = await asToken('POST', '/api/prospects', token, { name: 'Acme QA' })
     expect(created.statusCode).toBe(403)
-    expect(created.json().error).toEqual({ code: 'FEATURE_FORBIDDEN', feature: 'clienti.prospectare' })
+    expect(created.json().error).toMatchObject({ code: 'FEATURE_FORBIDDEN', feature: 'clienti.prospectare' })
   })
 
   it('a token with a write feature ticked writes, and the history names the token', async () => {
@@ -103,7 +103,7 @@ describe('api token auth', () => {
     ] as const) {
       const res = await asToken(method, url, token, method === 'GET' ? undefined : {})
       expect(res.statusCode, `${method} ${url}`).toBe(403)
-      expect(res.json().error, `${method} ${url}`).toBe('TOKEN_NOT_ALLOWED')
+      expect(res.json().error.code, `${method} ${url}`).toBe('TOKEN_NOT_ALLOWED')
     }
   })
 
@@ -121,7 +121,7 @@ describe('api token auth', () => {
     expect((await asCookie('DELETE', `/api/me/api-tokens/${item.id}`, owner.cookie)).statusCode).toBe(200)
     const res = await asToken('GET', '/api/auth/me', token)
     expect(res.statusCode).toBe(401)
-    expect(res.json().error).toBe('TOKEN_INVALID')
+    expect(res.json().error.code).toBe('TOKEN_INVALID')
   })
 
   it('an expired token is 401', async () => {
@@ -130,7 +130,7 @@ describe('api token auth', () => {
     await db.update(apiTokens).set({ expiresAt: new Date(Date.now() - 60_000) }).where(eq(apiTokens.id, item.id))
     const res = await asToken('GET', '/api/auth/me', token)
     expect(res.statusCode).toBe(401)
-    expect(res.json().error).toBe('TOKEN_INVALID')
+    expect(res.json().error.code).toBe('TOKEN_INVALID')
   })
 
   it('disabling the person kills the token and sets revoked_at', async () => {
@@ -173,7 +173,7 @@ describe('api token auth', () => {
     expect(res.statusCode).toBe(200)
     const after = await asToken('GET', '/api/auth/me', survivor)
     expect(after.statusCode).toBe(401)
-    expect(after.json().error).toBe('TOKEN_INVALID')
+    expect(after.json().error.code).toBe('TOKEN_INVALID')
   })
 
   it('an admin password reset revokes the person\'s tokens', async () => {
@@ -191,7 +191,7 @@ describe('api token auth', () => {
     const { token } = await mint(owner, 'tenant')
     const res = await asToken('GET', '/api/auth/me', token, undefined, { 'x-tenant-id': '00000000-0000-4000-8000-000000000000' })
     expect(res.statusCode).toBe(403)
-    expect(res.json().error).toBe('TOKEN_NOT_ALLOWED')
+    expect(res.json().error.code).toBe('TOKEN_NOT_ALLOWED')
   })
 
   it('a Bearer that is not a known token is 401 TOKEN_INVALID, with no fallback to the cookie', async () => {
@@ -204,7 +204,7 @@ describe('api token auth', () => {
         cookies: { vana_session: owner.cookie },
       })
       expect(res.statusCode, value).toBe(401)
-      expect(res.json().error, value).toBe('TOKEN_INVALID')
+      expect(res.json().error.code, value).toBe('TOKEN_INVALID')
     }
   })
 
@@ -273,7 +273,7 @@ describe('api token auth', () => {
       expect(adminUser!.isPlatformAdmin).toBe(true)
       const res = await asToken('GET', '/api/platform/tenants', token)
       expect(res.statusCode).toBe(403)
-      expect(res.json().error).toBe('TOKEN_NOT_ALLOWED')
+      expect(res.json().error.code).toBe('TOKEN_NOT_ALLOWED')
     } finally {
       await db.delete(apiTokens).where(eq(apiTokens.id, item.id))
     }

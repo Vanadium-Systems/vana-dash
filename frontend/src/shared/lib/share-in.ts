@@ -7,6 +7,7 @@ import { api } from '@/shared/lib/api'
 import { isNative } from '@/shared/lib/native'
 import { useAuth } from '@/shared/hooks/use-auth'
 import { t } from '@/shared/lib/i18n'
+import { errorText } from '@/shared/lib/errors'
 
 interface SharedFile {
   path?: string
@@ -119,7 +120,7 @@ let processingChain: Promise<void> = Promise.resolve()
 function scheduleProcessing(navigate: (path: string) => void): Promise<void> {
   const run = processingChain.then(() => processPendingShares(navigate))
   processingChain = run.catch((err) => {
-    toast.error(t('common:errors.shareToArchive', { message: err instanceof Error ? err.message : t('common:errors.unknown') }))
+    toast.error(t('common:errors.shareToArchive', { message: errorText(err) }))
   })
   return run.catch(() => {})
 }

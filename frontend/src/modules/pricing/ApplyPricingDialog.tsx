@@ -11,6 +11,7 @@ import { api } from '@/shared/lib/api'
 import { formatNumber } from '@/shared/lib/format'
 import { t, type TKey } from '@/shared/lib/i18n'
 import type { PricingApplyBody, PricingChange, PricingPreview } from './offer'
+import { toastError } from '@/shared/lib/errors'
 
 interface ApplyPricingDialogProps {
   client: { id: string; name: string } | null
@@ -57,7 +58,7 @@ export function ApplyPricingDialog({ client, body, onOpenChange }: ApplyPricingD
       if (withAddendum && data.needsAddendum) setAddendum({ clientId: client!.id, changes: data.changes.filter((c) => ADDENDUM_FIELDS.has(c.field)) })
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const line = (changes: PricingChange[], side: 'from' | 'to') => changes.map((c) => `${fieldLabel(c.field)}: ${valueText(c, c[side])}`).join('; ')

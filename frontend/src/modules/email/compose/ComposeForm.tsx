@@ -30,6 +30,7 @@ import type { ComposeInit } from './compose-store'
 import { isValidAddress, RecipientField } from './RecipientField'
 import { trackScheduledSend, type SendFlowHandlers } from './send-flow'
 import { htmlHasContent } from '../html-content'
+import { toastError } from '@/shared/lib/errors'
 
 const MAX_ATTACHMENTS = 5
 const AUTOSAVE_MS = 1500
@@ -319,7 +320,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
       const encoded = await Promise.all(Array.from(files).slice(0, remaining).map(readFileAsBase64))
       setAttachments((prev) => [...prev, ...encoded])
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('email:attach.readFailed'))
+      toastError(err, t('email:attach.readFailed'))
     }
   }
 

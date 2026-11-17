@@ -166,7 +166,9 @@
     "onlyOwner": "Only the owner has access.",
     "inheritedFrom": "inherited from “{{folder}}”",
     "inheritedAbove": "inherited from a folder above",
-    "readOnly": "You have read-only access, given by {{name}}."
+    "readOnly": "You have read-only access, given by {{name}}.",
+    "dimensions": "Dimensions",
+    "dimensionsValue": "{{width}} × {{height}} px"
   },
   "trash": {
     "emptyTitle": "The Trash is empty",

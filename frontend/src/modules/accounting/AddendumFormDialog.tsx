@@ -10,6 +10,7 @@ import { api } from '@/shared/lib/api'
 import type { ContractAddendum } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
 import { Checkbox } from '@/shared/components/ui/checkbox'
+import { toastError } from '@/shared/lib/errors'
 
 interface AddendumFormDialogProps {
   open: boolean
@@ -60,7 +61,7 @@ export function AddendumFormDialog({ open, onOpenChange, clientId, prefill }: Ad
       toast.success(t('accounting:addendum.created'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

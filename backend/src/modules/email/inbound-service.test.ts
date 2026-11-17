@@ -213,6 +213,27 @@ describe('ingestCloudflareInboundEmail', () => {
     expect(message?.toAddress).toBe(p.to)
   })
 
+  it('keeps the Cc: addresses and makes them participants, so reply-all reaches them', async () => {
+    const p = payload({ cc: ['ana@example.com', 'ion@example.com'] })
+    threadIds.push(p.subject)
+
+    expect(await ingestCloudflareInboundEmail(p)).toBe(true)
+
+    const [thread] = await db.select().from(emailThreads).where(eq(emailThreads.subject, p.subject))
+    const [message] = await db.select().from(emailMessages).where(eq(emailMessages.threadId, thread!.id))
+    expect(message?.ccAddresses).toEqual(['ana@example.com', 'ion@example.com'])
+    expect(thread!.participants).toEqual(expect.arrayContaining(['ana@example.com', 'ion@example.com']))
+  })
+
+  it('stores no Cc for a Worker that does not send one', async () => {
+    const p = payload()
+    threadIds.push(p.subject)
+    await ingestCloudflareInboundEmail(p)
+    const [thread] = await db.select().from(emailThreads).where(eq(emailThreads.subject, p.subject))
+    const [message] = await db.select().from(emailMessages).where(eq(emailMessages.threadId, thread!.id))
+    expect(message?.ccAddresses).toEqual([])
+  })
+
   it('falls back to html body (convertit la text simplu) când text e null', async () => {
     // Bug găsit de Stefan (2026-07-18, mesaje ANAF SPV) — HTML-ul brut ajungea stocat cu
     // tag-uri vizibile în UI. Acum se convertește la text simplu (html-to-text.ts).

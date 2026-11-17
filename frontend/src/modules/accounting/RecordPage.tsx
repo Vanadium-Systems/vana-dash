@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, Tabl
 import { useCollapsingTitle } from '@/shared/hooks/use-collapsing-title'
 import { useMe } from '@/shared/hooks/use-me'
 import { api, ApiError } from '@/shared/lib/api'
+import { toastError } from '@/shared/lib/errors'
 import { formatDate, formatDateTime, formatMoney, formatNumber, formatRelativeTime } from '@/shared/lib/format'
 import { t, type TKey } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
@@ -26,7 +27,7 @@ import { cn } from '@/shared/lib/utils'
 import { AnafStatusBadge } from './badges'
 import { ConfirmSupplierInvoiceDialog, type ConfirmSupplierInvoiceDialogTarget } from './ConfirmSupplierInvoiceDialog'
 import { PaymentPeek } from './PaymentPeek'
-import { proformaMessage, useProformaActions } from './proforma-actions'
+import { useProformaActions } from './proforma-actions'
 import { useInvalidateRecords, useRecordDetail, useRemovePayment } from './records-api'
 import { canRecordPayment, daysOverdue, statusFor } from './records-logic'
 import { DueDate, RecordPaymentBadge, methodLabel, paymentWord } from './records-ui'
@@ -206,7 +207,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
       invalidate()
       toast.success(t('accounting:issued.issuedToast', { documentNumber: invoice.documentNumber }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const sendAnaf = useMutation({
     mutationFn: () => api.post<FinancialRecord>(`/api/invoicing/invoices/${record.id}/send-anaf`),
@@ -214,7 +215,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
       invalidate()
       toast.success(t('accounting:issued.sentToAnaf'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const removeDraft = useMutation({
     mutationFn: () => api.delete<void>(`/api/invoicing/${isProforma ? 'proformas' : 'invoices'}/${record.id}`),
@@ -223,7 +224,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
       toast.success(isProforma ? t('accounting:proformas.deleted') : t('accounting:issued.draftDeleted'))
       navigate(`/accounting?tab=${isProforma ? 'proforme' : 'emise'}`, { replace: true })
     },
-    onError: (err) => toast.error(isProforma ? proformaMessage(err) : err.message),
+    onError: (err) => toastError(err),
   })
   const duplicate = useMutation({
     mutationFn: () => api.post<FinancialRecord>(`/api/invoicing/invoices/${record.id}/duplicate`),
@@ -232,7 +233,7 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
       toast.success(t('accounting:records.page.duplicated'))
       navigate(`/accounting/records/${draft.id}`)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // The buttons are the transitions out of the current state, one primary at most.
@@ -383,6 +384,11 @@ function RecordBody({ data, title, titleRef, onBack }: { data: RecordDetail; tit
             ) : null}
           </p>
           <LinkedDocs data={data} />
+          {rejected && record.anafRejectionReason ? (
+            <Alert tone="critical" title={t('accounting:records.page.anafRejectedTitle')} data-testid="anaf-rejection-reason">
+              <span className="whitespace-pre-line break-words">{record.anafRejectionReason}</span>
+            </Alert>
+          ) : null}
           {isProforma && (proformaStatus === 'invoiced' || proformaStatus === 'cancelled') ? (
             <p className="text-sm text-muted-foreground">{proformaStatus === 'invoiced' ? t('accounting:proformas.invoicedHint') : t('accounting:proformas.cancelledHint')}</p>
           ) : null}
@@ -431,7 +437,7 @@ function PartnerLink({ record, canClients }: { record: FinancialRecord; canClien
   return (
     <span className="min-w-0 truncate">
       {record.direction === 'out' && record.billingClientId && canClients ? (
-        <Link to="/clients?tab=activi" className="font-medium text-foreground underline-offset-2 hover:underline">
+        <Link to={`/clients?tab=activi&client=${record.billingClientId}`} className="font-medium text-foreground underline-offset-2 hover:underline">
           {name}
         </Link>
       ) : (
@@ -549,7 +555,7 @@ function Payments({ data, canIssue, canPay, onPay }: { data: RecordDetail; canIs
       if (!ok) return
       remove.mutate(payment.id, {
         onSuccess: () => toast.success(t('accounting:records.payments.removed', { amount: formatMoney(payment.amount, payment.currency) })),
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toastError(err),
       })
     })
   }

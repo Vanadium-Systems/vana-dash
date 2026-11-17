@@ -7,6 +7,7 @@ import { Field } from '@/shared/components/ui/field'
 import { Input } from '@/shared/components/ui/input'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
+import { errorText } from '@/shared/lib/errors'
 
 // „Ai uitat parola?". Răspunsul e același pentru orice adresă, existentă sau nu: altfel
 // pagina asta ar fi un mod de a afla cine are cont.
@@ -44,7 +45,7 @@ export function ForgotPasswordPage() {
               send.mutate()
             }}
           >
-            <Field label={t('common:labels.email')} error={send.isError ? send.error.message : null}>
+            <Field label={t('common:labels.email')} error={send.isError ? errorText(send.error) : null}>
               <Input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required autoFocus />
             </Field>
             <Button type="submit" className="w-full" disabled={send.isPending}>

@@ -15,6 +15,8 @@ export function SelectionBar({
   onClear,
   placement = 'floating',
   total,
+  onSelectEverything,
+  everythingSelected = false,
   children,
 }: {
   count: number
@@ -23,6 +25,9 @@ export function SelectionBar({
   onClear: () => void
   placement?: 'floating' | 'toolbar'
   total?: number
+  /** Selects every row of the list, past this page ("Select all N"). */
+  onSelectEverything?: () => void
+  everythingSelected?: boolean
   children: ReactNode
 }) {
   if (count === 0) return null
@@ -31,7 +36,18 @@ export function SelectionBar({
       <div role="toolbar" aria-label={t('common:selection.toolbar')} className="flex min-h-9 min-w-0 flex-wrap items-center gap-1">
         <Checkbox checked={allSelected} indeterminate={!allSelected} onChange={() => (allSelected ? onClear() : onSelectAll())} aria-label={t('common:selection.all')} />
         <span className="tnum whitespace-nowrap px-1 text-sm">{t('common:selection.count', { count })}</span>
-        {total && total > count && allSelected ? <span className="text-sm text-muted-foreground">{t('common:selection.pageOf', { total })}</span> : null}
+        {everythingSelected ? (
+          <span className="text-sm text-muted-foreground">{t('common:selection.everything', { total: count })}</span>
+        ) : total && total > count && allSelected ? (
+          <>
+            <span className="text-sm text-muted-foreground">{t('common:selection.pageOf', { total })}</span>
+            {onSelectEverything ? (
+              <Button variant="ghost" size="sm" className="text-primary" onClick={onSelectEverything}>
+                {t('common:selection.selectEverything', { total })}
+              </Button>
+            ) : null}
+          </>
+        ) : null}
         <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
         {children}
         <Button variant="ghost" size="sm" className="ml-auto" onClick={onClear}>

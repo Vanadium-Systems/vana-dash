@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { AccessError, getCatalog, getMatrix, createRole, renameRole, deleteRole, setRoleFeature, setRolePage } from './service.js'
 import { CreateRoleSchema, RenameRoleSchema, RoleFeatureSchema } from './schema.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 // Toate rutele de aici cer `echipa.administrare` (vezi shared/lib/features.ts) — guardul e
 // comun, deci niciuna nu are nevoie de un `requireFeature` repetat.
@@ -13,7 +14,7 @@ export async function accessRoutes(app: FastifyInstance) {
   // ROLE_IN_USE, ROLE_LOCKED), pe care frontendul le traduce; motivul vine ca text.
   server.setErrorHandler((error, _req, reply) => {
     if (error instanceof AccessError) {
-      return reply.code(error.status).send({ success: false, error: { code: error.code, message: error.message } })
+      return fail(reply, error.status, error.code, { message: error.message })
     }
     throw error
   })

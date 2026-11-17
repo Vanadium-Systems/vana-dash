@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { deviceLabel } from '../../shared/lib/sessions.js'
 import * as keys from './keys.js'
@@ -24,7 +25,7 @@ import {
 // Device keys belong to a browser or the app, never to a personal API token: a token reaching
 // these routes could register a "device" and be sent the keys of new messages.
 async function cookieOnly(req: FastifyRequest, reply: FastifyReply) {
-  if (req.apiToken) return reply.code(403).send({ success: false, error: tr('errors.chat.keysNeedSession') })
+  if (req.apiToken) return fail(reply, 403, 'CHAT_KEYS_NEED_SESSION', { message: tr('errors.chat.keysNeedSession') })
 }
 
 /** Registered inside chatRoutes, so the module's error handler covers them. */

@@ -79,13 +79,13 @@ describe('api tokens', () => {
   it('features outside the role are refused', async () => {
     const res = await call('POST', '/api/me/api-tokens', withTokens.cookie, { name: 'wide', features: ['clienti.view', 'facturi.view'] })
     expect(res.statusCode).toBe(400)
-    expect(res.json().error).toBe('FEATURES_NOT_IN_ROLE')
+    expect(res.json().error.code).toBe('FEATURES_NOT_IN_ROLE')
   })
 
   it('without echipa.tokenuri creation is 403', async () => {
     const res = await call('POST', '/api/me/api-tokens', withoutTokens.cookie, { name: 'nope' })
     expect(res.statusCode).toBe(403)
-    expect(res.json().error).toEqual({ code: 'FEATURE_FORBIDDEN', feature: 'echipa.tokenuri' })
+    expect(res.json().error).toMatchObject({ code: 'FEATURE_FORBIDDEN', feature: 'echipa.tokenuri' })
   })
 
   it('revoking own token sets revokedAt; the token stops working', async () => {

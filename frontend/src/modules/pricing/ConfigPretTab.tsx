@@ -15,6 +15,7 @@ import { Select } from '@/shared/components/ui/select'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
 import { tNodes } from '@/shared/lib/i18n-nodes'
+import { toastError } from '@/shared/lib/errors'
 
 // Sprint D, Track 4 — calculator de preț modular per platformă. Portat din
 // vanagreen-price-calculator.html (research Stefan): config editabil din UI (NU redeploy
@@ -303,7 +304,7 @@ export function ConfigPretTab({ platformId, setPlatformId, platforms }: ConfigPr
       void queryClient.invalidateQueries({ queryKey: ['pricing', 'config', platformId] })
       toast.success(t('pricing:config.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const setField = (key: keyof ConfigForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -818,7 +819,7 @@ function SelfServePricingToggleCard() {
       queryClient.setQueryData(['pricing', 'self-serve-toggle'], data)
       toast.success(data.enabled ? t('pricing:config.selfServeOn') : t('pricing:config.selfServeOff'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

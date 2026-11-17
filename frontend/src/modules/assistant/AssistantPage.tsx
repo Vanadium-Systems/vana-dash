@@ -13,6 +13,7 @@ import { postSse, type AssistantSseEvent } from './sse'
 import { ChatBubble, ToolLine, type BubbleMessage } from './ChatBubble'
 import { companyTimeZone, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const CONVERSATION_STORAGE_KEY = 'assistant-conversation-id'
 const INPUT_MAX_CHARS = 32_000
@@ -197,7 +198,7 @@ export function AssistantPage() {
       } else {
         await startDraft(false)
       }
-    })().catch((err) => toast.error(err instanceof Error ? err.message : t('assistant:loadFailed')))
+    })().catch((err) => toastError(err, t('assistant:loadFailed')))
   }, [])
 
   // Modelul afișat vine din lista de conversații (sursa de adevăr e DB) — se sincronizează
@@ -219,7 +220,7 @@ export function AssistantPage() {
     } else if (event.type === 'confirm_required') {
       setPendingConfirm({ actionId: event.actionId, toolName: event.toolName, summary: event.summary })
     } else if (event.type === 'error') {
-      toast.error(event.message)
+      toastError(event.error)
     }
   }
 
@@ -303,7 +304,7 @@ export function AssistantPage() {
       if (id === conversationId) await startDraft()
       else toast.success(t('assistant:deleted'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('assistant:deleteFailed'))
+      toastError(err, t('assistant:deleteFailed'))
     }
   }
 
@@ -317,7 +318,7 @@ export function AssistantPage() {
       await api.patch(`/api/assistant/conversations/${conversationId}`, { model: modelId, ...(provider ? { provider } : {}) })
       void queryClient.invalidateQueries({ queryKey: ['assistant', 'conversations'] })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('assistant:modelChangeFailed'))
+      toastError(err, t('assistant:modelChangeFailed'))
     }
   }
 
@@ -326,7 +327,7 @@ export function AssistantPage() {
       await api.delete(`/api/assistant/scheduled/${id}`)
       void queryClient.invalidateQueries({ queryKey: ['assistant', 'scheduled'] })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('assistant:cancelTaskFailed'))
+      toastError(err, t('assistant:cancelTaskFailed'))
     }
   }
 

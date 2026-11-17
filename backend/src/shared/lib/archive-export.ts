@@ -31,8 +31,8 @@ export async function collectArchiveFilesForMonths(monthFolderNames: string[]): 
     for (const file of files) {
       try {
         const buffer = await downloadFromR2(file.r2Key)
-        const pathSegments = [monthFolderName, ...file.folderPathNames, file.name]
-        collected.push({ zipPath: pathSegments.join('/'), buffer })
+        // A colleague with edit rights can rename a file to "../x": the entry path is cleaned like the folder zip's.
+        collected.push({ zipPath: archiveService.zipEntryPath([monthFolderName, ...file.folderPathNames], file.name), buffer })
       } catch (err) {
         console.error(`[archive-export] nu am putut descărca "${file.name}" (${file.r2Key}): ${String(err)}`)
       }

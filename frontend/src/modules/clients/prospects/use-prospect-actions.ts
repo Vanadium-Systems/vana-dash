@@ -6,6 +6,7 @@ import { skippedSummary } from '../lists/skipped'
 import type { AddMembersResult } from '../lists/types'
 import type { BulkTarget } from './bulk'
 import { bulkPatchBody, listMembersBody, type BulkAction } from './bulk'
+import { toastError } from '@/shared/lib/errors'
 
 export const LOST_REASON_REQUIRED = 'LOST_REASON_REQUIRED'
 
@@ -15,7 +16,7 @@ export const errorCode = (err: unknown): string | undefined => (err instanceof A
 export function useProspectActions() {
   const queryClient = useQueryClient()
   const refresh = () => void queryClient.invalidateQueries({ queryKey: ['prospects'] })
-  const onError = (err: Error) => toast.error(err.message)
+  const onError = (err: Error) => toastError(err)
 
   const patch = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) => api.patch(`/api/prospects/${id}`, body),
@@ -58,6 +59,15 @@ export function useProspectActions() {
     onError,
   })
 
+  const removeFromList = useMutation({
+    mutationFn: ({ listId, ids }: { listId: string; ids: string[] }) => api.delete<{ removed: number }>(`/api/prospects/lists/${listId}/members`, { ids }),
+    onSuccess: (data) => {
+      refresh()
+      toast.success(t('clients:prospects.bulk.listRemoved', { count: data.removed }))
+    },
+    onError,
+  })
+
   const remove = useMutation({
     // One request per id: there is no bulk delete, and a page holds at most 50 rows.
     mutationFn: async (ids: string[]) => {
@@ -74,5 +84,5 @@ export function useProspectActions() {
     },
   })
 
-  return { patch, transfer, bulk, addToList, remove, refresh }
+  return { patch, transfer, bulk, addToList, removeFromList, remove, refresh }
 }

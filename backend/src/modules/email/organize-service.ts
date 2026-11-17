@@ -3,7 +3,7 @@ import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import { emailBlocklist, emailLabels, emailMessages, emailRules } from '../../shared/db/schema/index.js'
 import type { BlocklistCreateSchema, LabelCreateSchema, LabelUpdateSchema, RuleCreateSchema, RuleUpdateSchema } from './organize-schema.js'
-import { tr } from '../../shared/lib/i18n.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 
 // Labels and rules are the company's (owner null, managed in Settings with email.setari) or a
@@ -180,7 +180,7 @@ export async function applyRuleToExisting(id: string): Promise<number> {
     .select()
     .from(emailRules)
     .where(and(eq(emailRules.id, id), isNull(emailRules.deletedAt), isNull(emailRules.ownerUserId)))
-  if (!rule) throw new Error(tr('errors.alerts.ruleNotFound'))
+  if (!rule) throw httpError(400, 'RULE_NOT_FOUND')
 
   const rows = await db
     .update(emailMessages)
@@ -272,7 +272,7 @@ export async function removeFromBlocklist(id: string): Promise<boolean> {
 /** Trece retroactiv în trash mesajele deja existente de la o adresă blocată — un singur UPDATE. */
 export async function applyBlocklistToExisting(id: string): Promise<number> {
   const [entry] = await db.select().from(emailBlocklist).where(and(eq(emailBlocklist.id, id), isNull(emailBlocklist.deletedAt)))
-  if (!entry) throw new Error(tr('errors.email.blocklistEntryNotFound'))
+  if (!entry) throw httpError(400, 'BLOCKLIST_ENTRY_NOT_FOUND')
 
   const rows = await db
     .update(emailMessages)

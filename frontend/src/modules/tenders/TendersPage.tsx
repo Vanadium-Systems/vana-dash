@@ -21,6 +21,7 @@ import { formatNumber, intlTag } from '@/shared/lib/format'
 import { TenderWatchRulesCard } from './TenderWatchRulesCard'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { toastError } from '@/shared/lib/errors'
 
 const SOURCE_LABEL: Record<TenderSource, string> = {
   direct_acquisition: t('tenders:types.direct'),
@@ -76,7 +77,7 @@ export function TendersPage() {
       void queryClient.invalidateQueries({ queryKey: ['tenders'] })
       toast.success(t('common:states.updated'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const rows = tenders.data ?? []

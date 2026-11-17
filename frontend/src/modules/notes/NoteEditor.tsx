@@ -206,7 +206,7 @@ function KeyboardToolbar({ editor }: { editor: Editor }) {
       role="toolbar"
       aria-label={t('notes:editor.toolbar')}
       style={{ bottom: inset }}
-      className="glass fixed inset-x-0 z-[60] flex items-center gap-0.5 overflow-hidden border-t px-1 py-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))]"
+      className="glass fixed inset-x-0 z-viewer flex items-center gap-0.5 overflow-hidden border-t px-1 py-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))]"
     >
       {linking ? (
         <LinkField editor={editor} onDone={() => setLinking(false)} />
@@ -237,7 +237,7 @@ function SlashMenu({ state }: { state: SlashState }) {
       data-note-slash=""
       aria-label={t('notes:slash.label')}
       style={{ left, ...(flipUp ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }) }}
-      className="glass fixed z-[70] max-h-72 w-56 overflow-y-auto rounded-md border p-1 shadow-lg"
+      className="glass fixed z-viewer-menu max-h-72 w-56 overflow-y-auto rounded-md border p-1 shadow-lg"
       onMouseDown={(e) => e.preventDefault()}
     >
       {state.items.length === 0 ? <p className="px-2 py-1.5 text-sm text-muted-foreground">{t('notes:slash.none')}</p> : null}

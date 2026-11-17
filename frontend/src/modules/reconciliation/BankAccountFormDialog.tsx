@@ -10,6 +10,7 @@ import type { BankAccount, BankProvider } from '@/shared/lib/types'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
+import { toastError } from '@/shared/lib/errors'
 
 interface BankAccountFormDialogProps {
   open: boolean
@@ -58,7 +59,7 @@ export function BankAccountFormDialog({ open, onOpenChange, account }: BankAccou
       toast.success(account ? t('reconciliation:account.updated') : t('reconciliation:account.added'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

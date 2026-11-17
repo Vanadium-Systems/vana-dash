@@ -8,6 +8,7 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { DeclarationPreview } from '@/shared/lib/types'
 import { formatDate } from './badges'
+import { toastError } from '@/shared/lib/errors'
 
 // The index ANAF shows after the upload to SPV. There is no API to read it back, so it is typed
 // in here; a month with an index counts as filed and its deadline alert stops. The receipt
@@ -33,7 +34,7 @@ export function DeclarationFilingRow({
       void queryClient.invalidateQueries({ queryKey: ['accounting', endpoint, month] })
       toast.success(t('accounting:declarations.filing.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // The receipt of a declaration on a special VAT code never comes by email: it is read in SPV.
@@ -43,7 +44,7 @@ export function DeclarationFilingRow({
       void queryClient.invalidateQueries({ queryKey: ['accounting', endpoint, month] })
       toast.success(t('accounting:declarations.filing.receiptSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

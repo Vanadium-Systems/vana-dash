@@ -30,6 +30,7 @@ import type {
   UploadRecordPdfSchema,
 } from './schema.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { httpError } from '../../shared/lib/http-error.js'
 
 // Selecție explicită — fără meta cu XML-uri mari și fără nimic sensibil.
 export const recordColumns = {
@@ -163,24 +164,25 @@ export async function getAnafPdfPath(id: string) {
   }
 }
 
-/** Regenerează pe loc PDF-ul „Confirmare de încasare" (același randat automat la
- *  marcarea plății, shared/lib/payment-confirmation.ts) — nu e persistat nicăieri
- *  (doar atașat la emailul de atunci), deci descărcarea manuală îl reconstruiește
- *  din datele curente ale facturii. Aruncă Error cu mesaj pt. utilizator — ruta
- *  traduce în 400/404, la fel ca restul serviciului (issueInvoice etc.). */
+/**
+ * Re-renders on demand the payment confirmation PDF (same template used automatically when
+ * marking an invoice as paid in `shared/lib/payment-confirmation.ts`). The PDF is only attached
+ * to that email and not persisted, so manual download rebuilds it from current invoice data.
+ * Throws `HttpError` (400) on business rules: missing invoice, unpaid, or PDF unavailable.
+ */
 export async function generateConfirmationPdf(id: string) {
   const [record] = await db
     .select()
     .from(financialRecords)
     .where(and(eq(financialRecords.id, id), isNull(financialRecords.deletedAt)))
   if (!record || record.direction !== 'out' || record.type !== 'invoice') {
-    throw new Error(tr('errors.accounting.invoiceNotFound'))
+    throw httpError(400, 'INVOICE_NOT_FOUND')
   }
   if (record.paymentStatus !== 'paid' || !record.paidAt) {
-    throw new Error(tr('errors.accounting.invoiceNotPaid'))
+    throw httpError(400, 'INVOICE_NOT_PAID')
   }
   if (!isPdfAvailable()) {
-    throw new Error(tr('errors.pdf.unavailable'))
+    throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
   }
 
   let clientName = record.counterpartyName ?? 'Client'
@@ -459,6 +461,7 @@ const MAX_UPLOAD_PDF_BYTES = 15 * 1024 * 1024
 
 export class DuplicateDocumentNumberError extends Error {
   readonly statusCode = 409
+  readonly userFacing = true
   constructor(documentNumber: string) {
     super(tr('errors.accounting.duplicateDocumentNumber', { documentNumber }))
     this.name = 'DuplicateDocumentNumberError'
@@ -467,6 +470,7 @@ export class DuplicateDocumentNumberError extends Error {
 
 export class InvalidPdfUploadError extends Error {
   readonly statusCode = 400
+  readonly userFacing = true
   constructor(message: string) {
     super(message)
     this.name = 'InvalidPdfUploadError'
@@ -579,10 +583,10 @@ export async function uploadRecordPdf(
 
   const buffer = Buffer.from(input.contentBase64, 'base64')
   if (buffer.byteLength > MAX_UPLOAD_PDF_BYTES) {
-    throw new InvalidPdfUploadError('PDF file exceeds the 15 MB limit')
+    throw new InvalidPdfUploadError(tr('errors.codes.INVALID_PDF_UPLOAD'))
   }
   if (buffer.byteLength < 8 || !buffer.subarray(0, 5).equals(Buffer.from('%PDF-'))) {
-    throw new InvalidPdfUploadError('File is not a valid PDF document')
+    throw new InvalidPdfUploadError(tr('errors.codes.INVALID_PDF_UPLOAD'))
   }
 
   const safeFilename = input.filename.replace(/[^A-Za-z0-9._-]/g, '_') || 'invoice.pdf'
@@ -626,7 +630,7 @@ export async function archiveRecordNow(id: string) {
   if (!existing) return null
 
   if (!existing.pdfStoragePath && !existing.xmlStoragePath) {
-    throw new InvalidPdfUploadError('Record has no PDF or XML document to archive')
+    throw httpError(400, 'NOTHING_TO_ARCHIVE')
   }
 
   const { pdfArchiveFileId, xmlArchiveFileId } = await archiveInvoiceDocuments({

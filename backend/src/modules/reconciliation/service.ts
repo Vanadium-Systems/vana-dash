@@ -12,6 +12,7 @@ import {
   vanagreenExtensionLog,
 } from '../../shared/db/schema/index.js'
 import { decryptField, encryptField } from '../../shared/lib/crypto.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { sendPaymentConfirmationEmail } from '../../shared/lib/payment-confirmation.js'
 import { notifyPush } from '../../shared/lib/push.js'
 import { addPayment, isDraftSql, PaymentError, recalculatePaymentStatus, remainingSql, removePayment } from '../../shared/lib/payments.js'
@@ -24,7 +25,7 @@ import {
   setAutoExtendEnabled,
   verifyVanagreenTenant,
 } from './vanagreen-extension.js'
-import { trFor, tr } from '../../shared/lib/i18n.js'
+import { trFor } from '../../shared/lib/i18n.js'
 
 // Selecție explicită — apiKeyEnc/privateKeyEnc/accessTokenEnc/refreshTokenEnc nu
 // părăsesc niciodată service-ul. certificatePem e PUBLIC (cheia publică a
@@ -138,13 +139,13 @@ export async function createManualMatch(bankTransactionId: string, financialReco
     .select()
     .from(bankTransactions)
     .where(and(eq(bankTransactions.id, bankTransactionId), isNull(bankTransactions.deletedAt)))
-  if (!txn) throw new Error(tr('errors.reconciliation.transactionNotFound'))
+  if (!txn) throw httpError(400, 'BANK_TRANSACTION_NOT_FOUND')
 
   const [record] = await db
     .select()
     .from(financialRecords)
     .where(and(eq(financialRecords.id, financialRecordId), isNull(financialRecords.deletedAt)))
-  if (!record) throw new Error(tr('errors.reconciliation.recordNotFound'))
+  if (!record) throw httpError(400, 'RECORD_NOT_FOUND')
 
   // The amount may differ (partial payment): the payment takes min(transaction, rest) and payments.ts derives the status.
   const { match, paymentStatus } = await db.transaction(async (tx) => {
@@ -154,7 +155,7 @@ export async function createManualMatch(bankTransactionId: string, financialReco
       .select({ id: paymentMatches.id })
       .from(paymentMatches)
       .where(eq(paymentMatches.bankTransactionId, bankTransactionId))
-    if (existing) throw new Error(tr('errors.reconciliation.alreadyMatched'))
+    if (existing) throw httpError(400, 'TRANSACTION_ALREADY_MATCHED')
     const payment = await addPayment(
       financialRecordId,
       {
@@ -274,8 +275,8 @@ export async function markInvoicePaidManually(financialRecordId: string) {
     .select()
     .from(financialRecords)
     .where(and(eq(financialRecords.id, financialRecordId), isNull(financialRecords.deletedAt)))
-  if (!record) throw new Error(tr('errors.reconciliation.invoiceNotFound'))
-  if (record.direction !== 'out' || record.type !== 'invoice') throw new Error(tr('errors.reconciliation.notIssuedInvoice'))
+  if (!record) throw httpError(400, 'INVOICE_NOT_FOUND')
+  if (record.direction !== 'out' || record.type !== 'invoice') throw httpError(400, 'INVOICE_NOT_ISSUED')
 
   await addPayment(
     financialRecordId,
@@ -372,9 +373,9 @@ export async function exchangeRevolutCode(id: string, code: string) {
     .select({ clientId: bankAccounts.clientId, privateKeyEnc: bankAccounts.privateKeyEnc })
     .from(bankAccounts)
     .where(and(eq(bankAccounts.id, id), isNull(bankAccounts.deletedAt)))
-  if (!row) throw new Error(tr('errors.reconciliation.accountNotFound'))
+  if (!row) throw httpError(502, 'BANK_ACCOUNT_NOT_FOUND')
   if (!row.clientId || !row.privateKeyEnc) {
-    throw new Error(tr('errors.reconciliation.setClientIdFirst'))
+    throw httpError(502, 'BANK_ACCOUNT_SETUP_INCOMPLETE')
   }
 
   const privateKeyPem = await decryptField(row.privateKeyEnc)

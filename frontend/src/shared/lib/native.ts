@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core'
+import { t } from './i18n'
 
 export const isNative = Capacitor.isNativePlatform()
 
@@ -10,7 +11,7 @@ export const isAndroidBrowser = !isNative && /Android/i.test(navigator.userAgent
 // deci trece neatinse de SW indiferent ce versiune are userul în cache.
 export async function downloadApk() {
   const res = await fetch('/vanadash.apk')
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) throw new Error(t('common:errors.api.generic', { status: res.status }))
   const blob = await res.blob()
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

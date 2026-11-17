@@ -22,6 +22,7 @@ import { sendErrorReply } from './send-guard.js'
 import { MailboxForbidden } from './mailboxes.js'
 import { getSuppressedEmails, getSuppressionsOverview, removeSuppression, suppressEmail } from './unsubscribe-service.js'
 import { verifyUnsubscribeToken } from './unsubscribe-token.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 const UNSUBSCRIBE_PAGE_STYLE = 'font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1.5rem;color:#1a1a1a;line-height:1.5'
@@ -61,7 +62,7 @@ export async function emailRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: TemplateIdParamsSchema, body: TemplateUpdateSchema } },
     async (req, reply) => {
       const template = await service.updateTemplate(req.params.id, req.body)
-      if (!template) return reply.code(404).send({ success: false, error: 'Template not found' })
+      if (!template) return fail(reply, 404, 'TEMPLATE_NOT_FOUND')
       return { success: true, data: template }
     },
   )
@@ -71,7 +72,7 @@ export async function emailRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: TemplateIdParamsSchema } },
     async (req, reply) => {
       const deleted = await service.softDeleteTemplate(req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Template not found' })
+      if (!deleted) return fail(reply, 404, 'TEMPLATE_NOT_FOUND')
       return { success: true }
     },
   )
@@ -108,11 +109,11 @@ export async function emailRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const result = await scheduled.cancelScheduledSend(req.me, req.params.id)
-        if (!result) return reply.code(404).send({ success: false, error: 'Send not found' })
+        if (!result) return fail(reply, 404, 'SEND_NOT_FOUND')
         return { success: true, data: result }
       } catch (err) {
         if (err instanceof scheduled.SendAlreadyDispatched) {
-          return reply.code(409).send({ success: false, error: { code: err.code } })
+          return fail(reply, 409, err.code)
         }
         throw err
       }
@@ -124,7 +125,7 @@ export async function emailRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: SendIdParamsSchema } },
     async (req, reply) => {
       const status = await scheduled.getSendStatus(req.me, req.params.id)
-      if (!status) return reply.code(404).send({ success: false, error: 'Send not found' })
+      if (!status) return fail(reply, 404, 'SEND_NOT_FOUND')
       return { success: true, data: status }
     },
   )
@@ -148,9 +149,11 @@ export async function emailRoutes(app: FastifyInstance) {
         return { success: true, data: result }
       } catch (err) {
         if (err instanceof MailboxForbidden) {
-          return reply.code(403).send({ success: false, error: { code: err.code, feature: err.fromKey } })
+          return fail(reply, 403, err.code, { message: err.message, details: { feature: err.fromKey } })
         }
-        return reply.code(400).send({ success: false, error: String(err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'bulk send failed')
+        return fail(reply, 400, 'BULK_SEND_FAILED')
       }
     },
   )
@@ -204,7 +207,7 @@ export async function emailRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: SuppressionEmailParamsSchema } },
     async (req, reply) => {
       const removed = await removeSuppression(req.params.email)
-      if (!removed) return reply.code(404).send({ success: false, error: tr('errors.email.suppressionNotFound') })
+      if (!removed) return fail(reply, 404, 'SUPPRESSION_NOT_FOUND', { message: tr('errors.email.suppressionNotFound') })
       return { success: true }
     },
   )

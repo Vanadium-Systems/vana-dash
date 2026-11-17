@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { api, ApiError } from '@/shared/lib/api'
+import { api } from '@/shared/lib/api'
 import { formatDate, formatDateTime } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 export interface ApiTokenItem {
   id: string
@@ -55,7 +56,7 @@ export function useRevokeApiToken(admin: boolean) {
       void queryClient.invalidateQueries({ queryKey: ['api-tokens'] })
       toast.success(t('auth:apiTokens.revokeDialog.done'))
     },
-    onError: (error) => toast.error(error instanceof ApiError ? error.message : t('auth:apiTokens.revokeDialog.failed')),
+    onError: (error) => toastError(error, t('auth:apiTokens.revokeDialog.failed')),
   })
 }
 

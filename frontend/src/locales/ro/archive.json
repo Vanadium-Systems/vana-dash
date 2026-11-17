@@ -175,7 +175,9 @@
     "onlyOwner": "Doar proprietarul are acces.",
     "inheritedFrom": "moștenit din „{{folder}}”",
     "inheritedAbove": "moștenit dintr-un folder de mai sus",
-    "readOnly": "Ai acces doar de citire, dat de {{name}}."
+    "readOnly": "Ai acces doar de citire, dat de {{name}}.",
+    "dimensions": "Dimensiuni",
+    "dimensionsValue": "{{width}} × {{height}} px"
   },
   "trash": {
     "emptyTitle": "Coșul e gol",

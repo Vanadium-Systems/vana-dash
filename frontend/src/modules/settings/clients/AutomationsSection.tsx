@@ -9,6 +9,7 @@ import { t, type TKey } from '@/shared/lib/i18n'
 import { useProspectLists, useStatuses } from '@/modules/clients/prospects/use-prospect-data'
 import type { AutomationRule, RuleKey } from './types'
 import { useAutomations, useSaveAutomation } from './use-clients-settings'
+import { toastError } from '@/shared/lib/errors'
 
 const digits = (value: string) => value.replace(/\D/g, '')
 
@@ -84,7 +85,7 @@ function RuleRow({ rule, canEdit }: { rule: AutomationRule; canEdit: boolean }) 
   const hasParams = Object.keys(rule.params).length > 0
 
   const submit = (enabled: boolean) =>
-    save.mutate({ ruleKey: rule.ruleKey, enabled, params: draft }, { onSuccess: () => toast.success(t('common:states.saved')), onError: (err) => toast.error(err.message) })
+    save.mutate({ ruleKey: rule.ruleKey, enabled, params: draft }, { onSuccess: () => toast.success(t('common:states.saved')), onError: (err) => toastError(err) })
 
   return (
     <li className="space-y-2 py-4">

@@ -1,8 +1,8 @@
-import type { FastifyInstance, FastifyReply } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { createVanagreenTenantForClient, pushBillingCycleIfMapped, pushLegalDetailsIfMapped } from '../reconciliation/vanagreen-extension.js'
 import { runVanagreenTenantSyncJob } from '../../jobs/vanagreen-tenant-sync.js'
-import { lookupCompany } from '../../countries/ro/company-lookup.js'
+import { LookupBlockedError, lookupCompany } from '../../countries/ro/company-lookup.js'
 import {
   CifParamsSchema,
   ClientCreateWithVanagreenSchema,
@@ -28,6 +28,7 @@ import { InvoicingError } from './errors.js'
 import * as proforma from './proforma.js'
 import * as service from './service.js'
 import { createStornoDraft } from './storno.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { DrizzleQueryError } from 'drizzle-orm/errors'
 import { peekNextInvoiceNumber } from '../../shared/lib/sequences.js'
@@ -43,17 +44,16 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, '')
 }
 
-// Domain errors keep their status and code; anything else answers 400 as the older routes do.
-function fail(reply: FastifyReply, err: unknown) {
-  if (err instanceof InvoicingError) {
-    return reply.code(err.statusCode).send({ success: false, error: { code: err.code, message: err.message } })
-  }
-  if (err instanceof service.InvoiceConflictError) {
-    return reply.code(409).send({ success: false, error: { code: err.code, message: err.message } })
-  }
+// Domain errors keep their status, code and text; anything else is logged and answers 400 with
+// the code of the action, as the older routes do.
+function sendInvoicingError(req: FastifyRequest, reply: FastifyReply, err: unknown, fallbackCode: string) {
+  if (err instanceof InvoicingError) return fail(reply, err.statusCode, err.code, { message: err.message })
+  if (err instanceof service.InvoiceConflictError) return fail(reply, 409, err.code, { message: err.message })
   // A failed query carries its SQL and parameters in the message: let the global handler mask it.
   if (err instanceof DrizzleQueryError || (err instanceof Error && err.name === 'PostgresError')) throw err
-  return reply.code(400).send({ success: false, error: String(err) })
+  if (err instanceof HttpError) throw err
+  req.log.warn({ err }, 'invoicing action failed')
+  return fail(reply, 400, fallbackCode)
 }
 
 export async function invoicingRoutes(app: FastifyInstance) {
@@ -95,8 +95,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
         // Through the shared gate (one in flight, 2s apart, cached, paused after a 403/429).
         return { success: true, data: await lookupCompany(req.params.cif) }
       } catch (err) {
-        const status = (err as { statusCode?: number }).statusCode === 503 ? 503 : 400
-        return reply.code(status).send({ success: false, error: String(err) })
+        if (err instanceof HttpError) throw err
+        if (err instanceof LookupBlockedError) return fail(reply, 503, 'ANAF_LOOKUP_PAUSED')
+        req.log.warn({ err }, 'ANAF company lookup failed')
+        return fail(reply, 400, 'ANAF_LOOKUP_FAILED')
       }
     },
   )
@@ -112,11 +114,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
       if (createInVanagreen) {
         const result = await createVanagreenTenantForClient(slug, rest.name)
         if (!result.ok) {
-          const status = result.code === 'SLUG_TAKEN' ? 409 : 502
-          return reply.code(status).send({
-            success: false,
-            error: { code: result.code ?? 'VANAGREEN_CREATE_FAILED', message: result.message ?? tr('errors.invoicing.tenantCreateFailed') },
-          })
+          if (result.code === 'SLUG_TAKEN') return fail(reply, 409, 'SLUG_TAKEN')
+          if (result.code === 'PLATFORM_NOT_CONFIGURED') return fail(reply, 502, 'PLATFORM_NOT_CONFIGURED')
+          req.log.warn({ vanagreenStatus: result.status, vanagreenCode: result.code, vanagreenMessage: result.message }, 'VanaGreen tenant create failed')
+          return fail(reply, 502, 'VANAGREEN_CREATE_FAILED')
         }
         vanagreenTenantId = result.id ?? null
       }
@@ -131,7 +132,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: ClientPricingSchema } },
     async (req, reply) => {
       const result = await service.previewClientPricing(req.params.id, req.body)
-      if (!result) return reply.code(404).send({ success: false, error: 'Client not found' })
+      if (!result) return fail(reply, 404, 'CLIENT_NOT_FOUND')
       return { success: true, data: result }
     },
   )
@@ -141,7 +142,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: ClientPricingSchema } },
     async (req, reply) => {
       const result = await service.applyClientPricing(req.params.id, req.body)
-      if (!result) return reply.code(404).send({ success: false, error: 'Client not found' })
+      if (!result) return fail(reply, 404, 'CLIENT_NOT_FOUND')
       return { success: true, data: result }
     },
   )
@@ -151,7 +152,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: ClientUpdateSchema } },
     async (req, reply) => {
       const client = await service.updateClient(req.params.id, req.body)
-      if (!client) return reply.code(404).send({ success: false, error: 'Client not found' })
+      if (!client) return fail(reply, 404, 'CLIENT_NOT_FOUND')
       // Fire-and-forget izolat (regula #7 CLAUDE.md) — nu blochează răspunsul, nu aruncă.
       void pushLegalDetailsIfMapped(client)
       void pushBillingCycleIfMapped(client)
@@ -164,7 +165,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const deleted = await service.softDeleteClient(req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Client not found' })
+      if (!deleted) return fail(reply, 404, 'CLIENT_NOT_FOUND')
       return { success: true }
     },
   )
@@ -179,7 +180,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
         const rate = await service.getExchangeRateForInvoicing(req.query.currency, req.query.date)
         return { success: true, data: rate }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'EXCHANGE_RATE_UNAVAILABLE')
       }
     },
   )
@@ -197,7 +198,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
       try {
         return reply.code(201).send({ success: true, data: await service.createDraftInvoice(req.body) })
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_SAVE_FAILED')
       }
     },
   )
@@ -222,7 +223,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
       try {
         return { success: true, data: await service.resolveClientTemplateLines(req.params.clientId, req.params.id, req.query.currency) }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'TEMPLATE_RESOLVE_FAILED')
       }
     },
   )
@@ -248,7 +249,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
       try {
         return { success: true, data: { html: await service.previewDraftInvoice(req.body) } }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_PREVIEW_FAILED')
       }
     },
   )
@@ -259,10 +260,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const invoice = await service.updateDraftInvoice(req.params.id, req.body)
-        if (!invoice) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        if (!invoice) return fail(reply, 404, 'INVOICE_NOT_FOUND')
         return { success: true, data: invoice }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_SAVE_FAILED')
       }
     },
   )
@@ -273,10 +274,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const draft = await service.duplicateInvoice(req.params.id)
-        if (!draft) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        if (!draft) return fail(reply, 404, 'INVOICE_NOT_FOUND')
         return reply.code(201).send({ success: true, data: draft })
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_SAVE_FAILED')
       }
     },
   )
@@ -288,10 +289,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const draft = await createStornoDraft(req.params.id, req.body)
-        if (!draft) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        if (!draft) return fail(reply, 404, 'INVOICE_NOT_FOUND')
         return reply.code(201).send({ success: true, data: draft })
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_SAVE_FAILED')
       }
     },
   )
@@ -303,10 +304,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const html = await service.previewStoredDocument(req.params.id)
-        if (html === null) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        if (html === null) return fail(reply, 404, 'INVOICE_NOT_FOUND')
         return { success: true, data: { html } }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_PREVIEW_FAILED')
       }
     },
   )
@@ -317,10 +318,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const deleted = await service.deleteDraftInvoice(req.params.id)
-        if (!deleted) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        if (!deleted) return fail(reply, 404, 'INVOICE_NOT_FOUND')
         return { success: true }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_SAVE_FAILED')
       }
     },
   )
@@ -331,10 +332,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const invoice = await service.issueInvoice(req.params.id)
-        if (!invoice) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        if (!invoice) return fail(reply, 404, 'INVOICE_NOT_FOUND')
         return { success: true, data: invoice }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_ISSUE_FAILED')
       }
     },
   )
@@ -345,10 +346,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const invoice = await service.sendInvoiceToAnaf(req.params.id)
-        if (!invoice) return reply.code(404).send({ success: false, error: 'Invoice not found' })
+        if (!invoice) return fail(reply, 404, 'INVOICE_NOT_FOUND')
         return { success: true, data: invoice }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'ANAF_UPLOAD_FAILED')
       }
     },
   )
@@ -389,7 +390,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
       try {
         return reply.code(201).send({ success: true, data: await service.createDraftInvoice(req.body, { kind: 'proforma' }) })
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_SAVE_FAILED')
       }
     },
   )
@@ -405,7 +406,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
       try {
         return { success: true, data: { html: await service.previewDraftInvoice(req.body, 'proforma') } }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_PREVIEW_FAILED')
       }
     },
   )
@@ -416,10 +417,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const row = await service.updateDraftInvoice(req.params.id, req.body, 'proforma')
-        if (!row) return reply.code(404).send({ success: false, error: { code: 'PROFORMA_NOT_FOUND', message: tr('errors.invoicing.proformaNotFound') } })
+        if (!row) return fail(reply, 404, 'PROFORMA_NOT_FOUND', { message: tr('errors.invoicing.proformaNotFound') })
         return { success: true, data: row }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_SAVE_FAILED')
       }
     },
   )
@@ -430,10 +431,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const deleted = await service.deleteDraftInvoice(req.params.id, 'proforma')
-        if (!deleted) return reply.code(404).send({ success: false, error: { code: 'PROFORMA_NOT_FOUND', message: tr('errors.invoicing.proformaNotFound') } })
+        if (!deleted) return fail(reply, 404, 'PROFORMA_NOT_FOUND', { message: tr('errors.invoicing.proformaNotFound') })
         return { success: true }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_SAVE_FAILED')
       }
     },
   )
@@ -449,10 +450,10 @@ export async function invoicingRoutes(app: FastifyInstance) {
       async (req, reply) => {
         try {
           const row = await run(req.params.id)
-          if (!row) return reply.code(404).send({ success: false, error: { code: 'PROFORMA_NOT_FOUND', message: tr('errors.invoicing.proformaNotFound') } })
+          if (!row) return fail(reply, 404, 'PROFORMA_NOT_FOUND', { message: tr('errors.invoicing.proformaNotFound') })
           return reply.code(action === 'convert' ? 201 : 200).send({ success: true, data: row })
         } catch (err) {
-          return fail(reply, err)
+          return sendInvoicingError(req, reply, err, 'INVOICE_ISSUE_FAILED')
         }
       },
     )
@@ -477,7 +478,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
         const template = await service.createPlatformTemplate(req.params.platformId, req.body)
         return reply.code(201).send({ success: true, data: template })
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'INVOICE_SAVE_FAILED')
       }
     },
   )
@@ -487,7 +488,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: PlatformTemplateIdParamsSchema, body: InvoiceTemplateUpdateSchema } },
     async (req, reply) => {
       const template = await service.updatePlatformTemplate(req.params.platformId, req.params.id, req.body)
-      if (!template) return reply.code(404).send({ success: false, error: 'Template not found' })
+      if (!template) return fail(reply, 404, 'TEMPLATE_NOT_FOUND')
       return { success: true, data: template }
     },
   )
@@ -497,7 +498,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: PlatformTemplateIdParamsSchema } },
     async (req, reply) => {
       const deleted = await service.deletePlatformTemplate(req.params.platformId, req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Template not found' })
+      if (!deleted) return fail(reply, 404, 'TEMPLATE_NOT_FOUND')
       return { success: true }
     },
   )
@@ -523,7 +524,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
         const resolved = await service.resolveClientTemplateLines(req.params.clientId, req.params.id, req.query.currency)
         return { success: true, data: resolved }
       } catch (err) {
-        return fail(reply, err)
+        return sendInvoicingError(req, reply, err, 'TEMPLATE_RESOLVE_FAILED')
       }
     },
   )

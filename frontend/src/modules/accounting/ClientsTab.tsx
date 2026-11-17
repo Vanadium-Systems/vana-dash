@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Calculator, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useMe } from '@/shared/hooks/use-me'
 import { StatePill } from '@/shared/components/ui/state-pill'
@@ -16,6 +16,7 @@ import type { BillingClient } from '@/shared/lib/types'
 import { ClientFormDialog } from './ClientFormDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const PENDING_DELETION_PURGE_DAYS = 30
 
@@ -144,7 +145,7 @@ export function ClientsTab() {
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
       toast.success(t('accounting:clients.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // Rulare manuală a jobs/vanagreen-tenant-sync.ts (cronul zilnic la 06:30) — nu mai aștepți
@@ -155,7 +156,7 @@ export function ClientsTab() {
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
       toast.success(t('accounting:clients.syncedWithVanagreen'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const needingBillingInfo = clients.data?.filter((c) => c.needsBillingInfo) ?? []
@@ -164,6 +165,25 @@ export function ClientsTab() {
     setEditing(c)
     setDialogOpen(true)
   }
+
+  // `?client=<id>`: the client's name on an invoice opens their card here (an active client has no
+  // page of its own). The param goes once the card opened, so closing it does not reopen it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedClientId = searchParams.get('client')
+  useEffect(() => {
+    if (!linkedClientId) return
+    const all = [...(clients.data ?? []), ...(demoClients.data ?? []), ...(pendingDeletionClients.data ?? [])]
+    const linked = all.find((c) => c.id === linkedClientId)
+    if (!linked && (clients.isPending || demoClients.isPending || pendingDeletionClients.isPending)) return
+    if (linked) openEdit(linked)
+    setSearchParams(
+      (params) => {
+        params.delete('client')
+        return params
+      },
+      { replace: true },
+    )
+  }, [linkedClientId, clients.data, demoClients.data, pendingDeletionClients.data])
   const askDelete = (c: BillingClient) => {
     void confirm({ title: t('accounting:clients.deleteTitle', { name: c.name }), consequence: t('accounting:clients.deleteBody'), confirmLabel: t('accounting:clients.deleteConfirm'), destructive: true }).then((ok) => ok && remove.mutate(c.id))
   }

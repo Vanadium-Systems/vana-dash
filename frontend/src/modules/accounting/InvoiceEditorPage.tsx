@@ -2,7 +2,6 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { ArrowLeft, FileCheck } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { toast } from 'sonner'
 import { Money } from '@/shared/components/Money'
 import { Alert } from '@/shared/components/ui/alert'
 import { Button } from '@/shared/components/ui/button'
@@ -45,6 +44,7 @@ import {
 } from './invoice-editor-logic'
 import { INVOICING_CLIENTS_KEY, recordDetailKey } from './records-api'
 import { useDraftAutosave } from './use-draft-autosave'
+import { toastError } from '@/shared/lib/errors'
 
 const WIDE = '(min-width: 1280px)'
 const fetchDetail = (id: string) => api.get<RecordDetail>(`/api/accounting/records/${id}/detail`)
@@ -211,7 +211,7 @@ function Editor({ detail, onReload }: { detail: RecordDetail | null; onReload: (
         lines: resolved.lines.map((li) => ({ description: li.description, quantity: String(li.quantity), price: String(li.unitPrice), priceCurrency: '', vatRate: String(li.vatRate) })),
       })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('accounting:editor.template.failed'))
+      toastError(err, t('accounting:editor.template.failed'))
     } finally {
       setResolvingTemplate(false)
     }

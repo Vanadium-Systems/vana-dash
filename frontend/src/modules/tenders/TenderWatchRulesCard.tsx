@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Reguli de match CPV/keyword pt. monitorul de licitații — editabile din UI din prima zi
 // (pattern ProspectStatusesCard, fără reorder: ordinea regulilor nu contează, e OR simplu).
@@ -23,19 +24,19 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
   const toggleActive = useMutation({
     mutationFn: () => api.patch<TenderWatchRule>(`/api/tenders/watch-rules/${rule.id}`, { active: !rule.active }),
     onSuccess: (data) => queryClient.setQueryData<TenderWatchRule[]>(['tenders', 'watch-rules'], (rows) => rows?.map((r) => (r.id === data.id ? data : r))),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const togglePriority = useMutation({
     mutationFn: () => api.patch<TenderWatchRule>(`/api/tenders/watch-rules/${rule.id}`, { highPriority: !rule.highPriority }),
     onSuccess: (data) => queryClient.setQueryData<TenderWatchRule[]>(['tenders', 'watch-rules'], (rows) => rows?.map((r) => (r.id === data.id ? data : r))),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const toggleExclude = useMutation({
     mutationFn: () => api.patch<TenderWatchRule>(`/api/tenders/watch-rules/${rule.id}`, { exclude: !rule.exclude }),
     onSuccess: (data) => queryClient.setQueryData<TenderWatchRule[]>(['tenders', 'watch-rules'], (rows) => rows?.map((r) => (r.id === data.id ? data : r))),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const remove = useMutation({
@@ -44,7 +45,7 @@ function RuleRow({ rule }: { rule: TenderWatchRule }) {
       void queryClient.invalidateQueries({ queryKey: ['tenders', 'watch-rules'] })
       toast.success(t('tenders:rules.deleted'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (
@@ -127,7 +128,7 @@ function NewRuleForm() {
       setExclude(false)
       toast.success(t('tenders:rules.added'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const canCreate = label.trim().length > 0 && (cpvPrefix.trim().length > 0 || keyword.trim().length > 0)
@@ -188,7 +189,7 @@ function ArchiveAfterField() {
       void queryClient.invalidateQueries({ queryKey: ['tenders'], exact: false })
       toast.success(t('tenders:archive.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const value = Number(days)
   const valid = Number.isInteger(value) && value >= 1 && value <= 365

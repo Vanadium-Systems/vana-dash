@@ -194,7 +194,7 @@ describe('mcp endpoint', () => {
       payload: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: META } }),
     })
     expect(res.statusCode).toBe(403)
-    expect(res.json().error).toBe('TOKEN_REQUIRED')
+    expect(res.json().error.code).toBe('TOKEN_REQUIRED')
   })
 
   it('no credentials at all is 401', async () => {
@@ -204,7 +204,7 @@ describe('mcp endpoint', () => {
   it('a request with an Origin header is refused', async () => {
     const res = await rpc('tools/list', {}, { ...withToken(viewToken), origin: 'https://example.com' })
     expect(res.statusCode).toBe(403)
-    expect(res.json().error).toBe('ORIGIN_NOT_ALLOWED')
+    expect(res.json().error.code).toBe('ORIGIN_NOT_ALLOWED')
   })
 
   it('an mcp-name header that disagrees with params.name is 400 with code -32020', async () => {

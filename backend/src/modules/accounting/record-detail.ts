@@ -67,6 +67,7 @@ export async function getRecordDetail(id: string) {
       correctsRecordId: financialRecords.correctsRecordId,
       convertedToRecordId: financialRecords.convertedToRecordId,
       proformaStatus: financialRecords.proformaStatus,
+      anafRejectionReason: financialRecords.anafRejectionReason,
       updatedAt: financialRecords.updatedAt,
       paidAmount: sql<number>`${paidAmountSql}::float8`.mapWith(Number),
       remaining: sql<number>`${remainingSql}::float8`.mapWith(Number),

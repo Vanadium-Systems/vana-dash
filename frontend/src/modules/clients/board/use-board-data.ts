@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
 import { api } from '@/shared/lib/api'
 import type { FilterClause } from '@/shared/lib/filters'
 import { filterParams } from '../prospects/use-prospect-data'
 import type { ProspectRow } from '../prospects/types'
 import type { BoardResponse, ForecastResponse } from './types'
+import { toastError } from '@/shared/lib/errors'
 
 export function useBoard(f: FilterClause[], q: string, enabled: boolean) {
   const query = filterParams(f, q)
@@ -48,7 +48,7 @@ export function useMoveProspect(f: FilterClause[], q: string) {
     },
     onError: (err: Error, _vars, context) => {
       if (context?.before) queryClient.setQueryData(boardKey, context.before)
-      toast.error(err.message)
+      toastError(err)
     },
     onSettled: () => void queryClient.invalidateQueries({ queryKey: ['prospects'] }),
   })

@@ -21,6 +21,8 @@ export const emailMessages = pgTable(
     resendEmailId: text('resend_email_id'),
     fromAddress: text('from_address').notNull(),
     toAddress: text('to_address').notNull(),
+    // The Cc: addresses, inbound (from the Worker) and outbound (what we sent with).
+    ccAddresses: text('cc_addresses').array().notNull().default(sql`'{}'::text[]`),
     // Header Reply-To, dacă expeditorul l-a setat explicit (diferit de From — comun la
     // trimițători bulk/transacționali). NULL dacă lipsește — reply-ul cade pe fromAddress.
     // Bug găsit de Stefan (2026-07-24): worker-ul Cloudflare punea `message.from` (envelope

@@ -5,6 +5,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface OpsJobToggles {
   bankSync: boolean
@@ -46,7 +47,7 @@ export function OpsJobsSettingsCard() {
       queryClient.setQueryData(['settings', 'ops-jobs'], data)
       toast.success(t('common:states.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (toggles.isPending || !toggles.data) return null

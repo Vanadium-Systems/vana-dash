@@ -8,6 +8,7 @@ import { api } from '@/shared/lib/api'
 import type { EmailSequence, EnrollResult } from '@/shared/lib/types'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 export interface SequenceTarget {
   id: string
@@ -62,7 +63,7 @@ export function AddToSequenceDialog({ prospects, onOpenChange }: AddToSequenceDi
       toast.success(t('pricing:sequence.enrolledToast', { enrolled: data.enrolled, alreadyNote }))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (prospects.length === 0) return null

@@ -32,6 +32,7 @@ import { ChangedKeysNotice } from './crypto/E2ESetup'
 import { useLegacyReencryption } from './crypto/legacy'
 import { useAttachmentUrl } from './crypto/useAttachmentUrl'
 import { useMinuteTick } from '@/shared/hooks/use-minute-tick'
+import { toastError } from '@/shared/lib/errors'
 
 // The thread: bubbles as in WhatsApp (yours on the right), the behaviour of Slack around them:
 // keyboard, a menu with shortcuts, "typing…" on a reserved line, jumping to a date. A series
@@ -226,7 +227,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
         const id = await thread.jumpTo(target)
         if (id) setTimeout(() => reveal(id), 0)
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : String(err))
+        toastError(err)
       }
     },
     [reveal, thread],
@@ -265,7 +266,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
       }
       thread.remove(messageId).catch((err: Error) => {
         setHiddenIds((current) => new Set([...current].filter((id) => id !== messageId)))
-        toast.error(err.message)
+        toastError(err)
       })
     },
     [thread],
@@ -331,7 +332,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
       if (id === conversation.id) composerRef.current?.prefill(text)
       else navigate(`/messages/${id}`, { state: { prefill: text } })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     }
   }
 
@@ -352,7 +353,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
 
   const react = (row: ThreadRow, emoji: string) => {
     if (!row.id) return
-    thread.toggleReaction(row.id, emoji, meId).catch((err: Error) => toast.error(err.message))
+    thread.toggleReaction(row.id, emoji, meId).catch((err: Error) => toastError(err))
   }
 
   // ── Keyboard (#31) ─────────────────────────────────────────────────────────
@@ -447,7 +448,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
       seedPlainCache(queryClient, res.message, content)
       navigate(`/calls/${res.call.id}#k=${encodeURIComponent(roomKey)}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      toastError(err)
     } finally {
       setStartingCall(false)
     }
@@ -583,7 +584,7 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
                             onInfo: () => setInfoFor(row.createdAt),
                             onEditSave: (body) => {
                               setEditingId(null)
-                              if (row.id) thread.edit(row.id, body).catch((err: Error) => toast.error(err.message))
+                              if (row.id) thread.edit(row.id, body).catch((err: Error) => toastError(err))
                             },
                             onEditCancel: () => setEditingId(null),
                             onDelete: () => row.id && deleteMessage(row.id),
@@ -701,7 +702,7 @@ function AttachmentViewer({ attachment, onClose }: { attachment: ResolvedAttachm
       onClose={onClose}
       onDownload={(file) => {
         const saving = attachment.key ? saveDecrypted(attachment.key) : api.download(`${file.url}?download=1`, file.name)
-        void saving.catch((err: Error) => toast.error(err.message))
+        void saving.catch((err: Error) => toastError(err))
       }}
     />
   )

@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-17T17:30:00Z',
+    title: {
+      ro: 'Mesaje de eroare clare și noutăți în Facturi, Email și Arhivă',
+      en: 'Clearer error messages plus fixes across Invoicing, Email and Archive',
+    },
+    body: {
+      ro: 'Mesajele de eroare vin acum traduse și pe înțeles, cu un cod scurt dedesubt când problema ține de server sau de o integrare externă. În plus: motivul respingerii de la ANAF apare pe pagina facturii, proformele arată numărul pe fiecare filtru, în Email vezi și destinatarii din Cc, iar în Arhivă poți selecta toate fișierele din folder, vezi dimensiunile imaginilor în Detalii și ai meniul fișierului direct în previzualizare.',
+      en: 'Error messages are now localized and plain-spoken, with a short code underneath when an error comes from the server or an external integration. Also new: ANAF rejection reasons appear on the invoice page, proforma filters show counts, Email threads show Cc recipients, and Archive adds folder-wide selection, image dimensions in Details and the item menu inside the previewer.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-17T14:00:00Z',
     title: {
       ro: 'Apeluri video și audio criptate cap-la-cap',

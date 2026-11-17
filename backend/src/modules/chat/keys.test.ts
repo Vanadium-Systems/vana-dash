@@ -213,7 +213,7 @@ describe('înregistrarea dispozitivelor', () => {
       headers: { authorization: `Bearer ${minted.json().data.token as string}` },
     })
     expect(res.statusCode).toBe(403)
-    expect(res.json().error).toMatch(/token API/)
+    expect(res.json().error.code).toBe('CHAT_KEYS_NEED_SESSION')
   })
 })
 

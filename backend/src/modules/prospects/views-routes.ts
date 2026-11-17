@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { prospectListsRoutes } from './lists-routes.js'
 import { CreateViewSchema, UpdateViewSchema, ViewParamsSchema } from './views-schema.js'
@@ -9,7 +10,7 @@ import * as views from './views-service.js'
 export async function prospectSavedRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
   const auth = { preHandler: [app.authenticate] }
-  const notFound = (reply: FastifyReply) => reply.code(404).send({ success: false, error: tr('errors.prospects.viewNotFound') })
+  const notFound = (reply: FastifyReply) => fail(reply, 404, 'VIEW_NOT_FOUND', { message: tr('errors.prospects.viewNotFound') })
 
   // ── Views ──
   server.get('/api/prospects/views', auth, async (req) => ({ success: true, data: await views.listViews(req.me) }))

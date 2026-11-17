@@ -20,6 +20,7 @@ import { OutreachMailboxesSummary } from './OutreachMailboxesSummary'
 import { isFailureStatus, STATUS_LABEL, STATUS_TONE } from './send-status'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const RECENT_BATCHES_LIMIT = 5
 
@@ -106,7 +107,7 @@ export function BulkSendTab() {
       const encoded = await Promise.all(toAdd.map(readFileAsBase64))
       setAttachments((prev) => [...prev, ...encoded])
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('email:attach.readFailed'))
+      toastError(err, t('email:attach.readFailed'))
     }
   }
 
@@ -143,7 +144,7 @@ export function BulkSendTab() {
       const platformName = platforms.data?.find((p) => p.id === id)?.name ?? t('email:bulk.platformFallback')
       toast.success(t('email:bulk.clientsLoaded', { count: clients.length, platformName }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   const { valid: recipients, invalid: invalidLines } = useMemo(() => parseRecipients(raw), [raw])
@@ -180,7 +181,7 @@ export function BulkSendTab() {
       const capNote = data.capBlockedRecipients.length ? t('email:bulk.capNote', { count: data.capBlockedRecipients.length }) : ''
       toast.success(t('email:bulk.resultToast', { sent: data.sent, skipped: data.skipped, suppressed: data.suppressed, failed: data.failed, capNote }))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   // Sursa persistată pt. tabelul detaliat — supraviețuiește unui refresh, spre deosebire de

@@ -26,6 +26,7 @@ import type {
   AccessShare,
   ArchiveDetails,
   ArchiveDownloadUrl,
+  ArchiveFile,
   ArchiveFilesPage,
   ArchiveFolder,
   ArchiveFolderPath,
@@ -45,7 +46,7 @@ import { ColorDialog } from './ColorDialog'
 import { DetailsPeek } from './DetailsPeek'
 import type { FilterValues } from './FilterChips'
 import { isModifiedRange, isTypeFilter, modifiedAfterIso } from './filters'
-import type { ItemActions } from './ItemMenu'
+import { ItemMenu, type ItemActions } from './ItemMenu'
 import { fileItem, folderItem, hitItem, starredFolderItem, type ArchiveItem } from './items'
 import { carriesFiles, type ListEnv } from './list-env'
 import { MoveDialog } from './MoveDialog'
@@ -58,6 +59,8 @@ import { StoragePanel } from './StoragePanel'
 import { TrashView } from './TrashView'
 import { UploadPanel } from './UploadPanel'
 import { enqueueUploads, useUploads } from './uploads'
+import { toastError } from '@/shared/lib/errors'
+import { MenuLayerProvider } from '@/shared/components/ui/dropdown-menu'
 
 const VIEW_MODE_KEY = 'archive-view-mode'
 const VIEWS: ArchiveView[] = ['own', 'shared', 'all', 'recent', 'starred', 'trash', 'space']
@@ -258,7 +261,37 @@ export function ArchivePage() {
 
   const itemIds = useMemo(() => items.map((item) => item.id), [items])
   const selection = useSelection(itemIds)
-  const selectedItems = useMemo(() => items.filter((item) => selection.selected.has(item.id)), [items, selection.selected])
+  // "Select all N": every file of the folder, past this page, read page by page (the list caps a page at 50).
+  const [everything, setEverything] = useState<ArchiveItem[] | null>(null)
+  const [loadingEverything, setLoadingEverything] = useState(false)
+  useEffect(() => {
+    if (everything && !selection.allSelected) setEverything(null)
+  }, [selection.allSelected, everything])
+  useEffect(() => setEverything(null), [currentFolderId, page, pageSize, sort, filters.type, filters.modified, filters.tag])
+  const selectEverything = () =>
+    void guarded(async () => {
+      setLoadingEverything(true)
+      try {
+        const all: ArchiveFile[] = []
+        for (let next = 1; ; next++) {
+          const params = new URLSearchParams({ page: String(next), pageSize: '50', sort })
+          if (currentFolderId) params.set('folderId', currentFolderId)
+          if (filters.type) params.set('type', filters.type)
+          if (filters.modified) params.set('modifiedAfter', modifiedAfterIso(filters.modified))
+          if (filters.tag) params.set('tags', filters.tag)
+          const chunk = await api.get<ArchiveFilesPage>(`/api/archive/files?${params.toString()}`)
+          all.push(...chunk.items)
+          if (chunk.items.length === 0 || all.length >= chunk.total) break
+        }
+        const here = currentLevel === 'edit' && canEdit
+        const folderRows = items.filter((item) => item.kind === 'folder')
+        setEverything([...folderRows, ...all.map((file) => fileItem(file, { starred: starredIds.has(file.id), canWrite: here }))])
+      } finally {
+        setLoadingEverything(false)
+      }
+    })
+  const pageSelection = useMemo(() => items.filter((item) => selection.selected.has(item.id)), [items, selection.selected])
+  const selectedItems = everything ?? pageSelection
   const selectedBytes = selectedItems.reduce((sum, item) => sum + item.sizeBytes, 0)
   const targetsFor = (item: ArchiveItem) => (selection.selected.has(item.id) && selectedItems.length > 1 ? selectedItems : [item])
 
@@ -294,7 +327,7 @@ export function ArchivePage() {
       queryClient.setQueryData(['archive', 'shares', shareTarget?.id], data)
       toast.success(t('archive:toasts.accessSaved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
   const removeShare = useMutation({
     mutationFn: (userId: string) => api.delete<AccessShare[]>(`/api/archive/folders/${shareTarget!.id}/shares/${userId}`),
@@ -302,7 +335,7 @@ export function ArchivePage() {
       queryClient.setQueryData(['archive', 'shares', shareTarget?.id], data)
       toast.success(t('archive:toasts.accessRemoved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   async function guarded(work: () => Promise<unknown>) {
@@ -310,7 +343,7 @@ export function ArchivePage() {
     try {
       await work()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('common:states.changeNotSaved'))
+      toastError(err, t('common:states.changeNotSaved'))
     } finally {
       setBusy(false)
     }
@@ -329,7 +362,7 @@ export function ArchivePage() {
 
   const actions: ItemActions = {
     open: (item) => (item.kind === 'folder' ? openFolder(item.id) : openFile(item.id)),
-    download: (targets) => void downloadItems(targets).catch((err: Error) => toast.error(err.message)),
+    download: (targets) => void downloadItems(targets).catch((err: Error) => toastError(err)),
     rename: (item) => setNameTarget({ type: 'rename', item }),
     move: (targets) => setMoveTargets(targets),
     toggleStar: (targets) => {
@@ -339,7 +372,7 @@ export function ArchivePage() {
           invalidate()
           toast.success(add ? t('archive:toasts.starred', { count: targets.length }) : t('archive:toasts.unstarred', { count: targets.length }))
         },
-        (err: Error) => toast.error(err.message),
+        (err: Error) => toastError(err),
       )
     },
     trash: (targets) =>
@@ -354,7 +387,7 @@ export function ArchivePage() {
     sendNative: (item) =>
       void shareFileNatively(item.id, item.name).catch((err: unknown) => {
         if (err instanceof Error && err.name === 'AbortError') return // closed from the system sheet
-        toast.error(err instanceof Error ? err.message : t('common:errors.unknown'))
+        toastError(err, t('common:errors.unknown'))
       }),
     toggleMonthly: (item) =>
       void guarded(async () => {
@@ -490,6 +523,17 @@ export function ArchivePage() {
     return { id: file.id, name: file.name, url, mimeType: url ? file.mimeType : 'application/octet-stream' }
   })
   const viewerCurrent = viewerList[viewerIndex]
+  const viewerItem = viewerCurrent ? fileItems.find((item) => item.id === viewerCurrent.id) ?? null : null
+  // The dialogs these open sit under the viewer, so it steps aside first.
+  const viewerActions: ItemActions = {
+    ...actions,
+    rename: (item) => (closeViewer(), actions.rename(item)),
+    move: (targets) => (closeViewer(), actions.move(targets)),
+    share: (item) => (closeViewer(), actions.share(item)),
+    pickColor: (item) => (closeViewer(), actions.pickColor(item)),
+    sendToMessages: (item) => (closeViewer(), actions.sendToMessages(item)),
+    showLocation: (item) => (closeViewer(), actions.showLocation(item)),
+  }
   const viewerOpen = fileParam !== '' && viewerFiles.length > 0
 
   // --- shortcuts ---
@@ -664,7 +708,15 @@ export function ArchivePage() {
       ) : null}
     </>
   )
-  const selectionBarProps = { count: selection.count, allSelected: selection.allSelected, onSelectAll: selection.selectAll, onClear: selection.clear, total: pagination?.total }
+  const selectionBarProps = {
+    count: everything?.length ?? selection.count,
+    allSelected: selection.allSelected,
+    onSelectAll: selection.selectAll,
+    onClear: selection.clear,
+    total: pagination ? pagination.total + (page === 1 ? items.filter((item) => item.kind === 'folder').length : 0) : undefined,
+    onSelectEverything: pagination && !loadingEverything ? selectEverything : undefined,
+    everythingSelected: everything !== null,
+  }
 
   function body() {
     if (view === 'trash') return <TrashView onOpenFolder={openFolder} />
@@ -865,7 +917,7 @@ export function ArchivePage() {
           index={viewerIndex}
           onIndexChange={(index) => setParam('file', viewerFiles[index]?.id ?? null, { replace: true })}
           onClose={closeViewer}
-          onDownload={(file) => void api.download(`/api/archive/files/${file.id}/download`, file.name).catch((err: Error) => toast.error(err.message))}
+          onDownload={(file) => void api.download(`/api/archive/files/${file.id}/download`, file.name).catch((err: Error) => toastError(err))}
           toolbar={
             viewerCurrent ? (
               <>
@@ -876,7 +928,7 @@ export function ArchivePage() {
                   aria-label={starredIds.has(viewerCurrent.id) ? t('archive:menu.unstar') : t('archive:menu.star')}
                   onClick={() => {
                     const add = !starredIds.has(viewerCurrent.id)
-                    void setStarred([{ kind: 'file', id: viewerCurrent.id }], add).then(invalidate, (err: Error) => toast.error(err.message))
+                    void setStarred([{ kind: 'file', id: viewerCurrent.id }], add).then(invalidate, (err: Error) => toastError(err))
                   }}
                 >
                   <Star className={starredIds.has(viewerCurrent.id) ? 'h-5 w-5 fill-warning text-warning' : 'h-5 w-5'} />
@@ -899,6 +951,11 @@ export function ArchivePage() {
                   >
                     <MessageSquareShare className="h-5 w-5" />
                   </button>
+                ) : null}
+                {viewerItem ? (
+                  <MenuLayerProvider value="z-viewer-menu">
+                    <ItemMenu targets={[viewerItem]} actions={viewerActions} title={viewerItem.name} className={viewerButtonClass} />
+                  </MenuLayerProvider>
                 ) : null}
               </>
             ) : null

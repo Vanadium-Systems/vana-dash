@@ -1,0 +1,1 @@
+ALTER TABLE "email_messages" ADD COLUMN "cc_addresses" text[] DEFAULT '{}'::text[] NOT NULL;

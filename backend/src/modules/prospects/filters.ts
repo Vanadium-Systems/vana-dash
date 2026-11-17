@@ -337,6 +337,7 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
 
 export class FilterOpError extends Error {
   readonly statusCode = 400
+  readonly userFacing = true
   constructor(field: string, op: string) {
     super(`filter ${field}: operator ${op} not supported`)
   }

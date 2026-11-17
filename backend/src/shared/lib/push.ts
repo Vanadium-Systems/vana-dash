@@ -5,6 +5,7 @@ import { db } from '../db/client.js'
 import { dashboardConfig, deviceTokens, pushSubscriptions, users } from '../db/schema/index.js'
 import { tr } from './i18n.js'
 import type { Locale } from './locale.js'
+import { httpError } from './http-error.js'
 
 // Wrapper unic pt. Web Push (PLAN.md Sprint 2) — fire-and-forget, niciun `await` blocant pe
 // fluxul principal la punctele de integrare. Cheia privată VAPID nu ajunge NICIODATĂ în vreun
@@ -216,7 +217,7 @@ export async function closePushNotification(userId: string, tag: string): Promis
  * (buton explicit "Trimite test" în Settings, nu un eveniment real).
  */
 export async function sendTestPush(ownerUserId: string): Promise<{ sent: number; failed: number }> {
-  if (!ensureVapid()) throw new Error(tr('errors.push.vapidMissing'))
+  if (!ensureVapid()) throw httpError(503, 'PUSH_NOT_CONFIGURED').causedBy('VAPID keys missing')
 
   const subs = await db
     .select()

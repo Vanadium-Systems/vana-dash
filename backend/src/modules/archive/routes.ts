@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import multipart from '@fastify/multipart'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { z } from 'zod'
 import { deleteFromR2, uploadToR2 } from '../../shared/lib/r2.js'
 import {
   AssignFolderSchema,
@@ -24,11 +25,16 @@ import { bulkMove, putBack } from './bulk.js'
 import { ArchiveConflictError, ArchiveNotFoundError, ArchiveStorageFullError } from './service.js'
 import { ensureSpaceRoot } from './access.js'
 import { storageUsage } from '../../shared/lib/storage-quota.js'
+import { fail } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { contentDisposition } from '../../shared/lib/text.js'
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024 // 200MB — arhivă personală, nu streaming video la scară
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const IdParamsSchema = z.object({ id: z.string().uuid() })
+const ShareUserParamsSchema = z.object({ id: z.string().uuid(), userId: z.string().uuid() })
+const OwnerParamsSchema = z.object({ ownerUserId: z.string().uuid() })
+const BatchParamsSchema = z.object({ batchId: z.string().uuid() })
 
 export async function archiveRoutes(app: FastifyInstance) {
   // Scoped la rutele acestui plugin (encapsulare Fastify) — restul aplicației nu e afectată.
@@ -38,19 +44,17 @@ export async function archiveRoutes(app: FastifyInstance) {
 
   server.setErrorHandler((error, _req, reply) => {
     if (error instanceof ArchiveNotFoundError) {
-      return reply.code(404).send({ success: false, error: error.message, itemId: error.itemId })
+      return fail(reply, 404, 'ARCHIVE_NOT_FOUND', {
+        message: error.message,
+        details: error.itemId ? { itemId: error.itemId } : undefined,
+      })
     }
-    if (error instanceof ArchiveConflictError) {
-      return reply.code(409).send({ success: false, error: error.message })
-    }
+    if (error instanceof ArchiveConflictError) return fail(reply, 409, 'ARCHIVE_CONFLICT', { message: error.message })
     if (error instanceof ArchiveStorageFullError) {
       const gb = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(1)} GB`
-      return reply.code(413).send({
-        success: false,
-        error: tr('errors.archive.storageFull', { used: gb(error.usedBytes), limit: gb(error.limitBytes) }),
-        code: 'STORAGE_FULL',
-        usedBytes: error.usedBytes,
-        limitBytes: error.limitBytes,
+      return fail(reply, 413, 'STORAGE_FULL', {
+        message: tr('errors.archive.storageFull', { used: gb(error.usedBytes), limit: gb(error.limitBytes) }),
+        details: { usedBytes: error.usedBytes, limitBytes: error.limitBytes },
       })
     }
     throw error
@@ -85,47 +89,49 @@ export async function archiveRoutes(app: FastifyInstance) {
 
   server.patch(
     '/api/archive/folders/:id',
-    { preHandler: [app.authenticate], schema: { body: UpdateFolderSchema } },
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: UpdateFolderSchema } },
     async (req) => {
-      const row = await service.updateFolder(req.me, (req.params as { id: string }).id, req.body)
+      const row = await service.updateFolder(req.me, req.params.id, req.body)
       if (!row) return { success: true }
       return { success: true, data: row }
     },
   )
 
   // A folder goes to the Trash with everything in it; the answer is what the undo toast needs.
-  server.delete('/api/archive/folders/:id', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await trash.trashFolder(req.me, (req.params as { id: string }).id),
-  }))
+  server.delete(
+    '/api/archive/folders/:id',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await trash.trashFolder(req.me, req.params.id),
+    }),
+  )
 
   // Share pe folder — listă / adaugă (sau schimbă nivelul) / scoate. Dreptul îl are doar
   // proprietarul folderului sau adminul (service::assertCanShare).
-  server.get('/api/archive/folders/:id/shares', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await service.listShares(req.me, (req.params as { id: string }).id),
-  }))
+  server.get(
+    '/api/archive/folders/:id/shares',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await service.listShares(req.me, req.params.id),
+    }),
+  )
 
   server.post(
     '/api/archive/folders/:id/shares',
-    { preHandler: [app.authenticate], schema: { body: ShareSchema } },
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: ShareSchema } },
     async (req, reply) => {
-      const shares = await service.setShare(
-        req.me,
-        (req.params as { id: string }).id,
-        req.body.userId,
-        req.body.level,
-      )
+      const shares = await service.setShare(req.me, req.params.id, req.body.userId, req.body.level)
       return reply.code(201).send({ success: true, data: shares })
     },
   )
 
   server.delete(
     '/api/archive/folders/:id/shares/:userId',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate], schema: { params: ShareUserParamsSchema } },
     async (req) => {
-      const { id, userId } = req.params as { id: string; userId: string }
-      return { success: true, data: await service.removeShare(req.me, id, userId) }
+      return { success: true, data: await service.removeShare(req.me, req.params.id, req.params.userId) }
     },
   )
 
@@ -133,19 +139,19 @@ export async function archiveRoutes(app: FastifyInstance) {
   // `arhiva.administrare` — de asta există funcționalitatea.
   server.post(
     '/api/archive/folders/:id/assign',
-    { preHandler: [app.authenticate], schema: { body: AssignFolderSchema } },
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: AssignFolderSchema } },
     async (req) => ({
       success: true,
-      data: await service.assignFolder(req.me, (req.params as { id: string }).id, req.body.ownerUserId),
+      data: await service.assignFolder(req.me, req.params.id, req.body.ownerUserId),
     }),
   )
 
   server.post(
     '/api/archive/spaces/:ownerUserId/assign',
-    { preHandler: [app.authenticate], schema: { body: AssignSpacesSchema } },
+    { preHandler: [app.authenticate], schema: { params: OwnerParamsSchema, body: AssignSpacesSchema } },
     async (req) => ({
       success: true,
-      data: await service.assignAllSpaces(req.me, (req.params as { ownerUserId: string }).ownerUserId, req.body.toUserId),
+      data: await service.assignAllSpaces(req.me, req.params.ownerUserId, req.body.toUserId),
     }),
   )
 
@@ -154,7 +160,7 @@ export async function archiveRoutes(app: FastifyInstance) {
   // conține doar ce a fost parsat până la file part).
   server.post('/api/archive/files', { preHandler: [app.authenticate] }, async (req, reply) => {
     const data = await req.file()
-    if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
+    if (!data) return fail(reply, 400, 'FILE_MISSING', { message: tr('errors.files.missing') })
 
     // Multipart nu trece prin `schema:` Zod (mecanismul standard nu se aplică pe form-data) —
     // validăm manual. Fără asta, un folderId invalid pică urât cu 500 la INSERT (coloană uuid),
@@ -165,7 +171,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     const folderIdRaw = folderIdField && 'value' in folderIdField ? String(folderIdField.value) : ''
     const folderId = folderIdRaw || undefined
     if (folderId && !UUID_RE.test(folderId)) {
-      return reply.code(400).send({ success: false, error: tr('errors.archive.invalidFolderId') })
+      return fail(reply, 400, 'ARCHIVE_FOLDER_ID_INVALID', { message: tr('errors.archive.invalidFolderId') })
     }
     const tagsField = data.fields.tags
     const tagsRaw = tagsField && 'value' in tagsField ? String(tagsField.value) : ''
@@ -180,7 +186,7 @@ export async function archiveRoutes(app: FastifyInstance) {
     if (data.mimetype === 'application/pdf') {
       const buffer = await data.toBuffer()
       if (data.file.truncated) {
-        return reply.code(413).send({ success: false, error: tr('errors.archive.fileTooLarge') })
+        return fail(reply, 413, 'PAYLOAD_TOO_LARGE', { message: tr('errors.archive.fileTooLarge') })
       }
       await service.assertStorageAvailable(buffer.byteLength)
       try {
@@ -193,41 +199,52 @@ export async function archiveRoutes(app: FastifyInstance) {
         })
         return { success: true, data: row }
       } catch (err) {
-        return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
+        // A refused folder is a 404 from the access check, not a storage problem.
+        if (err instanceof ArchiveNotFoundError || err instanceof ArchiveStorageFullError) throw err
+        req.log.warn({ err }, 'archive pdf upload failed')
+        return fail(reply, 502, 'STORAGE_UNAVAILABLE')
       }
     }
 
     // The size of a streamed part is unknown up front: refuse when the bucket is already full,
     // and check again with the real size once the upload is done.
     await service.assertStorageAvailable(1)
+    // Write access first: nothing reaches the bucket for a folder the person cannot write to.
+    const targetFolderId = await service.resolveUploadFolder(req.me, folderId)
     const safeName = data.filename.replace(/[/\\]/g, '_')
     const r2Key = `archive/${randomUUID()}-${safeName}`
     try {
       await uploadToR2(r2Key, data.file, data.mimetype)
     } catch (err) {
-      return reply.code(502).send({ success: false, error: tr('errors.files.uploadFailed', { err: String(err) }) })
+      req.log.warn({ err }, 'archive upload to storage failed')
+      return fail(reply, 502, 'STORAGE_UNAVAILABLE')
     }
     if (data.file.truncated) {
       // busboy nu aruncă la depășirea fileSize — trunchiază stream-ul silențios (`file.truncated
       // = true`, fără eroare), deci uploadToR2 de mai sus a reușit deja cu conținutul trunchiat.
       // Fără ștergerea explicită de aici, obiectul orfan (fără rând DB) ar rămâne definitiv în R2.
       await deleteFromR2(r2Key).catch(() => {})
-      return reply.code(413).send({ success: false, error: tr('errors.archive.fileTooLarge') })
+      return fail(reply, 413, 'PAYLOAD_TOO_LARGE', { message: tr('errors.archive.fileTooLarge') })
     }
     await service.assertStorageAvailable(data.file.bytesRead).catch(async (err) => {
       await deleteFromR2(r2Key).catch(() => {})
       throw err
     })
 
-    const row = await service.createFileRecord(req.me, {
-      folderId,
-      name: data.filename,
-      mimeType: data.mimetype,
-      sizeBytes: data.file.bytesRead,
-      r2Key,
-      tags,
-    })
-    return { success: true, data: row }
+    try {
+      const row = await service.createFileRecord(req.me, {
+        folderId: targetFolderId,
+        name: data.filename,
+        mimeType: data.mimetype,
+        sizeBytes: data.file.bytesRead,
+        r2Key,
+        tags,
+      })
+      return { success: true, data: row }
+    } catch (err) {
+      await deleteFromR2(r2Key).catch(() => {})
+      throw err
+    }
   })
 
   server.get(
@@ -268,21 +285,29 @@ export async function archiveRoutes(app: FastifyInstance) {
     async (req) => ({ success: true, data: await service.removeStar(req.me, req.params.type, req.params.id) }),
   )
 
-  server.get('/api/archive/files/:id/details', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await service.getFileDetails(req.me, (req.params as { id: string }).id),
-  }))
+  server.get(
+    '/api/archive/files/:id/details',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await service.getFileDetails(req.me, req.params.id),
+    }),
+  )
 
-  server.get('/api/archive/folders/:id/details', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await service.getFolderDetails(req.me, (req.params as { id: string }).id),
-  }))
+  server.get(
+    '/api/archive/folders/:id/details',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await service.getFolderDetails(req.me, req.params.id),
+    }),
+  )
 
   server.get(
     '/api/archive/files/:id/download-url',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req) => {
-      const result = await service.getFileForDownload(req.me, (req.params as { id: string }).id)
+      const result = await service.getFileForDownload(req.me, req.params.id)
       return { success: true, data: result }
     },
   )
@@ -292,43 +317,59 @@ export async function archiveRoutes(app: FastifyInstance) {
   // de ArchiveAttachPicker.tsx (fetch() care are nevoie să citească bytes-ii în JS pt. atașare),
   // NU de download-ul normal din UI-ul Arhivei (acela rămâne pe URL presemnat, window.open/
   // navigare directă, nesupusă CORS).
-  server.get('/api/archive/files/:id/download', { preHandler: [app.authenticate] }, async (req, reply) => {
-    const result = await service.getFileBufferForDownload(req.me, (req.params as { id: string }).id)
-    if (!result) return reply.code(404).send({ success: false, error: tr('errors.archive.fileNotFound') })
-    reply.header('Content-Disposition', contentDisposition('attachment', result.name))
-    return reply.type(result.mimeType).send(result.buffer)
-  })
+  server.get(
+    '/api/archive/files/:id/download',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req, reply) => {
+      const result = await service.getFileBufferForDownload(req.me, req.params.id)
+      if (!result) return fail(reply, 404, 'ARCHIVE_FILE_NOT_FOUND', { message: tr('errors.archive.fileNotFound') })
+      reply.header('Content-Disposition', contentDisposition('attachment', result.name))
+      return reply.type(result.mimeType).send(result.buffer)
+    },
+  )
 
   server.patch(
     '/api/archive/files/:id',
-    { preHandler: [app.authenticate], schema: { body: UpdateFileSchema } },
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: UpdateFileSchema } },
     async (req) => {
-      const row = await service.updateFile(req.me, (req.params as { id: string }).id, req.body)
+      const row = await service.updateFile(req.me, req.params.id, req.body)
       if (!row) return { success: true }
       return { success: true, data: row }
     },
   )
 
   // Permanent deletion happens only from the Trash (DELETE /api/archive/trash/:batchId).
-  server.delete('/api/archive/files/:id', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await trash.trashFile(req.me, (req.params as { id: string }).id),
-  }))
+  server.delete(
+    '/api/archive/files/:id',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await trash.trashFile(req.me, req.params.id),
+    }),
+  )
 
   server.get('/api/archive/trash', { preHandler: [app.authenticate] }, async (req) => ({
     success: true,
     data: await trash.listTrash(req.me),
   }))
 
-  server.post('/api/archive/trash/:batchId/restore', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await trash.restoreBatch(req.me, (req.params as { batchId: string }).batchId),
-  }))
+  server.post(
+    '/api/archive/trash/:batchId/restore',
+    { preHandler: [app.authenticate], schema: { params: BatchParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await trash.restoreBatch(req.me, req.params.batchId),
+    }),
+  )
 
-  server.delete('/api/archive/trash/:batchId', { preHandler: [app.authenticate] }, async (req) => ({
-    success: true,
-    data: await trash.purgeBatchNow(req.me, (req.params as { batchId: string }).batchId),
-  }))
+  server.delete(
+    '/api/archive/trash/:batchId',
+    { preHandler: [app.authenticate], schema: { params: BatchParamsSchema } },
+    async (req) => ({
+      success: true,
+      data: await trash.purgeBatchNow(req.me, req.params.batchId),
+    }),
+  )
 
   server.post(
     '/api/archive/bulk/move',
@@ -350,10 +391,10 @@ export async function archiveRoutes(app: FastifyInstance) {
 
   server.get(
     '/api/archive/folders/:id/download',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
-      const result = await service.buildFolderZipBuffer(req.me, (req.params as { id: string }).id)
-      if (!result) return reply.code(404).send({ success: false, error: tr('errors.archive.folderNotFound') })
+      const result = await service.buildFolderZipBuffer(req.me, req.params.id)
+      if (!result) return fail(reply, 404, 'ARCHIVE_NOT_FOUND', { message: tr('errors.archive.folderNotFound') })
       reply.header('Content-Disposition', contentDisposition('attachment', result.fileName))
       return reply.type('application/zip').send(result.buffer)
     },
@@ -367,14 +408,16 @@ export async function archiveRoutes(app: FastifyInstance) {
     return { success: true, data: await storageUsage() }
   })
 
-  server.get('/api/archive/folders/:id/path', { preHandler: [app.authenticate] }, async (req, reply) => {
-    const path = await service.getFolderPath(req.me, (req.params as { id: string }).id).catch(
-      (err) => {
+  server.get(
+    '/api/archive/folders/:id/path',
+    { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
+    async (req, reply) => {
+      const path = await service.getFolderPath(req.me, req.params.id).catch((err) => {
         if (err instanceof ArchiveNotFoundError) return null
         throw err
-      },
-    )
-    if (!path) return reply.code(404).send({ success: false, error: tr('errors.archive.folderNotFound') })
-    return { success: true, data: path }
-  })
+      })
+      if (!path) return fail(reply, 404, 'ARCHIVE_NOT_FOUND', { message: tr('errors.archive.folderNotFound') })
+      return { success: true, data: path }
+    },
+  )
 }

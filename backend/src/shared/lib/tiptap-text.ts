@@ -59,6 +59,7 @@ function check(node: unknown, depth: number): TiptapNode {
   const n = node as TiptapNode
   if (typeof n.type !== 'string') throw new TiptapDocError('node without type')
   if (n.text !== undefined && typeof n.text !== 'string') throw new TiptapDocError('text is not a string')
+  if (n.marks !== undefined && !Array.isArray(n.marks)) throw new TiptapDocError('marks is not an array')
   const marks = Array.isArray(n.marks)
     ? n.marks.filter((m) => !(m?.type === 'link' && !SAFE_HREF.test(String(m.attrs?.href ?? ''))))
     : undefined

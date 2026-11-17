@@ -10,6 +10,7 @@ import { api } from '@/shared/lib/api'
 import type { Platform, PlatformType } from '@/shared/lib/types'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface PlatformFormDialogProps {
   open: boolean
@@ -78,7 +79,7 @@ export function PlatformFormDialog({ open, onOpenChange, platform }: PlatformFor
       toast.success(platform ? t('platforms:form.updated') : t('platforms:form.added'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

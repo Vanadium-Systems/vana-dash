@@ -4,7 +4,8 @@ import { undoToast } from '@/shared/lib/undo-toast'
 import { moveItems, trashItems, trashMessage } from './archive-actions'
 import type { ArchiveItem } from './items'
 
-vi.mock('@/shared/lib/api', () => ({
+vi.mock('@/shared/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/lib/api')>()),
   api: { delete: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn() },
 }))
 vi.mock('@/shared/lib/undo-toast', () => ({ undoToast: vi.fn(async () => true) }))

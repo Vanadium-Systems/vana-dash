@@ -119,13 +119,13 @@ describe('markInvoicePaidManually', () => {
   })
 
   it('throws when the financial record does not exist', async () => {
-    await expect(markInvoicePaidManually('00000000-0000-0000-0000-000000000000')).rejects.toThrow(/nu există/)
+    await expect(markInvoicePaidManually('00000000-0000-0000-0000-000000000000')).rejects.toMatchObject({ code: 'INVOICE_NOT_FOUND' })
     expect(maybeExtendMock).not.toHaveBeenCalled()
   })
 
   it('throws when the record is direction:in (received invoice, not one we issued)', async () => {
     const invoice = await makeInvoice({ direction: 'in', source: 'anaf_efactura' })
-    await expect(markInvoicePaidManually(invoice.id)).rejects.toThrow(/Nu e o factură emisă/)
+    await expect(markInvoicePaidManually(invoice.id)).rejects.toMatchObject({ code: 'INVOICE_NOT_ISSUED' })
     expect(maybeExtendMock).not.toHaveBeenCalled()
 
     const [row] = await db.select().from(financialRecords).where(eq(financialRecords.id, invoice.id))
@@ -134,7 +134,7 @@ describe('markInvoicePaidManually', () => {
 
   it('throws when the record is type:expense (not an invoice at all)', async () => {
     const invoice = await makeInvoice({ type: 'expense', direction: 'out' })
-    await expect(markInvoicePaidManually(invoice.id)).rejects.toThrow(/Nu e o factură emisă/)
+    await expect(markInvoicePaidManually(invoice.id)).rejects.toMatchObject({ code: 'INVOICE_NOT_ISSUED' })
   })
 
   it('a second call on a paid invoice is refused with ALREADY_PAID and does not call the hook again', async () => {

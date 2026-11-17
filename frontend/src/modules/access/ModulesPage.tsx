@@ -17,6 +17,7 @@ import { Tooltip } from '@/shared/components/ui/tooltip'
 import { api, ApiError } from '@/shared/lib/api'
 import { cn } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Ce poate face fiecare rol, pagină cu pagină (PLAN.md C2, fișa „Module"). O matrice, nu
 // o listă de roluri: rolurile sunt puține (Admin, Manager și câteva custom), deci le vezi
@@ -189,7 +190,7 @@ export function ModulesPage() {
               <caption className="sr-only">{t('access:tableCaption')}</caption>
               <thead>
                 <tr>
-                  <th scope="col" className="sticky left-0 z-[1] w-2/5 bg-background pb-2 text-left text-xs font-normal text-muted-foreground">
+                  <th scope="col" className="sticky left-0 z-sticky w-2/5 bg-background pb-2 text-left text-xs font-normal text-muted-foreground">
                     {t('access:labels.page')}
                   </th>
                   {visibleRoles.map((role) => (
@@ -260,7 +261,7 @@ export function ModulesPage() {
             setDeleting(null)
             refetchAll()
           } catch (error) {
-            toast.error(error instanceof ApiError ? error.message : t('access:roles.notDeleted'))
+            toastError(error, t('access:roles.notDeleted'))
           }
         }}
       />
@@ -300,7 +301,7 @@ function PageRows({
         const isView = feature.key === page.viewFeature
         return (
           <tr key={feature.key} className="border-t">
-            <th scope="row" className={cn('sticky left-0 z-[1] bg-background py-1 pr-3 text-left text-sm font-normal sm:min-w-44', index === 0 && 'pt-2')}>
+            <th scope="row" className={cn('sticky left-0 z-sticky bg-background py-1 pr-3 text-left text-sm font-normal sm:min-w-44', index === 0 && 'pt-2')}>
               {isView ? <span>{page.label}</span> : <span className="pl-6 text-muted-foreground">{feature.label}</span>}
             </th>
             {roles.map((role) => {

@@ -2,6 +2,7 @@ import type { billingClients } from '../db/schema/billing-clients.js'
 import type { ContractAddendum } from '../db/schema/contract-addenda.js'
 import type { ContractDetails } from '../../modules/contracts/schema.js'
 import type { CompanyProfile } from './company.js'
+import { httpError } from './http-error.js'
 import {
   CONTRACT_TEMPLATE_BODIES,
   CONTRACT_TEMPLATE_KEYS,
@@ -81,7 +82,7 @@ export function hasAiAssistant(moduleAddon: string): boolean {
   return moduleAddon.split(',').map((label) => label.trim()).includes(AI_ASSISTANT_ADDON_LABEL)
 }
 
-const REQUIRED_FIELD_LABELS: Record<string, string> = {
+export const REQUIRED_FIELD_LABELS: Record<string, string> = {
   contactName: 'Reprezentant client',
   contactTitle: 'Funcție reprezentant',
   phone: 'Telefon client',
@@ -110,7 +111,7 @@ export function assertContractDataComplete(client: BillingClientRow, details: Co
   if (!details.facturareTip) missing.push(REQUIRED_FIELD_LABELS.facturareTip!)
 
   if (missing.length > 0) {
-    throw new Error(`Date lipsă pentru generarea documentului: ${missing.join(', ')}`)
+    throw httpError(400, 'CONTRACT_DATA_INCOMPLETE', { fields: missing.join(', ') }, { fields: missing })
   }
 }
 

@@ -8,6 +8,7 @@ import type { SessionUser } from '../../shared/lib/session.js'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import { currentTenantId, runAsTenant, withRlsBypass } from '../../shared/lib/tenancy.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { inlineStoredImages } from './images-service.js'
 import { mirrorOutboundMessage, prepareForward, prepareReply, recordForwardSent, recordReplySent } from './inbound-service.js'
 import { assertCanDeliver, OUTREACH_IDENTITY } from './send-guard.js'
@@ -122,10 +123,10 @@ export async function scheduleSend(
 ): Promise<{ sendId: string; sendAfter: Date }> {
   // Bulk sending has its own path with a cap and a window; outreach here is one person at a time.
   if (prepared.fromKey === OUTREACH_IDENTITY && prepared.to.length + prepared.cc.length > 1) {
-    throw new Error(tr('errors.email.outreachSingleRecipient'))
+    throw httpError(400, 'OUTREACH_SINGLE_RECIPIENT')
   }
   await assertCanDeliver({ identityKey: prepared.fromKey, recipients: [...prepared.to, ...prepared.cc], senderUserId: me.id })
-  if (opts.draftId && !(await ownDraftExists(me, opts.draftId))) throw new Error(tr('errors.email.draftNotFound'))
+  if (opts.draftId && !(await ownDraftExists(me, opts.draftId))) throw httpError(400, 'DRAFT_NOT_FOUND')
 
   const sendId = randomUUID()
   const staged = await stageAttachments(sendId, prepared.newAttachments)
@@ -197,17 +198,17 @@ export async function sendDraft(
     .select()
     .from(emailDrafts)
     .where(and(eq(emailDrafts.id, draftId), eq(emailDrafts.ownerUserId, me.id), isNull(emailDrafts.deletedAt)))
-  if (!draft) throw new Error(tr('errors.email.draftNotFound'))
+  if (!draft) throw httpError(400, 'DRAFT_NOT_FOUND')
   const to = splitAddresses(draft.to)
   const cc = splitAddresses(draft.cc)
   // A draft's recipients are free text saved by autosave; they get the checks the send routes'
   // schemas apply (valid addresses, at most 10 per field) before anything is scheduled.
-  if (!DraftRecipientsSchema.safeParse({ to, cc }).success) throw new Error(tr('errors.email.draftInvalidRecipients'))
+  if (!DraftRecipientsSchema.safeParse({ to, cc }).success) throw httpError(400, 'DRAFT_INVALID_RECIPIENTS')
   const stored = draft.attachments as StoredAttachment[]
 
   let prepared: PreparedSend
   if (draft.mode === 'reply' || draft.mode === 'reply_all') {
-    if (!draft.threadId) throw new Error(tr('errors.email.threadNotFound'))
+    if (!draft.threadId) throw httpError(400, 'EMAIL_THREAD_NOT_FOUND')
     prepared = await prepareReply(me, draft.threadId, {
       body: draft.body,
       to: to.length ? to : undefined,
@@ -216,13 +217,13 @@ export async function sendDraft(
       lastSeenMessageId: opts.lastSeenMessageId,
     })
   } else if (draft.mode === 'forward') {
-    if (!draft.sourceMessageId) throw new Error(tr('errors.email.messageNotFound'))
-    if (!to.length) throw new Error(tr('errors.email.draftNoRecipient'))
+    if (!draft.sourceMessageId) throw httpError(400, 'EMAIL_MESSAGE_NOT_FOUND')
+    if (!to.length) throw httpError(400, 'DRAFT_NO_RECIPIENT')
     // A forward carries the original's files, as in Gmail; the draft holds only the added ones.
     prepared = await prepareForward(me, draft.sourceMessageId, { to, cc, extraBody: draft.body, includeOriginalAttachments: true })
   } else {
-    if (!to.length) throw new Error(tr('errors.email.draftNoRecipient'))
-    if (!draft.subject) throw new Error(tr('errors.email.draftNoSubject'))
+    if (!to.length) throw httpError(400, 'DRAFT_NO_RECIPIENT')
+    if (!draft.subject) throw httpError(400, 'DRAFT_NO_SUBJECT')
     prepared = await prepareSingle(me, {
       to,
       cc,
@@ -325,6 +326,7 @@ export async function dispatchScheduledSend(sendId: string): Promise<'sent' | 'f
         threadId: payload.threadId as string,
         fromAddress: row.fromAddress ?? '',
         to: payload.to,
+        cc: payload.cc,
         subject: row.subject,
         bodyText: payload.message?.bodyText ?? '',
         bodyHtml: payload.message?.bodyHtml ?? payload.body,
@@ -350,6 +352,7 @@ export async function dispatchScheduledSend(sendId: string): Promise<'sent' | 'f
         fromAddress: row.fromAddress ?? '',
         toAddress: payload.to.join(', '),
         participants: [...payload.to, ...payload.cc],
+        cc: payload.cc,
         subject: row.subject,
         body: payload.body,
         sentByUserId: row.sentByUserId,

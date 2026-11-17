@@ -11,6 +11,7 @@ import { api } from '@/shared/lib/api'
 import type { SpvMessage } from '@/shared/lib/types'
 import { formatDate } from './badges'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 const DAYS = 30
 
@@ -33,7 +34,7 @@ export function MesajeTab() {
       void queryClient.invalidateQueries({ queryKey: ['accounting', 'spv-messages'] })
       toast.success(t('accounting:spv.saved'))
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

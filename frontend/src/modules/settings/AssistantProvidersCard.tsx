@@ -12,6 +12,7 @@ import { cn, parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface ProviderModel {
   id: string
@@ -72,7 +73,7 @@ function ProviderCard({ settings }: { settings: ProviderSettings }) {
       setApiKey('')
       toast.success(`${meta.title}: salvat`)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

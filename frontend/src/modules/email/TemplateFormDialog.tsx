@@ -9,6 +9,7 @@ import { RichTextEditor } from '@/shared/components/RichTextEditor'
 import { api } from '@/shared/lib/api'
 import type { EmailTemplate } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 interface TemplateFormDialogProps {
   open: boolean
@@ -37,7 +38,7 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
       toast.success(template ? t('email:templates.updated') : t('email:templates.created'))
       onOpenChange(false)
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   return (

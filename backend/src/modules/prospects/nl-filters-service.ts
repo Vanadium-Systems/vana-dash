@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import { prospectStatuses } from '../../shared/db/schema/index.js'
 import { getCompanyTimeZone } from '../../shared/lib/company.js'
+import { errorMessage } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 // The assistant is the only LLM provider in the app (key, model, monthly cap), so the phrase
@@ -15,7 +16,7 @@ const MAX_FILTERS = 10
 
 export class NlFiltersError extends Error {
   constructor(
-    readonly code: 'ASSISTANT_FORBIDDEN' | 'ASSISTANT_NOT_CONFIGURED' | 'ASSISTANT_QUOTA',
+    readonly code: 'ASSISTANT_FORBIDDEN' | 'ASSISTANT_NOT_CONFIGURED' | 'ASSISTANT_PROVIDER_FAILED' | 'ASSISTANT_QUOTA',
     message: string,
   ) {
     super(message)
@@ -136,7 +137,7 @@ export async function interpretPhrase(me: SessionUser, text: string): Promise<Nl
   } catch (err) {
     // The phrase stays out of the log; the provider error code is enough to debug.
     console.error('[nl-filters] provider error', (err as { status?: number; code?: string }).status ?? (err as { code?: string }).code ?? 'unknown')
-    throw new NlFiltersError('ASSISTANT_NOT_CONFIGURED', tr('errors.prospects.nlFiltersNotConfigured'))
+    throw new NlFiltersError('ASSISTANT_PROVIDER_FAILED', errorMessage('ASSISTANT_PROVIDER_FAILED'))
   }
   await recordUsage(me, inputTokens, outputTokens)
   return parseAnswer(answer)

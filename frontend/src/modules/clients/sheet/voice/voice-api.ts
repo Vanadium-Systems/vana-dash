@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useSyncExternalStore } from 'react'
-import { api } from '@/shared/lib/api'
+import { api, apiErrorOf } from '@/shared/lib/api'
 import { getLocale, t } from '@/shared/lib/i18n'
 import { getTenantOverride } from '@/shared/lib/tenant-override'
 import type { VoiceNote } from '../types'
@@ -52,10 +52,8 @@ function failureOf(xhr: XMLHttpRequest): VoiceUploadError {
   } catch {
     // Not JSON: a proxy page. The status decides.
   }
-  const nested = body?.error && typeof body.error === 'object' ? (body.error as { code?: string; message?: string }) : null
-  const code = body?.code ?? nested?.code
-  const message = (typeof body?.error === 'string' && body.error) || nested?.message || t('common:errors.api.generic', { status: xhr.status })
-  return new VoiceUploadError(message, xhr.status, code)
+  const error = apiErrorOf(xhr.status, body)
+  return new VoiceUploadError(error.message, xhr.status, body?.code ?? error.code)
 }
 
 export interface VoiceUploadInput {

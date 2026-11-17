@@ -14,6 +14,7 @@ import {
 import { api } from '@/shared/lib/api'
 import { isNative } from '@/shared/lib/native'
 import { t } from '@/shared/lib/i18n'
+import { toastError } from '@/shared/lib/errors'
 
 // Notificările push pe device-ul ăsta sunt ale omului, nu ale firmei (PLAN.md, C2), deci
 // stau la „Profilul meu" alături de notificările pe canale. Deblocarea per browser rămâne
@@ -58,7 +59,7 @@ export function PushSubscriptionCard() {
       await refresh()
       toast.success(t('settings:push.enabled'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('settings:push.enableFailed'))
+      toastError(err, t('settings:push.enableFailed'))
     } finally {
       setBusy(false)
     }
@@ -71,7 +72,7 @@ export function PushSubscriptionCard() {
       await refresh()
       toast.success(t('settings:push.disabled'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('settings:push.disableFailed'))
+      toastError(err, t('settings:push.disableFailed'))
     } finally {
       setBusy(false)
     }
@@ -80,7 +81,7 @@ export function PushSubscriptionCard() {
   const testPush = useMutation({
     mutationFn: () => api.post<{ sent: number; failed: number }>('/api/push/test'),
     onSuccess: (result) => toast.success(t('settings:push.testSent', { sent: result.sent, failed: result.failed })),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (permission === null) return null
@@ -142,7 +143,7 @@ export function PushPreferencesCard() {
   const update = useMutation({
     mutationFn: (patch: Partial<PushPreferences>) => api.put<PushPreferences>('/api/push/preferences', patch),
     onSuccess: (data) => queryClient.setQueryData(['push', 'preferences'], data),
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   })
 
   if (prefs.isPending || !prefs.data) return null

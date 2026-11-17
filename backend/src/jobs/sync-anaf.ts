@@ -8,7 +8,7 @@ import { financialRecords, syncLog } from '../shared/db/schema/index.js'
 import { getAnafCredentialsRow, getAnafSession } from '../shared/lib/anaf.js'
 import { archiveInvoiceDocuments } from '../shared/lib/financial-archive.js'
 import { saveDocument } from '../shared/lib/storage.js'
-import { tr } from '../shared/lib/i18n.js'
+import { httpError } from '../shared/lib/http-error.js'
 
 // Sync facturi primite + emise din SPV/e-Factura → financial_records
 // (source=anaf_efactura). Rulează orar; failure izolat în sync_log, nu se propagă.
@@ -49,7 +49,7 @@ async function runAnafSync(): Promise<{ imported: number }> {
   const credentials = await getAnafCredentialsRow()
   if (!credentials || credentials.status !== 'active') {
     // Fără credențiale active nu e o eroare de sync — pur și simplu nu avem ce rula.
-    throw new Error(tr('errors.anaf.notConfigured'))
+    throw httpError(400, 'ANAF_NOT_CONFIGURED')
   }
 
   const [log] = await db

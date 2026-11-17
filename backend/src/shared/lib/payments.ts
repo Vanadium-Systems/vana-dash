@@ -16,6 +16,7 @@ export type PaymentStatus = 'unpaid' | 'partial' | 'paid'
 export type PaymentMethod = Payment['method']
 
 export class PaymentError extends Error {
+  readonly userFacing = true
   constructor(
     readonly statusCode: 400 | 404 | 409,
     readonly code: string,

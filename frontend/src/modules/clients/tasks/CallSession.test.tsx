@@ -10,7 +10,8 @@ import type { TaskRow } from './types'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const post = vi.hoisted(() => vi.fn())
-vi.mock('@/shared/lib/api', () => ({ api: { post } }))
+vi.mock('@/shared/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/lib/api')>()), api: { post } }))
 
 const tasks = vi.hoisted(() => ({ rows: [] as unknown[] }))
 vi.mock('./use-tasks-data', () => ({ useTaskList: () => ({ isPending: false, data: { rows: tasks.rows } }) }))

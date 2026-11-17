@@ -408,7 +408,7 @@ describe('sendSingle', () => {
         templateId: '11111111-2222-3333-4444-555555555555',
         from: 'stefan',
       }),
-    ).rejects.toThrow('Template inexistent')
+    ).rejects.toMatchObject({ code: 'TEMPLATE_NOT_FOUND' })
     expect(sendEmailWithResultMock).not.toHaveBeenCalled()
   })
 
