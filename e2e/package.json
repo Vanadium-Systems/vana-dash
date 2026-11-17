@@ -1,0 +1,9 @@
+{
+  "name": "vana-dash-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Outside the pnpm workspace on purpose: Playwright stays out of pnpm-lock.yaml and out of every install.",
+  "dependencies": {
+    "playwright": "1.63.0"
+  }
+}
