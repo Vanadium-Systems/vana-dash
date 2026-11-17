@@ -770,7 +770,7 @@ export class E2EEngine {
   }
 
   /** Decrypts one message; the result is kept for previews, quotes and search. */
-  decrypt(message: {
+  async decrypt(message: {
     id: string
     conversationId: string
     authorUserId: string
@@ -778,11 +778,13 @@ export class E2EEngine {
     createdAt?: string
     encrypted: { v: number; ciphertext: string; senderDeviceId: string | null }
   }): Promise<DecryptResult> {
+    // Keyed by the ciphertext's end too: an edit is a new ciphertext under the same id.
+    const cacheKey = `${message.id}:${unpadded(message.encrypted.ciphertext).slice(-24)}`
+    const cached = await this.store.get<PlainRecord>('plain', cacheKey)
+    if (cached) return { status: 'ok', content: { body: cached.body, attachments: cached.attachments } }
     return this.serial(async () => {
-      // Keyed by the ciphertext's end too: an edit is a new ciphertext under the same id.
-      const cacheKey = `${message.id}:${unpadded(message.encrypted.ciphertext).slice(-24)}`
-      const cached = await this.store.get<PlainRecord>('plain', cacheKey)
-      if (cached) return { status: 'ok', content: { body: cached.body, attachments: cached.attachments } }
+      const again = await this.store.get<PlainRecord>('plain', cacheKey)
+      if (again) return { status: 'ok', content: { body: again.body, attachments: again.attachments } }
       const packed = unpackCiphertext(message.encrypted.ciphertext)
       if (!packed) return { status: 'invalid' }
       const record = await this.store.get<InboundRecord>('inbound', packed.sessionId)
