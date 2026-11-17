@@ -21,6 +21,7 @@ import { ChatAvatar, personColor } from './ChatAvatar'
 import { useDecrypted, type Decrypted, type ResolvedAttachment } from './crypto/E2EProvider'
 import { saveDecrypted } from './crypto/files'
 import { useAttachmentUrl } from './crypto/useAttachmentUrl'
+import { isEmojiOnly } from './emoji/emoji-only'
 
 // One message. Yours on the right in the tinted bubble, the others' on the left; in a group, the
 // first bubble of a series has the author's avatar and name in their colour. Actions come from
@@ -34,8 +35,6 @@ const LONG_PRESS_MS = 500
 const LINK_CLASS = 'break-all underline underline-offset-2 hover:no-underline'
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/3gpp']
-// One to three emoji and nothing else: shown large, without a bubble.
-const EMOJI_ONLY = /^(?:\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|\p{Emoji_Modifier})*\s*){1,3}$/u
 
 export type ReceiptState = 'sent' | 'delivered' | 'seen'
 
@@ -126,7 +125,7 @@ export const MessageBubble = forwardRef<
   const cardFiles = new Set(message.refs.map((r) => r.card.attachmentId).filter(Boolean))
   const attachments = message.attachments.filter((a) => !cardFiles.has(a.id))
   const images = attachments.filter((a) => IMAGE_TYPES.includes(a.contentType))
-  const emojiOnly = !message.replyTo && attachments.length === 0 && message.refs.length === 0 && EMOJI_ONLY.test(message.body.trim())
+  const emojiOnly = !message.replyTo && attachments.length === 0 && message.refs.length === 0 && isEmojiOnly(message.body)
   const photoOnly = !message.body && images.length === 1 && attachments.length === 1 && message.refs.length === 0 && !message.replyTo
   // The arrow then sits in the photo's corner, over a shade, not on a patch of the bubble's colour.
   const startsWithImage = !message.replyTo && attachments[0] !== undefined && IMAGE_TYPES.includes(attachments[0].contentType)

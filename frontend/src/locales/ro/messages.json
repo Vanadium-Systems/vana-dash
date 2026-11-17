@@ -228,5 +228,24 @@
     "delivered": "Livrat, nevăzut",
     "notSeen": "Nevăzut",
     "approx": "Ora e ultima citire a conversației, la sau după acest mesaj."
+  },
+  "emoji": {
+    "suggestions": "Emoji sugerate",
+    "picker": "Alegător de emoji",
+    "open": "Emoji",
+    "search": "Caută emoji",
+    "loading": "Se încarcă…",
+    "none": "Niciun emoji găsit",
+    "groups": {
+      "0": "Fețe și emoții",
+      "1": "Oameni și corp",
+      "3": "Animale și natură",
+      "4": "Mâncare și băutură",
+      "5": "Călătorii și locuri",
+      "6": "Activități",
+      "7": "Obiecte",
+      "8": "Simboluri",
+      "9": "Steaguri"
+    }
   }
 }

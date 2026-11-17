@@ -221,5 +221,24 @@
     "delivered": "Delivered, not seen",
     "notSeen": "Not seen",
     "approx": "The time is their last read of the conversation, at or after this message."
+  },
+  "emoji": {
+    "suggestions": "Suggested emoji",
+    "picker": "Emoji picker",
+    "open": "Emoji",
+    "search": "Search emoji",
+    "loading": "Loading…",
+    "none": "No emoji found",
+    "groups": {
+      "0": "Smileys & emotion",
+      "1": "People & body",
+      "3": "Animals & nature",
+      "4": "Food & drink",
+      "5": "Travel & places",
+      "6": "Activities",
+      "7": "Objects",
+      "8": "Symbols",
+      "9": "Flags"
+    }
   }
 }

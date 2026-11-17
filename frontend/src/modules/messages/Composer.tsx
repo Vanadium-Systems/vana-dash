@@ -23,6 +23,9 @@ import type { ChatReplyPreview } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
 import { RefPicker } from './RefPicker'
 import { uploadEncrypted } from './crypto/files'
+import { closedShortcode, findByShortcode, loadEmoji, matchShortcodes, openShortcode, type EmojiEntry } from './emoji/data'
+import { EMOJI_LISTBOX_ID, EmojiAutocomplete, emojiOptionId } from './emoji/EmojiAutocomplete'
+import { EmojiPicker } from './emoji/EmojiPicker'
 import type { OutgoingAttachment, RefInput } from './useThreadMessages'
 
 // Compunerea (fișa „Mesaje"): textarea care crește până la 6 rânduri, Enter trimite,
@@ -39,6 +42,7 @@ const MAX_BYTES = 50 * 1024 * 1024
 const MAX_REFS = 5
 // The server throttles too; this keeps the request count down while someone types a paragraph.
 const TYPING_EVERY_MS = 3_000
+const MAX_EMOJI_SUGGESTIONS = 8
 
 export interface ComposerHandle {
   focus: () => void
@@ -85,6 +89,11 @@ export const Composer = forwardRef<
   const lastTyping = useRef(0)
   const [dragging, setDragging] = useState(false)
   const [attachOpen, setAttachOpen] = useState(false)
+  const [emojiData, setEmojiData] = useState<EmojiEntry[]>([])
+  const [caret, setCaret] = useState(0)
+  const [emojiIndex, setEmojiIndex] = useState(0)
+  // `start:query` of the list closed with Esc; it stays closed until the text before the caret changes.
+  const [emojiDismissed, setEmojiDismissed] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
@@ -113,6 +122,51 @@ export const Composer = forwardRef<
       }
       return [...current, refInput]
     })
+  }
+
+  const shortcode = openShortcode(body.slice(0, caret))
+  const shortcodeKey = shortcode ? `${shortcode.start}:${shortcode.query}` : null
+  const suggestions = shortcode && shortcodeKey !== emojiDismissed ? matchShortcodes(emojiData, shortcode.query, MAX_EMOJI_SUGGESTIONS) : []
+  const suggesting = suggestions.length > 0
+
+  // Replaces [start, end) of the field with text and puts the caret after it.
+  const replaceRange = (start: number, end: number, text: string) => {
+    setBody((current) => current.slice(0, start) + text + current.slice(end))
+    setCaret(start + text.length)
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      el?.focus()
+      el?.setSelectionRange(start + text.length, start + text.length)
+    })
+  }
+
+  const pickSuggestion = (entry: EmojiEntry) => {
+    if (shortcode) replaceRange(shortcode.start, caret, entry.emoji)
+  }
+
+  const insertAtCursor = (emoji: string) => {
+    const el = textareaRef.current
+    replaceRange(el?.selectionStart ?? body.length, el?.selectionEnd ?? body.length, emoji)
+  }
+
+  const onTextChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value
+    const at = e.target.selectionStart
+    const before = value.slice(0, at)
+    if (openShortcode(before)) void loadEmoji().then(setEmojiData)
+    const done = closedShortcode(before)
+    const entry = done ? findByShortcode(emojiData, done.code) : undefined
+    if (done && entry) {
+      setBody(value.slice(0, done.start) + entry.emoji + value.slice(at))
+      const end = done.start + entry.emoji.length
+      setCaret(end)
+      requestAnimationFrame(() => textareaRef.current?.setSelectionRange(end, end))
+    } else {
+      setBody(value)
+      setCaret(at)
+    }
+    setEmojiIndex(0)
+    if (value) signalTyping()
   }
 
   const signalTyping = () => {
@@ -200,6 +254,26 @@ export const Composer = forwardRef<
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (suggesting) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const step = e.key === 'ArrowDown' ? 1 : -1
+        setEmojiIndex((i) => (i + step + suggestions.length) % suggestions.length)
+        return
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        const chosen = suggestions[Math.min(emojiIndex, suggestions.length - 1)]
+        if (chosen) pickSuggestion(chosen)
+        return
+      }
+      if (e.key === 'Escape') {
+        // preventDefault: otherwise the same Esc would also leave the conversation (MessagesPage).
+        e.preventDefault()
+        setEmojiDismissed(shortcodeKey)
+        return
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendNow()
@@ -383,16 +457,20 @@ export const Composer = forwardRef<
           rows={1}
           value={body}
           placeholder={dragging ? t('messages:composer.dropHere') : t('messages:composer.placeholder')}
-          onChange={(e) => {
-            setBody(e.target.value)
-            if (e.target.value) signalTyping()
-          }}
+          onChange={onTextChange}
+          onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
           onKeyDown={onKeyDown}
+          role="combobox"
+          aria-expanded={suggesting}
+          aria-controls={suggesting ? EMOJI_LISTBOX_ID : undefined}
+          aria-autocomplete="list"
+          aria-activedescendant={suggesting ? emojiOptionId(Math.min(emojiIndex, suggestions.length - 1)) : undefined}
           onPaste={onPaste}
           disabled={disabled}
           aria-label={t('common:labels.message')}
           className="min-h-9 rounded-[1.25rem] px-4 py-2"
         />
+        <EmojiPicker onPick={insertAtCursor} disabled={disabled} />
         <Button
           type="button"
           size="icon"
@@ -404,6 +482,8 @@ export const Composer = forwardRef<
           <SendHorizontal className="h-4 w-4" />
         </Button>
       </div>
+
+      {suggesting ? <EmojiAutocomplete entries={suggestions} query={shortcode?.query ?? ''} activeIndex={Math.min(emojiIndex, suggestions.length - 1)} onPick={pickSuggestion} /> : null}
 
       <RefPicker
         open={pickerOpen}
