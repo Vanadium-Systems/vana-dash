@@ -390,15 +390,19 @@ describe('necitite și „nu mai notifica"', () => {
     const receiptOfIon = async () =>
       (await get(`/api/chat/conversations/${id}/messages`, ana)).json().data.receipts.find((r: { userId: string }) => r.userId === ion.me.id)
 
-    expect(await receiptOfIon()).toEqual({ userId: ion.me.id, deliveredUpTo: null, readUpTo: null })
+    expect(await receiptOfIon()).toEqual({ userId: ion.me.id, deliveredUpTo: null, readUpTo: null, readAt: null })
 
     await get('/api/chat/conversations', ion)
     const delivered = await receiptOfIon()
     expect(Date.parse(delivered.deliveredUpTo)).toBeGreaterThanOrEqual(Date.parse(createdAt))
     expect(delivered.readUpTo).toBeNull()
 
+    const beforeRead = Date.now()
     await post(`/api/chat/conversations/${id}/read`, ion, { messageId })
-    expect((await receiptOfIon()).readUpTo).toBe(createdAt)
+    const read = await receiptOfIon()
+    expect(read.readUpTo).toBe(createdAt)
+    // The "seen at" of the message info (FE-M7).
+    expect(Date.parse(read.readAt)).toBeGreaterThanOrEqual(beforeRead - 1000)
   })
 
   it('„nu mai notifica" taie și numărul de necitite', async () => {
