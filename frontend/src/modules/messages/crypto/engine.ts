@@ -8,11 +8,13 @@ import {
   newMasterKey,
   newRecoveryKey,
   open,
+  packCiphertext,
   parseRecoveryKey,
   randomBytes,
   seal,
   signWithMaster,
   toBase64,
+  unpackCiphertext,
   unpadded,
   verifyMaster,
 } from './primitives'
@@ -945,23 +947,6 @@ function parsePayload(plaintext: string): OlmPayload | null {
   try {
     const payload = JSON.parse(plaintext) as OlmPayload
     return typeof payload?.type === 'string' && typeof payload.sender === 'string' ? payload : null
-  } catch {
-    return null
-  }
-}
-
-// A Megolm message does not name its session (Matrix sends the id next to it, in the event).
-// Here it travels in the same opaque field: base64 of "<session id>|<Megolm ciphertext>".
-function packCiphertext(sessionId: string, ciphertext: string): string {
-  return toBase64(new TextEncoder().encode(`${sessionId}|${ciphertext}`))
-}
-
-function unpackCiphertext(packed: string): { sessionId: string; ciphertext: string } | null {
-  try {
-    const text = new TextDecoder().decode(fromBase64(packed))
-    const separator = text.indexOf('|')
-    if (separator <= 0) return null
-    return { sessionId: text.slice(0, separator), ciphertext: text.slice(separator + 1) }
   } catch {
     return null
   }

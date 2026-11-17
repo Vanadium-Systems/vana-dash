@@ -24,6 +24,23 @@ export function unpadded(base64: string): string {
   return base64.replace(/=+$/, '')
 }
 
+// A Megolm message does not name its session (Matrix sends the id next to it, in the event).
+// Here it travels in the same opaque field: base64 of "<session id>|<Megolm ciphertext>".
+export function packCiphertext(sessionId: string, ciphertext: string): string {
+  return toBase64(new TextEncoder().encode(`${sessionId}|${ciphertext}`))
+}
+
+export function unpackCiphertext(packed: string): { sessionId: string; ciphertext: string } | null {
+  try {
+    const text = new TextDecoder().decode(fromBase64(packed))
+    const separator = text.indexOf('|')
+    if (separator <= 0) return null
+    return { sessionId: text.slice(0, separator), ciphertext: text.slice(separator + 1) }
+  } catch {
+    return null
+  }
+}
+
 export function randomBytes(length: number): Uint8Array {
   return globalThis.crypto.getRandomValues(new Uint8Array(length))
 }

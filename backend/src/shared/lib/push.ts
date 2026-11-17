@@ -80,6 +80,8 @@ export interface PushPayload {
    *  emailul în aplicație, notificarea rămânea în bară, trebuia ștearsă manual). Fără tag,
    *  fiecare notificare e independentă, fără niciun handle de care aplicația să se prindă. */
   tag?: string
+  /** Web Push only (BE-M5): Megolm ciphertext for browser SW decryption; never sent to FCM. */
+  e2e?: { conversationId: string; ciphertext: string; kind: 'dm' | 'group'; byline: string }
 }
 
 /**
@@ -140,14 +142,19 @@ async function notifyWebPush(eventType: PushEventType, payload: PushContent, use
     await Promise.all(
       subs.map(async (sub) => {
         try {
+          const base = payloadFor(payload, sub.locale)
+          const wire =
+            base.e2e && sub.ownerUserId
+              ? { ...base, e2e: { ...base.e2e, userId: sub.ownerUserId } }
+              : { title: base.title, body: base.body, url: base.url, tag: base.tag }
           await webpush.sendNotification(
             {
               endpoint: sub.endpoint,
               keys: { p256dh: sub.p256dhKey, auth: sub.authKey },
             },
-            JSON.stringify(payloadFor(payload, sub.locale)),
+            JSON.stringify(wire),
           )
-          const tag = payloadFor(payload, sub.locale).tag
+          const tag = base.tag
           if (tag && sub.ownerUserId) shownTags.set(shownKey(sub.ownerUserId, tag), Date.now())
         } catch (err) {
           const statusCode = (err as { statusCode?: number }).statusCode

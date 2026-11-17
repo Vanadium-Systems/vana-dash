@@ -383,12 +383,23 @@ async function publishDelivered(userId: string, upTo: Date, conversationIds: str
  * and a push goes through Google (FCM) or the browser vendor's push service. Shared objects'
  * titles stay out too, for the same reason.
  */
-async function notifyMembers(conversationId: string, message: { authorUserId: string }): Promise<void> {
+const MAX_PUSH_CIPHERTEXT_CHARS = 2400
+
+async function notifyMembers(
+  conversationId: string,
+  message: { authorUserId: string; encrypted?: { ciphertext: string } | null },
+): Promise<void> {
   try {
     const target = await service.pushTarget(conversationId, message.authorUserId)
     if (!target) return
     const offline = target.recipients.filter((userId) => !hasOpenConnection(userId))
     if (offline.length === 0) return
+
+    const ciphertext = message.encrypted?.ciphertext
+    const e2e =
+      ciphertext && ciphertext.length <= MAX_PUSH_CIPHERTEXT_CHARS
+        ? { conversationId, ciphertext, kind: target.kind, byline: target.byline }
+        : undefined
 
     await notifyPush(
       'mesaje',
@@ -401,6 +412,7 @@ async function notifyMembers(conversationId: string, message: { authorUserId: st
         url: `/messages/${conversationId}`,
         // One notification per conversation, which the app clears once it is read anywhere.
         tag: `chat-${conversationId}`,
+        e2e,
       }),
       offline,
     )

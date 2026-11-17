@@ -46,3 +46,7 @@ scripts/build-android.local.env
 # Local secrets and state of the email Worker (wrangler dev)
 .dev.vars
 .wrangler/
+
+# Generated at build/dev start by vite.config.ts (bundlePushDecrypt)
+/frontend/public/push-decrypt.js
+/frontend/public/pkg/
