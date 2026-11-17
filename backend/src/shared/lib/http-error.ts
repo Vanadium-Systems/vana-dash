@@ -22,6 +22,13 @@ export class HttpError extends Error {
     super(code)
     this.name = 'HttpError'
   }
+
+  /** Keeps the technical reason for the log and `sync_log`; the answer still has only the code. */
+  causedBy(cause: unknown): this {
+    this.cause = cause
+    this.message = `${this.code}: ${cause instanceof Error ? cause.message : String(cause)}`
+    return this
+  }
 }
 
 export function httpError(statusCode: number, code: string, params?: ErrorParams, details?: ErrorDetails): HttpError {

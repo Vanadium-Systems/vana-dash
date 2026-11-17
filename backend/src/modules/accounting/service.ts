@@ -30,6 +30,7 @@ import type {
   UploadRecordPdfSchema,
 } from './schema.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { httpError } from '../../shared/lib/http-error.js'
 
 // Selecție explicită — fără meta cu XML-uri mari și fără nimic sensibil.
 export const recordColumns = {
@@ -166,21 +167,21 @@ export async function getAnafPdfPath(id: string) {
 /** Regenerează pe loc PDF-ul „Confirmare de încasare" (același randat automat la
  *  marcarea plății, shared/lib/payment-confirmation.ts) — nu e persistat nicăieri
  *  (doar atașat la emailul de atunci), deci descărcarea manuală îl reconstruiește
- *  din datele curente ale facturii. Aruncă Error cu mesaj pt. utilizator — ruta
- *  traduce în 400/404, la fel ca restul serviciului (issueInvoice etc.). */
+ *  din datele curente ale facturii. Aruncă HttpError (400) la regulile de
+ *  business: factura lipsă, neplătită, PDF indisponibil. */
 export async function generateConfirmationPdf(id: string) {
   const [record] = await db
     .select()
     .from(financialRecords)
     .where(and(eq(financialRecords.id, id), isNull(financialRecords.deletedAt)))
   if (!record || record.direction !== 'out' || record.type !== 'invoice') {
-    throw new Error(tr('errors.accounting.invoiceNotFound'))
+    throw httpError(400, 'INVOICE_NOT_FOUND')
   }
   if (record.paymentStatus !== 'paid' || !record.paidAt) {
-    throw new Error(tr('errors.accounting.invoiceNotPaid'))
+    throw httpError(400, 'INVOICE_NOT_PAID')
   }
   if (!isPdfAvailable()) {
-    throw new Error(tr('errors.pdf.unavailable'))
+    throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
   }
 
   let clientName = record.counterpartyName ?? 'Client'
@@ -626,7 +627,7 @@ export async function archiveRecordNow(id: string) {
   if (!existing) return null
 
   if (!existing.pdfStoragePath && !existing.xmlStoragePath) {
-    throw new InvalidPdfUploadError('Record has no PDF or XML document to archive')
+    throw httpError(400, 'NOTHING_TO_ARCHIVE')
   }
 
   const { pdfArchiveFileId, xmlArchiveFileId } = await archiveInvoiceDocuments({

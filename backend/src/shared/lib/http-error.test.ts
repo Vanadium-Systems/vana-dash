@@ -102,3 +102,11 @@ describe('error shape', () => {
     expect(error.message).toContain('amount')
   })
 })
+
+describe('causedBy', () => {
+  it('keeps the reason in the message for the log, not in the answer', async () => {
+    const err = httpError(502, 'ANAF_UNAVAILABLE').causedBy(new Error('socket hang up'))
+    expect(err.message).toBe('ANAF_UNAVAILABLE: socket hang up')
+    expect(err.code).toBe('ANAF_UNAVAILABLE')
+  })
+})

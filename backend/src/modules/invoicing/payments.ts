@@ -7,6 +7,7 @@ import { afterInvoiceSettledByHand } from '../../shared/lib/invoice-settled.js'
 import { addPayment, PaymentError, removePayment } from '../../shared/lib/payments.js'
 import { IdParamsSchema, PaymentCreateSchema, PaymentParamsSchema } from './schema.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { fail } from '../../shared/lib/http-error.js'
 
 // The same four operations under two prefixes: Emise works on /api/invoicing/invoices, the
 // received-documents list and the document page on /api/accounting/records.
@@ -40,7 +41,7 @@ async function deletePayment(recordId: string, paymentId: string, direction?: 'o
 
 function sendPaymentError(reply: FastifyReply, err: unknown) {
   if (!(err instanceof PaymentError)) throw err
-  return reply.code(err.statusCode).send({ success: false, error: { code: err.code, message: err.message } })
+  return fail(reply, err.statusCode, err.code, { message: err.message })
 }
 
 export async function paymentRoutes(app: FastifyInstance) {

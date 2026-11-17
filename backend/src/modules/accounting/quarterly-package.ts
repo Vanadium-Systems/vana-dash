@@ -4,6 +4,7 @@ import { and, eq, gte, isNull, lt, ne, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { bankTransactions, financialRecords, paymentMatches } from '../../shared/db/schema/index.js'
 import { collectArchiveFilesForMonths } from '../../shared/lib/archive-export.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { ronAmountSql } from '../../shared/lib/sql-fx.js'
 import { getPresignedDownloadUrl, uploadToR2 } from '../../shared/lib/r2.js'
 
@@ -20,7 +21,7 @@ const QUARTER_MONTHS: Record<string, [number, number, number]> = {
 
 export function parseQuarter(quarter: string): { from: Date; to: Date; monthFolderNames: string[] } {
   const match = /^(\d{4})-(Q[1-4])$/.exec(quarter)
-  if (!match) throw new Error(`Format trimestru invalid: "${quarter}" (așteptat YYYY-Qn)`)
+  if (!match) throw httpError(400, 'QUARTER_FORMAT_INVALID')
   const year = Number(match[1])
   const months = QUARTER_MONTHS[match[2]!]!
   const from = new Date(Date.UTC(year, months[0] - 1, 1))

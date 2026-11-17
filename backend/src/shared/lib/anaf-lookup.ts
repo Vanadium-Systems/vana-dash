@@ -5,6 +5,7 @@
 import { normalizeCui } from './cui-validator.js'
 import { countyNameToIsoCode, extractBucharestSectorCode } from '../../countries/ro/counties.js'
 import { tr } from './i18n.js'
+import { httpError } from './http-error.js'
 
 const ANAF_TVA_URL = 'https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva'
 const FETCH_TIMEOUT_MS = 5_000
@@ -73,7 +74,7 @@ export function mapEntry(entry: AnafFoundEntry): AnafCompanyInfo {
 /** Caută o singură firmă după CIF. Validează cifra de control local înainte de request. */
 export async function lookupCompanyByCui(rawCif: string): Promise<AnafCompanyInfo> {
   const cui = normalizeCui(rawCif)
-  if (!cui) throw new Error(tr('errors.anaf.cifInvalid'))
+  if (!cui) throw httpError(400, 'CIF_INVALID')
 
   const today = new Date().toISOString().slice(0, 10)
   let res: Response
@@ -91,6 +92,6 @@ export async function lookupCompanyByCui(rawCif: string): Promise<AnafCompanyInf
 
   const body = (await res.json()) as AnafTvaResponse
   const entry = body.found?.[0]
-  if (!entry) throw new Error(tr('errors.anaf.noRecord', { cui }))
+  if (!entry) throw httpError(400, 'ANAF_NO_RECORD', { cui })
   return mapEntry(entry)
 }

@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { anafConnector } from '../../connectors/anaf/index.js'
 import { buildAuthorizeUrl, exchangeCode, isOauthConfigured, refreshTokens } from '../../connectors/anaf/oauth.js'
@@ -48,6 +48,25 @@ import {
 import * as service from './service.js'
 import * as supplierEmail from './supplier-email.js'
 import { tr } from '../../shared/lib/i18n.js'
+import { CompanyProfileIncompleteError } from '../../countries/types.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
+
+// The exports run through ANAF-format builders, the PDF filler and storage; a business rule
+// (missing VAT code, incomplete company sheet) keeps its own text, the rest stays in the log.
+function declarationExportFailure(req: FastifyRequest, reply: FastifyReply, err: unknown) {
+  if (err instanceof HttpError) throw err
+  if (err instanceof CompanyProfileIncompleteError) {
+    return fail(reply, 400, 'COMPANY_PROFILE_INCOMPLETE', { message: err.message, details: { fields: err.fields } })
+  }
+  req.log.warn({ err }, 'declaration export failed')
+  return fail(reply, 400, 'DECLARATION_EXPORT_FAILED')
+}
+
+function quarterlyPackageFailure(req: FastifyRequest, reply: FastifyReply, err: unknown) {
+  if (err instanceof HttpError) throw err
+  req.log.warn({ err }, 'quarterly package failed')
+  return fail(reply, 400, 'QUARTERLY_PACKAGE_FAILED')
+}
 
 export async function accountingRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -72,7 +91,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: RecordIdParamsSchema } },
     async (req, reply) => {
       const record = await service.getRecord(req.params.id)
-      if (!record) return reply.code(404).send({ success: false, error: 'Record not found' })
+      if (!record) return fail(reply, 404, 'RECORD_NOT_FOUND')
       return { success: true, data: record }
     },
   )
@@ -84,7 +103,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const detail = await getRecordDetail(req.params.id)
       if (!detail) {
-        return reply.code(404).send({ success: false, error: { code: 'RECORD_NOT_FOUND', message: tr('errors.payments.recordNotFound') } })
+        return fail(reply, 404, 'RECORD_NOT_FOUND')
       }
       return { success: true, data: detail }
     },
@@ -96,11 +115,11 @@ export async function accountingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const record = await service.updatePayment(req.params.id, req.body)
-        if (!record) return reply.code(404).send({ success: false, error: { code: 'RECORD_NOT_FOUND', message: tr('errors.payments.recordNotFound') } })
+        if (!record) return fail(reply, 404, 'RECORD_NOT_FOUND')
         return { success: true, data: record }
       } catch (err) {
         if (!(err instanceof PaymentError)) throw err
-        return reply.code(err.statusCode).send({ success: false, error: { code: err.code, message: err.message } })
+        return fail(reply, err.statusCode, err.code, { message: err.message })
       }
     },
   )
@@ -111,7 +130,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: RecordIdParamsSchema } },
     async (req, reply) => {
       const paths = await service.getRecordStoragePaths(req.params.id)
-      if (!paths?.xmlStoragePath) return reply.code(404).send({ success: false, error: tr('errors.accounting.xmlUnavailable') })
+      if (!paths?.xmlStoragePath) return fail(reply, 404, 'RECORD_XML_UNAVAILABLE', { message: tr('errors.accounting.xmlUnavailable') })
       const content = await readDocument(paths.xmlStoragePath)
       const fileName = (paths.documentNumber ?? req.params.id).replace(/[/\\"]/g, '_')
       // Content-Disposition: attachment — fără el, browserul randează XML-ul inline într-un
@@ -127,7 +146,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: RecordIdParamsSchema } },
     async (req, reply) => {
       const paths = await service.getRecordStoragePaths(req.params.id)
-      if (!paths?.pdfStoragePath) return reply.code(404).send({ success: false, error: tr('errors.accounting.pdfUnavailable') })
+      if (!paths?.pdfStoragePath) return fail(reply, 404, 'RECORD_PDF_UNAVAILABLE', { message: tr('errors.accounting.pdfUnavailable') })
       const content = await readDocument(paths.pdfStoragePath)
       const fileName = (paths.documentNumber ?? req.params.id).replace(/[/\\"]/g, '_')
       reply.header('Content-Disposition', `attachment; filename="${fileName}.pdf"`)
@@ -143,13 +162,13 @@ export async function accountingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       const anafPdf = await service.getAnafPdfPath(req.params.id)
       if (!anafPdf) {
-        return reply.code(404).send({ success: false, error: tr('errors.accounting.efacturaPdfNotSynced') })
+        return fail(reply, 404, 'EFACTURA_PDF_NOT_SYNCED', { message: tr('errors.accounting.efacturaPdfNotSynced') })
       }
       let content
       try {
         content = await readDocument(anafPdf.path)
       } catch {
-        return reply.code(404).send({ success: false, error: tr('errors.accounting.efacturaPdfUnavailable') })
+        return fail(reply, 404, 'EFACTURA_PDF_UNAVAILABLE', { message: tr('errors.accounting.efacturaPdfUnavailable') })
       }
       const fileName = (anafPdf.documentNumber ?? req.params.id).replace(/[/\\"]/g, '_')
       reply.header('Content-Disposition', `attachment; filename="${fileName}_ANAF.pdf"`)
@@ -169,7 +188,9 @@ export async function accountingRoutes(app: FastifyInstance) {
         reply.header('Content-Disposition', `attachment; filename="confirmare-${documentNumber}.pdf"`)
         return reply.type('application/pdf').send(buffer)
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'confirmation PDF failed')
+        return fail(reply, 400, 'CONFIRMATION_PDF_FAILED')
       }
     },
   )
@@ -184,9 +205,7 @@ export async function accountingRoutes(app: FastifyInstance) {
   // Pasul 1: Stefan deschide URL-ul în browser (cu certificatul instalat) și consimte.
   server.get('/api/accounting/anaf/authorize-url', { preHandler: [app.authenticate] }, async (_req, reply) => {
     if (!isOauthConfigured()) {
-      return reply
-        .code(400)
-        .send({ success: false, error: tr('errors.accounting.setAnafEnvFirst') })
+      return fail(reply, 400, 'ANAF_OAUTH_NOT_CONFIGURED', { message: tr('errors.accounting.setAnafEnvFirst') })
     }
     return { success: true, data: { url: buildAuthorizeUrl() } }
   })
@@ -201,32 +220,36 @@ export async function accountingRoutes(app: FastifyInstance) {
         await saveAnafTokens(req.body.cif, tokens)
         return { success: true, data: await service.getAnafStatus() }
       } catch (err) {
-        return reply.code(502).send({ success: false, error: String(err) })
+        req.log.warn({ err }, 'ANAF code exchange failed')
+        return fail(reply, 502, 'ANAF_CODE_EXCHANGE_FAILED')
       }
     },
   )
 
   // On-demand refresh. A failure does not mark needs_reauth: a passing ANAF outage should not
   // force a new consent. The nightly job does that if the failure persists.
-  server.post('/api/accounting/anaf/refresh', { preHandler: [app.authenticate] }, async (_req, reply) => {
+  server.post('/api/accounting/anaf/refresh', { preHandler: [app.authenticate] }, async (req, reply) => {
     const row = await getAnafCredentialsRow()
     if (!row || row.status !== 'active' || !row.refreshTokenEnc) {
-      return reply.code(400).send({ success: false, error: tr('errors.anaf.notConfigured') })
+      return fail(reply, 400, 'ANAF_NOT_CONFIGURED')
     }
     try {
       await saveAnafTokens(row.cif, await refreshTokens(await decryptField(row.refreshTokenEnc)))
       return { success: true, data: await service.getAnafStatus() }
     } catch (err) {
-      return reply.code(502).send({ success: false, error: tr('errors.anaf.refreshFailed', { err: String(err) }) })
+      req.log.warn({ err }, 'ANAF token refresh failed')
+      return fail(reply, 502, 'ANAF_TOKEN_REFRESH_FAILED')
     }
   })
 
-  server.post('/api/accounting/anaf/sync', { preHandler: [app.authenticate] }, async (_req, reply) => {
+  server.post('/api/accounting/anaf/sync', { preHandler: [app.authenticate] }, async (req, reply) => {
     try {
       const result = await triggerAnafSyncNow()
       return { success: true, data: result }
     } catch (err) {
-      return reply.code(400).send({ success: false, error: String(err) })
+      if (err instanceof HttpError) throw err
+      req.log.warn({ err }, 'ANAF sync failed')
+      return fail(reply, 400, 'ANAF_UNAVAILABLE')
     }
   })
 
@@ -250,7 +273,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: RecurringExpenseIdParamsSchema, body: RecurringExpenseUpdateSchema } },
     async (req, reply) => {
       const row = await service.updateRecurringExpense(req.params.id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.accounting.recurringNotFound') })
+      if (!row) return fail(reply, 404, 'RECURRING_EXPENSE_NOT_FOUND', { message: tr('errors.accounting.recurringNotFound') })
       return { success: true, data: row }
     },
   )
@@ -260,7 +283,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: RecurringExpenseIdParamsSchema } },
     async (req, reply) => {
       const row = await service.deleteRecurringExpense(req.params.id)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.accounting.recurringNotFound') })
+      if (!row) return fail(reply, 404, 'RECURRING_EXPENSE_NOT_FOUND', { message: tr('errors.accounting.recurringNotFound') })
       return { success: true }
     },
   )
@@ -276,7 +299,9 @@ export async function accountingRoutes(app: FastifyInstance) {
       try {
         session = await getAnafSession()
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'ANAF session failed')
+        return fail(reply, 400, 'ANAF_UNAVAILABLE')
       }
       const live = await anafConnector.fetchSpvMessages(session, req.query.days).catch((err) => {
         console.error(`[anaf] Fetch live mesaje SPV eșuat: ${String(err)}`)
@@ -343,10 +368,12 @@ export async function accountingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const row = await d301.updateDeclarationLine(req.params.id, req.body)
-        if (!row) return reply.code(404).send({ success: false, error: 'Record not found' })
+        if (!row) return fail(reply, 404, 'RECORD_NOT_FOUND')
         return { success: true, data: row }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: err instanceof Error ? err.message : String(err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'declaration line update failed')
+        return fail(reply, 400, 'DECLARATION_LINE_UPDATE_FAILED')
       }
     },
   )
@@ -373,7 +400,7 @@ export async function accountingRoutes(app: FastifyInstance) {
           .header('content-disposition', `attachment; filename="${await d301.declarationFileName('D301', req.query.month, 'xml')}"`)
           .send(xml)
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return declarationExportFailure(req, reply, err)
       }
     },
   )
@@ -400,7 +427,7 @@ export async function accountingRoutes(app: FastifyInstance) {
           .header('content-disposition', `attachment; filename="${await d301.declarationFileName('D390', req.query.month, 'xml')}"`)
           .send(xml)
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return declarationExportFailure(req, reply, err)
       }
     },
   )
@@ -414,7 +441,7 @@ export async function accountingRoutes(app: FastifyInstance) {
       try {
         return { success: true, data: await quarterlyPackage.getQuarterlyPackageSummary(req.query.quarter) }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return quarterlyPackageFailure(req, reply, err)
       }
     },
   )
@@ -426,7 +453,7 @@ export async function accountingRoutes(app: FastifyInstance) {
       try {
         return { success: true, data: await quarterlyPackage.buildQuarterlyPackage(req.query.quarter) }
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err) })
+        return quarterlyPackageFailure(req, reply, err)
       }
     },
   )
@@ -442,11 +469,11 @@ export async function accountingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const record = await service.confirmRecordReview(req.params.id, req.body, req.me.id)
-        if (!record) return reply.code(404).send({ success: false, error: 'Record not found' })
+        if (!record) return fail(reply, 404, 'RECORD_NOT_FOUND')
         return { success: true, data: record }
       } catch (err) {
         if (err instanceof service.DuplicateDocumentNumberError) {
-          return reply.code(409).send({ success: false, error: err.message })
+          return fail(reply, 409, 'DUPLICATE_DOCUMENT_NUMBER', { message: err.message })
         }
         throw err
       }
@@ -462,11 +489,11 @@ export async function accountingRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         const record = await service.uploadRecordPdf(req.params.id, req.body, req.me.id)
-        if (!record) return reply.code(404).send({ success: false, error: 'Record not found' })
+        if (!record) return fail(reply, 404, 'RECORD_NOT_FOUND')
         return { success: true, data: record }
       } catch (err) {
         if (err instanceof service.InvalidPdfUploadError) {
-          return reply.code(400).send({ success: false, error: err.message })
+          return fail(reply, 400, 'INVALID_PDF_UPLOAD')
         }
         throw err
       }
@@ -480,16 +507,9 @@ export async function accountingRoutes(app: FastifyInstance) {
       schema: { params: RecordIdParamsSchema },
     },
     async (req, reply) => {
-      try {
-        const result = await service.archiveRecordNow(req.params.id)
-        if (!result) return reply.code(404).send({ success: false, error: 'Record not found' })
-        return { success: true, data: result }
-      } catch (err) {
-        if (err instanceof service.InvalidPdfUploadError) {
-          return reply.code(400).send({ success: false, error: err.message })
-        }
-        throw err
-      }
+      const result = await service.archiveRecordNow(req.params.id)
+      if (!result) return fail(reply, 404, 'RECORD_NOT_FOUND')
+      return { success: true, data: result }
     },
   )
 
@@ -535,10 +555,10 @@ export async function accountingRoutes(app: FastifyInstance) {
         return reply.code(201).send({ success: true, data: record })
       } catch (err) {
         if (err instanceof service.InvalidPdfUploadError) {
-          return reply.code(400).send({ success: false, error: err.message })
+          return fail(reply, 400, 'INVALID_PDF_UPLOAD')
         }
         if (err instanceof service.DuplicateDocumentNumberError) {
-          return reply.code(409).send({ success: false, error: err.message })
+          return fail(reply, 409, 'DUPLICATE_DOCUMENT_NUMBER', { message: err.message })
         }
         throw err
       }
@@ -574,7 +594,7 @@ export async function accountingRoutes(app: FastifyInstance) {
         return { success: true, data }
       } catch (err) {
         if (err instanceof supplierEmail.SupplierEmailNotFoundError) {
-          return reply.code(404).send({ success: false, error: err.message })
+          return fail(reply, 404, 'EMAIL_MESSAGE_NOT_FOUND')
         }
         throw err
       }
@@ -592,13 +612,13 @@ export async function accountingRoutes(app: FastifyInstance) {
         return { success: true, data }
       } catch (err) {
         if (err instanceof supplierEmail.SupplierEmailNotFoundError) {
-          return reply.code(404).send({ success: false, error: err.message })
+          return fail(reply, 404, 'EMAIL_MESSAGE_NOT_FOUND')
         }
         if (err instanceof supplierEmail.SupplierEmailBadRequestError) {
-          return reply.code(400).send({ success: false, error: err.message })
+          return fail(reply, 400, 'INVALID_PDF_UPLOAD')
         }
         if (err instanceof service.DuplicateDocumentNumberError) {
-          return reply.code(409).send({ success: false, error: err.message })
+          return fail(reply, 409, 'DUPLICATE_DOCUMENT_NUMBER', { message: err.message })
         }
         throw err
       }
@@ -628,7 +648,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     },
     async (req, reply) => {
       const rule = await supplierEmail.updateSupplierRule(req.params.id, req.body, req.me.id)
-      if (!rule) return reply.code(404).send({ success: false, error: 'Supplier rule not found' })
+      if (!rule) return fail(reply, 404, 'SUPPLIER_RULE_NOT_FOUND')
       return { success: true, data: rule }
     },
   )
@@ -638,7 +658,7 @@ export async function accountingRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: SupplierRuleIdParamsSchema } },
     async (req, reply) => {
       const rule = await supplierEmail.deleteSupplierRule(req.params.id)
-      if (!rule) return reply.code(404).send({ success: false, error: 'Supplier rule not found' })
+      if (!rule) return fail(reply, 404, 'SUPPLIER_RULE_NOT_FOUND')
       return { success: true, data: rule }
     },
   )

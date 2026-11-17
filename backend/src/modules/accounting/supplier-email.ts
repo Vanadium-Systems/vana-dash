@@ -10,6 +10,7 @@ import {
 } from '../../shared/db/schema/index.js'
 import { createdByUserId, recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
 import { archiveInvoiceDocuments } from '../../shared/lib/financial-archive.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { extractInvoiceHintsFromPdf } from '../../shared/lib/pdf-text.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
@@ -887,9 +888,7 @@ export async function importInvoiceFromEmail(
       .trim()
       .toLowerCase()
     if (!isValidSenderPattern(rawPattern)) {
-      throw new SupplierEmailBadRequestError(
-        'Invalid sender pattern: expected an email address or @domain.tld',
-      )
+      throw httpError(400, 'SENDER_PATTERN_INVALID')
     }
     savedRule = await createSupplierRule(
       {

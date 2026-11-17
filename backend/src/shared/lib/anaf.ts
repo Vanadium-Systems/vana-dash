@@ -7,6 +7,7 @@ import { anafCredentials } from '../db/schema/index.js'
 import { decryptField, encryptField } from './crypto.js'
 import { sendAlertEmail } from './email.js'
 import { tr } from './i18n.js'
+import { httpError } from './http-error.js'
 
 // Gestionarea credențialelor ANAF: un singur rând activ (CIF-ul Vanadium).
 // Token-urile stau criptate în DB și sunt decriptate doar în memorie, per call.
@@ -55,10 +56,10 @@ export async function markNeedsReauth(id: string, reason: string): Promise<void>
 export async function getAnafSession(): Promise<AnafSession> {
   const row = await getAnafCredentialsRow()
   if (!row || row.status === 'unconfigured' || !row.accessTokenEnc || !row.refreshTokenEnc) {
-    throw new Error(tr('errors.anaf.consentMissing'))
+    throw httpError(400, 'ANAF_CONSENT_MISSING')
   }
   if (row.status === 'needs_reauth') {
-    throw new Error(tr('errors.anaf.needsReauth'))
+    throw httpError(400, 'ANAF_NEEDS_REAUTH')
   }
 
   const needsRefresh = !row.expiresAt || row.expiresAt.getTime() - Date.now() < REFRESH_MARGIN_MS
@@ -72,6 +73,6 @@ export async function getAnafSession(): Promise<AnafSession> {
     return { cif: row.cif, accessToken: tokens.accessToken }
   } catch (err) {
     await markNeedsReauth(row.id, String(err))
-    throw new Error(tr('errors.anaf.refreshFailed', { err: String(err) }))
+    throw httpError(400, 'ANAF_TOKEN_REFRESH_FAILED').causedBy(err)
   }
 }
