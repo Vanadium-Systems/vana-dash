@@ -120,6 +120,17 @@ function plainKey(message: { id?: string; encrypted: ChatEncrypted | null }, rea
   return ['chat', 'plain', message.id, message.encrypted?.ciphertext.slice(-24), ready ? 1 : 0]
 }
 
+/** Pre-populates the decrypted cache for a message we just encrypted and sent, avoiding a "Decrypting…" flash. */
+export function seedPlainCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  message: { id: string; encrypted?: ChatEncrypted | null },
+  content: MessageContent,
+): void {
+  if (!message.encrypted) return
+  queryClient.setQueryData(plainKey({ id: message.id, encrypted: message.encrypted }, true), content)
+  queryClient.setQueryData(plainKey({ id: message.id, encrypted: message.encrypted }, false), content)
+}
+
 /** An attachment as the UI shows it: its real name and type once the message is decrypted. */
 export type ResolvedAttachment = ChatAttachment & { key?: AttachmentKey }
 

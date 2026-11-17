@@ -5,7 +5,7 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { ChatAttachment, ChatConversation, ChatMessage, ChatReaction, ChatReceipt, ChatReplyPreview, RefType } from '@/shared/lib/types'
 import type { AttachmentKey } from './crypto/engine'
-import { decryptNow, useE2E } from './crypto/E2EProvider'
+import { decryptNow, seedPlainCache, useE2E } from './crypto/E2EProvider'
 
 // The thread of one conversation. The latest page is a query, kept current by the stream. Older
 // pages loaded by scrolling up sit in `older`. A jump (a quoted message, a search hit, a date)
@@ -207,6 +207,8 @@ export function useThreadMessages(conversationId: string | undefined) {
           ? await engine!.encrypt(conversationId, await members(), { body: input.body, attachments: input.attachments.map((a) => a.key) })
           : undefined
         const saved = await api.post<ChatMessage>(base, { ...payload, encrypted })
+        const content = { body: input.body, attachments: input.attachments.map((a) => a.key) }
+        seedPlainCache(queryClient, saved, content)
         // Saved copy first, optimistic one after: the thread hides a pending row once its clientId
         // is in the list, so it never shrinks for a frame (that made the thread jump).
         queryClient.setQueryData<ThreadPage>(queryKey, (current) =>
