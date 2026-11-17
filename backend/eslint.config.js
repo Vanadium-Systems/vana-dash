@@ -21,7 +21,7 @@ export default tseslint.config(
     files: ['src/**/*.ts'],
     ignores: ['src/**/*.test.ts', 'src/shared/lib/http-error.ts'],
     rules: {
-      'no-restricted-syntax': ['warn', ...errorShape],
+      'no-restricted-syntax': ['error', ...errorShape],
     },
   },
 )
