@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { DropdownMenu, DropdownMenuContent, MenuContextProvider, useMenuState } from './dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, MenuContextProvider, useMenuLayer, useMenuState } from './dropdown-menu'
 import { useDragDismiss } from '@/shared/hooks/use-drag-dismiss'
+import { cn } from '@/shared/lib/utils'
 
 // A row's menu: the dropdown on a desktop, a bottom sheet on a phone, with the object's name on top
 // and 48dp rows within reach of the thumb (#5, A26). Same items, same trigger, so a ⋯ menu becomes
@@ -76,10 +77,11 @@ export function BottomSheet({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open, onClose])
 
+  const layer = useMenuLayer()
   if (!mounted) return null
   const state = open ? 'open' : 'closing'
   return createPortal(
-    <div className="fixed inset-0 z-50">
+    <div className={cn('fixed inset-0', layer)}>
       <div data-state={state} className="sheet-backdrop absolute inset-0 bg-black/50 opacity-100" onClick={onClose} />
       <div
         ref={panelRef}

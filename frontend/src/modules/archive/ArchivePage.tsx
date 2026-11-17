@@ -45,7 +45,7 @@ import { ColorDialog } from './ColorDialog'
 import { DetailsPeek } from './DetailsPeek'
 import type { FilterValues } from './FilterChips'
 import { isModifiedRange, isTypeFilter, modifiedAfterIso } from './filters'
-import type { ItemActions } from './ItemMenu'
+import { ItemMenu, type ItemActions } from './ItemMenu'
 import { fileItem, folderItem, hitItem, starredFolderItem, type ArchiveItem } from './items'
 import { carriesFiles, type ListEnv } from './list-env'
 import { MoveDialog } from './MoveDialog'
@@ -59,6 +59,7 @@ import { TrashView } from './TrashView'
 import { UploadPanel } from './UploadPanel'
 import { enqueueUploads, useUploads } from './uploads'
 import { toastError } from '@/shared/lib/errors'
+import { MenuLayerProvider } from '@/shared/components/ui/dropdown-menu'
 
 const VIEW_MODE_KEY = 'archive-view-mode'
 const VIEWS: ArchiveView[] = ['own', 'shared', 'all', 'recent', 'starred', 'trash', 'space']
@@ -491,6 +492,17 @@ export function ArchivePage() {
     return { id: file.id, name: file.name, url, mimeType: url ? file.mimeType : 'application/octet-stream' }
   })
   const viewerCurrent = viewerList[viewerIndex]
+  const viewerItem = viewerCurrent ? fileItems.find((item) => item.id === viewerCurrent.id) ?? null : null
+  // The dialogs these open sit under the viewer, so it steps aside first.
+  const viewerActions: ItemActions = {
+    ...actions,
+    rename: (item) => (closeViewer(), actions.rename(item)),
+    move: (targets) => (closeViewer(), actions.move(targets)),
+    share: (item) => (closeViewer(), actions.share(item)),
+    pickColor: (item) => (closeViewer(), actions.pickColor(item)),
+    sendToMessages: (item) => (closeViewer(), actions.sendToMessages(item)),
+    showLocation: (item) => (closeViewer(), actions.showLocation(item)),
+  }
   const viewerOpen = fileParam !== '' && viewerFiles.length > 0
 
   // --- shortcuts ---
@@ -900,6 +912,11 @@ export function ArchivePage() {
                   >
                     <MessageSquareShare className="h-5 w-5" />
                   </button>
+                ) : null}
+                {viewerItem ? (
+                  <MenuLayerProvider value="z-viewer-menu">
+                    <ItemMenu targets={[viewerItem]} actions={viewerActions} title={viewerItem.name} className={viewerButtonClass} />
+                  </MenuLayerProvider>
                 ) : null}
               </>
             ) : null

@@ -11,6 +11,8 @@ export default {
       zIndex: {
         sticky: '1',
         overlay: '60',
+        // Menus opened from inside the file viewer (z-[60]).
+        'viewer-menu': '70',
       },
       fontFamily: {
         sans: ['Onest', 'system-ui', 'sans-serif'],

@@ -21,6 +21,11 @@ function useMenuContext(component: string) {
 }
 
 export const MenuContextProvider = MenuContext.Provider
+
+// A layer that sits above the default one (the file viewer) lifts the menus opened inside it.
+const MenuLayerContext = createContext('z-50')
+export const MenuLayerProvider = MenuLayerContext.Provider
+export const useMenuLayer = () => useContext(MenuLayerContext)
 export const useMenuState = useMenuContext
 
 /** Opened from the keyboard (Enter / Space give a click with `detail === 0`), the first item takes focus. */
@@ -145,12 +150,13 @@ export function MenuPanel({
     items[next]?.focus()
   }
 
+  const layer = useMenuLayer()
   return createPortal(
     <div
       ref={panelRef}
       role="menu"
       // max-h + overflow: a menu opened on a bottom row cannot run past the screen.
-      className="menu-pop glass fixed z-50 max-h-[calc(100vh-32px)] min-w-40 overflow-y-auto rounded-md border p-1 text-card-foreground shadow-md"
+      className={cn('menu-pop glass fixed max-h-[calc(100vh-32px)] min-w-40 overflow-y-auto rounded-md border p-1 text-card-foreground shadow-md', layer)}
       style={{ ...position, '--menu-origin': origin } as CSSProperties}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={onKeyDown}
