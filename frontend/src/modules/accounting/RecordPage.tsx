@@ -432,7 +432,7 @@ function PartnerLink({ record, canClients }: { record: FinancialRecord; canClien
   return (
     <span className="min-w-0 truncate">
       {record.direction === 'out' && record.billingClientId && canClients ? (
-        <Link to="/clients?tab=activi" className="font-medium text-foreground underline-offset-2 hover:underline">
+        <Link to={`/clients?tab=activi&client=${record.billingClientId}`} className="font-medium text-foreground underline-offset-2 hover:underline">
           {name}
         </Link>
       ) : (
