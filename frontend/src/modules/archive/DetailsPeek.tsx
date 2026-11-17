@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { Download, Star, StarOff } from 'lucide-react'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
@@ -7,9 +8,9 @@ import { Skeleton } from '@/shared/components/ui/skeleton'
 import { useMe } from '@/shared/hooks/use-me'
 import { api, ApiError } from '@/shared/lib/api'
 import { fileCategory, fileTypeLabel } from '@/shared/lib/file-type'
-import { formatDateTime } from '@/shared/lib/format'
+import { formatDateTime, formatNumber } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
-import type { ArchiveDetails, ArchivePerson } from '@/shared/lib/types'
+import type { ArchiveDetails, ArchiveDownloadUrl, ArchivePerson } from '@/shared/lib/types'
 import { formatBytes } from '@/shared/lib/utils'
 import { FolderGlyph } from './FolderGlyph'
 import type { ItemActions } from './ItemMenu'
@@ -33,6 +34,22 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <dd className="min-w-0 break-words">{children}</dd>
     </div>
   )
+}
+
+/** Width and height of an image, read by the browser from the file itself (no parser of ours). */
+function useImageSize(url: string | null): { width: number; height: number } | null {
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+  useEffect(() => {
+    setSize(null)
+    if (!url) return
+    const image = new Image()
+    image.onload = () => setSize({ width: image.naturalWidth, height: image.naturalHeight })
+    image.src = url
+    return () => {
+      image.onload = null
+    }
+  }, [url])
+  return size
 }
 
 function who(person: ArchivePerson | null, at: string) {
@@ -67,9 +84,18 @@ export function DetailsPeek({
   const mine = data?.access.find((entry) => entry.userId === session?.user.id)
   const readOnly = data && data.owner?.id !== session?.user.id && mine?.level === 'view'
   const starred = data?.starred ?? item?.starred ?? false
+  const isImage = data?.mimeType !== undefined && fileCategory(data.mimeType) === 'image'
+  // The same presigned URL the viewer asks for, so an image already open costs nothing more.
+  const original = useQuery({
+    queryKey: ['archive', 'download-url', id],
+    queryFn: () => api.get<ArchiveDownloadUrl>(`/api/archive/files/${id}/download-url`),
+    staleTime: 10 * 60 * 1000,
+    enabled: id !== null && isImage,
+  })
+  const imageSize = useImageSize(isImage ? (original.data?.url ?? null) : null)
 
   return (
-    <SidePeek open={id !== null} onClose={onClose} title={data?.name ?? item?.name ?? t('archive:details.title')} className={raised ? 'z-[70]' : undefined}>
+    <SidePeek open={id !== null} onClose={onClose} title={data?.name ?? item?.name ?? t('archive:details.title')} className={raised ? 'z-viewer-menu' : undefined}>
       {details.isError ? (
         <p className="text-sm text-muted-foreground">{t('archive:details.gone')}</p>
       ) : !data ? (
@@ -107,6 +133,11 @@ export function DetailsPeek({
           <dl className="space-y-2">
             <Field label={t('common:labels.type')}>{data.mimeType !== undefined ? fileTypeLabel(fileCategory(data.mimeType)) : t('archive:types.folder')}</Field>
             {data.sizeBytes !== undefined ? <Field label={t('archive:labels.size')}>{formatBytes(data.sizeBytes)}</Field> : null}
+            {imageSize ? (
+              <Field label={t('archive:details.dimensions')}>
+                {t('archive:details.dimensionsValue', { width: formatNumber(imageSize.width), height: formatNumber(imageSize.height) })}
+              </Field>
+            ) : null}
             <Field label={t('archive:labels.location')}>
               {data.path.length ? (
                 <span className="flex flex-wrap items-center gap-x-1">
