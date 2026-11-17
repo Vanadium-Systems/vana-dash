@@ -35,6 +35,7 @@ import { emailMeRoutes } from './modules/email/me-routes.js'
 import { emailRoutes } from './modules/email/routes.js'
 import { emailSequencesRoutes } from './modules/email/sequences-routes.js'
 import { emailSettingsRoutes } from './modules/email/settings-routes.js'
+import { emailOutreachMailboxesRoutes } from './modules/email/outreach-mailboxes-routes.js'
 import { financialsRoutes } from './modules/financials/routes.js'
 import { paymentRoutes } from './modules/invoicing/payments.js'
 import { invoicingRoutes } from './modules/invoicing/routes.js'
@@ -172,6 +173,7 @@ export async function buildServer() {
   await app.register(emailDraftsRoutes)
   await app.register(emailSequencesRoutes)
   await app.register(emailSettingsRoutes)
+  await app.register(emailOutreachMailboxesRoutes)
   await app.register(monitoringRoutes)
   await app.register(sentryWebhookRoutes)
   await app.register(vanagreenAlertRoutes)

@@ -6,9 +6,18 @@ import { db } from '../../shared/db/client.js'
 import { billingClients, emailMessages, emailSends, emailSequenceEnrollments, emailSequences, emailSuppressions, emailTemplates } from '../../shared/db/schema/index.js'
 import { getResendSentCount, sendEmailWithResult, type SendEmailResult } from '../../shared/lib/email.js'
 import type { PreparedSend } from './scheduled-send.js'
-import { assertCanDeliver, countOutreachSendsToday, EmailSuppressedError, OutreachCapError } from './send-guard.js'
+import { assertCanDeliver, countOutreachSendsToday, EmailSuppressedError, OUTREACH_IDENTITY, OutreachCapError } from './send-guard.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { assertCanSendFrom, mailboxAddresses, sendFromMailboxes } from './mailboxes.js'
+import {
+  formatMailboxFrom,
+  getOutreachMailboxAggregateCap,
+  hasConfiguredOutreachMailboxes,
+  markMailboxError,
+  markMailboxSent,
+  pickNextOutreachMailbox,
+} from './outreach-mailboxes-service.js'
+import { isLocalSmtpHost, sendViaSmtp } from '../../shared/lib/smtp.js'
 import { resolvePeriod } from '../../shared/lib/period.js'
 import { wrapBulkCampaignHtml } from './campaign-layout.js'
 import { htmlToPlainText } from './html-to-text.js'
@@ -229,7 +238,7 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
   if (!template) throw new Error(tr('errors.email.templateNotFound'))
   await assertCanDeliver({ identityKey: from, recipients: [to], senderUserId })
 
-  const fromAddress = await resolveFromAddress(from)
+  let fromAddress = await resolveFromAddress(from)
   const sig = await buildSignature(from, senderUserId)
   // template.body e HTML (sursa — editor rich-text, TemplateFormDialog.tsx) — text simplu
   // derivat din el (htmlToPlainText), nu invers.
@@ -237,18 +246,76 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
   const text = appendUnsubscribeFooter(htmlToPlainText(renderedBodyHtml), to) + sig.text
   const html = wrapBulkCampaignHtml(`${renderedBodyHtml}${sig.html}`, unsubscribeFooterHtml(to), (await getCompany()).profile.name)
   const { html: sendHtml, attachments: inlineImageAttachments } = await inlineStoredImages(html)
-  const result = await sendEmailWithResult({
-    to,
-    subject: renderBody(template.subject, nume),
-    text,
-    html: sendHtml,
-    from: fromAddress,
-    headers: unsubscribeHeaders(to),
-    attachments: [
-      ...inlineImageAttachments,
-      ...(attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64') })) ?? []),
-    ],
-  })
+  const resolvedAttachments = [
+    ...inlineImageAttachments,
+    ...(attachments?.map((a) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64') })) ?? []),
+  ]
+  const renderedSubject = renderBody(template.subject, nume)
+  const headers = unsubscribeHeaders(to)
+
+  let result: SendEmailResult
+  let sendStatus: 'sent' | 'bounced' | 'failed' = 'sent'
+  let outreachMailboxId: string | null = null
+
+  if (from === OUTREACH_IDENTITY && (await hasConfiguredOutreachMailboxes())) {
+    const picked = await pickNextOutreachMailbox()
+    if (!picked) throw new OutreachCapError(0)
+
+    const { mailbox, pass } = picked
+    const settings = await getEmailSettings()
+    if (!settings.outreachRealSendingEnabled && !isLocalSmtpHost(mailbox.smtpHost)) {
+      throw new Error('OUTREACH_REAL_SENDING_DISABLED')
+    }
+
+    fromAddress = formatMailboxFrom(mailbox)
+    outreachMailboxId = mailbox.id
+
+    const smtpRes = await sendViaSmtp(
+      {
+        id: mailbox.id,
+        host: mailbox.smtpHost,
+        port: mailbox.smtpPort,
+        secure: mailbox.smtpSecure,
+        user: mailbox.address,
+        pass,
+      },
+      {
+        from: fromAddress,
+        to,
+        subject: renderedSubject,
+        text,
+        html: sendHtml,
+        headers,
+        attachments: resolvedAttachments,
+      },
+    )
+
+    if (smtpRes.ok) {
+      await markMailboxSent(mailbox.id)
+      result = { ok: true, id: smtpRes.messageId }
+      sendStatus = 'sent'
+    } else {
+      await markMailboxError(mailbox.id, smtpRes.code)
+      result = { ok: false, error: smtpRes.code }
+      if (smtpRes.code === 'SMTP_REJECTED') {
+        sendStatus = 'bounced'
+        await suppressEmail(to, 'bounce')
+      } else {
+        sendStatus = 'failed'
+      }
+    }
+  } else {
+    result = await sendEmailWithResult({
+      to,
+      subject: renderedSubject,
+      text,
+      html: sendHtml,
+      from: fromAddress,
+      headers,
+      attachments: resolvedAttachments,
+    })
+    sendStatus = result.ok ? 'sent' : 'failed'
+  }
 
   const [row] = await db
     .insert(emailSends)
@@ -256,10 +323,10 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
       templateId,
       recipient: to,
       fromAddress,
-      subject: renderBody(template.subject, nume),
+      subject: renderedSubject,
       bodyText: text,
       bodyHtml: html,
-      status: result.ok ? 'sent' : 'failed',
+      status: sendStatus,
       errorMessage: result.ok ? null : result.error,
       resendEmailId: result.id ?? null,
       batchId,
@@ -267,10 +334,16 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
       sequenceStepId,
       variant,
       sentByUserId: senderUserId,
+      outreachMailboxId,
       kind: sequenceEnrollmentId ? 'sequence' : 'bulk',
     })
     .returning()
   if (!row) throw new Error(tr('errors.email.sendInsertFailed'))
+
+  if (sendStatus === 'bounced') {
+    emitProspectEvent('email.bounced', { address: to, sendId: row.id })
+    if (sequenceEnrollmentId) await pauseSequenceIfBouncing(sequenceEnrollmentId)
+  }
 
   return { result, row }
 }
@@ -812,6 +885,9 @@ export interface OutreachCapStatus {
  *  Plafon manual, editabil din Setări Email — nu mai există rampă automată (decizie Stefan,
  *  2026-08-17): el urcă/coboară cap-ul singur pe măsură ce vede cum merge livrarea. */
 export async function getOutreachCapStatus(): Promise<OutreachCapStatus> {
+  if (await hasConfiguredOutreachMailboxes()) {
+    return getOutreachMailboxAggregateCap()
+  }
   const { outreachDailyCap: cap } = await getEmailSettings()
   const usedToday = await countOutreachSendsToday()
   return { cap, usedToday, remaining: Math.max(0, cap - usedToday) }

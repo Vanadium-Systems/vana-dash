@@ -16,6 +16,7 @@ import { readFileAsBase64, type PendingAttachment } from '@/shared/lib/attachmen
 import type { BulkSendResult, EmailSend, EmailSenderOptions, EmailTemplate, Platform } from '@/shared/lib/types'
 import { EngagementBadges } from './EngagementBadges'
 import { IdentityField, useIdentityKey } from './IdentityField'
+import { OutreachMailboxesSummary } from './OutreachMailboxesSummary'
 import { isFailureStatus, STATUS_LABEL, STATUS_TONE } from './send-status'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
@@ -231,6 +232,7 @@ export function BulkSendTab() {
           </div>
 
           <IdentityField id="b-from" value={from} onChange={setFrom} identities={settings.data?.identities} />
+          {from === 'outreach' ? <OutreachMailboxesSummary /> : null}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">

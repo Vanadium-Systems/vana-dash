@@ -37,6 +37,8 @@
     "fastify-type-provider-zod": "^7.0.0",
     "fflate": "^0.8.3",
     "firebase-admin": "^14.3.0",
+    "imapflow": "^2.12.1",
+    "nodemailer": "^10.6.0",
     "pdf-lib": "^1.17.1",
     "postal-mime": "^2.7.6",
     "postgres": "^3.4.9",
@@ -48,6 +50,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
+    "@types/nodemailer": "^8.0.2",
     "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.5",

@@ -62,7 +62,8 @@
       "sabloane": "Templates",
       "setari": "Identities, rules, blocklist",
       "setari_proprii": "My settings: signature, cap, own labels and rules",
-      "cutii": "Assigns mailboxes"
+      "cutii": "Assigns mailboxes",
+      "outreach_cutii": "Outreach SMTP mailboxes"
     },
     "calendar": {
       "view": "Sees the calendar",

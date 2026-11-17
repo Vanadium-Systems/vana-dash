@@ -15,6 +15,8 @@ import { SettingsGroup, SettingsSection, SignatureEditor } from './SettingsLayou
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { t } from '@/shared/lib/i18n'
 import { Checkbox } from '@/shared/components/ui/checkbox'
+import { useMe } from '@/shared/hooks/use-me'
+import { OutreachMailboxesCard } from './OutreachMailboxesCard'
 
 function SignatureLogoCard() {
   const queryClient = useQueryClient()
@@ -389,6 +391,7 @@ function ReadingCard() {
 }
 
 export function SettingsTab() {
+  const { can } = useMe()
   return (
     <div className="max-w-5xl">
       <h2 className="pb-4 text-lg font-semibold">{t('email:sidebar.companySettings')}</h2>
@@ -396,6 +399,7 @@ export function SettingsTab() {
         <IdentitiesCard />
         <SignatureLogoCard />
         <OutreachCapCard />
+        {can('email.outreach_cutii') ? <OutreachMailboxesCard /> : null}
       </SettingsGroup>
       <SettingsGroup title={t('email:settings.groups.receiving')}>
         <ReadingCard />
