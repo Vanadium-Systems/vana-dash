@@ -27,8 +27,6 @@ function series(startIso: string, endIso: string, rule: string, extra: Partial<R
     recurrenceRule: rule,
     recurrenceEndAt: null,
     color: null,
-    reminderMinutesBefore: null,
-    reminderSentAt: null,
     source: 'manual',
     ...extra,
   }

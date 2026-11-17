@@ -30,10 +30,6 @@ export const calendarEvents = pgTable(
     recurrenceRule: text('recurrence_rule'),
     recurrenceEndAt: timestamp('recurrence_end_at', { withTimezone: true }),
     color: text('color'),
-    // null = fără reminder. Dedup pe ocurență (nu boolean) — un eveniment recurent trebuie să
-    // notifice la FIECARE apariție, nu o singură dată vreodată (vezi jobs/calendar-reminders.ts).
-    reminderMinutesBefore: integer('reminder_minutes_before'),
-    reminderSentAt: timestamp('reminder_sent_at', { withTimezone: true }),
     // 'manual' | 'booking' — evenimentele create de o rezervare de pe site (modules/booking).
     source: text('source').notNull().default('manual'),
   },

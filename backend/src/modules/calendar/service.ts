@@ -409,7 +409,7 @@ async function splitSeries(row: EventFullRow, key: Date, input: UpdateEventInput
     const copy = rowCopy(row)
     const [created] = await tx
       .insert(calendarEvents)
-      .values({ ...copy, ...fields, startAt, endAt, recurrenceRule: rule, reminderSentAt: null })
+      .values({ ...copy, ...fields, startAt, endAt, recurrenceRule: rule })
       .returning()
     if (!created) throw new Error(tr('errors.calendar.eventNotCreated'))
 
@@ -493,7 +493,6 @@ export async function duplicateEvent(me: SessionUser, id: string, occurrence?: D
         endAt,
         recurrenceRule: occ ? null : row.recurrenceRule,
         recurrenceEndAt: occ ? null : row.recurrenceEndAt,
-        reminderSentAt: null,
         createdByUserId: me.id,
         updatedByUserId: me.id,
       })
