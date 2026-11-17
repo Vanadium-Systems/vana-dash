@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Info, Search } from 'lucide-react'
+import { ArrowLeft, Info, Phone, Search, Video } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { generateCallKey, saveCallKey } from '@/modules/calls/call-keys'
+import type { CallKind } from '@/modules/calls/types'
 import { FileViewer } from '@/shared/components/FileViewer'
 import { useChatStream } from '@/shared/components/chat/ChatStreamProvider'
 import { Button } from '@/shared/components/ui/button'
@@ -12,7 +14,7 @@ import { useUrlState } from '@/shared/hooks/use-url-state'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import { motionLevel } from '@/shared/lib/motion'
-import type { ChatConversation, ChatMessageRef, ChatReceipt, ChatReplyPreview } from '@/shared/lib/types'
+import type { ChatConversation, ChatMessage, ChatMessageRef, ChatReceipt, ChatReplyPreview } from '@/shared/lib/types'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Composer, type ComposerHandle } from './Composer'
 import { ChatAvatar } from './ChatAvatar'
@@ -24,7 +26,7 @@ import { MessageBubble, type ReceiptState, type ThreadRow } from './MessageBubbl
 import { MessageInfoDialog } from './MessageInfo'
 import { NewMessagesLine } from './NewMessagesLine'
 import { useThreadMessages } from './useThreadMessages'
-import { useDecryptedRows, type ResolvedAttachment } from './crypto/E2EProvider'
+import { seedPlainCache, useDecryptedRows, useE2E, type ResolvedAttachment } from './crypto/E2EProvider'
 import { saveDecrypted } from './crypto/files'
 import { ChangedKeysNotice } from './crypto/E2ESetup'
 import { useLegacyReencryption } from './crypto/legacy'
@@ -46,6 +48,8 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
   useMinuteTick()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const e2e = useE2E()
+  const [startingCall, setStartingCall] = useState(false)
   const { status } = useChatStream()
   const typingByConversation = useChatTyping()
   const [panel, setPanel] = useUrlState('panel')
@@ -423,6 +427,32 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
   const title = conversationTitle(conversation, meId)
   const jumpCount = thread.detached ? thread.arrivedWhileDetached : missed
 
+  async function startCall(kind: CallKind) {
+    if (startingCall) return
+    if (e2e.status !== 'ready' || !e2e.engine) {
+      toast.error(t('messages:calls.e2eeNotReady'))
+      return
+    }
+    setStartingCall(true)
+    try {
+      const roomKey = generateCallKey()
+      const clientId = crypto.randomUUID()
+      const content = { body: '', attachments: [], call: { key: roomKey, kind } }
+      const encrypted = await e2e.engine.encrypt(conversation.id, memberIds, content)
+      const res = await api.post<{ call: { id: string }; message: ChatMessage }>(
+        `/api/chat/conversations/${conversation.id}/calls`,
+        { kind, clientId, encrypted },
+      )
+      saveCallKey(res.call.id, roomKey)
+      seedPlainCache(queryClient, res.message, content)
+      navigate(`/calls/${res.call.id}#k=${encodeURIComponent(roomKey)}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    } finally {
+      setStartingCall(false)
+    }
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b px-3 py-2">
@@ -443,6 +473,26 @@ export function ThreadView({ conversation, meId, onBack }: { conversation: ChatC
             </span>
           </span>
         </button>
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={startingCall}
+          aria-label={t('messages:calls.startAudio')}
+          title={t('messages:calls.startAudio')}
+          onClick={() => void startCall('audio')}
+        >
+          <Phone className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={startingCall}
+          aria-label={t('messages:calls.startVideo')}
+          title={t('messages:calls.startVideo')}
+          onClick={() => void startCall('video')}
+        >
+          <Video className="h-4 w-4" />
+        </Button>
         <Button variant="ghost" size="icon" aria-label={t('messages:panel.search')} onClick={() => setPanel('search')}>
           <Search className="h-4 w-4" />
         </Button>

@@ -1929,7 +1929,7 @@ export interface ChatReaction {
   userIds: string[]
 }
 
-export type RefType = 'prospect' | 'invoice' | 'email_thread' | 'calendar_event' | 'archive_file' | 'note'
+export type RefType = 'prospect' | 'invoice' | 'email_thread' | 'calendar_event' | 'archive_file' | 'note' | 'call'
 
 /** An object shared into a message. `card` depends on `type`; `denied` carries only `title`. */
 export interface ChatMessageRef {
@@ -1983,6 +1983,19 @@ export type ChatStreamEvent =
   | { type: 'reaction.updated'; conversationId: string; messageId: string; reactions: ChatReaction[] }
   | { type: 'keys.to_device' }
   | { type: 'keys.devices'; userId: string }
+  | {
+      type: 'call.incoming'
+      conversationId: string
+      callId: string
+      messageId: string
+      kind: 'audio' | 'video'
+      callerUserId: string
+      callerName: string
+      title: string
+      encrypted: ChatEncrypted | null
+    }
+  | { type: 'call.ended'; conversationId: string; callId: string }
+  | { type: 'call.declined'; conversationId: string; callId: string; userId: string; userName: string }
 
 export type RecordTab = 'all' | 'draft' | 'open' | 'overdue' | 'paid' | 'rejected'
 /** A client as the invoice editor's picker gets it, without the client file. */

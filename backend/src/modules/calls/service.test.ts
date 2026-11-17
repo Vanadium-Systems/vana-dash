@@ -1,17 +1,28 @@
 /**
- * Calls against the real DB, with Daily stubbed: the guest view says nothing about who the call
- * is for, a closed call cannot be joined, and the close job keeps the call's duration.
+ * Calls against the real DB, with LiveKit & Daily HTTP stubbed: the guest view says nothing about
+ * who the call is for, a closed call cannot be joined, tokens enforce membership/features,
+ * livekit_settings encrypts credentials at rest, and the close job cleans expired rooms.
  */
-import { inArray } from 'drizzle-orm'
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
+import { eq, inArray } from 'drizzle-orm'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { calls } from '../../shared/db/schema/index.js'
+import { calls, conversations, livekitSettings } from '../../shared/db/schema/index.js'
 import type { SessionUser } from '../../shared/lib/session.js'
+import { getLiveKitSettingsView, saveLiveKitSettings } from '../../shared/lib/livekit.js'
+import { cleanupTestUsers, createTestUser } from '../../shared/testing/users.js'
 import { runCallsClose } from '../../jobs/calls-close.js'
-import { CallError, createCall, endCall, getPublicCall, joinCall, listCalls } from './service.js'
+import { declineConversationCall, endConversationCall, listMessages, openDm, previewRef, startConversationCall } from '../chat/service.js'
+import './refs.js'
+import { CallError, createCall, endCall, getPublicCall, issueCallToken, issuePublicCallToken, joinCall, listCalls } from './service.js'
 
-const me = { id: '00000000-0000-4000-8000-0000000000aa', displayName: 'Acme Tester', email: 'tester@example.com', features: ['clienti.toti'] } as SessionUser
+let me: SessionUser
+let colleague: SessionUser
+let outsider: SessionUser
+let restricted: SessionUser
+const cleanupUsers: string[] = []
 const callIds: string[] = []
+const conversationIds: string[] = []
+let previousLiveKitRow: (typeof livekitSettings.$inferSelect) | null = null
 
 const jsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
@@ -31,12 +42,47 @@ function stubDaily(meetings: Array<{ duration: number; max_participants: number 
   return fetchMock
 }
 
+function stubLiveKit(rooms: Array<{ name: string; numParticipants?: number }> = []) {
+  const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    if (url.endsWith('/twirp/livekit.RoomService/CreateRoom')) {
+      const body = JSON.parse(String(init?.body ?? '{}')) as { name?: string }
+      return jsonResponse({ sid: 'RM_acme', name: body.name ?? 'room' })
+    }
+    if (url.endsWith('/twirp/livekit.RoomService/DeleteRoom')) {
+      return jsonResponse({})
+    }
+    if (url.endsWith('/twirp/livekit.RoomService/ListRooms')) {
+      return jsonResponse({ rooms })
+    }
+    return jsonResponse({}, 404)
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
+beforeAll(async () => {
+  me = await createTestUser('calls-host', cleanupUsers, { features: ['clienti.toti', 'apeluri.view', 'apeluri.manage', 'mesaje.view'] })
+  colleague = await createTestUser('calls-peer', cleanupUsers, { features: ['mesaje.view'] })
+  outsider = await createTestUser('calls-out', cleanupUsers, { features: ['mesaje.view'] })
+  restricted = await createTestUser('calls-noright', cleanupUsers, { features: [] })
+  const [existing] = await db.select().from(livekitSettings)
+  previousLiveKitRow = existing ?? null
+  if (existing) await db.delete(livekitSettings).where(eq(livekitSettings.id, existing.id))
+})
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 afterAll(async () => {
   if (callIds.length) await db.delete(calls).where(inArray(calls.id, callIds))
+  if (conversationIds.length) await db.delete(conversations).where(inArray(conversations.id, conversationIds))
+  await db.delete(livekitSettings)
+  if (previousLiveKitRow) {
+    await db.insert(livekitSettings).values(previousLiveKitRow)
+  }
+  await cleanupTestUsers(cleanupUsers)
 })
 
 describe('calls', () => {
@@ -91,5 +137,99 @@ describe('calls', () => {
     const [row] = await db.select().from(calls).where(inArray(calls.id, [call.id]))
     expect(row).toMatchObject({ status: 'ended', durationSeconds: 900, participantCount: 3 })
     expect(row?.roomDeletedAt).not.toBeNull()
+  })
+})
+
+describe('livekit calls & chat integration', () => {
+  beforeAll(async () => {
+    await saveLiveKitSettings({
+      url: 'https://acme.livekit.cloud/',
+      apiKey: 'APIacmeTestKey1234',
+      apiSecret: 'acme-test-secret-0123456789abcdef012345',
+      enabled: true,
+    })
+  })
+
+  it('encrypts livekit_settings at rest and masks key preview in settings view', async () => {
+    const [row] = await db.select().from(livekitSettings)
+    expect(row?.apiKeyEnc).toMatch(/^v1:/)
+    expect(row?.apiSecretEnc).toMatch(/^v1:/)
+    const view = await getLiveKitSettingsView()
+    expect(view.configured).toBe(true)
+    expect(view.url).toBe('https://acme.livekit.cloud/')
+    expect(view.apiKeyPreview).toMatch(/^••••/)
+    expect(JSON.stringify(view)).not.toContain('APIacmeTestKey1234')
+    expect(JSON.stringify(view)).not.toContain('acme-test-secret')
+  })
+
+  it('creates LiveKit call, mints authenticated & guest JWT tokens, and closes cleanly', async () => {
+    const lkFetch = stubLiveKit([{ name: 'any', numParticipants: 2 }])
+    const call = await createCall(me, { title: 'Acme E2EE sync', kind: 'audio', expiresInHours: 1 })
+    callIds.push(call.id)
+
+    expect(call.provider).toBe('livekit')
+    expect(call.kind).toBe('audio')
+
+    const hostToken = await issueCallToken(call.id, me)
+    expect(hostToken.provider).toBe('livekit')
+    if (hostToken.provider === 'livekit') {
+      expect(hostToken.livekitUrl).toBe('wss://acme.livekit.cloud')
+      expect(hostToken.token.split('.')).toHaveLength(3)
+      expect(hostToken.kind).toBe('audio')
+    }
+
+    const publicId = call.publicUrl.split('/').pop()!
+    const publicInfo = await getPublicCall(publicId)
+    expect(publicInfo).toMatchObject({ status: 'open', kind: 'audio', provider: 'livekit' })
+    expect(JSON.stringify(publicInfo)).not.toContain('Acme E2EE sync')
+
+    const guestToken = await issuePublicCallToken(publicId, 'Guest Acme')
+    expect(guestToken.provider).toBe('livekit')
+    if (guestToken.provider === 'livekit') {
+      expect(guestToken.token.split('.')).toHaveLength(3)
+      expect(guestToken.livekitUrl).toBe('wss://acme.livekit.cloud')
+    }
+
+    await expect(issueCallToken(call.id, restricted)).rejects.toMatchObject({ code: 'forbidden', status: 403 })
+    await endCall(me, call.id)
+    expect(lkFetch.mock.calls.some(([u]) => String(u).includes('DeleteRoom'))).toBe(true)
+    await expect(issuePublicCallToken(publicId, 'Late Guest')).rejects.toMatchObject({ code: 'closed', status: 410 })
+  })
+
+  it('starts a DM call, restricts token & ref access to members, and ends via chat', async () => {
+    stubLiveKit()
+    const convId = await openDm(me, colleague.id)
+    conversationIds.push(convId)
+
+    const { call } = await startConversationCall(me, convId, {
+      kind: 'video',
+      clientId: crypto.randomUUID(),
+    })
+    callIds.push(call.id)
+    expect(call.conversationId).toBe(convId)
+    expect(call.provider).toBe('livekit')
+
+    const peerToken = await issueCallToken(call.id, colleague)
+    expect(peerToken.provider).toBe('livekit')
+
+    await expect(issueCallToken(call.id, outsider)).rejects.toMatchObject({ code: 'not_found', status: 404 })
+    await expect(issueCallToken(call.id, restricted)).rejects.toMatchObject({ code: 'forbidden', status: 403 })
+
+    const peerPreview = await previewRef(colleague, 'call', call.id)
+    expect(peerPreview).toMatchObject({ kind: 'video', status: 'open', conversationId: convId })
+
+    const peerMessages = await listMessages(colleague, convId, { limit: 10 })
+    const callMessage = peerMessages.messages.find((m) => m.refs.some((r) => r.type === 'call' && r.refId === call.id))
+    expect(callMessage?.refs[0]).toMatchObject({ canOpen: true, card: { kind: 'video', status: 'open' } })
+
+    await expect(previewRef(outsider, 'call', call.id)).rejects.toThrow()
+
+    const declined = await declineConversationCall(colleague, call.id)
+    expect(declined).toMatchObject({ conversationId: convId, callId: call.id })
+
+    await endConversationCall(colleague, call.id)
+    const afterEndMessages = await listMessages(colleague, convId, { limit: 10 })
+    const afterEndCallMsg = afterEndMessages.messages.find((m) => m.refs.some((r) => r.type === 'call' && r.refId === call.id))
+    expect(afterEndCallMsg?.refs[0]?.card).toMatchObject({ status: 'ended' })
   })
 })

@@ -19,6 +19,7 @@ import { chatRoutes } from './modules/chat/routes.js'
 // Ref adapters for objects shared into Mesaje: each module registers its own type.
 import './modules/archive/refs.js'
 import './modules/calendar/refs.js'
+import './modules/calls/refs.js'
 import './modules/email/refs.js'
 import './modules/invoicing/refs.js'
 import './modules/notes/refs.js'

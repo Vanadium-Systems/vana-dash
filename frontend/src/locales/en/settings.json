@@ -134,5 +134,21 @@
     "key": "Project key",
     "host": "Host",
     "keyPlaceholder": "phc_…"
+  },
+  "livekit": {
+    "title": "Video and audio calls (LiveKit Cloud)",
+    "hint": "LiveKit Cloud project credentials. Audio and video remain end-to-end encrypted in the browser.",
+    "configured": "Configured",
+    "notConfigured": "Not configured",
+    "enabled": "Enable calls on LiveKit",
+    "url": "Server URL (wss://…)",
+    "urlPlaceholder": "wss://project-xxx.livekit.cloud",
+    "apiKey": "API Key",
+    "apiSecret": "API Secret",
+    "stored": "Saved: {{preview}}",
+    "fromEnv": "Using value from .env",
+    "keepHint": "Leave empty to keep the saved secret",
+    "test": "Test connection",
+    "testOk": "Connection succeeded ({{count}} active rooms)"
   }
 }

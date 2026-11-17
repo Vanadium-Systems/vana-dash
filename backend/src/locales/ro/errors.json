@@ -1,5 +1,6 @@
 {
   "internal": "Eroare internă",
+  "forbidden": "Nu ai acces la această acțiune.",
   "auth": {
     "invalidCredentials": "Email sau parolă greșită",
     "passwordTooShort": "Parola trebuie să aibă cel puțin {{min}} caractere",
@@ -115,8 +116,8 @@
   "calls": {
     "notFound": "Apelul nu există.",
     "closed": "Apelul s-a încheiat.",
-    "providerError": "Nu am putut crea camera. Daily nu răspunde, încearcă din nou în câteva secunde.",
-    "notConfigured": "Apelurile nu sunt configurate (lipsește DAILY_API_KEY).",
+    "providerError": "Nu am putut crea camera. Furnizorul de apeluri nu răspunde, încearcă din nou în câteva secunde.",
+    "notConfigured": "Apelurile nu sunt configurate (Setări → Apeluri).",
     "bookingTitle": "Apel · {{name}}",
     "anonymizedTitle": "Apel programat"
   },

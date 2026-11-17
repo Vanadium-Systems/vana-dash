@@ -7,6 +7,8 @@ import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { TimeInput } from '@/shared/components/ui/time-input'
+import { buildPublicCallUrl, generateCallKey, saveCallKey } from '@/modules/calls/call-keys'
+import { useCallsStatus, useCreateCall } from '@/modules/calls/calls-api'
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import { companyTimeZone } from '@/shared/lib/format'
@@ -47,6 +49,10 @@ export function MeetDialog({ prospectId, prospectName, task, open, onOpenChange,
   const editing = task !== null
   const canColleagues = can('calendar.comune')
   const canSend = can('email.trimitere')
+  const canManageCalls = can('apeluri.manage')
+  const callsStatus = useCallsStatus(open && !editing && canManageCalls)
+  const createCall = useCreateCall()
+  const callsReady = Boolean(!editing && canManageCalls && callsStatus.data?.configured)
   const senders = useSenderOptions(open && canSend && !editing)
   const identities = useMemo(() => senders.data?.identities ?? [], [senders.data])
   const organizer = session?.user.displayName ?? session?.user.email ?? ''
@@ -56,6 +62,7 @@ export function MeetDialog({ prospectId, prospectName, task, open, onOpenChange,
   const [time, setTime] = useState('10:00')
   const [duration, setDuration] = useState(String(DEFAULT_MEETING_MINUTES))
   const [location, setLocation] = useState('')
+  const [addVideoLink, setAddVideoLink] = useState(true)
   const [invitees, setInvitees] = useState<string[]>([])
   const [attendeeIds, setAttendeeIds] = useState<string[]>([])
   const [sendOn, setSendOn] = useState(true)
@@ -73,6 +80,7 @@ export function MeetDialog({ prospectId, prospectName, task, open, onOpenChange,
     setTime(task ? companyClock(task.dueAt, zone) : '10:00')
     setDuration(String(task?.durationMinutes ?? DEFAULT_MEETING_MINUTES))
     setLocation(task?.location ?? '')
+    setAddVideoLink(true)
     setInvitees(task?.invitees ?? [])
     setAttendeeIds(task?.attendeeUserIds ?? [])
     setSendOn(true)
@@ -151,11 +159,40 @@ export function MeetDialog({ prospectId, prospectName, task, open, onOpenChange,
       if (moved.invitees.length > 0 && (toldChanged || invitesChanged)) onMoved?.(moved)
       return
     }
+    let finalLocation = common.location
+    let finalSubject = subject
+    let finalMessage = message
+    if (callsReady && addVideoLink && !finalLocation) {
+      try {
+        const roomKey = generateCallKey()
+        const hours = Math.max(1, Math.min(8, Math.ceil(Number(duration) / 60) + 1))
+        const createdCall = await createCall.mutateAsync({
+          title: common.title,
+          kind: 'video',
+          scheduledAt: dueAt,
+          expiresInHours: hours,
+          prospectId,
+        })
+        if (createdCall.provider === 'livekit') saveCallKey(createdCall.id, roomKey)
+        const key = createdCall.provider === 'livekit' ? roomKey : null
+        finalLocation = buildPublicCallUrl(createdCall.publicUrl, key)
+        if (!textTouched) {
+          const updatedTexts = inviteTexts('request', { title: common.title, dueAt, durationMinutes: Number(duration), location: finalLocation }, organizer)
+          finalSubject = updatedTexts.subject
+          finalMessage = updatedTexts.body
+        } else if (finalMessage && !finalMessage.includes(finalLocation)) {
+          finalMessage = `${finalMessage}\n\n${finalLocation}`
+        }
+      } catch {
+        // Proceed with creating the meeting even if the call room could not be created.
+      }
+    }
     const created = await write(
       () =>
         api.post<{ id: string }>(`/api/prospects/${prospectId}/tasks`, {
           kind: 'meeting',
           ...common,
+          location: finalLocation,
           invitees: chosenInvitees,
           ...(wantsColleagues && wantsColleagues.length > 0 ? { attendeeUserIds: wantsColleagues } : {}),
           addToCalendar: can('calendar.view'),
@@ -165,7 +202,7 @@ export function MeetDialog({ prospectId, prospectName, task, open, onOpenChange,
     setSaving(false)
     if (!created) return
     onOpenChange(false)
-    if (sending) await sendInvitation({ prospectId, taskId: created.id, kind: 'request', from, to: chosenInvitees, subject, body: message })
+    if (sending) await sendInvitation({ prospectId, taskId: created.id, kind: 'request', from, to: chosenInvitees, subject: finalSubject, body: finalMessage })
   }
 
   const sendBlock = () => {
@@ -244,6 +281,12 @@ export function MeetDialog({ prospectId, prospectName, task, open, onOpenChange,
           <Field label={t('meetings:dialog.location')} optional hint={t('meetings:dialog.locationHint')}>
             <Input maxLength={500} value={location} onChange={(e) => setLocation(e.target.value)} />
           </Field>
+          {callsReady && !location.trim() ? (
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={addVideoLink} onChange={(e) => setAddVideoLink(e.target.checked)} />
+              {t('calls:dialog.attachToMeeting')}
+            </label>
+          ) : null}
 
           <fieldset className="min-w-0 space-y-2">
             <legend className="text-sm font-medium">{t('meetings:dialog.invitees', { company: prospectName })}</legend>

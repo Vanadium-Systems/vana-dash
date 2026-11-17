@@ -103,7 +103,8 @@
       "firma": "Company profile",
       "asistent": "AI providers and keys",
       "joburi": "System jobs",
-      "analitica": "Usage analytics (PostHog)"
+      "analitica": "Usage analytics (PostHog)",
+      "apeluri": "Video calls (LiveKit)"
     },
     "echipa": {
       "administrare": "Invites people and edits roles",

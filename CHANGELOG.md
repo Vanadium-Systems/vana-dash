@@ -4,6 +4,17 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-17: End-to-end encrypted audio and video calls (LiveKit Cloud)
+
+### Added
+- LiveKit Cloud SFU integration (`backend/src/shared/lib/livekit.ts`, `call-rooms.ts`, `livekit_settings` table in migration `0105_calls_livekit` with `FORCE ROW LEVEL SECURITY`) with per-tenant encrypted credentials (`v1:`) configured in Settings → Calls (`setari.apeluri`, `/api/settings/livekit`) and optional `.env` fallback (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`).
+- End-to-end media encryption (`ExternalE2EEKeyProvider` + `livekit-client/e2ee-worker`) in `LiveKitRoomView.tsx`: fails closed when Insertable Streams / `RTCRtpScriptTransform` is unavailable (with "Open in Chrome" fallback in Android WebView), supports audio-only or video calls, camera switching, screen sharing, and active speaker indicator.
+- Direct calls inside Messages (`POST /api/chat/conversations/:id/calls`, `POST /api/chat/calls/:id/{decline,end}`): header buttons in `ThreadView.tsx`, `call` message ref cards (`calls/refs.ts`, `RefCard.tsx`, `CallCardActions.tsx`) carrying room keys inside Megolm ciphertext (`MessageContent.call.key`), SSE events (`call.incoming`, `call.ended`, `call.declined`), Web Push alert, WebAudio ringtone, and in-app incoming call overlay (`IncomingCallOverlay.tsx`).
+- Guest-link E2EE calls across Calls (`/calls`), Calendar bookings (`guest_key_enc` encrypted at rest for host/calendar `.ics` + email link, never exposed on public endpoints), Prospect sheet (`NewCallDialog` prefilled from `SheetBody.tsx`), and optional E2EE video link generator in `MeetDialog.tsx`. Guest links keep the room key in the `#k=` URL fragment (`PublicCallPage.tsx` includes name entry + E2EE privacy notice).
+
+### Changed
+- `apeluri.view` and `apeluri.manage` are enabled in the feature catalog (`shared/lib/features.ts`) without requiring `DAILY_API_KEY`; `/api/calls/:id/token` authorizes conversation members with `mesaje.view` as well as `apeluri.manage` hosts. Legacy Daily rooms remain supported during the transition sprint until closed by `jobs/calls-close.ts`.
+
 ## 2026-11-17: End-to-end encrypted messages
 
 ### Added

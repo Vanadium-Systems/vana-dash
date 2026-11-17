@@ -1,22 +1,26 @@
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { randomBytes } from 'node:crypto'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
-import { withRlsBypass } from '../../shared/lib/tenancy.js'
-import { billingClients, calls, prospects } from '../../shared/db/schema/index.js'
-import { callPublicUrl, closeCallRoom, openCallRoom, type CallRecord } from '../../shared/lib/call-rooms.js'
-import { createOwnerToken, DailyError, isDailyConfigured } from '../../shared/lib/daily.js'
+import { runAsTenant, withRlsBypass } from '../../shared/lib/tenancy.js'
+import { billingClients, calls, conversationMembers, prospects } from '../../shared/db/schema/index.js'
+import { callPublicUrl, closeCallRoom, isCallsConfigured, openCallRoom, type CallRecord } from '../../shared/lib/call-rooms.js'
+import { decryptField } from '../../shared/lib/crypto.js'
+import { createOwnerToken, DailyError } from '../../shared/lib/daily.js'
+import { createLiveKitToken, LiveKitError } from '../../shared/lib/livekit.js'
 import { getCompany } from '../../shared/lib/company.js'
 import { visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import { userName, type SessionUser } from '../../shared/lib/session.js'
 import type { z } from 'zod'
 import { CreateCallSchema, UpdateCallSchema } from './schema.js'
 
-type CreateInput = z.infer<typeof CreateCallSchema>
+type CreateInput = z.input<typeof CreateCallSchema>
 type UpdateInput = z.infer<typeof UpdateCallSchema>
 
 export class CallError extends Error {
   constructor(
-    readonly code: 'not_found' | 'closed' | 'provider' | 'not_configured',
+    readonly code: 'not_found' | 'closed' | 'provider' | 'not_configured' | 'forbidden',
     readonly status: number,
+    readonly feature?: string,
   ) {
     super(code)
   }
@@ -26,6 +30,9 @@ export interface CallRow {
   id: string
   title: string
   publicUrl: string
+  kind: 'audio' | 'video'
+  provider: 'daily' | 'livekit'
+  conversationId: string | null
   scheduledAt: string | null
   expiresAt: string
   status: 'open' | 'ended' | 'cancelled'
@@ -37,12 +44,31 @@ export interface CallRow {
   createdAt: string
 }
 
-// The row people see: our own link, never the Daily room name or a token.
+export type CallTokenResponse =
+  | {
+      provider: 'livekit'
+      livekitUrl: string
+      token: string
+      roomName: string
+      kind: 'audio' | 'video'
+      conversationId: string | null
+      guestKey: string | null
+    }
+  | {
+      provider: 'daily'
+      roomUrl: string
+      token: string
+    }
+
+// The row people see: our own link, never the SFU room name or a token.
 function toCallRow(call: CallRecord, prospectName: string | null, clientName: string | null): CallRow {
   return {
     id: call.id,
     title: call.title,
     publicUrl: callPublicUrl(call.publicId),
+    kind: call.kind,
+    provider: call.provider,
+    conversationId: call.conversationId ?? null,
     scheduledAt: call.scheduledAt?.toISOString() ?? null,
     expiresAt: call.expiresAt.toISOString(),
     status: call.status,
@@ -55,15 +81,40 @@ function toCallRow(call: CallRecord, prospectName: string | null, clientName: st
   }
 }
 
-// The list is company-wide, but a prospect the person cannot see shows no name: the join only
-// matches visible prospects, so `prospect` comes out null.
+async function isConversationMember(conversationId: string, userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: conversationMembers.id })
+    .from(conversationMembers)
+    .where(
+      and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, userId),
+        isNull(conversationMembers.deletedAt),
+      ),
+    )
+  return Boolean(row)
+}
+
+// Non-conversation calls are company-wide (with prospect name filtered by visibleProspectsWhere);
+// conversation calls are visible ONLY to active members of that conversation.
 async function selectRows(me: SessionUser, where: ReturnType<typeof and> | undefined, limit: number): Promise<CallRow[]> {
   const rows = await db
     .select({ call: calls, prospectName: prospects.name, clientName: billingClients.name })
     .from(calls)
     .leftJoin(prospects, and(eq(prospects.id, calls.prospectId), visibleProspectsWhere(me)))
     .leftJoin(billingClients, eq(billingClients.id, calls.billingClientId))
-    .where(and(isNull(calls.deletedAt), where))
+    .where(
+      and(
+        isNull(calls.deletedAt),
+        sql`(${calls.conversationId} IS NULL OR EXISTS (
+          SELECT 1 FROM ${conversationMembers} cm
+          WHERE cm."conversation_id" = ${calls.conversationId}
+            AND cm."user_id" = ${me.id}
+            AND cm."deleted_at" IS NULL
+        ))`,
+        where,
+      ),
+    )
     .orderBy(desc(calls.createdAt))
     .limit(limit)
   return rows.map((row) => toCallRow(row.call, row.prospectName, row.clientName))
@@ -80,6 +131,10 @@ export async function getCall(me: SessionUser, id: string): Promise<CallRow | nu
   return row ?? null
 }
 
+export async function getCallsStatus(): Promise<{ configured: boolean }> {
+  return { configured: await isCallsConfigured() }
+}
+
 // A row that still has a room to open: soft-deleted calls are gone for good.
 async function loadOpenable(id: string): Promise<CallRecord> {
   const [row] = await db.select().from(calls).where(and(eq(calls.id, id), isNull(calls.deletedAt)))
@@ -88,19 +143,31 @@ async function loadOpenable(id: string): Promise<CallRecord> {
 }
 
 export async function createCall(me: SessionUser, input: CreateInput): Promise<CallRow> {
-  if (!isDailyConfigured()) throw new CallError('not_configured', 503)
+  if (!(await isCallsConfigured())) throw new CallError('not_configured', 503)
 
-  const exp = new Date(Date.now() + input.expiresInHours * 3_600_000)
+  if (input.conversationId) {
+    const member = await isConversationMember(input.conversationId, me.id)
+    if (!member) throw new CallError('not_found', 404)
+  }
+
+  const baseMs = input.scheduledAt ? new Date(input.scheduledAt).getTime() : Date.now()
+  const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : undefined
+  const exp = new Date(baseMs + (input.expiresInHours ?? 4) * 3_600_000)
+
   let row: CallRecord
   try {
     row = await openCallRoom({
       title: input.title,
       exp,
+      scheduledAt,
+      kind: input.kind ?? 'video',
+      conversationId: input.conversationId ?? null,
+      createdByUserId: me.id,
       prospectId: input.prospectId,
       billingClientId: input.billingClientId,
     })
   } catch (err) {
-    if (err instanceof DailyError) throw new CallError('provider', 502)
+    if (err instanceof DailyError || err instanceof LiveKitError) throw new CallError('provider', 502)
     throw err
   }
 
@@ -109,6 +176,9 @@ export async function createCall(me: SessionUser, input: CreateInput): Promise<C
 
 export async function updateCall(me: SessionUser, id: string, input: UpdateInput): Promise<CallRow> {
   const call = await loadOpenable(id)
+  if (call.conversationId && !(await isConversationMember(call.conversationId, me.id))) {
+    throw new CallError('not_found', 404)
+  }
 
   const set: Record<string, unknown> = { updatedAt: new Date() }
   if (input.title !== undefined) set.title = input.title
@@ -119,42 +189,99 @@ export async function updateCall(me: SessionUser, id: string, input: UpdateInput
   return (await getCall(me, id))!
 }
 
-export async function joinCall(id: string, me: SessionUser): Promise<{ roomUrl: string; token: string }> {
+async function assertCanAccessCall(call: CallRecord, me: SessionUser): Promise<void> {
+  if (call.conversationId) {
+    if (!me.features.includes('mesaje.view')) throw new CallError('forbidden', 403, 'mesaje.view')
+    if (!(await isConversationMember(call.conversationId, me.id))) throw new CallError('not_found', 404)
+    return
+  }
+  if (!me.features.includes('apeluri.manage')) throw new CallError('forbidden', 403, 'apeluri.manage')
+}
+
+export async function issueCallToken(id: string, me: SessionUser): Promise<CallTokenResponse> {
   const call = await loadOpenable(id)
+  await assertCanAccessCall(call, me)
   if (call.status !== 'open' || call.expiresAt.getTime() <= Date.now()) throw new CallError('closed', 410)
+
+  const displayName = call.conversationId ? userName(me) : `${userName(me)} · ${(await getCompany()).profile.name}`
+
+  if (call.provider === 'livekit') {
+    try {
+      const ttlSeconds = Math.max(300, Math.floor((call.expiresAt.getTime() - Date.now()) / 1000))
+      const { token, livekitUrl } = await createLiveKitToken({
+        roomName: call.roomName,
+        identity: me.id,
+        name: displayName,
+        isHost: true,
+        ttlSeconds,
+      })
+      const guestKey = call.bookingId && call.guestKeyEnc ? await decryptField(call.guestKeyEnc) : null
+      return {
+        provider: 'livekit',
+        livekitUrl,
+        token,
+        roomName: call.roomName,
+        kind: call.kind,
+        conversationId: call.conversationId ?? null,
+        guestKey,
+      }
+    } catch (err) {
+      if (err instanceof LiveKitError) throw new CallError('provider', 502)
+      throw err
+    }
+  }
 
   let token: string
   try {
-    // The owner token lets the dashboard user remove people and end the call for everyone.
-    token = await createOwnerToken(call.roomName, call.expiresAt, `${userName(me)} \u00b7 ${(await getCompany()).profile.name}`)
+    token = await createOwnerToken(call.roomName, call.expiresAt, displayName)
   } catch (err) {
     if (err instanceof DailyError) throw new CallError('provider', 502)
     throw err
   }
 
-  return { roomUrl: call.roomUrl, token }
+  return { provider: 'daily', roomUrl: call.roomUrl ?? '', token }
+}
+
+/** Backwards-compatible alias for `issueCallToken` on legacy `/join`. */
+export async function joinCall(id: string, me: SessionUser): Promise<CallTokenResponse> {
+  return issueCallToken(id, me)
 }
 
 export async function endCall(me: SessionUser, id: string): Promise<CallRow> {
   const call = await loadOpenable(id)
+  await assertCanAccessCall(call, me)
   try {
     await closeCallRoom(call, 'ended')
   } catch (err) {
-    if (err instanceof DailyError) throw new CallError('provider', 502)
+    if (err instanceof DailyError || err instanceof LiveKitError) throw new CallError('provider', 502)
     throw err
   }
   return (await getCall(me, id))!
 }
 
-// What the anonymous join page may know: nothing about who the call is for.
+// What the anonymous join page may know: nothing about who the call is for or the E2EE key.
 export async function getPublicCall(
   publicId: string,
-): Promise<{ status: 'open' | 'ended'; opensAt: string | null; closesAt: string; roomUrl: string | null } | null> {
+): Promise<{
+  status: 'open' | 'ended'
+  kind: 'audio' | 'video'
+  provider: 'daily' | 'livekit'
+  opensAt: string | null
+  closesAt: string
+  roomUrl: string | null
+} | null> {
   // The guest has no account, so no company: the link itself is the key (unique, random), and
-  // only the time window leaves this function.
+  // only the time window and provider kind leave this function.
   const [call] = await withRlsBypass(() =>
     db
-      .select({ status: calls.status, scheduledAt: calls.scheduledAt, expiresAt: calls.expiresAt, roomUrl: calls.roomUrl })
+      .select({
+        status: calls.status,
+        kind: calls.kind,
+        provider: calls.provider,
+        scheduledAt: calls.scheduledAt,
+        expiresAt: calls.expiresAt,
+        roomUrl: calls.roomUrl,
+      })
       .from(calls)
       .where(and(eq(calls.publicId, publicId), isNull(calls.deletedAt))),
   )
@@ -163,8 +290,58 @@ export async function getPublicCall(
   const isOpen = call.status === 'open' && call.expiresAt.getTime() > Date.now()
   return {
     status: isOpen ? 'open' : 'ended',
+    kind: call.kind,
+    provider: call.provider,
     opensAt: call.scheduledAt ? new Date(call.scheduledAt.getTime() - 15 * 60_000).toISOString() : null,
     closesAt: call.expiresAt.toISOString(),
-    roomUrl: isOpen ? call.roomUrl : null,
+    roomUrl: isOpen && call.provider === 'daily' ? (call.roomUrl ?? null) : null,
   }
+}
+
+export async function issuePublicCallToken(
+  publicId: string,
+  guestName: string,
+): Promise<{ provider: 'livekit'; livekitUrl: string; token: string; roomName: string; kind: 'audio' | 'video' }> {
+  // Guest has no session: read the call record across tenants to resolve its company & window.
+  const [call] = await withRlsBypass(() =>
+    db
+      .select({
+        tenantId: calls.tenantId,
+        status: calls.status,
+        kind: calls.kind,
+        provider: calls.provider,
+        roomName: calls.roomName,
+        scheduledAt: calls.scheduledAt,
+        expiresAt: calls.expiresAt,
+      })
+      .from(calls)
+      .where(and(eq(calls.publicId, publicId), isNull(calls.deletedAt))),
+  )
+  if (!call) throw new CallError('not_found', 404)
+
+  const now = Date.now()
+  const opensAt = call.scheduledAt ? call.scheduledAt.getTime() - 15 * 60_000 : null
+  if (call.status !== 'open' || call.expiresAt.getTime() <= now || (opensAt !== null && now < opensAt)) {
+    throw new CallError('closed', 410)
+  }
+  if (call.provider !== 'livekit') {
+    throw new CallError('not_configured', 503)
+  }
+
+  return runAsTenant(call.tenantId, async () => {
+    try {
+      const ttlSeconds = Math.max(300, Math.floor((call.expiresAt.getTime() - Date.now()) / 1000))
+      const { token, livekitUrl } = await createLiveKitToken({
+        roomName: call.roomName,
+        identity: `guest:${randomBytes(6).toString('hex')}`,
+        name: guestName,
+        isHost: false,
+        ttlSeconds,
+      })
+      return { provider: 'livekit', livekitUrl, token, roomName: call.roomName, kind: call.kind }
+    } catch (err) {
+      if (err instanceof LiveKitError) throw new CallError('provider', 502)
+      throw err
+    }
+  })
 }

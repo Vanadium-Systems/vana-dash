@@ -11,6 +11,7 @@ import type { ChatEvent } from './presence.js'
 import {
   AttachmentIdParamsSchema,
   AttachmentQuerySchema,
+  CallActionParamsSchema,
   ConversationIdParamsSchema,
   CreateConversationSchema,
   EditMessageSchema,
@@ -23,12 +24,13 @@ import {
   RecentTargetsQuerySchema,
   RefLookupQuerySchema,
   SendMessageSchema,
+  StartConversationCallSchema,
   UpdateConversationSchema,
 } from './schema.js'
 import * as service from './service.js'
 import { DeviceNotFoundError, KeysConflictError } from './keys.js'
 import { keyRoutes } from './keys-routes.js'
-import { ChatRequestError, ConversationForbiddenError, GroupPermissionError, MessageBodyError } from './service.js'
+import { ChatCallError, ChatRequestError, ConversationForbiddenError, GroupPermissionError, MessageBodyError } from './service.js'
 import { RefFileTooLargeError } from '../../shared/lib/entity-refs.js'
 import { tr, trFor } from '../../shared/lib/i18n.js'
 
@@ -68,6 +70,15 @@ export async function chatRoutes(app: FastifyInstance) {
     }
     if (error instanceof KeysConflictError) {
       return reply.code(409).send({ success: false, error: { code: error.code } })
+    }
+    if (error instanceof ChatCallError) {
+      const key =
+        error.code === 'not_configured'
+          ? 'errors.calls.notConfigured'
+          : error.code === 'provider'
+            ? 'errors.calls.providerError'
+            : 'errors.calls.notFound'
+      return reply.code(error.status).send({ success: false, error: tr(key) })
     }
     throw error
   })
@@ -211,6 +222,61 @@ export async function chatRoutes(app: FastifyInstance) {
       publish({ type: 'message.created', conversationId, message }, await service.memberIds(conversationId))
       void notifyMembers(conversationId, message)
       return { success: true, data: message }
+    },
+  )
+
+  server.post(
+    '/api/chat/conversations/:id/calls',
+    { preHandler: [app.authenticate], schema: { params: ConversationIdParamsSchema, body: StartConversationCallSchema } },
+    async (req, reply) => {
+      const { id: conversationId } = req.params
+      const result = await service.startConversationCall(req.me, conversationId, req.body)
+      const allMembers = await service.memberIds(conversationId)
+      const others = allMembers.filter((userId) => userId !== req.me.id)
+      publish({ type: 'message.created', conversationId, message: result.message }, allMembers)
+      if (others.length > 0) {
+        publish(
+          {
+            type: 'call.incoming',
+            conversationId,
+            callId: result.call.id,
+            messageId: result.message.id,
+            kind: result.call.kind,
+            callerUserId: req.me.id,
+            callerName: result.callerName,
+            title: result.call.title,
+            encrypted: result.message.encrypted,
+          },
+          others,
+        )
+        void notifyIncomingCall(conversationId, req.me.id, result.call.id, result.call.kind)
+      }
+      return reply.code(201).send({ success: true, data: result })
+    },
+  )
+
+  server.post(
+    '/api/chat/calls/:id/decline',
+    { preHandler: [app.authenticate], schema: { params: CallActionParamsSchema } },
+    async (req) => {
+      const { conversationId, callId, userName } = await service.declineConversationCall(req.me, req.params.id)
+      const others = await service.memberIds(conversationId, req.me.id)
+      if (others.length > 0) {
+        publish({ type: 'call.declined', conversationId, callId, userId: req.me.id, userName }, others)
+      }
+      return { success: true }
+    },
+  )
+
+  server.post(
+    '/api/chat/calls/:id/end',
+    { preHandler: [app.authenticate], schema: { params: CallActionParamsSchema } },
+    async (req) => {
+      const { conversationId, callId } = await service.endConversationCall(req.me, req.params.id)
+      const members = await service.memberIds(conversationId)
+      publish({ type: 'call.ended', conversationId, callId }, members)
+      publish({ type: 'conversation.updated', conversationId }, members)
+      return { success: true }
     },
   )
 
@@ -419,5 +485,36 @@ async function notifyMembers(
   } catch (err) {
     // Pushul e canal suplimentar, nu condiție pentru trimiterea mesajului (regula #7).
     console.error(`[chat] push pentru ${conversationId} eșuat: ${String(err)}`)
+  }
+}
+
+async function notifyIncomingCall(
+  conversationId: string,
+  callerUserId: string,
+  callId: string,
+  kind: 'audio' | 'video',
+): Promise<void> {
+  try {
+    const target = await service.pushTarget(conversationId, callerUserId)
+    if (!target) return
+    const offline = target.recipients.filter((userId) => !hasOpenConnection(userId))
+    if (offline.length === 0) return
+
+    const key = kind === 'audio' ? 'push.chat.incomingCallAudio' : 'push.chat.incomingCallVideo'
+    await notifyPush(
+      'mesaje',
+      (locale) => ({
+        title: target.title,
+        body:
+          target.kind === 'group'
+            ? `${target.byline}: ${trFor(locale, key)}`
+            : trFor(locale, key),
+        url: `/calls/${callId}`,
+        tag: `call-${callId}`,
+      }),
+      offline,
+    )
+  } catch (err) {
+    console.error(`[chat] push apel pentru ${conversationId} eșuat: ${String(err)}`)
   }
 }

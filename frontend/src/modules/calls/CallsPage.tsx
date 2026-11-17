@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { Alert } from '@/shared/components/ui/alert'
 import { Button } from '@/shared/components/ui/button'
 import { EmptyState } from '@/shared/components/ui/empty-state'
 import { Select } from '@/shared/components/ui/select'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { useMe } from '@/shared/hooks/use-me'
 import { t } from '@/shared/lib/i18n'
-import { CALL_FILTERS, useCalls } from './calls-api'
+import { CALL_FILTERS, useCalls, useCallsStatus } from './calls-api'
 import { CallsTable } from './CallsTable'
 import { NewCallDialog } from './NewCallDialog'
 import type { CallFilter } from './types'
@@ -24,8 +25,10 @@ export function CallsPage() {
   const { can } = useMe()
   const canManage = can('apeluri.manage')
   const calls = useCalls(status)
+  const providerStatus = useCallsStatus()
+  const configured = providerStatus.data?.configured ?? true
 
-  const newCallButton = canManage && (
+  const newCallButton = canManage && configured && (
     <Button onClick={() => setCreating(true)}>
       <Plus className="h-4 w-4" />
       {t('calls:newCall')}
@@ -35,6 +38,19 @@ export function CallsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title={t('calls:title')} description={t('calls:description')} actions={newCallButton || undefined} />
+
+      {!configured ? (
+        <Alert tone="warning" title={t('calls:notConfiguredTitle')}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>{t('calls:notConfiguredBody')}</span>
+            {can('setari.apeluri') ? (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/settings">{t('calls:openSettings')}</Link>
+              </Button>
+            ) : null}
+          </div>
+        </Alert>
+      ) : null}
 
       <div className="w-40">
         <Select

@@ -1,7 +1,15 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { AnalyticsSettingsSchema, CompanySettingsUpdateSchema, NavLayoutUpdateSchema, OpsJobTogglesUpdateSchema } from './schema.js'
+import {
+  AnalyticsSettingsSchema,
+  CompanySettingsUpdateSchema,
+  LiveKitSettingsUpdateSchema,
+  LiveKitTestSchema,
+  NavLayoutUpdateSchema,
+  OpsJobTogglesUpdateSchema,
+} from './schema.js'
 import * as service from './service.js'
+import { tr } from '../../shared/lib/i18n.js'
 
 export async function settingsRoutes(app: FastifyInstance) {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -59,4 +67,31 @@ export async function settingsRoutes(app: FastifyInstance) {
   server.get('/api/analytics/client-config', { preHandler: [app.authenticate] }, async () => {
     return { success: true, data: await service.getAnalyticsClientConfig() }
   })
+
+  server.get('/api/settings/livekit', { preHandler: [app.authenticate] }, async () => {
+    return { success: true, data: await service.getLiveKitSettingsView() }
+  })
+
+  server.put(
+    '/api/settings/livekit',
+    { preHandler: [app.authenticate], schema: { body: LiveKitSettingsUpdateSchema } },
+    async (req) => {
+      return { success: true, data: await service.saveLiveKitSettings(req.body) }
+    },
+  )
+
+  server.post(
+    '/api/settings/livekit/test',
+    { preHandler: [app.authenticate], schema: { body: LiveKitTestSchema } },
+    async (req, reply) => {
+      try {
+        return { success: true, data: await service.testLiveKitConnection(req.body) }
+      } catch (err) {
+        if (err instanceof service.LiveKitError) {
+          return reply.code(err.status === 0 ? 400 : 502).send({ success: false, error: tr('errors.calls.providerError') })
+        }
+        throw err
+      }
+    },
+  )
 }

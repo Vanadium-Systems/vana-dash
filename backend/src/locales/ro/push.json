@@ -22,7 +22,9 @@
   },
   "chat": {
     "aColleague": "Un coleg",
-    "newMessage": "Mesaj nou"
+    "newMessage": "Mesaj nou",
+    "incomingCallAudio": "Apel audio primit",
+    "incomingCallVideo": "Apel video primit"
   },
   "payment": {
     "matchedTitle": "Plată matchuită",

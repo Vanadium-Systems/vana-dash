@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-17T14:00:00Z',
+    title: {
+      ro: 'Apeluri video și audio criptate cap-la-cap',
+      en: 'End-to-end encrypted video and audio calls',
+    },
+    body: {
+      ro: 'Poți porni un apel audio sau video direct dintr-o conversație din Mesaje: colegii primesc notificare și sunet în aplicație și intră cu un click din cardul conversației. Apelurile noi merg prin LiveKit Cloud cu criptare E2EE în browser (cheia nu ajunge la server: circulă prin Mesaje pentru colegi sau în `#k=` pentru invitații din browser fără cont). Poți crea apeluri și direct din meniul fișei de prospect sau atașând automat un link video E2EE la o întâlnire programată. Setările LiveKit stau în Setări → Apeluri.',
+      en: 'You can start an audio or video call right from a conversation in Messages: colleagues get a notification and in-app ringtone and join with one click from the conversation card. New calls run on LiveKit Cloud with browser-side E2EE encryption (the key never reaches the server: it travels inside encrypted Messages for colleagues or in `#k=` for guest links with no account). You can also start a call directly from a prospect’s menu or attach an E2EE video link when scheduling a meeting. LiveKit settings live under Settings → Calls.',
+    },
+    features: ['apeluri.view', 'mesaje.view'],
+  },
+  {
     publishedAt: '2026-11-17T12:00:00Z',
     title: {
       ro: 'Mesajele sunt criptate de la un capăt la altul',

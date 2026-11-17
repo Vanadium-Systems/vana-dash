@@ -1,4 +1,4 @@
-import { Link, PhoneOff } from 'lucide-react'
+import { Link, Phone, PhoneOff, Video } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/shared/components/ui/button'
 import { StatePill } from '@/shared/components/ui/state-pill'
@@ -16,11 +16,16 @@ export function CallTableRow({ call }: { call: CallRow }) {
   const navigate = useNavigate()
   const endCall = useEndCall()
   const { can } = useMe()
+  const canJoin = call.conversationId ? can('mesaje.view') : can('apeluri.manage')
+  const KindIcon = call.kind === 'audio' ? Phone : Video
 
   return (
     <TableRow className="group">
       <TableCell className="font-medium tbl-fill">
-        <div className="truncate">{call.title}</div>
+        <div className="flex min-w-0 items-center gap-2">
+          <KindIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span className="truncate">{call.title}</span>
+        </div>
         <TableDetails
           items={[
             call.scheduledAt ? formatDateTime(call.scheduledAt) : t('calls:adHoc'),
@@ -48,12 +53,14 @@ export function CallTableRow({ call }: { call: CallRow }) {
         </StatePill>
       </TableCell>
       <TableCell className="text-right">
-        {call.status === 'open' && can('apeluri.manage') && (
+        {call.status === 'open' && canJoin && (
           <div className="flex items-center justify-end gap-1">
             <div className="[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
               <RowActions
                 actions={[
-                  { key: 'copy', icon: Link, label: t('calls:actions.copyLink'), onClick: () => void copyCallLink(call) },
+                  ...(!call.conversationId
+                    ? [{ key: 'copy', icon: Link, label: t('calls:actions.copyLink'), onClick: () => void copyCallLink(call) }]
+                    : []),
                   { key: 'end', icon: PhoneOff, label: t('calls:actions.end'), onClick: () => void endCall(call) },
                 ]}
               />

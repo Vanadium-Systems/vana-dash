@@ -222,7 +222,7 @@ goes through POST. The admin has no way to read other people's direct messages.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/chat/stream` | SSE: `message.created`, `message.updated`, `conversation.updated`, `reaction.updated`, `typing`, `read`, `delivered` (`{ conversationId, userId, at }`), `presence`. Heartbeat every 25s |
+| GET | `/api/chat/stream` | SSE: `message.created`, `message.updated`, `conversation.updated`, `reaction.updated`, `typing`, `read`, `delivered` (`{ conversationId, userId, at }`), `presence`, `call.incoming` (`{ callId, conversationId, callerId, callerName, kind }`), `call.ended` (`{ callId, conversationId }`), `call.declined` (`{ callId, conversationId, userId, userName }`). Heartbeat every 25s |
 | POST | `/api/chat/heartbeat` | A sign of life sent while the page is visible (every 45s). A sleeping device can keep the SSE socket "open", so presence relies on the heartbeat, not on the connection |
 | GET | `/api/chat/conversations` | `[{ id, kind, name, members: [{ id, displayName, presence, lastSeenAt }], lastMessage, unreadCount }]`. `lastMessage` also carries `attachmentKind` and `refType`, for the list preview |
 | POST | `/api/chat/conversations` | `{ kind: 'dm', userId }` (returns the existing one) or `{ kind: 'group', name, memberIds }` |
@@ -239,6 +239,9 @@ goes through POST. The admin has no way to read other people's direct messages.
 | POST | `/api/chat/conversations/:id/read` | `{ messageId }` |
 | PATCH | `/api/chat/messages/:id` | `{ body }`. The author only; marked as edited |
 | DELETE | `/api/chat/messages/:id` | The author only; soft delete, shown as "Mesaj șters". Its refs and reactions are deleted with it |
+| POST | `/api/chat/conversations/:id/calls` | `{ kind?: 'audio'\|'video', clientId, encrypted? }` → `{ call, message }`. Starts an encrypted call inside the conversation, attaches the `call` ref card (the room key travels inside the Megolm ciphertext), and rings members via SSE + Web Push |
+| POST | `/api/chat/calls/:id/decline` | Declines an incoming conversation call and notifies participants via `call.declined` |
+| POST | `/api/chat/calls/:id/end` | Ends a conversation call (`mesaje.view` + conversation membership) and notifies participants via `call.ended` |
 | POST | `/api/chat/attachments` | Multipart, 50 MB per file at most, 10 per message. Uploads not sent within 24h are removed by a job |
 | GET | `/api/chat/attachments/:id` | Members of the conversation only. Only plain images open inline; everything else (SVG and HTML included) is a download, with `nosniff`. `?size=thumb` on a JPEG, PNG or WebP returns a 640px JPEG made once and kept in R2. Cached as `immutable` |
 
@@ -1102,23 +1105,21 @@ no tools: nothing from the app is sent to them.
 
 ## Calls
 
-Video calls through Daily (Prebuilt). The routes exist only with `DAILY_API_KEY`; the feature is
-`apeluri.view` to read and `apeluri.manage` to change. Calls are company data, shared by everyone
-with the feature. A row never carries the Daily room name or a token: `publicUrl` is our own
-`/apel/<publicId>` link.
+End-to-end encrypted audio and video calls via LiveKit Cloud (`ExternalE2EEKeyProvider`, client-held room key), with legacy overlap for existing Daily rooms until they close. LiveKit Cloud credentials are stored per-tenant (encrypted with `v1:`) under `setari.apeluri`, with optional `.env` fallback (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`). Feature access: `apeluri.view` / `apeluri.manage` for standalone calls, `mesaje.view` + conversation membership for in-chat calls. `publicUrl` is always our own `/apel/<publicId>` link; guest keys travel in the `#k=` URL fragment (never sent to the server) except website bookings, which keep an encrypted host/calendar copy (`guest_key_enc`) and never expose it publicly.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/calls` | Query: `status` (`open`, `ended`, `all`), `limit` (max 200) |
-| POST | `/api/calls` | `{ title, expiresInHours? (1-8, default 4), prospectId?, billingClientId? }` → 201. 503 without Daily, 502 when Daily fails |
+| GET | `/api/calls/status` | Signed-in check (`self`): `{ configured }` |
+| GET | `/api/calls` | Query: `status` (`open`, `ended`, `all`), `limit` (max 200). Calls created in conversations are filtered to active members |
+| POST | `/api/calls` | `{ title, kind? ('video'\|'audio'), expiresInHours? (1-8, default 4), prospectId?, billingClientId?, scheduledAt? }` → 201. 503 when LiveKit/Daily is not configured, 502 on provider failure |
 | PATCH | `/api/calls/:id` | `{ title?, prospectId?, billingClientId? }` |
-| POST | `/api/calls/:id/join` | `{ roomUrl, token }`, an owner token for the person. 410 once the call is closed |
-| POST | `/api/calls/:id/end` | Deletes the room (everyone is removed) and marks the call `ended` |
-| GET | `/api/public/calls/:publicId` | No session. `{ status, opensAt, closesAt, roomUrl }`; `roomUrl` is `null` once closed |
+| POST | `/api/calls/:id/token` | Signed-in (`self`, checked in service: conversation member with `mesaje.view`, or `apeluri.manage`). `{ provider: 'livekit', livekitUrl, token, roomName, kind, conversationId }` or legacy Daily `{ provider: 'daily', roomUrl, token }`. 410 once closed |
+| POST | `/api/calls/:id/join` | Alias for `POST /api/calls/:id/token` requiring `apeluri.manage` |
+| POST | `/api/calls/:id/end` | Deletes the SFU room (removing everyone) and marks the call `ended` |
+| GET | `/api/public/calls/:publicId` | No session. `{ status, opensAt, closesAt, kind, provider, roomUrl }` (`roomUrl` only for legacy Daily calls while open) |
+| POST | `/api/public/calls/:publicId/token` | No session, rate-limited (30/min). `{ name }` → `{ livekitUrl, token, roomName, kind }`; `409` before the window opens, `410` once closed |
 
-A public booking gets a room from 15 minutes before to an hour after its slot; canceling the
-booking closes it. `jobs/calls-close.ts` closes expired rooms every 30 minutes (20 per run, one
-request at a time) and keeps the duration and the most people at once.
+A public booking gets a LiveKit room from 15 minutes before to an hour after its slot; canceling the booking closes it. `jobs/calls-close.ts` closes expired rooms on both providers every 30 minutes (20 per run, one request at a time) and keeps the duration and participant counts.
 
 ## Crypto
 
@@ -1223,6 +1224,9 @@ with real money.
 | PUT | `/api/settings/nav-layout` | `{ items: [{ to, visible }] }`. Items that are new in the code and missing here appear at the end, visible |
 | GET | `/api/settings/analytics` | `{ posthogKey, posthogHost }`, empty strings when unset (`setari.analitica`) |
 | PUT | `/api/settings/analytics` | `{ posthogKey, posthogHost }`; host a URL or empty (EU default) |
+| GET | `/api/settings/livekit` | LiveKit Cloud config preview (`setari.apeluri`): `{ url, enabled, hasApiKey, apiKeyPreview, hasApiSecret, hasEnvFallback, configured }` |
+| PUT | `/api/settings/livekit` | Save LiveKit Cloud settings (`setari.apeluri`, API key + secret encrypted at rest `v1:`) |
+| POST | `/api/settings/livekit/test` | Verify LiveKit Cloud connection against RoomService (`listRooms`) |
 | GET | `/api/analytics/client-config` | Any signed-in person: `{ key, host }` or `null` when PostHog is off |
 
 ## Support

@@ -29,6 +29,20 @@ export type ChatEvent =
   | { type: 'keys.to_device' }
   // A colleague's device list changed (new, approved or revoked device): drop cached device lists.
   | { type: 'keys.devices'; userId: string }
+  // LiveKit E2EE call lifecycle inside a conversation.
+  | {
+      type: 'call.incoming'
+      conversationId: string
+      callId: string
+      messageId: string
+      kind: 'audio' | 'video'
+      callerUserId: string
+      callerName: string
+      title: string
+      encrypted: { v: number; ciphertext: string; senderDeviceId: string | null } | null
+    }
+  | { type: 'call.ended'; conversationId: string; callId: string }
+  | { type: 'call.declined'; conversationId: string; callId: string; userId: string; userName: string }
 
 interface Connection {
   id: string

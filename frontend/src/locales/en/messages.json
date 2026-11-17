@@ -147,8 +147,11 @@
       "email_thread": "Email",
       "calendar_event": "Event",
       "archive_file": "File",
-      "note": "Note"
+      "note": "Note",
+      "call": "Call"
     },
+    "callAudio": "Audio call",
+    "callVideo": "Video call",
     "invoiceStatus": {
       "unpaid": "unpaid",
       "partial": "partly paid",
@@ -240,5 +243,16 @@
       "8": "Symbols",
       "9": "Flags"
     }
+  },
+  "calls": {
+    "startAudio": "Audio call",
+    "startVideo": "Video call",
+    "e2eeNotReady": "Initializing conversation encryption… Try again in a few seconds.",
+    "incomingTitle": "Call from {{name}}",
+    "incomingAudio": "Incoming audio call",
+    "incomingVideo": "Incoming video call",
+    "accept": "Join",
+    "decline": "Decline",
+    "declinedBy": "{{name}} declined the call"
   }
 }

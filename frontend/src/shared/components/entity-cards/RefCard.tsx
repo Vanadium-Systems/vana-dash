@@ -1,4 +1,4 @@
-import { CalendarDays, FileText, Lock, Mail, Receipt, StickyNote, UserRound, type LucideIcon } from 'lucide-react'
+import { CalendarDays, FileText, Lock, Mail, PhoneCall, Receipt, StickyNote, UserRound, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { Link } from 'react-router-dom'
 import { Money } from '@/shared/components/Money'
@@ -7,6 +7,7 @@ import { companyTimeZone, formatDate, formatRelativeTime } from '@/shared/lib/fo
 import { t } from '@/shared/lib/i18n'
 import type { ChatMessageRef, RefType } from '@/shared/lib/types'
 import { cn, formatBytes } from '@/shared/lib/utils'
+import { CallCardActions } from './CallCardActions'
 import { ProspectCardActions, requestableProspectId } from './ProspectCardActions'
 
 // The card of an object shared into a message: one level inside the bubble (no card in a card),
@@ -23,7 +24,7 @@ interface RefCardType {
   Body?: ComponentType<RefCardBodyProps>
   extra?: (card: RefCardBodyProps['card']) => LinkExtra
   /** Buttons under the facts, for a card you can act on from the message. */
-  Actions?: ComponentType<{ refItem: ChatMessageRef }>
+  Actions?: ComponentType<{ refItem: ChatMessageRef; callKey?: string }>
   /** The card asks for access itself, so the generic "ask an administrator" link is left out. */
   asksAccess?: (refItem: ChatMessageRef) => boolean
 }
@@ -38,10 +39,12 @@ const str = (value: unknown): string | null => (typeof value === 'string' && val
 
 export function RefCard({
   refItem,
+  callKey,
   onRequestAccess,
   onOpenFile,
 }: {
   refItem: ChatMessageRef
+  callKey?: string
   onRequestAccess?: (refItem: ChatMessageRef) => void
   onOpenFile?: (attachmentId: string) => void
 }) {
@@ -92,7 +95,7 @@ export function RefCard({
         ) : entry?.Body ? (
           <entry.Body card={card} />
         ) : null}
-        {entry?.Actions && refItem.state !== 'gone' ? <entry.Actions refItem={refItem} /> : null}
+        {entry?.Actions && refItem.state !== 'gone' ? <entry.Actions refItem={refItem} callKey={callKey} /> : null}
       </div>
     </div>
   )
@@ -188,4 +191,16 @@ registerRefCard('archive_file', {
 registerRefCard('note', {
   icon: StickyNote,
   Body: ({ card }) => <Excerpt text={str(card.excerpt)} />,
+})
+
+registerRefCard('call', {
+  icon: PhoneCall,
+  Actions: CallCardActions,
+  Body: ({ card }) => {
+    const kind = card.kind === 'audio' ? t('messages:refs.callAudio') : t('messages:refs.callVideo')
+    const status = card.status === 'open' ? t('calls:status.open') : t('calls:status.ended')
+    const secs = typeof card.durationSeconds === 'number' ? card.durationSeconds : null
+    const duration = secs ? t('calls:minutes', { count: Math.max(1, Math.round(secs / 60)) }) : null
+    return <Facts items={[kind, status, duration]} />
+  },
 })

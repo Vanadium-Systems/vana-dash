@@ -1,6 +1,7 @@
-import { Archive, ArchiveRestore, Calculator, CalendarPlus, CircleSlash, ListPlus, MessageSquareShare, MessagesSquare, Send, UserCheck, UserPlus, Users, Workflow } from 'lucide-react'
+import { Archive, ArchiveRestore, Calculator, CalendarPlus, CircleSlash, ListPlus, MessageSquareShare, MessagesSquare, Send, UserCheck, UserPlus, Users, Video, Workflow } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { NewCallDialog } from '@/modules/calls/NewCallDialog'
 import { AddToSequenceDialog, type SequenceTarget } from '@/modules/pricing/AddToSequenceDialog'
 import { PromoteProspectDialog } from '@/modules/pricing/PromoteProspectDialog'
 import { useShareToMessages } from '@/shared/components/ShareToMessagesDialog'
@@ -51,6 +52,7 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
   const [tab, setTab] = useState<TabKey>('activity')
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [meetOpen, setMeetOpen] = useState(false)
+  const [callOpen, setCallOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [requestKind, setRequestKind] = useState<'transfer' | 'access' | null>(null)
   const [collaboratorsOpen, setCollaboratorsOpen] = useState(false)
@@ -83,6 +85,7 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
   // Style §9: Call, Write and Schedule stay in sight; Meet joins the rest in ⋯.
   const menu: RowAction[] = [
     ...(sheet.canEdit ? [{ key: 'meet', icon: CalendarPlus, label: t('meetings:button'), onClick: () => gate(() => setMeetOpen(true)) }] : []),
+    ...(can('apeluri.manage') ? [{ key: 'videoCall', icon: Video, label: t('calls:newCall'), onClick: () => gate(() => setCallOpen(true)) }] : []),
     { key: 'sequence', icon: Workflow, label: t('clients:sheet.menu.sequence'), disabled: !email, onClick: () => gate(() => setSequenceTargets([sequenceTarget()])) },
     // Adding to a list is a write (`clienti.prospectare`), the same right as claiming.
     ...(canClaim ? [{ key: 'list', icon: ListPlus, label: t('clients:sheet.menu.addToList'), onClick: () => setListOpen(true) }] : []),
@@ -186,6 +189,7 @@ export function SheetBody({ sheet }: { sheet: ProspectSheet }) {
 
       <ScheduleDialog sheet={sheet} open={scheduleOpen} onOpenChange={setScheduleOpen} />
       <MeetDialog prospectId={sheet.id} prospectName={sheet.name} task={null} open={meetOpen} onOpenChange={setMeetOpen} />
+      {can('apeluri.manage') ? <NewCallDialog open={callOpen} onOpenChange={setCallOpen} prospect={{ id: sheet.id, name: sheet.name }} /> : null}
       <TransferDialog sheet={sheet} open={transferOpen} onOpenChange={setTransferOpen} />
       <RequestDialog sheet={sheet} kind={requestKind ?? 'transfer'} open={requestKind !== null} onOpenChange={(open) => !open && setRequestKind(null)} />
       <CollaboratorsDialog sheet={sheet} open={collaboratorsOpen} onOpenChange={setCollaboratorsOpen} canManage={manages} />

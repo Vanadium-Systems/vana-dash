@@ -103,7 +103,8 @@
       "firma": "Profilul firmei",
       "asistent": "Furnizori AI și chei",
       "joburi": "Joburile de sistem",
-      "analitica": "Analitica de utilizare (PostHog)"
+      "analitica": "Analitica de utilizare (PostHog)",
+      "apeluri": "Apeluri video (LiveKit)"
     },
     "echipa": {
       "administrare": "Invită oameni și editează roluri",

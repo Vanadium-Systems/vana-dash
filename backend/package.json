@@ -38,6 +38,7 @@
     "fflate": "^0.8.3",
     "firebase-admin": "^14.3.0",
     "imapflow": "^2.12.1",
+    "livekit-server-sdk": "^2.20.0",
     "nodemailer": "^10.6.0",
     "pdf-lib": "^1.17.1",
     "postal-mime": "^2.7.6",

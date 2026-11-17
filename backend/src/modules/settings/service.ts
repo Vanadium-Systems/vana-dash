@@ -4,6 +4,7 @@ import { dashboardConfig } from '../../shared/db/schema/index.js'
 import type { z } from 'zod'
 import { availableCountries } from '../../countries/index.js'
 import { getCompany, updateCompany } from '../../shared/lib/company.js'
+import { getLiveKitSettingsView, LiveKitError, saveLiveKitSettings, testLiveKitConnection } from '../../shared/lib/livekit.js'
 import type { AnalyticsSettings, CompanySettingsUpdateSchema, NavLayoutUpdateSchema, OpsJobToggles } from './schema.js'
 
 // Pattern identic cu overview-config (modules/metrics/service.ts): un singur rând jsonb în
@@ -82,3 +83,5 @@ export async function getAnalyticsClientConfig(): Promise<{ key: string; host: s
   if (!posthogKey) return null
   return { key: posthogKey, host: posthogHost || 'https://eu.i.posthog.com' }
 }
+
+export { getLiveKitSettingsView, saveLiveKitSettings, testLiveKitConnection, LiveKitError }

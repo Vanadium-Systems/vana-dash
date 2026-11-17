@@ -5,6 +5,7 @@ import {
   CreateCallSchema,
   ListCallsQuerySchema,
   PublicCallParamsSchema,
+  PublicCallTokenBodySchema,
   UpdateCallSchema,
 } from './schema.js'
 import * as service from './service.js'
@@ -15,10 +16,16 @@ const CALL_ERROR_TEXT = {
   closed: 'errors.calls.closed',
   provider: 'errors.calls.providerError',
   not_configured: 'errors.calls.notConfigured',
+  forbidden: 'errors.forbidden',
 } as const
 
 function sendCallError(reply: FastifyReply, err: unknown) {
-  if (err instanceof service.CallError) return reply.code(err.status).send({ success: false, error: tr(CALL_ERROR_TEXT[err.code]) })
+  if (err instanceof service.CallError) {
+    if (err.code === 'forbidden' && err.feature) {
+      return reply.code(403).send({ success: false, error: { code: 'FEATURE_FORBIDDEN', feature: err.feature } })
+    }
+    return reply.code(err.status).send({ success: false, error: tr(CALL_ERROR_TEXT[err.code]) })
+  }
   throw err
 }
 
@@ -36,6 +43,10 @@ export async function callsRoutes(app: FastifyInstance) {
       }
     },
   )
+
+  server.get('/api/calls/status', { preHandler: [app.authenticate] }, async () => {
+    return { success: true, data: await service.getCallsStatus() }
+  })
 
   server.post(
     '/api/calls',
@@ -55,6 +66,18 @@ export async function callsRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         return { success: true, data: await service.updateCall(req.me, req.params.id, req.body) }
+      } catch (err) {
+        return sendCallError(reply, err)
+      }
+    },
+  )
+
+  server.post(
+    '/api/calls/:id/token',
+    { preHandler: [app.authenticate], schema: { params: CallIdParamsSchema } },
+    async (req, reply) => {
+      try {
+        return { success: true, data: await service.issueCallToken(req.params.id, req.me) }
       } catch (err) {
         return sendCallError(reply, err)
       }
@@ -93,6 +116,21 @@ export async function callsRoutes(app: FastifyInstance) {
       const call = await service.getPublicCall(req.params.publicId)
       if (!call) return reply.code(404).send({ success: false, error: tr('errors.calls.notFound') })
       return { success: true, data: call }
+    },
+  )
+
+  server.post(
+    '/api/public/calls/:publicId/token',
+    {
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+      schema: { params: PublicCallParamsSchema, body: PublicCallTokenBodySchema },
+    },
+    async (req, reply) => {
+      try {
+        return { success: true, data: await service.issuePublicCallToken(req.params.publicId, req.body.guestName) }
+      } catch (err) {
+        return sendCallError(reply, err)
+      }
     },
   )
 }

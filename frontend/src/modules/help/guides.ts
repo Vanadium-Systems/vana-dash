@@ -219,16 +219,16 @@ const SOURCES: GuideSource[] = [
     },
     steps: [
       {
-        ro: 'Apasă „Apel nou”, scrie un titlu și alege cât timp merge linkul.',
-        en: 'Press “New call”, write a title and pick how long the link works for.',
+        ro: 'Apasă „Apel nou”, scrie un titlu, alege tipul (Video + audio sau Doar audio) și cât timp merge linkul. Poți porni același dialog și din meniul unui prospect sau bifând linkul video E2EE când programezi o întâlnire.',
+        en: 'Press “New call”, write a title, pick video or audio only, and choose how long the link works for. You can also open this dialog from a prospect’s menu or tick the E2EE video link option when scheduling a meeting.',
       },
       {
-        ro: '„Creează și copiază linkul” pune linkul în clipboard; trimite-l pe email sau pe chat.',
-        en: '“Create and copy the link” puts the link on your clipboard; send it by email or chat.',
+        ro: '„Creează și copiază linkul” pune în clipboard linkul complet cu cheia de criptare (`#k=...`, care nu ajunge la server); trimite-l pe email sau pe chat.',
+        en: '“Create and copy the link” copies the full link including the `#k=` encryption key (which never goes to the server); send it by email or chat.',
       },
       {
-        ro: 'Intri și tu cu „Intră” din rândul apelului. Browserul îți cere camera și microfonul.',
-        en: 'You join with “Join” on the call’s row. The browser asks for your camera and microphone.',
+        ro: 'Intri și tu cu „Intră” din rândul apelului. Browserul îți cere camera și microfonul; pe telefon în APK, dacă WebView-ul nu suportă criptarea media, apare butonul „Deschide în Chrome”.',
+        en: 'Join with “Join” on the call’s row. The browser asks for your camera and microphone; in the Android APK, if the WebView lacks media encryption support, an “Open in Chrome” button appears.',
       },
       {
         ro: 'La final, „Încheie pentru toți” scoate pe toată lumea din apel, iar linkul nu mai merge.',
@@ -450,8 +450,8 @@ const SOURCES: GuideSource[] = [
         en: 'What the server sees: who writes, to whom, when and how big a message or file is, plus reactions and objects sent from the app (those come from pages that are not encrypted). What it does not see: text and files. The notification only says “New message”. The limit of any web app: the code comes from the server, so encryption protects against whoever reads the database, the backups or the traffic, not against a compromised server serving other code.',
       },
       {
-        ro: 'Apasă pe iconița de conversație nouă, apoi „Scrie cuiva” pentru un coleg sau „Grup nou” pentru mai mulți.',
-        en: 'Press the new conversation icon, then “Write to someone” for a colleague or “New group” for several.',
+        ro: 'Apasă pe iconița de conversație nouă, apoi „Scrie cuiva” pentru un coleg sau „Grup nou” pentru mai mulți. Din antetul conversației poți porni direct un apel audio sau video criptat E2EE: colegii primesc alertă în aplicație și notificare push.',
+        en: 'Press the new conversation icon, then “Write to someone” for a colleague or “New group” for several. From the conversation header you can also start an E2EE audio or video call: colleagues get an in-app ring alert and a push notification.',
       },
       {
         ro: 'Scrie în câmpul de jos și trimite. Un fișier de până la 50 MB se pune din „Atașează”. Emoji: după două puncte și două litere (:so) apar emoji-urile cu numele acela, Enter alege; sau iconița de lângă câmp.',
@@ -1037,6 +1037,29 @@ const SOURCES: GuideSource[] = [
       {
         ro: 'Colegii intră în PostHog la următoarea încărcare a aplicației. Ca să oprești, ștergi cheia și salvezi.',
         en: 'Colleagues show up in PostHog on the next app load. To stop, clear the key and save.',
+      },
+    ],
+  },
+  {
+    id: 'setari-livekit',
+    route: '/settings',
+    feature: 'setari.apeluri',
+    title: {
+      ro: 'Configurezi apelurile LiveKit',
+      en: 'Configuring LiveKit calls',
+    },
+    summary: {
+      ro: 'Credențialele proiectului LiveKit Cloud stau criptate în baza firmei și deblochează apelurile video și audio E2EE.',
+      en: 'Your LiveKit Cloud project credentials are stored encrypted per company and unlock E2EE audio and video calls.',
+    },
+    steps: [
+      {
+        ro: 'În LiveKit Cloud copiezi Project URL (`wss://…`), API Key și API Secret și le salvezi în Setări → Apeluri video și audio.',
+        en: 'Copy the Project URL (`wss://…`), API Key and API Secret from LiveKit Cloud and save them under Settings → Video and audio calls.',
+      },
+      {
+        ro: 'Apasă „Testează conexiunea” ca să verifici imediat că serverul răspunde cu cheile salvate.',
+        en: 'Click “Test connection” to verify that LiveKit Cloud responds using the configured credentials.',
       },
     ],
   },

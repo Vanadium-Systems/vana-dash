@@ -14,8 +14,9 @@ import { allDayToInterval, computeSlots, type Interval, type Slot } from './slot
 import type { z } from 'zod'
 import { tl, tr, trFor } from '../../shared/lib/i18n.js'
 import { ensureAlertRule, raiseAlert } from '../../shared/lib/alerting.js'
-import { callPublicUrl, closeCallRoom, findBookingCall, openCallRoom } from '../../shared/lib/call-rooms.js'
-import { isDailyConfigured } from '../../shared/lib/daily.js'
+import { callPublicUrl, closeCallRoom, findBookingCall, isCallsConfigured, openCallRoom } from '../../shared/lib/call-rooms.js'
+import { decryptField } from '../../shared/lib/crypto.js'
+import { isLiveKitConfigured } from '../../shared/lib/livekit.js'
 import { INTL_TAG, isLocale, type Locale } from '../../shared/lib/locale.js'
 import { findProspectIdsByAddress } from '../../shared/lib/prospect-contact-status.js'
 import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
@@ -107,15 +108,32 @@ export async function listBookings(from: Date, to: Date) {
       callId: calls.id,
       callPublicId: calls.publicId,
       callStatus: calls.status,
+      callProvider: calls.provider,
+      callGuestKeyEnc: calls.guestKeyEnc,
     })
     .from(bookings)
     .leftJoin(calls, eq(calls.bookingId, bookings.id))
     .where(and(isNull(bookings.deletedAt), lt(bookings.startAt, to), gte(bookings.endAt, from)))
     .orderBy(bookings.startAt)
-  return rows.map(({ callId, callPublicId, callStatus, ...booking }) => ({
-    ...booking,
-    call: callId && callPublicId && callStatus ? { id: callId, url: callPublicUrl(callPublicId), status: callStatus } : null,
-  }))
+  return Promise.all(
+    rows.map(async ({ callId, callPublicId, callStatus, callProvider, callGuestKeyEnc, ...booking }) => {
+      let url: string | null = null
+      if (callPublicId) {
+        url = callPublicUrl(callPublicId)
+        if (callProvider === 'livekit' && callGuestKeyEnc) {
+          try {
+            url = `${url}#k=${encodeURIComponent(await decryptField(callGuestKeyEnc))}`
+          } catch {
+            // Keep base URL if decryption fails.
+          }
+        }
+      }
+      return {
+        ...booking,
+        call: callId && url && callStatus ? { id: callId, url, status: callStatus } : null,
+      }
+    }),
+  )
 }
 
 /**
@@ -254,18 +272,21 @@ async function emitMeetingBooked(booking: typeof bookings.$inferSelect) {
   }
 }
 
-/** The call room of a booking. Daily down = the booking stands and the email says the link comes later. */
+/** The call room of a booking. Provider down = the booking stands and the email says the link comes later. */
 async function openBookingRoom(booking: typeof bookings.$inferSelect): Promise<string | null> {
-  if (!isDailyConfigured()) return null
+  if (!(await isCallsConfigured())) return null
   try {
+    const useLiveKit = await isLiveKitConfigured()
+    const guestKey = useLiveKit ? randomBytes(32).toString('base64url') : null
     const call = await openCallRoom({
       title: trFor(config.defaultLocale, 'errors.calls.bookingTitle', { name: [booking.name, booking.company].filter(Boolean).join(', ') }),
       nbf: new Date(booking.startAt.getTime() - 15 * 60_000),
       exp: new Date(booking.endAt.getTime() + 60 * 60_000),
       scheduledAt: booking.startAt,
+      guestKey,
       bookingId: booking.id,
     })
-    const url = callPublicUrl(call.publicId)
+    const url = guestKey ? `${callPublicUrl(call.publicId)}#k=${encodeURIComponent(guestKey)}` : callPublicUrl(call.publicId)
     if (booking.calendarEventId) {
       await db
         .update(calendarEvents)

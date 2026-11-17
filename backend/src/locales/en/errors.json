@@ -1,5 +1,6 @@
 {
   "internal": "Internal error",
+  "forbidden": "You do not have access to this action.",
   "auth": {
     "invalidCredentials": "Wrong email or password",
     "passwordTooShort": "The password must be at least {{min}} characters long",
@@ -114,8 +115,8 @@
   "calls": {
     "notFound": "The call does not exist.",
     "closed": "The call has ended.",
-    "providerError": "The room could not be created. Daily does not answer, try again in a few seconds.",
-    "notConfigured": "Calls are not configured (DAILY_API_KEY is missing).",
+    "providerError": "The room could not be created. The call provider does not answer, try again in a few seconds.",
+    "notConfigured": "Calls are not configured (Settings → Calls).",
     "bookingTitle": "Call · {{name}}",
     "anonymizedTitle": "Scheduled call"
   },

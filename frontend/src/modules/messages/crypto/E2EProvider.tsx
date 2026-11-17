@@ -153,7 +153,7 @@ async function decryptWithCache(
   if (store?.get) {
     const cacheKey = `${message.id}:${unpadded(message.encrypted.ciphertext).slice(-24)}`
     const cached = await store.get<PlainRecord>('plain', cacheKey)
-    if (cached) return { body: cached.body, attachments: cached.attachments }
+    if (cached) return { body: cached.body, attachments: cached.attachments, ...(cached.call ? { call: cached.call } : {}) }
   }
   if (!engine || status !== 'ready') return null
   const result = await engine.decrypt(message)
@@ -199,6 +199,7 @@ export function useDecryptedRows<T extends RowLike>(rows: T[]): (T & { e2e: Decr
         const key = keys.get(attachment.id)
         return key ? { ...attachment, filename: key.name, contentType: key.type, sizeBytes: key.size, key } : attachment
       }),
+      callKey: data.call?.key,
       e2e: 'ready' as const,
     }
   })

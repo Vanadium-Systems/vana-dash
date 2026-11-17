@@ -14,6 +14,7 @@ import { CompanyProfileCard } from './CompanyProfileCard'
 import { ClientsSettings } from './clients/ClientsSettings'
 import { OpsJobsSettingsCard } from './OpsJobsSettingsCard'
 import { AnalyticsSettingsCard } from './AnalyticsSettingsCard'
+import { LiveKitSettingsCard } from './LiveKitSettingsCard'
 import { t } from '@/shared/lib/i18n'
 
 function MobileAppCard() {
@@ -61,6 +62,7 @@ export function SettingsPage() {
       {can('clienti.view') ? <ClientsSettings /> : null}
       {can('setari.joburi') ? <OpsJobsSettingsCard /> : null}
       {can('setari.analitica') ? <AnalyticsSettingsCard /> : null}
+      {can('setari.apeluri') ? <LiveKitSettingsCard /> : null}
       {can('setari.asistent') ? <AssistantProvidersCard /> : null}
       {can('investitii.setari') ? (
         <>

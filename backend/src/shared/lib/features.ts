@@ -337,13 +337,11 @@ export const FEATURES: FeatureDef[] = [
   {
     key: 'apeluri.view',
     page: 'apeluri',
-    available: () => config.daily.apiKey !== '',
     routes: read('/api/calls'),
   },
   {
     key: 'apeluri.manage',
     page: 'apeluri',
-    available: () => config.daily.apiKey !== '',
     routes: write('/api/calls'),
   },
 
@@ -496,6 +494,11 @@ export const FEATURES: FeatureDef[] = [
     key: 'setari.analitica',
     page: 'setari',
     routes: all('/api/settings/analytics'),
+  },
+  {
+    key: 'setari.apeluri',
+    page: 'setari',
+    routes: all('/api/settings/livekit'),
   },
 
   // ── Echipă ────────────────────────────────────────────────────────────────
@@ -716,6 +719,9 @@ const KNOWN_PREFIXES: Array<{
   { prefix: '/api/email-images', kind: 'public' },
   // The page a call guest opens: no account, rate limited, answers only the time window.
   { prefix: '/api/public/calls', kind: 'public' },
+  // LiveKit token for a call: either a conversation member (mesaje.view) or a calls manager
+  // (apeluri.manage), checked inside the service.
+  { prefix: '/api/calls/:id/token', kind: 'self', methods: 'write' },
   // The logo sits in an <img> of emails read by people with no session. Uploading it is not public.
   { prefix: '/api/email/settings/logo', kind: 'public', methods: 'read' },
   { prefix: '/api/webhooks', kind: 'machine' },

@@ -2,15 +2,26 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { AuthLayout } from '@/shared/components/AuthLayout'
 import { Button } from '@/shared/components/ui/button'
+import { Field } from '@/shared/components/ui/field'
+import { Input } from '@/shared/components/ui/input'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { formatDateTime } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
-import { usePublicCall } from './calls-api'
+import { extractKeyFromHash } from './call-keys'
+import { usePublicCall, usePublicCallToken } from './calls-api'
+import { LiveKitRoomView } from './LiveKitRoomView'
+import type { PublicCallTokenResponse } from './types'
 
 export function PublicCallPage() {
   const { publicId = '' } = useParams()
   const call = usePublicCall(publicId)
-  const [joined, setJoined] = useState(false)
+  const mintToken = usePublicCallToken(publicId)
+  const [guestName, setGuestName] = useState('')
+  const [nameError, setNameError] = useState<string | null>(null)
+  const [joinedDaily, setJoinedDaily] = useState(false)
+  const [session, setSession] = useState<PublicCallTokenResponse | null>(null)
+
+  const e2eeKey = extractKeyFromHash()
 
   // A link can be sent hours before the call starts, so the page has to wake up on its
   // own when the scheduled minute arrives instead of asking the guest to reload.
@@ -23,8 +34,25 @@ export function PublicCallPage() {
     return () => clearTimeout(timer)
   }, [waiting, opensAt, refetch])
 
-  // Once the guest is in, Daily's own UI fills the screen: no shell, no chrome.
-  if (joined && call.data?.roomUrl) {
+  // LiveKit E2EE guest room.
+  if (session && e2eeKey) {
+    return (
+      <div className="min-h-dvh bg-background p-4">
+        <LiveKitRoomView
+          livekitUrl={session.livekitUrl}
+          token={session.token}
+          e2eeKey={e2eeKey}
+          kind={session.kind}
+          title={t('calls:public.heading')}
+          publicFallbackUrl={window.location.href}
+          onLeave={() => setSession(null)}
+        />
+      </div>
+    )
+  }
+
+  // Legacy Daily room overlap: Daily's own UI fills the screen.
+  if (joinedDaily && call.data?.roomUrl) {
     return (
       <iframe
         title={t('calls:public.heading')}
@@ -54,15 +82,54 @@ export function PublicCallPage() {
     body = null
   }
 
-  if (call.data?.status === 'open') {
-    subline = t('calls:public.ready')
-    body = (
-      <div className="space-y-3">
-        <Button className="w-full" onClick={() => setJoined(true)}>{t('calls:public.join')}</Button>
-        <p className="text-xs text-muted-foreground">{t('calls:public.help')}</p>
-        <p className="text-xs text-muted-foreground">{t('calls:public.uiLanguage')}</p>
-      </div>
-    )
+  if (call.data?.status === 'open' && !waiting) {
+    if (call.data.provider === 'livekit' && !e2eeKey) {
+      subline = t('calls:public.missingKey')
+      body = null
+    } else if (call.data.provider === 'livekit') {
+      subline = t('calls:public.ready')
+      body = (
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            const trimmed = guestName.trim()
+            if (!trimmed) {
+              setNameError(t('calls:public.nameRequired'))
+              return
+            }
+            setNameError(null)
+            void mintToken.mutateAsync(trimmed).then(setSession).catch(() => undefined)
+          }}
+        >
+          <Field label={t('calls:public.nameLabel')} error={nameError}>
+            <Input
+              value={guestName}
+              maxLength={80}
+              placeholder={t('calls:public.namePlaceholder')}
+              onChange={(event) => setGuestName(event.target.value)}
+            />
+          </Field>
+          {mintToken.isError ? (
+            <p className="text-sm text-destructive-text">{mintToken.error.message}</p>
+          ) : null}
+          <Button type="submit" className="w-full" disabled={mintToken.isPending}>
+            {t('calls:public.join')}
+          </Button>
+          <p className="text-xs text-muted-foreground">{t('calls:public.privacyNotice')}</p>
+          <p className="text-xs text-muted-foreground">{t('calls:public.help')}</p>
+        </form>
+      )
+    } else {
+      subline = t('calls:public.ready')
+      body = (
+        <div className="space-y-3">
+          <Button className="w-full" onClick={() => setJoinedDaily(true)}>{t('calls:public.join')}</Button>
+          <p className="text-xs text-muted-foreground">{t('calls:public.help')}</p>
+          <p className="text-xs text-muted-foreground">{t('calls:public.uiLanguage')}</p>
+        </div>
+      )
+    }
   }
 
   return (

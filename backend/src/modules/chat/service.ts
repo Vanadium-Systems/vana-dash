@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gt, gte, inArray, isNull, like, lt, ne, notLike, or
 import { closePushNotification } from '../../shared/lib/push.js'
 import { db } from '../../shared/db/client.js'
 import {
+  calls,
   conversationMembers,
   conversations,
   messageAttachments,
@@ -11,6 +12,9 @@ import {
   roles,
   users,
 } from '../../shared/db/schema/index.js'
+import { closeCallRoom, isCallsConfigured, openCallRoom } from '../../shared/lib/call-rooms.js'
+import { createOwnerToken, DailyError } from '../../shared/lib/daily.js'
+import { createLiveKitToken, LiveKitError } from '../../shared/lib/livekit.js'
 import { createdByUserId } from '../../shared/lib/audit.js'
 import { refAdapter, type RefFile, type RefSnapshot, type RefType } from '../../shared/lib/entity-refs.js'
 import type { SessionUser } from '../../shared/lib/session.js'
@@ -365,7 +369,7 @@ async function resolveRefs(messageIds: string[], reader: SessionUser): Promise<M
     } else {
       const canOpen = Boolean(result?.canOpen)
       // The folder id only builds the link to the original; whoever cannot open it does not get it.
-      const card: RefSnapshot = { ...snapshot }
+      const card: RefSnapshot = canOpen && result?.live ? result.live : { ...snapshot }
       if (!canOpen) delete card.folderId
       ref = { id: row.id, type: row.refType, refId: canOpen ? row.refId : null, state: 'snapshot', canOpen, card }
     }
@@ -1235,4 +1239,132 @@ export async function pushTarget(
       })
       .map((member) => member.userId),
   }
+}
+
+export class ChatCallError extends Error {
+  constructor(
+    readonly code: 'not_configured' | 'provider' | 'not_found',
+    readonly status: number,
+  ) {
+    super(code)
+  }
+}
+
+const CONVERSATION_CALL_HOURS = 4
+
+export async function startConversationCall(
+  me: SessionUser,
+  conversationId: string,
+  input: { kind: 'audio' | 'video'; clientId: string; encrypted?: EncryptedInput },
+) {
+  await assertMember(conversationId, me.id)
+  if (!(await isCallsConfigured())) throw new ChatCallError('not_configured', 503)
+
+  const [conversation] = await db
+    .select({ kind: conversations.kind, name: conversations.name })
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+  const caller = userName(me)
+  const title = conversation?.kind === 'group' && conversation.name ? conversation.name : caller
+  const exp = new Date(Date.now() + CONVERSATION_CALL_HOURS * 3_600_000)
+
+  let callRow: typeof calls.$inferSelect
+  try {
+    callRow = await openCallRoom({
+      title,
+      exp,
+      kind: input.kind,
+      conversationId,
+      createdByUserId: me.id,
+    })
+  } catch (err) {
+    if (err instanceof DailyError || err instanceof LiveKitError) throw new ChatCallError('provider', 502)
+    throw err
+  }
+
+  let message: ChatMessage
+  try {
+    message = await sendMessage(
+      me,
+      conversationId,
+      { body: '', clientId: input.clientId, attachmentIds: [], refs: [], encrypted: input.encrypted },
+      {
+        rows: [
+          {
+            type: 'call',
+            refId: callRow.id,
+            card: {
+              title,
+              kind: input.kind,
+              status: 'open',
+              conversationId,
+              callerUserId: me.id,
+              callerName: caller,
+            },
+          },
+        ],
+      },
+    )
+  } catch (err) {
+    await closeCallRoom(callRow, 'cancelled').catch(() => undefined)
+    throw err
+  }
+
+  let auth: { provider: 'livekit'; livekitUrl: string; token: string; roomName: string } | { provider: 'daily'; roomUrl: string; token: string }
+  try {
+    if (callRow.provider === 'livekit') {
+      const { token, livekitUrl } = await createLiveKitToken({
+        roomName: callRow.roomName,
+        identity: me.id,
+        name: caller,
+        isHost: true,
+        ttlSeconds: CONVERSATION_CALL_HOURS * 3600,
+      })
+      auth = { provider: 'livekit', livekitUrl, token, roomName: callRow.roomName }
+    } else {
+      const token = await createOwnerToken(callRow.roomName, callRow.expiresAt, caller)
+      auth = { provider: 'daily', roomUrl: callRow.roomUrl ?? '', token }
+    }
+  } catch (err) {
+    if (err instanceof DailyError || err instanceof LiveKitError) throw new ChatCallError('provider', 502)
+    throw err
+  }
+
+  return {
+    call: {
+      id: callRow.id,
+      title: callRow.title,
+      kind: callRow.kind,
+      provider: callRow.provider,
+      conversationId,
+      status: callRow.status,
+      expiresAt: callRow.expiresAt.toISOString(),
+    },
+    message,
+    callerName: caller,
+    ...auth,
+  }
+}
+
+export async function declineConversationCall(me: SessionUser, callId: string): Promise<{ conversationId: string; callId: string; userName: string }> {
+  const [call] = await db.select().from(calls).where(and(eq(calls.id, callId), isNull(calls.deletedAt)))
+  if (!call || !call.conversationId) throw new ChatCallError('not_found', 404)
+  await assertMember(call.conversationId, me.id)
+  void closePushNotification(me.id, `call-${call.id}`)
+  return { conversationId: call.conversationId, callId: call.id, userName: userName(me) }
+}
+
+export async function endConversationCall(me: SessionUser, callId: string): Promise<{ conversationId: string; callId: string }> {
+  const [call] = await db.select().from(calls).where(and(eq(calls.id, callId), isNull(calls.deletedAt)))
+  if (!call || !call.conversationId) throw new ChatCallError('not_found', 404)
+  await assertMember(call.conversationId, me.id)
+  try {
+    await closeCallRoom(call, 'ended')
+  } catch (err) {
+    if (err instanceof DailyError || err instanceof LiveKitError) throw new ChatCallError('provider', 502)
+    throw err
+  }
+  const members = await memberIds(call.conversationId)
+  for (const userId of members) void closePushNotification(userId, `call-${call.id}`)
+  return { conversationId: call.conversationId, callId: call.id }
 }

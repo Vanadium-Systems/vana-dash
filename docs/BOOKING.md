@@ -136,6 +136,7 @@ the hour that was booked.
 | The hosting provider of the app | the database where the booking lives | list it as a processor |
 | Resend | the visitor's name and email, for the confirmation and the cancellation | list it as a processor |
 | Google (Firebase Cloud Messaging) | only "Programare nouă" and the hour | it receives no visitor data, so it is not a recipient of it |
+| LiveKit Cloud (SFU) | encrypted media frames, connection IP, room name, participant display name | media frames are E2EE with a key held in the URL `#k=` fragment; LiveKit cannot decrypt audio/video. List as a processor (EU region + DPA in LiveKit Trust Center) and state clearly that calls are not recorded or transcribed |
 
 ### The line next to the form (on the website)
 

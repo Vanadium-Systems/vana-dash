@@ -155,6 +155,21 @@ export function useThreadMessages(conversationId: string | undefined) {
         if (event.type === 'reaction.updated') {
           patchMessage(event.messageId, (m) => ({ ...m, reactions: event.reactions }))
         }
+        if (event.type === 'call.ended') {
+          queryClient.setQueryData<ThreadPage>(queryKey, (current) =>
+            current
+              ? {
+                  ...current,
+                  messages: current.messages.map((m) => ({
+                    ...m,
+                    refs: m.refs.map((r) =>
+                      r.type === 'call' && r.refId === event.callId ? { ...r, card: { ...r.card, status: 'ended' } } : r,
+                    ),
+                  })),
+                }
+              : current,
+          )
+        }
       }),
     [conversationId, patchMessage, queryClient, queryKey, subscribe],
   )

@@ -125,8 +125,13 @@ export const config = {
   // Empty by default: the route then rejects every request, and the Bot tabs, their feature and
   // their alerts job stay off (see `available` in shared/lib/features.ts).
   jeffbotIngestToken: process.env.JEFFBOT_INGEST_TOKEN ?? '',
-  // Video calls (Daily Prebuilt). Empty key = the Calls feature does not exist and bookings
-  // are sent without a call link (see `available` in shared/lib/features.ts).
+  // Video calls: LiveKit Cloud (primary, configured per company in Settings -> Calls) and
+  // Daily Prebuilt (legacy overlap for existing rooms until closed).
+  livekit: {
+    url: process.env.LIVEKIT_URL ?? '',
+    apiKey: process.env.LIVEKIT_API_KEY ?? '',
+    apiSecret: process.env.LIVEKIT_API_SECRET ?? '',
+  },
   daily: {
     apiKey: process.env.DAILY_API_KEY ?? '',
     domain: process.env.DAILY_DOMAIN ?? '',

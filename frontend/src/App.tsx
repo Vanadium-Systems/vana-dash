@@ -6,6 +6,7 @@ import { RequireFeature } from '@/shared/components/AccessDenied'
 import { ChatStreamProvider } from '@/shared/components/chat/ChatStreamProvider'
 import { E2EProvider } from '@/modules/messages/crypto/E2EProvider'
 import { ApprovalRequests } from '@/modules/messages/crypto/E2ESetup'
+import { IncomingCallOverlay } from '@/modules/calls/IncomingCallOverlay'
 import { AppLayout } from '@/shared/components/layout/AppLayout'
 import { LegacyAccountingTabs, RedirectPricing } from '@/shared/components/layout/LegacyRedirects'
 import { LinkedSection, RedirectToTab, TabbedSection } from '@/shared/components/layout/PageSection'
@@ -173,7 +174,7 @@ export function App() {
           {/* Provider-ul de flux stă deasupra lui AppLayout, nu în el: AppLayout folosește
               badge-ul de mesaje necitite, iar un context nu ajunge la propria componentă — pus
               în shell, ar arunca la fiecare pagină. */}
-          <Route element={<ChatStreamProvider><E2EProvider><Outlet /><ApprovalRequests /></E2EProvider></ChatStreamProvider>}>
+          <Route element={<ChatStreamProvider><E2EProvider><Outlet /><ApprovalRequests /><IncomingCallOverlay /></E2EProvider></ChatStreamProvider>}>
           <Route element={<AppLayout />}>
             <Route path="/accounting" element={<RequireFeature feature="facturi.view" page={t('common:nav.invoices')}><LegacyAccountingTabs><AccountingPage /></LegacyAccountingTabs></RequireFeature>} />
             <Route path="/accounting/invoices/new" element={<RequireFeature feature="facturi.emitere" page={t('common:nav.invoices')}><InvoiceEditorPage /></RequireFeature>} />
@@ -213,7 +214,7 @@ export function App() {
             <Route path="/messages/:id" element={<RequireFeature feature="mesaje.view" page={t('common:nav.messages')}><MessagesPage /></RequireFeature>} />
             <Route path="/calendar" element={<RequireFeature feature="calendar.view" page={t('common:nav.calendar')}><CalendarPage /></RequireFeature>} />
             <Route path="/calls" element={<RequireFeature feature="apeluri.view" page={t('common:nav.calls')}><CallsPage /></RequireFeature>} />
-            <Route path="/calls/:id" element={<RequireFeature feature="apeluri.manage" page={t('common:nav.calls')}><CallRoomPage /></RequireFeature>} />
+            <Route path="/calls/:id" element={<RequireFeature feature={['apeluri.manage', 'mesaje.view']} page={t('common:nav.calls')}><CallRoomPage /></RequireFeature>} />
             <Route
               path="/notes"
               element={

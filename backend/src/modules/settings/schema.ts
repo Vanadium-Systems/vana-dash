@@ -51,3 +51,23 @@ export const AnalyticsSettingsSchema = z.object({
 })
 
 export type AnalyticsSettings = z.infer<typeof AnalyticsSettingsSchema>
+
+export const LiveKitSettingsUpdateSchema = z.object({
+  url: z
+    .string()
+    .trim()
+    .max(300)
+    .refine(
+      (v) => v === '' || /^wss?:\/\/.+/.test(v) || /^https?:\/\/.+/.test(v),
+      'LiveKit URL must start with wss:// or https://',
+    ),
+  apiKey: z.string().trim().max(200).nullable().optional(),
+  apiSecret: z.string().trim().max(200).nullable().optional(),
+  enabled: z.boolean().default(true),
+})
+
+export const LiveKitTestSchema = z.object({
+  url: z.string().trim().max(300).optional(),
+  apiKey: z.string().trim().max(200).optional(),
+  apiSecret: z.string().trim().max(200).optional(),
+})

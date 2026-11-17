@@ -134,5 +134,21 @@
     "key": "Cheia proiectului",
     "host": "Gazda",
     "keyPlaceholder": "phc_…"
+  },
+  "livekit": {
+    "title": "Apeluri video și audio (LiveKit Cloud)",
+    "hint": "Credențialele de proiect LiveKit Cloud. Audio-ul și video-ul rămân criptate cap-la-cap în browser.",
+    "configured": "Configurat",
+    "notConfigured": "Neconfigurat",
+    "enabled": "Activează apelurile pe LiveKit",
+    "url": "URL Server (wss://…)",
+    "urlPlaceholder": "wss://proiect-xxx.livekit.cloud",
+    "apiKey": "API Key",
+    "apiSecret": "API Secret",
+    "stored": "Salvat: {{preview}}",
+    "fromEnv": "Folosește valoarea din .env",
+    "keepHint": "Lasă gol dacă păstrezi secretul salvat",
+    "test": "Testează conexiunea",
+    "testOk": "Conexiune reușită ({{count}} camere active)"
   }
 }

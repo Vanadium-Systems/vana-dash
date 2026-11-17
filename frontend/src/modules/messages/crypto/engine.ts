@@ -113,6 +113,7 @@ export interface AttachmentKey {
 export interface MessageContent {
   body: string
   attachments: AttachmentKey[]
+  call?: { key: string; kind: 'audio' | 'video' }
 }
 
 export interface EncryptedContent {
@@ -172,6 +173,7 @@ export interface PlainRecord {
   createdAt?: string
   body: string
   attachments: AttachmentKey[]
+  call?: { key: string; kind: 'audio' | 'video' }
 }
 
 // Olm payloads, inside the encrypted channel between two devices.
@@ -781,10 +783,10 @@ export class E2EEngine {
     // Keyed by the ciphertext's end too: an edit is a new ciphertext under the same id.
     const cacheKey = `${message.id}:${unpadded(message.encrypted.ciphertext).slice(-24)}`
     const cached = await this.store.get<PlainRecord>('plain', cacheKey)
-    if (cached) return { status: 'ok', content: { body: cached.body, attachments: cached.attachments } }
+    if (cached) return { status: 'ok', content: { body: cached.body, attachments: cached.attachments, ...(cached.call ? { call: cached.call } : {}) } }
     return this.serial(async () => {
       const again = await this.store.get<PlainRecord>('plain', cacheKey)
-      if (again) return { status: 'ok', content: { body: again.body, attachments: again.attachments } }
+      if (again) return { status: 'ok', content: { body: again.body, attachments: again.attachments, ...(again.call ? { call: again.call } : {}) } }
       const packed = unpackCiphertext(message.encrypted.ciphertext)
       if (!packed) return { status: 'invalid' }
       const record = await this.store.get<InboundRecord>('inbound', packed.sessionId)
@@ -803,7 +805,11 @@ export class E2EEngine {
         // The one case where the key is not the author's: an old clear message re-encrypted by a
         // colleague because its author has no approved device left (the server allows nothing else).
         if (record.senderUserId !== message.authorUserId && parsed.legacy !== true) return { status: 'invalid' }
-        const content: MessageContent = { body: String(parsed.body ?? ''), attachments: parsed.attachments ?? [] }
+        const content: MessageContent = {
+          body: String(parsed.body ?? ''),
+          attachments: parsed.attachments ?? [],
+          ...(parsed.call ? { call: parsed.call } : {}),
+        }
         await this.store.put('plain', cacheKey, {
           messageId: message.id,
           conversationId: message.conversationId,

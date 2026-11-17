@@ -131,7 +131,7 @@ export const messageReactions = pgTable(
   ],
 )
 
-export const MESSAGE_REF_TYPES = ['prospect', 'invoice', 'email_thread', 'calendar_event', 'archive_file', 'note'] as const
+export const MESSAGE_REF_TYPES = ['prospect', 'invoice', 'email_thread', 'calendar_event', 'archive_file', 'note', 'call'] as const
 export type MessageRefType = (typeof MESSAGE_REF_TYPES)[number]
 
 // An object shared into a message. `snapshot` is what the sender saw when sending: personal
@@ -154,7 +154,7 @@ export const messageRefs = pgTable(
     index('idx_message_refs_target').on(t.tenantId, t.refType, t.refId),
     check(
       'ck_message_refs_type',
-      sql`${t.refType} IN ('prospect', 'invoice', 'email_thread', 'calendar_event', 'archive_file', 'note')`,
+      sql`${t.refType} IN ('prospect', 'invoice', 'email_thread', 'calendar_event', 'archive_file', 'note', 'call')`,
     ),
   ],
 )

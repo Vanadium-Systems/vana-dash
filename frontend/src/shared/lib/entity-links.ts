@@ -23,6 +23,8 @@ export function linkFor(type: RefType, id: string, extra: LinkExtra = {}): strin
       return `/archive?${extra.folderId ? `folder=${extra.folderId}&` : ''}file=${id}`
     case 'note':
       return `/notes?note=${id}`
+    case 'call':
+      return `/calls/${id}`
   }
 }
 

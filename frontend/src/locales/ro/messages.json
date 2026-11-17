@@ -153,8 +153,11 @@
       "email_thread": "Email",
       "calendar_event": "Eveniment",
       "archive_file": "Fișier",
-      "note": "Notiță"
+      "note": "Notiță",
+      "call": "Apel"
     },
+    "callAudio": "Apel audio",
+    "callVideo": "Apel video",
     "invoiceStatus": {
       "unpaid": "neplătită",
       "partial": "plătită parțial",
@@ -247,5 +250,16 @@
       "8": "Simboluri",
       "9": "Steaguri"
     }
+  },
+  "calls": {
+    "startAudio": "Apel audio",
+    "startVideo": "Apel video",
+    "e2eeNotReady": "Se inițializează criptarea conversației… Încearcă în câteva secunde.",
+    "incomingTitle": "Apel de la {{name}}",
+    "incomingAudio": "Apel audio primit",
+    "incomingVideo": "Apel video primit",
+    "accept": "Intră",
+    "decline": "Respinge",
+    "declinedBy": "{{name}} a respins apelul"
   }
 }

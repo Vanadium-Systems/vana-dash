@@ -63,6 +63,14 @@ export const SendMessageSchema = z.object({
 
 export const EditMessageSchema = z.object({ encrypted: EncryptedContentSchema })
 
+export const StartConversationCallSchema = z.object({
+  kind: z.enum(['audio', 'video']).default('video'),
+  clientId: z.string().uuid(),
+  encrypted: EncryptedContentSchema.optional(),
+})
+
+export const CallActionParamsSchema = z.object({ id: z.string().uuid() })
+
 /** Re-encrypting an old clear-text message in place (Q-M2). */
 export const EncryptLegacySchema = z.object({ encrypted: EncryptedContentSchema })
 

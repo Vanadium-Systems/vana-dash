@@ -53,6 +53,7 @@ export interface ThreadRow {
   replyTo: ChatReplyPreview | null
   reactions: ChatReaction[]
   refs: ChatMessageRef[]
+  callKey?: string
   createdAt: string
   editedAt: string | null
   deletedAt: string | null
@@ -308,6 +309,7 @@ export const MessageBubble = forwardRef<
                   <RefCard
                     key={refItem.id}
                     refItem={refItem}
+                    callKey={message.callKey}
                     onRequestAccess={own ? undefined : actions.onRequestAccess}
                     onOpenFile={(attachmentId) => {
                       const file = message.attachments.find((a) => a.id === attachmentId)

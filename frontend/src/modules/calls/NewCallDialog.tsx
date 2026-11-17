@@ -5,11 +5,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Field } from '@/shared/components/ui/field'
 import { Input } from '@/shared/components/ui/input'
 import { Select } from '@/shared/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { useMe } from '@/shared/hooks/use-me'
 import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
+import { buildPublicCallUrl, generateCallKey, saveCallKey } from './call-keys'
 import { copyCallLink, useCreateCall } from './calls-api'
+import type { CallKind, CallRow } from './types'
 
 // A link left open for a week is a risk nobody wants to audit, so the list stops at a working day.
 const HOUR_OPTIONS = [1, 2, 4, 8]
@@ -53,16 +56,34 @@ function ProspectPicker({ id, value, onChange }: { id?: string; value: LinkedPro
   )
 }
 
-export function NewCallDialog({ open, onOpenChange, prospect: initialProspect }: { open: boolean; onOpenChange: (open: boolean) => void; prospect?: LinkedProspect }) {
+export function NewCallDialog({
+  open,
+  onOpenChange,
+  prospect: initialProspect,
+  onCreated,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  prospect?: LinkedProspect
+  onCreated?: (call: CallRow, fullUrl: string) => void
+}) {
   const { can } = useMe()
   const [prospect, setProspect] = useState<LinkedProspect | null>(initialProspect ?? null)
-  useEffect(() => {
-    if (open) setProspect(initialProspect ?? null)
-  }, [open, initialProspect])
   const [title, setTitle] = useState('')
+  const [kind, setKind] = useState<CallKind>('video')
   const [hours, setHours] = useState('4')
   const [titleError, setTitleError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setProspect(initialProspect ?? null)
+    if (initialProspect && !title.trim()) {
+      setTitle(t('calls:dialog.titleFor', { name: initialProspect.name }))
+    }
+    setTitleError(null)
+    setFormError(null)
+  }, [open, initialProspect])
 
   const create = useCreateCall()
 
@@ -73,16 +94,26 @@ export function NewCallDialog({ open, onOpenChange, prospect: initialProspect }:
     }
     setTitleError(null)
 
-    let call
+    const roomKey = generateCallKey()
+    let call: CallRow
     try {
-      call = await create.mutateAsync({ title: title.trim(), expiresInHours: Number(hours), ...(prospect ? { prospectId: prospect.id } : {}) })
+      call = await create.mutateAsync({
+        title: title.trim(),
+        kind,
+        expiresInHours: Number(hours),
+        ...(prospect ? { prospectId: prospect.id } : {}),
+      })
     } catch (err) {
       // The values stay in the form: the user only presses the button again.
       setFormError(err instanceof Error ? err.message : String(err))
       return
     }
-    await copyCallLink(call)
+    if (call.provider === 'livekit') saveCallKey(call.id, roomKey)
+    const key = call.provider === 'livekit' ? roomKey : null
+    await copyCallLink(call, key)
+    onCreated?.(call, buildPublicCallUrl(call.publicUrl, key))
     setTitle('')
+    setKind('video')
     setHours('4')
     setTitleError(null)
     setFormError(null)
@@ -110,6 +141,14 @@ export function NewCallDialog({ open, onOpenChange, prospect: initialProspect }:
               placeholder={t('calls:dialog.titlePlaceholder')}
               onChange={(event) => setTitle(event.target.value)}
             />
+          </Field>
+          <Field label={t('calls:dialog.kindLabel')}>
+            <Tabs value={kind} onValueChange={(next) => setKind(next as CallKind)}>
+              <TabsList variant="segmented">
+                <TabsTrigger value="video">{t('calls:dialog.kindVideo')}</TabsTrigger>
+                <TabsTrigger value="audio">{t('calls:dialog.kindAudio')}</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </Field>
           {can('clienti.view') ? (
             <Field label={t('calls:dialog.prospectLabel')} optional>

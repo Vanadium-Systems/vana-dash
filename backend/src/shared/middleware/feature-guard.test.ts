@@ -245,6 +245,7 @@ describe('bootul cu o rută nerezolvată', () => {
         "POST /api/auth/reset-password",
         "POST /api/email/unsubscribe/:token",
         "POST /api/monitoring/host-metrics",
+        "POST /api/public/calls/:publicId/token",
         "POST /api/v1/integrations/jeffbot/snapshot",
         "POST /api/v1/integrations/vanagreen/billing-clients",
         "POST /api/v1/integrations/vanagreen/pricing/calculate",
