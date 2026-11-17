@@ -553,5 +553,17 @@
     "overpayment": "Suma depășește restul de plată ({{remaining}} {{currency}})",
     "alreadyPaid": "Documentul nu mai are rest de plată",
     "useRecordPayments": "Factura emisă se încasează prin plăți, nu prin starea de plată"
+  },
+  "codes": {
+    "INTERNAL": "Eroare internă pe server. Încearcă din nou peste un minut.",
+    "VALIDATION_FAILED": "Datele trimise nu sunt valide. Verifică câmpurile.",
+    "BAD_REQUEST": "Cererea nu e validă. Verifică datele și încearcă din nou.",
+    "UNAUTHORIZED": "Sesiunea a expirat. Intră din nou în cont.",
+    "FORBIDDEN": "Nu ai acces la această acțiune.",
+    "NOT_FOUND": "Nu există sau a fost șters.",
+    "CONFLICT": "S-a schimbat între timp. Reîncarcă pagina și încearcă din nou.",
+    "PAYLOAD_TOO_LARGE": "Fișierul sau textul trimis e prea mare.",
+    "UNSUPPORTED_MEDIA_TYPE": "Tipul de fișier nu e acceptat.",
+    "RATE_LIMITED": "Prea multe încercări. Mai încearcă peste câteva minute."
   }
 }

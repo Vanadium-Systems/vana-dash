@@ -551,5 +551,17 @@
     "overpayment": "The amount exceeds the remaining balance ({{remaining}} {{currency}})",
     "alreadyPaid": "The document has nothing left to pay",
     "useRecordPayments": "An issued invoice is settled through payments, not by setting its payment status"
+  },
+  "codes": {
+    "INTERNAL": "Internal server error. Try again in a minute.",
+    "VALIDATION_FAILED": "The data sent is not valid. Check the fields.",
+    "BAD_REQUEST": "The request is not valid. Check the data and try again.",
+    "UNAUTHORIZED": "Your session has expired. Sign in again.",
+    "FORBIDDEN": "You don't have access to this action.",
+    "NOT_FOUND": "It doesn't exist or was deleted.",
+    "CONFLICT": "It changed in the meantime. Reload the page and try again.",
+    "PAYLOAD_TOO_LARGE": "The file or text sent is too large.",
+    "UNSUPPORTED_MEDIA_TYPE": "This file type is not accepted.",
+    "RATE_LIMITED": "Too many attempts. Try again in a few minutes."
   }
 }

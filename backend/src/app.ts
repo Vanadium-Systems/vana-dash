@@ -1,7 +1,7 @@
 import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
-import Fastify, { type FastifyError } from 'fastify'
-import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
+import Fastify from 'fastify'
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { accessRoutes } from './modules/access/routes.js'
 import { accountingRoutes } from './modules/accounting/routes.js'
 import { alertsRoutes } from './modules/alerts/routes.js'
@@ -70,8 +70,7 @@ import { tendersRoutes } from './modules/tenders/routes.js'
 import { tenantsRoutes } from './modules/tenants/routes.js'
 import { wishlistRoutes } from './modules/wishlist/routes.js'
 import { config } from './shared/config.js'
-import { tr } from './shared/lib/i18n.js'
-import { validationMessage } from './shared/lib/validation-messages.js'
+import { errorHandler, notFoundHandler } from './shared/lib/http-error.js'
 import { authPlugin } from './shared/middleware/auth.js'
 import { featureGuardPlugin } from './shared/middleware/feature-guard.js'
 import { cookiePlugin } from './shared/plugins/cookie.js'
@@ -95,32 +94,8 @@ export async function buildServer() {
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
 
-  // Fără asta, orice eșec de validare Zod (schema: { body/querystring: ... }) cădea pe eroarea
-  // implicită Fastify — { error: "Bad Request", message: "<zod issues>" } — iar api.ts (FE)
-  // citește doar `body.error` din envelope-ul {success,data,error}, niciodată `message`. Stefan
-  // vedea un toast "Bad Request" fără niciun detaliu la orice edit respins de-o regulă de
-  // business (ex. benzile puncte de lucru trebuie strict crescătoare) — arăta ca "nu pot
-  // modifica" bandă, deși salvarea era doar respinsă silențios cu motivul ascuns.
-  app.setErrorHandler<FastifyError>((error, request, reply) => {
-    if (error.code === 'FST_ERR_VALIDATION' && error.validation?.length) {
-      const message = hasZodFastifySchemaValidationErrors(error)
-        ? validationMessage(
-            error.validation.map(({ keyword, instancePath, message: text, params }) => ({
-              ...params,
-              code: keyword,
-              path: instancePath.split('/').slice(1).filter(Boolean),
-              message: text ?? '',
-            })),
-          )
-        : error.message
-      return reply.code(400).send({ success: false, error: message })
-    }
-    const statusCode = error.statusCode ?? 500
-    if (statusCode >= 500) request.log.error(error)
-    // The rate limiter writes its own message, in English, with the time left.
-    if (statusCode === 429) return reply.code(429).send({ success: false, error: tr('errors.rateLimited') })
-    return reply.code(statusCode).send({ success: false, error: statusCode >= 500 ? tr('errors.internal') : error.message })
-  })
+  app.setErrorHandler(errorHandler)
+  app.setNotFoundHandler(notFoundHandler)
 
   await app.register(securityHeadersPlugin, { origin: config.frontendOrigin })
   await app.register(cookiePlugin)

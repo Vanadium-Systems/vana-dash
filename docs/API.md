@@ -2,9 +2,8 @@
 
 Every route needs a valid JWT in the HttpOnly cookie `vana_session`, except the ones listed
 under [Routes without a session](#routes-without-a-session). Answers have the form
-`{ "success": true, "data": … }` or `{ "success": false, "error": "…" }`. Access errors carry a
-stable code:
-`{ "success": false, "error": { "code": "FEATURE_FORBIDDEN", "feature": "facturi.emitere" } }`.
+`{ "success": true, "data": … }` or `{ "success": false, "error": { "code": "…", "message": "…" } }`
+(see [Errors](#errors)).
 
 Feature keys, some status values and the labels the UI shows are in Romanian; they are quoted
 here as they are in the code.
@@ -52,6 +51,28 @@ RON and `money` says `"converted": false, "fallback": "no_rate"`. The amount of 
 document, reconciliation, the D301/D390 declarations and the quarterly package are never
 converted. `recurring-revenue` and `recurring-expenses` add `mrrDisplay` and `monthlyDisplay`,
 converted at the latest rate.
+
+## Errors
+
+Every 4xx and 5xx answer has the same shape:
+
+```json
+{ "success": false, "error": { "code": "INVOICE_NOT_FOUND", "message": "Factura nu există.", "invoiceId": "…" } }
+```
+
+- `code` is stable, `UPPER_SNAKE`, in English. Decide on it, never on `message`.
+- `message` is written for a person, in the language of the request (see below). It never carries
+  the text of an exception: a 5xx answers `INTERNAL` and the cause stays in the server log.
+- Extra keys on the same object are details of the case (`feature` on `FEATURE_FORBIDDEN`, the
+  field, the person responsible).
+
+Generic codes, used when nothing more precise applies: `VALIDATION_FAILED` (400, the message names
+the field), `BAD_REQUEST`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND` (also for an unknown route),
+`CONFLICT`, `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `RATE_LIMITED`, `INTERNAL`. A failing
+external service answers with a code of its own: `ANAF_UNAVAILABLE`, `BANK_UNAVAILABLE`,
+`MAIL_SEND_FAILED`, `PUSH_FAILED`, `ASSISTANT_PROVIDER_FAILED`, `PLATFORM_UNREACHABLE`.
+
+Until 2026-11 `error` was a string on most routes. It is now always an object.
 
 ## Routes without a session
 
