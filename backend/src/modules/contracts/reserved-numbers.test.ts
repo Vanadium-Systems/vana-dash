@@ -71,7 +71,7 @@ describe('numere de contract rezervate', () => {
       { number: '003', note: 'Al doilea', date: '2026-09-29' },
     ])
     expect(res.statusCode).toBe(400)
-    expect(res.json().error).toEqual({ code: 'RESERVED_NUMBER_DUPLICATE' })
+    expect(res.json().error.code).toBe('RESERVED_NUMBER_DUPLICATE')
   })
 
   it('o listă golită rămâne goală, 003 nu reapare', async () => {

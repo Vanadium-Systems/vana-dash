@@ -19,7 +19,9 @@ export class HttpError extends Error {
     readonly params: ErrorParams = {},
     readonly details: ErrorDetails = {},
   ) {
-    super(code)
+    // The text, in the language of the request, for code that reads `err.message` (the assistant's
+    // tools, jobs writing to sync_log); the answer itself is built again from the code.
+    super(errorMessage(code, params, statusCode))
     this.name = 'HttpError'
   }
 

@@ -103,7 +103,11 @@ describe('error shape', () => {
   })
 })
 
-describe('causedBy', () => {
+describe('HttpError message', () => {
+  it('is the text, for code that reads err.message', () => {
+    expect(httpError(404, 'NOT_FOUND').message).toBe('Nu există sau a fost șters.')
+  })
+
   it('keeps the reason in the message for the log, not in the answer', async () => {
     const err = httpError(502, 'ANAF_UNAVAILABLE').causedBy(new Error('socket hang up'))
     expect(err.message).toBe('ANAF_UNAVAILABLE: socket hang up')

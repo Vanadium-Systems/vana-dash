@@ -4,6 +4,7 @@ import { db } from '../../shared/db/client.js'
 import { contractTemplates, dashboardConfig } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
 import { getCompany } from '../../shared/lib/company.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import {
   CONTRACT_TEMPLATE_BODIES,
   CONTRACT_TEMPLATE_KEYS,
@@ -79,11 +80,11 @@ function validateTokens(key: ContractTemplateKey, bodyHtml: string): void {
   const known = new Set([...CONTRACT_TEMPLATE_PLACEHOLDERS[key].map((p) => p.token)])
   const used = [...bodyHtml.matchAll(/\{\{([a-zA-Z0-9._]+)\}\}/g)].map((m) => m[1]!)
   const unknown = [...new Set(used.filter((t) => !known.has(t)))]
-  if (unknown.length > 0) throw new Error(tr('errors.contracts.unknownTokens', { unknown: unknown.join(', ') }))
+  if (unknown.length > 0) throw httpError(400, 'CONTRACT_TEMPLATE_TOKENS_UNKNOWN', { unknown: unknown.join(', ') })
 }
 
 export async function updateTemplate(key: ContractTemplateKey, bodyHtml: string): Promise<TemplateRow> {
-  if (!CONTRACT_TEMPLATE_BODIES[key]) throw new Error(tr('errors.contracts.templateNotFound'))
+  if (!CONTRACT_TEMPLATE_BODIES[key]) throw httpError(400, 'TEMPLATE_NOT_FOUND')
   validateTokens(key, bodyHtml)
   await ensureSeeded()
   const [row] = await db

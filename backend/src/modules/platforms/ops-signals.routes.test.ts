@@ -83,6 +83,7 @@ describe('GET /api/platforms/:id/ops-signals', () => {
       cookies: { vana_session: cookie },
     })
     expect(res.statusCode).toBe(502)
+    expect(res.json().error.code).toBe('PLATFORM_UNREACHABLE')
   })
 
   it('respinge lipsa oricărei sesiuni cu 401', async () => {

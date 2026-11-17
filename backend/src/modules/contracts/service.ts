@@ -4,13 +4,14 @@ import { db } from '../../shared/db/client.js'
 import { billingClients, contractAddenda, contractDocuments } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
 import { escapeLike } from '../../shared/lib/prospect-access.js'
-import { assertContractDataComplete, formatMonthlyPrice, type ContractTemplateKey } from '../../shared/lib/contract-templates.js'
+import { assertContractDataComplete, formatMonthlyPrice, REQUIRED_FIELD_LABELS, type ContractTemplateKey } from '../../shared/lib/contract-templates.js'
 import { htmlToPdf, isPdfAvailable } from '../../shared/lib/pdf.js'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import { ContractDetailsSchema, type ContractDetails, type CreateAddendumSchema, type SignatureRectSchema } from './schema.js'
 import { renderAddendum, renderBlank, renderDocument } from './templates-service.js'
 import type { z } from 'zod'
 import type { ContractListQuerySchema } from './schema.js'
+import { httpError } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 // Format A4 (puncte PDF, 72dpi) — identic paginii generate de htmlToPdf (shared/lib/pdf.ts,
@@ -22,12 +23,13 @@ const PDF_PAGE_HEIGHT_PT = 842
 // — doar schema DB (billing_clients), la fel cum reconciliation/ sau prospects/ citesc
 // billingClients fără să fie „parte din" accounting.
 
-async function getClientOrThrow(clientId: string) {
+// `status` is the one the route used before codes: 404 where the client is the resource, 400 elsewhere.
+async function getClientOrThrow(clientId: string, status = 400) {
   const [client] = await db
     .select()
     .from(billingClients)
     .where(and(eq(billingClients.id, clientId), isNull(billingClients.deletedAt)))
-  if (!client) throw new Error(tr('errors.contracts.clientNotFound'))
+  if (!client) throw httpError(status, 'CLIENT_NOT_FOUND')
   return client
 }
 
@@ -43,7 +45,7 @@ function parseContractDetails(raw: unknown): ContractDetails {
 // /api/invoicing/clients/:id, ClientFormDialog.tsx), ca să nu existe două căi de scriere
 // necoordonate pe același rând. Aici doar citim și validăm shape-ul jsonb.
 export async function getContractInfo(clientId: string) {
-  const client = await getClientOrThrow(clientId)
+  const client = await getClientOrThrow(clientId, 404)
   return { ...client, contractDetails: parseContractDetails(client.contractDetails) }
 }
 
@@ -55,7 +57,7 @@ export async function generateDocument(clientId: string, docType: 'contract' | '
   const monthlyPriceFormatted = formatMonthlyPrice(client)
   const html = await renderDocument(docType, { client, details, monthlyPriceFormatted })
 
-  if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
+  if (!isPdfAvailable()) throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
   // Empty signature fields, ready to sign in Adobe Reader with a qualified certificate.
   const pdf = await htmlToPdf(html, { signatureFields: true })
 
@@ -80,19 +82,19 @@ export async function previewDocument(clientId: string, docType: 'contract' | 'a
   const monthlyPriceFormatted = formatMonthlyPrice(client)
   const html = await renderDocument(docType, { client, details, monthlyPriceFormatted })
 
-  if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
+  if (!isPdfAvailable()) throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
   return htmlToPdf(html)
 }
 
 // Like the preview, nothing is stored: the blank copy is generated again on every download.
 export async function blankDocumentPdf(key: ContractTemplateKey): Promise<Buffer> {
   const html = await renderBlank(key)
-  if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
+  if (!isPdfAvailable()) throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
   return htmlToPdf(html)
 }
 
 export async function listDocuments(clientId: string) {
-  await getClientOrThrow(clientId)
+  await getClientOrThrow(clientId, 404)
   return db
     .select()
     .from(contractDocuments)
@@ -126,7 +128,7 @@ export async function markDocumentSigned(documentId: string, isSigned: boolean) 
 }
 
 export async function listAddenda(clientId: string) {
-  await getClientOrThrow(clientId)
+  await getClientOrThrow(clientId, 404)
   return db
     .select()
     .from(contractAddenda)
@@ -166,17 +168,18 @@ export async function generateAddendumDocument(addendumId: string) {
     .select()
     .from(contractAddenda)
     .where(and(eq(contractAddenda.id, addendumId), isNull(contractAddenda.deletedAt)))
-  if (!addendum) throw new Error(tr('errors.contracts.addendumNotFound'))
+  if (!addendum) throw httpError(400, 'CONTRACT_ADDENDUM_NOT_FOUND')
 
   const client = await getClientOrThrow(addendum.billingClientId)
   const details = parseContractDetails(client.contractDetails)
   if (!details.nrContract || !details.dataContract) {
-    throw new Error(tr('errors.contracts.missingData'))
+    const fields = [REQUIRED_FIELD_LABELS.nrContract!, REQUIRED_FIELD_LABELS.dataContract!]
+    throw httpError(400, 'CONTRACT_DATA_INCOMPLETE', { fields: fields.join(', ') }, { fields })
   }
 
   const html = await renderAddendum(addendum, client, { nrContract: details.nrContract, dataContract: details.dataContract })
 
-  if (!isPdfAvailable()) throw new Error(tr('errors.pdf.unavailableRetry'))
+  if (!isPdfAvailable()) throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
   const pdf = await htmlToPdf(html, { signatureFields: true })
 
   const safeName = client.name.replace(/[^A-Za-z0-9_-]/g, '_')
@@ -198,7 +201,7 @@ export async function generateAddendumDocument(addendumId: string) {
 
 async function getDocumentOrThrow(documentId: string) {
   const doc = await getDocument(documentId)
-  if (!doc) throw new Error(tr('errors.contracts.documentNotFound'))
+  if (!doc) throw httpError(400, 'CONTRACT_DOCUMENT_NOT_FOUND')
   return doc
 }
 
@@ -219,7 +222,7 @@ export async function saveSignatureRect(documentId: string, rect: z.infer<typeof
  */
 export async function buildSignPackage(documentId: string): Promise<{ buffer: Buffer; fileName: string }> {
   const doc = await getDocumentOrThrow(documentId)
-  if (!doc.signatureRect) throw new Error(tr('errors.contracts.pickSignatureBox'))
+  if (!doc.signatureRect) throw httpError(400, 'CONTRACT_SIGNATURE_BOX_MISSING')
 
   const pdfBuffer = await readDocument(doc.pdfStoragePath)
   const rect = doc.signatureRect as z.infer<typeof SignatureRectSchema>

@@ -13,6 +13,7 @@ import {
   VanagreenSettingsUpdateSchema,
   VerifyVanagreenTenantSchema,
 } from './schema.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 import { PaymentError } from '../../shared/lib/payments.js'
 import * as service from './service.js'
 import { tr } from '../../shared/lib/i18n.js'
@@ -36,7 +37,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { body: BankAccountCreateSchema } },
     async (req, reply) => {
       if (!bankConnectors[req.body.provider]) {
-        return reply.code(400).send({ success: false, error: `Unknown bank provider: ${req.body.provider}` })
+        return fail(reply, 400, 'BANK_PROVIDER_UNKNOWN')
       }
       return reply.code(201).send({ success: true, data: await service.createAccount(req.body) })
     },
@@ -47,7 +48,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema, body: BankAccountUpdateSchema } },
     async (req, reply) => {
       const account = await service.updateAccount(req.params.id, req.body)
-      if (!account) return reply.code(404).send({ success: false, error: 'Account not found' })
+      if (!account) return fail(reply, 404, 'BANK_ACCOUNT_NOT_FOUND')
       return { success: true, data: account }
     },
   )
@@ -57,7 +58,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const deleted = await service.softDeleteAccount(req.params.id)
-      if (!deleted) return reply.code(404).send({ success: false, error: 'Account not found' })
+      if (!deleted) return fail(reply, 404, 'BANK_ACCOUNT_NOT_FOUND')
       return { success: true }
     },
   )
@@ -67,7 +68,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const account = await service.getAccount(req.params.id)
-      if (!account) return reply.code(404).send({ success: false, error: 'Account not found' })
+      if (!account) return fail(reply, 404, 'BANK_ACCOUNT_NOT_FOUND')
       await triggerBankSyncNow(req.params.id)
       return { success: true, data: await service.getAccount(req.params.id) }
     },
@@ -80,7 +81,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const account = await service.getAccount(req.params.id)
-      if (!account) return reply.code(404).send({ success: false, error: 'Account not found' })
+      if (!account) return fail(reply, 404, 'BANK_ACCOUNT_NOT_FOUND')
       const data = await service.generateCertificateForAccount(req.params.id)
       return { success: true, data }
     },
@@ -92,11 +93,9 @@ export async function reconciliationRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const account = await service.getAccount(req.params.id)
-      if (!account) return reply.code(404).send({ success: false, error: 'Account not found' })
+      if (!account) return fail(reply, 404, 'BANK_ACCOUNT_NOT_FOUND')
       if (!account.clientId || !account.certificatePem) {
-        return reply
-          .code(400)
-          .send({ success: false, error: tr('errors.reconciliation.configureFirst') })
+        return fail(reply, 400, 'BANK_ACCOUNT_SETUP_INCOMPLETE', { message: tr('errors.reconciliation.configureFirst') })
       }
       return { success: true, data: { url: buildAuthorizeUrl(account.clientId, account.id) } }
     },
@@ -111,7 +110,9 @@ export async function reconciliationRoutes(app: FastifyInstance) {
         const account = await service.exchangeRevolutCode(req.params.id, req.body.code)
         return { success: true, data: account }
       } catch (err) {
-        return reply.code(502).send({ success: false, error: String(err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'Revolut code exchange failed')
+        return fail(reply, 502, 'BANK_UNAVAILABLE')
       }
     },
   )
@@ -138,8 +139,10 @@ export async function reconciliationRoutes(app: FastifyInstance) {
         const match = await service.createManualMatch(req.params.id, req.body.financialRecordId)
         return reply.code(201).send({ success: true, data: match })
       } catch (err) {
-        if (err instanceof PaymentError) return reply.code(err.statusCode).send({ success: false, error: { code: err.code, message: err.message } })
-        return reply.code(400).send({ success: false, error: String(err) })
+        if (err instanceof PaymentError) return fail(reply, err.statusCode, err.code, { message: err.message })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'manual match failed')
+        return fail(reply, 400, 'MATCH_CREATE_FAILED')
       }
     },
   )
@@ -149,7 +152,7 @@ export async function reconciliationRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: IdParamsSchema } },
     async (req, reply) => {
       const removed = await service.removeMatch(req.params.id)
-      if (!removed) return reply.code(404).send({ success: false, error: 'Match not found' })
+      if (!removed) return fail(reply, 404, 'PAYMENT_MATCH_NOT_FOUND')
       return { success: true }
     },
   )
@@ -164,8 +167,10 @@ export async function reconciliationRoutes(app: FastifyInstance) {
         const data = await service.markInvoicePaidManually(req.params.id)
         return { success: true, data }
       } catch (err) {
-        if (err instanceof PaymentError) return reply.code(err.statusCode).send({ success: false, error: { code: err.code, message: err.message } })
-        return reply.code(400).send({ success: false, error: String(err) })
+        if (err instanceof PaymentError) return fail(reply, err.statusCode, err.code, { message: err.message })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'mark invoice paid failed')
+        return fail(reply, 400, 'MARK_PAID_FAILED')
       }
     },
   )

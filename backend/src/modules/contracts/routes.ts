@@ -17,6 +17,7 @@ import {
   SignatureRectSchema,
 } from './schema.js'
 import { ContractTermsUpdateSchema, TemplateKeyParamsSchema, TemplateUpdateSchema } from './templates-schema.js'
+import { fail, HttpError } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 const MAX_SIGNED_PDF_SIZE = 50 * 1024 * 1024 // 50MB — document contractual, nu streaming
@@ -42,13 +43,8 @@ export async function contractsRoutes(app: FastifyInstance) {
   server.get(
     '/api/contracts/clients/:clientId/documents',
     { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema } },
-    async (req, reply) => {
-      try {
-        const rows = await service.listDocuments(req.params.clientId)
-        return { success: true, data: rows }
-      } catch (err) {
-        return reply.code(404).send({ success: false, error: String(err instanceof Error ? err.message : err) })
-      }
+    async (req) => {
+      return { success: true, data: await service.listDocuments(req.params.clientId) }
     },
   )
 
@@ -60,7 +56,9 @@ export async function contractsRoutes(app: FastifyInstance) {
         const row = await service.generateDocument(req.params.clientId, req.body.docType)
         return reply.code(201).send({ success: true, data: row })
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'contract document generation failed')
+        return fail(reply, 400, 'CONTRACT_GENERATE_FAILED')
       }
     },
   )
@@ -74,7 +72,9 @@ export async function contractsRoutes(app: FastifyInstance) {
         reply.header('Content-Disposition', 'inline; filename="simulare.pdf"')
         return reply.type('application/pdf').send(pdf)
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'contract preview failed')
+        return fail(reply, 400, 'CONTRACT_PREVIEW_FAILED')
       }
     },
   )
@@ -84,7 +84,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema, body: MarkDocumentSignedSchema } },
     async (req, reply) => {
       const row = await service.markDocumentSigned(req.params.id, req.body.isSigned)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.contracts.documentNotFound') })
+      if (!row) return fail(reply, 404, 'CONTRACT_DOCUMENT_NOT_FOUND')
       return { success: true, data: row }
     },
   )
@@ -94,7 +94,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema } },
     async (req, reply) => {
       const doc = await service.getDocument(req.params.id)
-      if (!doc) return reply.code(404).send({ success: false, error: tr('errors.contracts.documentNotFound') })
+      if (!doc) return fail(reply, 404, 'CONTRACT_DOCUMENT_NOT_FOUND')
       const content = await readDocument(doc.pdfStoragePath)
       reply.header('Content-Disposition', `attachment; filename="${doc.docType}_${doc.id.slice(0, 8)}.pdf"`)
       return reply.type('application/pdf').send(content)
@@ -104,13 +104,8 @@ export async function contractsRoutes(app: FastifyInstance) {
   server.get(
     '/api/contracts/clients/:clientId/addenda',
     { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema } },
-    async (req, reply) => {
-      try {
-        const rows = await service.listAddenda(req.params.clientId)
-        return { success: true, data: rows }
-      } catch (err) {
-        return reply.code(404).send({ success: false, error: String(err instanceof Error ? err.message : err) })
-      }
+    async (req) => {
+      return { success: true, data: await service.listAddenda(req.params.clientId) }
     },
   )
 
@@ -118,12 +113,8 @@ export async function contractsRoutes(app: FastifyInstance) {
     '/api/contracts/clients/:clientId/addenda',
     { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema, body: CreateAddendumSchema } },
     async (req, reply) => {
-      try {
-        const row = await service.createAddendum(req.params.clientId, req.body)
-        return reply.code(201).send({ success: true, data: row })
-      } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
-      }
+      const row = await service.createAddendum(req.params.clientId, req.body)
+      return reply.code(201).send({ success: true, data: row })
     },
   )
 
@@ -135,7 +126,9 @@ export async function contractsRoutes(app: FastifyInstance) {
         const row = await service.generateAddendumDocument(req.params.id)
         return reply.code(201).send({ success: true, data: row })
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'addendum document generation failed')
+        return fail(reply, 400, 'CONTRACT_GENERATE_FAILED')
       }
     },
   )
@@ -143,13 +136,8 @@ export async function contractsRoutes(app: FastifyInstance) {
   server.get(
     '/api/contracts/clients/:clientId/info',
     { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema } },
-    async (req, reply) => {
-      try {
-        const row = await service.getContractInfo(req.params.clientId)
-        return { success: true, data: row }
-      } catch (err) {
-        return reply.code(404).send({ success: false, error: String(err instanceof Error ? err.message : err) })
-      }
+    async (req) => {
+      return { success: true, data: await service.getContractInfo(req.params.clientId) }
     },
   )
 
@@ -162,13 +150,9 @@ export async function contractsRoutes(app: FastifyInstance) {
   server.put(
     '/api/contracts/templates/:key',
     { preHandler: [app.authenticate], schema: { params: TemplateKeyParamsSchema, body: TemplateUpdateSchema } },
-    async (req, reply) => {
-      try {
-        const row = await templatesService.updateTemplate(req.params.key, req.body.bodyHtml)
-        return { success: true, data: row }
-      } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
-      }
+    async (req) => {
+      const row = await templatesService.updateTemplate(req.params.key, req.body.bodyHtml)
+      return { success: true, data: row }
     },
   )
 
@@ -181,7 +165,9 @@ export async function contractsRoutes(app: FastifyInstance) {
         reply.header('Content-Disposition', `attachment; filename="${req.params.key}-gol.pdf"`)
         return reply.type('application/pdf').send(pdf)
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'blank contract copy failed')
+        return fail(reply, 400, 'CONTRACT_BLANK_FAILED')
       }
     },
   )
@@ -221,7 +207,7 @@ export async function contractsRoutes(app: FastifyInstance) {
         return { success: true, data: await reservedNumbers.replaceReservedNumbers(req.body) }
       } catch (err) {
         if (err instanceof reservedNumbers.ReservedNumberDuplicateError) {
-          return reply.code(400).send({ success: false, error: { code: 'RESERVED_NUMBER_DUPLICATE' } })
+          return fail(reply, 400, 'RESERVED_NUMBER_DUPLICATE')
         }
         throw err
       }
@@ -235,7 +221,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema, body: SignatureRectSchema } },
     async (req, reply) => {
       const row = await service.saveSignatureRect(req.params.id, req.body)
-      if (!row) return reply.code(404).send({ success: false, error: tr('errors.contracts.documentNotFound') })
+      if (!row) return fail(reply, 404, 'CONTRACT_DOCUMENT_NOT_FOUND')
       return { success: true, data: row }
     },
   )
@@ -249,7 +235,9 @@ export async function contractsRoutes(app: FastifyInstance) {
         reply.header('Content-Disposition', `attachment; filename="${fileName}"`)
         return reply.type('application/zip').send(buffer)
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'sign package failed')
+        return fail(reply, 400, 'CONTRACT_SIGN_PACKAGE_FAILED')
       }
     },
   )
@@ -259,19 +247,21 @@ export async function contractsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema } },
     async (req, reply) => {
       const data = await req.file()
-      if (!data) return reply.code(400).send({ success: false, error: tr('errors.files.missing') })
+      if (!data) return fail(reply, 400, 'FILE_MISSING', { message: tr('errors.files.missing') })
       if (data.mimetype !== 'application/pdf') {
-        return reply.code(400).send({ success: false, error: tr('errors.contracts.pdfOnly') })
+        return fail(reply, 400, 'UNSUPPORTED_MEDIA_TYPE', { message: tr('errors.contracts.pdfOnly') })
       }
       const buffer = await data.toBuffer()
       if (data.file.truncated) {
-        return reply.code(413).send({ success: false, error: tr('errors.contracts.fileTooLarge') })
+        return fail(reply, 413, 'PAYLOAD_TOO_LARGE', { message: tr('errors.contracts.fileTooLarge') })
       }
       try {
         const row = await service.uploadSignedDocument(req.params.id, buffer)
         return reply.code(201).send({ success: true, data: row })
       } catch (err) {
-        return reply.code(400).send({ success: false, error: String(err instanceof Error ? err.message : err) })
+        if (err instanceof HttpError) throw err
+        req.log.warn({ err }, 'signed contract upload failed')
+        return fail(reply, 400, 'CONTRACT_UPLOAD_FAILED')
       }
     },
   )

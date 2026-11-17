@@ -83,14 +83,14 @@ describe('getContractInfo', () => {
   })
 
   it('throws for a non-existent client', async () => {
-    await expect(service.getContractInfo('00000000-0000-0000-0000-000000000000')).rejects.toThrow(/inexistent/)
+    await expect(service.getContractInfo('00000000-0000-0000-0000-000000000000')).rejects.toMatchObject({ statusCode: 404, code: 'CLIENT_NOT_FOUND' })
   })
 })
 
 describe('generateDocument', () => {
   it('throws with the exact missing-fields message when client data is incomplete, and does not touch PDF/storage', async () => {
     const client = await makeClient()
-    await expect(service.generateDocument(client.id, 'contract')).rejects.toThrow(/Date lipsă/)
+    await expect(service.generateDocument(client.id, 'contract')).rejects.toMatchObject({ code: 'CONTRACT_DATA_INCOMPLETE' })
     expect(htmlToPdfMock).not.toHaveBeenCalled()
     expect(saveDocumentMock).not.toHaveBeenCalled()
   })
@@ -114,7 +114,7 @@ describe('generateDocument', () => {
   it('throws a clear error when Chromium is unavailable, without inserting a document row', async () => {
     isPdfAvailableMock.mockReturnValue(false)
     const client = await makeCompleteClient()
-    await expect(service.generateDocument(client.id, 'contract')).rejects.toThrow(/PDF indisponibilă/)
+    await expect(service.generateDocument(client.id, 'contract')).rejects.toMatchObject({ code: 'PDF_GENERATION_UNAVAILABLE' })
     const rows = await db.select().from(contractDocuments).where(eq(contractDocuments.billingClientId, client.id))
     expect(rows).toHaveLength(0)
   })
@@ -154,7 +154,7 @@ describe('previewDocument', () => {
   it('throws a clear error when Chromium is unavailable', async () => {
     isPdfAvailableMock.mockReturnValue(false)
     const client = await makeCompleteClient()
-    await expect(service.previewDocument(client.id, 'contract')).rejects.toThrow(/PDF indisponibilă/)
+    await expect(service.previewDocument(client.id, 'contract')).rejects.toMatchObject({ code: 'PDF_GENERATION_UNAVAILABLE' })
   })
 })
 
@@ -214,7 +214,7 @@ describe('semnătură digitală — signatureRect / sign-package / upload PDF se
   it('buildSignPackage aruncă dacă nu există încă un signatureRect salvat', async () => {
     const client = await makeCompleteClient()
     const doc = await service.generateDocument(client.id, 'contract')
-    await expect(service.buildSignPackage(doc.id)).rejects.toThrow(/dreptunghiul de semnătură/)
+    await expect(service.buildSignPackage(doc.id)).rejects.toMatchObject({ code: 'CONTRACT_SIGNATURE_BOX_MISSING' })
   })
 
   it('buildSignPackage întoarce un .zip cu PDF-ul curent + un README cu comanda JSignPdf', async () => {
@@ -303,7 +303,7 @@ describe('generateAddendumDocument', () => {
       effectiveDateNote: 'd',
       temporary: false,
     })
-    await expect(service.generateAddendumDocument(addendum.id)).rejects.toThrow(/Date lipsă/)
+    await expect(service.generateAddendumDocument(addendum.id)).rejects.toMatchObject({ code: 'CONTRACT_DATA_INCOMPLETE' })
   })
 
   it('generates a document with docType=act_aditional and addendumId set', async () => {
