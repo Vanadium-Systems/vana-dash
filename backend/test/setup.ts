@@ -1,6 +1,8 @@
 // Env defaults pentru teste — rulează înainte de orice import de config.
 // DB-ul de test e Postgres-ul de dev din infra/docker-compose.yml.
 process.env.DATABASE_URL ??= 'postgres://vanadash:vanadash@localhost:5433/vanadash'
+// Forced empty: the tests share the dev DB, so a phone registered there would get every test push.
+process.env.FIREBASE_SERVICE_ACCOUNT_JSON = ''
 process.env.JWT_SECRET ??= 'test-jwt-secret-not-for-production-use'
 process.env.MASTER_ENCRYPTION_KEY ??= 'a'.repeat(64)
 process.env.FRONTEND_ORIGIN ??= 'http://localhost:5174'

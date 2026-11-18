@@ -5,6 +5,7 @@ build/
 .env
 .env.local
 .env.production
+*.swp
 .DS_Store
 coverage/
 .vite/
