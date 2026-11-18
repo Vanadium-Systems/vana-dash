@@ -75,6 +75,10 @@ export const prospects = pgTable(
     index('idx_prospects_assigned_user').on(t.assignedUserId),
     uniqueIndex('idx_prospects_cif').on(t.tenantId, t.cif).where(sql`${t.cif} IS NOT NULL`),
     index('idx_prospects_cif_normalized').on(t.tenantId, t.cifNormalized),
+    // One live company per normalized CIF; the predicate must match findByCif and the ON CONFLICT target in the import.
+    uniqueIndex('uq_prospects_cif_normalized')
+      .on(t.tenantId, t.cifNormalized)
+      .where(sql`${t.cifNormalized} <> '' AND ${t.deletedAt} IS NULL AND ${t.mergedIntoId} IS NULL`),
     index('idx_prospects_owner_activity').on(t.tenantId, t.assignedUserId, t.lastActivityAt),
   ],
 )

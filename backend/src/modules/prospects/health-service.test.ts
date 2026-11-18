@@ -99,11 +99,10 @@ describe('health counts', () => {
 })
 
 describe('duplicate job', () => {
-  it('finds the CIF pair with and without RO, a phone pair and a name pair', async () => {
+  it('finds a phone pair and a name pair; a CIF pair can no longer exist (uq_prospects_cif_normalized)', async () => {
     const digits = String(Math.floor(Math.random() * 9_000_000) + 1_000_000)
-    const a = await newProspect('cif-a', { cif: `RO${digits}` })
-    const b = await newProspect('cif-b', { cif: ` ${digits}` })
-    expect((await pairOf(a, b))?.reasons).toContain('cif')
+    await newProspect('cif-a', { cif: `RO${digits}` })
+    await expect(newProspect('cif-b', { cif: ` ${digits}` })).rejects.toThrow()
 
     const p1 = await newProspect('phone-a')
     const p2 = await newProspect('phone-b')
