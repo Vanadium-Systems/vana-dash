@@ -1,35 +1,55 @@
 # VanaDash
 
-The internal back office of [Vanadium Systems](https://vanadium.systems), a one-person software
-company in Romania: invoicing, bank reconciliation, email, team chat, calendar, CRM and server
-monitoring in a single app, on a single small VPS. It runs in production every day.
+VanaDash is the software [Vanadium Systems](https://vanadium.systems) built to run itself: invoicing,
+bank reconciliation, email, encrypted team chat and calls, calendar, CRM and server monitoring in a
+single app, on a single small VPS. We use it every day, on real invoices and real money.
 
-The source is public so you can read it, run it and send changes. It is **source-available, not
-open source**: see [License](#license).
+The source is public as an example of how we work. It shows what we built for ourselves and the
+standard we bring to software we build for other companies. If you are thinking of hiring us, read
+the code first. It is **source-available, not open source**: see [License](#license).
 
 ![The home screen, with demo data](docs/screenshots/overview-dark.png)
+
+## Where to look
+
+- **Access control:** [`features.ts`](backend/src/shared/lib/features.ts) maps every route to one
+  feature, and the server refuses to start if a route is left out.
+- **Company isolation:** row-level security on every business table, tested on each CI run with the
+  same restricted database role production uses ([`tenancy.ts`](backend/src/shared/lib/tenancy.ts)).
+- **e-Invoicing:** the [ANAF connector](backend/src/connectors/anaf), with its UBL builder, VAT
+  declarations and retries against a real government API.
+- **Encrypted chat:** Olm and Megolm, cross-signing and key backup, with ciphertext only on the server.
+- **Schema history:** every change as a SQL migration in
+  [`backend/src/shared/db/migrations`](backend/src/shared/db/migrations).
 
 ## What's inside
 
 | Module | What it does | Scope |
 |---|---|---|
-| Invoices | Issues and numbers invoices, renders PDF and UBL XML, tracks payment | Romania-specific |
+| Invoices | Issues and numbers invoices and proformas, handles credit notes, renders PDF and UBL XML, tracks payments | Romania-specific |
 | e-Factura / SPV | Sends issued invoices to ANAF, pulls received ones, reads SPV messages | Romania-specific |
-| Declarations | Builds the D301 and D390 VAT declarations and a quarterly package | Romania-specific |
+| Declarations | Builds the D301 and D390 VAT declarations, a monthly close checklist and a quarterly package | Romania-specific |
 | Contracts | Editable contract templates, addenda, digital signature placement | Romanian contract text |
 | Reconciliation | Imports bank transactions (Revolut Business) and matches them to invoices | Country-neutral |
 | Financials | Profit and loss, cash flow, monthly reports; EUR/USD rates from the BNR | BNR feed is Romania-specific |
-| Clients | Prospect list with scoring, a price calculator, promotion to client | Country-neutral |
+| Clients | Prospect list with scoring and team ownership, a price calculator, promotion to client | Country-neutral |
 | Tenders | Watches the Romanian public procurement portal (SICAP) for matching notices | Romania-specific |
-| Email | Shared mailboxes, threads, templates, bulk sends, drip sequences | Country-neutral |
-| Messages | Direct and group chat in real time, attachments, presence | Country-neutral |
+| Email | Shared mailboxes, threads, templates, bulk sends, drip sequences, separate SMTP mailboxes for outreach | Country-neutral |
+| Messages | End-to-end encrypted direct and group chat in real time, attachments, presence | Country-neutral |
+| Calls | End-to-end encrypted audio and video calls from Messages or by guest link, over LiveKit Cloud | Country-neutral |
 | Calendar | Per-person calendars, sharing, common events, public booking | Country-neutral |
 | Archive | Per-person file spaces on object storage, folder sharing | Country-neutral |
 | Notes, Plan, Wishlist | Personal notes and goals | Country-neutral |
+| Investments | Watchlists, portfolio and orders on your own exchange or broker account | Country-neutral |
 | Platforms, Alerts | Pulls KPIs from other products through connectors; threshold alerts | Country-neutral |
 | Team, Modules, History | Invitations, roles, a feature catalog switched on per role, audit log | Country-neutral |
 | Support, Guides, Updates | Tickets to the operator, per-page guides, release notes | Country-neutral |
-| Assistant | An in-app assistant that can read what the user can read | Country-neutral |
+| Assistant | An in-app assistant that can read what the user can read, on Anthropic's API or a local model | Country-neutral |
+| API tokens, MCP | Personal tokens for the API and an MCP endpoint for AI clients, limited by the person's role | Country-neutral |
+
+![Invoices, with demo data](docs/screenshots/invoices-dark.png)
+
+![Encrypted team messages, with demo data](docs/screenshots/messages-light.png)
 
 There is also a thin Android shell (Capacitor) that loads the web app and receives push
 notifications.
@@ -57,8 +77,12 @@ Access is a catalog, checked at startup. Every route must resolve to exactly one
 A route that does not resolve stops the server from starting, and so does one registered without
 authentication and not declared public. A new endpoint cannot ship unguarded by accident.
 
-It serves a single company, so there is no tenant isolation. Roles and features decide what each
-colleague sees.
+Company data is separated in the database. It serves one company today, but business tables carry
+a `tenant_id`, PostgreSQL row-level security enforces it in production, and each company has its
+own encryption key. Inside a company, roles and features decide what each colleague sees.
+
+Messages are encrypted on the sender's device with Olm and Megolm, so the server stores ciphertext
+and search inside a conversation runs on the device. Calls are encrypted end to end as well.
 
 ## Adapting it to another country
 
@@ -68,7 +92,9 @@ The neutral modules work as they are. To use the money side elsewhere you would 
    authority's e-invoicing API, or none;
 2. the declaration builders (`connectors/anaf/declarations`);
 3. the exchange-rate source ([`shared/lib/bnr.ts`](backend/src/shared/lib/bnr.ts));
-4. the contract templates, which are Romanian legal text.
+4. the contract templates, which are Romanian legal text;
+5. the country pack ([`backend/src/countries`](backend/src/countries)): time zone, currency,
+   address rules, phone format, declaration deadlines and the company register lookup.
 
 Start with [`docs/CONNECTOR_GUIDE.md`](docs/CONNECTOR_GUIDE.md). Pull requests are not accepted
 for now (see [CONTRIBUTING.md](CONTRIBUTING.md)), but an issue saying which country you need helps.
@@ -127,7 +153,8 @@ In production since mid-2026, used daily by its author and a few colleagues.
   [docs/GLOSSARY.md](docs/GLOSSARY.md).
 - Code comments are mostly in Romanian too. New code and all public documentation are written in
   English; older comments are translated as the files are touched.
-- Not planned for now: multi-company hosting on one instance, video calls.
+- Hosting other companies on one instance is built at the data level but not offered yet.
+- Not planned for now: a hosted sign-up page. People join by invitation.
 
 ## License
 
@@ -138,12 +165,11 @@ selling it, without a separate licence from Vanadium Systems.
 
 The name and logo are not covered by that licence: see [TRADEMARKS.md](TRADEMARKS.md).
 
-## Want this for your company?
+## Want something like this for your company?
 
-Tell me what you need. The app was shaped by one Romanian company's work, so for another company
-or another country the first step is a conversation about your invoicing rules, your bank and the
-tools you want to replace. A commercial licence, a hosted instance or custom work are all
-possible; which one makes sense depends on that conversation.
+This is the kind of software we build. VanaDash was shaped by one Romanian company's work, and yours
+will have its own rules, bank and tools, so the first step is a conversation about them. It can end
+in custom software, a commercial licence or a hosted instance.
 
 Write to <contact@vanadium.systems>.
 

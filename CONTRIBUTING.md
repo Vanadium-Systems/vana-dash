@@ -43,7 +43,8 @@ These are the ones that get a pull request sent back.
   `backend/src/modules/<name>`; shared code lives in `backend/src/shared`.
 - Platform-specific logic stays in its connector (`backend/src/connectors/<platform>`), with no
   `if (platform.type === ...)` anywhere else.
-- There is no `tenant_id`: this is a single-company app.
+- `tenant_id` comes from the request context and row-level security enforces it. Services never
+  filter on it by hand or take it as a parameter.
 - Aggregation is done in SQL, never with `.reduce()` over rows fetched from a large table.
 - Metrics are upserted, never plainly inserted.
 - Outbound requests have a timeout, and requests to public sources go one at a time with a cap.
