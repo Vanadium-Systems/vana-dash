@@ -10,7 +10,7 @@ import { MetricBarChart } from '@/shared/components/charts/MetricBarChart'
 import { ClientsEvolutionChart } from './ClientsEvolutionChart'
 import { KPICard } from '@/shared/components/KPICard'
 import { PageHeader } from '@/shared/components/PageHeader'
-import { PeriodSelector, usePeriod } from '@/shared/components/PeriodSelector'
+import { UrlPeriodSelect, usePeriod } from '@/shared/components/PeriodSelect'
 import { cn } from '@/shared/lib/utils'
 import { chartColor } from '@/shared/lib/chart-colors'
 import { formatNumber } from '@/shared/lib/format'
@@ -68,12 +68,13 @@ async function downloadMonthlySnapshotPdf(month: string) {
 }
 
 function MrrAndClientsSection() {
-  const period = usePeriod()
+  const { period, range: urlRange } = usePeriod()
   // Memoizat pe `period` — resolvePeriodToRange face `new Date().toISOString()` (precizie
   // milisecundă), care ar produce un `range` nou la FIECARE render dacă n-ar fi memoizat,
   // deci un queryKey nou → buclă infinită de refetch (a saturat rate-limit-ul global și a
   // dat senzația de delogare repetată — BUG raportat de Stefan 2026-07-21, vezi CHANGELOG).
-  const range = useMemo(() => resolvePeriodToRange(period), [period])
+  // The range from usePeriod (last month, quarter, custom) is already memoized there.
+  const range = useMemo(() => urlRange ?? resolvePeriodToRange(period), [period, urlRange])
 
   const mrrTrend = useMoneyQuery<MrrTrendResponse>(
     ['reports', 'mrr-trend', range.from, range.to],
@@ -193,8 +194,8 @@ function PeriodComparisonSection() {
 }
 
 function ExpenseBreakdownSection() {
-  const period = usePeriod()
-  const range = useMemo(() => resolvePeriodToRange(period), [period])
+  const { period, range: urlRange } = usePeriod()
+  const range = useMemo(() => urlRange ?? resolvePeriodToRange(period), [period, urlRange])
 
   const breakdown = useMoneyQuery<ExpenseBreakdownTrendPoint[]>(
     ['reports', 'expense-breakdown-trend', range.from, range.to],
@@ -297,7 +298,7 @@ export function ReportsPage() {
   }, [hash])
   return (
     <div className="space-y-6">
-      <PageHeader title={t('common:nav.reports')} actions={<PeriodSelector />} />
+      <PageHeader title={t('common:nav.reports')} actions={<UrlPeriodSelect />} />
       <MrrAndClientsSection />
       <PeriodComparisonSection />
       <ExpenseBreakdownSection />

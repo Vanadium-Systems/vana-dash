@@ -12,7 +12,7 @@ import { ResponsiveMenu, ResponsiveMenuContent } from '@/shared/components/ui/re
 import { cn } from '@/shared/lib/utils'
 import { Table, TableBody, TableCell, TableDetails, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table'
 import { Input } from '@/shared/components/ui/input'
-import { PERIODS, usePeriod } from '@/shared/components/PeriodSelector'
+import { periodChoices, usePeriod, withPeriod } from '@/shared/components/PeriodSelect'
 import { useSearchParams } from 'react-router-dom'
 import { useDebounced } from '@/shared/hooks/use-debounced'
 import { api } from '@/shared/lib/api'
@@ -333,20 +333,15 @@ export function SentTab() {
   const pageSize = 50
   const [page, setPage] = useState(0)
   const [exporting, setExporting] = useState(false)
-  const period = usePeriod()
+  const { query: periodQuery, cacheKey: periodKey, period } = usePeriod()
   const [, setSearchParams] = useSearchParams()
-  // The period lives in the URL (?period=), shared with the other screens' PeriodSelector.
-  const setPeriod = (value: string) =>
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      next.set('period', value)
-      return next
-    })
+  // The period lives in the URL (?period=), shared with the other screens' UrlPeriodSelect.
+  const setPeriod = (value: string) => setSearchParams((prev) => withPeriod(prev, value))
 
   // Filtru schimbat → pagina 1, altfel rămâi pe o pagină care poate să nu mai existe în noul set.
   useEffect(() => {
     setPage(0)
-  }, [source, sequenceId, engagement, status, sentBy, debouncedQ, period, pageSize])
+  }, [source, sequenceId, engagement, status, sentBy, debouncedQ, periodKey, pageSize])
 
   // Without email.bulk the folder holds only one's own 1:1 sends, so there is no source to pick.
   const { can, session } = useMe()
@@ -374,7 +369,7 @@ export function SentTab() {
   if (engagement !== 'all') filterParams.set('engagement', engagement)
   if (status !== 'all') filterParams.set('status', status)
   if (sentBy !== 'all') filterParams.set('sentBy', sentBy)
-  filterParams.set('period', period)
+  for (const [key, value] of new URLSearchParams(periodQuery)) filterParams.set(key, value)
 
   const params = new URLSearchParams(filterParams)
   if (debouncedQ.trim()) params.set('q', debouncedQ.trim())
@@ -422,7 +417,7 @@ export function SentTab() {
               { key: 'sentBy', title: t('email:sent.filterSentBy'), value: sentBy, defaultValue: 'all', options: sentByOptions, onChange: setSentBy },
               { key: 'engagement', title: t('email:sent.filterReaction'), value: engagement, defaultValue: 'all', options: entries(ENGAGEMENT_LABELS), onChange: (v) => setEngagement(v as EngagementFilter) },
               { key: 'status', title: t('email:sent.filterStatus'), value: status, defaultValue: 'all', options: entries(STATUS_FILTER_LABELS), onChange: (v) => setStatus(v as StatusFilter) },
-              { key: 'period', title: t('common:period.label'), value: period, defaultValue: '30d', options: PERIODS, onChange: setPeriod },
+              { key: 'period', title: t('common:period.label'), value: period, defaultValue: '30d', options: periodChoices(), onChange: setPeriod },
             ]}
             onReset={() => {
               setSource('all')
