@@ -267,9 +267,10 @@ function NoteSession({ initial, list, labels, canShare, actions, onReload, onClo
             push({ title: e.target.value })
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
+            // Enter also confirms an IME composition, and a read-only body has nowhere to type.
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
               e.preventDefault()
-              editorFocus.current()
+              if (!readOnly) editorFocus.current()
             }
           }}
           maxLength={255}

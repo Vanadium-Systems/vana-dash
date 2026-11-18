@@ -15,7 +15,7 @@ import { formatBytes } from '@/shared/lib/utils'
 import { FolderGlyph } from './FolderGlyph'
 import type { ItemActions } from './ItemMenu'
 import { ItemGlyph } from './ItemName'
-import type { ArchiveItem } from './items'
+import { detailsItem, type ArchiveItem } from './items'
 
 // The id comes from the URL, which does not say file or folder: a file is tried first.
 async function fetchDetails(id: string): Promise<ArchiveDetails> {
@@ -80,6 +80,8 @@ export function DetailsPeek({
     enabled: id !== null,
   })
   const data = details.data
+  // Opened by link, the row may be on a page that is not loaded: the details still give its actions.
+  const target = item ?? (data ? detailsItem(data) : null)
   const isFile = data ? data.mimeType !== undefined : item?.kind === 'file'
   const mine = data?.access.find((entry) => entry.userId === session?.user.id)
   const readOnly = data && data.owner?.id !== session?.user.id && mine?.level === 'view'
@@ -110,18 +112,18 @@ export function DetailsPeek({
             {item?.previewUrl ? (
               <img src={item.previewUrl} alt="" className="h-full w-full object-contain" />
             ) : isFile ? (
-              item ? <ItemGlyph item={item} className="h-12 w-12" /> : null
+              target ? <ItemGlyph item={target} className="h-12 w-12" /> : null
             ) : (
               <FolderGlyph color={data.color ?? null} className="h-12 w-12" />
             )}
           </div>
 
-          {item ? (
+          {target ? (
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => actions.download([item])}>
+              <Button variant="outline" onClick={() => actions.download([target])}>
                 <Download className="h-4 w-4" /> {t('common:actions.download')}
               </Button>
-              <Button variant="outline" onClick={() => actions.toggleStar([item])}>
+              <Button variant="outline" onClick={() => actions.toggleStar([target])}>
                 {starred ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />}
                 {starred ? t('archive:menu.unstar') : t('archive:menu.star')}
               </Button>

@@ -1,4 +1,4 @@
-import type { ArchiveFile, ArchiveFolder, ArchiveSearchHit } from '@/shared/lib/types'
+import type { ArchiveDetails, ArchiveFile, ArchiveFolder, ArchiveSearchHit } from '@/shared/lib/types'
 
 type Place = { id: string; name: string }[]
 
@@ -54,6 +54,24 @@ export function fileItem(file: ArchiveFile, options: { starred: boolean; canWrit
     starred: options.starred,
     canWrite: options.canWrite,
     location: options.location ?? null,
+  }
+}
+
+/** A row for what the details panel shows when it was opened by link and is not in the current list. */
+export function detailsItem(details: ArchiveDetails): ArchiveItem {
+  return {
+    ...base,
+    kind: details.mimeType === undefined ? 'folder' : 'file',
+    id: details.id,
+    name: details.name,
+    mimeType: details.mimeType ?? '',
+    sizeBytes: details.sizeBytes ?? 0,
+    updatedAt: details.updatedAt,
+    tags: details.tags ?? [],
+    color: details.color ?? null,
+    starred: details.starred,
+    canWrite: false,
+    ownerUserId: details.owner?.id ?? null,
   }
 }
 
