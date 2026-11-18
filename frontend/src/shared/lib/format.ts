@@ -34,6 +34,30 @@ export function setCompanyTimeZone(timeZone: string): void {
   }
 }
 
+/** Offset of `timeZone` from UTC at the instant `ms`, in ms (positive east of Greenwich). */
+function zoneOffsetMs(ms: number, timeZone: string): number {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })
+      .formatToParts(new Date(ms))
+      .map((part) => [part.type, Number(part.value)]),
+  )
+  const wallAsUtc = Date.UTC(parts.year!, parts.month! - 1, parts.day!, parts.hour!, parts.minute!, parts.second!)
+  return wallAsUtc - Math.floor(ms / 1000) * 1000
+}
+
+/** The instant a company-zone day (yyyy-mm-dd) starts. Two passes, because the offset can change inside the day (DST). */
+export function zonedDayStart(day: string, timeZone: string = companyZone): Date {
+  const wallAsUtc = Date.parse(`${day}T00:00:00Z`)
+  const first = wallAsUtc - zoneOffsetMs(wallAsUtc, timeZone)
+  return new Date(wallAsUtc - zoneOffsetMs(first, timeZone))
+}
+
+/** The last millisecond of a company-zone day: 23 or 25 hours after its start on a DST day, not always 24. */
+export function zonedDayEnd(day: string, timeZone: string = companyZone): Date {
+  const next = new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
+  return new Date(zonedDayStart(next, timeZone).getTime() - 1)
+}
+
 /** The BCP 47 tag of the current language, for the one-off `Intl` call a helper here does not cover. */
 export function intlTag(): string {
   return INTL_TAG[getLocale()]

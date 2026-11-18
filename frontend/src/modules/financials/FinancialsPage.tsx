@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { Delta } from '@/shared/components/Delta'
 import { Money } from '@/shared/components/Money'
 import { PageHeader } from '@/shared/components/PageHeader'
-import { PeriodSelector, usePeriod } from '@/shared/components/PeriodSelector'
+import { granularityFor, UrlPeriodSelect, usePeriod } from '@/shared/components/PeriodSelect'
 import { ChartEmpty, ChartError, ChartSkeleton } from '@/shared/components/charts/chart-states'
 import { MetricBarChart } from '@/shared/components/charts/MetricBarChart'
 import { ComparisonLine, DayColumns, monthColumns, RankedBars, SplitBar, type ShareRow } from '@/shared/components/charts/question-charts'
@@ -51,12 +51,6 @@ function againstLabel(period: string): string {
   return new Intl.DateTimeFormat(intlTag(), { month: 'long' }).format(new Date(now.getFullYear(), now.getMonth() - 1, 15))
 }
 
-function granularityFor(period: string): 'day' | 'week' | 'month' {
-  if (period === 'ytd') return 'month'
-  if (period === '90d') return 'week'
-  return 'day'
-}
-
 interface Annotation {
   key: string
   text: string
@@ -82,7 +76,7 @@ function biggestChange(current: PnlByCategory[] | undefined, previous: PnlByCate
 }
 
 export function FinancialsPage() {
-  const period = usePeriod()
+  const { period, query, range, cacheKey } = usePeriod()
   const [metricParam, setMetric] = useUrlState('metrica', 'revenue')
   const metric = (METRICS.includes(metricParam as Metric) ? metricParam : 'revenue') as Metric
   const [filter, setFilter] = useUrlState('filtru', '')
@@ -90,12 +84,12 @@ export function FinancialsPage() {
   const [closedNote, setClosedNote] = useState(() => sessionStorage.getItem('financials.annotation.closed'))
 
   const filterParam = filter ? `&filter=${encodeURIComponent(filter)}` : ''
-  const pnl = useMoneyQuery<PnlResponse>(['financials', 'pnl', period, 'compare', filter], `/api/financials/pnl?period=${period}&compare=previous${filterParam}`)
+  const pnl = useMoneyQuery<PnlResponse>(['financials', 'pnl', cacheKey, 'compare', filter], `/api/financials/pnl?${query}&compare=previous${filterParam}`)
   const series = useMoneyQuery<RevenueSeries>(
-    ['financials', 'revenue-series', period, filter],
-    `/api/financials/revenue-series?period=${period}&compare=previous&granularity=${granularityFor(period)}${period === 'mtd' ? '&forecast=1' : ''}${filterParam}`,
+    ['financials', 'revenue-series', cacheKey, filter],
+    `/api/financials/revenue-series?${query}&compare=previous&granularity=${granularityFor(period, range)}${period === 'mtd' ? '&forecast=1' : ''}${filterParam}`,
   )
-  const cashflow = useMoneyQuery<CashflowEntry[]>(['financials', 'cashflow', period, filter], `/api/financials/cashflow?period=${period}${filterParam}`)
+  const cashflow = useMoneyQuery<CashflowEntry[]>(['financials', 'cashflow', cacheKey, filter], `/api/financials/cashflow?${query}${filterParam}`)
   // Live from recurring_expenses, not financial_records: a recurring cost created a minute ago has
   // no materialised row yet (the cron writes one at nextDueDate).
   const recurringExpensesMonthly = useMoneyQuery<{ monthlyRon: number; monthlyDisplay: number }>(['financials', 'recurring-expenses'], '/api/financials/recurring-expenses')
@@ -160,7 +154,7 @@ export function FinancialsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t('common:nav.financials')} actions={<PeriodSelector />} />
+      <PageHeader title={t('common:nav.financials')} actions={<UrlPeriodSelect />} />
 
       <div className="flex flex-wrap items-center gap-3">
         <Tabs value={metric} onValueChange={setMetric}>
