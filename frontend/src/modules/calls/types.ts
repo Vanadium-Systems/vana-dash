@@ -21,21 +21,15 @@ export interface CallRow {
   createdAt: string
 }
 
-export type CallTokenResponse =
-  | {
-      provider: 'livekit'
-      livekitUrl: string
-      token: string
-      roomName: string
-      kind: CallKind
-      conversationId: string | null
-      guestKey: string | null
-    }
-  | {
-      provider: 'daily'
-      roomUrl: string
-      token: string
-    }
+export interface CallTokenResponse {
+  provider: 'livekit'
+  livekitUrl: string
+  token: string
+  roomName: string
+  kind: CallKind
+  conversationId: string | null
+  guestKey: string | null
+}
 
 export interface PublicCall {
   status: 'open' | 'ended'
@@ -43,7 +37,6 @@ export interface PublicCall {
   provider: CallProvider
   opensAt: string | null
   closesAt: string
-  roomUrl: string | null
 }
 
 export interface PublicCallTokenResponse {

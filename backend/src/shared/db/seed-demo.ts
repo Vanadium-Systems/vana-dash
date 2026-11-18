@@ -825,7 +825,7 @@ await db.insert(calendarEventAttendees).values([
 await db.insert(calendarShares).values({ ownerUserId: ana!.id, userId: admin.id, level: 'edit' })
 
 // A booking from the site with its call, plus one open and one ended call. Rooms are invented:
-// nothing here reaches Daily.
+// nothing here reaches LiveKit.
 const [bookingEvent] = await db.insert(calendarEvents).values({
   ownerUserId: admin.id,
   title: L({ ro: 'Programare: Acme Recycling', en: 'Booking: Acme Recycling' }),

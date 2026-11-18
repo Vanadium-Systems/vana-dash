@@ -38,7 +38,6 @@ const [call] = await db
   .values({
     title: `QA call ${stamp}`,
     roomName: `qa-room-${stamp}`,
-    roomUrl: 'https://acme.daily.co/qa',
     publicId: `qa${stamp}`,
     expiresAt: new Date(Date.now() + 3_600_000),
     prospectId: prospect!.id,

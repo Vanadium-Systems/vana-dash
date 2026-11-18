@@ -4,6 +4,15 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-18: Daily video provider removed
+
+### Removed
+- The Daily (daily.co) provider: `shared/lib/daily.ts`, the `config.daily` block, `DAILY_API_KEY` / `DAILY_DOMAIN` and the `calls.daily_refused` alert. LiveKit is the only provider; `isCallsConfigured` and `openCallRoom` use it alone.
+- The Daily iframe branches of `CallRoomPage` and `PublicCallPage`, and `roomUrl` from `GET /api/public/calls/:publicId`.
+
+### Changed
+- Old `calls` rows with `provider = 'daily'` stay valid (no migration): joining one answers `410`, the public page shows it as ended, and `jobs/calls-close.ts` marks expired ones `ended` without any request, even when LiveKit is not configured.
+
 ## 2026-11-17: Consistent API error shape and Wave B fixes
 
 ### Changed

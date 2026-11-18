@@ -19,7 +19,6 @@ export function PublicCallPage() {
   const mintToken = usePublicCallToken(publicId)
   const [guestName, setGuestName] = useState('')
   const [nameError, setNameError] = useState<string | null>(null)
-  const [joinedDaily, setJoinedDaily] = useState(false)
   const [session, setSession] = useState<PublicCallTokenResponse | null>(null)
 
   const e2eeKey = extractKeyFromHash()
@@ -52,18 +51,6 @@ export function PublicCallPage() {
     )
   }
 
-  // Legacy Daily room overlap: Daily's own UI fills the screen.
-  if (joinedDaily && call.data?.roomUrl) {
-    return (
-      <iframe
-        title={t('calls:public.heading')}
-        src={call.data.roomUrl}
-        allow="camera; microphone; display-capture; autoplay; fullscreen"
-        className="h-dvh w-full"
-      />
-    )
-  }
-
   let subline = t('calls:room.loading')
   let body: ReactNode = <Skeleton className="h-9 w-full" />
 
@@ -84,10 +71,11 @@ export function PublicCallPage() {
   }
 
   if (call.data?.status === 'open' && !waiting) {
-    if (call.data.provider === 'livekit' && !e2eeKey) {
+    // A removed-provider (Daily) call arrives as ended, so an open one here is always LiveKit.
+    if (!e2eeKey) {
       subline = t('calls:public.missingKey')
       body = null
-    } else if (call.data.provider === 'livekit') {
+    } else {
       subline = t('calls:public.ready')
       body = (
         <form
@@ -120,15 +108,6 @@ export function PublicCallPage() {
           <p className="text-xs text-muted-foreground">{t('calls:public.privacyNotice')}</p>
           <p className="text-xs text-muted-foreground">{t('calls:public.help')}</p>
         </form>
-      )
-    } else {
-      subline = t('calls:public.ready')
-      body = (
-        <div className="space-y-3">
-          <Button className="w-full" onClick={() => setJoinedDaily(true)}>{t('calls:public.join')}</Button>
-          <p className="text-xs text-muted-foreground">{t('calls:public.help')}</p>
-          <p className="text-xs text-muted-foreground">{t('calls:public.uiLanguage')}</p>
-        </div>
       )
     }
   }

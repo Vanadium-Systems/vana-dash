@@ -280,7 +280,6 @@ async function openBookingRoom(booking: typeof bookings.$inferSelect): Promise<s
     const guestKey = useLiveKit ? randomBytes(32).toString('base64url') : null
     const call = await openCallRoom({
       title: trFor(config.defaultLocale, 'errors.calls.bookingTitle', { name: [booking.name, booking.company].filter(Boolean).join(', ') }),
-      nbf: new Date(booking.startAt.getTime() - 15 * 60_000),
       exp: new Date(booking.endAt.getTime() + 60 * 60_000),
       scheduledAt: booking.startAt,
       guestKey,

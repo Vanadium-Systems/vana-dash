@@ -17,6 +17,11 @@ vi.mock('../../shared/lib/email.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   sendEmail: (...args: unknown[]) => sendEmailMock(...args),
 }))
+// The call room is covered in calls/service.test.ts; here it would reach a real LiveKit host.
+vi.mock('../../shared/lib/call-rooms.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isCallsConfigured: async () => false,
+}))
 vi.mock('../../shared/lib/push.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   notifyPush: (...args: unknown[]) => notifyPushMock(...args),
@@ -49,14 +54,9 @@ const [bookingOwner] = await db
   .where(eq(users.isPlatformAdmin, true))
   .limit(1)
 
-let savedDailyKey = ''
-
 beforeAll(async () => {
   const [row] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, 'booking.settings'))
   savedSettings = row?.value
-  // The call room is covered in calls/service.test.ts; here it would reach the real Daily API.
-  savedDailyKey = config.daily.apiKey
-  config.daily.apiKey = ''
 })
 
 beforeEach(async () => {
@@ -76,7 +76,6 @@ afterEach(async () => {
 })
 
 afterAll(async () => {
-  config.daily.apiKey = savedDailyKey
   if (savedSettings === undefined) await db.delete(dashboardConfig).where(eq(dashboardConfig.key, 'booking.settings'))
   else await service.saveSettings(savedSettings as BookingSettings)
 })

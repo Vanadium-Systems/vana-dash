@@ -113,7 +113,6 @@
     "namePlaceholder": "Cum să apari în apel",
     "nameRequired": "Scrie numele tău înainte să intri.",
     "privacyNotice": "Audio-ul și video-ul sunt criptate cap-la-cap. Serverul de apeluri vede doar conexiunea și numele introdus.",
-    "help": "Browserul îți cere acces la cameră și microfon: apasă „Permite”. Dacă nu merge, deschide linkul în Chrome sau pe alt dispozitiv.",
-    "uiLanguage": "Butoanele din apel sunt în engleză."
+    "help": "Browserul îți cere acces la cameră și microfon: apasă „Permite”. Dacă nu merge, deschide linkul în Chrome sau pe alt dispozitiv."
   }
 }

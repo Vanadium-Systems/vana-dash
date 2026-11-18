@@ -111,7 +111,6 @@
     "namePlaceholder": "How you appear in the call",
     "nameRequired": "Enter your name before joining.",
     "privacyNotice": "Audio and video are end-to-end encrypted. The call server only sees your connection and display name.",
-    "help": "Your browser asks for the camera and microphone: press “Allow”. If it does not work, open the link in Chrome or on another device.",
-    "uiLanguage": "The buttons inside the call are in English."
+    "help": "Your browser asks for the camera and microphone: press “Allow”. If it does not work, open the link in Chrome or on another device."
   }
 }

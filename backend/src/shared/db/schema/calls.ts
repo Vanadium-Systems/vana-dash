@@ -8,7 +8,8 @@ import { prospects } from './prospects.js'
 import { tenantColumns } from './tenant-column.js'
 import { users } from './users.js'
 
-// Video and audio calls (LiveKit E2EE; legacy Daily rooms remain readable until they close).
+// Video and audio calls (LiveKit E2EE). Daily was removed: provider 'daily' stays valid in the enum
+// and the CHECK so old rows keep loading, but they have no room and are shown as ended.
 // The row keeps our public link (/apel/<public_id>), the time window, optional conversation
 // or prospect link, and post-call summary stats.
 export const calls = pgTable(
@@ -19,7 +20,7 @@ export const calls = pgTable(
     title: text('title').notNull(),
     // Random unguessable room name at the SFU provider.
     roomName: text('room_name').notNull().unique(),
-    // Legacy Daily URL; null for LiveKit rooms (the SFU URL comes from livekit_settings).
+    // Only old Daily rows have a value; LiveKit rooms leave it null (the SFU URL comes from livekit_settings).
     roomUrl: text('room_url'),
     // Our own link, /apel/<public_id>, so guests open our domain and never see provider URLs.
     publicId: text('public_id').notNull().unique(),

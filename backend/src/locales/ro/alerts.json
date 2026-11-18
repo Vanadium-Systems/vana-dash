@@ -23,7 +23,6 @@
     "server1Signal": "server-1 — {{signal}} critic",
     "assistantQuota": "Plafon de asistent — {{name}}",
     "callRoomFailed": "Camera de apel nu s-a creat",
-    "dailyRefused": "Daily refuză cererile",
     "livekitRefused": "LiveKit refuză cererile",
     "spvNotice": "Mesaj important în SPV",
     "declarationNoReceipt": "Declarație fără recipisă"
@@ -71,7 +70,6 @@
     "andMore": "{{titles}} și încă {{count}}",
     "assistantQuota": "{{name}} a consumat {{percent}}% din plafonul lunar de asistent ({{used}} din {{cap}} tokeni, luna {{month}}).",
     "callRoomFailed": "Programarea din {{label}} nu are cameră de apel: furnizorul de apeluri n-a răspuns. Creează un apel din Apeluri și trimite linkul.",
-    "dailyRefused": "Daily a răspuns {{status}} la închiderea apelurilor. Verifică cheia și plafonul contului.",
     "livekitRefused": "LiveKit a răspuns {{status}} la închiderea apelurilor. Verifică cheile și cota contului."
   },
   "sentry": {

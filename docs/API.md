@@ -1129,21 +1129,21 @@ no tools: nothing from the app is sent to them.
 
 ## Calls
 
-End-to-end encrypted audio and video calls via LiveKit Cloud (`ExternalE2EEKeyProvider`, client-held room key), with legacy overlap for existing Daily rooms until they close. LiveKit Cloud credentials are stored per-tenant (encrypted with `v1:`) under `setari.apeluri`, with optional `.env` fallback (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`). Feature access: `apeluri.view` / `apeluri.manage` for standalone calls, `mesaje.view` + conversation membership for in-chat calls. `publicUrl` is always our own `/apel/<publicId>` link; guest keys travel in the `#k=` URL fragment (never sent to the server) except website bookings, which keep an encrypted host/calendar copy (`guest_key_enc`) and never expose it publicly.
+End-to-end encrypted audio and video calls via LiveKit Cloud (`ExternalE2EEKeyProvider`, client-held room key). LiveKit Cloud credentials are stored per-tenant (encrypted with `v1:`) under `setari.apeluri`, with optional `.env` fallback (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`). Feature access: `apeluri.view` / `apeluri.manage` for standalone calls, `mesaje.view` + conversation membership for in-chat calls. `publicUrl` is always our own `/apel/<publicId>` link; guest keys travel in the `#k=` URL fragment (never sent to the server) except website bookings, which keep an encrypted host/calendar copy (`guest_key_enc`) and never expose it publicly.
 
 | Method | Route | Description |
 |---|---|---|
 | GET | `/api/calls/status` | Signed-in check (`self`): `{ configured }` |
 | GET | `/api/calls` | Query: `status` (`open`, `ended`, `all`), `limit` (max 200). Calls created in conversations are filtered to active members |
-| POST | `/api/calls` | `{ title, kind? ('video'\|'audio'), expiresInHours? (1-8, default 4), prospectId?, billingClientId?, scheduledAt? }` → 201. 503 when LiveKit/Daily is not configured, 502 on provider failure |
+| POST | `/api/calls` | `{ title, kind? ('video'\|'audio'), expiresInHours? (1-8, default 4), prospectId?, billingClientId?, scheduledAt? }` → 201. 503 when LiveKit is not configured, 502 on provider failure |
 | PATCH | `/api/calls/:id` | `{ title?, prospectId?, billingClientId? }` |
-| POST | `/api/calls/:id/token` | Signed-in (`self`, checked in service: conversation member with `mesaje.view`, or `apeluri.manage`). `{ provider: 'livekit', livekitUrl, token, roomName, kind, conversationId }` or legacy Daily `{ provider: 'daily', roomUrl, token }`. 410 once closed |
+| POST | `/api/calls/:id/token` | Signed-in (`self`, checked in service: conversation member with `mesaje.view`, or `apeluri.manage`). `{ provider: 'livekit', livekitUrl, token, roomName, kind, conversationId, guestKey }`. 410 once closed, and for rows left by the removed Daily provider (`provider = 'daily'`) |
 | POST | `/api/calls/:id/join` | Alias for `POST /api/calls/:id/token` requiring `apeluri.manage` |
 | POST | `/api/calls/:id/end` | Deletes the SFU room (removing everyone) and marks the call `ended` |
-| GET | `/api/public/calls/:publicId` | No session. `{ status, opensAt, closesAt, kind, provider, roomUrl }` (`roomUrl` only for legacy Daily calls while open) |
-| POST | `/api/public/calls/:publicId/token` | No session, rate-limited (30/min). `{ name }` → `{ livekitUrl, token, roomName, kind }`; `409` before the window opens, `410` once closed |
+| GET | `/api/public/calls/:publicId` | No session. `{ status, opensAt, closesAt, kind, provider }` (a `provider = 'daily'` row always reads as `ended`) |
+| POST | `/api/public/calls/:publicId/token` | No session, rate-limited (30/min). `{ name }` → `{ livekitUrl, token, roomName, kind }`; `409` before the window opens, `410` once closed or for a `provider = 'daily'` row |
 
-A public booking gets a LiveKit room from 15 minutes before to an hour after its slot; canceling the booking closes it. `jobs/calls-close.ts` closes expired rooms on both providers every 30 minutes (20 per run, one request at a time) and keeps the duration and participant counts.
+A public booking gets a LiveKit room from 15 minutes before to an hour after its slot; canceling the booking closes it. `jobs/calls-close.ts` closes expired LiveKit rooms every 30 minutes (20 per run, one request at a time) and keeps the duration and participant counts. Expired `provider = 'daily'` rows are marked `ended` in the same run without any request.
 
 ## Crypto
 
