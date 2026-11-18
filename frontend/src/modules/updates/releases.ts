@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-18T16:45:00Z',
+    title: {
+      ro: 'Un singur meniu de perioadă și erori pe înțeles la trimiteri',
+      en: 'One period menu and readable send errors',
+    },
+    body: {
+      ro: 'În Financiar, Rapoarte și Trimise alegi perioada din același meniu, care are acum și luna trecută și trimestrul ăsta, iar în Financiar și Rapoarte și un interval ales de tine. Trimiterile și sincronizările picate arată un mesaj clar și un cod, nu textul tehnic al furnizorului. Două firme nu mai pot avea același CIF, chiar dacă e scris diferit.',
+      en: 'Financials, Reports and Sent now share one period menu, with last month and this quarter added, plus a custom range on Financials and Reports. Failed sends and syncs show a clear message and a code instead of the provider’s technical text. Two companies can no longer share a tax ID, even when it is written differently.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-17T17:30:00Z',
     title: {
       ro: 'Mesaje de eroare clare și noutăți în Facturi, Email și Arhivă',

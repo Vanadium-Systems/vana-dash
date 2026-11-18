@@ -230,7 +230,7 @@ export function UrlPeriodSelect() {
   )
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger aria-label={t('common:period.label')} className="inline-flex h-control-md items-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <DropdownMenuTrigger className="inline-flex h-control-md items-center gap-2 rounded-md border bg-background px-3 text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <CalendarRange className="h-4 w-4" aria-hidden="true" /> {label}
       </DropdownMenuTrigger>
       <ResponsiveMenuContent title={t('common:period.label')} align="start">

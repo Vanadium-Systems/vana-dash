@@ -4,6 +4,22 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-18: One period menu, failure codes, unique CIF
+
+### Added
+- **Period menu:** `UrlPeriodSelect` replaces `PeriodSelector` on Financials, Reports and Sent, with last month and this quarter, plus a custom range on Financials and Reports. The 30-day default and `compare=previous` do not change.
+- **Prospects (`0109_prospect_cif_unique.sql`):** a partial unique index on `(tenant_id, cif_normalized)` for live prospects. A lost race answers `PROSPECT_EXISTS`; an import counts the row as a duplicate.
+- **CI:** the `employee` job opens every page of a non-admin role with RLS on and fails on any 403 / 5xx.
+
+### Changed
+- **Failure codes:** `GET /api/email/sends`, its export and status, `POST /api/email/bulk-send` and `GET /api/platforms/:id/sync-log` return `errorCode` instead of the raw provider text, which stays in the log. Job alerts carry the code too.
+- `fast-xml-parser` 5.12.0.
+
+### Fixed
+- The Archive details panel keeps its icon and actions when opened by link for a row outside the loaded list.
+- Enter on a note title ignores IME composition and read-only notes.
+- `POST /api/notes/bulk` rejects a `value` that does not fit the `action`.
+
 ## 2026-11-18: Daily video provider removed
 
 ### Removed
