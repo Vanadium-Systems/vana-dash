@@ -170,6 +170,20 @@ describe('Notes HTTP routes', () => {
     expect(empty.json().data.deleted).toBeGreaterThanOrEqual(1)
   })
 
+  it('rejects a bulk value that does not fit the action', async () => {
+    const ids = [randomUUID()]
+    for (const body of [
+      { ids, action: 'color', value: 'work' },
+      { ids, action: 'color' },
+      { ids, action: 'addLabel', value: 3 },
+      { ids, action: 'removeLabel' },
+      { ids, action: 'pin', value: 'work' },
+    ]) {
+      const res = await app.inject({ method: 'POST', url: '/api/notes/bulk', headers: { cookie: owner.cookie }, payload: body })
+      expect(res.statusCode, JSON.stringify(body)).toBe(400)
+    }
+  })
+
   it('handles labels and bulk updates for the owner', async () => {
     const res = await app.inject({
       method: 'POST',

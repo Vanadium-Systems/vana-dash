@@ -35,8 +35,19 @@ export const ListNotesQuerySchema = z.object({
 
 export const RenameLabelSchema = z.object({ newName: label })
 
-export const BulkNotesSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1).max(200),
-  action: z.enum(['archive', 'unarchive', 'delete', 'restore', 'pin', 'unpin', 'color', 'addLabel', 'removeLabel']),
-  value: z.union([color, label]).optional(),
-})
+export const BulkNotesSchema = z
+  .object({
+    ids: z.array(z.string().uuid()).min(1).max(200),
+    action: z.enum(['archive', 'unarchive', 'delete', 'restore', 'pin', 'unpin', 'color', 'addLabel', 'removeLabel']),
+    value: z.union([color, label]).optional(),
+  })
+  .superRefine(({ action, value }, ctx) => {
+    // Without this, `color` with a label silently clears the colour of every selected note.
+    const fits =
+      action === 'color'
+        ? value === null || typeof value === 'number'
+        : action === 'addLabel' || action === 'removeLabel'
+          ? typeof value === 'string'
+          : value === undefined
+    if (!fits) ctx.addIssue({ code: 'custom', path: ['value'], message: 'value does not fit the action' })
+  })
