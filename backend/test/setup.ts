@@ -36,9 +36,6 @@ process.env.VANAGREEN_BILLING_INGEST_TOKEN ??= 'test-vanagreen-billing-ingest-to
 process.env.JEFFBOT_INGEST_TOKEN ??= 'test-jeffbot-ingest-token'
 // Programări publice — token fix pt. testele pe rutele /api/v1/public/booking/*.
 process.env.BOOKING_TOKEN ??= 'test-booking-token'
-// Calls exist only with a Daily key; the tests never reach Daily (fetch is stubbed).
-process.env.DAILY_API_KEY ??= 'test-daily-key'
-process.env.DAILY_DOMAIN ??= 'acme'
 // A clean checkout (CI, a new contributor) has no .env. The HMAC key of the unsubscribe link
 // is the one value a few tests need from a developer's .env. Invented.
 process.env.EMAIL_UNSUBSCRIBE_SECRET ??= 'test-unsubscribe-secret-not-for-production-use'

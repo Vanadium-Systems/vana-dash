@@ -115,33 +115,6 @@ export function CallRoomPage() {
     )
   }
 
-  if (join.data.provider === 'daily') {
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2 border-b pb-2">
-          {back}
-          <div className="flex gap-2">
-            {call ? (
-              <Button variant="outline" onClick={() => void copyCallLink(call)}>
-                {t('calls:actions.copyLink')}
-              </Button>
-            ) : null}
-            <Button variant="destructive" onClick={() => void onEnd()}>
-              {t('calls:actions.endForAll')}
-            </Button>
-          </div>
-        </div>
-        {/* arbitrary: viewport-height calc, no token */}
-        <iframe
-          title={call?.title ?? t('calls:title')}
-          src={`${join.data.roomUrl}?t=${encodeURIComponent(join.data.token)}`}
-          allow="camera; microphone; display-capture; autoplay; fullscreen"
-          className="h-[calc(100dvh-8rem)] w-full rounded-md bg-muted"
-        />
-      </div>
-    )
-  }
-
   if (!e2eeKey) {
     if (resolvingChatKey || (join.data.conversationId && e2e.status === 'loading')) {
       return (

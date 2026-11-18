@@ -1,7 +1,8 @@
 /**
- * Calls against the real DB, with LiveKit & Daily HTTP stubbed: the guest view says nothing about
+ * Calls against the real DB, with LiveKit HTTP stubbed: the guest view says nothing about
  * who the call is for, a closed call cannot be joined, tokens enforce membership/features,
- * livekit_settings encrypts credentials at rest, and the close job cleans expired rooms.
+ * livekit_settings encrypts credentials at rest, the close job cleans expired rooms, and rows left
+ * by the removed Daily provider read as ended and never reach a remote API.
  */
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -11,6 +12,7 @@ import type { SessionUser } from '../../shared/lib/session.js'
 import { getLiveKitSettingsView, saveLiveKitSettings } from '../../shared/lib/livekit.js'
 import { cleanupTestUsers, createTestUser } from '../../shared/testing/users.js'
 import { runCallsClose } from '../../jobs/calls-close.js'
+import { closeCallRoom } from '../../shared/lib/call-rooms.js'
 import { declineConversationCall, endConversationCall, listMessages, openDm, previewRef, startConversationCall } from '../chat/service.js'
 import './refs.js'
 import { CallError, createCall, endCall, getPublicCall, issueCallToken, issuePublicCallToken, joinCall, listCalls } from './service.js'
@@ -26,21 +28,6 @@ let previousLiveKitRow: (typeof livekitSettings.$inferSelect) | null = null
 
 const jsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
-
-function stubDaily(meetings: Array<{ duration: number; max_participants: number }> = []) {
-  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-    if (url.endsWith('/rooms') && init?.method === 'POST') {
-      const { name } = JSON.parse(String(init.body)) as { name: string }
-      return jsonResponse({ name, url: `https://acme.daily.co/${name}` })
-    }
-    if (url.includes('/meeting-tokens')) return jsonResponse({ token: 'owner-token' })
-    if (url.includes('/meetings?')) return jsonResponse({ data: meetings })
-    if (init?.method === 'DELETE') return jsonResponse({ deleted: true })
-    return jsonResponse({}, 404)
-  })
-  vi.stubGlobal('fetch', fetchMock)
-  return fetchMock
-}
 
 function stubLiveKit(rooms: Array<{ name: string; numParticipants?: number }> = []) {
   const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
@@ -69,6 +56,12 @@ beforeAll(async () => {
   const [existing] = await db.select().from(livekitSettings)
   previousLiveKitRow = existing ?? null
   if (existing) await db.delete(livekitSettings).where(eq(livekitSettings.id, existing.id))
+  await saveLiveKitSettings({
+    url: 'https://acme.livekit.cloud/',
+    apiKey: 'APIacmeTestKey1234',
+    apiSecret: 'acme-test-secret-0123456789abcdef012345',
+    enabled: true,
+  })
 })
 
 afterEach(() => {
@@ -86,70 +79,133 @@ afterAll(async () => {
 })
 
 describe('calls', () => {
-  it('creates a call whose row shows our link, never the Daily room', async () => {
-    stubDaily()
+  it('creates a call whose row shows our link, never the SFU room', async () => {
+    stubLiveKit()
     const call = await createCall(me, { title: 'Acme intro', expiresInHours: 2 })
     callIds.push(call.id)
 
     expect(call.status).toBe('open')
     expect(call.publicUrl).toMatch(/\/apel\/[A-Za-z0-9_-]{16}$/)
-    expect(JSON.stringify(call)).not.toContain('daily.co')
+    expect(JSON.stringify(call)).not.toContain('livekit.cloud')
     expect((await listCalls(me, { status: 'open', limit: 200 })).some((row) => row.id === call.id)).toBe(true)
   })
 
-  it('the guest view of an open call has the room and nothing about who it is for', async () => {
-    stubDaily()
+  it('the guest view of an open call has the window and nothing about who it is for', async () => {
+    stubLiveKit()
     const call = await createCall(me, { title: 'Acme pricing', expiresInHours: 1 })
     callIds.push(call.id)
     const publicId = call.publicUrl.split('/').pop()!
 
     const view = await getPublicCall(publicId)
-    expect(view?.status).toBe('open')
-    expect(view?.roomUrl).toMatch(/^https:\/\/acme\.daily\.co\//)
+    expect(view).toMatchObject({ status: 'open', provider: 'livekit' })
+    expect(view).not.toHaveProperty('roomUrl')
     expect(JSON.stringify(view)).not.toContain('Acme pricing')
     expect(await getPublicCall('AAAAAAAAAAAAAAAA')).toBeNull()
   })
 
-  it('an ended call cannot be joined and its guest view has no room', async () => {
-    stubDaily()
+  it('an ended call cannot be joined and its guest view reads as ended', async () => {
+    stubLiveKit()
     const call = await createCall(me, { title: 'Acme follow-up', expiresInHours: 1 })
     callIds.push(call.id)
 
-    expect((await joinCall(call.id, me)).token).toBe('owner-token')
+    expect((await joinCall(call.id, me)).token.split('.')).toHaveLength(3)
     expect((await endCall(me, call.id)).status).toBe('ended')
     await expect(joinCall(call.id, me)).rejects.toMatchObject({ code: 'closed', status: 410 })
-    expect((await getPublicCall(call.publicUrl.split('/').pop()!))?.roomUrl).toBeNull()
+    expect((await getPublicCall(call.publicUrl.split('/').pop()!))?.status).toBe('ended')
   })
 
   it('an unknown call is not found', async () => {
     await expect(joinCall('00000000-0000-4000-8000-000000000000', me)).rejects.toBeInstanceOf(CallError)
   })
 
-  it('the close job ends expired rooms and keeps how long they lasted', async () => {
-    stubDaily([
-      { duration: 600, max_participants: 2 },
-      { duration: 300, max_participants: 3 },
-    ])
+  it('the close job ends expired rooms and keeps how many people were in them', async () => {
+    stubLiveKit([{ name: 'any', numParticipants: 3 }])
     const call = await createCall(me, { title: 'Acme expired', expiresInHours: 1 })
     callIds.push(call.id)
 
     expect(await runCallsClose(new Date(Date.now() + 2 * 3_600_000))).toBeGreaterThanOrEqual(1)
     const [row] = await db.select().from(calls).where(inArray(calls.id, [call.id]))
-    expect(row).toMatchObject({ status: 'ended', durationSeconds: 900, participantCount: 3 })
+    expect(row).toMatchObject({ status: 'ended', participantCount: 3 })
     expect(row?.roomDeletedAt).not.toBeNull()
   })
 })
 
-describe('livekit calls & chat integration', () => {
-  beforeAll(async () => {
-    await saveLiveKitSettings({
-      url: 'https://acme.livekit.cloud/',
-      apiKey: 'APIacmeTestKey1234',
-      apiSecret: 'acme-test-secret-0123456789abcdef012345',
-      enabled: true,
-    })
+// Rows from the removed Daily provider: no room exists anywhere, so nothing may reach a remote API.
+describe('legacy daily rows', () => {
+  const stamp = Date.now().toString(36)
+  let seq = 0
+
+  async function insertDailyCall(expiresAt: Date) {
+    seq += 1
+    const [row] = await db
+      .insert(calls)
+      .values({
+        title: `Acme legacy ${seq}`,
+        roomName: `legacy-room-${stamp}-${seq}`,
+        roomUrl: `https://demo.invalid/legacy-${stamp}-${seq}`,
+        publicId: `legacy${stamp}${seq}`,
+        provider: 'daily',
+        createdByUserId: me.id,
+        expiresAt,
+      })
+      .returning()
+    callIds.push(row!.id)
+    return row!
+  }
+
+  it('joining answers 410, signed in or as a guest', async () => {
+    const fetchMock = stubLiveKit()
+    const row = await insertDailyCall(new Date(Date.now() + 3_600_000))
+
+    await expect(issueCallToken(row.id, me)).rejects.toMatchObject({ code: 'closed', status: 410 })
+    await expect(joinCall(row.id, me)).rejects.toMatchObject({ code: 'closed', status: 410 })
+    await expect(issuePublicCallToken(row.publicId, 'Guest Acme')).rejects.toMatchObject({ code: 'closed', status: 410 })
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('the guest page reads as ended, without a room URL', async () => {
+    const row = await insertDailyCall(new Date(Date.now() + 3_600_000))
+
+    const view = await getPublicCall(row.publicId)
+    expect(view).toMatchObject({ status: 'ended', provider: 'daily' })
+    expect(view).not.toHaveProperty('roomUrl')
+    expect(JSON.stringify(view)).not.toContain('demo.invalid')
+  })
+
+  it('endCall and closeCallRoom close the row without any request', async () => {
+    const fetchMock = stubLiveKit()
+    const first = await insertDailyCall(new Date(Date.now() + 3_600_000))
+    const second = await insertDailyCall(new Date(Date.now() + 3_600_000))
+
+    expect((await endCall(me, first.id)).status).toBe('ended')
+    const cancelled = await closeCallRoom(second, 'cancelled')
+    expect(cancelled.status).toBe('cancelled')
+    expect(cancelled.roomDeletedAt).not.toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('the close job ends an expired row without a request and without LiveKit configured', async () => {
+    const fetchMock = stubLiveKit()
+    const expired = await insertDailyCall(new Date(Date.now() - 60_000))
+    const open = await insertDailyCall(new Date(Date.now() + 3_600_000))
+    const [saved] = await db.select().from(livekitSettings)
+    await db.delete(livekitSettings)
+    try {
+      expect(await runCallsClose()).toBeGreaterThanOrEqual(1)
+    } finally {
+      if (saved) await db.insert(livekitSettings).values(saved)
+    }
+
+    const rows = await db.select().from(calls).where(inArray(calls.id, [expired.id, open.id]))
+    const byId = new Map(rows.map((row) => [row.id, row]))
+    expect(byId.get(expired.id)).toMatchObject({ status: 'ended' })
+    expect(byId.get(expired.id)?.roomDeletedAt).not.toBeNull()
+    expect(byId.get(open.id)?.status).toBe('open')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('livekit calls & chat integration', () => {
   it('encrypts livekit_settings at rest and masks key preview in settings view', async () => {
     const [row] = await db.select().from(livekitSettings)
     expect(row?.apiKeyEnc).toMatch(/^v1:/)

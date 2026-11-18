@@ -13,7 +13,6 @@ import {
   users,
 } from '../../shared/db/schema/index.js'
 import { closeCallRoom, isCallsConfigured, openCallRoom } from '../../shared/lib/call-rooms.js'
-import { createOwnerToken, DailyError } from '../../shared/lib/daily.js'
 import { createLiveKitToken, LiveKitError } from '../../shared/lib/livekit.js'
 import { createdByUserId } from '../../shared/lib/audit.js'
 import { refAdapter, type RefFile, type RefSnapshot, type RefType } from '../../shared/lib/entity-refs.js'
@@ -1278,7 +1277,7 @@ export async function startConversationCall(
       createdByUserId: me.id,
     })
   } catch (err) {
-    if (err instanceof DailyError || err instanceof LiveKitError) throw new ChatCallError('provider', 502)
+    if (err instanceof LiveKitError) throw new ChatCallError('provider', 502)
     throw err
   }
 
@@ -1310,23 +1309,18 @@ export async function startConversationCall(
     throw err
   }
 
-  let auth: { provider: 'livekit'; livekitUrl: string; token: string; roomName: string } | { provider: 'daily'; roomUrl: string; token: string }
+  let auth: { provider: 'livekit'; livekitUrl: string; token: string; roomName: string }
   try {
-    if (callRow.provider === 'livekit') {
-      const { token, livekitUrl } = await createLiveKitToken({
-        roomName: callRow.roomName,
-        identity: me.id,
-        name: caller,
-        isHost: true,
-        ttlSeconds: CONVERSATION_CALL_HOURS * 3600,
-      })
-      auth = { provider: 'livekit', livekitUrl, token, roomName: callRow.roomName }
-    } else {
-      const token = await createOwnerToken(callRow.roomName, callRow.expiresAt, caller)
-      auth = { provider: 'daily', roomUrl: callRow.roomUrl ?? '', token }
-    }
+    const { token, livekitUrl } = await createLiveKitToken({
+      roomName: callRow.roomName,
+      identity: me.id,
+      name: caller,
+      isHost: true,
+      ttlSeconds: CONVERSATION_CALL_HOURS * 3600,
+    })
+    auth = { provider: 'livekit', livekitUrl, token, roomName: callRow.roomName }
   } catch (err) {
-    if (err instanceof DailyError || err instanceof LiveKitError) throw new ChatCallError('provider', 502)
+    if (err instanceof LiveKitError) throw new ChatCallError('provider', 502)
     throw err
   }
 
@@ -1361,7 +1355,7 @@ export async function endConversationCall(me: SessionUser, callId: string): Prom
   try {
     await closeCallRoom(call, 'ended')
   } catch (err) {
-    if (err instanceof DailyError || err instanceof LiveKitError) throw new ChatCallError('provider', 502)
+    if (err instanceof LiveKitError) throw new ChatCallError('provider', 502)
     throw err
   }
   const members = await memberIds(call.conversationId)

@@ -5,7 +5,6 @@ import { runAsTenant, withRlsBypass } from '../../shared/lib/tenancy.js'
 import { billingClients, calls, conversationMembers, prospects } from '../../shared/db/schema/index.js'
 import { callPublicUrl, closeCallRoom, isCallsConfigured, openCallRoom, type CallRecord } from '../../shared/lib/call-rooms.js'
 import { decryptField } from '../../shared/lib/crypto.js'
-import { createOwnerToken, DailyError } from '../../shared/lib/daily.js'
 import { createLiveKitToken, LiveKitError } from '../../shared/lib/livekit.js'
 import { getCompany } from '../../shared/lib/company.js'
 import { visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
@@ -44,21 +43,15 @@ export interface CallRow {
   createdAt: string
 }
 
-export type CallTokenResponse =
-  | {
-      provider: 'livekit'
-      livekitUrl: string
-      token: string
-      roomName: string
-      kind: 'audio' | 'video'
-      conversationId: string | null
-      guestKey: string | null
-    }
-  | {
-      provider: 'daily'
-      roomUrl: string
-      token: string
-    }
+export type CallTokenResponse = {
+  provider: 'livekit'
+  livekitUrl: string
+  token: string
+  roomName: string
+  kind: 'audio' | 'video'
+  conversationId: string | null
+  guestKey: string | null
+}
 
 // The row people see: our own link, never the SFU room name or a token.
 function toCallRow(call: CallRecord, prospectName: string | null, clientName: string | null): CallRow {
@@ -167,7 +160,7 @@ export async function createCall(me: SessionUser, input: CreateInput): Promise<C
       billingClientId: input.billingClientId,
     })
   } catch (err) {
-    if (err instanceof DailyError || err instanceof LiveKitError) throw new CallError('provider', 502)
+    if (err instanceof LiveKitError) throw new CallError('provider', 502)
     throw err
   }
 
@@ -203,43 +196,34 @@ export async function issueCallToken(id: string, me: SessionUser): Promise<CallT
   await assertCanAccessCall(call, me)
   if (call.status !== 'open' || call.expiresAt.getTime() <= Date.now()) throw new CallError('closed', 410)
 
+  // Old rows from the removed Daily provider have no room anywhere.
+  if (call.provider !== 'livekit') throw new CallError('closed', 410)
+
   const displayName = call.conversationId ? userName(me) : `${userName(me)} · ${(await getCompany()).profile.name}`
 
-  if (call.provider === 'livekit') {
-    try {
-      const ttlSeconds = Math.max(300, Math.floor((call.expiresAt.getTime() - Date.now()) / 1000))
-      const { token, livekitUrl } = await createLiveKitToken({
-        roomName: call.roomName,
-        identity: me.id,
-        name: displayName,
-        isHost: true,
-        ttlSeconds,
-      })
-      const guestKey = call.bookingId && call.guestKeyEnc ? await decryptField(call.guestKeyEnc) : null
-      return {
-        provider: 'livekit',
-        livekitUrl,
-        token,
-        roomName: call.roomName,
-        kind: call.kind,
-        conversationId: call.conversationId ?? null,
-        guestKey,
-      }
-    } catch (err) {
-      if (err instanceof LiveKitError) throw new CallError('provider', 502)
-      throw err
-    }
-  }
-
-  let token: string
   try {
-    token = await createOwnerToken(call.roomName, call.expiresAt, displayName)
+    const ttlSeconds = Math.max(300, Math.floor((call.expiresAt.getTime() - Date.now()) / 1000))
+    const { token, livekitUrl } = await createLiveKitToken({
+      roomName: call.roomName,
+      identity: me.id,
+      name: displayName,
+      isHost: true,
+      ttlSeconds,
+    })
+    const guestKey = call.bookingId && call.guestKeyEnc ? await decryptField(call.guestKeyEnc) : null
+    return {
+      provider: 'livekit',
+      livekitUrl,
+      token,
+      roomName: call.roomName,
+      kind: call.kind,
+      conversationId: call.conversationId ?? null,
+      guestKey,
+    }
   } catch (err) {
-    if (err instanceof DailyError) throw new CallError('provider', 502)
+    if (err instanceof LiveKitError) throw new CallError('provider', 502)
     throw err
   }
-
-  return { provider: 'daily', roomUrl: call.roomUrl ?? '', token }
 }
 
 /** Backwards-compatible alias for `issueCallToken` on legacy `/join`. */
@@ -253,7 +237,7 @@ export async function endCall(me: SessionUser, id: string): Promise<CallRow> {
   try {
     await closeCallRoom(call, 'ended')
   } catch (err) {
-    if (err instanceof DailyError || err instanceof LiveKitError) throw new CallError('provider', 502)
+    if (err instanceof LiveKitError) throw new CallError('provider', 502)
     throw err
   }
   return (await getCall(me, id))!
@@ -268,7 +252,6 @@ export async function getPublicCall(
   provider: 'daily' | 'livekit'
   opensAt: string | null
   closesAt: string
-  roomUrl: string | null
 } | null> {
   // The guest has no account, so no company: the link itself is the key (unique, random), and
   // only the time window and provider kind leave this function.
@@ -280,21 +263,20 @@ export async function getPublicCall(
         provider: calls.provider,
         scheduledAt: calls.scheduledAt,
         expiresAt: calls.expiresAt,
-        roomUrl: calls.roomUrl,
       })
       .from(calls)
       .where(and(eq(calls.publicId, publicId), isNull(calls.deletedAt))),
   )
   if (!call) return null
 
-  const isOpen = call.status === 'open' && call.expiresAt.getTime() > Date.now()
+  // A Daily row has no room any more, so it reads as ended whatever its status says.
+  const isOpen = call.provider === 'livekit' && call.status === 'open' && call.expiresAt.getTime() > Date.now()
   return {
     status: isOpen ? 'open' : 'ended',
     kind: call.kind,
     provider: call.provider,
     opensAt: call.scheduledAt ? new Date(call.scheduledAt.getTime() - 15 * 60_000).toISOString() : null,
     closesAt: call.expiresAt.toISOString(),
-    roomUrl: isOpen && call.provider === 'daily' ? (call.roomUrl ?? null) : null,
   }
 }
 
@@ -321,11 +303,8 @@ export async function issuePublicCallToken(
 
   const now = Date.now()
   const opensAt = call.scheduledAt ? call.scheduledAt.getTime() - 15 * 60_000 : null
-  if (call.status !== 'open' || call.expiresAt.getTime() <= now || (opensAt !== null && now < opensAt)) {
+  if (call.provider !== 'livekit' || call.status !== 'open' || call.expiresAt.getTime() <= now || (opensAt !== null && now < opensAt)) {
     throw new CallError('closed', 410)
-  }
-  if (call.provider !== 'livekit') {
-    throw new CallError('not_configured', 503)
   }
 
   return runAsTenant(call.tenantId, async () => {
