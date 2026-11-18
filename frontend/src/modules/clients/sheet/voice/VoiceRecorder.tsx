@@ -12,6 +12,10 @@ import { MAX_VOICE_SECONDS, uploadVoiceNote, useVoiceStorageOff, VoiceUploadErro
 
 const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4']
 const TICK_MS = 250
+// Plain `{ audio: true }` gets Android's call profile, which muffles the voice. Gain control stays
+// on so notes recorded at arm's length are still audible.
+const MIC_CONSTRAINTS: MediaTrackConstraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
+const AUDIO_BITS_PER_SECOND = 64_000
 const EXTENSION: Record<string, string> = { 'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a' }
 
 type Phase = 'idle' | 'requesting' | 'recording' | 'review' | 'saving'
@@ -140,10 +144,10 @@ export function VoiceRecorder({ prospectId, taskId, onSaved, onClose, onBusyChan
     }
     setPhase('requesting')
     try {
-      const source = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const source = await navigator.mediaDevices.getUserMedia({ audio: MIC_CONSTRAINTS })
       stream.current = source
       const mimeType = MIME_CANDIDATES.find((candidate) => MediaRecorder.isTypeSupported?.(candidate))
-      const active = new MediaRecorder(source, mimeType ? { mimeType } : undefined)
+      const active = new MediaRecorder(source, { mimeType, audioBitsPerSecond: AUDIO_BITS_PER_SECOND })
       recorder.current = active
       chunks.current = []
       active.ondataavailable = (e) => {

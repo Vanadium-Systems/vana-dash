@@ -16,13 +16,15 @@ class FakeRecorder {
   static last: FakeRecorder | null = null
   state = 'inactive'
   mimeType: string
+  audioBitsPerSecond?: number
   ondataavailable: ((e: { data: Blob }) => void) | null = null
   onstop: (() => void) | null = null
   constructor(
     public stream: unknown,
-    options?: { mimeType?: string },
+    options?: { mimeType?: string; audioBitsPerSecond?: number },
   ) {
     this.mimeType = options?.mimeType ?? ''
+    this.audioBitsPerSecond = options?.audioBitsPerSecond
     FakeRecorder.last = this
   }
   start() {
@@ -86,6 +88,14 @@ describe('VoiceRecorder', () => {
   it('says what the recording is for', () => {
     mount()
     expect(text()).toContain('Notă despre apel, nu înregistrarea apelului.')
+  })
+
+  it('records without the call processing Android applies by default', async () => {
+    await startRecording()
+    expect(getUserMedia).toHaveBeenCalledWith({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true },
+    })
+    expect(FakeRecorder.last!.audioBitsPerSecond).toBe(64_000)
   })
 
   it('counts with its own clock, stops on request and offers the take to listen to before saving', async () => {
