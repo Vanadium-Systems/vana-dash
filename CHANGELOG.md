@@ -4,6 +4,15 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-18: Session cookies without a session id removed
+
+### Changed
+- **Toasts:** adding a client and saving a shared file to the Archive offer a View action.
+- **Empty states:** contracts, recurring expenses, platform templates, recent orders, the sync log and the extension history use `EmptyState`.
+
+### Removed
+- **Auth:** access tokens without `sid` are refused, and `POST /api/auth/upgrade-session` and `sessionKind` in `/api/auth/me` are gone. A browser still holding one of the old 7-day cookies logs in again.
+
 ## 2026-11-18: Android notification close, voice note audio
 
 ### Added

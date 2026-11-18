@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-18T18:50:00Z',
+    title: {
+      ro: 'Buton „Vezi” după ce adaugi ceva și liste goale mai clare',
+      en: 'A View button after adding something, and clearer empty lists',
+    },
+    body: {
+      ro: 'După ce adaugi un client sau salvezi în Arhivă un fișier primit prin Share, mesajul de confirmare are un buton „Vezi”. Mai multe liste goale arată acum la fel ca restul aplicației. Dacă aveai o sesiune foarte veche, ți se cere o dată parola.',
+      en: 'After you add a client or save a shared file to the Archive, the confirmation has a View button. More empty lists now look like the rest of the app. If your session was very old, you will be asked for your password once.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-18T18:30:00Z',
     title: {
       ro: 'Note vocale mai clare și notificări care dispar singure',
