@@ -10,6 +10,7 @@ import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { notes, roles, users } from '../../shared/db/schema/index.js'
 import { sanitizeTiptapDoc } from '../../shared/lib/tiptap-text.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -34,7 +35,7 @@ async function makeUser(label: string) {
     })
     .returning()
   userIds.push(user!.id)
-  const token = await app.jwt.sign({ sub: user!.id, sv: 1 })
+  const token = await sessionToken(app, user!.id)
   return { id: user!.id, cookie: `vana_session=${token}` }
 }
 

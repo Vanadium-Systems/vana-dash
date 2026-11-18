@@ -9,6 +9,7 @@ import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { dashboardConfig, roles, users } from '../../shared/db/schema/index.js'
 import { DEFAULT_COMPANY_LAYOUT, WIDGETS } from './widgets.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -27,7 +28,7 @@ async function user(email: string, features: string[]) {
     .values({ email, passwordHash: await argon2.hash('parola-de-test-123'), roleId: role!.id })
     .returning()
   userIds.push(row!.id)
-  return { id: row!.id, token: await app.jwt.sign({ sub: row!.id, sv: 1 }) }
+  return { id: row!.id, token: await sessionToken(app, row!.id) }
 }
 
 type Person = Awaited<ReturnType<typeof user>>

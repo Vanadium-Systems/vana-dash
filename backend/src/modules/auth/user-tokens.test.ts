@@ -20,6 +20,7 @@ import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { roles, userTokens, users } from '../../shared/db/schema/index.js'
 import { createUserToken, TOKEN_TTL_HOURS } from '../../shared/lib/user-tokens.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -107,7 +108,7 @@ describe('forgot-password nu spune cine are cont', () => {
 describe('reset-password', () => {
   it('tokenul bun schimbă parola, delogă celelalte sesiuni și nu mai e bun a doua oară', async () => {
     const utilizator = await createUser(`qa-reset-${Date.now()}@test.local`)
-    const sesiuneVeche = await app.jwt.sign({ sub: utilizator.id, sv: utilizator.sessionVersion })
+    const sesiuneVeche = await sessionToken(app, utilizator.id, utilizator.sessionVersion)
     const token = await createUserToken(utilizator.id, 'reset')
 
     const res = await post('/api/auth/reset-password', { token, password: NOUA })
@@ -186,7 +187,7 @@ describe('accept-invite', () => {
 
   it('omul încă neinvitat nu are sesiune validă până nu-și pune parola', async () => {
     const invitat = await createUser(`qa-fara-sesiune-${Date.now()}@test.local`, 'invited')
-    const token = await app.jwt.sign({ sub: invitat.id, sv: invitat.sessionVersion })
+    const token = await sessionToken(app, invitat.id, invitat.sessionVersion)
     const res = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: { vana_session: token } })
     expect(res.statusCode).toBe(401)
   })
@@ -242,7 +243,7 @@ describe('accept-invite', () => {
 // Cookie de admin (rolul seedat), ca rutele de echipă să poată fi chemate prin inject.
 const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))
 const [adminUser] = await db.select().from(users).where(eq(users.roleId, adminRole!.id))
-const adminCookie = await app.jwt.sign({ sub: adminUser!.id, sv: adminUser!.sessionVersion })
+const adminCookie = await sessionToken(app, adminUser!.id, adminUser!.sessionVersion)
 
 describe('invitația din Echipă', () => {
 

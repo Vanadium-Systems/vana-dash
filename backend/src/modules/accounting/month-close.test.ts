@@ -3,6 +3,7 @@ import path from 'node:path'
 import argon2 from 'argon2'
 import { and, eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it, vi } from 'vitest'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 vi.mock('../../shared/lib/r2.js', () => ({
   deleteFromR2: vi.fn().mockResolvedValue(undefined),
@@ -53,7 +54,7 @@ const [user] = await db
   })
   .returning()
 
-const token = await app.jwt.sign({ sub: user!.id, sv: user!.sessionVersion })
+const token = await sessionToken(app, user!.id, user!.sessionVersion)
 
 const createdRecordIds: string[] = []
 const createdRecurringIds: string[] = []

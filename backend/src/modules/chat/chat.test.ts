@@ -27,6 +27,7 @@ import { effectiveFeatures, type SessionUser } from '../../shared/lib/session.js
 import type { NotificationPrefs } from '../../shared/db/schema/index.js'
 import { hasOpenConnection, openConnection, resetPresenceForTests, type ChatEvent } from './presence.js'
 import { pushTarget } from './service.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 // R2 nu e la îndemâna în teste: obiectul „se pierde" și se întoarce la descărcare, suficient
 // pentru ce se testează aici (membria, `Content-Disposition`, dimensiunea).
@@ -120,7 +121,7 @@ async function user(email: string, features: string[]): Promise<TestSession> {
     .values({ email, passwordHash: await argon2.hash(PASSWORD), displayName: email.split('@')[0], roleId: role!.id })
     .returning()
   userIds.push(row!.id)
-  const token = await app.jwt.sign({ sub: row!.id, sv: 1 })
+  const token = await sessionToken(app, row!.id)
   // Without mesaje.view the key routes answer 403, so such a person has no device.
   const deviceId = features.includes('mesaje.view') ? await registerDevice(token) : ''
   const me: SessionUser = {

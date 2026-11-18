@@ -105,7 +105,6 @@ route refuses every request.
 | POST | `/api/auth/login` | `{ email, password }` → sets the cookie. A deactivated or still-invited person gets 401, like a wrong password |
 | POST | `/api/auth/logout` | Ends this device's session and clears both cookies |
 | POST | `/api/auth/refresh` | No body, no session: exchanges the `vana_refresh` cookie for new cookies. `401 SESSION_EXPIRED` when the token is unknown, expired, revoked or reused. 30 per minute per IP |
-| POST | `/api/auth/upgrade-session` | A 7-day cookie from before long sessions gets a long session; no-op otherwise |
 | POST | `/api/auth/confirm-password` | `{ password }`. Marks the session as confirmed for 10 minutes. `401` on a wrong password, 5 per 15 minutes |
 
 Sensitive actions answer `403 { error: { code: 'PASSWORD_CONFIRM_REQUIRED' } }` when the password was
@@ -117,7 +116,7 @@ with `roleId` or `status`. The client asks for the password, calls `confirm-pass
 | GET | `/api/me/sessions` | The person's devices: `[{ familyId, deviceLabel, ip, createdAt, lastUsedAt, current }]` |
 | DELETE | `/api/me/sessions/:familyId` | Logs that device out. `404` for a session that is not the person's |
 | POST | `/api/me/sessions/revoke-others` | Logs out every other device |
-| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies, motionPref, hideAmounts, soundOn, isDemo }`. `mailboxes: null` means all (admin). `isDemo` is true on a demo install and turns on the "Date de demonstrație" band. `sessionKind`: `long`, `legacy` (call `upgrade-session`) or `token` |
+| GET | `/api/auth/me` | `{ user: { id, email, displayName, role, status }, features, isPlatformAdmin, mailboxes, notificationPrefs, navLayout, updatesSeenAt, locale, enabledLocales, displayCurrency, displayCurrencies, motionPref, hideAmounts, soundOn, isDemo }`. `mailboxes: null` means all (admin). `isDemo` is true on a demo install and turns on the "Date de demonstrație" band. |
 | GET | `/api/auth/locale` | `{ defaultLocale, enabledLocales }`, for the pages before login |
 | PATCH | `/api/auth/me` | `{ displayName?, motionPref?: 'system'\|'full'\|'reduced'\|'off', hideAmounts?: boolean, soundOn?: boolean, notificationPrefs?: { chat: 'all'\|'dm'\|'none', emailNew, alerts }, updatesSeenAt?, locale?: 'ro'\|'en', displayCurrency?: 'RON'\|'EUR'\|'USD' }`. `400` for a language or currency outside the lists. `updatesSeenAt` (ISO) is how far the person has read What's new; the server caps it at now |
 | POST | `/api/auth/me/password` | `{ currentPassword, newPassword }` (12 characters minimum). Logs out the other sessions |

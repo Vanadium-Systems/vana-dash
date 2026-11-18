@@ -13,6 +13,7 @@ import { emailSequences, emailSequenceSteps } from '../../shared/db/schema/index
 import { effectiveFeatures, type SessionUser } from '../../shared/lib/session.js'
 import { saveDocument } from '../../shared/lib/storage.js'
 import { dispatchScheduledSend } from './scheduled-send.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 // Fără mock, reply-ul ar lovi Resend-ul real. Restul modulului rămâne cel adevărat.
 // `id` unic la fiecare trimitere: `email_messages.resend_email_id` are index unic, iar un
@@ -68,7 +69,7 @@ async function userWithMailboxes(email: string, identityKeys: string[]): Promise
   if (identityKeys.length) {
     await db.insert(userMailboxes).values(identityKeys.map((key) => ({ userId: row!.id, identityKey: key })))
   }
-  const token = await app.jwt.sign({ sub: row!.id, sv: 1 })
+  const token = await sessionToken(app, row!.id)
   const me: SessionUser = {
     id: row!.id,
     email,

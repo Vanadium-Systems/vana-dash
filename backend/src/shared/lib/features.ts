@@ -691,7 +691,6 @@ const KNOWN_PREFIXES: Array<{
   { prefix: '/api/auth/me', kind: 'self' },
   // Long sessions: the refresh runs exactly when the access token has expired, so it has no session.
   { prefix: '/api/auth/refresh', kind: 'public' },
-  { prefix: '/api/auth/upgrade-session', kind: 'self' },
   { prefix: '/api/auth/confirm-password', kind: 'self' },
   { prefix: '/api/me/sessions', kind: 'self' },
   { prefix: '/api/push', kind: 'self' },

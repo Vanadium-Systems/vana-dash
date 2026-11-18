@@ -11,6 +11,7 @@ import { db } from '../../shared/db/client.js'
 import { platforms, roles, syncLog, users } from '../../shared/db/schema/index.js'
 import { encryptField } from '../../shared/lib/crypto.js'
 import { listSyncLog } from './service.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const MARKER = `RAW-MARKER-${randomUUID()}`
 
@@ -28,7 +29,7 @@ const [person] = await db
     roleId: adminRole!.id,
   })
   .returning()
-const cookies = { vana_session: await app.jwt.sign({ sub: person!.id, sv: person!.sessionVersion }) }
+const cookies = { vana_session: await sessionToken(app, person!.id, person!.sessionVersion) }
 
 const [platform] = await db
   .insert(platforms)

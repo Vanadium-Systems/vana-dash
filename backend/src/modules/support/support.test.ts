@@ -14,6 +14,7 @@ vi.mock('../../shared/lib/email.js', async (importOriginal) => {
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { supportTickets, users } from '../../shared/db/schema/index.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -24,7 +25,7 @@ async function makeUser(label: string, isPlatformAdmin = false) {
     .insert(users)
     .values({ email: `qa-suport-${label}-${stamp}@test.local`, passwordHash: 'x', displayName: `QA ${label}`, isPlatformAdmin })
     .returning()
-  return { ...row!, token: await app.jwt.sign({ sub: row!.id, sv: row!.sessionVersion }) }
+  return { ...row!, token: await sessionToken(app, row!.id, row!.sessionVersion) }
 }
 
 const ana = await makeUser('ana')

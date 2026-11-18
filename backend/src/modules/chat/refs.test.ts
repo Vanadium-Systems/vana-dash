@@ -23,6 +23,7 @@ import {
   roles,
   users,
 } from '../../shared/db/schema/index.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 type InjectPayload = NonNullable<InjectOptions['payload']>
 
@@ -92,7 +93,7 @@ async function user(email: string, features: string[]): Promise<TestSession> {
     .values({ email, passwordHash: await argon2.hash('parola-de-test-123'), displayName: email.split('@')[0], roleId: role!.id })
     .returning()
   userIds.push(row!.id)
-  const token = await app.jwt.sign({ sub: row!.id, sv: 1 })
+  const token = await sessionToken(app, row!.id)
   return { id: row!.id, token, deviceId: await registerDevice(token) }
 }
 

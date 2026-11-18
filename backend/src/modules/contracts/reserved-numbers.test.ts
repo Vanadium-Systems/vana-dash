@@ -8,6 +8,7 @@ import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { dashboardConfig, roles, users } from '../../shared/db/schema/index.js'
 import { RESERVED_NUMBERS_CONFIG_KEY } from './reserved-numbers-service.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const URL = '/api/contracts/reserved-numbers'
 
@@ -21,7 +22,7 @@ const [testUser] = await db
   .insert(users)
   .values({ email: TEST_EMAIL, passwordHash: await argon2.hash('qa-test-password-123'), displayName: 'QA Stefan', roleId: adminRole!.id })
   .returning()
-const token = await app.jwt.sign({ sub: testUser!.id, sv: testUser!.sessionVersion })
+const token = await sessionToken(app, testUser!.id, testUser!.sessionVersion)
 
 // Cheia e una singură pe toată baza: rândul de dinainte de test se pune la loc la final.
 const [savedRow] = await db.select().from(dashboardConfig).where(eq(dashboardConfig.key, RESERVED_NUMBERS_CONFIG_KEY))

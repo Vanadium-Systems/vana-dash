@@ -19,6 +19,7 @@ import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { dashboardConfig, notes, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
 import { getIdentities, type EmailIdentity } from '../email/settings-service.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -41,7 +42,7 @@ const [vanzator] = await db
   })
   .returning()
 await db.insert(userMailboxes).values({ userId: vanzator!.id, identityKey: 'sales' })
-const token = await app.jwt.sign({ sub: vanzator!.id, sv: vanzator!.sessionVersion })
+const token = await sessionToken(app, vanzator!.id, vanzator!.sessionVersion)
 
 // Contul real al lui Stefan, ca „notițele lui" să aibă un owner diferit de cel al colegului.
 const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))

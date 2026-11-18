@@ -5,6 +5,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { extractInvoiceHintsFromText } from '../../shared/lib/pdf-text.js'
 import { SupplierRuleCreateSchema } from './schema.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 vi.mock('../../shared/lib/r2.js', () => ({
   deleteFromR2: vi.fn().mockResolvedValue(undefined),
@@ -524,7 +525,7 @@ describe('supplier-email integration (DB + server)', () => {
       })
       .returning()
     createdUserIds.push(user!.id)
-    const token = await server.jwt.sign({ sub: user!.id, sv: user!.sessionVersion })
+    const token = await sessionToken(server, user!.id, user!.sessionVersion)
 
     const month = '2026-07'
     const [rec] = await db
@@ -594,7 +595,7 @@ describe('supplier-email integration (DB + server)', () => {
 
     // User only holds the `contact` mailbox (`contact@vanadium.systems`), not `stefan` (`stefan@vanadium.systems`).
     await db.insert(userMailboxes).values({ userId: user!.id, identityKey: 'contact' })
-    const token = await server.jwt.sign({ sub: user!.id, sv: user!.sessionVersion })
+    const token = await sessionToken(server, user!.id, user!.sessionVersion)
 
     const { message, attachment } = await seedEmailWithPdf({
       fromAddress: 'billing@supplier.example.com',

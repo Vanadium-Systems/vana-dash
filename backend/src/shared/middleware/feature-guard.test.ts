@@ -27,6 +27,7 @@ import { db } from '../../shared/db/client.js'
 import { archiveFolders, roles, users } from '../../shared/db/schema/index.js'
 import { FEATURES, FEATURE_KEYS, PAGES, resolveFeatureKeys } from '../lib/features.js'
 import { featureGuardPlugin } from './feature-guard.js'
+import { sessionToken } from '../testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -83,7 +84,7 @@ async function userWith(features: string[]) {
     .returning()
   await db.update(users).set({ roleId }).where(eq(users.id, row!.id))
   createdUsers.push(row!.id)
-  return await app.jwt.sign({ sub: row!.id, sv: 1 })
+  return await sessionToken(app, row!.id)
 }
 
 /** 400 de la validare e tot „a trecut de guard"; 500 ar însemna ceva rupt în handler. */

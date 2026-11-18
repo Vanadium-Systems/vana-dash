@@ -12,6 +12,7 @@ import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { auditLog, roles, userSessions, users } from '../../shared/db/schema/index.js'
 import { hashRefreshToken } from '../../shared/lib/sessions.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -26,7 +27,7 @@ let personCounter = 0
 
 const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))
 const [adminUser] = await db.select().from(users).where(eq(users.roleId, adminRole!.id)).limit(1)
-const adminCookie = app.jwt.sign({ sub: adminUser!.id, sv: adminUser!.sessionVersion })
+const adminCookie = await sessionToken(app, adminUser!.id, adminUser!.sessionVersion)
 
 async function createPerson(features: string[] = ['clienti.view', 'echipa.tokenuri'], kind: 'custom' | 'admin' = 'custom') {
   personCounter += 1
@@ -114,7 +115,6 @@ describe('login cookies', () => {
 
     const me = await call('GET', '/api/auth/me', { vana_session: cookies.vana_session })
     expect(me.statusCode).toBe(200)
-    expect(me.json().data.sessionKind).toBe('long')
   })
 })
 
@@ -280,22 +280,12 @@ describe('devices', () => {
   })
 })
 
-describe('legacy cookie upgrade', () => {
-  it('a cookie without sid is legacy until /api/auth/upgrade-session moves it to a long session', async () => {
+describe('access token without sid', () => {
+  it('refuses an access token without sid', async () => {
     const { person } = await createPerson()
-    const legacy = app.jwt.sign({ sub: person.id, sv: person.sessionVersion })
-    const before = await call('GET', '/api/auth/me', { vana_session: legacy })
-    expect(before.json().data.sessionKind).toBe('legacy')
-
-    const upgraded = await call('POST', '/api/auth/upgrade-session', { vana_session: legacy })
-    expect(upgraded.statusCode).toBe(200)
-    const session = cookieValue(upgraded, 'vana_session')
-    const refreshToken = cookieValue(upgraded, 'vana_refresh')
-    expect(session).toBeTruthy()
-    expect(refreshToken).toBeTruthy()
-
-    const after = await call('GET', '/api/auth/me', { vana_session: session })
-    expect(after.json().data.sessionKind).toBe('long')
+    const bare = app.jwt.sign({ sub: person.id, sv: person.sessionVersion })
+    const res = await call('GET', '/api/auth/me', { vana_session: bare })
+    expect(res.statusCode).toBe(401)
   })
 })
 

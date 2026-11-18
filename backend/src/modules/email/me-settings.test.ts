@@ -12,6 +12,7 @@ import { db } from '../../shared/db/client.js'
 import { emailSuppressions, emailUserSettings, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
 import { getEmailSettings } from './settings-service.js'
 import { buildSignature } from './signature.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -30,7 +31,7 @@ async function makePerson(label: string, features: string[], mailboxes: string[]
     .returning()
   userIds.push(row!.id)
   if (mailboxes.length) await db.insert(userMailboxes).values(mailboxes.map((identityKey) => ({ userId: row!.id, identityKey })))
-  return { id: row!.id, token: await app.jwt.sign({ sub: row!.id, sv: 1 }) }
+  return { id: row!.id, token: await sessionToken(app, row!.id) }
 }
 
 // A colleague who can send and keep her own settings, but has no company Settings.

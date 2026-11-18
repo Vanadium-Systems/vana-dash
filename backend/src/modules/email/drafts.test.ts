@@ -9,6 +9,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { emailDrafts, emailMessages, emailThreads, roles, userMailboxes, users } from '../../shared/db/schema/index.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -28,7 +29,7 @@ async function makeToken(label: string): Promise<{ id: string; token: string }> 
     .returning()
   userIds.push(row!.id)
   await db.insert(userMailboxes).values({ userId: row!.id, identityKey: 'contact' })
-  return { id: row!.id, token: await app.jwt.sign({ sub: row!.id, sv: 1 }) }
+  return { id: row!.id, token: await sessionToken(app, row!.id) }
 }
 
 const anna = await makeToken('anna')

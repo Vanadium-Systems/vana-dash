@@ -9,6 +9,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { emailSends, roles, users } from '../../shared/db/schema/index.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const MARKER = `RAW-MARKER-${randomUUID()}`
 const RAW_TEXT = `Error: Resend a răspuns cu HTTP 429: ${MARKER}`
@@ -24,7 +25,7 @@ const [person] = await db
   .insert(users)
   .values({ email, passwordHash: await argon2.hash('acme-test-password'), displayName: 'QA sends', roleId: adminRole!.id })
   .returning()
-const cookies = { vana_session: await app.jwt.sign({ sub: person!.id, sv: person!.sessionVersion }) }
+const cookies = { vana_session: await sessionToken(app, person!.id, person!.sessionVersion) }
 
 const batchId = randomUUID()
 const sendIds: string[] = []

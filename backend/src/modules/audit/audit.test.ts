@@ -20,6 +20,7 @@ import { buildAllAssistantTools } from '../assistant/tools/index.js'
 import { createdByUserId, recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
 import { currentActor, runWithFreshActor } from '../../shared/lib/request-context.js'
 import { effectiveFeatures } from '../../shared/lib/session.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -30,7 +31,7 @@ const prospectIds: string[] = []
 const roleIds: string[] = []
 const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))
 const [adminUser] = await db.select().from(users).where(eq(users.roleId, adminRole!.id)).limit(1)
-const admin = await app.jwt.sign({ sub: adminUser!.id, sv: adminUser!.sessionVersion })
+const admin = await sessionToken(app, adminUser!.id, adminUser!.sessionVersion)
 
 const [qaRole] = await db
   .insert(roles)
@@ -40,7 +41,7 @@ const [coleg] = await db
   .insert(users)
   .values({ email: `qa-audit-${Date.now()}@test.local`, passwordHash, displayName: 'Coleg', roleId: qaRole!.id })
   .returning()
-const colegToken = await app.jwt.sign({ sub: coleg!.id, sv: coleg!.sessionVersion })
+const colegToken = await sessionToken(app, coleg!.id, coleg!.sessionVersion)
 
 // Auditul e append-only, deci nu se poate curăța după fapt. Fiecare rând de test se recunoaște
 // după entitatea lui (id-uri noi, create aici) și e adunat ca să fie șters la final — nu după

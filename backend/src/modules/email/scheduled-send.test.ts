@@ -13,6 +13,7 @@ import { emailDrafts, emailMessages, emailSends, emailThreads, roles, userMailbo
 import type { SendEmailResult } from '../../shared/lib/email.js'
 import { effectiveFeatures, type SessionUser } from '../../shared/lib/session.js'
 import { cancelScheduledSend, dispatchOverdueSends, dispatchScheduledSend, SendAlreadyDispatched, sendNew, sendReply, UNDO_WINDOW_MS } from './scheduled-send.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 type SendOpts = Parameters<typeof import('../../shared/lib/email.js').sendEmailWithResult>[0]
 const mocks = vi.hoisted(() => ({ sendEmailWithResult: vi.fn<(opts: SendOpts) => Promise<SendEmailResult>>() }))
@@ -64,7 +65,7 @@ async function makePerson(label: string): Promise<TestPerson> {
     displayCurrency: 'RON',
     sessionVersion: 1,
   }
-  return { me, token: await app.jwt.sign({ sub: row!.id, sv: 1 }) }
+  return { me, token: await sessionToken(app, row!.id) }
 }
 
 const anna = await makePerson('anna')

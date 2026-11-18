@@ -14,6 +14,7 @@ import { db } from '../../shared/db/client.js'
 import { conversationMembers, conversations, messages, roles, userSessions, users } from '../../shared/db/schema/index.js'
 import { deviceSignaturePayload, registerDevice as registerDeviceDirect } from './keys.js'
 import { purgeLegacyPlaintext } from './service.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 type InjectPayload = NonNullable<InjectOptions['payload']>
 
@@ -66,7 +67,7 @@ async function person(label: string, features = ['mesaje.view']): Promise<TestPe
     .values({ email, passwordHash: await argon2.hash('parola-de-test-123'), displayName: label, roleId: role!.id })
     .returning()
   userIds.push(row!.id)
-  return { id: row!.id, token: await app.jwt.sign({ sub: row!.id, sv: 1 }) }
+  return { id: row!.id, token: await sessionToken(app, row!.id) }
 }
 
 const ana = await person('ana')

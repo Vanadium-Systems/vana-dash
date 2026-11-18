@@ -11,6 +11,7 @@ vi.mock('../lib/email.js', () => ({ sendEmail: vi.fn(async () => {}) }))
 import { buildServer } from '../../app.js'
 import { db } from '../db/client.js'
 import { apiTokens, auditLog, prospects, roles, users } from '../db/schema/index.js'
+import { sessionToken } from '../testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -23,7 +24,7 @@ const prospectIds: string[] = []
 
 const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))
 const [adminUser] = await db.select().from(users).where(eq(users.roleId, adminRole!.id)).limit(1)
-const adminCookie = app.jwt.sign({ sub: adminUser!.id, sv: adminUser!.sessionVersion })
+const adminCookie = await sessionToken(app, adminUser!.id, adminUser!.sessionVersion)
 
 async function createPerson(label: string, features: string[]) {
   const [role] = await db.insert(roles).values({ name: `QA token auth ${label}: ${stamp}`, kind: 'custom', features }).returning()
@@ -33,7 +34,7 @@ async function createPerson(label: string, features: string[]) {
     .values({ email: `qa-tokauth-${label}-${stamp}@example.com`, passwordHash, displayName: `QA ${label}`, roleId: role!.id })
     .returning()
   userIds.push(person!.id)
-  return { person: person!, role: role!, cookie: app.jwt.sign({ sub: person!.id, sv: person!.sessionVersion }) }
+  return { person: person!, role: role!, cookie: await sessionToken(app, person!.id, person!.sessionVersion) }
 }
 
 const FEATURES = ['clienti.view', 'clienti.prospectare', 'echipa.tokenuri']
@@ -165,7 +166,7 @@ describe('api token auth', () => {
     await db.update(users).set({ sessionVersion: owner.person.sessionVersion + 1 }).where(eq(users.id, owner.person.id))
     expect((await asToken('GET', '/api/auth/me', survivor)).statusCode).toBe(200)
 
-    const fresh = app.jwt.sign({ sub: owner.person.id, sv: owner.person.sessionVersion + 1 })
+    const fresh = await sessionToken(app, owner.person.id, owner.person.sessionVersion + 1)
     const res = await asCookie('POST', '/api/auth/me/password', fresh, {
       currentPassword: 'parola-de-test-123',
       newPassword: 'o-parola-noua-destul-de-lunga-42',

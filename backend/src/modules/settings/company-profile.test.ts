@@ -9,6 +9,7 @@ import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { roles, tenants, users } from '../../shared/db/schema/index.js'
 import { getOwnerTenantId } from '../../shared/lib/tenancy.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -21,7 +22,7 @@ const [colleague] = await db
   .insert(users)
   .values({ email: `qa-company-${Date.now()}@example.com`, passwordHash: await argon2.hash('test-password-123'), roleId: role!.id })
   .returning()
-const token = await app.jwt.sign({ sub: colleague!.id, sv: colleague!.sessionVersion })
+const token = await sessionToken(app, colleague!.id, colleague!.sessionVersion)
 
 const ownerId = getOwnerTenantId()
 const [before] = await db.select().from(tenants).where(eq(tenants.id, ownerId))

@@ -13,6 +13,7 @@ import { emailLabels, emailMessages, emailRules, emailThreads, roles, userMailbo
 import { soleMailboxHolder } from './mailboxes.js'
 import { createLabel, createRule, evaluateRulesForMessage, isLabelUsableBy } from './organize-service.js'
 import type { SessionUser } from '../../shared/lib/session.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -31,7 +32,7 @@ async function makePerson(label: string, features: string[]): Promise<{ id: stri
     .values({ email: `${label}-${RUN}@example.com`, passwordHash: await argon2.hash('acme-test-password'), displayName: label, roleId: role!.id })
     .returning()
   userIds.push(row!.id)
-  return { id: row!.id, token: await app.jwt.sign({ sub: row!.id, sv: 1 }) }
+  return { id: row!.id, token: await sessionToken(app, row!.id) }
 }
 
 const PERSON_FEATURES = ['email.view', 'email.trimitere', 'email.setari_proprii']
@@ -203,7 +204,7 @@ describe('isLabelUsableBy', () => {
       .values({ email: `admin-${RUN}@example.com`, passwordHash: await argon2.hash('acme-test-password'), displayName: 'admin', roleId: adminRole!.id })
       .returning()
     userIds.push(adminRow!.id)
-    const admin = { token: await app.jwt.sign({ sub: adminRow!.id, sv: 1 }) }
+    const admin = { token: await sessionToken(app, adminRow!.id) }
 
     const [thread] = await db.insert(emailThreads).values({ subject: `Label ${RUN}`, participants: ['a@example.com'], lastMessageAt: new Date() }).returning()
     const [message] = await db

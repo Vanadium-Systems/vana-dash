@@ -7,6 +7,7 @@ vi.mock('../../shared/lib/email.js', () => ({ sendEmail: vi.fn(async () => {}) }
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { calls, prospects, roles, users } from '../../shared/db/schema/index.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -24,7 +25,7 @@ async function createPerson(label: string, features: string[]) {
     .values({ email: `qa-call vis-${label}-${stamp}@example.com`, passwordHash, displayName: `QA ${label}`, roleId: role!.id })
     .returning()
   userIds.push(person!.id)
-  return { person: person!, cookie: app.jwt.sign({ sub: person!.id, sv: person!.sessionVersion }) }
+  return { person: person!, cookie: await sessionToken(app, person!.id, person!.sessionVersion) }
 }
 
 const get = (url: string, cookie: string) => app.inject({ method: 'GET', url, cookies: { vana_session: cookie } })

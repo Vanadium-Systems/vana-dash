@@ -11,6 +11,7 @@ vi.mock('../../shared/lib/email.js', () => ({ sendEmail: vi.fn(async () => {}) }
 import { buildServer } from '../../app.js'
 import { db } from '../../shared/db/client.js'
 import { apiTokens, auditLog, prospectPeople, prospects, roles, users } from '../../shared/db/schema/index.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -22,7 +23,7 @@ const roleIds: string[] = []
 
 const [adminRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.name, 'Admin'))
 const [adminUser] = await db.select().from(users).where(eq(users.roleId, adminRole!.id)).limit(1)
-const adminCookie = app.jwt.sign({ sub: adminUser!.id, sv: adminUser!.sessionVersion })
+const adminCookie = await sessionToken(app, adminUser!.id, adminUser!.sessionVersion)
 
 async function createPerson(label: string, features: string[]) {
   const [role] = await db.insert(roles).values({ name: `QA mcp ${label}: ${stamp}`, kind: 'custom', features }).returning()
@@ -32,7 +33,7 @@ async function createPerson(label: string, features: string[]) {
     .values({ email: `qa-mcp-${label}-${stamp}@example.com`, passwordHash, displayName: `QA ${label}`, roleId: role!.id })
     .returning()
   userIds.push(person!.id)
-  return { person: person!, cookie: app.jwt.sign({ sub: person!.id, sv: person!.sessionVersion }) }
+  return { person: person!, cookie: await sessionToken(app, person!.id, person!.sessionVersion) }
 }
 
 const owner = await createPerson('owner', ['clienti.view', 'clienti.prospectare', 'echipa.tokenuri'])

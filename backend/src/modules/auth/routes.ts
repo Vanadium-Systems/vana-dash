@@ -112,9 +112,9 @@ function asHome<T>(me: Pick<SessionUser, 'tenant'>, fn: () => Promise<T>): Promi
 }
 
 /** Starts a login session (new family) and sets both cookies. */
-async function issueSession(req: FastifyRequest, reply: FastifyReply, me: SessionUser, passwordTyped = true) {
+async function issueSession(req: FastifyRequest, reply: FastifyReply, me: SessionUser) {
   const { sessionId, refreshToken } = await asHome(me, () =>
-    startSession(me.id, me.sessionVersion, { ip: req.ip, userAgent: req.headers['user-agent'] }, passwordTyped),
+    startSession(me.id, me.sessionVersion, { ip: req.ip, userAgent: req.headers['user-agent'] }),
   )
   const accessJwt = await signAccess(reply, { id: me.id, sessionVersion: me.sessionVersion, tenantId: me.tenant?.id }, sessionId)
   setAccessCookie(reply, accessJwt)
@@ -193,13 +193,6 @@ export async function authRoutes(app: FastifyInstance) {
     },
   )
 
-  // A browser still holding a 7-day cookie from before long sessions moves over without logging in.
-  server.post('/api/auth/upgrade-session', { preHandler: [app.authenticate] }, async (req, reply) => {
-    if (req.session || req.apiToken) return reply.send({ success: true })
-    await issueSession(req, reply, req.me, false)
-    return reply.send({ success: true })
-  })
-
   // Sensitive actions (a new API token, changing someone's role or status) ask for the password
   // again when the last confirmation in this session is older than 10 minutes.
   server.post(
@@ -252,8 +245,6 @@ export async function authRoutes(app: FastifyInstance) {
       data: {
         ...sessionPayload(req.me),
         isDemo: await isDemoInstall(),
-        // 'legacy' = a 7-day cookie from before long sessions; the client calls /upgrade-session once.
-        sessionKind: req.apiToken ? 'token' : req.session ? 'long' : 'legacy',
       },
     }),
   )

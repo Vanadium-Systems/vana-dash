@@ -128,14 +128,13 @@ export const authPlugin = fp(async (app) => {
       }
       // Logged out from "Dispozitive", or the family was revoked: the access token dies with it,
       // not 15 minutes later.
-      if (payload.sid) {
-        const sessionId = payload.sid
-        const session = await runAsTenant(me.tenant?.id ?? getOwnerTenantId(), () => isSessionUsable(sessionId))
-        if (!session || session.userId !== me.id) {
-          return await fail(reply, 401, 'UNAUTHORIZED')
-        }
-        req.session = { id: session.id, familyId: session.familyId, passwordConfirmedAt: session.passwordConfirmedAt }
+      const sessionId = payload.sid
+      if (!sessionId) return await fail(reply, 401, 'UNAUTHORIZED')
+      const session = await runAsTenant(me.tenant?.id ?? getOwnerTenantId(), () => isSessionUsable(sessionId))
+      if (!session || session.userId !== me.id) {
+        return await fail(reply, 401, 'UNAUTHORIZED')
       }
+      req.session = { id: session.id, familyId: session.familyId, passwordConfirmedAt: session.passwordConfirmedAt }
     }
     if (me.tenant && me.tenant.status !== 'active' && !me.tenant.isPlatformOwner) {
       return await fail(reply, 403, 'TENANT_SUSPENDED', { message: tr('errors.tenants.suspended') })

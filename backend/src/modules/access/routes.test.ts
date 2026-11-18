@@ -19,6 +19,7 @@ import { auditLog, roles, userMailboxes, userTokens, users } from '../../shared/
 import { effectiveFeatures } from '../../shared/lib/session.js'
 import { config } from '../../shared/config.js'
 import { getCatalog } from './service.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -49,7 +50,7 @@ async function createUser(email: string, role: { kind: 'admin' | 'manager' | 'cu
   created.push(row!.id)
   // Token semnat direct, ca în prod după login: rate-limit-ul de login e 5/15min și ar
   // bloca un suite care creează zece oameni. Loginul în sine e testat separat, în auth.
-  const token = await app.jwt.sign({ sub: row!.id, sv: 1 })
+  const token = await sessionToken(app, row!.id)
   return { id: row!.id, email, cookie: token, roleId }
 }
 

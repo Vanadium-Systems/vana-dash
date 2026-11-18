@@ -14,6 +14,7 @@ import {
   roles,
   users,
 } from '../src/shared/db/schema/index.js'
+import { sessionToken } from '../src/shared/testing/session-token.js'
 
 // Shared fixtures of the invoice-payments tests (Sprint 7). Everything created here is tracked and
 // removed by cleanup(), so a second run on the same database starts from the same state.
@@ -137,7 +138,7 @@ export async function makeUser(app: FastifyInstance, features: string[], kind: '
     .values({ email: `qa-facturi-${RUN}-${counter}@test.local`, passwordHash: await argon2.hash('parola-de-test-123'), displayName: `QA ${counter}`, roleId })
     .returning()
   userIds.push(user!.id)
-  return { id: user!.id, cookie: app.jwt.sign({ sub: user!.id, sv: user!.sessionVersion }) }
+  return { id: user!.id, cookie: await sessionToken(app, user!.id, user!.sessionVersion) }
 }
 
 export async function cleanup() {

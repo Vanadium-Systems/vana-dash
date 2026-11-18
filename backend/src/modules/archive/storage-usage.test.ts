@@ -19,6 +19,7 @@ import {
   users,
 } from '../../shared/db/schema/index.js'
 import { assertStorageAvailable, StorageFullError, storageUsage } from '../../shared/lib/storage-quota.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -37,7 +38,7 @@ async function makePerson(label: string, kind: 'custom' | 'admin', features: str
     .values({ email: `spatiu-${label}-${RUN}@example.com`, passwordHash: await argon2.hash('acme-test-password'), displayName: `QA ${label} ${RUN}`, roleId: role!.id })
     .returning()
   userIds.push(row!.id)
-  return { id: row!.id, name: row!.displayName!, token: await app.jwt.sign({ sub: row!.id, sv: 1 }) }
+  return { id: row!.id, name: row!.displayName!, token: await sessionToken(app, row!.id) }
 }
 
 afterAll(async () => {

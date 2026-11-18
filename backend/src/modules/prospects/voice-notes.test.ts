@@ -32,6 +32,7 @@ import { auditLog, prospects, prospectTasks, prospectVoiceNotes, roles, users } 
 import { createTestUser } from '../../shared/testing/users.js'
 import * as health from './health-service.js'
 import { prospectTimeline } from './service.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 const app = await buildServer()
 await app.ready()
@@ -55,7 +56,7 @@ async function makePerson(label: string, kind: 'custom' | 'admin' = 'custom'): P
     .values({ email: `voice-${label}-${RUN}@example.com`, passwordHash: await argon2.hash('acme-test-password'), displayName: `QA ${label}`, roleId: role!.id })
     .returning()
   userIds.push(row!.id)
-  return { id: row!.id, token: await app.jwt.sign({ sub: row!.id, sv: 1 }) }
+  return { id: row!.id, token: await sessionToken(app, row!.id) }
 }
 
 const newProspect = async (name: string, assignedUserId: string | null) => {

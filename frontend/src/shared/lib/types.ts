@@ -46,8 +46,6 @@ export interface SessionPayload {
   soundOn?: boolean
   /** A demo install: the shell shows a permanent band. */
   isDemo?: boolean
-  /** `legacy` = an old 7-day cookie, moved to long sessions with `POST /api/auth/upgrade-session`. */
-  sessionKind?: 'long' | 'legacy' | 'token'
 }
 
 /** Sent next to totals: the currency the figures are in and whether they were converted. */

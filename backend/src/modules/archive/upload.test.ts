@@ -8,6 +8,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { archiveFiles, archiveFolders, roles, users } from '../../shared/db/schema/index.js'
+import { sessionToken } from '../../shared/testing/session-token.js'
 
 vi.mock('../../shared/lib/r2.js', () => ({
   deleteFromR2: vi.fn().mockResolvedValue(undefined),
@@ -41,7 +42,7 @@ async function makePerson(label: string) {
     .values({ email: `upload-${label}-${RUN}@example.com`, passwordHash: await argon2.hash('acme-test-password'), displayName: `QA ${label} ${RUN}`, roleId: role!.id })
     .returning()
   userIds.push(row!.id)
-  const token = await app.jwt.sign({ sub: row!.id, sv: 1 })
+  const token = await sessionToken(app, row!.id)
   const me = {
     id: row!.id,
     email: row!.email,

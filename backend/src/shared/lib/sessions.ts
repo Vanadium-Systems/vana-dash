@@ -65,7 +65,6 @@ export async function startSession(
   userId: string,
   sessionVersion: number,
   client: ClientInfo,
-  passwordTyped = true,
 ): Promise<{ sessionId: string; refreshToken: string }> {
   const { token, hash } = newRefreshSecret()
   const [row] = await db
@@ -78,8 +77,8 @@ export async function startSession(
       deviceLabel: deviceLabel(client.userAgent),
       ip: client.ip,
       expiresAt: expiry(),
-      // Typing the password to log in counts as a confirmation; moving an old cookie over does not.
-      passwordConfirmedAt: passwordTyped ? new Date() : null,
+      // Typing the password to log in counts as a confirmation.
+      passwordConfirmedAt: new Date(),
     })
     .returning({ id: userSessions.id })
   if (!row) throw new Error('user_sessions insert returned no row')
