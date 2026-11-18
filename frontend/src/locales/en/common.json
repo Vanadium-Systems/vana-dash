@@ -278,7 +278,7 @@
       "tooManyRequests": "Too many requests in one minute. Try again a little later.",
       "invalidData": "The data sent is not valid. Check the fields and try again.",
       "notFound": "Could not find what you were looking for; it may have been deleted in the meantime.",
-      "server": "The server returned an error. Try again; if it keeps happening, check the Server page.",
+      "server": "The server returned an error. Try again; if it keeps happening, tell an administrator.",
       "generic": "The request did not go through (code {{status}}). Try again.",
       "network": "Cannot reach the server. Check your connection and try again."
     },

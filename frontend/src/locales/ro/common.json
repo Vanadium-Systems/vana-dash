@@ -278,7 +278,7 @@
       "tooManyRequests": "Prea multe cereri într-un minut. Mai încearcă puțin mai târziu.",
       "invalidData": "Datele trimise nu sunt valide. Verifică câmpurile și încearcă din nou.",
       "notFound": "N-am găsit ce căutai; poate a fost șters între timp.",
-      "server": "Serverul a dat o eroare. Încearcă din nou; dacă se repetă, verifică pagina Server.",
+      "server": "Serverul a dat o eroare. Încearcă din nou; dacă se repetă, anunță administratorul.",
       "generic": "Cererea n-a mers (cod {{status}}). Încearcă din nou.",
       "network": "Nu ajung la server. Verifică conexiunea și încearcă din nou."
     },

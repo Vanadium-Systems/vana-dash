@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { DraftSendSchema, DraftsQuerySchema, DraftUpdateSchema, DraftUpsertSchema, IdParamsSchema } from './drafts-schema.js'
 import * as drafts from './drafts-service.js'
+import { MailboxForbidden } from './mailboxes.js'
 import { sendDraft } from './scheduled-send.js'
 import { sendErrorReply } from './send-guard.js'
 import { fail } from '../../shared/lib/http-error.js'
@@ -11,6 +12,7 @@ function draftErrorReply(reply: FastifyReply, err: unknown) {
   if (err instanceof drafts.DraftChangedError) {
     return fail(reply, 409, err.code, { details: { updatedAt: err.updatedAt } })
   }
+  if (err instanceof MailboxForbidden) return fail(reply, 403, err.code)
   if (err instanceof drafts.DraftRefNotFound) return fail(reply, 404, 'DRAFT_REF_NOT_FOUND', { message: err.message })
   if (err instanceof drafts.DraftAttachmentRejected) return fail(reply, 400, 'DRAFT_ATTACHMENT_REJECTED', { message: err.message })
   throw err

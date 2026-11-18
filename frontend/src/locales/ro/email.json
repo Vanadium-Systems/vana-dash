@@ -79,6 +79,7 @@
     "contentWithPlaceholder": "(placeholder disponibil: {{token}})"
   },
   "compose": {
+    "noMailbox": "Nu ai nicio cutie de email de pe care să trimiți. Cere-i administratorului să-ți atribuie una.",
     "maxAttachments": "Maxim {{MAX_ATTACHMENTS}} atașamente.",
     "draftSaved": "Draft salvat",
     "editDraft": "Editează draft",

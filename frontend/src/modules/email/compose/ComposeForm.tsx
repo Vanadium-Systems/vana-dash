@@ -142,6 +142,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
 
   const [from, setFrom, myIdentities] = useIdentityKey(initialDraft?.fromKey ?? 'stefan', senderOptions.data?.identities)
   const { session } = useMe()
+  const noMailbox = Boolean(session?.mailboxes && senderOptions.data) && myIdentities.length === 0
   const sendingFromKey =
     init.kind === 'reply' || init.kind === 'forward'
       ? (identityKeyForAddress(init.fromAddress, senderOptions.data?.identities) ?? 'contact')
@@ -212,11 +213,11 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
       return
     }
     generation.current++
-    if (!hasContent || saveState.kind === 'conflict') return
+    if (!hasContent || noMailbox || saveState.kind === 'conflict') return
     const timer = setTimeout(() => void save().catch(() => undefined), AUTOSAVE_MS)
     return () => clearTimeout(timer)
     // saveState is read, not watched: a finished save must not schedule the next one.
-  }, [from, to, cc, subject, body, templateId, attachments, hasContent, save])
+  }, [from, to, cc, subject, body, templateId, attachments, hasContent, noMailbox, save])
 
   const reloadDraft = async () => {
     if (!draftId) return
@@ -264,7 +265,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
   }
 
   const send = async (opts: { ignoreReplies?: boolean } = {}) => {
-    if (sending || !validate()) return
+    if (sending || noMailbox || !validate()) return
     setSending(true)
     setRepliedMeanwhile(null)
     try {
@@ -467,6 +468,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
             {t('email:compose.stillHere')}
           </Alert>
         ) : null}
+        {noMailbox ? <Alert tone="warning" title={t('email:compose.noMailbox')} /> : null}
         {errors.banner ? (
           <Alert tone="critical" title={errors.banner}>
             {t('email:compose.stillHere')}
@@ -486,7 +488,7 @@ export function ComposeForm({ init, variant, handlers, onDone, onTitle, closeRef
       </div>
 
       <div className={cn('flex flex-wrap items-center gap-2 border-t py-2', variant === 'inline' ? '' : 'px-4', variant === 'sheet' && 'pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]')}>
-        <Button type="button" onClick={() => void send()} disabled={sending} title={t('email:compose.sendShortcut')}>
+        <Button type="button" onClick={() => void send()} disabled={sending || noMailbox} title={t('email:compose.sendShortcut')}>
           {sending ? t('common:states.sending') : t('common:actions.send')}
         </Button>
         <Button

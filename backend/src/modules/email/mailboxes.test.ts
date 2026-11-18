@@ -196,6 +196,17 @@ describe('trimiterea', () => {
     expect(res.json().error.code).toBe('MAILBOX_FORBIDDEN')
   })
 
+  it('refuses a draft from a mailbox that is not theirs with 403, not 500', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/email/drafts',
+      cookies: { vana_session: tokenOf(salesUser) },
+      payload: { fromKey: 'stefan', to: 'client@example.com', subject: 'QA', body: 'QA' },
+    })
+    expect(res.statusCode).toBe(403)
+    expect(res.json().error.code).toBe('MAILBOX_FORBIDDEN')
+  })
+
   it('poate răspunde într-un fir de pe cutia lui', async () => {
     const res = await app.inject({
       method: 'POST',

@@ -75,6 +75,7 @@
     "contentWithPlaceholder": "(available placeholder: {{token}})"
   },
   "compose": {
+    "noMailbox": "You have no mailbox to send from. Ask an administrator to assign you one.",
     "maxAttachments": "At most {{MAX_ATTACHMENTS}} attachments.",
     "draftSaved": "Draft saved",
     "editDraft": "Edit the draft",
