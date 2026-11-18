@@ -116,3 +116,80 @@ jobs:
         env:
           RLS_ENABLED: ${{ matrix.rls == 'on' }}
           DATABASE_URL_APP: ${{ matrix.rls == 'on' && 'postgres://vanadash_app:ciThrowawayAppRolePassword2026@localhost:5433/vanadash' || '' }}
+
+  # The "test as an employee" (sprint profile): a non-admin role opens every page in its menu, and any
+  # 403 / 5xx fails the job. Missed by hand four times; the admin sees everything and proves nothing.
+  # API without cron jobs (e2e/api-server.ts), so nothing calls BNR / ANAF / SICAP from the runner.
+  employee:
+    name: test as an employee (RLS on)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: vanadash
+          POSTGRES_PASSWORD: vanadash
+          POSTGRES_DB: vanadash
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U vanadash"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      E2E_BASE: http://localhost:5174
+      E2E_EMAIL: ana@example.com
+      E2E_PASSWORD: ci-employee-password-123
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm db:seed:demo
+      - run: bash scripts/rls-role.sh
+        env:
+          APP_DB_PASSWORD: ciThrowawayAppRolePassword2026
+          PSQL: psql -h localhost -p 5433 -U vanadash
+          PGPASSWORD: vanadash
+          DB: vanadash
+          OWNER: vanadash
+      # Ana ("Sales (demo)") gets a random password from the seed; give her a known one.
+      - name: password for the demo employee
+        working-directory: backend
+        env:
+          PGPASSWORD: vanadash
+        run: |
+          hash=$(node -e "import('argon2').then((a) => a.default.hash(process.env.E2E_PASSWORD)).then((h) => console.log(h))")
+          echo "update users set password_hash = :'hash' where email = '$E2E_EMAIL';" \
+            | psql -h localhost -p 5433 -U vanadash -d vanadash -v ON_ERROR_STOP=1 -v hash="$hash"
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: e2e
+      - run: npx playwright install --with-deps --only-shell chromium
+        working-directory: e2e
+      # Only here: migrations and seeds run as the owner, before vanadash_app exists.
+      - name: start API and frontend
+        env:
+          RLS_ENABLED: true
+          DATABASE_URL_APP: postgres://vanadash_app:ciThrowawayAppRolePassword2026@localhost:5433/vanadash
+        run: |
+          backend/node_modules/.bin/tsx e2e/api-server.ts > api.log 2>&1 &
+          pnpm --filter @vana-dash/frontend exec vite --port 5174 --strictPort > vite.log 2>&1 &
+          timeout 90 bash -c 'until curl -sf localhost:3001/health && curl -sf -o /dev/null localhost:5174; do sleep 2; done'
+      - run: node e2e/employee.mjs
+      - if: failure()
+        run: tail -n 100 api.log vite.log
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: employee-screenshots
+          path: e2e/out/
+          retention-days: 7
