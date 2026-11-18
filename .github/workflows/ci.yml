@@ -139,8 +139,6 @@ jobs:
           --health-timeout 3s
           --health-retries 10
     env:
-      RLS_ENABLED: true
-      DATABASE_URL_APP: postgres://vanadash_app:ciThrowawayAppRolePassword2026@localhost:5433/vanadash
       E2E_BASE: http://localhost:5174
       E2E_EMAIL: ana@example.com
       E2E_PASSWORD: ci-employee-password-123
@@ -177,7 +175,11 @@ jobs:
         working-directory: e2e
       - run: npx playwright install --with-deps --only-shell chromium
         working-directory: e2e
+      # Only here: migrations and seeds run as the owner, before vanadash_app exists.
       - name: start API and frontend
+        env:
+          RLS_ENABLED: true
+          DATABASE_URL_APP: postgres://vanadash_app:ciThrowawayAppRolePassword2026@localhost:5433/vanadash
         run: |
           backend/node_modules/.bin/tsx e2e/api-server.ts > api.log 2>&1 &
           pnpm --filter @vana-dash/frontend exec vite --port 5174 --strictPort > vite.log 2>&1 &
