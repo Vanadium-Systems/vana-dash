@@ -14,6 +14,7 @@ import { getCompany } from '../shared/lib/company.js'
 import { listActiveWatchRules, listEligibilityCheckedNoticeIds, upsertTenderOpportunities } from '../modules/tenders/service.js'
 import type { NormalizedTenderRow } from '../modules/tenders/types.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
+import { classifySyncFailure } from '../shared/lib/failure-codes.js'
 import { type LocalizedText, tl, tr, trFor } from '../shared/lib/i18n.js'
 
 /**
@@ -70,7 +71,7 @@ async function fetchSourceIsolated(slug: string, label: string, fetcher: () => P
     console.error(`[tender-watch-sync] fetch ${label} eșuat:`, err)
     const ruleId = await ensureAlertRule(`tender_watch.${slug}_fetch_failed`, tr('alerts.rules.tendersUnavailable', { label }), 'warning')
     // email: false — cerere Stefan (2026-09-14): doar alertă în-app + push pt. licitații, fără email.
-    await raiseAlert(ruleId, tl('alerts.jobs.tendersFetchFailed', { label, err: String(err) }), { severity: 'warning', url: '/tenders', email: false })
+    await raiseAlert(ruleId, tl('alerts.jobs.tendersFetchFailed', { label, code: classifySyncFailure(String(err)) }), { severity: 'warning', url: '/tenders', email: false })
     return []
   }
 }

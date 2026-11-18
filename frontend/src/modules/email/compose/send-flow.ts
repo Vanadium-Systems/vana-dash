@@ -2,7 +2,7 @@ import { toast } from 'sonner'
 import { api, ApiError } from '@/shared/lib/api'
 import type { EmailScheduledSend, EmailSendOutcome } from '@/shared/lib/types'
 import { t } from '@/shared/lib/i18n'
-import { toastError } from '@/shared/lib/errors'
+import { failureCodeLine, failureText, toastError } from '@/shared/lib/errors'
 
 const POLL_MS = 2000
 const MAX_POLLS = 20
@@ -69,8 +69,9 @@ export function trackScheduledSend(scheduled: EmailScheduledSend, handlers: Send
       }
       if (undone || status.status === 'cancelled') return
       if (status.status === 'failed') {
-        toast.error(t('email:send.failed', { reason: status.error ?? '' }), {
+        toast.error(t('email:send.failed', { reason: status.errorCode ? failureText(status.errorCode) : '' }), {
           id: toastId,
+          description: status.errorCode ? failureCodeLine(status.errorCode) : undefined,
           duration: FAILURE_TOAST_MS,
           closeButton: true,
           action: status.draftId

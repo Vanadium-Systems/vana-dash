@@ -553,7 +553,16 @@
     "useRecordPayments": "An issued invoice is settled through payments, not by setting its payment status"
   },
   "codes": {
+    "EMAIL_RECIPIENT_REJECTED": "The recipient address was rejected or has unsubscribed. Check the address.",
+    "EMAIL_SEND_AUTH_FAILED": "The email service refused the credentials. Check the key or the mailbox password.",
+    "EMAIL_SEND_FAILED": "The email did not go out. Try again; if it keeps happening, tell us the code.",
+    "EMAIL_SEND_RATE_LIMITED": "Too many emails in a short time, or the daily limit was reached. Try again later.",
+    "EMAIL_SEND_TIMEOUT": "The email server did not answer in time. Try again.",
     "INTERNAL": "Internal server error. Try again in a minute.",
+    "SYNC_AUTH_FAILED": "The platform refused access. Check the key or authorize the connection again.",
+    "SYNC_FAILED": "The sync failed. The technical details are in the log.",
+    "SYNC_TIMEOUT": "The platform did not answer in time.",
+    "SYNC_UNREACHABLE": "The platform cannot be reached.",
     "VALIDATION_FAILED": "The data sent is not valid. Check the fields.",
     "BAD_REQUEST": "The request is not valid. Check the data and try again.",
     "UNAUTHORIZED": "Your session has expired. Sign in again.",

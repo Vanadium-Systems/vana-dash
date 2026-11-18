@@ -23,6 +23,7 @@ import { StatePill } from '@/shared/components/ui/state-pill'
 import { Select } from '@/shared/components/ui/select'
 import { formatNumber, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { failureCodeLine, failureText } from '@/shared/lib/errors'
 import { useMe } from '@/shared/hooks/use-me'
 import { memberNameMap, useTeamMembers } from '@/shared/hooks/use-team'
 
@@ -303,7 +304,11 @@ function SendDetailDialog({ send, onClose }: { send: EmailSend; onClose: () => v
               <EngagementBadges send={send} />
             </span>
           </div>
-          {send.errorMessage ? <p className="text-xs text-destructive">{send.errorMessage}</p> : null}
+          {send.errorCode ? (
+            <p className="text-xs text-destructive">
+              {failureText(send.errorCode)} <span className="text-muted-foreground">{failureCodeLine(send.errorCode)}</span>
+            </p>
+          ) : null}
           <div className="max-h-[60vh] overflow-auto rounded-md border p-4">
             {send.bodyHtml ? (
               <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(send.bodyHtml) }} />

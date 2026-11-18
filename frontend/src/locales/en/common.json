@@ -297,6 +297,11 @@
     "unexpected": "Something went wrong. Try again.",
     "codeLine": "Code: {{code}}",
     "codes": {
+      "EMAIL_RECIPIENT_REJECTED": "The recipient address was rejected or has unsubscribed. Check the address.",
+      "EMAIL_SEND_AUTH_FAILED": "The email service refused the credentials. Check the key or the mailbox password.",
+      "EMAIL_SEND_FAILED": "The email did not go out. Try again; if it keeps happening, tell us the code.",
+      "EMAIL_SEND_RATE_LIMITED": "Too many emails in a short time, or the daily limit was reached. Try again later.",
+      "EMAIL_SEND_TIMEOUT": "The email server did not answer in time. Try again.",
       "IMPORT_NEEDS_REASSIGN": "You cannot assign prospects to other colleagues.",
       "IMPORT_NO_NAME_COLUMN": "No column with the company name or tax ID was found.",
       "IMPORT_TOKEN_EXPIRED": "The preview expired. Upload the file again.",
@@ -306,7 +311,11 @@
       "PROFORMA_ALREADY_CONVERTED": "The proforma was already turned into an invoice.",
       "PROFORMA_CANCELLED": "The proforma is cancelled.",
       "PROFORMA_INVOICED": "The proforma is already invoiced.",
-      "PROFORMA_NOT_ISSUED": "The proforma is still a draft. Issue it first."
+      "PROFORMA_NOT_ISSUED": "The proforma is still a draft. Issue it first.",
+      "SYNC_AUTH_FAILED": "The platform refused access. Check the key or authorize the connection again.",
+      "SYNC_FAILED": "The sync failed. The technical details are in the log.",
+      "SYNC_TIMEOUT": "The platform did not answer in time.",
+      "SYNC_UNREACHABLE": "The platform cannot be reached."
     }
   },
   "kpi": {

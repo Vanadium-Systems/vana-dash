@@ -20,7 +20,7 @@ import { OutreachMailboxesSummary } from './OutreachMailboxesSummary'
 import { isFailureStatus, STATUS_LABEL, STATUS_TONE } from './send-status'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
-import { toastError } from '@/shared/lib/errors'
+import { failureLine, toastError } from '@/shared/lib/errors'
 
 const RECENT_BATCHES_LIMIT = 5
 
@@ -401,7 +401,9 @@ export function BulkSendTab() {
                       <TableCell priority="md">
                         <EngagementBadges send={r} />
                       </TableCell>
-                      <TableCell priority="md" className="text-xs text-muted-foreground">{r.errorMessage ?? '—'}</TableCell>
+                      <TableCell priority="md" className="text-xs text-muted-foreground">
+                        {r.errorCode ? failureLine(r.errorCode) : '—'}
+                      </TableCell>
                     </TableRow>
                   ))}
                   {skippedRows.map(({ email, key }) => (

@@ -2,6 +2,7 @@ import cron from '../shared/lib/cron.js'
 import { fetchAndStoreLatestBnrRates } from '../shared/lib/bnr.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
 import { getOpsJobToggles } from '../modules/settings/service.js'
+import { classifySyncFailure } from '../shared/lib/failure-codes.js'
 import { tl, tr } from '../shared/lib/i18n.js'
 
 // Sprint D, Track 2: cron zilnic necondiționat pt. EUR+USD — până acum
@@ -41,7 +42,7 @@ export async function runBnrDailyFetchJob(): Promise<void> {
     const ruleId = await ensureAlertRule('bnr_feed.fetch_failed', tr('alerts.rules.bnrFeed'), 'warning')
     // email: false — consecvent cu tender-watch-sync.ts și accounting-alerts.ts
     // (bank_sync_failed): blipuri de sursă externă rămân doar alertă în-app + push.
-    await raiseAlert(ruleId, tl('alerts.jobs.bnrFailed', { err: String(err) }), {
+    await raiseAlert(ruleId, tl('alerts.jobs.bnrFailed', { code: classifySyncFailure(String(err)) }), {
       severity: 'warning',
       url: '/financials',
       email: false,

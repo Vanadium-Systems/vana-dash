@@ -9,6 +9,7 @@ import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import { currentTenantId, runAsTenant, withRlsBypass } from '../../shared/lib/tenancy.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { httpError } from '../../shared/lib/http-error.js'
+import { classifySendFailure } from '../../shared/lib/failure-codes.js'
 import { inlineStoredImages } from './images-service.js'
 import { mirrorOutboundMessage, prepareForward, prepareReply, recordForwardSent, recordReplySent } from './inbound-service.js'
 import { assertCanDeliver, OUTREACH_IDENTITY } from './send-guard.js'
@@ -261,6 +262,7 @@ async function claim(sendId: string): Promise<SendRow | null> {
 
 /** A failed send goes back into a draft, so the person can open it, fix it and send again. */
 async function markFailed(row: SendRow, payload: ScheduledPayload, reason: string): Promise<void> {
+  console.error(`[email] scheduled send ${row.id} failed: ${reason}`)
   let draftId = payload.draftId
   if (row.sentByUserId) {
     try {
@@ -465,7 +467,7 @@ export async function cancelScheduledSend(me: SessionUser, sendId: string): Prom
 
 export interface SendStatus {
   status: SendRow['status']
-  error: string | null
+  errorCode: string | null
   /** The thread the message landed on, once sent. */
   threadId: string | null
   draftId: string | null
@@ -475,7 +477,7 @@ export async function getSendStatus(me: SessionUser, sendId: string): Promise<Se
   const [row] = await db
     .select({
       status: emailSends.status,
-      error: emailSends.errorMessage,
+      errorMessage: emailSends.errorMessage,
       resendEmailId: emailSends.resendEmailId,
       payload: emailSends.payload,
     })
@@ -491,5 +493,5 @@ export async function getSendStatus(me: SessionUser, sendId: string): Promise<Se
       .where(eq(emailMessages.resendEmailId, row.resendEmailId))
     threadId = message?.threadId ?? null
   }
-  return { status: row.status, error: row.error, threadId, draftId: payload?.draftId ?? null }
+  return { status: row.status, errorCode: classifySendFailure(row.errorMessage), threadId, draftId: payload?.draftId ?? null }
 }

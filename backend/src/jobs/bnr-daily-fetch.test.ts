@@ -70,7 +70,8 @@ describe('runBnrDailyFetchJob', () => {
     const raised = await db.select().from(alerts).where(eq(alerts.ruleId, rule!.id))
     expect(raised).toHaveLength(1)
     expect(raised[0]?.severity).toBe('warning')
-    expect(raised[0]?.message).toContain('BNR jos')
+    expect(raised[0]?.message).toContain('SYNC_FAILED')
+    expect(raised[0]?.message).not.toContain('BNR jos')
   })
 
   it('nu re-emite cât timp alerta anterioară e încă activă (dedup)', async () => {
