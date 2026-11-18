@@ -206,6 +206,16 @@ export class ProspectExistsError extends Error {
     super('PROSPECT_EXISTS')
   }
 }
+/** uq_prospects_cif_normalized (migration 0109) refuses a second live prospect on the same normalized CIF; idx_prospects_cif
+ *  refuses the same raw text, deleted rows included, and fires first when both apply. */
+const CIF_UNIQUE_INDEXES = ['uq_prospects_cif_normalized', 'idx_prospects_cif']
+
+export function isCifConflict(err: unknown): boolean {
+  const e = err as { code?: string; constraint_name?: string; cause?: { code?: string; constraint_name?: string } } | null
+  const hit = (x: { code?: string; constraint_name?: string } | null | undefined) => x?.code === '23505' && CIF_UNIQUE_INDEXES.includes(x.constraint_name ?? '')
+  return hit(e) || hit(e?.cause)
+}
+
 export class LostReasonRequiredError extends Error {
   readonly code = 'LOST_REASON_REQUIRED'
 }
@@ -669,9 +679,23 @@ export async function findByCif(cif: string) {
   const [existing] = await db
     .select({ id: prospects.id, name: prospects.name, assignedUserId: prospects.assignedUserId })
     .from(prospects)
-    .where(and(isNull(prospects.deletedAt), sql`${prospects.cifNormalized} = upper(regexp_replace(${cif}, '^[[:space:]]*RO|[[:space:]]', '', 'gi'))`))
+    // Same predicate as uq_prospects_cif_normalized, so a hit here is exactly what the index would refuse.
+    .where(and(isNull(prospects.deletedAt), isNull(prospects.mergedIntoId), sql`${prospects.cifNormalized} <> '' AND ${prospects.cifNormalized} = upper(regexp_replace(${cif}, '^[[:space:]]*RO|[[:space:]]', '', 'gi'))`))
     .limit(1)
   return existing
+}
+
+/** Runs a write that may take a CIF; a lost race on the unique index answers like the pre-check does. */
+async function withCifConflict<T>(cif: string | null | undefined, write: () => Promise<T>): Promise<T> {
+  try {
+    return await write()
+  } catch (err) {
+    if (cif?.trim() && isCifConflict(err)) {
+      const existing = await findByCif(cif)
+      if (existing) throw new ProspectExistsError({ id: existing.id, name: existing.name, ownerName: await ownerNameOf(existing.assignedUserId) })
+    }
+    throw err
+  }
 }
 
 export async function createProspect(me: Me, input: CreateInput) {
@@ -680,7 +704,7 @@ export async function createProspect(me: Me, input: CreateInput) {
     if (existing) throw new ProspectExistsError({ id: existing.id, name: existing.name, ownerName: await ownerNameOf(existing.assignedUserId) })
   }
   const pack = await countryPack()
-  const row = await db.transaction(async (tx) => {
+  const row = await withCifConflict(input.cif, () => db.transaction(async (tx) => {
     const [created] = await tx
       .insert(prospects)
       .values({
@@ -732,7 +756,7 @@ export async function createProspect(me: Me, input: CreateInput) {
     if (points.length) await tx.insert(prospectContactPoints).values(points.map((p) => ({ ...p, prospectId: created.id, personId, isPrimary: true })))
     await tx.insert(prospectStageEvents).values({ prospectId: created.id, fromStatus: null, toStatus: created.status, changedByUserId: me.id, changedAt: new Date() })
     return created
-  })
+  }))
   await refreshScore(row.id)
   await recordAudit({ action: 'prospect.creat', entityType: 'prospect', entityId: row.id, changes: { name: [null, row.name] } })
   emitProspectEvent('prospect.created', { prospectId: row.id, via: 'manual' })
@@ -807,7 +831,7 @@ export async function updateProspect(me: Me, id: string, input: UpdateInput) {
   }
 
   const { status, lostReason, revenue, profit, debt, equity, cash, receivables, inventory, valueAmount, expectedCloseAt, ...rest } = input
-  const row = await db.transaction(async (tx) => {
+  const row = await withCifConflict(input.cif, () => db.transaction(async (tx) => {
     const [updated] = await tx
       .update(prospects)
       .set({
@@ -829,7 +853,7 @@ export async function updateProspect(me: Me, id: string, input: UpdateInput) {
       .returning()
     if (kind && status) await changeStatus(tx, existing, status, kind, me.id, lostReason)
     return updated
-  })
+  }))
 
   const after = { ...existing, ...row, status: status ?? existing.status, lostReason: kind === 'lost' ? (lostReason ?? null) : (row?.lostReason ?? null) }
   const changes: Record<string, [unknown, unknown]> = {}

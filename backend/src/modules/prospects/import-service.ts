@@ -20,7 +20,7 @@ import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { IMPORT_MAX_ROWS, type ImportDistribution } from './import-schema.js'
 import { RESEARCH_FIELDS, type ResearchField } from './research.js'
-import { InvalidAssigneeError, recalculateScores } from './service.js'
+import { InvalidAssigneeError, isCifConflict, recalculateScores } from './service.js'
 
 /**
  * Parsare tolerantă la formatul fișierelor de prospectare (port dintr-un script Python intern) —
@@ -811,6 +811,8 @@ export async function commitImport(me: Pick<SessionUser, 'id' | 'features'>, tok
   let roundRobin = 0
   const createdIds: string[] = []
   const updatedIds: string[] = []
+  // Rows that lost a race on uq_prospects_cif_normalized: counted as duplicates, the rest of the batch goes on.
+  const conflicted = new Set<string>()
 
   for (let i = 0; i < work.length; i += BATCH_SIZE) {
     const batch = work.slice(i, i + BATCH_SIZE)
@@ -880,7 +882,14 @@ export async function commitImport(me: Pick<SessionUser, 'id' | 'features'>, tok
           const id = r.prospectId!
           const patch = r.patch!
           if (Object.keys(patch.set).length) {
-            await tx.update(prospects).set({ ...patch.set, ...updatedByUserId(), updatedAt: now }).where(eq(prospects.id, id))
+            try {
+              // A savepoint, so a CIF taken by someone else meanwhile does not abort the whole batch.
+              await tx.transaction((sp) => sp.update(prospects).set({ ...patch.set, ...updatedByUserId(), updatedAt: now }).where(eq(prospects.id, id)))
+            } catch (err) {
+              if (!isCifConflict(err)) throw err
+              conflicted.add(id)
+              continue
+            }
           }
           let personId: string | null = null
           if (patch.person) {
@@ -893,7 +902,25 @@ export async function commitImport(me: Pick<SessionUser, 'id' | 'features'>, tok
         }
       }
 
-      if (drafts.prospects.length) await tx.insert(prospects).values(drafts.prospects)
+      if (drafts.prospects.length) {
+        const inserted = await tx
+          .insert(prospects)
+          .values(drafts.prospects)
+          // No target: both CIF indexes count (idx_prospects_cif also sees deleted rows) and the only other unique key is the fresh id.
+          .onConflictDoNothing()
+          .returning({ id: prospects.id })
+        const kept = new Set(inserted.map((r) => r.id))
+        const lost = new Set(drafts.prospects.flatMap((d) => (kept.has(d.id!) ? [] : [d.id!])))
+        if (lost.size) {
+          const live = <T extends { prospectId: string }>(rows: T[]) => rows.filter((r) => !lost.has(r.prospectId))
+          drafts.people = live(drafts.people)
+          drafts.points = live(drafts.points)
+          drafts.stages = live(drafts.stages)
+          drafts.notes = live(drafts.notes)
+          for (const id of lost) conflicted.add(id)
+          for (const list of [batchNew, batchTouched]) list.splice(0, list.length, ...list.filter((id) => !lost.has(id)))
+        }
+      }
       if (drafts.people.length) await tx.insert(prospectPeople).values(drafts.people)
       if (drafts.points.length) await tx.insert(prospectContactPoints).values(drafts.points)
       if (drafts.stages.length) await tx.insert(prospectStageEvents).values(drafts.stages)
@@ -902,13 +929,13 @@ export async function commitImport(me: Pick<SessionUser, 'id' | 'features'>, tok
     await recalculateScores(batchTouched)
     for (const prospectId of batchNew) emitProspectEvent('prospect.created', { prospectId, via: 'import', importToken: token })
     createdIds.push(...batchNew)
-    updatedIds.push(...batch.filter((r) => r.action === 'update').map((r) => r.prospectId!))
+    updatedIds.push(...batch.filter((r) => r.action === 'update' && !conflicted.has(r.prospectId!)).map((r) => r.prospectId!))
   }
 
   const result = {
     created: createdIds.length,
     updated: updatedIds.length,
-    skipped: plan.filter((r) => r.action === 'skip').length,
+    skipped: plan.filter((r) => r.action === 'skip').length + conflicted.size,
     errors: plan.filter((r) => r.action === 'error').map((r) => ({ line: r.parsed.line, code: r.error! })),
   }
   await recordAudit({
