@@ -1,4 +1,5 @@
 import { useState, useSyncExternalStore } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
@@ -22,6 +23,7 @@ import { t } from '@/shared/lib/i18n'
 // „Renunță" sau salvarea reușită îl închid.
 export function SaveShareDialog() {
   const confirm = useConfirm()
+  const navigate = useNavigate()
   const saves = useSyncExternalStore(subscribeSaves, getSavesSnapshot)
   const [trail, setTrail] = useState<PickerCrumb[]>([{ id: null, name: t('common:nav.archive') }])
   const [failedIds, setFailedIds] = useState<number[]>([])
@@ -48,11 +50,16 @@ export function SaveShareDialog() {
       }
     }
     setSaving(false)
+    const folderId = trail[trail.length - 1]?.id ?? null
     if (failed.length) {
       setFailedIds(failed)
       toast.error(t('archive:save.someFailed', { failed: failed.length, total: saves.length }))
     }
-    if (uploaded > 0) toast.success(uploaded === 1 ? t('archive:save.saved') : t('archive:save.savedMany', { count: uploaded }))
+    if (uploaded > 0) {
+      toast.success(uploaded === 1 ? t('archive:save.saved') : t('archive:save.savedMany', { count: uploaded }), {
+        action: { label: t('common:actions.view'), onClick: () => navigate(folderId ? `/archive?folder=${folderId}` : '/archive') },
+      })
+    }
   }
 
   function discard() {

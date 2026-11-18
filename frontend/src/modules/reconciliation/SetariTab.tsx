@@ -16,6 +16,7 @@ import type { BankAccount, VanagreenExtensionLogEntry, VanagreenSettings } from 
 import { intlTag } from '@/shared/lib/format'
 import { tRich } from '@/shared/lib/i18n-nodes'
 import { t } from '@/shared/lib/i18n'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { openExternal } from '@/shared/lib/open-file'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { toastError } from '@/shared/lib/errors'
@@ -262,7 +263,7 @@ function VanagreenExtensionCard() {
           {log.isPending ? (
             <ListSkeleton rows={3} />
           ) : !log.data?.length ? (
-            <p className="text-sm text-muted-foreground">{t('reconciliation:extension.none')}</p>
+            <EmptyState kind="new" title={t('reconciliation:extension.none')} className="py-6" />
           ) : (
             <Table>
               <TableHeader>

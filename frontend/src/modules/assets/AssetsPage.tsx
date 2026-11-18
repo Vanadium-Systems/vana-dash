@@ -20,6 +20,7 @@ import { StocksBotTab } from './bot/StocksBotTab'
 import { OrderDialog } from './OrderDialog'
 import { CATEGORY_LABEL, formatUsd, type AssetCategory, type IndexQuote, type PaperOrderRow, type PortfolioPosition, type SearchResult, type WatchEntry, type WatchPrice } from './types'
 import { t } from '@/shared/lib/i18n'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { tNodes } from '@/shared/lib/i18n-nodes'
 import { toastError } from '@/shared/lib/errors'
 
@@ -407,7 +408,7 @@ export function AssetsPage() {
               <CardContent className="pt-6">
                 <h2 className="mb-2 text-sm font-semibold">{t('crypto:orders.recent')}</h2>
                 {!orders.data?.length ? (
-                  <p className="text-sm text-muted-foreground">{t('crypto:orders.none')}</p>
+                  <EmptyState kind="new" title={t('crypto:orders.none')} className="py-6" />
                 ) : (
                   <ul className="space-y-1.5 tnum text-xs" data-testid="assets-orders-list">
                     {orders.data.slice(0, 10).map((order) => (

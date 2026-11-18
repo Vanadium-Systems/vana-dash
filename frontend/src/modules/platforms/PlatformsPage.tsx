@@ -152,7 +152,7 @@ export function PlatformsPage() {
             {syncLog.isPending ? (
               <ListSkeleton rows={3} />
             ) : !syncLog.data?.length ? (
-              <p className="text-sm text-muted-foreground">{t('platforms:log.empty')}</p>
+              <EmptyState kind="new" title={t('platforms:log.empty')} className="py-6" />
             ) : (
               <Table>
                 <TableHeader>

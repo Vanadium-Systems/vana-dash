@@ -12,6 +12,7 @@ import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { toastError } from '@/shared/lib/errors'
@@ -227,7 +228,7 @@ export function RecurringExpensesSection() {
           ))}
         </div>
       ) : (
-        editingId === null && <p className="text-xs text-muted-foreground">{t('accounting:recurring.empty')}</p>
+        editingId === null && <EmptyState kind="new" title={t('accounting:recurring.empty')} className="py-6" />
       )}
 
       {editingId !== null && (

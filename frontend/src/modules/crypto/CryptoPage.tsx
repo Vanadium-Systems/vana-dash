@@ -456,7 +456,7 @@ export function CryptoPage() {
                 <CardContent className="pt-6">
                   <h2 className="mb-2 text-sm font-semibold">{t('crypto:orders.recent')}</h2>
                   {!orders.data?.length ? (
-                    <p className="text-sm text-muted-foreground">{t('crypto:orders.none')}</p>
+                    <EmptyState kind="new" title={t('crypto:orders.none')} className="py-6" />
                   ) : (
                     <ul className="space-y-1.5 tnum text-xs" data-testid="crypto-orders-list">
                       {orders.data.slice(0, 10).map((order) => (

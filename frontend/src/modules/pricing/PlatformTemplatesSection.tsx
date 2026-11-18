@@ -11,6 +11,7 @@ import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { t } from '@/shared/lib/i18n'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { BASE_CURRENCY } from '@/shared/lib/locale'
 import { toastError } from '@/shared/lib/errors'
 
@@ -167,7 +168,7 @@ export function PlatformTemplatesSection({ platformId }: { platformId: string })
           ))}
         </div>
       ) : (
-        editingId === null && <p className="text-xs text-muted-foreground">{t('pricing:templates.empty')}</p>
+        editingId === null && <EmptyState kind="new" title={t('pricing:templates.empty')} className="py-6" />
       )}
 
       {editingId !== null && (

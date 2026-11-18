@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
@@ -85,6 +86,7 @@ export function contractNumberConflict(
 
 export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialogProps) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { can } = useMe()
   const [form, setForm] = useState({
     name: '',
@@ -357,9 +359,13 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
         ? api.patch<BillingClient>(`/api/invoicing/clients/${client.id}`, body)
         : api.post<BillingClient>('/api/invoicing/clients', body)
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: ['billing-clients'] })
-      toast.success(client ? t('accounting:clientForm.updated') : t('accounting:clientForm.added'))
+      // Only the id is captured: the toast outlives this dialog, and ClientsTab opens the card from `?client=`.
+      toast.success(
+        client ? t('accounting:clientForm.updated') : t('accounting:clientForm.added'),
+        client ? undefined : { action: { label: t('common:actions.view'), onClick: () => navigate(`/clients?tab=activi&client=${saved.id}`) } },
+      )
       onOpenChange(false)
     },
     onError: (err) => toastError(err),

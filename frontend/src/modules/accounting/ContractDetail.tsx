@@ -14,6 +14,7 @@ import { AddendumFormDialog } from './AddendumFormDialog'
 import { SignDocumentDialog } from './SignDocumentDialog'
 import { intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 import { openFile } from '@/shared/lib/open-file'
 import { toastError } from '@/shared/lib/errors'
 
@@ -163,7 +164,7 @@ export function ContractDetail({ clientId }: { clientId: string }) {
               {documents.isPending ? (
                 <ListSkeleton rows={3} />
               ) : !documents.data?.length ? (
-                <p className="text-sm text-muted-foreground">{t('accounting:contracts.noDocuments')}</p>
+                <EmptyState kind="new" title={t('accounting:contracts.noDocuments')} className="py-6" />
               ) : (
                 <Table>
                   <TableHeader>
@@ -224,7 +225,7 @@ export function ContractDetail({ clientId }: { clientId: string }) {
               {addenda.isPending ? (
                 <ListSkeleton rows={3} />
               ) : !addenda.data?.length ? (
-                <p className="text-sm text-muted-foreground">{t('accounting:contracts.noAddenda')}</p>
+                <EmptyState kind="new" title={t('accounting:contracts.noAddenda')} className="py-6" />
               ) : (
                 <Table>
                   <TableHeader>
