@@ -555,7 +555,16 @@
     "useRecordPayments": "Factura emisă se încasează prin plăți, nu prin starea de plată"
   },
   "codes": {
+    "EMAIL_RECIPIENT_REJECTED": "Adresa destinatarului a fost respinsă sau e dezabonată. Verifică adresa.",
+    "EMAIL_SEND_AUTH_FAILED": "Serviciul de email a refuzat autentificarea. Verifică cheia sau parola cutiei.",
+    "EMAIL_SEND_FAILED": "Emailul nu a plecat. Încearcă din nou; dacă se repetă, spune-ne codul.",
+    "EMAIL_SEND_RATE_LIMITED": "Prea multe emailuri într-un timp scurt sau plafonul zilnic a fost atins. Încearcă mai târziu.",
+    "EMAIL_SEND_TIMEOUT": "Serverul de email nu a răspuns la timp. Încearcă din nou.",
     "INTERNAL": "Eroare internă pe server. Încearcă din nou peste un minut.",
+    "SYNC_AUTH_FAILED": "Platforma a refuzat accesul. Verifică cheia sau reautorizează conexiunea.",
+    "SYNC_FAILED": "Sincronizarea a eșuat. Detaliile tehnice sunt în log.",
+    "SYNC_TIMEOUT": "Platforma nu a răspuns la timp.",
+    "SYNC_UNREACHABLE": "Platforma nu poate fi contactată.",
     "VALIDATION_FAILED": "Datele trimise nu sunt valide. Verifică câmpurile.",
     "BAD_REQUEST": "Cererea nu e validă. Verifică datele și încearcă din nou.",
     "UNAUTHORIZED": "Sesiunea a expirat. Intră din nou în cont.",

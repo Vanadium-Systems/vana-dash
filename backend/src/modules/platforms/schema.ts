@@ -88,7 +88,7 @@ export const SyncLogEntrySchema = z.object({
   id: z.string().uuid(),
   status: z.enum(['RUNNING', 'SUCCESS', 'FAILED']),
   recordsSync: z.number(),
-  errorMessage: z.string().nullable(),
+  errorCode: z.string().nullable(),
   startedAt: z.coerce.date(),
   finishedAt: z.coerce.date().nullable(),
 })

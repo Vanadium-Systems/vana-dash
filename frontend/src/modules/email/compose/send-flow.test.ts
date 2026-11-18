@@ -16,9 +16,10 @@ vi.mock('@/shared/lib/api', async (importOriginal) => {
 
 const { ApiError } = await import('@/shared/lib/api')
 const { trackScheduledSend } = await import('./send-flow')
+const { failureCodeLine, failureText } = await import('@/shared/lib/errors')
 
 const handlers = () => ({ onUndone: vi.fn(), onView: vi.fn(), onOpenDraft: vi.fn(), onSettled: vi.fn() })
-const outcome = (o: Partial<EmailSendOutcome>): EmailSendOutcome => ({ status: 'sent', error: null, threadId: null, draftId: null, ...o })
+const outcome = (o: Partial<EmailSendOutcome>): EmailSendOutcome => ({ status: 'sent', errorCode: null, threadId: null, draftId: null, ...o })
 
 function start(h = handlers()) {
   // The undo window is 10 s from "now".
@@ -102,12 +103,12 @@ describe('trackScheduledSend', () => {
   })
 
   it('shows a persistent error toast with an Open draft action on failure', async () => {
-    apiMock.get.mockResolvedValue(outcome({ status: 'failed', error: 'Mailbox full', draftId: 'd9' }))
+    apiMock.get.mockResolvedValue(outcome({ status: 'failed', errorCode: 'EMAIL_SEND_TIMEOUT', draftId: 'd9' }))
     const h = start()
     await vi.advanceTimersByTimeAsync(10_600)
     expect(toastMock.error).toHaveBeenCalledWith(
-      t('email:send.failed', { reason: 'Mailbox full' }),
-      expect.objectContaining({ id: 'send-s1', closeButton: true, action: expect.objectContaining({ label: t('email:send.openDraft') }) }),
+      t('email:send.failed', { reason: failureText('EMAIL_SEND_TIMEOUT') }),
+      expect.objectContaining({ id: 'send-s1', closeButton: true, description: failureCodeLine('EMAIL_SEND_TIMEOUT'), action: expect.objectContaining({ label: t('email:send.openDraft') }) }),
     )
     const action = toastMock.error.mock.calls[0]?.[1].action as { onClick: () => void }
     action.onClick()

@@ -44,6 +44,20 @@ function codeWorthShowing(err: unknown): string | null {
   return err.status >= 500 || /_(UNAVAILABLE|FAILED|UNREACHABLE)$/.test(err.code) ? err.code : null
 }
 
+/** The text and the code line of a failure the server kept as a code (a send, a sync run), from `common:errors.codes.<CODE>`. */
+export function failureText(code: string): string {
+  return overrideText(code) ?? t('common:errors.unexpected')
+}
+
+export function failureCodeLine(code: string): string {
+  return t('common:errors.codeLine', { code })
+}
+
+/** Both on one line, for a table cell. */
+export function failureLine(code: string): string {
+  return `${failureText(code)} ${failureCodeLine(code)}`
+}
+
 export function toastError(err: unknown, fallback?: string, options?: ToastOptions): void {
   const known = err instanceof Error
   const code = codeWorthShowing(err)

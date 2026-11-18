@@ -40,8 +40,17 @@ import { emitProspectEvent } from '../../shared/lib/prospect-events.js'
 import { pauseSequenceIfBouncing } from './sequences-service.js'
 import { tr } from '../../shared/lib/i18n.js'
 import { httpError } from '../../shared/lib/http-error.js'
+import { classifySendFailure } from '../../shared/lib/failure-codes.js'
 
 type EmailSendRow = typeof emailSends.$inferSelect
+
+/** A send as the API shows it: the raw failure text stays in the row and the log, the answer has only the code. */
+export type EmailSendView = Omit<EmailSendRow, 'errorMessage'> & { errorCode: string | null }
+
+export function toSendView(row: EmailSendRow): EmailSendView {
+  const { errorMessage, ...rest } = row
+  return { ...rest, errorCode: classifySendFailure(errorMessage) }
+}
 
 // Volum sub 50/trimitere (decizie Stefan) — delay simplu între emailuri, fără coadă.
 const DELAY_BETWEEN_SENDS_MS = 200
@@ -297,6 +306,7 @@ export async function sendCampaignEmail(params: SendCampaignEmailParams): Promis
       sendStatus = 'sent'
     } else {
       await markMailboxError(mailbox.id, smtpRes.code)
+      console.error(`[email] SMTP send via mailbox ${mailbox.id} failed: ${smtpRes.code}`)
       result = { ok: false, error: smtpRes.code }
       if (smtpRes.code === 'SMTP_REJECTED') {
         sendStatus = 'bounced'
@@ -356,7 +366,7 @@ export interface BulkSendResult {
    *  trimis anterior), ca Stefan să vadă direct câți s-au dezabonat, nu doar un total ambiguu. */
   suppressed: number
   failed: number
-  results: EmailSendRow[]
+  results: EmailSendView[]
   /** Adresele exacte sărite/dezabonate — dedup și suprimare NU creează niciun rând în
    *  `email_sends` (nimic de trimis), deci fără astea, contorul de mai sus e tot ce vede Stefan
    *  ("Sărit: 3" fără să știe CARE 3) — bug raportat live: nu vedea deloc cui a trimis și cui nu
@@ -377,7 +387,7 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
   if (!template) throw httpError(400, 'TEMPLATE_NOT_FOUND')
 
   const batchId = randomUUID()
-  const results: EmailSendRow[] = []
+  const results: EmailSendView[] = []
   const skippedRecipients: string[] = []
   const suppressedRecipients: string[] = []
   const capBlockedRecipients: string[] = []
@@ -433,7 +443,7 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
         attachments,
       })
 
-      results.push(row)
+      results.push(toSendView(row))
       if (result.ok) sent++
       else failed++
     } catch (err) {
@@ -464,7 +474,7 @@ export async function bulkSend(me: SessionUser, input: z.infer<typeof BulkSendSc
             kind: 'bulk',
           })
           .returning()
-        if (row) results.push(row)
+        if (row) results.push(toSendView(row))
       } catch (insertErr) {
         // Eșec secundar (DB jos etc.) — nu blocăm bucla, doar logăm.
         console.error(`[email] bulk-send: insert de eroare eșuat pentru ${recipient.email}: ${String(insertErr)}`)
@@ -498,6 +508,7 @@ export async function updateSendStatusFromWebhook(
   status: DeliveryStatus,
   reason: string | null,
 ): Promise<void> {
+  if (reason) console.error(`[email] delivery event ${status} for Resend email ${emailId}: ${reason}`)
   const [updated] = await db
     .update(emailSends)
     .set({ status, errorMessage: reason, updatedAt: new Date() })
@@ -643,7 +654,7 @@ export async function listSends(me: SessionUser, query: z.infer<typeof SendsQuer
   // 2026-08-11 — Stefan nu vedea nicăieri cine s-a dezabonat (confirmat corect în DB, doar
   // invizibil în UI). Un singur query batched pt. toată pagina (regula #9 CLAUDE.md), nu per rând.
   const suppressed = await getSuppressedEmails(rows.map((r) => r.recipient))
-  const items = rows.map((r) => ({ ...r, isSuppressed: suppressed.has(r.recipient.trim().toLowerCase()) }))
+  const items = rows.map((r) => ({ ...toSendView(r), isSuppressed: suppressed.has(r.recipient.trim().toLowerCase()) }))
   return { items, total }
 }
 
@@ -769,7 +780,7 @@ export async function exportSendsCsv(me: SessionUser, query: z.infer<typeof Send
   const conditions = await buildSendFilterConditions(me, query)
   const rows = await db.select().from(emailSends).where(and(...conditions)).orderBy(desc(emailSends.createdAt)).limit(5000)
 
-  const header = ['data', 'sursa', 'de_la', 'catre', 'subiect', 'stare', 'deschideri', 'click-uri', 'dezabonat']
+  const header = ['data', 'sursa', 'de_la', 'catre', 'subiect', 'stare', 'cod_eroare', 'deschideri', 'click-uri', 'dezabonat']
   if (rows.length === 0) return header.join(',')
 
   const suppressed = await getSuppressedEmails(rows.map((r) => r.recipient))
@@ -781,6 +792,7 @@ export async function exportSendsCsv(me: SessionUser, query: z.infer<typeof Send
       r.recipient,
       r.subject,
       r.status,
+      classifySendFailure(r.errorMessage) ?? '',
       String(r.openCount),
       String(r.clickCount),
       suppressed.has(r.recipient.trim().toLowerCase()) ? 'da' : 'nu',

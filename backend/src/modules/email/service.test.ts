@@ -164,7 +164,8 @@ describe('bulkSend', () => {
     expect(result.results).toHaveLength(2)
     const failedRow = result.results.find((r) => r.recipient === 'broken@example.com')
     expect(failedRow?.status).toBe('failed')
-    expect(failedRow?.errorMessage).toBe('Resend a răspuns cu HTTP 500')
+    expect(failedRow?.errorCode).toBe('EMAIL_SEND_FAILED')
+    expect(failedRow).not.toHaveProperty('errorMessage')
   })
 
   it('groups every row of one bulk send under the same batchId, distinct from single sends', async () => {

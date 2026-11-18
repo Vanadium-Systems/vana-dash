@@ -6,6 +6,7 @@ import { db } from '../shared/db/client.js'
 import { platforms } from '../shared/db/schema/index.js'
 import { decryptField } from '../shared/lib/crypto.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
+import { classifySyncFailure } from '../shared/lib/failure-codes.js'
 import { tl, tr } from '../shared/lib/i18n.js'
 
 // Monitor de uptime propriu — Stefan, 2026-07-25: UptimeRobot verifică deja doar URL-ul
@@ -53,8 +54,9 @@ export async function checkUptime(): Promise<void> {
     try {
       const site = await checkSite(platform.apiUrl)
       if (!site.ok) {
+        console.error(`[uptime-monitor] site ${platform.name} (${platform.id}) down: ${site.detail}`)
         const ruleId = await ensureAlertRule(`platform_uptime.${platform.id}.site`, tr('alerts.rules.siteDown', { name: platform.name }))
-        await raiseAlert(ruleId, tl('alerts.jobs.siteDown', { name: platform.name, detail: site.detail }), { url: '/platforms' })
+        await raiseAlert(ruleId, tl('alerts.jobs.siteDown', { name: platform.name, code: classifySyncFailure(site.detail) }), { url: '/platforms' })
       }
 
       const connector = getConnector(platform.type)

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from './api'
-import { errorCode, errorDetail, errorText, toastError } from './errors'
+import { errorCode, errorDetail, errorText, failureCodeLine, failureLine, failureText, toastError } from './errors'
 
 const toastMock = vi.hoisted(() => ({ error: vi.fn() }))
 vi.mock('sonner', () => ({ toast: toastMock }))
@@ -60,6 +60,34 @@ describe('toastError', () => {
   it('uses the fallback for something that is not an error', () => {
     toastError('boom', 'Salvarea n-a mers.')
     expect(toastMock.error).toHaveBeenCalledWith('Salvarea n-a mers.', undefined)
+  })
+})
+
+describe('failureText', () => {
+  it('shows the page text of a stored failure code and the code line', () => {
+    expect(failureText('EMAIL_SEND_TIMEOUT')).toBe('Serverul de email nu a răspuns la timp. Încearcă din nou.')
+    expect(failureCodeLine('EMAIL_SEND_TIMEOUT')).toBe('Cod: EMAIL_SEND_TIMEOUT')
+    expect(failureLine('SYNC_TIMEOUT')).toBe('Platforma nu a răspuns la timp. Cod: SYNC_TIMEOUT')
+  })
+
+  it('has a text for every code the server can store', () => {
+    for (const code of [
+      'EMAIL_SEND_RATE_LIMITED',
+      'EMAIL_SEND_AUTH_FAILED',
+      'EMAIL_RECIPIENT_REJECTED',
+      'EMAIL_SEND_TIMEOUT',
+      'EMAIL_SEND_FAILED',
+      'SYNC_TIMEOUT',
+      'SYNC_AUTH_FAILED',
+      'SYNC_UNREACHABLE',
+      'SYNC_FAILED',
+    ]) {
+      expect(failureText(code), code).not.toBe('Ceva n-a mers. Încearcă din nou.')
+    }
+  })
+
+  it('falls back on the generic text for a code without one', () => {
+    expect(failureText('SOMETHING_NEW')).toBe('Ceva n-a mers. Încearcă din nou.')
   })
 })
 

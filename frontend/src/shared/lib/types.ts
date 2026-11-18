@@ -127,7 +127,7 @@ export interface SyncLogEntry {
   id: string
   status: 'RUNNING' | 'SUCCESS' | 'FAILED'
   recordsSync: number
-  errorMessage: string | null
+  errorCode: string | null
   startedAt: string
   finishedAt: string | null
 }
@@ -873,7 +873,7 @@ export interface EmailSend {
   bodyText: string | null
   bodyHtml: string | null
   status: EmailSendStatus
-  errorMessage: string | null
+  errorCode: string | null
   batchId: string | null
   createdAt: string
   // 2026-08-11 — engagement (webhook Resend email.opened/email.clicked) — agregat, nu log
@@ -1144,7 +1144,7 @@ export interface EmailScheduledSend {
 
 export interface EmailSendOutcome {
   status: EmailSendStatus
-  error: string | null
+  errorCode: string | null
   threadId: string | null
   draftId: string | null
 }

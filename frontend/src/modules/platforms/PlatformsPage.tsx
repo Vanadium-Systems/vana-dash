@@ -17,7 +17,7 @@ import { PlatformOpsSignalsDialog } from './PlatformOpsSignalsDialog'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { formatDateTime, intlTag } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
-import { toastError } from '@/shared/lib/errors'
+import { failureLine, toastError } from '@/shared/lib/errors'
 
 export function PlatformsPage() {
   const confirm = useConfirm()
@@ -184,8 +184,8 @@ export function PlatformsPage() {
                       <TableCell priority="md">{entry.recordsSync}</TableCell>
                       <TableCell className="whitespace-nowrap">{new Date(entry.startedAt).toLocaleString(intlTag())}</TableCell>
                       <TableCell priority="lg" className="whitespace-nowrap">{entry.finishedAt ? new Date(entry.finishedAt).toLocaleString(intlTag()) : '—'}</TableCell>
-                      <TableCell priority="md" className="max-w-md truncate text-xs text-muted-foreground" title={entry.errorMessage ?? ''}>
-                        {entry.errorMessage ?? '—'}
+                      <TableCell priority="md" className="max-w-md truncate text-xs text-muted-foreground" title={entry.errorCode ? failureLine(entry.errorCode) : ''}>
+                        {entry.errorCode ? failureLine(entry.errorCode) : '—'}
                       </TableCell>
                     </TableRow>
                   ))}

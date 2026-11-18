@@ -69,6 +69,7 @@ export async function runConnectorSync(platform: PlatformRow): Promise<void> {
   } catch (err) {
     // Mesajul de eroare poate conține detalii de la platformă, dar niciodată API key-ul
     // (decryptField nu include cheia în erori, iar fetch-ul nu loghează headerele).
+    console.error(`[sync] platform ${platform.id} failed: ${String(err)}`)
     await db
       .update(syncLog)
       .set({ status: 'FAILED', errorMessage: String(err), finishedAt: new Date() })

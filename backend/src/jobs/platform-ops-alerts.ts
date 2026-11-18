@@ -2,6 +2,7 @@ import cron from '../shared/lib/cron.js'
 import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { getPlatformOpsSignals, listPlatforms, OpsSignalsFetchError } from '../modules/platforms/service.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
+import { classifySyncFailure } from '../shared/lib/failure-codes.js'
 import { tl, tr } from '../shared/lib/i18n.js'
 
 // Alertare pe semnalele de sănătate operațională per platformă (CPU/RAM/disk/erori/backup) —
@@ -37,9 +38,10 @@ export async function checkPlatformOpsAlerts(): Promise<void> {
       }
     } catch (err) {
       if (err instanceof OpsSignalsFetchError) {
+        console.error(`[platform-ops-alerts] Platforma "${platform.name}" (${platform.id}) nu răspunde: ${err.message}`)
         const key = `platform_ops.${platform.id}.unreachable`
         const ruleId = await ensureAlertRule(key, tr('alerts.rules.platformNotResponding', { name: platform.name }))
-        await raiseAlert(ruleId, tl('alerts.jobs.platformHealthFailed', { name: platform.name, message: err.message }), {
+        await raiseAlert(ruleId, tl('alerts.jobs.platformHealthFailed', { name: platform.name, code: classifySyncFailure(err.message) }), {
           url: '/platforms',
         })
         continue

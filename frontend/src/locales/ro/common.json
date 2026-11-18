@@ -297,6 +297,11 @@
     "unexpected": "Ceva n-a mers. Încearcă din nou.",
     "codeLine": "Cod: {{code}}",
     "codes": {
+      "EMAIL_RECIPIENT_REJECTED": "Adresa destinatarului a fost respinsă sau e dezabonată. Verifică adresa.",
+      "EMAIL_SEND_AUTH_FAILED": "Serviciul de email a refuzat autentificarea. Verifică cheia sau parola cutiei.",
+      "EMAIL_SEND_FAILED": "Emailul nu a plecat. Încearcă din nou; dacă se repetă, spune-ne codul.",
+      "EMAIL_SEND_RATE_LIMITED": "Prea multe emailuri într-un timp scurt sau plafonul zilnic a fost atins. Încearcă mai târziu.",
+      "EMAIL_SEND_TIMEOUT": "Serverul de email nu a răspuns la timp. Încearcă din nou.",
       "IMPORT_NEEDS_REASSIGN": "Nu poți repartiza prospecții altor colegi.",
       "IMPORT_NO_NAME_COLUMN": "Nu am găsit nicio coloană cu numele firmei sau cu CUI-ul.",
       "IMPORT_TOKEN_EXPIRED": "Previzualizarea a expirat. Încarcă fișierul din nou.",
@@ -306,7 +311,11 @@
       "PROFORMA_ALREADY_CONVERTED": "Proforma a fost deja transformată în factură.",
       "PROFORMA_CANCELLED": "Proforma e anulată.",
       "PROFORMA_INVOICED": "Proforma e deja facturată.",
-      "PROFORMA_NOT_ISSUED": "Proforma e încă ciornă. Emite-o întâi."
+      "PROFORMA_NOT_ISSUED": "Proforma e încă ciornă. Emite-o întâi.",
+      "SYNC_AUTH_FAILED": "Platforma a refuzat accesul. Verifică cheia sau reautorizează conexiunea.",
+      "SYNC_FAILED": "Sincronizarea a eșuat. Detaliile tehnice sunt în log.",
+      "SYNC_TIMEOUT": "Platforma nu a răspuns la timp.",
+      "SYNC_UNREACHABLE": "Platforma nu poate fi contactată."
     }
   },
   "kpi": {

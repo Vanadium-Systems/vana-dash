@@ -98,6 +98,7 @@ export async function runBankSync(account: BankAccountRow): Promise<void> {
       .set({ healthStatus: health.status, lastSyncAt: new Date(), updatedAt: new Date() })
       .where(eq(bankAccounts.id, account.id))
   } catch (err) {
+    console.error(`[bank-sync] account ${account.id} failed: ${String(err)}`)
     await db
       .update(syncLog)
       .set({ status: 'FAILED', errorMessage: String(err), finishedAt: new Date() })

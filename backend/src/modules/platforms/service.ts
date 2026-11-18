@@ -5,6 +5,7 @@ import type { PlatformOpsSignals } from '../../connectors/types.js'
 import { db } from '../../shared/db/client.js'
 import { platforms, syncLog } from '../../shared/db/schema/index.js'
 import { decryptField, encryptField } from '../../shared/lib/crypto.js'
+import { classifySyncFailure } from '../../shared/lib/failure-codes.js'
 import type { PlatformCreateSchema, PlatformUpdateSchema } from './schema.js'
 
 // Selecție explicită de coloane — apiKeyEnc nu părăsește niciodată service-ul.
@@ -123,7 +124,7 @@ export async function getPlatformOpsSignals(id: string): Promise<PlatformOpsSign
 }
 
 export async function listSyncLog(platformId: string, limit = 20) {
-  return db
+  const rows = await db
     .select({
       id: syncLog.id,
       status: syncLog.status,
@@ -136,4 +137,6 @@ export async function listSyncLog(platformId: string, limit = 20) {
     .where(eq(syncLog.platformId, platformId))
     .orderBy(desc(syncLog.startedAt))
     .limit(limit)
+  // The raw text stays in sync_log and the log; the answer has only the code.
+  return rows.map(({ errorMessage, ...entry }) => ({ ...entry, errorCode: classifySyncFailure(errorMessage) }))
 }

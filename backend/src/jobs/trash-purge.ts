@@ -38,6 +38,7 @@ export async function runTrashPurge(): Promise<{ batches: number; objects: numbe
       batches += done.batches
       objects += done.objects
     } catch (err) {
+      console.error(`[trash-purge] batch ${batchId} failed:`, err)
       errors.push(`${batchId}: ${String(err)}`)
     }
   }
