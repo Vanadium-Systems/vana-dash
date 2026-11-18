@@ -17,8 +17,8 @@ vi.mock('web-push', () => ({
 
 const { config } = await import('../config.js')
 const { db } = await import('../db/client.js')
-const { pushSubscriptions, users } = await import('../db/schema/index.js')
-const { closePushNotification, notifyPush, setPushPreferences } = await import('./push.js')
+const { deviceTokens, pushSubscriptions, users } = await import('../db/schema/index.js')
+const { closePushNotification, notifyPush, setFcmCloserForTests, setFcmSenderForTests, setPushPreferences } = await import('./push.js')
 
 const EMAIL = 'push-close-test@example.com'
 let personId = ''
@@ -33,6 +33,9 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  setFcmSenderForTests(null)
+  setFcmCloserForTests(null)
+  await db.delete(deviceTokens).where(eq(deviceTokens.ownerUserId, personId))
   await db.delete(pushSubscriptions).where(eq(pushSubscriptions.ownerUserId, personId))
   await db.delete(users).where(eq(users.id, personId))
 })
@@ -51,5 +54,26 @@ describe('closePushNotification', () => {
     const before = sent.length
     await closePushNotification(personId, 'chat-1')
     expect(sent).toHaveLength(before)
+  })
+
+  it('closes on the phone only what the phone was shown, and forgets a dead token', async () => {
+    const closed: { tokens: string[]; tag: string }[] = []
+    setFcmSenderForTests(async () => [])
+    setFcmCloserForTests(async (tokens, tag) => {
+      closed.push({ tokens, tag })
+      return tokens
+    })
+    await db.insert(deviceTokens).values({ token: 'close-test-phone', ownerUserId: personId })
+
+    await closePushNotification(personId, 'thread-never-shown')
+    expect(closed).toHaveLength(0)
+
+    await notifyPush('mesaje', { title: 'Acme', body: 'hi', tag: 'thread-1' }, [personId])
+    await closePushNotification(personId, 'thread-1')
+    await closePushNotification(personId, 'thread-1')
+    expect(closed).toEqual([{ tokens: ['close-test-phone'], tag: 'thread-1' }])
+
+    const left = await db.select().from(deviceTokens).where(eq(deviceTokens.ownerUserId, personId))
+    expect(left).toHaveLength(0)
   })
 })

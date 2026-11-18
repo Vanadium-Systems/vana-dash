@@ -184,18 +184,29 @@ async function notifyWebPush(eventType: PushEventType, payload: PushContent, use
 // a notification shown before it simply stays until clicked, as it did before.
 const SHOWN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const shownTags = new Map<string, number>()
+// Same idea for the APK: FCM throttles high-priority data messages that lead to nothing visible.
+const shownOnAndroid = new Map<string, number>()
 const shownKey = (userId: string, tag: string) => `${userId}\u0000${tag}`
+
+function takeShown(shown: Map<string, number>, key: string): boolean {
+  const shownAt = shown.get(key)
+  shown.delete(key)
+  return shownAt !== undefined && Date.now() - shownAt <= SHOWN_TTL_MS
+}
 
 /**
  * The person has read what a notification was about (a conversation, an email thread) on some
- * device: close it on their other browsers. Never throws.
+ * device: close it on their other browsers and phones. Never throws.
  */
 export async function closePushNotification(userId: string, tag: string): Promise<void> {
   const key = shownKey(userId, tag)
-  const shownAt = shownTags.get(key)
-  if (shownAt === undefined) return
-  shownTags.delete(key)
-  if (Date.now() - shownAt > SHOWN_TTL_MS) return
+  await Promise.all([
+    takeShown(shownTags, key) ? closeOnWeb(userId, tag) : undefined,
+    takeShown(shownOnAndroid, key) ? closeOnAndroid(userId, tag) : undefined,
+  ])
+}
+
+async function closeOnWeb(userId: string, tag: string): Promise<void> {
   try {
     if (!ensureVapid()) return
     const subs = await db
@@ -253,11 +264,28 @@ export async function sendTestPush(ownerUserId: string): Promise<{ sent: number;
 
 // Overridable în teste (vi.mock pe firebase-admin/messaging e greu din cauza init-ului global).
 export type FcmSender = (tokens: string[], payload: PushPayload) => Promise<string[]>
+export type FcmCloser = (tokens: string[], tag: string) => Promise<string[]>
 let fcmSender: FcmSender | null = null
+let fcmCloser: FcmCloser | null = null
 
 /** Test-only — injectează un sender fals și întoarce cel real la restore. */
 export function setFcmSenderForTests(sender: FcmSender | null): void {
   fcmSender = sender
+}
+
+export function setFcmCloserForTests(closer: FcmCloser | null): void {
+  fcmCloser = closer
+}
+
+// Self-cleaning, like 404/410 from web-push.
+function staleFcmTokens(tokens: string[], responses: { success: boolean; error?: { code?: string } }[]): string[] {
+  return responses.flatMap((r, i) => {
+    if (r.success) return []
+    const code = String(r.error?.code ?? '')
+    return code.includes('registration-token-not-registered') || code.includes('invalid-registration-token') || code.includes('mismatched-credential')
+      ? [tokens[i]!]
+      : []
+  })
 }
 
 async function getFcmSender(): Promise<FcmSender | null> {
@@ -281,20 +309,34 @@ async function getFcmSender(): Promise<FcmSender | null> {
         data: { url: payload.url ?? '' },
         android: { priority: 'high', notification: payload.tag ? { tag: payload.tag } : undefined },
       })
-      return res.responses.flatMap((r, i) => {
-        if (r.success) return []
-        // Token invalid/unregistered (messaging/registration-token-not-registered etc.) —
-        // self-cleaning, identic cu 404/410 de la web-push.
-        const code = String(r.error?.code ?? '')
-        return code.includes('registration-token-not-registered') || code.includes('invalid-registration-token') || code.includes('mismatched-credential')
-          ? [tokens[i]!]
-          : []
-      })
+      return staleFcmTokens(tokens, res.responses)
+    }
+    // Data only: the APK's messaging service handles it even when the app is closed. APKs older
+    // than 1.5 receive it and ignore it.
+    fcmCloser = async (tokens, tag) => {
+      if (tokens.length === 0) return []
+      const res = await messaging.sendEachForMulticast({ tokens, data: { type: 'close', tag }, android: { priority: 'high' } })
+      return staleFcmTokens(tokens, res.responses)
     }
     return fcmSender
   } catch (err) {
     console.error(`[push] inițializare FCM eșuată: ${String(err)}`)
     return null
+  }
+}
+
+async function closeOnAndroid(userId: string, tag: string): Promise<void> {
+  try {
+    if (!fcmCloser) await getFcmSender()
+    if (!fcmCloser) return
+    const rows = await db
+      .select({ token: deviceTokens.token })
+      .from(deviceTokens)
+      .where(and(eq(deviceTokens.ownerUserId, userId), isNull(deviceTokens.deletedAt)))
+    const stale = await fcmCloser(rows.map((row) => row.token), tag)
+    for (const token of stale) await db.delete(deviceTokens).where(eq(deviceTokens.token, token))
+  } catch (err) {
+    console.error(`[push] FCM close '${tag}' failed: ${String(err)}`)
   }
 }
 
@@ -305,7 +347,7 @@ async function notifyFcm(eventType: PushEventType, payload: PushContent, userIds
     const sender = await getFcmSender()
     if (!sender) return
     const rows = await db
-      .select({ token: deviceTokens.token, locale: users.locale })
+      .select({ token: deviceTokens.token, locale: users.locale, ownerUserId: deviceTokens.ownerUserId })
       .from(deviceTokens)
       .leftJoin(users, eq(users.id, deviceTokens.ownerUserId))
       .where(
@@ -319,9 +361,16 @@ async function notifyFcm(eventType: PushEventType, payload: PushContent, userIds
     // No device registered: the sender is still called once, with nothing to send to, as before.
     if (rows.length === 0) byLocale.set(null, [])
     for (const [locale, tokens] of byLocale) {
-      const invalid = await sender(tokens, payloadFor(payload, locale))
+      const content = payloadFor(payload, locale)
+      const invalid = await sender(tokens, content)
       for (const token of invalid) {
         await db.delete(deviceTokens).where(eq(deviceTokens.token, token))
+      }
+      if (!content.tag) continue
+      for (const row of rows) {
+        if (row.ownerUserId && row.locale === locale && !invalid.includes(row.token)) {
+          shownOnAndroid.set(shownKey(row.ownerUserId, content.tag), Date.now())
+        }
       }
     }
   } catch (err) {
