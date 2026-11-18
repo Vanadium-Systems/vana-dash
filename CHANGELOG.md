@@ -4,6 +4,19 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-18: Android notification close, voice note audio
+
+### Added
+- **Android app 1.5:** a data-only FCM message closes a notification read on another device, also while the app is not running. Older APKs ignore it.
+
+### Changed
+- **Voice notes:** recorded without echo cancellation and noise suppression, with automatic gain, at 64 kbps. Android's default call profile muffled the voice.
+
+### Fixed
+- **Email drafts:** a draft from a mailbox the person does not have answers `403 MAILBOX_FORBIDDEN` instead of 500, and the compose window says when there is no mailbox to send from.
+- **Server error toast:** it no longer points people without access to the Server page.
+- **Tests:** they can no longer send real pushes through a Firebase key in the local environment.
+
 ## 2026-11-18: One period menu, failure codes, unique CIF
 
 ### Added

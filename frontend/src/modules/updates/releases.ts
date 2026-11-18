@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-18T18:30:00Z',
+    title: {
+      ro: 'Note vocale mai clare și notificări care dispar singure',
+      en: 'Clearer voice notes and notifications that clear themselves',
+    },
+    body: {
+      ro: 'Notele vocale de pe telefon se aud mai clar. Notificarea de pe telefon dispare când citești mesajul sau emailul pe alt dispozitiv; pentru asta instalează aplicația nouă din Setări. Dacă nu ai nicio cutie de email, fereastra de compunere îți spune asta de la început.',
+      en: 'Voice notes recorded on a phone sound clearer. A phone notification now disappears when you read the message or email on another device; install the new app from Settings to get this. If you have no mailbox, the compose window tells you right away.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-18T16:45:00Z',
     title: {
       ro: 'Un singur meniu de perioadă și erori pe înțeles la trimiteri',
