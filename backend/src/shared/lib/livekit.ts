@@ -258,15 +258,54 @@ export function mayShareScreen(policy: ScreenSharePolicy, identity: string, isHo
   return isHost || policy.everyone || policy.allowed.includes(identity)
 }
 
-/** The room is not there yet (first to join) or the SFU is down: nobody but the host shares. */
-export async function readScreenSharePolicy(roomName: string): Promise<ScreenSharePolicy> {
+/** What the room's metadata holds; every participant reads it live. */
+export interface RoomState {
+  screenShare: ScreenSharePolicy
+  /** ISO; moved forward when the host extends the call. */
+  expiresAt?: string
+}
+
+function parseRoomState(metadata: string | undefined): RoomState {
+  let expiresAt: string | undefined
+  try {
+    const value = (JSON.parse(metadata || '{}') as { expiresAt?: unknown }).expiresAt
+    if (typeof value === 'string') expiresAt = value
+  } catch {
+    // An empty or foreign metadata reads as defaults.
+  }
+  return { screenShare: parseScreenSharePolicy(metadata), ...(expiresAt ? { expiresAt } : {}) }
+}
+
+/**
+ * The room as joiners need it: its state, and since when it runs (null: not created yet, the
+ * caller is the first in). The SFU down reads as defaults: nobody but the host shares.
+ */
+export async function readRoom(roomName: string): Promise<{ state: RoomState; startedAt: Date | null }> {
   const creds = await getLiveKitConfig()
-  if (!creds) return { everyone: false, allowed: [] }
+  if (!creds) return { state: parseRoomState(undefined), startedAt: null }
   try {
     const [room] = await makeRoomClient(creds).listRooms([roomName])
-    return parseScreenSharePolicy(room?.metadata)
+    const created = room?.creationTime ? Number(room.creationTime) : 0
+    return { state: parseRoomState(room?.metadata), startedAt: created > 0 ? new Date(created * 1000) : null }
   } catch {
-    return { everyone: false, allowed: [] }
+    return { state: parseRoomState(undefined), startedAt: null }
+  }
+}
+
+export async function readScreenSharePolicy(roomName: string): Promise<ScreenSharePolicy> {
+  return (await readRoom(roomName)).state.screenShare
+}
+
+/** The new closing time, for everyone in the room. A room nobody joined yet has nothing to tell. */
+export async function setRoomExpiry(roomName: string, expiresAt: Date): Promise<void> {
+  const creds = await getLiveKitConfig()
+  if (!creds) return
+  const { state } = await readRoom(roomName)
+  try {
+    await makeRoomClient(creds).updateRoomMetadata(roomName, JSON.stringify({ ...state, expiresAt: expiresAt.toISOString() }))
+  } catch (err) {
+    if (statusFromError(err) === 404) return
+    throw new LiveKitError(statusFromError(err), 'updateRoomMetadata')
   }
 }
 
@@ -275,8 +314,9 @@ export async function applyScreenSharePolicy(roomName: string, policy: ScreenSha
   const creds = await getLiveKitConfig()
   if (!creds) throw new LiveKitError(0, 'updateRoomMetadata')
   const client = makeRoomClient(creds)
+  const { state } = await readRoom(roomName)
   try {
-    await client.updateRoomMetadata(roomName, JSON.stringify({ screenShare: policy }))
+    await client.updateRoomMetadata(roomName, JSON.stringify({ ...state, screenShare: policy }))
     // One request per person, at most the room's 20.
     for (const participant of await client.listParticipants(roomName)) {
       const isHost = parseParticipantMetadata(participant.metadata).host

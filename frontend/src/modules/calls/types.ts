@@ -29,6 +29,8 @@ export interface CallTokenResponse {
   kind: CallKind
   conversationId: string | null
   guestKey: string | null
+  startedAt: string
+  expiresAt: string
 }
 
 export interface PublicCall {
@@ -45,4 +47,6 @@ export interface PublicCallTokenResponse {
   token: string
   roomName: string
   kind: CallKind
+  startedAt: string
+  expiresAt: string
 }

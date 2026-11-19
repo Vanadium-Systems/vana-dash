@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-19T13:00:00Z',
+    title: {
+      ro: 'Ceas în apel și „Prelungește”',
+      en: 'A clock in calls, and Extend',
+    },
+    body: {
+      ro: 'În apel vezi de cât timp ține. Cu 10 minute înainte să se închidă apare un avertisment, iar gazda sau un admin îl prelungește cu o oră; toți cei din apel văd noua oră. „End for everyone” închide acum apelul și din fereastra mică.',
+      en: 'A call shows how long it has run. Ten minutes before it closes a warning shows, and the host or an admin extends it by an hour; everyone in the call sees the new time. “End for everyone” now also closes the call in the small window.',
+    },
+    features: ['mesaje.view', 'apeluri.view'],
+  },
+  {
     publishedAt: '2026-11-19T12:50:00Z',
     title: {
       ro: 'Apelul rămâne deschis cât lucrezi și gazda decide cine partajează',

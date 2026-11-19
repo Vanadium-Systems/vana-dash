@@ -10,7 +10,9 @@ import {
   createLiveKitToken,
   LiveKitError,
   mayShareScreen,
+  readRoom,
   readScreenSharePolicy,
+  setRoomExpiry,
   type ScreenSharePolicy,
 } from '../../shared/lib/livekit.js'
 import { getCompany } from '../../shared/lib/company.js'
@@ -60,6 +62,9 @@ export type CallTokenResponse = {
   kind: 'audio' | 'video'
   conversationId: string | null
   guestKey: string | null
+  /** Since when the room runs: now, for the first one in. */
+  startedAt: string
+  expiresAt: string
 }
 
 // The row people see: our own link, never the SFU room name or a token.
@@ -218,13 +223,13 @@ export async function issueCallToken(id: string, me: SessionUser): Promise<CallT
   try {
     const ttlSeconds = Math.max(300, Math.floor((call.expiresAt.getTime() - Date.now()) / 1000))
     const isHost = isCallHost(call, me)
-    const policy = isHost ? null : await readScreenSharePolicy(call.roomName)
+    const room = await readRoom(call.roomName)
     const { token, livekitUrl } = await createLiveKitToken({
       roomName: call.roomName,
       identity: me.id,
       name: displayName,
       isHost,
-      canShareScreen: policy ? mayShareScreen(policy, me.id, false) : true,
+      canShareScreen: mayShareScreen(room.state.screenShare, me.id, isHost),
       ttlSeconds,
     })
     const guestKey = call.bookingId && call.guestKeyEnc ? await decryptField(call.guestKeyEnc) : null
@@ -236,6 +241,8 @@ export async function issueCallToken(id: string, me: SessionUser): Promise<CallT
       kind: call.kind,
       conversationId: call.conversationId ?? null,
       guestKey,
+      startedAt: (room.startedAt ?? new Date()).toISOString(),
+      expiresAt: call.expiresAt.toISOString(),
     }
   } catch (err) {
     if (err instanceof LiveKitError) throw new CallError('provider', 502)
@@ -274,6 +281,27 @@ export async function setScreenShare(me: SessionUser, id: string, input: ScreenS
     throw err
   }
   return next
+}
+
+// The token cap (8 h) is the ceiling: a call never runs past it from now.
+const MAX_AHEAD_MS = 8 * 3_600_000
+
+/** The host gives the call more time; everyone in the room sees the new closing time. */
+export async function extendCall(me: SessionUser, id: string, hours: number): Promise<{ expiresAt: string }> {
+  const call = await loadOpenable(id)
+  await assertCanAccessCall(call, me)
+  if (!isCallHost(call, me)) throw new CallError('forbidden', 403)
+  if (call.provider !== 'livekit' || call.status !== 'open') throw new CallError('closed', 410)
+  const now = Date.now()
+  const expiresAt = new Date(Math.min(Math.max(call.expiresAt.getTime(), now) + hours * 3_600_000, now + MAX_AHEAD_MS))
+  await db.update(calls).set({ expiresAt, updatedAt: new Date() }).where(eq(calls.id, call.id))
+  try {
+    await setRoomExpiry(call.roomName, expiresAt)
+  } catch (err) {
+    if (err instanceof LiveKitError) throw new CallError('provider', 502)
+    throw err
+  }
+  return { expiresAt: expiresAt.toISOString() }
 }
 
 export async function endCall(me: SessionUser, id: string): Promise<CallRow> {
@@ -328,7 +356,15 @@ export async function getPublicCall(
 export async function issuePublicCallToken(
   publicId: string,
   guestName: string,
-): Promise<{ provider: 'livekit'; livekitUrl: string; token: string; roomName: string; kind: 'audio' | 'video' }> {
+): Promise<{
+  provider: 'livekit'
+  livekitUrl: string
+  token: string
+  roomName: string
+  kind: 'audio' | 'video'
+  startedAt: string
+  expiresAt: string
+}> {
   // Guest has no session: read the call record across tenants to resolve its company & window.
   const [call] = await withRlsBypass(() =>
     db
@@ -356,15 +392,24 @@ export async function issuePublicCallToken(
     try {
       const ttlSeconds = Math.max(300, Math.floor((call.expiresAt.getTime() - Date.now()) / 1000))
       const identity = `guest:${randomBytes(6).toString('hex')}`
+      const room = await readRoom(call.roomName)
       const { token, livekitUrl } = await createLiveKitToken({
         roomName: call.roomName,
         identity,
         name: guestName,
         isHost: false,
-        canShareScreen: mayShareScreen(await readScreenSharePolicy(call.roomName), identity, false),
+        canShareScreen: mayShareScreen(room.state.screenShare, identity, false),
         ttlSeconds,
       })
-      return { provider: 'livekit', livekitUrl, token, roomName: call.roomName, kind: call.kind }
+      return {
+        provider: 'livekit',
+        livekitUrl,
+        token,
+        roomName: call.roomName,
+        kind: call.kind,
+        startedAt: (room.startedAt ?? new Date()).toISOString(),
+        expiresAt: call.expiresAt.toISOString(),
+      }
     } catch (err) {
       if (err instanceof LiveKitError) throw new CallError('provider', 502)
       throw err

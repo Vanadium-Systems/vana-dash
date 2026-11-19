@@ -470,6 +470,10 @@ const SOURCES: GuideSource[] = [
         en: 'The screen is shared by the call’s host (whoever started it) and by admins. The host lets someone share with “Let them share” on their picture, or everyone with “Anyone can share”; link guests can be let in the same way. If you leave the call page, the call stays open in a small window in the corner; “Open the call” takes you back.',
       },
       {
+        ro: 'Ceasul de lângă numărul de participanți arată de cât timp ține apelul. Apelul e deschis cât ai ales la „The link works for”, numărat de la creare; cu 10 minute înainte de final apare un avertisment, iar gazda sau un admin apasă „Prelungește cu o oră”.',
+        en: 'The clock next to the participant count shows how long the call has run. A call stays open for the time picked under “The link works for”, counted from when it was made; ten minutes before the end a warning shows, and the host or an admin presses “Extend by an hour”.',
+      },
+      {
         ro: 'Scrie în câmpul de jos și trimite. Un fișier de până la 50 MB se pune din „Atașează”. Emoji: după două puncte și două litere (:so) apar emoji-urile cu numele acela, Enter alege; sau iconița de lângă câmp.',
         en: 'Type in the field at the bottom and send. A file of up to 50 MB is added with “Attach”. Emoji: a colon and two letters (:so) list the emoji with that name, Enter picks; or the icon next to the field.',
       },

@@ -29,6 +29,8 @@ export const ScreenShareBodySchema = z.union([
   z.object({ identity: z.string().min(1).max(64), allowed: z.boolean() }).strict(),
 ])
 
+export const ExtendCallSchema = z.object({ hours: z.number().int().min(1).max(4) }).strict()
+
 export const CallIdParamsSchema = z.object({ id: z.string().uuid() })
 
 // 12 random bytes in base64url = 16 characters (shared/lib/call-rooms.ts).

@@ -134,6 +134,9 @@ export function CallRoomPage() {
         },
         onEndForAll: () => void onEnd(),
         onScreenShare: (input) => api.post(`/api/calls/${id}/screen-share`, input),
+        onExtend: () => api.post(`/api/calls/${id}/extend`, { hours: 1 }),
+        startedAt: joined.startedAt,
+        expiresAt: joined.expiresAt,
       },
     })
     // Started once per call; a later title or token does not reconnect the room.

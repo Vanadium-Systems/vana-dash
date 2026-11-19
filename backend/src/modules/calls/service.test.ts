@@ -15,7 +15,7 @@ import { runCallsClose, runEmptyCallsClose } from '../../jobs/calls-close.js'
 import { closeCallRoom } from '../../shared/lib/call-rooms.js'
 import { declineConversationCall, endConversationCall, listMessages, openDm, previewRef, startConversationCall } from '../chat/service.js'
 import './refs.js'
-import { CallError, createCall, endCall, getPublicCall, issueCallToken, issuePublicCallToken, joinCall, listCalls, setScreenShare } from './service.js'
+import { CallError, createCall, endCall, getPublicCall, issueCallToken, issuePublicCallToken, joinCall, listCalls, extendCall, setScreenShare } from './service.js'
 
 let me: SessionUser
 let colleague: SessionUser
@@ -139,6 +139,21 @@ describe('calls', () => {
     // A rejoin reads the policy back from the room.
     stubLiveKit([{ name: 'room', metadata: JSON.stringify({ screenShare: { everyone: false, allowed: [manager.id] } }) } as never])
     expect(sourcesOf((await issueCallToken(call.id, manager)).token).canPublishSources).toContain('screen_share')
+  })
+
+  it('only the host extends a call, and never past 8 hours from now', async () => {
+    const manager = await createTestUser('calls-extender', cleanupUsers, { features: ['apeluri.view', 'apeluri.manage'] })
+    stubLiveKit()
+    const call = await createCall(me, { title: 'Acme long', expiresInHours: 1 })
+    callIds.push(call.id)
+    await expect(extendCall(manager, call.id, 1)).rejects.toMatchObject({ code: 'forbidden', status: 403 })
+
+    const { expiresAt } = await extendCall(me, call.id, 1)
+    expect(Date.parse(expiresAt) - Date.parse(call.expiresAt)).toBe(3_600_000)
+    expect((await issueCallToken(call.id, manager)).expiresAt).toBe(expiresAt)
+    for (let i = 0; i < 4; i++) await extendCall(me, call.id, 4)
+    const [row] = await db.select().from(calls).where(eq(calls.id, call.id))
+    expect(row!.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 8 * 3_600_000)
   })
 
   it('an unknown call is not found', async () => {

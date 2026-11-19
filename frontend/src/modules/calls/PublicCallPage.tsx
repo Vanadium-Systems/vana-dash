@@ -46,6 +46,8 @@ export function PublicCallPage() {
           kind={session.kind}
           title={t('calls:public.heading')}
           publicFallbackUrl={window.location.href}
+          startedAt={session.startedAt}
+          expiresAt={session.expiresAt}
           onLeave={() => setSession(null)}
         />
       </div>

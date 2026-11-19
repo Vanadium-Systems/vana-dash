@@ -723,6 +723,8 @@ const KNOWN_PREFIXES: Array<{
   { prefix: '/api/calls/:id/token', kind: 'self', methods: 'write' },
   // Who may share the screen: only the call's host, checked inside the service like the token.
   { prefix: '/api/calls/:id/screen-share', kind: 'self', methods: 'write' },
+  // Giving the call more time: host only, the same check inside the service.
+  { prefix: '/api/calls/:id/extend', kind: 'self', methods: 'write' },
   // The logo sits in an <img> of emails read by people with no session. Uploading it is not public.
   { prefix: '/api/email/settings/logo', kind: 'public', methods: 'read' },
   { prefix: '/api/webhooks', kind: 'machine' },

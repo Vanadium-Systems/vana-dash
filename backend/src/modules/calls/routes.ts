@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import {
   CallIdParamsSchema,
   CreateCallSchema,
+  ExtendCallSchema,
   ListCallsQuerySchema,
   PublicCallParamsSchema,
   PublicCallTokenBodySchema,
@@ -105,6 +106,18 @@ export async function callsRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         return { success: true, data: await service.setScreenShare(req.me, req.params.id, req.body) }
+      } catch (err) {
+        return sendCallError(reply, err)
+      }
+    },
+  )
+
+  server.post(
+    '/api/calls/:id/extend',
+    { preHandler: [app.authenticate], schema: { params: CallIdParamsSchema, body: ExtendCallSchema } },
+    async (req, reply) => {
+      try {
+        return { success: true, data: await service.extendCall(req.me, req.params.id, req.body.hours) }
       } catch (err) {
         return sendCallError(reply, err)
       }

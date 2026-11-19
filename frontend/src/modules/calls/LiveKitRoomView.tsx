@@ -16,6 +16,7 @@ import E2EEWorker from 'livekit-client/e2ee-worker?worker'
 import {
   Ban,
   Bluetooth,
+  Clock,
   Lock,
   LayoutGrid,
   Maximize2,
@@ -33,6 +34,7 @@ import { toastError } from '@/shared/lib/errors'
 import { Alert } from '@/shared/components/ui/alert'
 import { Button } from '@/shared/components/ui/button'
 import { StatePill } from '@/shared/components/ui/state-pill'
+import { formatDuration } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { isNative } from '@/shared/lib/native'
 import {
@@ -56,6 +58,11 @@ export interface LiveKitRoomViewProps {
   title: string
   headerActions?: ReactNode
   publicFallbackUrl?: string | null
+  /** Since when the room runs, and when it closes; the room's metadata overrides the latter after an extension. */
+  startedAt?: string
+  expiresAt?: string
+  /** The host gives the call another hour. */
+  onExtend?: () => Promise<unknown>
   /** The floating window shown while the person is elsewhere in the app. */
   compact?: boolean
   onExpand?: () => void
@@ -86,6 +93,64 @@ function sharePolicyOf(room: Room | null): { everyone: boolean; allowed: string[
   } catch {
     return { everyone: false, allowed: [] }
   }
+}
+
+function roomExpiryOf(room: Room | null): string | null {
+  try {
+    const value = (JSON.parse(room?.metadata || '{}') as { expiresAt?: unknown }).expiresAt
+    return typeof value === 'string' ? value : null
+  } catch {
+    return null
+  }
+}
+
+// The close job runs every 30 minutes, so the real end can come a bit after this; the warning
+// still names the time the call is due to close.
+const WARN_BEFORE_MS = 10 * 60_000
+
+/** Re-renders itself once a second; the room around it does not. */
+function useNow(): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  return now
+}
+
+function CallClock({ startedAt }: { startedAt: string }) {
+  const now = useNow()
+  return (
+    <span className="tnum inline-flex items-center gap-1 text-xs text-muted-foreground" title={t('calls:room.elapsed')}>
+      <Clock className="h-3.5 w-3.5" />
+      {formatDuration((now - Date.parse(startedAt)) / 1000)}
+    </span>
+  )
+}
+
+function ExpiryNotice({ expiresAt, onExtend }: { expiresAt: string; onExtend?: () => void }) {
+  const now = useNow()
+  const left = Date.parse(expiresAt) - now
+  if (left > WARN_BEFORE_MS) return null
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning-text/40 bg-card px-3 py-2 text-sm text-warning-text" role="status">
+      <span>
+        {left > 0 ? t('calls:room.closesIn', { minutes: Math.max(1, Math.ceil(left / 60_000)) }) : t('calls:room.closingNow')}
+      </span>
+      {onExtend ? (
+        <Button type="button" size="sm" variant="outline" onClick={onExtend}>
+          {t('calls:room.extend')}
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+function CompactExpiry({ expiresAt }: { expiresAt: string }) {
+  const now = useNow()
+  const left = Date.parse(expiresAt) - now
+  if (left > WARN_BEFORE_MS) return null
+  return <span className="text-warning-text">{t('calls:room.closesInShort', { minutes: Math.max(1, Math.ceil(left / 60_000)) })}</span>
 }
 
 interface TileInfo {
@@ -268,6 +333,9 @@ export function LiveKitRoomView({
   onScreenShare,
   compact,
   onExpand,
+  startedAt,
+  expiresAt,
+  onExtend,
 }: LiveKitRoomViewProps) {
   const supported = useMemo(() => isE2EESupported(), [])
   const canScreenShare = typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function'
@@ -522,6 +590,9 @@ export function LiveKitRoomView({
         }
       : undefined
 
+  const closesAt = roomExpiryOf(room) ?? expiresAt ?? null
+  const extend = amHost && onExtend ? () => void onExtend().catch((err: unknown) => toastError(err)) : undefined
+
   const tiles: TileInfo[] = []
   const remoteAudioTracks: RemoteTrack[] = []
 
@@ -597,6 +668,12 @@ export function LiveKitRoomView({
             {title}
             {stageName ? ` · ${stageName}` : ''}
           </span>
+          {startedAt || closesAt ? (
+            <span className="ml-auto flex shrink-0 items-center gap-2 rounded-md bg-background/80 px-2 py-1 text-xs backdrop-blur-sm">
+              {startedAt ? <CallClock startedAt={startedAt} /> : null}
+              {closesAt ? <CompactExpiry expiresAt={closesAt} /> : null}
+            </span>
+          ) : null}
         </div>
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 p-2">
           <Button
@@ -651,6 +728,7 @@ export function LiveKitRoomView({
             <Users className="h-3.5 w-3.5" />
             {participants.length}
           </span>
+          {startedAt ? <CallClock startedAt={startedAt} /> : null}
           {connState === ConnectionState.Reconnecting ? (
             <StatePill tone="warning">{t('calls:room.reconnecting')}</StatePill>
           ) : null}
@@ -664,6 +742,8 @@ export function LiveKitRoomView({
           ) : null}
         </div>
       </div>
+
+      {closesAt ? <ExpiryNotice expiresAt={closesAt} onExtend={extend} /> : null}
 
       {focusedTile ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
