@@ -1,0 +1,44 @@
+name: VPS over Tailscale
+description: Joins the tailnet as an ephemeral tag:ci node and writes an SSH config with the host "vps".
+
+# SSH on the VPS is closed to the internet; it is reachable only inside the tailnet. The host key
+# is pinned from a secret, so a wrong or intercepted host fails the job instead of being trusted.
+inputs:
+  ts-oauth-client-id:
+    required: true
+  ts-oauth-secret:
+    required: true
+  host:
+    description: Tailscale address of the VPS
+    required: true
+  user:
+    required: true
+  ssh-key:
+    required: true
+  known-hosts:
+    description: known_hosts line for the Tailscale address
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: tailscale/github-action@v4
+      with:
+        oauth-client-id: ${{ inputs.ts-oauth-client-id }}
+        oauth-secret: ${{ inputs.ts-oauth-secret }}
+        tags: tag:ci
+        ping: ${{ inputs.host }}
+
+    - shell: bash
+      env:
+        VPS_HOST: ${{ inputs.host }}
+        VPS_USER: ${{ inputs.user }}
+        VPS_SSH_KEY: ${{ inputs.ssh-key }}
+        VPS_KNOWN_HOSTS: ${{ inputs.known-hosts }}
+      run: |
+        install -d -m 700 ~/.ssh
+        printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_deploy
+        printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+        printf 'Host vps\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_deploy\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n  ConnectTimeout 20\n' \
+          "$VPS_HOST" "$VPS_USER" > ~/.ssh/config
+        chmod 600 ~/.ssh/id_deploy ~/.ssh/known_hosts ~/.ssh/config
