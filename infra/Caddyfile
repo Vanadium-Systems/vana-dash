@@ -9,10 +9,19 @@
 	# The API sets its own headers (helmet). These cover what Caddy serves itself: the SPA
 	# and its assets. `?` leaves alone a header the backend already sent.
 	header {
-		Strict-Transport-Security "max-age=31536000"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		?X-Content-Type-Options "nosniff"
 		?X-Frame-Options "SAMEORIGIN"
 		?Referrer-Policy "same-origin"
+		# Report-Only for now: the browser logs what it would block (DevTools console) and blocks
+		# nothing. Switch the name to Content-Security-Policy once the main pages log nothing.
+		#   wasm-unsafe-eval: vodozemac (end-to-end encryption in Messages) is WebAssembly
+		#   posthog.com: analytics, its lazy-loaded recorder; a custom PostHog host set in
+		#     Settings needs adding here
+		#   livekit.cloud: call signalling; r2.cloudflarestorage.com: presigned Archive URLs
+		#   img-src https: external images in received email, shown only on request
+		#   style-src unsafe-inline: style attributes set by React, Radix and Recharts
+		?Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.posthog.com https://*.livekit.cloud wss://*.livekit.cloud https://*.r2.cloudflarestorage.com; media-src 'self' blob: https://*.r2.cloudflarestorage.com; worker-src 'self' blob:; frame-src 'self' blob: https://*.r2.cloudflarestorage.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'"
 	}
 
 	# API → the Fastify backend
