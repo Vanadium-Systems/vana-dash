@@ -289,6 +289,37 @@ describe('access token without sid', () => {
   })
 })
 
+describe('access token shape', () => {
+  it('refuses a token signed with our key but without exp, or with another HMAC', async () => {
+    const { cookies } = await loggedIn()
+    const claims = app.jwt.decode<{ sub: string; sv: number; sid: string; tid?: string }>(cookies.vana_session)!
+    const { sub, sv, sid, tid } = claims
+    expect((await call('GET', '/api/auth/me', cookies)).statusCode).toBe(200)
+    const noExp = app.jwt.sign({ sub, sv, sid, ...(tid ? { tid } : {}) })
+    expect((await call('GET', '/api/auth/me', { vana_session: noExp })).statusCode).toBe(401)
+    const hs512 = app.jwt.sign({ sub, sv, sid, ...(tid ? { tid } : {}) }, { algorithm: 'HS512', expiresIn: 600 })
+    expect((await call('GET', '/api/auth/me', { vana_session: hs512 })).statusCode).toBe(401)
+  })
+})
+
+describe('password change rate limit', () => {
+  it('a session gets 5 tries at the current password, from any address', async () => {
+    const { cookies } = await loggedIn()
+    const statuses: number[] = []
+    for (let i = 0; i < 7; i += 1) {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/auth/me/password',
+        cookies: { vana_session: cookies.vana_session },
+        payload: { currentPassword: 'not-the-password', newPassword: 'Another-long-password-42' },
+        remoteAddress: `10.78.0.${i + 1}`,
+      })
+      statuses.push(res.statusCode)
+    }
+    expect(statuses).toEqual([401, 401, 401, 401, 401, 429, 429])
+  })
+})
+
 describe('password step-up', () => {
   it('a fresh login is not asked; a stale confirmation is until the password is typed again', async () => {
     const { person, cookies } = await loggedIn()

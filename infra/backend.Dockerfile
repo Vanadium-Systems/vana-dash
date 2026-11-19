@@ -13,7 +13,7 @@ RUN corepack enable
 # postgresql-client: pg_dump for jobs/backup.ts, age: its encrypted off-site copy. curl: the healthcheck in compose.
 # poppler-utils: pdftoppm, for PDF thumbnails in the Archive (shared/lib/thumbnail.ts).
 # vips-tools: vipsthumbnail, for the photo thumbnails in Messages (same file).
-RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates openssl postgresql-client age curl poppler-utils vips-tools
+RUN apk upgrade --no-cache && apk add --no-cache chromium nss freetype harfbuzz ca-certificates openssl postgresql-client age curl poppler-utils vips-tools
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -21,6 +21,10 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY backend/package.json backend/
 RUN pnpm install --frozen-lockfile --prod --filter @vana-dash/backend
+# The server runs on node alone. npm, corepack and pnpm stay out of the running image: the npm
+# bundled with node:22-alpine carried every HIGH/CRITICAL that trivy found (2026-11-19).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /root/.cache /root/.local/share/pnpm \
+  /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/pnpm /usr/local/bin/pnpx
 COPY --from=build /app/backend/dist backend/dist
 # Migrations run at start, before the server
 COPY --from=build /app/backend/src/shared/db/migrations backend/dist/shared/db/migrations

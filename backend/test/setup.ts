@@ -1,8 +1,12 @@
 // Env defaults pentru teste — rulează înainte de orice import de config.
 // DB-ul de test e Postgres-ul de dev din infra/docker-compose.yml.
 process.env.DATABASE_URL ??= 'postgres://vanadash:vanadash@localhost:5433/vanadash'
-// Forced empty: the tests share the dev DB, so a phone registered there would get every test push.
-process.env.FIREBASE_SERVICE_ACCOUNT_JSON = ''
+// Forced, not defaulted: config.ts loads the developer's .env, and the tests share the dev DB, so
+// a real key here sends to real phones, browsers and providers (667d7358: every test push reached a
+// phone). Tests that need one set their own.
+for (const name of ['FIREBASE_SERVICE_ACCOUNT_JSON', 'VAPID_PRIVATE_KEY', 'VAPID_PUBLIC_KEY', 'ANTHROPIC_API_KEY', 'OPENROUTER_API_KEY', 'LOCAL_AI_API_KEY', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'ANAF_CLIENT_SECRET']) {
+  process.env[name] = ''
+}
 process.env.JWT_SECRET ??= 'test-jwt-secret-not-for-production-use'
 process.env.MASTER_ENCRYPTION_KEY ??= 'a'.repeat(64)
 process.env.FRONTEND_ORIGIN ??= 'http://localhost:5174'
@@ -13,7 +17,7 @@ process.env.REVOLUT_API_URL ??= 'https://b2b.revolut.com/api/1.0'
 // semnează payload-uri Svix cu acest secret; email.test.ts își setează propriile
 // valori per-test (vi.resetModules + dynamic import), deci nu e afectat.
 process.env.RESEND_WEBHOOK_SECRET ??= 'whsec_dGVzdC13ZWJob29rLXNlY3JldC12YW5hLWRhc2g='
-process.env.RESEND_API_KEY ??= 'test-resend-api-key'
+process.env.RESEND_API_KEY = 'test-resend-api-key'
 // Storage separat pt. teste — `./storage` (default) poate fi deținut de root într-un
 // mediu unde app-ul a rulat cândva în Docker; testele nu trebuie să depindă de
 // permisiunile acelui folder și nici să-l polueze cu fișiere de test.

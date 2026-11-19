@@ -422,34 +422,43 @@ export async function passwordRoutes(app: FastifyInstance) {
     return { success: true, data: fresh ? sessionPayload(fresh) : null }
   })
 
-  server.post('/api/auth/me/password', { preHandler: [app.authenticate] }, async (req, reply) => {
-    // The person's own company: a platform admin looking at another one changes their own password.
-    return asHome(req.me, async () => {
-      const parsed = ChangePasswordSchema.safeParse(req.body)
-      if (!parsed.success) {
-        return fail(reply, 400, 'NEW_PASSWORD_INVALID', { message: tr('errors.auth.newPasswordInvalid') })
-      }
-      const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id))
-      if (!row || !(await argon2.verify(row.passwordHash, parsed.data.currentPassword))) {
-        return fail(reply, 401, 'CURRENT_PASSWORD_WRONG', { message: tr('errors.auth.currentPasswordWrong') })
-      }
-      const weak = assertPasswordStrength(parsed.data.newPassword)
-      if (weak) return fail(reply, 400, 'PASSWORD_TOO_SHORT', { message: weak })
+  server.post(
+    '/api/auth/me/password',
+    {
+      preHandler: [app.authenticate],
+      // Keyed on the person, after authentication: a stolen session must not get to guess the
+      // current password at the global rate, from however many addresses.
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes', hook: 'preHandler', keyGenerator: (req) => `password:${req.me?.id ?? req.ip}` } },
+    },
+    async (req, reply) => {
+      // The person's own company: a platform admin looking at another one changes their own password.
+      return asHome(req.me, async () => {
+        const parsed = ChangePasswordSchema.safeParse(req.body)
+        if (!parsed.success) {
+          return fail(reply, 400, 'NEW_PASSWORD_INVALID', { message: tr('errors.auth.newPasswordInvalid') })
+        }
+        const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, req.me.id))
+        if (!row || !(await argon2.verify(row.passwordHash, parsed.data.currentPassword))) {
+          return fail(reply, 401, 'CURRENT_PASSWORD_WRONG', { message: tr('errors.auth.currentPasswordWrong') })
+        }
+        const weak = assertPasswordStrength(parsed.data.newPassword)
+        if (weak) return fail(reply, 400, 'PASSWORD_TOO_SHORT', { message: weak })
 
-      // sv++ delogă celelalte dispozitive; sesiunea curentă rămâne validă doar dacă tokenul
-      // poartă noua valoare — de aceea semnăm un token nou mai jos.
-      const nextVersion = req.me.sessionVersion + 1
-      await db
-        .update(users)
-        .set({ passwordHash: await argon2.hash(parsed.data.newPassword), sessionVersion: nextVersion, updatedAt: new Date() })
-        .where(eq(users.id, req.me.id))
-      await revokeUserApiTokens(req.me.id)
-      await recordAudit({ action: 'parola.schimbata', entityType: 'user', entityId: req.me.id })
+        // sv++ delogă celelalte dispozitive; sesiunea curentă rămâne validă doar dacă tokenul
+        // poartă noua valoare — de aceea semnăm un token nou mai jos.
+        const nextVersion = req.me.sessionVersion + 1
+        await db
+          .update(users)
+          .set({ passwordHash: await argon2.hash(parsed.data.newPassword), sessionVersion: nextVersion, updatedAt: new Date() })
+          .where(eq(users.id, req.me.id))
+        await revokeUserApiTokens(req.me.id)
+        await recordAudit({ action: 'parola.schimbata', entityType: 'user', entityId: req.me.id })
 
-      // Every other device is logged out (session_version moved on); this one starts a fresh family.
-      await revokeUserSessions(req.me.id, 'password')
-      await issueSession(req, reply, { ...req.me, sessionVersion: nextVersion })
-      return reply.send({ success: true, data: { otherSessionsRevoked: true } })
-    })
-  })
+        // Every other device is logged out (session_version moved on); this one starts a fresh family.
+        await revokeUserSessions(req.me.id, 'password')
+        await issueSession(req, reply, { ...req.me, sessionVersion: nextVersion })
+        return reply.send({ success: true, data: { otherSessionsRevoked: true } })
+      })
+    },
+  )
 }

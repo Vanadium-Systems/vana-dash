@@ -102,6 +102,8 @@ export async function buildServer() {
   await app.register(jwt, {
     secret: config.jwtSecret,
     cookie: { cookieName: SESSION_COOKIE, signed: false },
+    // We only ever sign HS256 with exp and sid; anything else is refused even when the key matches.
+    verify: { algorithms: ['HS256'], requiredClaims: ['exp', 'sid'] },
   })
   // 300/min global era prea strâns: single user, dar pe mai multe device-uri simultan
   // (laptop + APK telefon, același IP) — poll-urile independente (unread-counts
