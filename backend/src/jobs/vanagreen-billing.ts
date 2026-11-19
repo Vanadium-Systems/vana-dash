@@ -2,7 +2,7 @@ import cron from '../shared/lib/cron.js'
 import { getOwnerTenantId, runAsTenant } from '../shared/lib/tenancy.js'
 import { and, eq, isNull } from 'drizzle-orm'
 import * as invoicingService from '../modules/invoicing/service.js'
-import { pushBillingCycleIfMapped } from '../modules/reconciliation/vanagreen-extension.js'
+import { pushBillingStateIfMapped } from '../modules/reconciliation/vanagreen-extension.js'
 import { db } from '../shared/db/client.js'
 import { billingClients } from '../shared/db/schema/index.js'
 
@@ -80,7 +80,7 @@ export async function runVanagreenBillingJob(): Promise<void> {
       const issued = await invoicingService.issueInvoice(draft.id)
       if (issued) await invoicingService.sendInvoiceToAnaf(issued.id)
       // The new invoice may now be the one VanaGreen's banner counts down to.
-      if (issued) void pushBillingCycleIfMapped(client)
+      if (issued) void pushBillingStateIfMapped(client)
       console.log(
         `[vanagreen-billing] factură emisă pt. client ${client.id} (tenant ${client.vanagreenTenantId}, template "${template.name}")`,
       )

@@ -54,6 +54,7 @@ describe('fetchVanagreenTenants', () => {
         billingCycle: 'monthly',
         billingCycleDay: 1,
         billingCycleMonth: null,
+        billingState: null,
       },
     ])
     expect(fetchSpy).toHaveBeenCalledTimes(1)
@@ -91,18 +92,18 @@ describe('extendVanagreenSubscription', () => {
       expect(url).toBe('https://vanagreen.example.com/api/v1/platform/tenants/tenant-1/extend-subscription')
       expect(init.method).toBe('POST')
       const body = JSON.parse(init.body as string)
-      expect(body).toEqual({ months: 3, idempotencyKey: 'match-123', newBillingDueDate: '2026-08-01' })
+      expect(body).toEqual({ months: 3, idempotencyKey: 'match-123' })
       return new Response(JSON.stringify({ ok: true, tenantId: 'tenant-1' }), { status: 200 })
     })
     vi.stubGlobal('fetch', fetchSpy)
 
-    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123', '2026-08-01')
+    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123')
     expect(result).toEqual({ ok: true, status: 200, tenantId: 'tenant-1' })
   })
 
   it('does NOT throw on a 500 — returns ok:false with status + message instead', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('internal error', { status: 500 })))
-    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123', '2026-08-01')
+    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123')
     expect(result.ok).toBe(false)
     expect(result.status).toBe(500)
     expect(result.message).toContain('internal error')
@@ -110,7 +111,7 @@ describe('extendVanagreenSubscription', () => {
 
   it('does NOT throw on a 404 (tenant not found)', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('tenant not found', { status: 404 })))
-    const result = await extendVanagreenSubscription(config, 'unknown-tenant', 3, 'match-123', '2026-08-01')
+    const result = await extendVanagreenSubscription(config, 'unknown-tenant', 3, 'match-123')
     expect(result).toEqual({ ok: false, status: 404, tenantId: 'unknown-tenant', message: 'tenant not found' })
   })
 
@@ -121,7 +122,7 @@ describe('extendVanagreenSubscription', () => {
         throw new Error('The operation was aborted due to timeout')
       }),
     )
-    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123', '2026-08-01')
+    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123')
     expect(result.ok).toBe(false)
     expect(result.status).toBe(0)
     expect(result.message).toContain('timeout')
@@ -129,14 +130,14 @@ describe('extendVanagreenSubscription', () => {
 
   it('never leaks the API key in the error message on failure', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('unauthorized: bad key', { status: 401 })))
-    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123', '2026-08-01')
+    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123')
     expect(result.message).not.toContain(config.apiKey)
   })
 
   it('truncates an unexpectedly huge error body to 500 chars', async () => {
     const hugeBody = 'x'.repeat(10_000)
     vi.stubGlobal('fetch', vi.fn(async () => new Response(hugeBody, { status: 500 })))
-    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123', '2026-08-01')
+    const result = await extendVanagreenSubscription(config, 'tenant-1', 3, 'match-123')
     expect(result.message?.length).toBe(500)
   })
 })

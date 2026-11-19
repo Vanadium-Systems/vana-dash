@@ -25,6 +25,8 @@ export interface VanagreenTenant {
   billingCycle: 'monthly' | 'annual' | null
   billingCycleDay: number | null
   billingCycleMonth: number | null
+  /** The last billing-state document VanaGreen stored (connectors/vanagreen/billing-state.ts), unchecked. */
+  billingState: unknown
 }
 
 interface VanagreenTenantsResponse {
@@ -41,6 +43,7 @@ interface VanagreenTenantsResponse {
     billing_cycle: 'monthly' | 'annual' | null
     billing_cycle_day: number | null
     billing_cycle_month: number | null
+    billing_state?: unknown
   }>
 }
 
@@ -64,6 +67,7 @@ export async function fetchVanagreenTenants(config: PlatformConfig): Promise<Van
     billingCycle: t.billing_cycle,
     billingCycleDay: t.billing_cycle_day,
     billingCycleMonth: t.billing_cycle_month,
+    billingState: t.billing_state ?? null,
   }))
 }
 
@@ -99,6 +103,7 @@ export async function fetchVanagreenDemoTenants(config: PlatformConfig): Promise
     billingCycle: t.billing_cycle,
     billingCycleDay: t.billing_cycle_day,
     billingCycleMonth: t.billing_cycle_month,
+    billingState: t.billing_state ?? null,
     createdAt: t.created_at,
     demoEndsAt: t.demo_ends_at,
   }))
@@ -136,6 +141,7 @@ export async function fetchVanagreenInactiveTenants(config: PlatformConfig): Pro
     billingCycle: t.billing_cycle,
     billingCycleDay: t.billing_cycle_day,
     billingCycleMonth: t.billing_cycle_month,
+    billingState: t.billing_state ?? null,
     isDemo: t.is_demo,
   }))
 }
@@ -172,6 +178,7 @@ export async function fetchVanagreenTerminatedTenants(config: PlatformConfig): P
     billingCycle: t.billing_cycle,
     billingCycleDay: t.billing_cycle_day,
     billingCycleMonth: t.billing_cycle_month,
+    billingState: t.billing_state ?? null,
     deletedAt: t.deleted_at,
   }))
 }
@@ -275,22 +282,20 @@ export interface ExtendSubscriptionResult {
   message?: string
 }
 
-/** NU aruncă niciodată pe non-2xx/eroare de rețea — întoarce { ok:false, status, message }.
- *  Sprint C, Track D, wave 6: `newBillingDueDate` calculat deja de vana-dash (sursa de adevăr
- *  pt. cadență) — vanagreen doar oglindește valoarea (nu mai calculează `addMonths` local), ca
- *  să nu apară drift între cele două calcule independente. */
+/** Never throws on non-2xx / network errors. Since billing-state v1 this is only the payment event
+ *  (VanaGreen logs it and emails the tenant); the due date and the end of the demo go by
+ *  putVanagreenBillingState, sent just before. */
 export async function extendVanagreenSubscription(
   config: PlatformConfig,
   tenantId: string,
   months: number,
   idempotencyKey: string,
-  newBillingDueDate: string,
 ): Promise<ExtendSubscriptionResult> {
   try {
     const res = await fetch(`${config.apiUrl}/api/v1/platform/tenants/${tenantId}/extend-subscription`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ months, idempotencyKey, newBillingDueDate }),
+      body: JSON.stringify({ months, idempotencyKey }),
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
     if (!res.ok) {
@@ -392,41 +397,3 @@ export async function confirmReferralDiscount(
   }
 }
 
-export interface BillingCycleUpdate {
-  billingDueDate?: string | null
-  billingCycle?: 'monthly' | 'annual' | null
-  billingCycleDay?: number | null
-  billingCycleMonth?: number | null
-}
-
-export interface BillingCyclePushResult {
-  ok: boolean
-  status: number
-  tenantId: string
-  message?: string
-}
-
-/** NU aruncă niciodată (fire-and-forget izolat, ca pushVanagreenLegalDetails) — vanagreen
- *  păstrează `billing_due_date`/`billing_cycle*` DOAR ca oglindă read-only (BillingBanner
- *  tenant-facing + AdminTenantsPage citesc de-acolo), scrisă exclusiv de-aici. */
-export async function pushVanagreenBillingCycle(
-  config: PlatformConfig,
-  tenantId: string,
-  update: BillingCycleUpdate,
-): Promise<BillingCyclePushResult> {
-  try {
-    const res = await fetch(`${config.apiUrl}/api/v1/platform/tenants/${tenantId}/billing-cycle`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(update),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    })
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      return { ok: false, status: res.status, tenantId, message: text.slice(0, 500) }
-    }
-    return { ok: true, status: res.status, tenantId }
-  } catch (err) {
-    return { ok: false, status: 0, tenantId, message: String(err) }
-  }
-}

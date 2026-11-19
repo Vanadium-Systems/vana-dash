@@ -6,24 +6,30 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../shared/db/client.js'
-import { billingClients, financialRecords } from '../shared/db/schema/index.js'
+import { billingClients, financialRecords, invoicePayments } from '../shared/db/schema/index.js'
+import { getCompanyTimeZone } from '../shared/lib/company.js'
 
 const fetchTenantsMock = vi.fn()
 const fetchDemoTenantsMock = vi.fn()
 const fetchInactiveTenantsMock = vi.fn()
 const fetchTerminatedTenantsMock = vi.fn()
 const getConfigMock = vi.fn()
-const pushBillingCycleMock = vi.fn()
+const putStateMock = vi.fn()
+const reportFailureMock = vi.fn()
 
 vi.mock('../connectors/vanagreen/billing.js', () => ({
   fetchVanagreenTenants: (...args: unknown[]) => fetchTenantsMock(...args),
   fetchVanagreenDemoTenants: (...args: unknown[]) => fetchDemoTenantsMock(...args),
   fetchVanagreenInactiveTenants: (...args: unknown[]) => fetchInactiveTenantsMock(...args),
   fetchVanagreenTerminatedTenants: (...args: unknown[]) => fetchTerminatedTenantsMock(...args),
-  pushVanagreenBillingCycle: (...args: unknown[]) => pushBillingCycleMock(...args),
+}))
+vi.mock('../connectors/vanagreen/billing-state.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../connectors/vanagreen/billing-state.js')>()),
+  putVanagreenBillingState: (...args: unknown[]) => putStateMock(...args),
 }))
 vi.mock('../modules/reconciliation/vanagreen-extension.js', () => ({
   getVanagreenPlatformConfig: (...args: unknown[]) => getConfigMock(...args),
+  reportBillingStateFailure: (...args: unknown[]) => reportFailureMock(...args),
 }))
 
 const { runVanagreenTenantSyncJob } = await import('./vanagreen-tenant-sync.js')
@@ -45,6 +51,7 @@ function fakeTenant(overrides: Record<string, unknown> = {}) {
     billingCycle: null,
     billingCycleDay: null,
     billingCycleMonth: null,
+    billingState: null,
     ...overrides,
   }
 }
@@ -68,8 +75,9 @@ beforeEach(() => {
   fetchTerminatedTenantsMock.mockResolvedValue([])
   getConfigMock.mockReset()
   getConfigMock.mockResolvedValue(FAKE_CONFIG)
-  pushBillingCycleMock.mockReset()
-  pushBillingCycleMock.mockResolvedValue({ ok: true, status: 200, tenantId: 'tenant-1' })
+  putStateMock.mockReset()
+  putStateMock.mockResolvedValue({ ok: true, status: 200, tenantId: 'tenant-1' })
+  reportFailureMock.mockReset()
 })
 
 afterEach(async () => {
@@ -292,105 +300,115 @@ describe('runVanagreenTenantSyncJob', () => {
     expect(row?.isDemo).toBe(false)
   })
 
-  it('BUG-VGX-DUEDATE — re-pushes billingDueDate/cycle when vanagreen mirror has drifted from the local (source of truth) value', async () => {
-    const [existing] = await db
-      .insert(billingClients)
-      .values({
-        name: 'Acme Recycling SRL',
-        cif: 'RO1',
-        address: 'x',
-        vanagreenTenantId: 'tenant-drifted',
-        billingDueDate: '2026-09-01',
-        billingCycle: 'monthly',
-        billingCycleDay: 1,
-      })
-      .returning()
-    clientIds.push(existing!.id)
+  const stateFor = async (overrides: Record<string, unknown> = {}) => ({
+    contract: 'vanagreen.billing-state',
+    version: 1,
+    timeZone: await getCompanyTimeZone(),
+    paymentDueOn: '2026-09-01',
+    paymentDueKind: 'next_invoice',
+    nextInvoiceOn: '2026-09-01',
+    cycle: { period: 'monthly', day: 1, month: null },
+    paying: false,
+    ...overrides,
+  })
 
-    // vanagreen încă are data veche — push-ul fire-and-forget de la plata anterioară a eșuat.
-    fetchTenantsMock.mockResolvedValue([
-      fakeTenant({
-        id: 'tenant-drifted',
-        name: 'Acme Recycling SRL',
-        billingDueDate: '2026-08-01',
-        billingCycle: 'monthly',
-        billingCycleDay: 1,
-      }),
-    ])
+  async function mappedClient(tenantId: string, values: Partial<typeof billingClients.$inferInsert> = {}) {
+    const [row] = await db
+      .insert(billingClients)
+      .values({ name: 'Acme Recycling SRL', cif: 'RO1', address: 'x', vanagreenTenantId: tenantId, billingDueDate: '2026-09-01', billingCycle: 'monthly', billingCycleDay: 1, ...values })
+      .returning()
+    clientIds.push(row!.id)
+    return row!
+  }
+
+  it('BUG-VGX-DUEDATE: resends the whole billing state when VanaGreen stored an older one', async () => {
+    await mappedClient('tenant-drifted')
+    // VanaGreen still has the previous state: the push after the last change failed.
+    fetchTenantsMock.mockResolvedValue([fakeTenant({ id: 'tenant-drifted', name: 'Acme Recycling SRL', billingState: await stateFor({ paymentDueOn: '2026-08-01', nextInvoiceOn: '2026-08-01' }) })])
 
     await runVanagreenTenantSyncJob()
 
-    expect(pushBillingCycleMock).toHaveBeenCalledWith(FAKE_CONFIG, 'tenant-drifted', {
-      billingDueDate: '2026-09-01',
-      billingCycle: 'monthly',
-      billingCycleDay: 1,
-      billingCycleMonth: null,
-    })
+    expect(putStateMock).toHaveBeenCalledWith(FAKE_CONFIG, 'tenant-drifted', await stateFor())
+  })
+
+  it('sends a state to a tenant that never had one', async () => {
+    await mappedClient('tenant-first')
+    fetchTenantsMock.mockResolvedValue([fakeTenant({ id: 'tenant-first', name: 'Acme Recycling SRL' })])
+    await runVanagreenTenantSyncJob()
+    expect(putStateMock).toHaveBeenCalledWith(FAKE_CONFIG, 'tenant-first', await stateFor())
   })
 
   it('mirrors the due day of an unpaid invoice, not the next invoice day, so the banner shows the debt', async () => {
-    const [existing] = await db
-      .insert(billingClients)
-      .values({
-        name: 'Unpaid SRL',
-        cif: 'RO1',
-        address: 'x',
-        vanagreenTenantId: 'tenant-unpaid',
-        billingDueDate: '2026-12-01',
-        billingCycle: 'monthly',
-        billingCycleDay: 1,
-        paymentTermsDays: 15,
-      })
-      .returning()
-    clientIds.push(existing!.id)
+    const existing = await mappedClient('tenant-unpaid', { name: 'Unpaid SRL', billingDueDate: '2026-12-01', paymentTermsDays: 15 })
     await db.insert(financialRecords).values({
       type: 'invoice',
       direction: 'out',
       amount: '213.70',
       currency: 'RON',
       source: 'generated',
-      billingClientId: existing!.id,
+      billingClientId: existing.id,
       issuedAt: new Date('2026-11-01T09:00:00.000Z'),
       dueAt: new Date('2026-11-16T12:00:00.000Z'),
       documentNumber: `TST-${Math.floor(Math.random() * 1e9)}`,
       paymentStatus: 'unpaid',
     })
-    fetchTenantsMock.mockResolvedValue([
-      fakeTenant({ id: 'tenant-unpaid', name: 'Unpaid SRL', billingDueDate: '2026-12-01', billingCycle: 'monthly', billingCycleDay: 1 }),
-    ])
+    fetchTenantsMock.mockResolvedValue([fakeTenant({ id: 'tenant-unpaid', name: 'Unpaid SRL' })])
 
     await runVanagreenTenantSyncJob()
 
-    expect(pushBillingCycleMock).toHaveBeenCalledWith(FAKE_CONFIG, 'tenant-unpaid', {
-      billingDueDate: '2026-11-16',
-      billingCycle: 'monthly',
-      billingCycleDay: 1,
-      billingCycleMonth: null,
-    })
+    expect(putStateMock).toHaveBeenCalledWith(
+      FAKE_CONFIG,
+      'tenant-unpaid',
+      await stateFor({ paymentDueOn: '2026-11-16', paymentDueKind: 'unpaid_invoice', nextInvoiceOn: '2026-12-01' }),
+    )
   })
 
-  it('does NOT re-push billing-cycle when vanagreen mirror already matches local (no drift)', async () => {
-    const [existing] = await db
-      .insert(billingClients)
-      .values({
-        name: 'In Sync SRL',
-        cif: 'RO1',
-        address: 'x',
-        vanagreenTenantId: 'tenant-in-sync',
-        billingDueDate: '2026-09-01',
-        billingCycle: 'monthly',
-        billingCycleDay: 1,
-      })
-      .returning()
-    clientIds.push(existing!.id)
-
-    fetchTenantsMock.mockResolvedValue([
-      fakeTenant({ id: 'tenant-in-sync', name: 'In Sync SRL', billingDueDate: '2026-09-01', billingCycle: 'monthly', billingCycleDay: 1 }),
-    ])
+  it('does NOT resend when VanaGreen already has the same state, whatever the key order', async () => {
+    await mappedClient('tenant-in-sync', { name: 'In Sync SRL' })
+    const stored = Object.fromEntries(Object.entries(await stateFor()).reverse())
+    fetchTenantsMock.mockResolvedValue([fakeTenant({ id: 'tenant-in-sync', name: 'In Sync SRL', billingState: stored })])
 
     await runVanagreenTenantSyncJob()
 
-    expect(pushBillingCycleMock).not.toHaveBeenCalled()
+    expect(putStateMock).not.toHaveBeenCalled()
+  })
+
+  it('a demo tenant that has paid gets paying:true again when the push after the payment was lost', async () => {
+    const existing = await mappedClient('tenant-demo-paid', { name: 'Demo Paid SRL', isDemo: true })
+    const [invoice] = await db
+      .insert(financialRecords)
+      .values({
+        type: 'invoice',
+        direction: 'out',
+        amount: '100.00',
+        currency: 'RON',
+        source: 'generated',
+        billingClientId: existing.id,
+        issuedAt: new Date('2026-08-01T09:00:00.000Z'),
+        dueAt: new Date('2026-08-16T12:00:00.000Z'),
+        documentNumber: `TST-${Math.floor(Math.random() * 1e9)}`,
+        paymentStatus: 'paid',
+      })
+      .returning()
+    await db.insert(invoicePayments).values({ recordId: invoice!.id, amount: '100.00', currency: 'RON', paidAt: '2026-08-10', method: 'bank' })
+    fetchTenantsMock.mockResolvedValue([])
+    fetchDemoTenantsMock.mockResolvedValue([fakeDemoTenant({ id: 'tenant-demo-paid', name: 'Demo Paid SRL', billingState: await stateFor() })])
+
+    await runVanagreenTenantSyncJob()
+
+    expect(putStateMock).toHaveBeenCalledWith(FAKE_CONFIG, 'tenant-demo-paid', await stateFor({ paying: true }))
+    await db.delete(invoicePayments).where(eq(invoicePayments.recordId, invoice!.id))
+  })
+
+  it('a refused version goes to reportBillingStateFailure, which alerts', async () => {
+    await mappedClient('tenant-v-refused')
+    const refused = { ok: false, status: 422, tenantId: 'tenant-v-refused', versionRefused: true, message: 'CONTRACT_VERSION_UNSUPPORTED' }
+    putStateMock.mockResolvedValue(refused)
+    fetchTenantsMock.mockResolvedValue([fakeTenant({ id: 'tenant-v-refused', name: 'Acme Recycling SRL' })])
+
+    await runVanagreenTenantSyncJob()
+
+    expect(reportFailureMock).toHaveBeenCalledWith(expect.any(String), refused)
   })
 
   it('does NOT re-push billing-cycle for a mapped client with no local billingDueDate set yet (nothing to push)', async () => {
@@ -404,7 +422,7 @@ describe('runVanagreenTenantSyncJob', () => {
 
     await runVanagreenTenantSyncJob()
 
-    expect(pushBillingCycleMock).not.toHaveBeenCalled()
+    expect(putStateMock).not.toHaveBeenCalled()
   })
 
   it('a re-push failure is isolated (logged, does not throw, does not stop the rest of the batch)', async () => {
@@ -414,7 +432,7 @@ describe('runVanagreenTenantSyncJob', () => {
       .returning()
     clientIds.push(existing!.id)
 
-    pushBillingCycleMock.mockResolvedValue({ ok: false, status: 500, tenantId: 'tenant-drift-fails', message: 'vanagreen down' })
+    putStateMock.mockResolvedValue({ ok: false, status: 500, tenantId: 'tenant-drift-fails', message: 'vanagreen down' })
     fetchTenantsMock.mockResolvedValue([
       fakeTenant({ id: 'tenant-drift-fails', name: 'Drift Push Fails SRL', billingDueDate: '2026-08-01' }),
       fakeTenant({ id: 'tenant-ok-after-drift', name: 'OK After Drift SRL', slug: 'ok-after-drift' }),

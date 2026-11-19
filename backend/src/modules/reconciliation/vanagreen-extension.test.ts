@@ -22,7 +22,7 @@ const fetchDemoTenantsMock = vi.fn()
 const fetchInactiveTenantsMock = vi.fn()
 const fetchTerminatedTenantsMock = vi.fn()
 const pushLegalDetailsMock = vi.fn()
-const pushBillingCycleMock = vi.fn()
+const putStateMock = vi.fn()
 const createTenantMock = vi.fn()
 const extendMock = vi.fn()
 const fetchReferralStatusMock = vi.fn()
@@ -34,11 +34,15 @@ vi.mock('../../connectors/vanagreen/billing.js', () => ({
   fetchVanagreenInactiveTenants: (...args: unknown[]) => fetchInactiveTenantsMock(...args),
   fetchVanagreenTerminatedTenants: (...args: unknown[]) => fetchTerminatedTenantsMock(...args),
   pushVanagreenLegalDetails: (...args: unknown[]) => pushLegalDetailsMock(...args),
-  pushVanagreenBillingCycle: (...args: unknown[]) => pushBillingCycleMock(...args),
   createVanagreenTenant: (...args: unknown[]) => createTenantMock(...args),
   extendVanagreenSubscription: (...args: unknown[]) => extendMock(...args),
   fetchReferralDiscountStatus: (...args: unknown[]) => fetchReferralStatusMock(...args),
   confirmReferralDiscount: (...args: unknown[]) => confirmReferralMock(...args),
+}))
+
+vi.mock('../../connectors/vanagreen/billing-state.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../connectors/vanagreen/billing-state.js')>()),
+  putVanagreenBillingState: (...args: unknown[]) => putStateMock(...args),
 }))
 
 // Import DUPĂ vi.mock (hoisted oricum de vitest, dar păstrăm ordinea pt. claritate).
@@ -48,7 +52,7 @@ const {
   listVanagreenTenantsForMapping,
   maybeExtendSubscription,
   maybeGrantReferralDiscount,
-  pushBillingCycleIfMapped,
+  pushBillingStateIfMapped,
   setAutoExtendEnabled,
   verifyVanagreenTenant,
 } = await import('./vanagreen-extension.js')
@@ -94,8 +98,8 @@ beforeEach(async () => {
   fetchTerminatedTenantsMock.mockReset()
   fetchTerminatedTenantsMock.mockResolvedValue([])
   pushLegalDetailsMock.mockReset()
-  pushBillingCycleMock.mockReset()
-  pushBillingCycleMock.mockResolvedValue({ ok: true, status: 200, tenantId: 'tenant-1' })
+  putStateMock.mockReset()
+  putStateMock.mockResolvedValue({ ok: true, status: 200, tenantId: 'tenant-1' })
   createTenantMock.mockReset()
   extendMock.mockReset()
   extendMock.mockResolvedValue({ ok: true, status: 200, tenantId: 'tenant-1' })
@@ -284,7 +288,7 @@ describe('maybeExtendSubscription — branching (Sprint C, Track D: bump local, 
     expect(log?.status).toBe('success')
   })
 
-  it('toggle ON + platform configured -> ALSO calls extendVanagreenSubscription fire-and-forget, passing the LOCALLY-computed nextDueDate explicitly (wave 6 — vanagreen no longer recomputes it)', async () => {
+  it('toggle ON + platform configured -> sends the new billing state, then the payment event', async () => {
     await setAutoExtendEnabled(true)
     await makeVanagreenPlatform()
     extendMock.mockResolvedValue({ ok: true, status: 200, tenantId: 'tenant-1' })
@@ -294,7 +298,9 @@ describe('maybeExtendSubscription — branching (Sprint C, Track D: bump local, 
     await maybeExtendSubscription({ billingClientId: client.id, source: 'auto_match', sourceId })
 
     expect(extendMock).toHaveBeenCalledTimes(1)
-    expect(extendMock).toHaveBeenCalledWith(expect.objectContaining({ apiKey: 'plain-test-key' }), 'tenant-1', 3, sourceId, '2026-04-01')
+    expect(extendMock).toHaveBeenCalledWith(expect.objectContaining({ apiKey: 'plain-test-key' }), 'tenant-1', 3, sourceId)
+    // The client in this test has no cycle, so there is no state to send; with one, the PUT goes first.
+    expect(putStateMock.mock.invocationCallOrder[0] ?? 0).toBeLessThanOrEqual(extendMock.mock.invocationCallOrder[0]!)
     // Data locală vine din calculul local, NU din răspunsul mock-uit al connectorului.
     const [updated] = await db.select().from(billingClients).where(eq(billingClients.id, client.id))
     expect(updated?.billingDueDate).toBe('2026-04-01')
@@ -392,45 +398,58 @@ describe('maybeExtendSubscription — concurrent calls with the SAME (source, so
   })
 })
 
-describe('pushBillingCycleIfMapped (Sprint C, Track D, wave 6)', () => {
+describe('pushBillingStateIfMapped (billing-state v1)', () => {
   it('no-op silențios dacă clientul nu e mapat la vanagreen', async () => {
     const client = await makeClient({ vanagreenTenantId: null })
-    await expect(pushBillingCycleIfMapped(client)).resolves.toBeUndefined()
-    expect(pushBillingCycleMock).not.toHaveBeenCalled()
+    await expect(pushBillingStateIfMapped(client)).resolves.toBeUndefined()
+    expect(putStateMock).not.toHaveBeenCalled()
   })
 
   it('no-op (doar log) dacă platforma vanagreen nu e configurată', async () => {
     const client = await makeClient({ vanagreenTenantId: 'tenant-1' })
-    await expect(pushBillingCycleIfMapped(client)).resolves.toBeUndefined()
-    expect(pushBillingCycleMock).not.toHaveBeenCalled()
+    await expect(pushBillingStateIfMapped(client)).resolves.toBeUndefined()
+    expect(putStateMock).not.toHaveBeenCalled()
   })
 
-  it('client mapat + platformă configurată -> push cu billingDueDate/billingCycle/day/month curente', async () => {
+  it('client mapat + platformă configurată -> PUT cu documentul întreg', async () => {
     await makeVanagreenPlatform()
     const client = await makeClient({
       vanagreenTenantId: 'tenant-1',
       billingDueDate: '2026-08-01',
+      paymentTermsDays: 15,
       billingCycle: 'monthly',
       billingCycleDay: 1,
     })
 
-    await pushBillingCycleIfMapped(client)
+    await pushBillingStateIfMapped(client)
 
-    expect(pushBillingCycleMock).toHaveBeenCalledTimes(1)
-    expect(pushBillingCycleMock).toHaveBeenCalledWith(expect.objectContaining({ apiKey: 'plain-test-key' }), 'tenant-1', {
-      billingDueDate: '2026-08-01',
-      billingCycle: 'monthly',
-      billingCycleDay: 1,
-      billingCycleMonth: null,
+    expect(putStateMock).toHaveBeenCalledTimes(1)
+    expect(putStateMock).toHaveBeenCalledWith(expect.objectContaining({ apiKey: 'plain-test-key' }), 'tenant-1', {
+      contract: 'vanagreen.billing-state',
+      version: 1,
+      timeZone: expect.any(String),
+      paymentDueOn: '2026-08-16',
+      paymentDueKind: 'next_invoice',
+      nextInvoiceOn: '2026-08-01',
+      cycle: { period: 'monthly', day: 1, month: null },
+      paying: false,
     })
+  })
+
+  it('fără cadență locală nu trimite nimic', async () => {
+    await makeVanagreenPlatform()
+    const client = await makeClient({ vanagreenTenantId: 'tenant-1', billingDueDate: '2026-08-01' })
+    await pushBillingStateIfMapped(client)
+    expect(putStateMock).not.toHaveBeenCalled()
   })
 
   it('eșecul push-ului nu aruncă (izolat, doar log)', async () => {
     await makeVanagreenPlatform()
-    pushBillingCycleMock.mockResolvedValue({ ok: false, status: 500, tenantId: 'tenant-1', message: 'vanagreen 500' })
-    const client = await makeClient({ vanagreenTenantId: 'tenant-1', billingDueDate: '2026-08-01' })
+    putStateMock.mockResolvedValue({ ok: false, status: 500, tenantId: 'tenant-1', message: 'vanagreen 500' })
+    const client = await makeClient({ vanagreenTenantId: 'tenant-1', billingDueDate: '2026-08-01', billingCycle: 'monthly', billingCycleDay: 1 })
 
-    await expect(pushBillingCycleIfMapped(client)).resolves.toBeUndefined()
+    await expect(pushBillingStateIfMapped(client)).resolves.toBeUndefined()
+    expect(putStateMock).toHaveBeenCalledTimes(1)
   })
 })
 

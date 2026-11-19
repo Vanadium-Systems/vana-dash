@@ -4,6 +4,22 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-19: VanaGreen billing mirror as one versioned document
+
+### Changed
+- **VanaGreen sync:** the billing state of a mapped client goes to VanaGreen as one document, `vanagreen.billing-state` v1 (`PUT /api/v1/platform/tenants/:id/billing-state`), built in one place (`connectors/vanagreen/billing-state.ts`) and validated with a strict schema on both sides. It says what each date means: the last day to pay on time, whether that is an unpaid invoice or the next one, the next invoice day, the cycle, the time zone and whether the client has paid an invoice. The fixtures in `connectors/vanagreen/contract/billing-state.v1/` are shared with VanaGreen; `scripts/check-vanagreen-contract.sh` compares the two copies.
+- **Daily VanaGreen sync:** compares the whole stored document, demo tenants included, and sends it again when it differs. A version VanaGreen does not accept raises an alert instead of retrying.
+- **Subscription extension:** the call to VanaGreen is the payment event only; the new state is sent just before it.
+
+### Security
+- `POST /api/auth/me/password` allows 5 attempts per 15 minutes per person.
+- Session JWTs are verified as HS256 only, with `exp` and `sid` required.
+- The backend image drops npm, corepack and pnpm after installing, and upgrades Alpine packages.
+- The test setup forces the outbound credentials (push, AI, LiveKit, ANAF, Resend) to test values, since it loads the local `.env` and shares the development database.
+
+### Fixed
+- **Menus in dialogs:** a dropdown or bottom sheet opened inside a modal dialog is mounted in the dialog, so it can be clicked and focused; Esc closes the menu first, then the dialog.
+
 ## 2026-11-19: Calls ring like phone calls
 
 ### Added

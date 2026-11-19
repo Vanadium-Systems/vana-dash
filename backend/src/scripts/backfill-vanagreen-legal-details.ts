@@ -11,7 +11,7 @@ import { billingClients } from '../shared/db/schema/index.js'
 // fills only the empty fields where the client exists, so an earlier manual edit here is not
 // overwritten. Idempotent, safe to rerun.
 //
-// The billing cycle has to be part of this. Without it, pushBillingCycleIfMapped (called on
+// The billing cycle has to be part of this. Without it, pushBillingStateIfMapped (called on
 // every edit) sends the empty billingDueDate/billingCycle* from here to VanaGreen, which
 // writes them as they come and so erases the real `billing_due_date` of tenants configured
 // there before the cutover. Run the script again right after any reset or rollback, before the

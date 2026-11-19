@@ -8,17 +8,17 @@ import {
   fetchVanagreenInactiveTenants,
   fetchVanagreenTenants,
   fetchVanagreenTerminatedTenants,
-  pushVanagreenBillingCycle,
   pushVanagreenLegalDetails,
   type CreateVanagreenTenantResult,
   type VanagreenTenant,
 } from '../../connectors/vanagreen/billing.js'
+import { buildBillingState, putVanagreenBillingState, type BillingStatePushResult } from '../../connectors/vanagreen/billing-state.js'
 import type { PlatformConfig } from '../../connectors/types.js'
 import { db } from '../../shared/db/client.js'
 import { billingClients, dashboardConfig, platforms, vanagreenExtensionLog } from '../../shared/db/schema/index.js'
-import { clientPaymentDueDate } from '../../shared/lib/client-payment-due.js'
+import { ensureAlertRule, raiseAlert } from '../../shared/lib/alerting.js'
 import { decryptField } from '../../shared/lib/crypto.js'
-import { tr } from '../../shared/lib/i18n.js'
+import { tl, tr } from '../../shared/lib/i18n.js'
 
 // Sprint C, Track B: la o plată confirmată (auto-match bancar SAU mark-as-paid manual),
 // dacă billing_client-ul e mapat la un tenant vanagreen, extinde abonamentul acolo.
@@ -183,28 +183,21 @@ export async function maybeExtendSubscription(input: MaybeExtendInput): Promise<
     .set({ status: 'success', responseMessage: `billingDueDate → ${nextDueDate}` })
     .where(eq(vanagreenExtensionLog.id, claimed.id))
 
-  // Fire-and-forget, for the side effects on the VanaGreen side only: a confirmed payment takes
-  // the tenant out of demo there (its API keeps that behaviour on the assumption that this
-  // call is made), and `nextDueDate`, already computed above, is mirrored to
-  // `tenants.billing_due_date` so the tenant's billing banner stays right. A failure here is
-  // logged and does not change the status above: the local bump has already succeeded.
+  // The new state first (due day, end of the demo), then the payment event, whose email reads
+  // the due day VanaGreen now has. Both isolated: the local bump has already succeeded, and the
+  // daily drift check (jobs/vanagreen-tenant-sync.ts) resends a state that did not arrive.
   const config = await getVanagreenPlatformConfig()
   if (config) {
-    const result = await extendVanagreenSubscription(
-      config,
-      client.vanagreenTenantId,
-      client.vanagreenExtendMonths,
-      input.sourceId,
-      (await clientPaymentDueDate({ ...client, billingDueDate: nextDueDate })) ?? nextDueDate,
-    )
+    await pushBillingStateIfMapped({ ...client, billingDueDate: nextDueDate }, config)
+    const result = await extendVanagreenSubscription(config, client.vanagreenTenantId, client.vanagreenExtendMonths, input.sourceId)
     if (!result.ok) {
-      console.error(`[vanagreen-extension] clear is_demo eșuat pt. tenantul ${client.vanagreenTenantId}:`, result.message)
+      console.error(`[vanagreen-extension] extension event failed for tenant ${client.vanagreenTenantId}:`, result.message)
     }
 
     // Bloc izolat separat de apelul de mai sus — nu blochează, nu depinde de rezultatul lui.
     await maybeGrantReferralDiscount(config, client)
   } else {
-    console.error(`[vanagreen-extension] clear is_demo sărit pt. tenantul ${client.vanagreenTenantId} — platforma vanagreen nu e configurată`)
+    console.error(`[vanagreen-extension] extension skipped for tenant ${client.vanagreenTenantId}: the vanagreen platform is not configured`)
   }
 }
 
@@ -320,34 +313,39 @@ export async function pushLegalDetailsIfMapped(client: Omit<typeof billingClient
 }
 
 /**
- * Push fire-and-forget izolat — la orice schimbare a cadenței/scadenței unui billing_client
- * mapat (edit manual din ClientFormDialog SAU rostogolire zilnică din
- * jobs/billing-cycle-rollover.ts), împinge starea curentă spre `tenants.billing_due_date`/
- * `billing_cycle*` din vanagreen — coloanele rămân acolo doar ca oglindă read-only, citită de
- * `BillingBanner.tsx` (tenant-facing) și AdminTenantsPage (read-only, wave 6). NU aruncă
- * niciodată; eșecul se loghează, apelantul nu blochează pe el.
+ * Sends the client's whole billing state (connectors/vanagreen/billing-state.ts) whenever its
+ * cadence, invoices or payments change: client edit, daily rollover, invoice issued, payment.
+ * Never throws; a failure is logged and the daily drift check sends it again. A version VanaGreen
+ * refuses raises an alert instead, since sending it again cannot help.
  */
-export async function pushBillingCycleIfMapped(client: Omit<typeof billingClients.$inferSelect, 'ibanEnc' | 'ibanHmac'>): Promise<void> {
+export async function pushBillingStateIfMapped(
+  client: Omit<typeof billingClients.$inferSelect, 'ibanEnc' | 'ibanHmac'>,
+  knownConfig?: PlatformConfig,
+): Promise<void> {
   if (!client.vanagreenTenantId) return
 
-  const config = await getVanagreenPlatformConfig()
+  const config = knownConfig ?? (await getVanagreenPlatformConfig())
   if (!config) {
-    console.error(`[vanagreen-extension] push billing cycle sărit pt. clientul ${client.id} — platforma vanagreen nu e configurată`)
+    console.error(`[vanagreen-extension] billing state push skipped for client ${client.id}: the vanagreen platform is not configured`)
     return
   }
 
-  // VanaGreen's banner counts down to this date, so it gets the day the client has to have paid
-  // by, not the next invoice day (see shared/lib/client-payment-due.ts).
-  const result = await pushVanagreenBillingCycle(config, client.vanagreenTenantId, {
-    billingDueDate: await clientPaymentDueDate(client),
-    billingCycle: client.billingCycle,
-    billingCycleDay: client.billingCycleDay,
-    billingCycleMonth: client.billingCycleMonth,
-  })
-
-  if (!result.ok) {
-    console.error(`[vanagreen-extension] push billing cycle eșuat pt. clientul ${client.id} (tenant ${client.vanagreenTenantId}):`, result.message)
+  try {
+    const state = await buildBillingState(client)
+    if (!state) return
+    const result = await putVanagreenBillingState(config, client.vanagreenTenantId, state)
+    if (!result.ok) await reportBillingStateFailure(client.id, result)
+  } catch (err) {
+    console.error(`[vanagreen-extension] billing state push failed for client ${client.id}:`, err)
   }
+}
+
+/** Logs a failed push; a refused contract version also becomes an alert. */
+export async function reportBillingStateFailure(clientId: string, result: BillingStatePushResult): Promise<void> {
+  console.error(`[vanagreen-extension] billing state push failed for client ${clientId} (tenant ${result.tenantId}, HTTP ${result.status}):`, result.message)
+  if (!result.versionRefused) return
+  const ruleId = await ensureAlertRule('vanagreen.billing_state_refused', tr('alerts.rules.vanagreenBillingState'))
+  await raiseAlert(ruleId, tl('alerts.jobs.vanagreenBillingStateRefused', { status: result.status }), { url: '/platforms' })
 }
 
 /**

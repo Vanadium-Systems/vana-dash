@@ -10,6 +10,7 @@
     "d301Due": "D301 deadline approaching",
     "d390Due": "D390 deadline approaching",
     "bnrFeed": "BNR exchange rate feed unavailable",
+    "vanagreenBillingState": "VanaGreen refuses the billing state",
     "botSilent": "jeffbot: no longer sending data",
     "botCriticalReview": "jeffbot: critical review",
     "platformNotResponding": "{{name}}: not responding",
@@ -46,6 +47,7 @@
   },
   "jobs": {
     "bnrFailed": "The daily update of the BNR rate failed (code {{code}})",
+    "vanagreenBillingStateRefused": "VanaGreen does not accept this version of the billing contract (HTTP {{status}}). The mirror in VanaGreen stops updating until the versions match.",
     "botSilent": "The bot has not sent data for {{minutes}} min",
     "platformHealthFailed": "The platform {{name}} does not answer the health check (code {{code}})",
     "server1Silent": "server-1 has not sent data for {{minutes}} min (off, no internet or the cron is down)",

@@ -1,0 +1,14 @@
+{
+  "contract": "vanagreen.billing-state",
+  "version": 1,
+  "timeZone": "Europe/Bucharest",
+  "paymentDueOn": "2026-11-20",
+  "paymentDueKind": "unpaid_invoice",
+  "nextInvoiceOn": "2026-12-05",
+  "cycle": {
+    "period": "monthly",
+    "day": 5,
+    "month": null
+  },
+  "paying": false
+}

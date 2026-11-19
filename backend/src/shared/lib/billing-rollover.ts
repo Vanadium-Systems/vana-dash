@@ -1,7 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { billingClients } from '../db/schema/index.js'
-import { pushBillingCycleIfMapped } from '../../modules/reconciliation/vanagreen-extension.js'
+import { pushBillingStateIfMapped } from '../../modules/reconciliation/vanagreen-extension.js'
 import { computeNextOccurrence, dayAfter, type BillingCycle } from './billing-cycle.js'
 
 // Rostogolire billingDueDate la o PLATĂ confirmată — folosit de ambele căi prin care o factură
@@ -42,5 +42,5 @@ export async function rollBillingDueDateOnPayment(billingClientId: string, invoi
     .where(eq(billingClients.id, client.id))
     .returning()
 
-  if (updated) void pushBillingCycleIfMapped(updated)
+  if (updated) void pushBillingStateIfMapped(updated)
 }

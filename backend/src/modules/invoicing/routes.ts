@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { createVanagreenTenantForClient, pushBillingCycleIfMapped, pushLegalDetailsIfMapped } from '../reconciliation/vanagreen-extension.js'
+import { createVanagreenTenantForClient, pushBillingStateIfMapped, pushLegalDetailsIfMapped } from '../reconciliation/vanagreen-extension.js'
 import { runVanagreenTenantSyncJob } from '../../jobs/vanagreen-tenant-sync.js'
 import { LookupBlockedError, lookupCompany } from '../../countries/ro/company-lookup.js'
 import {
@@ -155,7 +155,7 @@ export async function invoicingRoutes(app: FastifyInstance) {
       if (!client) return fail(reply, 404, 'CLIENT_NOT_FOUND')
       // Fire-and-forget izolat (regula #7 CLAUDE.md) — nu blochează răspunsul, nu aruncă.
       void pushLegalDetailsIfMapped(client)
-      void pushBillingCycleIfMapped(client)
+      void pushBillingStateIfMapped(client)
       return { success: true, data: client }
     },
   )

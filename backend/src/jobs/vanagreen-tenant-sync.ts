@@ -6,12 +6,12 @@ import {
   fetchVanagreenInactiveTenants,
   fetchVanagreenTenants,
   fetchVanagreenTerminatedTenants,
-  pushVanagreenBillingCycle,
 } from '../connectors/vanagreen/billing.js'
-import { getVanagreenPlatformConfig } from '../modules/reconciliation/vanagreen-extension.js'
+import { buildBillingState, putVanagreenBillingState, sameBillingState } from '../connectors/vanagreen/billing-state.js'
+import type { PlatformConfig } from '../connectors/types.js'
+import { getVanagreenPlatformConfig, reportBillingStateFailure } from '../modules/reconciliation/vanagreen-extension.js'
 import { db } from '../shared/db/client.js'
 import { billingClients } from '../shared/db/schema/index.js'
-import { clientPaymentDueDate } from '../shared/lib/client-payment-due.js'
 
 const PENDING_DELETION_PURGE_DAYS = 30
 
@@ -46,6 +46,8 @@ const PENDING_DELETION_PURGE_DAYS = 30
 //   baza `pendingDeletionAt` deja stocat local — independentă de reușita fetch-ului de azi
 //   pt. `/tenants/terminated`, ca un fetch eșuat o zi să nu întârzie o purjare deja decisă.
 //
+// 2026-11-19: the comparison below is the whole billing-state document (reconcileBillingState),
+// for demo tenants too.
 // 2026-08-05 (bug Stefan): billingDueDate se împinge spre vanagreen fire-and-forget, izolat,
 // din 3 locuri (rollBillingDueDateOnPayment, billing-cycle-rollover.ts, maybeExtendSubscription)
 // — dacă push-ul ăla eșuează (blip de rețea, vanagreen jos o clipă), nu există retry și nicio
@@ -183,32 +185,7 @@ export async function runVanagreenTenantSyncJob(): Promise<void> {
         }
       }
 
-      // Reconciliere drift (vezi comentariul de sus, 2026-08-05) — local (sursa de adevăr) e
-      // singurul care câștigă, niciodată invers. `mapped.billingDueDate === null` = client fără
-      // cadență setată încă local, nimic de împins.
-      // The mirror holds the day the client has to have paid by, not the local next invoice day.
-      const paymentDueDate = mapped.billingDueDate === null ? null : await clientPaymentDueDate(mapped)
-      if (
-        mapped.billingDueDate !== null &&
-        (paymentDueDate !== tenant.billingDueDate ||
-          mapped.billingCycle !== tenant.billingCycle ||
-          mapped.billingCycleDay !== tenant.billingCycleDay ||
-          mapped.billingCycleMonth !== tenant.billingCycleMonth)
-      ) {
-        const result = await pushVanagreenBillingCycle(config, tenant.id, {
-          billingDueDate: paymentDueDate,
-          billingCycle: mapped.billingCycle,
-          billingCycleDay: mapped.billingCycleDay,
-          billingCycleMonth: mapped.billingCycleMonth,
-        })
-        if (result.ok) {
-          console.log(
-            `[vanagreen-tenant-sync] drift billing-cycle corectat pt. clientul ${mapped.id} (tenant ${tenant.id}): ${tenant.billingDueDate} → ${paymentDueDate}`,
-          )
-        } else {
-          console.error(`[vanagreen-tenant-sync] re-push billing-cycle eșuat pt. clientul ${mapped.id} (tenant ${tenant.id}):`, result.message)
-        }
-      }
+      await reconcileBillingState(config, mapped, tenant)
     }
 
     for (const tenant of demoTenants) {
@@ -246,6 +223,9 @@ export async function runVanagreenTenantSyncJob(): Promise<void> {
           console.error(`[vanagreen-tenant-sync] flip isDemo→true eșuat pt. clientul ${mapped.id}:`, err)
         }
       }
+      // A demo tenant that has paid leaves the demo through its billing state; resent here when
+      // the push after the payment did not arrive.
+      await reconcileBillingState(config, mapped, tenant)
     }
 
     for (const tenant of inactiveTenants) {
@@ -320,5 +300,23 @@ async function purgePendingDeletionClients(): Promise<void> {
     } catch (err) {
       console.error(`[vanagreen-tenant-sync] purjare eșuată pt. clientul ${client.id}:`, err)
     }
+  }
+}
+
+// The local state wins, never the other way: whatever VanaGreen stored is compared, whole, with what
+// buildBillingState says now, and sent again when they differ (a failed push, a lost demo exit).
+async function reconcileBillingState(
+  config: PlatformConfig,
+  mapped: Parameters<typeof buildBillingState>[0] & { id: string },
+  tenant: { id: string; billingState: unknown },
+): Promise<void> {
+  try {
+    const state = await buildBillingState(mapped)
+    if (!state || sameBillingState(tenant.billingState, state)) return
+    const result = await putVanagreenBillingState(config, tenant.id, state)
+    if (result.ok) console.log(`[vanagreen-tenant-sync] billing state resent for client ${mapped.id} (tenant ${tenant.id})`) // slop-ok: job log, like the other drift messages here
+    else await reportBillingStateFailure(mapped.id, result)
+  } catch (err) {
+    console.error(`[vanagreen-tenant-sync] billing state check failed for client ${mapped.id}:`, err)
   }
 }

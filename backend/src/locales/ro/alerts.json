@@ -10,6 +10,7 @@
     "d301Due": "Termen D301 se apropie",
     "d390Due": "Termen D390 se apropie",
     "bnrFeed": "Feed curs valutar BNR indisponibil",
+    "vanagreenBillingState": "VanaGreen refuză starea de facturare",
     "botSilent": "jeffbot — nu mai trimite date",
     "botCriticalReview": "jeffbot — revizuire critică",
     "platformNotResponding": "{{name}} — nu răspunde",
@@ -46,6 +47,7 @@
   },
   "jobs": {
     "bnrFailed": "Actualizarea zilnică a cursului BNR a eșuat (cod {{code}})",
+    "vanagreenBillingStateRefused": "VanaGreen nu acceptă versiunea contractului de facturare (HTTP {{status}}). Oglinda din VanaGreen nu se mai actualizează până nu se aliniază versiunile.",
     "botSilent": "Botul nu mai trimite date de {{minutes}} min",
     "platformHealthFailed": "Platforma {{name}} nu răspunde la verificarea de sănătate (cod {{code}})",
     "server1Silent": "server-1 nu mai trimite date de {{minutes}} min (oprit, fără internet sau cron căzut)",

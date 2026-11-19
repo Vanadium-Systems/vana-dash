@@ -6,7 +6,7 @@ import { db } from '../shared/db/client.js'
 import { billingClients } from '../shared/db/schema/index.js'
 import { oldestUnpaidDueDate } from '../shared/lib/client-payment-due.js'
 import { sendEmail } from '../shared/lib/email.js'
-import { pushBillingCycleIfMapped } from '../modules/reconciliation/vanagreen-extension.js'
+import { pushBillingStateIfMapped } from '../modules/reconciliation/vanagreen-extension.js'
 
 // Sprint C, Track D: port din vanagreen (billing-cron.ts), mutat integral aici — vana-dash
 // devine proprietarul complet al cadenței de facturare recurente + remindere client. Vanagreen
@@ -67,7 +67,7 @@ async function rollOverIfLapsed(client: Client, daysUntilDue: number): Promise<b
   console.log(`[billing-cycle-rollover] ${client.id}: ${client.billingDueDate} → ${nextDue}`)
 
   // Fire-and-forget izolat — oglindește noua dată pe vanagreen (BillingBanner tenant-facing).
-  if (updated) void pushBillingCycleIfMapped(updated)
+  if (updated) void pushBillingStateIfMapped(updated)
 
   return true
 }
