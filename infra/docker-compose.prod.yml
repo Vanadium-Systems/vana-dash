@@ -41,12 +41,16 @@ services:
       # and pg_dump keep DATABASE_URL.
       DATABASE_URL_APP: postgres://vanadash_app:${APP_DB_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-vanadash}
       PORT: 3001
-      JWT_SECRET: ${JWT_SECRET:?}
-      MASTER_ENCRYPTION_KEY: ${MASTER_ENCRYPTION_KEY:?}
+      # Files, not env vars: see readSecret in backend/src/shared/config.ts.
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      MASTER_ENCRYPTION_KEY_FILE: /run/secrets/master_encryption_key
       FRONTEND_ORIGIN: https://${DOMAIN:?}
       # The daily pg_dump (jobs/backup.ts) writes to its own volume below, separate from
       # storage_data (invoices, XML).
       BACKUP_DIR: /backups
+    secrets:
+      - jwt_secret
+      - master_encryption_key
     volumes:
       - storage_data:/app/backend/storage
       - backup_data:/backups
@@ -86,6 +90,13 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+# One value per file, mode 600, outside the repository checkout.
+secrets:
+  jwt_secret:
+    file: ${HOME}/vana-dash-secrets/jwt_secret
+  master_encryption_key:
+    file: ${HOME}/vana-dash-secrets/master_encryption_key
 
 volumes:
   pgdata:

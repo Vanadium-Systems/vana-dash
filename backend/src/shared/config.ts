@@ -1,9 +1,25 @@
+import fs from 'node:fs'
 import './load-env.js'
 import { isDisplayCurrency, isLocale, type DisplayCurrency, type Locale } from './lib/locale.js'
 
 function required(name: string): string {
   const value = process.env[name]
   if (!value) throw new Error(`Missing required env var: ${name}`)
+  return value
+}
+
+// <NAME>_FILE, when set, wins over <NAME>: production mounts these as Docker secrets under
+// /run/secrets, so they stay out of the container environment, where `docker inspect`,
+// /proc/<pid>/environ and every child process (Chromium for PDFs) would see them.
+export function readSecret(name: string): string {
+  const file = process.env[`${name}_FILE`]
+  if (file) return fs.readFileSync(file, 'utf8').trim()
+  return process.env[name] ?? ''
+}
+
+function requiredSecret(name: string): string {
+  const value = readSecret(name)
+  if (!value) throw new Error(`Missing required secret: ${name} or ${name}_FILE`)
   return value
 }
 
@@ -17,10 +33,10 @@ export const config = {
   // DATABASE_URL_APP, a role without superuser and without BYPASSRLS (RLS never applies to those).
   rlsEnabled: process.env.RLS_ENABLED === 'true',
   databaseUrlApp: process.env.DATABASE_URL_APP ?? '',
-  jwtSecret: required('JWT_SECRET'),
-  masterEncryptionKey: required('MASTER_ENCRYPTION_KEY'),
+  jwtSecret: requiredSecret('JWT_SECRET'),
+  masterEncryptionKey: requiredSecret('MASTER_ENCRYPTION_KEY'),
   // Set only during a master key rotation (scripts/rotate-master-key.ts); see shared/lib/crypto.ts.
-  masterEncryptionKeyNext: process.env.MASTER_ENCRYPTION_KEY_NEXT ?? '',
+  masterEncryptionKeyNext: readSecret('MASTER_ENCRYPTION_KEY_NEXT'),
   frontendOrigin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5174',
 
   // What a new person, a visitor before login and every job start with. Each person can then
