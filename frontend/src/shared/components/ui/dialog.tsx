@@ -12,7 +12,7 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   // hideClose: a dialog that must end with its own button (the recovery key, saved first).
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean }
->(({ className, children, hideClose, ...props }, ref) => (
+>(({ className, children, hideClose, onEscapeKeyDown, ...props }, ref) => (
   <DialogPrimitive.Portal>
     <DialogPrimitive.Overlay
       className={cn(
@@ -34,6 +34,12 @@ const DialogContent = React.forwardRef<
         className,
       )}
       {...props}
+      // A menu open inside the dialog takes the first Esc; the second one closes the dialog.
+      onEscapeKeyDown={(event) => {
+        const dialog = event.target instanceof Element ? event.target.closest('[role="dialog"], [role="alertdialog"]') : null
+        if (dialog?.querySelector('[role="menu"]')) event.preventDefault()
+        onEscapeKeyDown?.(event)
+      }}
     >
       {children}
       {hideClose ? null : (

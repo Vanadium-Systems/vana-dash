@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { DropdownMenu, DropdownMenuContent, MenuContextProvider, useMenuLayer, useMenuState } from './dropdown-menu'
+import { dialogHost, DropdownMenu, DropdownMenuContent, MenuContextProvider, useMenuLayer, useMenuState } from './dropdown-menu'
 import { useDragDismiss } from '@/shared/hooks/use-drag-dismiss'
 import { cn } from '@/shared/lib/utils'
 
@@ -28,7 +28,7 @@ export function ResponsiveMenuContent({ title, align, children }: { title: React
   const menu = useMenuState('ResponsiveMenuContent')
   if (!sheet) return <DropdownMenuContent align={align}>{children}</DropdownMenuContent>
   return (
-    <BottomSheet open={menu.open} onClose={() => menu.setOpen(false)} title={title} role="menu">
+    <BottomSheet open={menu.open} onClose={() => menu.setOpen(false)} title={title} role="menu" container={dialogHost(menu.triggerRef.current)}>
       {/* The sheet sits in a portal, outside <DropdownMenu>, so the items get the menu's context again. */}
       <MenuContextProvider value={menu}>
         <div className="[&_[role=menuitem]]:min-h-12 [&_[role=menuitem]]:gap-3 [&_[role=menuitem]]:px-3 [&_[role=menuitem]]:text-base">{children}</div>
@@ -46,12 +46,15 @@ export function BottomSheet({
   onClose,
   title,
   role = 'dialog',
+  container,
   children,
 }: {
   open: boolean
   onClose: () => void
   title?: ReactNode
   role?: 'dialog' | 'menu'
+  /** Opened inside a modal dialog: mounted there, or the dialog blocks its clicks and focus. */
+  container?: HTMLElement | null
   children: ReactNode
 }) {
   const [mounted, setMounted] = useState(open)
@@ -101,6 +104,6 @@ export function BottomSheet({
         {children}
       </div>
     </div>,
-    document.body,
+    container ?? document.body,
   )
 }

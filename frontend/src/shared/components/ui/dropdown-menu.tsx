@@ -79,6 +79,30 @@ type MenuPosition = Pick<CSSProperties, 'top' | 'bottom' | 'left' | 'right'>
 
 const MARGIN = 16
 
+/** A modal dialog (Radix) makes everything outside it unclickable and pulls focus back into it,
+ *  so a menu opened inside one is mounted in the dialog instead of on `document.body`. */
+export function dialogHost(el: Element | null | undefined): HTMLElement | null {
+  return el?.closest<HTMLElement>('[role="dialog"], [role="alertdialog"]') ?? null
+}
+
+function boundsOf(host: HTMLElement | null): { top: number; bottom: number; left: number; right: number } {
+  return host?.getBoundingClientRect() ?? { top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth }
+}
+
+// The dialog is a positioned (and on desktop transformed) box that scrolls: viewport offsets
+// become offsets from its padding box, scroll included.
+function positionIn(host: HTMLElement, position: MenuPosition): MenuPosition {
+  const box = host.getBoundingClientRect()
+  const borderRight = host.offsetWidth - host.clientWidth - host.clientLeft
+  const borderBottom = host.offsetHeight - host.clientHeight - host.clientTop
+  const shifted: MenuPosition = {}
+  if (typeof position.top === 'number') shifted.top = position.top - box.top - host.clientTop + host.scrollTop
+  if (typeof position.left === 'number') shifted.left = position.left - box.left - host.clientLeft + host.scrollLeft
+  if (typeof position.right === 'number') shifted.right = position.right - (window.innerWidth - box.right) - borderRight - host.scrollLeft
+  if (typeof position.bottom === 'number') shifted.bottom = position.bottom - (window.innerHeight - box.bottom) - borderBottom - host.scrollTop
+  return shifted
+}
+
 function menuItems(panel: HTMLElement) {
   return Array.from(panel.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'))
 }
@@ -108,7 +132,7 @@ export function MenuPanel({
 }) {
   useEffect(() => {
     const panel = panelRef.current
-    if (autoFocus && panel) menuItems(panel)[0]?.focus()
+    if (autoFocus && panel) menuItems(panel)[0]?.focus({ preventScroll: true })
     // Only on mount: re-measuring after a flip must not steal focus back to the first item.
   }, [])
 
@@ -147,23 +171,27 @@ export function MenuPanel({
     const current = items.indexOf(document.activeElement as HTMLButtonElement)
     const next =
       e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : e.key === 'ArrowDown' ? (current + 1) % items.length : (current - 1 + items.length) % items.length
-    items[next]?.focus()
+    items[next]?.focus({ preventScroll: true })
   }
 
   const layer = useMenuLayer()
+  const host = dialogHost(triggerRef?.current)
+  const placed: CSSProperties = host
+    ? { ...positionIn(host, position), maxHeight: host.clientHeight - 2 * MARGIN, position: 'absolute' }
+    : { ...position, position: 'fixed' }
   return createPortal(
     <div
       ref={panelRef}
       role="menu"
       // max-h + overflow: a menu opened on a bottom row cannot run past the screen.
-      className={cn('menu-pop glass fixed max-h-[calc(100vh-32px)] min-w-40 overflow-y-auto rounded-md border p-1 text-card-foreground shadow-md', layer)}
-      style={{ ...position, '--menu-origin': origin } as CSSProperties}
+      className={cn('menu-pop glass max-h-[calc(100vh-32px)] min-w-40 overflow-y-auto rounded-md border p-1 text-card-foreground shadow-md', layer)}
+      style={{ ...placed, '--menu-origin': origin } as CSSProperties}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={onKeyDown}
     >
       {children}
     </div>,
-    document.body,
+    host ?? document.body,
   )
 }
 
@@ -185,27 +213,32 @@ export function DropdownMenuContent({ children, align = 'end' }: { children: Rea
 
   // Once measurable: open upwards if it does not fit below (and fits above), otherwise pin it to
   // the bottom margin. On a phone the gesture bar covers the very bottom, hiding the last items.
+  // Inside a dialog the menu is mounted there and clipped by it, so the dialog's box is the limit.
   useLayoutEffect(() => {
     if (!open || typeof pos?.top !== 'number' || !contentRef.current || !triggerRef.current) return
     const rect = triggerRef.current.getBoundingClientRect()
+    const box = boundsOf(dialogHost(triggerRef.current))
     const height = contentRef.current.offsetHeight
-    if (pos.top + height <= window.innerHeight - MARGIN) return
-    if (height <= rect.top - MARGIN) {
+    if (pos.top + height <= box.bottom - MARGIN) return
+    if (height <= rect.top - box.top - MARGIN) {
       setAbove(true)
       setPos((p) => (p ? { ...p, top: undefined, bottom: window.innerHeight - rect.top + 4 } : p))
     } else {
-      setPos((p) => (p ? { ...p, top: Math.max(MARGIN, window.innerHeight - MARGIN - height) } : p))
+      const top = Math.max(box.top + MARGIN, box.bottom - MARGIN - height)
+      if (top !== pos.top) setPos((p) => (p ? { ...p, top } : p))
     }
   }, [open, pos, triggerRef])
 
-  // A wide panel (the note editor) next to the viewport edge slides back in instead of overflowing.
+  // A wide panel (the note editor) next to the edge slides back in instead of overflowing.
   useLayoutEffect(() => {
     if (!open || !pos || !contentRef.current) return
+    const box = boundsOf(dialogHost(triggerRef.current))
     const width = contentRef.current.offsetWidth
-    const limit = Math.max(MARGIN, window.innerWidth - MARGIN - width)
-    if (typeof pos.left === 'number' && pos.left > limit) setPos((p) => (p ? { ...p, left: limit } : p))
-    if (typeof pos.right === 'number' && pos.right > limit) setPos((p) => (p ? { ...p, right: limit } : p))
-  }, [open, pos])
+    const leftLimit = Math.max(box.left + MARGIN, box.right - MARGIN - width)
+    const rightLimit = Math.max(window.innerWidth - box.right + MARGIN, window.innerWidth - box.left - MARGIN - width)
+    if (typeof pos.left === 'number' && pos.left > leftLimit) setPos((p) => (p ? { ...p, left: leftLimit } : p))
+    if (typeof pos.right === 'number' && pos.right > rightLimit) setPos((p) => (p ? { ...p, right: rightLimit } : p))
+  }, [open, pos, triggerRef])
 
   if (!open || !pos) return null
   const origin = `${above ? 'bottom' : 'top'} ${align === 'end' ? 'right' : 'left'}`
