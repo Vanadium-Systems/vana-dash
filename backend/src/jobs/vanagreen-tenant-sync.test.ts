@@ -6,7 +6,7 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../shared/db/client.js'
-import { billingClients } from '../shared/db/schema/index.js'
+import { billingClients, financialRecords } from '../shared/db/schema/index.js'
 
 const fetchTenantsMock = vi.fn()
 const fetchDemoTenantsMock = vi.fn()
@@ -73,6 +73,7 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  if (clientIds.length) await db.delete(financialRecords).where(inArray(financialRecords.billingClientId, clientIds))
   if (clientIds.length) await db.delete(billingClients).where(inArray(billingClients.id, clientIds.splice(0)))
 })
 
@@ -321,6 +322,47 @@ describe('runVanagreenTenantSyncJob', () => {
 
     expect(pushBillingCycleMock).toHaveBeenCalledWith(FAKE_CONFIG, 'tenant-drifted', {
       billingDueDate: '2026-09-01',
+      billingCycle: 'monthly',
+      billingCycleDay: 1,
+      billingCycleMonth: null,
+    })
+  })
+
+  it('mirrors the due day of an unpaid invoice, not the next invoice day, so the banner shows the debt', async () => {
+    const [existing] = await db
+      .insert(billingClients)
+      .values({
+        name: 'Unpaid SRL',
+        cif: 'RO1',
+        address: 'x',
+        vanagreenTenantId: 'tenant-unpaid',
+        billingDueDate: '2026-12-01',
+        billingCycle: 'monthly',
+        billingCycleDay: 1,
+        paymentTermsDays: 15,
+      })
+      .returning()
+    clientIds.push(existing!.id)
+    await db.insert(financialRecords).values({
+      type: 'invoice',
+      direction: 'out',
+      amount: '213.70',
+      currency: 'RON',
+      source: 'generated',
+      billingClientId: existing!.id,
+      issuedAt: new Date('2026-11-01T09:00:00.000Z'),
+      dueAt: new Date('2026-11-16T12:00:00.000Z'),
+      documentNumber: `TST-${Math.floor(Math.random() * 1e9)}`,
+      paymentStatus: 'unpaid',
+    })
+    fetchTenantsMock.mockResolvedValue([
+      fakeTenant({ id: 'tenant-unpaid', name: 'Unpaid SRL', billingDueDate: '2026-12-01', billingCycle: 'monthly', billingCycleDay: 1 }),
+    ])
+
+    await runVanagreenTenantSyncJob()
+
+    expect(pushBillingCycleMock).toHaveBeenCalledWith(FAKE_CONFIG, 'tenant-unpaid', {
+      billingDueDate: '2026-11-16',
       billingCycle: 'monthly',
       billingCycleDay: 1,
       billingCycleMonth: null,

@@ -16,6 +16,7 @@ import {
 import type { PlatformConfig } from '../../connectors/types.js'
 import { db } from '../../shared/db/client.js'
 import { billingClients, dashboardConfig, platforms, vanagreenExtensionLog } from '../../shared/db/schema/index.js'
+import { clientPaymentDueDate } from '../../shared/lib/client-payment-due.js'
 import { decryptField } from '../../shared/lib/crypto.js'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -194,7 +195,7 @@ export async function maybeExtendSubscription(input: MaybeExtendInput): Promise<
       client.vanagreenTenantId,
       client.vanagreenExtendMonths,
       input.sourceId,
-      nextDueDate,
+      (await clientPaymentDueDate({ ...client, billingDueDate: nextDueDate })) ?? nextDueDate,
     )
     if (!result.ok) {
       console.error(`[vanagreen-extension] clear is_demo eșuat pt. tenantul ${client.vanagreenTenantId}:`, result.message)
@@ -335,8 +336,10 @@ export async function pushBillingCycleIfMapped(client: Omit<typeof billingClient
     return
   }
 
+  // VanaGreen's banner counts down to this date, so it gets the day the client has to have paid
+  // by, not the next invoice day (see shared/lib/client-payment-due.ts).
   const result = await pushVanagreenBillingCycle(config, client.vanagreenTenantId, {
-    billingDueDate: client.billingDueDate,
+    billingDueDate: await clientPaymentDueDate(client),
     billingCycle: client.billingCycle,
     billingCycleDay: client.billingCycleDay,
     billingCycleMonth: client.billingCycleMonth,

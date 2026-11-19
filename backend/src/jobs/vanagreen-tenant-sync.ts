@@ -11,6 +11,7 @@ import {
 import { getVanagreenPlatformConfig } from '../modules/reconciliation/vanagreen-extension.js'
 import { db } from '../shared/db/client.js'
 import { billingClients } from '../shared/db/schema/index.js'
+import { clientPaymentDueDate } from '../shared/lib/client-payment-due.js'
 
 const PENDING_DELETION_PURGE_DAYS = 30
 
@@ -137,6 +138,7 @@ export async function runVanagreenTenantSyncJob(): Promise<void> {
         isDemo: billingClients.isDemo,
         pendingDeletionAt: billingClients.pendingDeletionAt,
         billingDueDate: billingClients.billingDueDate,
+        paymentTermsDays: billingClients.paymentTermsDays,
         billingCycle: billingClients.billingCycle,
         billingCycleDay: billingClients.billingCycleDay,
         billingCycleMonth: billingClients.billingCycleMonth,
@@ -184,22 +186,24 @@ export async function runVanagreenTenantSyncJob(): Promise<void> {
       // Reconciliere drift (vezi comentariul de sus, 2026-08-05) — local (sursa de adevăr) e
       // singurul care câștigă, niciodată invers. `mapped.billingDueDate === null` = client fără
       // cadență setată încă local, nimic de împins.
+      // The mirror holds the day the client has to have paid by, not the local next invoice day.
+      const paymentDueDate = mapped.billingDueDate === null ? null : await clientPaymentDueDate(mapped)
       if (
         mapped.billingDueDate !== null &&
-        (mapped.billingDueDate !== tenant.billingDueDate ||
+        (paymentDueDate !== tenant.billingDueDate ||
           mapped.billingCycle !== tenant.billingCycle ||
           mapped.billingCycleDay !== tenant.billingCycleDay ||
           mapped.billingCycleMonth !== tenant.billingCycleMonth)
       ) {
         const result = await pushVanagreenBillingCycle(config, tenant.id, {
-          billingDueDate: mapped.billingDueDate,
+          billingDueDate: paymentDueDate,
           billingCycle: mapped.billingCycle,
           billingCycleDay: mapped.billingCycleDay,
           billingCycleMonth: mapped.billingCycleMonth,
         })
         if (result.ok) {
           console.log(
-            `[vanagreen-tenant-sync] drift billing-cycle corectat pt. clientul ${mapped.id} (tenant ${tenant.id}): ${tenant.billingDueDate} → ${mapped.billingDueDate}`,
+            `[vanagreen-tenant-sync] drift billing-cycle corectat pt. clientul ${mapped.id} (tenant ${tenant.id}): ${tenant.billingDueDate} → ${paymentDueDate}`,
           )
         } else {
           console.error(`[vanagreen-tenant-sync] re-push billing-cycle eșuat pt. clientul ${mapped.id} (tenant ${tenant.id}):`, result.message)

@@ -6,7 +6,7 @@
 import { inArray } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../shared/db/client.js'
-import { billingClients } from '../shared/db/schema/index.js'
+import { billingClients, financialRecords } from '../shared/db/schema/index.js'
 
 const sendEmailMock = vi.fn()
 vi.mock('../shared/lib/email.js', () => ({ sendEmail: (...args: unknown[]) => sendEmailMock(...args) }))
@@ -41,7 +41,24 @@ beforeEach(() => {
   sendEmailMock.mockResolvedValue(undefined)
 })
 
+async function makeInvoice(billingClientId: string, dueInDays: number, opts: { paid?: boolean; draft?: boolean } = {}) {
+  const dueAt = new Date(`${isoDaysFromToday(dueInDays)}T12:00:00.000Z`)
+  await db.insert(financialRecords).values({
+    type: 'invoice',
+    direction: 'out',
+    amount: '100.00',
+    currency: 'RON',
+    source: 'generated',
+    billingClientId,
+    issuedAt: new Date(dueAt.getTime() - 15 * 24 * 60 * 60 * 1000),
+    dueAt,
+    documentNumber: opts.draft ? null : `TST-${Math.floor(Math.random() * 1e9)}`,
+    paymentStatus: opts.paid ? 'paid' : 'unpaid',
+  })
+}
+
 afterEach(async () => {
+  if (clientIds.length) await db.delete(financialRecords).where(inArray(financialRecords.billingClientId, clientIds))
   if (clientIds.length) await db.delete(billingClients).where(inArray(billingClients.id, clientIds.splice(0)))
 })
 
@@ -73,44 +90,70 @@ describe('runBillingCycleRolloverJob — roll-forward', () => {
 })
 
 describe('runBillingCycleRolloverJob — remindere', () => {
-  it('sends an overdue reminder for a lapsed one-shot client with no prior overdue email', async () => {
-    const client = await makeClient({ billingDueDate: isoDaysFromToday(-1) })
+  // Reminders count down to the due day of the oldest unpaid invoice, not to billingDueDate (the
+  // next invoice day): an invoice issued on the 1st and due on the 16th is late from the 17th.
+  it('sends an overdue reminder the day after the oldest unpaid invoice was due, with that date', async () => {
+    const client = await makeClient({ billingDueDate: isoDaysFromToday(12) })
+    await makeInvoice(client.id, -1)
     await runBillingCycleRolloverJob()
 
     expect(sendEmailMock).toHaveBeenCalledTimes(1)
-    const arg = sendEmailMock.mock.calls[0]![0] as { to: string; subject: string }
+    const arg = sendEmailMock.mock.calls[0]![0] as { to: string; subject: string; text: string }
     expect(arg.to).toBe('client@example.com')
+    expect(arg.subject).toContain('restantă')
+    expect(arg.text).toContain(isoDaysFromToday(-1))
     const [updated] = await db.select().from(billingClients).where(inArray(billingClients.id, [client.id]))
     expect(updated?.billingOverdueSentAt).not.toBeNull()
   })
 
-  it('sends a 1-day reminder exactly at daysUntilDue === 1', async () => {
-    await makeClient({ billingDueDate: isoDaysFromToday(1) })
+  it('does not call an invoice overdue on its due day', async () => {
+    const client = await makeClient({ billingDueDate: isoDaysFromToday(12) })
+    await makeInvoice(client.id, 0)
+    await runBillingCycleRolloverJob()
+    expect(sendEmailMock).not.toHaveBeenCalled()
+  })
+
+  it('sends a 1-day reminder exactly one day before the invoice is due', async () => {
+    const client = await makeClient({ billingDueDate: isoDaysFromToday(20) })
+    await makeInvoice(client.id, 1)
     await runBillingCycleRolloverJob()
     expect(sendEmailMock).toHaveBeenCalledTimes(1)
   })
 
-  it('sends a 7-day reminder exactly at daysUntilDue === 7', async () => {
-    await makeClient({ billingDueDate: isoDaysFromToday(7) })
+  it('sends a 7-day reminder exactly seven days before the invoice is due', async () => {
+    const client = await makeClient({ billingDueDate: isoDaysFromToday(20) })
+    await makeInvoice(client.id, 7)
     await runBillingCycleRolloverJob()
     expect(sendEmailMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends nothing while nothing is owed, even 7 days before the next invoice day', async () => {
+    const client = await makeClient({ billingDueDate: isoDaysFromToday(7) })
+    await makeInvoice(client.id, -10, { paid: true })
+    await makeInvoice(client.id, -3, { draft: true })
+    await runBillingCycleRolloverJob()
+    expect(sendEmailMock).not.toHaveBeenCalled()
   })
 
   it('is idempotent: does not re-send an overdue reminder already marked as sent', async () => {
-    await makeClient({ billingDueDate: isoDaysFromToday(-1), billingOverdueSentAt: new Date() })
+    const client = await makeClient({ billingDueDate: isoDaysFromToday(12), billingOverdueSentAt: new Date() })
+    await makeInvoice(client.id, -1)
     await runBillingCycleRolloverJob()
     expect(sendEmailMock).not.toHaveBeenCalled()
   })
 
   it('skips clients with no email (does not crash, no send attempted)', async () => {
-    await makeClient({ billingDueDate: isoDaysFromToday(-1), email: null })
+    const client = await makeClient({ billingDueDate: isoDaysFromToday(12), email: null })
+    await makeInvoice(client.id, -1)
     await expect(runBillingCycleRolloverJob()).resolves.not.toThrow()
     expect(sendEmailMock).not.toHaveBeenCalled()
   })
 
   it('CRITICAL — per-client error isolation: one send failure does not stop the rest of the batch', async () => {
-    const clientA = await makeClient({ billingDueDate: isoDaysFromToday(-1), email: 'a@example.com' })
-    await makeClient({ billingDueDate: isoDaysFromToday(-1), email: 'b@example.com' })
+    const clientA = await makeClient({ billingDueDate: isoDaysFromToday(12), email: 'a@example.com' })
+    const clientB = await makeClient({ billingDueDate: isoDaysFromToday(12), email: 'b@example.com' })
+    await makeInvoice(clientA.id, -1)
+    await makeInvoice(clientB.id, -1)
     sendEmailMock.mockImplementation(async (opts: { to: string }) => {
       if (opts.to === 'a@example.com') throw new Error('resend down')
     })

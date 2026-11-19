@@ -4,6 +4,7 @@ import { and, eq, isNotNull, isNull } from 'drizzle-orm'
 import { computeNextOccurrence, dayAfter, type BillingCycle } from '../shared/lib/billing-cycle.js'
 import { db } from '../shared/db/client.js'
 import { billingClients } from '../shared/db/schema/index.js'
+import { oldestUnpaidDueDate } from '../shared/lib/client-payment-due.js'
 import { sendEmail } from '../shared/lib/email.js'
 import { pushBillingCycleIfMapped } from '../modules/reconciliation/vanagreen-extension.js'
 
@@ -18,6 +19,9 @@ import { pushBillingCycleIfMapped } from '../modules/reconciliation/vanagreen-ex
 //      tocmai s-a schimbat sub el).
 //   2. Altfel, planifică cel mult UN reminder per rulare (overdue > 1zi > 7zile, primul care se
 //      potrivește), gardat de coloana *_sent_at aferentă — trimis o singură dată per scadență.
+//      Reminders count down to the due day of the oldest unpaid invoice, not to billingDueDate
+//      (the next invoice day), and there are none while nothing is owed. An invoice still unpaid
+//      at the next rollover gets its overdue email again, once a cycle.
 const CRON_EXPR = '0 8 * * *'
 
 function todayUtcMidnight(): Date {
@@ -75,7 +79,8 @@ interface PlannedSend {
 }
 
 function planSend(client: Client, daysUntilDue: number): PlannedSend | null {
-  if (daysUntilDue <= 0 && client.billingOverdueSentAt === null) return { type: 'overdue', column: 'billingOverdueSentAt' }
+  // The due day itself is still on time.
+  if (daysUntilDue < 0 && client.billingOverdueSentAt === null) return { type: 'overdue', column: 'billingOverdueSentAt' }
   if (daysUntilDue === 1 && client.billingReminder1dSentAt === null) return { type: 'reminder_1d', column: 'billingReminder1dSentAt' }
   if (daysUntilDue === 7 && client.billingReminder7dSentAt === null) return { type: 'reminder_7d', column: 'billingReminder7dSentAt' }
   return null
@@ -120,7 +125,18 @@ export async function runBillingCycleRolloverJob(): Promise<void> {
       continue
     }
 
-    const plan = planSend(client, daysUntilDue)
+    let paymentDue: string | null
+    try {
+      paymentDue = await oldestUnpaidDueDate(client.id)
+    } catch (err) {
+      console.error(`[billing-cycle-rollover] unpaid invoice lookup failed for client ${client.id}:`, err)
+      continue
+    }
+    const paymentDueDay = paymentDue ? parseIsoDateUtc(paymentDue) : null
+    if (!paymentDue || !paymentDueDay) continue
+    const daysUntilPayment = Math.round((paymentDueDay.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+
+    const plan = planSend(client, daysUntilPayment)
     if (!plan) continue
 
     if (!client.email) {
@@ -132,7 +148,7 @@ export async function runBillingCycleRolloverJob(): Promise<void> {
       await sendEmail({
         to: client.email,
         subject: SUBJECTS[plan.type](client.name),
-        text: buildText(plan.type, client.name, dueDate),
+        text: buildText(plan.type, client.name, paymentDue),
       })
       await db
         .update(billingClients)
