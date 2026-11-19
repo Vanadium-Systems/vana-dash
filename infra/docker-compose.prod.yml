@@ -14,6 +14,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-vanadash}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # The entrypoint starts as root, fixes ownership of the data directory and drops to the
+    # postgres user with su-exec: these five capabilities are what that needs.
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:?}']
       interval: 10s
@@ -48,6 +53,16 @@ services:
       # The daily pg_dump (jobs/backup.ts) writes to its own volume below, separate from
       # storage_data (invoices, XML).
       BACKUP_DIR: /backups
+      # Chromium (PDFs) writes its profile, crash reports and font cache under HOME; with a
+      # read-only root filesystem only /tmp is writable.
+      HOME: /tmp
+    # Runs as node (Dockerfile). Writable: the two volumes and /tmp (PDF, thumbnail and
+    # certificate scratch files), nothing else.
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
     secrets:
       - jwt_secret
       - master_encryption_key
@@ -72,6 +87,12 @@ services:
       - '443:443'
     environment:
       DOMAIN: ${DOMAIN:?}
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ../frontend/dist:/srv/frontend:ro

@@ -27,4 +27,8 @@ COPY --from=build /app/backend/src/shared/db/migrations backend/dist/shared/db/m
 # ANAF declaration forms (D301/D390), filled in by connectors/anaf/declarations/xfa-pdf.ts
 COPY --from=build /app/backend/src/connectors/anaf/declarations/templates backend/dist/connectors/anaf/declarations/templates
 WORKDIR /app/backend
+# Non-root. The two volume mount points are created here owned by node, so a fresh named volume
+# inherits that owner; volumes created before this need a one-time chown to 1000.
+RUN mkdir -p storage /backups && chown node:node storage /backups
+USER node
 CMD ["sh", "-c", "node dist/shared/db/migrate.js && node dist/index.js"]
