@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { api } from './api'
+import { hasNativeCall } from './native-call'
 
 // Canalul nativ FCM al APK-ului (Contract C) — web-push-ul browserelor trăiește în SW,
 // WebView nu are prin ce să-l primească. Token-ul se înregistrează la login și se șterge
@@ -28,7 +29,7 @@ export async function registerNativeDeviceToken(): Promise<void> {
         clearTimeout(timeout)
         localStorage.setItem(TOKEN_KEY, token.value)
         void api
-          .post('/api/push/device', { token: token.value })
+          .post('/api/push/device', { token: token.value, callUi: hasNativeCall })
           .catch(() => {})
           .finally(resolve)
       })

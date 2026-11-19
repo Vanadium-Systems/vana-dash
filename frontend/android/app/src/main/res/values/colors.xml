@@ -5,4 +5,9 @@
     <color name="colorPrimary">#18181B</color>
     <color name="colorPrimaryDark">#0F0F0F</color>
     <color name="colorAccent">#18181B</color>
+    <!-- Call screen: answer and decline keep the colours every phone uses for them. -->
+    <color name="callBackground">#0F0F0F</color>
+    <color name="callTextMuted">#A1A1AA</color>
+    <color name="callAnswer">#16A34A</color>
+    <color name="callDecline">#DC2626</color>
 </resources>

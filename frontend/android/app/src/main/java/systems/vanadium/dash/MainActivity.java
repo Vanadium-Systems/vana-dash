@@ -18,6 +18,7 @@ import java.util.List;
 
 public class MainActivity extends BridgeActivity {
     private static final int MAX_PICKED_MEDIA = 20;
+    private static volatile boolean foreground;
 
     private ActivityResultLauncher<PickVisualMediaRequest> mediaPicker;
     private ValueCallback<Uri[]> pendingMediaCallback;
@@ -28,10 +29,27 @@ public class MainActivity extends BridgeActivity {
         // iar un plugin înregistrat după ajunge într-un builder deja consumat → „not implemented"
         // (găsit live 2026-08-24: share-in murea cu eroarea asta în loc de upload).
         registerPlugin(ShareInPlugin.class);
+        registerPlugin(NativeCallPlugin.class);
         super.onCreate(savedInstanceState);
 
         mediaPicker = registerForActivityResult(new PickMultipleVisualMedia(MAX_PICKED_MEDIA), this::deliverPickedMedia);
         bridge.getWebView().setWebChromeClient(new MediaPickerChromeClient());
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        foreground = true;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        foreground = false;
+    }
+
+    static boolean isForeground() {
+        return foreground;
     }
 
     @Override

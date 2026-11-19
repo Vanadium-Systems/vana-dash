@@ -56,8 +56,8 @@ export const sendTest = (me: SessionUser) => sendTestPush(me.id)
 
 // Canalul nativ APK (FCM) — Contract C. Upsert pe token: reinstalare/relogin re-activează
 // rândul existent și reîmprospătează lastSeenAt.
-export async function registerDevice(me: SessionUser, input: { token: string }) {
-  await registerDeviceToken(input.token, me.id)
+export async function registerDevice(me: SessionUser, input: { token: string; callUi?: boolean }) {
+  await registerDeviceToken(input.token, me.id, input.callUi ?? false)
   return { registered: true }
 }
 

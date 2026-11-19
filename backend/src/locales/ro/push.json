@@ -24,7 +24,9 @@
     "aColleague": "Un coleg",
     "newMessage": "Mesaj nou",
     "incomingCallAudio": "Apel audio primit",
-    "incomingCallVideo": "Apel video primit"
+    "incomingCallVideo": "Apel video primit",
+    "callAnswer": "Răspunde",
+    "callDecline": "Respinge"
   },
   "payment": {
     "matchedTitle": "Plată matchuită",

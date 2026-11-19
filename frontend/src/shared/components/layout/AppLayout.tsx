@@ -29,6 +29,7 @@ import { useNavLayout } from '@/shared/hooks/use-nav-layout'
 import { useOfflinePrefetch } from '@/shared/hooks/use-offline-prefetch'
 import { useOnline } from '@/shared/hooks/use-online'
 import { isNative } from '@/shared/lib/native'
+import { onNativeCallAnswer } from '@/shared/lib/native-call'
 import { clearReadEmailNotifications, onNativeNotificationTap, registerNativeDeviceToken } from '@/shared/lib/native-push'
 import { MOBILE_BOTTOM_TOS, NAV_GROUP_ORDER, findNavItem, isNavItemActive, navGroupLabel, canOpenNavItem } from '@/shared/lib/nav-items'
 import { BrandMark } from '@/shared/components/BrandMark'
@@ -259,6 +260,7 @@ export function AppLayout() {
   }, [user])
 
   useEffect(() => onNativeNotificationTap((path) => navigate(path)), [navigate])
+  useEffect(() => onNativeCallAnswer((path) => navigate(path)), [navigate])
   useClearReadChatNotifications()
 
   // Emails read on another device: their notifications go when the app comes back to the front.

@@ -1,7 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">VanaDash</string>
-    <string name="title_activity_main">VanaDash</string>
-    <string name="package_name">systems.vanadium.dash</string>
-    <string name="custom_url_scheme">systems.vanadium.dash</string>
+    <string name="app_name" translatable="false">VanaDash</string>
+    <string name="title_activity_main" translatable="false">VanaDash</string>
+    <string name="package_name" translatable="false">systems.vanadium.dash</string>
+    <string name="custom_url_scheme" translatable="false">systems.vanadium.dash</string>
+    <string name="channel_calls">Incoming calls</string>
+    <string name="channel_call_ongoing">Call in progress</string>
+    <string name="call_audio">VanaDash audio call</string>
+    <string name="call_video">VanaDash video call</string>
+    <string name="call_answer">Answer</string>
+    <string name="call_decline">Decline</string>
 </resources>

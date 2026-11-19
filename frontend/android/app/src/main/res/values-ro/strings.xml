@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="channel_calls">Apeluri primite</string>
+    <string name="channel_call_ongoing">Apel în curs</string>
+    <string name="call_audio">Apel audio VanaDash</string>
+    <string name="call_video">Apel video VanaDash</string>
+    <string name="call_answer">Răspunde</string>
+    <string name="call_decline">Respinge</string>
+</resources>

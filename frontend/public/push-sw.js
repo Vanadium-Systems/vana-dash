@@ -42,6 +42,9 @@ self.addEventListener('push', (event) => {
     return
   }
 
+  // An incoming call: stays up with Answer / Decline until one is pressed or it is closed.
+  const call = payload.call && payload.call.id ? payload.call : null
+
   event.waitUntil(
     resolveBody(payload).then((body) =>
       self.registration.showNotification(payload.title || 'VanaDash', {
@@ -50,7 +53,15 @@ self.addEventListener('push', (event) => {
         badge: '/pwa-192x192.png',
         // Same tag = replaces the previous notification of that conversation or thread.
         tag: payload.tag || undefined,
-        data: { url: payload.url || '/' },
+        data: { url: payload.url || '/', callId: call ? call.id : undefined },
+        requireInteraction: Boolean(call),
+        vibrate: call ? [900, 300, 900, 300, 900] : undefined,
+        actions: call
+          ? [
+              { action: 'accept', title: call.answer },
+              { action: 'decline', title: call.decline },
+            ]
+          : undefined,
       }),
     ),
   )
@@ -58,7 +69,20 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data && event.notification.data.url ? event.notification.data.url : '/'
+  const data = event.notification.data || {}
+  const url = data.url || '/'
+
+  if (event.action === 'decline' && data.callId) {
+    event.waitUntil(
+      fetch('/api/chat/calls/' + encodeURIComponent(data.callId) + '/decline', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      }).catch(() => undefined),
+    )
+    return
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

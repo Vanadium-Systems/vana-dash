@@ -251,7 +251,7 @@
     "incomingTitle": "Call from {{name}}",
     "incomingAudio": "Incoming audio call",
     "incomingVideo": "Incoming video call",
-    "accept": "Join",
+    "accept": "Answer",
     "decline": "Decline",
     "declinedBy": "{{name}} declined the call"
   }

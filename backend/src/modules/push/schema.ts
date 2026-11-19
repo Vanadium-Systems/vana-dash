@@ -25,4 +25,6 @@ export const UpdatePreferencesSchema = z.object({
 // Token FCM al APK-ului (Contract C) — lungime generoasă, Firebase token-urile au ~150-160 chars.
 export const DeviceTokenSchema = z.object({
   token: z.string().min(32).max(512),
+  /** Sent by APK 1.6+, which shows its own call screen. */
+  callUi: z.boolean().optional(),
 })

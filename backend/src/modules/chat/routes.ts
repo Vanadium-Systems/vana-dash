@@ -3,7 +3,7 @@ import type { ServerResponse } from 'node:http'
 import multipart from '@fastify/multipart'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { notifyPush } from '../../shared/lib/push.js'
+import { notifyIncomingCallPush, notifyPush } from '../../shared/lib/push.js'
 import { contentDisposition } from '../../shared/lib/text.js'
 import { MAX_ATTACHMENT_BYTES, readAttachment, uploadAttachment, uploadEncryptedAttachment } from './attachments.js'
 import { hasOpenConnection, markAlive, openConnection, presenceFor, publish, closeConnection } from './presence.js'
@@ -493,11 +493,9 @@ async function notifyIncomingCall(
     const target = await service.pushTarget(conversationId, callerUserId)
     if (!target) return
     const offline = target.recipients.filter((userId) => !hasOpenConnection(userId))
-    if (offline.length === 0) return
 
     const key = kind === 'audio' ? 'push.chat.incomingCallAudio' : 'push.chat.incomingCallVideo'
-    await notifyPush(
-      'mesaje',
+    await notifyIncomingCallPush(
       (locale) => ({
         title: target.title,
         body:
@@ -506,7 +504,9 @@ async function notifyIncomingCall(
             : trFor(locale, key),
         url: `/calls/${callId}`,
         tag: `call-${callId}`,
+        call: { id: callId, kind, answer: trFor(locale, 'push.chat.callAnswer'), decline: trFor(locale, 'push.chat.callDecline') },
       }),
+      target.recipients,
       offline,
     )
   } catch (err) {

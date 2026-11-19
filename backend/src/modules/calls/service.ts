@@ -7,6 +7,7 @@ import { callPublicUrl, closeCallRoom, isCallsConfigured, openCallRoom, type Cal
 import { decryptField } from '../../shared/lib/crypto.js'
 import { createLiveKitToken, LiveKitError } from '../../shared/lib/livekit.js'
 import { getCompany } from '../../shared/lib/company.js'
+import { closePushNotification } from '../../shared/lib/push.js'
 import { visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import { userName, type SessionUser } from '../../shared/lib/session.js'
 import type { z } from 'zod'
@@ -228,7 +229,10 @@ export async function issueCallToken(id: string, me: SessionUser): Promise<CallT
 
 /** Backwards-compatible alias for `issueCallToken` on legacy `/join`. */
 export async function joinCall(id: string, me: SessionUser): Promise<CallTokenResponse> {
-  return issueCallToken(id, me)
+  const joined = await issueCallToken(id, me)
+  // Answered here: stop it ringing on the person's other phones and browsers.
+  if (joined.conversationId) void closePushNotification(me.id, `call-${id}`)
+  return joined
 }
 
 export async function endCall(me: SessionUser, id: string): Promise<CallRow> {

@@ -258,7 +258,7 @@
     "incomingTitle": "Apel de la {{name}}",
     "incomingAudio": "Apel audio primit",
     "incomingVideo": "Apel video primit",
-    "accept": "Intră",
+    "accept": "Răspunde",
     "decline": "Respinge",
     "declinedBy": "{{name}} a respins apelul"
   }

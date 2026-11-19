@@ -11,7 +11,7 @@ import { calls, conversations, livekitSettings } from '../../shared/db/schema/in
 import type { SessionUser } from '../../shared/lib/session.js'
 import { getLiveKitSettingsView, saveLiveKitSettings } from '../../shared/lib/livekit.js'
 import { cleanupTestUsers, createTestUser } from '../../shared/testing/users.js'
-import { runCallsClose } from '../../jobs/calls-close.js'
+import { runCallsClose, runEmptyCallsClose } from '../../jobs/calls-close.js'
 import { closeCallRoom } from '../../shared/lib/call-rooms.js'
 import { declineConversationCall, endConversationCall, listMessages, openDm, previewRef, startConversationCall } from '../chat/service.js'
 import './refs.js'
@@ -287,5 +287,27 @@ describe('livekit calls & chat integration', () => {
     const afterEndMessages = await listMessages(colleague, convId, { limit: 10 })
     const afterEndCallMsg = afterEndMessages.messages.find((m) => m.refs.some((r) => r.type === 'call' && r.refId === call.id))
     expect(afterEndCallMsg?.refs[0]?.card).toMatchObject({ status: 'ended' })
+  })
+
+  it('closes a Mesaje call once everyone has left, but not while someone is in it or it still rings', async () => {
+    stubLiveKit()
+    const convId = await openDm(me, colleague.id)
+    conversationIds.push(convId)
+    const { call } = await startConversationCall(me, convId, { kind: 'audio', clientId: crypto.randomUUID() })
+    callIds.push(call.id)
+    const status = async () => (await db.select({ status: calls.status }).from(calls).where(eq(calls.id, call.id)))[0]?.status
+    const later = new Date(Date.now() + 3 * 60_000)
+
+    // Still ringing: too new to judge.
+    await runEmptyCallsClose(new Date())
+    expect(await status()).toBe('open')
+
+    stubLiveKit([{ name: call.id, numParticipants: 1 }])
+    await runEmptyCallsClose(later)
+    expect(await status()).toBe('open')
+
+    stubLiveKit([])
+    expect(await runEmptyCallsClose(later)).toBeGreaterThanOrEqual(1)
+    expect(await status()).toBe('ended')
   })
 })

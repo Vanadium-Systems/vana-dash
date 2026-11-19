@@ -1,0 +1,1 @@
+ALTER TABLE "device_tokens" ADD COLUMN "call_ui" boolean DEFAULT false NOT NULL;

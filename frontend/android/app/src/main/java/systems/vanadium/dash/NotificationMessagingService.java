@@ -11,15 +11,24 @@ import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
 
 /**
- * Closes a notification read on another device. This has to happen here: the WebView is not
- * running when the app is closed, and that is when the notification sits in the shade.
+ * Closes a notification read on another device, and rings for an incoming call. Both have to
+ * happen here: the WebView is not running when the app is closed.
  */
 public class NotificationMessagingService extends MessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
         Map<String, String> data = message.getData();
-        if ("close".equals(data.get("type"))) {
-            close(data.get("tag"));
+        String type = data.get("type");
+        if ("close".equals(type)) {
+            String tag = data.get("tag");
+            close(tag);
+            // Answered, declined or ended somewhere else.
+            if (tag != null && tag.startsWith("call-")) IncomingCallActivity.finishFor(tag.substring("call-".length()));
+            return;
+        }
+        if ("call".equals(type)) {
+            // With the app on screen the web app shows the call and rings itself.
+            if (!MainActivity.isForeground()) CallNotifications.showIncoming(this, data);
             return;
         }
         super.onMessageReceived(message);

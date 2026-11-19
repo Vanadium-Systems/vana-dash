@@ -16,6 +16,12 @@
     </style>
 
 
+    <style name="AppTheme.IncomingCall" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/callBackground</item>
+        <item name="android:statusBarColor">@color/callBackground</item>
+        <item name="android:navigationBarColor">@color/callBackground</item>
+    </style>
+
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
     </style>

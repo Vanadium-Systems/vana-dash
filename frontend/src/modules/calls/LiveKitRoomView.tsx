@@ -14,6 +14,7 @@ import {
 import E2EEWorker from 'livekit-client/e2ee-worker?worker'
 import {
   Ban,
+  Bluetooth,
   Lock,
   Mic,
   Monitor,
@@ -21,6 +22,7 @@ import {
   RefreshCw,
   Users,
   Video,
+  Volume2,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Alert } from '@/shared/components/ui/alert'
@@ -28,6 +30,16 @@ import { Button } from '@/shared/components/ui/button'
 import { StatePill } from '@/shared/components/ui/state-pill'
 import { t } from '@/shared/lib/i18n'
 import { isNative } from '@/shared/lib/native'
+import {
+  endNativeCall,
+  hasNativeCall,
+  onNativeAudioState,
+  onNativeCallHangup,
+  setNativeAudioRoute,
+  startNativeCall,
+  type AudioRoute,
+  type AudioState,
+} from '@/shared/lib/native-call'
 import { cn } from '@/shared/lib/utils'
 import type { CallKind } from './types'
 
@@ -39,7 +51,8 @@ interface LiveKitRoomViewProps {
   title: string
   headerActions?: ReactNode
   publicFallbackUrl?: string | null
-  onLeave: () => void
+  /** `lastOut`: nobody else was left in the room. */
+  onLeave: (lastOut: boolean) => void
   onEndForAll?: () => void
 }
 
@@ -181,8 +194,11 @@ export function LiveKitRoomView({
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
   const [version, setVersion] = useState(0)
+  const [audioState, setAudioState] = useState<AudioState | null>(null)
 
   const roomRef = useRef<Room | null>(null)
+  const onLeaveRef = useRef(onLeave)
+  onLeaveRef.current = onLeave
   const bump = useCallback(() => setVersion((v) => v + 1), [])
 
   useEffect(() => {
@@ -246,6 +262,10 @@ export function LiveKitRoomView({
         if (kind === 'video') {
           await room.localParticipant.setCameraEnabled(true).catch(() => setCamEnabled(false))
         }
+        // APK: keeps the call alive with the screen off and picks earpiece / speaker / Bluetooth.
+        // Set again after the microphone opened, since Chromium chooses its own device then.
+        const native = await startNativeCall({ title, body: t('calls:room.ongoingNotice'), kind })
+        if (native?.route && !cancelled) setAudioState(await setNativeAudioRoute(native.route))
         const devices = await Room.getLocalDevices('videoinput').catch(() => [])
         if (!cancelled) setHasMultipleCameras(devices.length > 1)
         bump()
@@ -264,8 +284,27 @@ export function LiveKitRoomView({
       void room.disconnect()
       worker.terminate()
       roomRef.current = null
+      endNativeCall()
     }
+    // `title` only labels the ongoing call notification: a rename must not reconnect.
   }, [supported, e2eeKey, livekitUrl, token, kind, bump])
+
+  useEffect(() => onNativeAudioState(setAudioState), [])
+  useEffect(
+    () =>
+      onNativeCallHangup(() => {
+        const room = roomRef.current
+        const lastOut = room ? room.remoteParticipants.size === 0 : false
+        void room?.disconnect()
+        onLeaveRef.current(lastOut)
+      }),
+    [],
+  )
+
+  async function changeRoute(route: AudioRoute) {
+    const next = await setNativeAudioRoute(route)
+    if (next) setAudioState(next)
+  }
 
   async function toggleMic() {
     const room = roomRef.current
@@ -312,8 +351,10 @@ export function LiveKitRoomView({
   }
 
   function leave() {
-    void roomRef.current?.disconnect()
-    onLeave()
+    const room = roomRef.current
+    const lastOut = room ? room.remoteParticipants.size === 0 : false
+    void room?.disconnect()
+    onLeave(lastOut)
   }
 
   if (!supported) {
@@ -328,7 +369,7 @@ export function LiveKitRoomView({
               {t('calls:room.openInChrome')}
             </Button>
           ) : null}
-          <Button variant="outline" onClick={onLeave}>
+          <Button variant="outline" onClick={() => onLeave(false)}>
             {t('calls:actions.back')}
           </Button>
         </div>
@@ -342,7 +383,7 @@ export function LiveKitRoomView({
         <Alert tone="critical" title={t('calls:room.connectFailed')}>
           {connectError}
         </Alert>
-        <Button variant="outline" onClick={onLeave}>
+        <Button variant="outline" onClick={() => onLeave(false)}>
           {t('calls:actions.back')}
         </Button>
       </div>
@@ -484,6 +525,29 @@ export function LiveKitRoomView({
           >
             <Monitor className="h-4 w-4" />
             <span>{screenEnabled ? t('calls:room.stopShare') : t('calls:room.startShare')}</span>
+          </Button>
+        ) : null}
+
+        {hasNativeCall && audioState ? (
+          <Button
+            type="button"
+            variant={audioState.route === 'speaker' ? 'default' : 'outline'}
+            aria-pressed={audioState.route === 'speaker'}
+            onClick={() => void changeRoute(audioState.route === 'speaker' ? (audioState.bluetooth ? 'headset' : 'earpiece') : 'speaker')}
+          >
+            <Volume2 className="h-4 w-4" />
+            <span>{t('calls:room.speaker')}</span>
+          </Button>
+        ) : null}
+
+        {hasNativeCall && audioState?.bluetooth && audioState.route !== 'speaker' ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void changeRoute(audioState.route === 'phone-mic' ? 'headset' : 'phone-mic')}
+          >
+            <Bluetooth className="h-4 w-4" />
+            <span>{audioState.route === 'phone-mic' ? t('calls:room.micPhone') : t('calls:room.micHeadset')}</span>
           </Button>
         ) : null}
 

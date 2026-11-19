@@ -454,6 +454,14 @@ const SOURCES: GuideSource[] = [
         en: 'Press the new conversation icon, then “Write to someone” for a colleague or “New group” for several. From the conversation header you can also start an E2EE audio or video call: colleagues get an in-app ring alert and a push notification.',
       },
       {
+        ro: 'Un apel primit sună ca la telefon. În aplicația de pe telefon (versiunea 1.6, din Setări) apare ecranul de apel, și pe ecranul blocat, cu „Răspunde” și „Respinge”; la „Răspunde” deblochezi telefonul și intri în apel. În browser apare sus o fereastră cu cele două butoane, iar cu tab-ul în fundal primești și o notificare cu ele. Dacă răspunzi pe un dispozitiv, pe celelalte nu mai sună.',
+        en: 'An incoming call rings like a phone call. In the phone app (version 1.6, from Settings) the call screen shows, also on the lock screen, with Answer and Decline; Answer unlocks the phone and takes you into the call. In a browser a window with both buttons opens at the top, and with the tab in the background you also get a notification with them. Answer on one device and the others stop ringing.',
+      },
+      {
+        ro: 'În aplicația de pe telefon, un apel audio pornește în cască și ecranul se stinge când duci telefonul la ureche; „Difuzor” comută pe difuzor. Apelul merge mai departe cu ecranul stins. Cu căști Bluetooth, „Microfon: căști” e modul de apel obișnuit, iar „Microfon: telefon” lasă căștile pe sunetul de muzică și înregistrează cu microfonul telefonului.',
+        en: 'In the phone app an audio call starts in the earpiece and the screen goes dark when you hold the phone to your ear; Speaker switches to the loudspeaker. The call goes on with the screen off. With Bluetooth headphones, “Mic: headset” is the usual call mode, while “Mic: phone” keeps the headphones on music-quality sound and records with the phone’s microphone.',
+      },
+      {
         ro: 'Scrie în câmpul de jos și trimite. Un fișier de până la 50 MB se pune din „Atașează”. Emoji: după două puncte și două litere (:so) apar emoji-urile cu numele acela, Enter alege; sau iconița de lângă câmp.',
         en: 'Type in the field at the bottom and send. A file of up to 50 MB is added with “Attach”. Emoji: a colon and two letters (:so) list the emoji with that name, Enter picks; or the icon next to the field.',
       },

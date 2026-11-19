@@ -182,7 +182,11 @@ export function CallRoomPage() {
       title={call?.title ?? t('calls:title')}
       headerActions={headerActions}
       publicFallbackUrl={call && !call.conversationId ? `${call.publicUrl}#k=${encodeURIComponent(e2eeKey)}` : null}
-      onLeave={() => navigate(backTarget)}
+      onLeave={(lastOut) => {
+        // The last one out of a Mesaje call hangs it up, as on a phone: the card stops showing Join.
+        if (lastOut && join.data.conversationId) void api.post(`/api/chat/calls/${id}/end`, {}).catch(() => undefined)
+        navigate(backTarget)
+      }}
       onEndForAll={() => void onEnd()}
     />
   )

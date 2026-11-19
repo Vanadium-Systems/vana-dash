@@ -83,6 +83,8 @@ export interface PushPayload {
   tag?: string
   /** Web Push only (BE-M5): Megolm ciphertext for browser SW decryption; never sent to FCM. */
   e2e?: { conversationId: string; ciphertext: string; kind: 'dm' | 'group'; byline: string }
+  /** An incoming call: the browser shows Answer / Decline, the APK its call screen. */
+  call?: { id: string; kind: 'audio' | 'video'; answer: string; decline: string }
 }
 
 /**
@@ -147,7 +149,7 @@ async function notifyWebPush(eventType: PushEventType, payload: PushContent, use
           const wire =
             base.e2e && sub.ownerUserId
               ? { ...base, e2e: { ...base.e2e, userId: sub.ownerUserId } }
-              : { title: base.title, body: base.body, url: base.url, tag: base.tag }
+              : { title: base.title, body: base.body, url: base.url, tag: base.tag, call: base.call }
           await webpush.sendNotification(
             {
               endpoint: sub.endpoint,
@@ -265,8 +267,10 @@ export async function sendTestPush(ownerUserId: string): Promise<{ sent: number;
 // Overridable în teste (vi.mock pe firebase-admin/messaging e greu din cauza init-ului global).
 export type FcmSender = (tokens: string[], payload: PushPayload) => Promise<string[]>
 export type FcmCloser = (tokens: string[], tag: string) => Promise<string[]>
+export type FcmCallSender = (tokens: string[], payload: IncomingCallPayload) => Promise<string[]>
 let fcmSender: FcmSender | null = null
 let fcmCloser: FcmCloser | null = null
+let fcmCallSender: FcmCallSender | null = null
 
 /** Test-only — injectează un sender fals și întoarce cel real la restore. */
 export function setFcmSenderForTests(sender: FcmSender | null): void {
@@ -275,6 +279,10 @@ export function setFcmSenderForTests(sender: FcmSender | null): void {
 
 export function setFcmCloserForTests(closer: FcmCloser | null): void {
   fcmCloser = closer
+}
+
+export function setFcmCallSenderForTests(sender: FcmCallSender | null): void {
+  fcmCallSender = sender
 }
 
 // Self-cleaning, like 404/410 from web-push.
@@ -316,6 +324,27 @@ async function getFcmSender(): Promise<FcmSender | null> {
     fcmCloser = async (tokens, tag) => {
       if (tokens.length === 0) return []
       const res = await messaging.sendEachForMulticast({ tokens, data: { type: 'close', tag }, android: { priority: 'high' } })
+      return staleFcmTokens(tokens, res.responses)
+    }
+    // Data only, so the APK's messaging service builds the call screen itself, also when the app
+    // is closed. The TTL matches the ring: a call delivered later than that has stopped ringing.
+    fcmCallSender = async (tokens, payload) => {
+      if (tokens.length === 0) return []
+      const res = await messaging.sendEachForMulticast({
+        tokens,
+        data: {
+          type: 'call',
+          callId: payload.call.id,
+          kind: payload.call.kind,
+          tag: payload.tag,
+          title: payload.title,
+          body: payload.body,
+          url: payload.url ?? '',
+          answer: payload.call.answer,
+          decline: payload.call.decline,
+        },
+        android: { priority: 'high', ttl: CALL_RING_MS },
+      })
       return staleFcmTokens(tokens, res.responses)
     }
     return fcmSender
@@ -378,14 +407,69 @@ async function notifyFcm(eventType: PushEventType, payload: PushContent, userIds
   }
 }
 
-export async function registerDeviceToken(token: string, ownerUserId?: string | null): Promise<void> {
+export const CALL_RING_MS = 45_000
+
+export type IncomingCallPayload = PushPayload & { tag: string; call: NonNullable<PushPayload['call']> }
+
+/**
+ * An incoming call rings like a phone call: every phone with the call screen (APK 1.6+) gets it,
+ * also when the person has the app open on another device, and answering or declining anywhere
+ * closes it everywhere (closePushNotification on the call tag). Browsers and older APKs get the
+ * plain notification, only when the person is not in the app. Never throws.
+ */
+export async function notifyIncomingCallPush(
+  content: (locale: Locale) => IncomingCallPayload,
+  recipients: string[],
+  offline: string[],
+): Promise<void> {
+  if (recipients.length === 0) return
+  try {
+    const prefs = await getPushPreferences()
+    if (!prefs.mesaje) return
+    // An empty list would mean everyone subscribed.
+    if (offline.length > 0) await notifyWebPush('mesaje', content, offline)
+
+    const sender = await getFcmSender()
+    if (!sender) return
+    const rows = await db
+      .select({ token: deviceTokens.token, locale: users.locale, ownerUserId: deviceTokens.ownerUserId, callUi: deviceTokens.callUi })
+      .from(deviceTokens)
+      .leftJoin(users, eq(users.id, deviceTokens.ownerUserId))
+      .where(and(inArray(deviceTokens.ownerUserId, recipients), isNull(deviceTokens.deletedAt)))
+
+    const ringing = rows.filter((row) => row.callUi)
+    const plain = rows.filter((row) => !row.callUi && row.ownerUserId !== null && offline.includes(row.ownerUserId))
+    const groups: [typeof rows, FcmSender | FcmCallSender | null][] = [
+      [ringing, fcmCallSender],
+      [plain, sender],
+    ]
+    for (const [group, send] of groups) {
+      if (!send || group.length === 0) continue
+      const byLocale = new Map<Locale | null, typeof rows>()
+      for (const row of group) byLocale.set(row.locale, [...(byLocale.get(row.locale) ?? []), row])
+      for (const [locale, localeRows] of byLocale) {
+        const payload = content(locale ?? config.defaultLocale)
+        const tokens = localeRows.map((row) => row.token)
+        const invalid = await send(tokens, payload)
+        for (const token of invalid) await db.delete(deviceTokens).where(eq(deviceTokens.token, token))
+        for (const row of localeRows) {
+          if (row.ownerUserId && !invalid.includes(row.token)) shownOnAndroid.set(shownKey(row.ownerUserId, payload.tag), Date.now())
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`[push] incoming call push failed: ${String(err)}`)
+  }
+}
+
+export async function registerDeviceToken(token: string, ownerUserId?: string | null, callUi = false): Promise<void> {
   await db
     .insert(deviceTokens)
-    .values({ token, ownerUserId: ownerUserId ?? null })
+    .values({ token, ownerUserId: ownerUserId ?? null, callUi })
     .onConflictDoUpdate({
       target: deviceTokens.token,
-      // The phone now belongs to whoever logged in last on it.
-      set: { ownerUserId: ownerUserId ?? null, deletedAt: null, lastSeenAt: new Date(), updatedAt: new Date() },
+      // The phone now belongs to whoever logged in last on it, and runs the APK it reports now.
+      set: { ownerUserId: ownerUserId ?? null, callUi, deletedAt: null, lastSeenAt: new Date(), updatedAt: new Date() },
     })
 }
 

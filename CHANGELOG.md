@@ -4,6 +4,20 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-19: Calls ring like phone calls
+
+### Added
+- **Android app 1.6:** an incoming call arrives as a data-only FCM message and shows a call notification (`CallStyle`, the phone's ringtone, insistent, long vibration) and a full screen call screen over the lock screen. Answer unlocks the phone and opens the call; Decline posts `/api/chat/calls/:id/decline` from native code. It stops after 45 seconds.
+- **Android app 1.6:** a `microphone` foreground service keeps a call running with the screen off. Audio calls start in the earpiece with the proximity sensor on; a Speaker button switches, and with Bluetooth headphones "Mic: phone" keeps them on the media profile.
+- **Push:** `device_tokens.call_ui` (migration `0110`), set by APKs that have the call screen. Those phones ring for every incoming call, also when the person has the app open elsewhere; joining or declining closes the ring on the other devices. Older APKs and browsers keep the plain notification, sent only to people not in the app.
+- **Web:** web push calls and the in-tab ring in a background tab show a notification with Answer / Decline.
+
+### Changed
+- **Incoming call popup:** larger, at the top of the screen, with a louder ring and vibration where supported.
+
+### Fixed
+- **Mesaje calls:** a call everyone has left no longer stays open with a Join button. The last one out ends it, and a job every 2 minutes closes conversation calls whose LiveKit room is empty (2 minutes after the start, so a call still ringing is left alone).
+
 ## 2026-11-18: Session cookies without a session id removed
 
 ### Changed

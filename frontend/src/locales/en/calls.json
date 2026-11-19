@@ -97,7 +97,11 @@
     "switchCamera": "Switch camera",
     "startShare": "Share screen",
     "stopShare": "Stop sharing",
-    "leave": "Leave"
+    "leave": "Leave",
+    "speaker": "Speaker",
+    "micPhone": "Mic: phone",
+    "micHeadset": "Mic: headset",
+    "ongoingNotice": "Call in progress. Tap to return."
   },
   "public": {
     "heading": "Video call",

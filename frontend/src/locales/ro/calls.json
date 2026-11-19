@@ -99,7 +99,11 @@
     "switchCamera": "Schimbă camera",
     "startShare": "Partajează ecranul",
     "stopShare": "Oprește partajarea",
-    "leave": "Ieși"
+    "leave": "Ieși",
+    "speaker": "Difuzor",
+    "micPhone": "Microfon: telefon",
+    "micHeadset": "Microfon: căști",
+    "ongoingNotice": "Apel în curs. Atinge ca să revii."
   },
   "public": {
     "heading": "Apel video",

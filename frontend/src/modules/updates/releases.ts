@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-19T12:30:00Z',
+    title: {
+      ro: 'Apelurile sună ca la telefon',
+      en: 'Calls ring like phone calls',
+    },
+    body: {
+      ro: 'Un apel din Mesaje sună acum pe telefon cu soneria lui și cu vibrație, și pe ecranul blocat, cu „Răspunde” și „Respinge”. Un apel audio pornește în cască și are buton de difuzor, iar cu căști Bluetooth poți lăsa microfonul pe telefon ca să nu se strice sunetul. Pe calculator apare o fereastră de apel mai mare și o notificare cu butoane. După ce iese toată lumea, apelul se închide și butonul „Intră” dispare. Pentru telefon instalează aplicația nouă (1.6) din Setări.',
+      en: 'A call from Messages now rings on the phone with its own ringtone and vibration, also on the lock screen, with Answer and Decline. An audio call starts in the earpiece and has a speaker button, and with Bluetooth headphones you can keep the microphone on the phone so the sound stays clear. On a computer a larger call window shows, plus a notification with buttons. Once everyone has left, the call closes and its Join button goes away. On the phone, install the new app (1.6) from Settings.',
+    },
+    features: ['mesaje.view'],
+  },
+  {
     publishedAt: '2026-11-18T18:50:00Z',
     title: {
       ro: 'Buton „Vezi” după ce adaugi ceva și liste goale mai clare',

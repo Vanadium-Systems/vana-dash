@@ -24,7 +24,9 @@
     "aColleague": "A colleague",
     "newMessage": "New message",
     "incomingCallAudio": "Incoming audio call",
-    "incomingCallVideo": "Incoming video call"
+    "incomingCallVideo": "Incoming video call",
+    "callAnswer": "Answer",
+    "callDecline": "Decline"
   },
   "payment": {
     "matchedTitle": "Payment matched",
