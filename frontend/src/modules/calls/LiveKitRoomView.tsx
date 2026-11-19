@@ -16,6 +16,8 @@ import {
   Ban,
   Bluetooth,
   Lock,
+  LayoutGrid,
+  Maximize2,
   Mic,
   Monitor,
   PhoneOff,
@@ -25,6 +27,7 @@ import {
   Volume2,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { toast } from 'sonner'
 import { Alert } from '@/shared/components/ui/alert'
 import { Button } from '@/shared/components/ui/button'
 import { StatePill } from '@/shared/components/ui/state-pill'
@@ -123,18 +126,44 @@ function AudioElement({ track }: { track: RemoteTrack }) {
   return <audio ref={ref} autoPlay />
 }
 
-function ParticipantTile({ tile }: { tile: TileInfo }) {
+function ParticipantTile({
+  tile,
+  focused,
+  compact,
+  onToggleFocus,
+}: {
+  tile: TileInfo
+  focused: boolean
+  compact?: boolean
+  onToggleFocus: () => void
+}) {
   const displayName = tile.participant.name || tile.participant.identity
   const hasVideo = Boolean(tile.videoPublication?.track && !tile.videoPublication.isMuted)
   const audioMuted = tile.audioPublication?.isMuted ?? !tile.participant.isMicrophoneEnabled
+  const focusLabel = focused ? t('calls:room.unfocus') : t('calls:room.focus')
 
   return (
+    // A click anywhere on the picture focuses it; the corner button is the same for the keyboard.
     <div
+      onClick={onToggleFocus}
       className={cn(
-        'relative flex min-h-48 items-center justify-center overflow-hidden rounded-lg border bg-card',
+        'group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border bg-card',
+        compact ? 'h-28 md:h-32' : 'min-h-48',
         tile.isSpeaking && 'ring-2 ring-glow',
       )}
     >
+      <button
+        type="button"
+        aria-label={focusLabel}
+        title={focusLabel}
+        onClick={(event) => {
+          event.stopPropagation()
+          onToggleFocus()
+        }}
+        className="absolute right-2 top-2 z-10 inline-flex size-8 items-center justify-center rounded-md bg-background/80 text-foreground opacity-0 backdrop-blur-sm transition-opacity focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+      >
+        {focused ? <LayoutGrid className="size-4" /> : <Maximize2 className="size-4" />}
+      </button>
       {hasVideo ? (
         <VideoElement
           publication={tile.videoPublication}
@@ -195,6 +224,8 @@ export function LiveKitRoomView({
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false)
   const [version, setVersion] = useState(0)
   const [audioState, setAudioState] = useState<AudioState | null>(null)
+  // A tile picked by hand; 'none' = the person went back to the grid while a screen was shared.
+  const [pinned, setPinned] = useState<string | null>(null)
 
   const roomRef = useRef<Room | null>(null)
   const onLeaveRef = useRef(onLeave)
@@ -248,6 +279,16 @@ export function LiveKitRoomView({
     }
     room.on(RoomEvent.Disconnected, onDisconnected)
 
+    // One screen at a time: whoever starts sharing takes over, and the one sharing before stops.
+    const onRemoteShare = (publication: TrackPublication, participant: Participant) => {
+      if (cancelled || publication.source !== Track.Source.ScreenShare || !room.localParticipant.isScreenShareEnabled) return
+      void room.localParticipant.setScreenShareEnabled(false).then(() => {
+        setScreenEnabled(false)
+        toast(t('calls:room.shareTakenOver', { name: participant.name || participant.identity }))
+      })
+    }
+    room.on(RoomEvent.TrackPublished, onRemoteShare)
+
     void (async () => {
       try {
         await keyProvider.setKey(e2eeKey)
@@ -280,6 +321,7 @@ export function LiveKitRoomView({
     return () => {
       cancelled = true
       room.off(RoomEvent.Disconnected, onDisconnected)
+      room.off(RoomEvent.TrackPublished, onRemoteShare)
       for (const ev of events) room.off(ev, onRoomChange)
       void room.disconnect()
       worker.terminate()
@@ -432,6 +474,13 @@ export function LiveKitRoomView({
     }
   }
 
+  // A shared screen takes the stage by itself (someone else's; your own you already see), until
+  // the person picks another tile or goes back to the grid.
+  const autoFocus = tiles.find((tile) => tile.isScreenShare && !tile.isLocal)?.key ?? null
+  const focusKey = pinned === 'none' ? null : tiles.some((tile) => tile.key === pinned) ? pinned : autoFocus
+  const focusedTile = tiles.length > 1 ? tiles.find((tile) => tile.key === focusKey) : undefined
+  const toggleFocus = (key: string) => setPinned(key === focusedTile?.key ? 'none' : key)
+
   const gridCols =
     tiles.length <= 1
       ? 'grid-cols-1'
@@ -468,15 +517,33 @@ export function LiveKitRoomView({
         </div>
       </div>
 
-      <div className={cn('grid min-h-0 flex-1 gap-3 auto-rows-fr', gridCols)}>
-        {connState === ConnectionState.Connecting && tiles.length === 0 ? (
-          <div className="flex items-center justify-center rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-            {t('calls:room.connecting')}
+      {focusedTile ? (
+        <div className="flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
+          <div className="grid min-h-0 flex-1">
+            <ParticipantTile tile={focusedTile} focused onToggleFocus={() => toggleFocus(focusedTile.key)} />
           </div>
-        ) : (
-          tiles.map((tile) => <ParticipantTile key={tile.key} tile={tile} />)
-        )}
-      </div>
+          {/* The others: a column beside the stage, a row of small tiles under it on a phone. */}
+          <div className="scroll-subtle grid max-h-32 shrink-0 grid-cols-3 gap-2 overflow-y-auto md:max-h-none md:w-56 md:grid-cols-1 md:content-start">
+            {tiles
+              .filter((tile) => tile.key !== focusedTile.key)
+              .map((tile) => (
+                <ParticipantTile key={tile.key} tile={tile} focused={false} compact onToggleFocus={() => toggleFocus(tile.key)} />
+              ))}
+          </div>
+        </div>
+      ) : (
+        <div className={cn('grid min-h-0 flex-1 gap-3 auto-rows-fr', gridCols)}>
+          {connState === ConnectionState.Connecting && tiles.length === 0 ? (
+            <div className="flex items-center justify-center rounded-lg border bg-card p-6 text-sm text-muted-foreground">
+              {t('calls:room.connecting')}
+            </div>
+          ) : (
+            tiles.map((tile) => (
+              <ParticipantTile key={tile.key} tile={tile} focused={false} onToggleFocus={() => (tiles.length > 1 ? toggleFocus(tile.key) : undefined)} />
+            ))
+          )}
+        </div>
+      )}
 
       {remoteAudioTracks.map((track) => (
         <AudioElement key={track.sid ?? track.mediaStreamID} track={track} />

@@ -462,6 +462,10 @@ const SOURCES: GuideSource[] = [
         en: 'In the phone app an audio call starts in the earpiece and the screen goes dark when you hold the phone to your ear; Speaker switches to the loudspeaker. The call goes on with the screen off. With Bluetooth headphones, “Mic: headset” is the usual call mode, while “Mic: phone” keeps the headphones on music-quality sound and records with the phone’s microphone.',
       },
       {
+        ro: 'În apel, un click pe o imagine o mărește, iar ceilalți se strâng pe margine; „Înapoi la toți” (sau încă un click) reface grila. Ecranul partajat de un coleg se mărește singur. Se partajează un singur ecran odată: cine pornește partajarea o preia, iar a celui dinainte se oprește.',
+        en: 'In a call, a click on a picture makes it big and the others move to the side; “Back to everyone” (or another click) brings the grid back. A colleague’s shared screen gets big on its own. One screen is shared at a time: whoever starts sharing takes over, and the previous share stops.',
+      },
+      {
         ro: 'Scrie în câmpul de jos și trimite. Un fișier de până la 50 MB se pune din „Atașează”. Emoji: după două puncte și două litere (:so) apar emoji-urile cu numele acela, Enter alege; sau iconița de lângă câmp.',
         en: 'Type in the field at the bottom and send. A file of up to 50 MB is added with “Attach”. Emoji: a colon and two letters (:so) list the emoji with that name, Enter picks; or the icon next to the field.',
       },

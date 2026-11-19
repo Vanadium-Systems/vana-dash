@@ -54,7 +54,7 @@ vi.mock('./crypto/primitives', async (original) => ({
   isSupported: () => true,
   hasEd25519: async () => true,
 }))
-vi.mock('./crypto/store', () => ({ openCryptoStore: async () => ({}) }))
+vi.mock('./crypto/store', () => ({ openCryptoStore: async () => ({ entries: async () => [], put: async () => {} }) }))
 
 const me = 'u1'
 const ana = 'a1'

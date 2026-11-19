@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-19T12:40:00Z',
+    title: {
+      ro: 'Mesajele nu mai clipesc „Se decriptează…”',
+      en: 'Messages no longer flash “Decrypting…”',
+    },
+    body: {
+      ro: 'Conversațiile se decriptează o dată, în fundal, când deschizi aplicația, și rămân așa: când intri pe o conversație textul e deja acolo. Un mesaj trimis apare direct, fără să clipească. Lista dintr-o fereastră (de exemplu durata linkului la un apel nou) se poate alege din nou. În apel, un click pe o imagine o mărește, iar un ecran partajat se mărește singur; se partajează un singur ecran odată.',
+      en: 'Conversations are decrypted once, in the background, when you open the app, and stay that way: when you open a conversation the text is already there. A message you send shows right away, without flashing. Picking from a list inside a dialog (such as the link duration of a new call) works again. In a call, a click on a picture makes it big, and a shared screen gets big on its own; one screen is shared at a time.',
+    },
+    features: [],
+  },
+  {
     publishedAt: '2026-11-19T12:30:00Z',
     title: {
       ro: 'Apelurile sună ca la telefon',

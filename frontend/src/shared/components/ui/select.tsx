@@ -66,17 +66,30 @@ interface Placement {
   bottom?: number
 }
 
-function placeUnder(trigger: HTMLElement): Placement {
+// A modal dialog (Radix) makes everything outside it unclickable and pulls focus back into it,
+// so inside one the list is mounted in the dialog, placed against the dialog's own box.
+function dialogOf(trigger: HTMLElement): HTMLElement | null {
+  return trigger.closest<HTMLElement>('[role="dialog"], [role="alertdialog"]')
+}
+
+function placeUnder(trigger: HTMLElement, dialog: HTMLElement | null): Placement {
   const rect = trigger.getBoundingClientRect()
-  const below = window.innerHeight - rect.bottom - 8
-  const above = rect.top - 8
+  const box = dialog?.getBoundingClientRect() ?? { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight }
+  const below = box.bottom - rect.bottom - 8
+  const above = rect.top - box.top - 8
   const width = Math.max(rect.width, 160)
-  const left = Math.min(rect.left, window.innerWidth - width - 8)
+  const left = Math.min(rect.left, box.right - width - 8)
   // Downwards; up only when there is less than 200px below and more room above.
-  if (below < MIN_SPACE_BELOW && above > below) {
-    return { left, width, bottom: window.innerHeight - rect.top + 4, maxHeight: Math.min(MAX_LIST_HEIGHT, above) }
+  const up = below < MIN_SPACE_BELOW && above > below
+  const maxHeight = up ? Math.min(MAX_LIST_HEIGHT, above) : Math.min(MAX_LIST_HEIGHT, Math.max(below, 120))
+  if (!dialog) {
+    return up ? { left, width, bottom: window.innerHeight - rect.top + 4, maxHeight } : { left, width, top: rect.bottom + 4, maxHeight }
   }
-  return { left, width, top: rect.bottom + 4, maxHeight: Math.min(MAX_LIST_HEIGHT, Math.max(below, 120)) }
+  // Absolute inside the dialog, which scrolls: offsets are from its padding box, scroll included.
+  const x = left - box.left - dialog.clientLeft + dialog.scrollLeft
+  const triggerTop = rect.top - box.top - dialog.clientTop
+  if (up) return { left: x, width, bottom: dialog.clientHeight - dialog.scrollTop - triggerTop + 4, maxHeight }
+  return { left: x, width, top: triggerTop + rect.height + dialog.scrollTop + 4, maxHeight }
 }
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
@@ -114,6 +127,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     const [query, setQuery] = React.useState('')
     const [active, setActive] = React.useState(-1)
     const [place, setPlace] = React.useState<Placement | null>(null)
+    const [host, setHost] = React.useState<HTMLElement | null>(null)
     const triggerRef = React.useRef<HTMLButtonElement>(null)
     const nativeRef = React.useRef<HTMLSelectElement | null>(null)
     const listRef = React.useRef<HTMLDivElement>(null)
@@ -154,7 +168,9 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 
     const openList = () => {
       if (disabled || !triggerRef.current) return
-      setPlace(placeUnder(triggerRef.current))
+      const dialog = dialogOf(triggerRef.current)
+      setHost(dialog)
+      setPlace(placeUnder(triggerRef.current, dialog))
       setActive(Math.max(0, items.findIndex((o) => o.value === current)))
       setOpen(true)
     }
@@ -317,7 +333,10 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               aria-activedescendant={withSearch ? undefined : activeId}
               onKeyDown={onListKey}
               style={{ left: place.left, top: place.top, bottom: place.bottom, width: place.width, maxHeight: place.maxHeight }}
-              className="menu-pop glass fixed z-viewer flex flex-col overflow-hidden rounded-lg border shadow-float outline-none"
+              className={cn(
+                'menu-pop glass z-viewer flex flex-col overflow-hidden rounded-lg border shadow-float outline-none',
+                host ? 'absolute' : 'fixed',
+              )}
             >
               {withSearch && (
                 <div className="flex shrink-0 items-center gap-2 border-b px-3">
@@ -368,7 +387,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 })}
               </div>
             </div>,
-            document.body,
+            host ?? document.body,
           )}
       </div>
     )

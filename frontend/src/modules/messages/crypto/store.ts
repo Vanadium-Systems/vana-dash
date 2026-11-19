@@ -23,6 +23,7 @@ export interface CryptoStore {
   delete(store: StoreName, key: string): Promise<void>
   clear(store: StoreName): Promise<void>
   values<T>(store: StoreName): Promise<T[]>
+  entries<T>(store: StoreName): Promise<[string, T][]>
 }
 
 function databaseName(userId: string): string {
@@ -55,6 +56,12 @@ export async function openCryptoStore(userId: string): Promise<CryptoStore> {
       await request(tx(store, 'readwrite').clear())
     },
     values: <T>(store: StoreName) => request(tx(store, 'readonly').getAll()) as Promise<T[]>,
+    entries: async <T>(store: StoreName) => {
+      // One transaction: keys and values come back in the same order.
+      const objects = tx(store, 'readonly')
+      const [keys, values] = await Promise.all([request(objects.getAllKeys()), request(objects.getAll())])
+      return keys.map((key, index) => [String(key), values[index] as T] as [string, T])
+    },
   }
 }
 
@@ -73,6 +80,7 @@ export function memoryCryptoStore(): CryptoStore {
       data.get(store)!.clear()
     },
     values: async <T>(store: StoreName) => [...data.get(store)!.values()].map((value) => structuredClone(value)) as T[],
+    entries: async <T>(store: StoreName) => [...data.get(store)!.entries()].map(([key, value]) => [key, structuredClone(value)] as [string, T]),
   }
 }
 

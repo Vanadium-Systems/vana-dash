@@ -5,7 +5,8 @@ import { api } from '@/shared/lib/api'
 import { t } from '@/shared/lib/i18n'
 import type { ChatAttachment, ChatConversation, ChatMessage, ChatReaction, ChatReceipt, ChatReplyPreview, RefType } from '@/shared/lib/types'
 import type { AttachmentKey } from './crypto/engine'
-import { decryptNow, seedPlainCache, useE2E } from './crypto/E2EProvider'
+import { decryptNow, rememberSent, seedPlainCache, useE2E } from './crypto/E2EProvider'
+import { PAGE_SIZE, threadQueryOptions, type ThreadPage } from './thread-query'
 
 // The thread of one conversation. The latest page is a query, kept current by the stream. Older
 // pages loaded by scrolling up sit in `older`. A jump (a quoted message, a search hit, a date)
@@ -46,16 +47,6 @@ export interface SendInput {
   refs?: RefInput[]
 }
 
-const PAGE_SIZE = 50
-
-type ThreadPage = {
-  messages: ChatMessage[]
-  hasMore: boolean
-  hasNewer: boolean
-  receipts: ChatReceipt[]
-  lastReadMessageId: string | null
-}
-
 interface DetachedWindow {
   messages: ChatMessage[]
   hasMore: boolean
@@ -87,10 +78,8 @@ export function useThreadMessages(conversationId: string | undefined) {
   const base = `/api/chat/conversations/${conversationId}/messages`
 
   const query = useQuery({
-    queryKey,
-    queryFn: () => api.get<ThreadPage>(`${base}?limit=${PAGE_SIZE}`),
+    ...threadQueryOptions(conversationId ?? ''),
     enabled: Boolean(conversationId),
-    staleTime: 10_000,
   })
 
   // Where the "New" line goes: the watermark as it was when the conversation was opened, kept
@@ -221,8 +210,10 @@ export function useThreadMessages(conversationId: string | undefined) {
         const encrypted = hasContent
           ? await engine!.encrypt(conversationId, await members(), { body: input.body, attachments: input.attachments.map((a) => a.key) })
           : undefined
-        const saved = await api.post<ChatMessage>(base, { ...payload, encrypted })
         const content = { body: input.body, attachments: input.attachments.map((a) => a.key) }
+        // The stream can bring the saved row before the POST answers: it must already read as sent.
+        if (encrypted) rememberSent(encrypted, content)
+        const saved = await api.post<ChatMessage>(base, { ...payload, encrypted })
         seedPlainCache(queryClient, saved, content)
         // Saved copy first, optimistic one after: the thread hides a pending row once its clientId
         // is in the list, so it never shrinks for a frame (that made the thread jump).
@@ -341,8 +332,11 @@ export function useThreadMessages(conversationId: string | undefined) {
       const members =
         queryClient.getQueryData<ChatConversation[]>(['chat', 'conversations'])?.find((c) => c.id === conversationId)?.members.map((m) => m.id) ??
         [message.authorUserId]
-      const encrypted = await engine.encrypt(conversationId, members, { body, attachments: before?.attachments ?? [] })
+      const content = { body, attachments: before?.attachments ?? [] }
+      const encrypted = await engine.encrypt(conversationId, members, content)
+      rememberSent(encrypted, content)
       const saved = await api.patch<ChatMessage>(`/api/chat/messages/${messageId}`, { encrypted })
+      seedPlainCache(queryClient, saved, content)
       patchMessage(messageId, () => saved)
     },
     [conversationId, engine, messages, patchMessage, queryClient],
