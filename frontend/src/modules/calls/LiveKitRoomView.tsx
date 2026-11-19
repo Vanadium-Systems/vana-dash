@@ -1,5 +1,6 @@
 import {
   ConnectionState,
+  DisconnectReason,
   ExternalE2EEKeyProvider,
   LocalParticipant,
   Participant,
@@ -331,11 +332,12 @@ export function LiveKitRoomView({
     }
     for (const ev of events) room.on(ev, onRoomChange)
 
-    const onDisconnected = () => {
-      if (!cancelled) {
-        setConnState(ConnectionState.Disconnected)
-        bump()
-      }
+    const onDisconnected = (reason?: DisconnectReason) => {
+      if (cancelled) return
+      setConnState(ConnectionState.Disconnected)
+      bump()
+      // Ended for everyone (or removed): the room is gone, so the page or the floating window goes too.
+      if (reason === DisconnectReason.ROOM_DELETED || reason === DisconnectReason.PARTICIPANT_REMOVED) onLeaveRef.current(false)
     }
     room.on(RoomEvent.Disconnected, onDisconnected)
 

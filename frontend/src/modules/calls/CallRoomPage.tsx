@@ -1,5 +1,5 @@
 import { ArrowLeft } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { decryptNow, useE2E } from '@/modules/messages/crypto/E2EProvider'
 import { Alert } from '@/shared/components/ui/alert'
@@ -99,8 +99,12 @@ export function CallRoomPage() {
   // this page; coming back only shows it full size again.
   const joined = join.data && e2eeKey ? join.data : null
   const isActive = activeCall.session?.id === id
+  // Once per visit: after "End for everyone" or "Leave" the session is gone while this page is
+  // still mounted for a frame, and starting again would rejoin (and recreate) the room.
+  const startedFor = useRef<string | null>(null)
   useEffect(() => {
-    if (!joined || !e2eeKey || isActive) return
+    if (!joined || !e2eeKey || isActive || startedFor.current === id) return
+    startedFor.current = id
     activeCall.start({
       id,
       backTarget,
