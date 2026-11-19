@@ -15,7 +15,7 @@ import { runCallsClose, runEmptyCallsClose } from '../../jobs/calls-close.js'
 import { closeCallRoom } from '../../shared/lib/call-rooms.js'
 import { declineConversationCall, endConversationCall, listMessages, openDm, previewRef, startConversationCall } from '../chat/service.js'
 import './refs.js'
-import { CallError, createCall, endCall, getPublicCall, issueCallToken, issuePublicCallToken, joinCall, listCalls } from './service.js'
+import { CallError, createCall, endCall, getPublicCall, issueCallToken, issuePublicCallToken, joinCall, listCalls, setScreenShare } from './service.js'
 
 let me: SessionUser
 let colleague: SessionUser
@@ -42,6 +42,8 @@ function stubLiveKit(rooms: Array<{ name: string; numParticipants?: number }> = 
     if (url.endsWith('/twirp/livekit.RoomService/ListRooms')) {
       return jsonResponse({ rooms })
     }
+    if (url.endsWith('/twirp/livekit.RoomService/UpdateRoomMetadata')) return jsonResponse({ name: 'room' })
+    if (url.endsWith('/twirp/livekit.RoomService/ListParticipants')) return jsonResponse({ participants: [] })
     return jsonResponse({}, 404)
   })
   vi.stubGlobal('fetch', fetchMock)
@@ -112,6 +114,31 @@ describe('calls', () => {
     expect((await endCall(me, call.id)).status).toBe('ended')
     await expect(joinCall(call.id, me)).rejects.toMatchObject({ code: 'closed', status: 410 })
     expect((await getPublicCall(call.publicUrl.split('/').pop()!))?.status).toBe('ended')
+  })
+
+  it('only the host shares the screen until the host lets someone else', async () => {
+    const manager = await createTestUser('calls-manager', cleanupUsers, { features: ['apeluri.view', 'apeluri.manage'] })
+    stubLiveKit()
+    const call = await createCall(me, { title: 'Acme demo', expiresInHours: 1 })
+    callIds.push(call.id)
+    const sourcesOf = (token: string) =>
+      (JSON.parse(Buffer.from(token.split('.')[1]!, 'base64url').toString()) as { video: { canPublishSources: string[]; roomAdmin?: boolean } }).video
+
+    expect(sourcesOf((await issueCallToken(call.id, me)).token)).toMatchObject({ roomAdmin: true })
+    expect(sourcesOf((await issueCallToken(call.id, me)).token).canPublishSources).toContain('screen_share')
+    const before = sourcesOf((await issueCallToken(call.id, manager)).token)
+    expect(before.canPublishSources).not.toContain('screen_share')
+    expect(before.roomAdmin).toBeFalsy()
+    await expect(setScreenShare(manager, call.id, { everyone: true })).rejects.toMatchObject({ code: 'forbidden', status: 403 })
+
+    const fetchMock = stubLiveKit()
+    expect(await setScreenShare(me, call.id, { identity: manager.id, allowed: true })).toEqual({ everyone: false, allowed: [manager.id] })
+    const saved = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/UpdateRoomMetadata'))
+    expect(String(saved?.[1]?.body)).toContain(manager.id)
+
+    // A rejoin reads the policy back from the room.
+    stubLiveKit([{ name: 'room', metadata: JSON.stringify({ screenShare: { everyone: false, allowed: [manager.id] } }) } as never])
+    expect(sourcesOf((await issueCallToken(call.id, manager)).token).canPublishSources).toContain('screen_share')
   })
 
   it('an unknown call is not found', async () => {

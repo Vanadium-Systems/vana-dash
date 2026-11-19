@@ -1316,6 +1316,7 @@ export async function startConversationCall(
       identity: me.id,
       name: caller,
       isHost: true,
+      canShareScreen: true,
       ttlSeconds: CONVERSATION_CALL_HOURS * 3600,
     })
     auth = { provider: 'livekit', livekitUrl, token, roomName: callRow.roomName }

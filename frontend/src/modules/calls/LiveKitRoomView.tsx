@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
+import { toastError } from '@/shared/lib/errors'
 import { Alert } from '@/shared/components/ui/alert'
 import { Button } from '@/shared/components/ui/button'
 import { StatePill } from '@/shared/components/ui/state-pill'
@@ -46,7 +47,7 @@ import {
 import { cn } from '@/shared/lib/utils'
 import type { CallKind } from './types'
 
-interface LiveKitRoomViewProps {
+export interface LiveKitRoomViewProps {
   livekitUrl: string
   token: string
   e2eeKey: string
@@ -54,9 +55,36 @@ interface LiveKitRoomViewProps {
   title: string
   headerActions?: ReactNode
   publicFallbackUrl?: string | null
+  /** The floating window shown while the person is elsewhere in the app. */
+  compact?: boolean
+  onExpand?: () => void
+  /** The host lets everyone, or one person, share the screen. Absent for guests. */
+  onScreenShare?: (input: ScreenShareChange) => Promise<unknown>
   /** `lastOut`: nobody else was left in the room. */
   onLeave: (lastOut: boolean) => void
   onEndForAll?: () => void
+}
+
+type ScreenShareChange = { everyone: boolean } | { identity: string; allowed: boolean }
+
+// The server writes both (shared/lib/livekit.ts): the host flag in each token, who may share in
+// the room. The SFU enforces it; these only decide which buttons show.
+function isHostParticipant(participant: Participant): boolean {
+  try {
+    return (JSON.parse(participant.metadata || '{}') as { host?: unknown }).host === true
+  } catch {
+    return false
+  }
+}
+
+function sharePolicyOf(room: Room | null): { everyone: boolean; allowed: string[] } {
+  try {
+    const parsed = JSON.parse(room?.metadata || '{}') as { screenShare?: { everyone?: unknown; allowed?: unknown } }
+    const allowed = parsed.screenShare?.allowed
+    return { everyone: parsed.screenShare?.everyone === true, allowed: Array.isArray(allowed) ? allowed.map(String) : [] }
+  } catch {
+    return { everyone: false, allowed: [] }
+  }
 }
 
 interface TileInfo {
@@ -130,12 +158,18 @@ function ParticipantTile({
   tile,
   focused,
   compact,
+  bare,
   onToggleFocus,
+  shareControl,
 }: {
   tile: TileInfo
   focused: boolean
   compact?: boolean
+  /** Fills its box with no buttons or name: the floating window draws its own. */
+  bare?: boolean
   onToggleFocus: () => void
+  /** Only on the host's screen, on someone else's camera tile. */
+  shareControl?: { allowed: boolean; onToggle: () => void }
 }) {
   const displayName = tile.participant.name || tile.participant.identity
   const hasVideo = Boolean(tile.videoPublication?.track && !tile.videoPublication.isMuted)
@@ -148,10 +182,11 @@ function ParticipantTile({
       onClick={onToggleFocus}
       className={cn(
         'group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border bg-card',
-        compact ? 'h-28 md:h-32' : 'min-h-48',
-        tile.isSpeaking && 'ring-2 ring-glow',
+        bare ? 'h-full w-full rounded-none border-0' : compact ? 'h-28 md:h-32' : 'min-h-48',
+        tile.isSpeaking && !bare && 'ring-2 ring-glow',
       )}
     >
+      {bare ? null : (
       <button
         type="button"
         aria-label={focusLabel}
@@ -164,6 +199,25 @@ function ParticipantTile({
       >
         {focused ? <LayoutGrid className="size-4" /> : <Maximize2 className="size-4" />}
       </button>
+      )}
+      {shareControl && !bare ? (
+        <button
+          type="button"
+          aria-pressed={shareControl.allowed}
+          title={shareControl.allowed ? t('calls:room.revokeShare') : t('calls:room.allowShare')}
+          onClick={(event) => {
+            event.stopPropagation()
+            shareControl.onToggle()
+          }}
+          className={cn(
+            'absolute left-2 top-2 z-10 inline-flex h-8 items-center gap-1.5 rounded-md bg-background/80 px-2 text-xs font-medium backdrop-blur-sm transition-opacity',
+            shareControl.allowed ? 'text-primary' : 'text-foreground opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100',
+          )}
+        >
+          <Monitor className="size-4" />
+          <span>{shareControl.allowed ? t('calls:room.revokeShare') : t('calls:room.allowShare')}</span>
+        </button>
+      ) : null}
       {hasVideo ? (
         <VideoElement
           publication={tile.videoPublication}
@@ -179,7 +233,7 @@ function ParticipantTile({
         </div>
       )}
 
-      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2">
+      <div className={cn('absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2', bare && 'hidden')}>
         <span className="inline-flex min-w-0 items-center gap-1.5 rounded-md bg-background/80 px-2 py-1 text-xs font-medium text-foreground backdrop-blur-sm">
           <span className="truncate">
             {displayName}
@@ -210,6 +264,9 @@ export function LiveKitRoomView({
   publicFallbackUrl,
   onLeave,
   onEndForAll,
+  onScreenShare,
+  compact,
+  onExpand,
 }: LiveKitRoomViewProps) {
   const supported = useMemo(() => isE2EESupported(), [])
   const canScreenShare = typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function'
@@ -259,6 +316,9 @@ export function LiveKitRoomView({
       RoomEvent.LocalTrackPublished,
       RoomEvent.LocalTrackUnpublished,
       RoomEvent.ActiveSpeakersChanged,
+      RoomEvent.RoomMetadataChanged,
+      RoomEvent.ParticipantMetadataChanged,
+      RoomEvent.ParticipantPermissionsChanged,
     ]
     const onRoomChange = () => {
       if (!cancelled) {
@@ -380,6 +440,14 @@ export function LiveKitRoomView({
     await room.localParticipant.setCameraEnabled(true, { facingMode: nextMode }).catch(() => undefined)
   }
 
+  async function changeSharing(input: ScreenShareChange) {
+    try {
+      await onScreenShare?.(input)
+    } catch (err) {
+      toastError(err)
+    }
+  }
+
   async function toggleScreen() {
     const room = roomRef.current
     if (!room || !canScreenShare) return
@@ -439,6 +507,19 @@ export function LiveKitRoomView({
     ? [room.localParticipant, ...Array.from(room.remoteParticipants.values())]
     : []
 
+  const amHost = room ? isHostParticipant(room.localParticipant) : false
+  const sharePolicy = sharePolicyOf(room)
+  const mayShare = amHost || sharePolicy.everyone || (room ? sharePolicy.allowed.includes(room.localParticipant.identity) : false)
+  const hostControls = amHost && Boolean(onScreenShare)
+  const shareControlFor = (tile: TileInfo) =>
+    hostControls && !tile.isLocal && !tile.isScreenShare && !sharePolicy.everyone && !isHostParticipant(tile.participant)
+      ? {
+          allowed: sharePolicy.allowed.includes(tile.participant.identity),
+          onToggle: () =>
+            void changeSharing({ identity: tile.participant.identity, allowed: !sharePolicy.allowed.includes(tile.participant.identity) }),
+        }
+      : undefined
+
   const tiles: TileInfo[] = []
   const remoteAudioTracks: RemoteTrack[] = []
 
@@ -490,8 +571,73 @@ export function LiveKitRoomView({
           ? 'grid-cols-1 sm:grid-cols-2'
           : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
 
+  if (compact) {
+    // The one picture worth seeing small: a shared screen, whoever speaks, then anyone else.
+    const stage =
+      focusedTile ??
+      tiles.find((tile) => tile.isScreenShare && !tile.isLocal) ??
+      tiles.find((tile) => !tile.isLocal && tile.isSpeaking) ??
+      tiles.find((tile) => !tile.isLocal) ??
+      tiles[0]
+    const stageName = stage ? stage.participant.name || stage.participant.identity : ''
+    return (
+      <div className="relative h-full overflow-hidden rounded-lg border bg-card shadow-float">
+        {stage ? (
+          <ParticipantTile tile={stage} focused={false} bare onToggleFocus={() => onExpand?.()} />
+        ) : (
+          <div className="flex h-full items-center justify-center p-3 text-xs text-muted-foreground">{t('calls:room.connecting')}</div>
+        )}
+        {remoteAudioTracks.map((track) => (
+          <AudioElement key={track.sid ?? track.mediaStreamID} track={track} />
+        ))}
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 p-2">
+          <span className="min-w-0 truncate rounded-md bg-background/80 px-2 py-1 text-xs font-medium backdrop-blur-sm">
+            {title}
+            {stageName ? ` · ${stageName}` : ''}
+          </span>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 p-2">
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className={cn('bg-background/80 backdrop-blur-sm', !micEnabled && 'text-destructive-text')}
+            aria-label={micEnabled ? t('calls:room.muteMic') : t('calls:room.unmuteMic')}
+            onClick={() => void toggleMic()}
+          >
+            <Mic className={cn('h-4 w-4', !micEnabled && 'opacity-50')} />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className={cn('bg-background/80 backdrop-blur-sm', !camEnabled && 'text-muted-foreground')}
+            aria-label={camEnabled ? t('calls:room.disableCam') : t('calls:room.enableCam')}
+            onClick={() => void toggleCam()}
+          >
+            <Video className={cn('h-4 w-4', !camEnabled && 'opacity-50')} />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="bg-background/80 backdrop-blur-sm"
+            aria-label={t('calls:room.expand')}
+            title={t('calls:room.expand')}
+            onClick={() => onExpand?.()}
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+          <Button type="button" size="icon" variant="destructive" aria-label={t('calls:room.leave')} onClick={leave}>
+            <PhoneOff className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex h-[calc(100dvh-6rem)] min-h-96 flex-col gap-3">
+    <div className="flex h-full min-h-96 flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
         <div className="flex min-w-0 items-center gap-2">
           <h1 className="truncate text-base font-semibold">{title}</h1>
@@ -520,14 +666,14 @@ export function LiveKitRoomView({
       {focusedTile ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
           <div className="grid min-h-0 flex-1">
-            <ParticipantTile tile={focusedTile} focused onToggleFocus={() => toggleFocus(focusedTile.key)} />
+            <ParticipantTile tile={focusedTile} focused onToggleFocus={() => toggleFocus(focusedTile.key)} shareControl={shareControlFor(focusedTile)} />
           </div>
           {/* The others: a column beside the stage, a row of small tiles under it on a phone. */}
           <div className="scroll-subtle grid max-h-32 shrink-0 grid-cols-3 gap-2 overflow-y-auto md:max-h-none md:w-56 md:grid-cols-1 md:content-start">
             {tiles
               .filter((tile) => tile.key !== focusedTile.key)
               .map((tile) => (
-                <ParticipantTile key={tile.key} tile={tile} focused={false} compact onToggleFocus={() => toggleFocus(tile.key)} />
+                <ParticipantTile key={tile.key} tile={tile} focused={false} compact onToggleFocus={() => toggleFocus(tile.key)} shareControl={shareControlFor(tile)} />
               ))}
           </div>
         </div>
@@ -539,7 +685,13 @@ export function LiveKitRoomView({
             </div>
           ) : (
             tiles.map((tile) => (
-              <ParticipantTile key={tile.key} tile={tile} focused={false} onToggleFocus={() => (tiles.length > 1 ? toggleFocus(tile.key) : undefined)} />
+              <ParticipantTile
+                key={tile.key}
+                tile={tile}
+                focused={false}
+                onToggleFocus={() => (tiles.length > 1 ? toggleFocus(tile.key) : undefined)}
+                shareControl={shareControlFor(tile)}
+              />
             ))
           )}
         </div>
@@ -587,11 +739,25 @@ export function LiveKitRoomView({
           <Button
             type="button"
             variant={screenEnabled ? 'default' : 'outline'}
+            disabled={!mayShare && !screenEnabled}
+            title={!mayShare && !screenEnabled ? t('calls:room.shareNeedsHost') : undefined}
             onClick={() => void toggleScreen()}
             aria-label={screenEnabled ? t('calls:room.stopShare') : t('calls:room.startShare')}
           >
             <Monitor className="h-4 w-4" />
             <span>{screenEnabled ? t('calls:room.stopShare') : t('calls:room.startShare')}</span>
+          </Button>
+        ) : null}
+
+        {hostControls ? (
+          <Button
+            type="button"
+            variant={sharePolicy.everyone ? 'default' : 'outline'}
+            aria-pressed={sharePolicy.everyone}
+            onClick={() => void changeSharing({ everyone: !sharePolicy.everyone })}
+          >
+            <Users className="h-4 w-4" />
+            <span>{t('calls:room.everyoneShares')}</span>
           </Button>
         ) : null}
 

@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { RequireFeature } from '@/shared/components/AccessDenied'
 import { ChatStreamProvider } from '@/shared/components/chat/ChatStreamProvider'
 import { E2EProvider } from '@/modules/messages/crypto/E2EProvider'
+import { ActiveCallProvider } from '@/modules/calls/ActiveCall'
 import { ApprovalRequests } from '@/modules/messages/crypto/E2ESetup'
 import { IncomingCallOverlay } from '@/modules/calls/IncomingCallOverlay'
 import { AppLayout } from '@/shared/components/layout/AppLayout'
@@ -174,7 +175,7 @@ export function App() {
           {/* Provider-ul de flux stă deasupra lui AppLayout, nu în el: AppLayout folosește
               badge-ul de mesaje necitite, iar un context nu ajunge la propria componentă — pus
               în shell, ar arunca la fiecare pagină. */}
-          <Route element={<ChatStreamProvider><E2EProvider><Outlet /><ApprovalRequests /><IncomingCallOverlay /></E2EProvider></ChatStreamProvider>}>
+          <Route element={<ChatStreamProvider><E2EProvider><ActiveCallProvider><Outlet /><ApprovalRequests /><IncomingCallOverlay /></ActiveCallProvider></E2EProvider></ChatStreamProvider>}>
           <Route element={<AppLayout />}>
             <Route path="/accounting" element={<RequireFeature feature="facturi.view" page={t('common:nav.invoices')}><LegacyAccountingTabs><AccountingPage /></LegacyAccountingTabs></RequireFeature>} />
             <Route path="/accounting/invoices/new" element={<RequireFeature feature="facturi.emitere" page={t('common:nav.invoices')}><InvoiceEditorPage /></RequireFeature>} />

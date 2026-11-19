@@ -37,7 +37,8 @@ export function PublicCallPage() {
   // LiveKit E2EE guest room.
   if (session && e2eeKey) {
     return (
-      <div className="min-h-dvh bg-background p-4">
+      // arbitrary: viewport-height calc, no token
+      <div className="h-dvh bg-background p-4">
         <LiveKitRoomView
           livekitUrl={session.livekitUrl}
           token={session.token}

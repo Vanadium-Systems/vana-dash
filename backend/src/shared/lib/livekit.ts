@@ -1,4 +1,4 @@
-import { AccessToken, RoomServiceClient } from 'livekit-server-sdk'
+import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk'
 import { sql } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { livekitSettings } from '../db/schema/index.js'
@@ -227,11 +227,88 @@ export async function getLiveKitRoomStats(name: string): Promise<{ participantCo
   }
 }
 
+// Screen sharing is the host's to give: the SFU refuses a source the token does not list, so a
+// client that skips our button still cannot share.
+function publishSources(canShareScreen: boolean): TrackSource[] {
+  return canShareScreen
+    ? [TrackSource.CAMERA, TrackSource.MICROPHONE, TrackSource.SCREEN_SHARE, TrackSource.SCREEN_SHARE_AUDIO]
+    : [TrackSource.CAMERA, TrackSource.MICROPHONE]
+}
+
+/** Who may share in a live room. Kept in the room's metadata: it lives and dies with the room. */
+export interface ScreenSharePolicy {
+  everyone: boolean
+  /** Participant identities the host let share. */
+  allowed: string[]
+}
+
+export function parseScreenSharePolicy(metadata: string | undefined): ScreenSharePolicy {
+  try {
+    const parsed = JSON.parse(metadata || '{}') as { screenShare?: Partial<ScreenSharePolicy> }
+    return {
+      everyone: parsed.screenShare?.everyone === true,
+      allowed: Array.isArray(parsed.screenShare?.allowed) ? parsed.screenShare.allowed.filter((id) => typeof id === 'string') : [],
+    }
+  } catch {
+    return { everyone: false, allowed: [] }
+  }
+}
+
+export function mayShareScreen(policy: ScreenSharePolicy, identity: string, isHost: boolean): boolean {
+  return isHost || policy.everyone || policy.allowed.includes(identity)
+}
+
+/** The room is not there yet (first to join) or the SFU is down: nobody but the host shares. */
+export async function readScreenSharePolicy(roomName: string): Promise<ScreenSharePolicy> {
+  const creds = await getLiveKitConfig()
+  if (!creds) return { everyone: false, allowed: [] }
+  try {
+    const [room] = await makeRoomClient(creds).listRooms([roomName])
+    return parseScreenSharePolicy(room?.metadata)
+  } catch {
+    return { everyone: false, allowed: [] }
+  }
+}
+
+/** Saves the policy on the room and applies it to everyone connected; a revoked share stops. */
+export async function applyScreenSharePolicy(roomName: string, policy: ScreenSharePolicy): Promise<void> {
+  const creds = await getLiveKitConfig()
+  if (!creds) throw new LiveKitError(0, 'updateRoomMetadata')
+  const client = makeRoomClient(creds)
+  try {
+    await client.updateRoomMetadata(roomName, JSON.stringify({ screenShare: policy }))
+    // One request per person, at most the room's 20.
+    for (const participant of await client.listParticipants(roomName)) {
+      const isHost = parseParticipantMetadata(participant.metadata).host
+      await client.updateParticipant(roomName, participant.identity, {
+        // Permissions are replaced as a whole: everything the token gave stays.
+        permission: {
+          canSubscribe: true,
+          canPublish: true,
+          canPublishData: true,
+          canPublishSources: publishSources(mayShareScreen(policy, participant.identity, isHost)),
+        },
+      })
+    }
+  } catch (err) {
+    throw new LiveKitError(statusFromError(err), 'updateScreenShare')
+  }
+}
+
+function parseParticipantMetadata(metadata: string | undefined): { host: boolean } {
+  try {
+    return { host: (JSON.parse(metadata || '{}') as { host?: unknown }).host === true }
+  } catch {
+    return { host: false }
+  }
+}
+
 export async function createLiveKitToken(input: {
   roomName: string
   identity: string
   name: string
   isHost: boolean
+  canShareScreen: boolean
   ttlSeconds: number
 }): Promise<{ token: string; livekitUrl: string }> {
   const creds = await getLiveKitConfig()
@@ -240,6 +317,8 @@ export async function createLiveKitToken(input: {
   const at = new AccessToken(creds.apiKey, creds.apiSecret, {
     identity: input.identity,
     name: input.name,
+    // The room shows the host's controls from this; the SFU enforces the grant below.
+    metadata: JSON.stringify({ host: input.isHost }),
     ttl: Math.max(60, Math.min(input.ttlSeconds, 8 * 3600)),
   })
   at.addGrant({
@@ -248,6 +327,7 @@ export async function createLiveKitToken(input: {
     canPublish: true,
     canSubscribe: true,
     canPublishData: true,
+    canPublishSources: publishSources(input.canShareScreen),
     roomAdmin: input.isHost,
   })
   return { token: await at.toJwt(), livekitUrl: creds.url }

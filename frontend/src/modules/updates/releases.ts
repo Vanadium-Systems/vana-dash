@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-19T12:50:00Z',
+    title: {
+      ro: 'Apelul rămâne deschis cât lucrezi și gazda decide cine partajează',
+      en: 'The call stays open while you work, and the host decides who shares',
+    },
+    body: {
+      ro: 'Dacă pleci de pe pagina apelului, apelul nu se mai închide: se face o fereastră mică în colț, cu microfon, cameră și ieșire, iar „Mărește” te duce înapoi. Ecranul îl partajează gazda, adică cine a pornit apelul, și adminii. Gazda le dă voie celorlalți, inclusiv invitaților din link, din butonul de pe imaginea fiecăruia sau cu „Oricine poate partaja”.',
+      en: 'Leaving the call page no longer ends the call: it becomes a small window in the corner, with microphone, camera and leave, and “Open the call” takes you back. The screen is shared by the host, whoever started the call, and by admins. The host lets others share, link guests included, with the button on each person’s picture or with “Anyone can share”.',
+    },
+    features: ['mesaje.view', 'apeluri.view'],
+  },
+  {
     publishedAt: '2026-11-19T12:40:00Z',
     title: {
       ro: 'Mesajele nu mai clipesc „Se decriptează…”',

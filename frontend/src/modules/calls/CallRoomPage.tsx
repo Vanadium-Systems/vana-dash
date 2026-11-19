@@ -13,7 +13,7 @@ import { t } from '@/shared/lib/i18n'
 import type { ChatMessage } from '@/shared/lib/types'
 import { extractKeyFromHash, getCallKey, parseCallKeyFromInput, saveCallKey } from './call-keys'
 import { copyCallLink, useCalls, useEndCall, useJoinCall } from './calls-api'
-import { LiveKitRoomView } from './LiveKitRoomView'
+import { useActiveCall } from './ActiveCall'
 import { errorText } from '@/shared/lib/errors'
 
 export function CallRoomPage() {
@@ -26,6 +26,7 @@ export function CallRoomPage() {
   const openCalls = useCalls('open', canListCalls)
   const call = canListCalls ? openCalls.data?.find((c) => c.id === id) : undefined
   const endCall = useEndCall()
+  const activeCall = useActiveCall()
 
   const [manualKey, setManualKey] = useState<string | null>(null)
   const [keyInput, setKeyInput] = useState('')
@@ -89,9 +90,50 @@ export function CallRoomPage() {
   async function onEnd() {
     const conversationId = join.data?.provider === 'livekit' ? join.data.conversationId : null
     if (await endCall({ id, title: call?.title ?? '', conversationId })) {
+      activeCall.end()
       navigate(backTarget)
     }
   }
+
+  // The room is handed to ActiveCallProvider once, so it stays connected when the person leaves
+  // this page; coming back only shows it full size again.
+  const joined = join.data && e2eeKey ? join.data : null
+  const isActive = activeCall.session?.id === id
+  useEffect(() => {
+    if (!joined || !e2eeKey || isActive) return
+    activeCall.start({
+      id,
+      backTarget,
+      room: {
+        livekitUrl: joined.livekitUrl,
+        token: joined.token,
+        e2eeKey,
+        kind: joined.kind,
+        title: call?.title ?? t('calls:title'),
+        headerActions: (
+          <>
+            <Button variant="ghost" onClick={() => navigate(backTarget)}>
+              <ArrowLeft className="h-4 w-4" />
+              {t('calls:actions.back')}
+            </Button>
+            {call && !call.conversationId ? (
+              <Button variant="outline" onClick={() => void copyCallLink(call, e2eeKey)}>
+                {t('calls:actions.copyLink')}
+              </Button>
+            ) : null}
+          </>
+        ),
+        publicFallbackUrl: call && !call.conversationId ? `${call.publicUrl}#k=${encodeURIComponent(e2eeKey)}` : null,
+        onLeave: (lastOut) => {
+          // The last one out of a Mesaje call hangs it up, as on a phone: the card stops showing Join.
+          if (lastOut && joined.conversationId) void api.post(`/api/chat/calls/${id}/end`, {}).catch(() => undefined)
+        },
+        onEndForAll: () => void onEnd(),
+        onScreenShare: (input) => api.post(`/api/calls/${id}/screen-share`, input),
+      },
+    })
+    // Started once per call; a later title or token does not reconnect the room.
+  }, [joined, e2eeKey, isActive, id])
 
   if (join.isPending) {
     return (
@@ -162,32 +204,6 @@ export function CallRoomPage() {
     )
   }
 
-  const headerActions = (
-    <>
-      {back}
-      {call && !call.conversationId ? (
-        <Button variant="outline" onClick={() => void copyCallLink(call, e2eeKey)}>
-          {t('calls:actions.copyLink')}
-        </Button>
-      ) : null}
-    </>
-  )
-
-  return (
-    <LiveKitRoomView
-      livekitUrl={join.data.livekitUrl}
-      token={join.data.token}
-      e2eeKey={e2eeKey}
-      kind={join.data.kind}
-      title={call?.title ?? t('calls:title')}
-      headerActions={headerActions}
-      publicFallbackUrl={call && !call.conversationId ? `${call.publicUrl}#k=${encodeURIComponent(e2eeKey)}` : null}
-      onLeave={(lastOut) => {
-        // The last one out of a Mesaje call hangs it up, as on a phone: the card stops showing Join.
-        if (lastOut && join.data.conversationId) void api.post(`/api/chat/calls/${id}/end`, {}).catch(() => undefined)
-        navigate(backTarget)
-      }}
-      onEndForAll={() => void onEnd()}
-    />
-  )
+  // arbitrary: viewport-height calc, no token
+  return <div ref={activeCall.setSlot} className="h-[calc(100dvh-6rem)] min-h-96" />
 }

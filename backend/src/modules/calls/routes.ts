@@ -6,6 +6,7 @@ import {
   ListCallsQuerySchema,
   PublicCallParamsSchema,
   PublicCallTokenBodySchema,
+  ScreenShareBodySchema,
   UpdateCallSchema,
 } from './schema.js'
 import * as service from './service.js'
@@ -92,6 +93,18 @@ export async function callsRoutes(app: FastifyInstance) {
     async (req, reply) => {
       try {
         return { success: true, data: await service.joinCall(req.params.id, req.me) }
+      } catch (err) {
+        return sendCallError(reply, err)
+      }
+    },
+  )
+
+  server.post(
+    '/api/calls/:id/screen-share',
+    { preHandler: [app.authenticate], schema: { params: CallIdParamsSchema, body: ScreenShareBodySchema } },
+    async (req, reply) => {
+      try {
+        return { success: true, data: await service.setScreenShare(req.me, req.params.id, req.body) }
       } catch (err) {
         return sendCallError(reply, err)
       }

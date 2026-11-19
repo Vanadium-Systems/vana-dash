@@ -23,6 +23,12 @@ export const UpdateCallSchema = z
   })
   .refine((input) => Object.keys(input).length > 0)
 
+// Either the whole room, or one person by their LiveKit identity (a user id or "guest:…").
+export const ScreenShareBodySchema = z.union([
+  z.object({ everyone: z.boolean() }).strict(),
+  z.object({ identity: z.string().min(1).max(64), allowed: z.boolean() }).strict(),
+])
+
 export const CallIdParamsSchema = z.object({ id: z.string().uuid() })
 
 // 12 random bytes in base64url = 16 characters (shared/lib/call-rooms.ts).

@@ -5,16 +5,24 @@ import { runAsTenant, withRlsBypass } from '../../shared/lib/tenancy.js'
 import { billingClients, calls, conversationMembers, prospects } from '../../shared/db/schema/index.js'
 import { callPublicUrl, closeCallRoom, isCallsConfigured, openCallRoom, type CallRecord } from '../../shared/lib/call-rooms.js'
 import { decryptField } from '../../shared/lib/crypto.js'
-import { createLiveKitToken, LiveKitError } from '../../shared/lib/livekit.js'
+import {
+  applyScreenSharePolicy,
+  createLiveKitToken,
+  LiveKitError,
+  mayShareScreen,
+  readScreenSharePolicy,
+  type ScreenSharePolicy,
+} from '../../shared/lib/livekit.js'
 import { getCompany } from '../../shared/lib/company.js'
 import { closePushNotification } from '../../shared/lib/push.js'
 import { visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import { userName, type SessionUser } from '../../shared/lib/session.js'
 import type { z } from 'zod'
-import { CreateCallSchema, UpdateCallSchema } from './schema.js'
+import { CreateCallSchema, ScreenShareBodySchema, UpdateCallSchema } from './schema.js'
 
 type CreateInput = z.input<typeof CreateCallSchema>
 type UpdateInput = z.infer<typeof UpdateCallSchema>
+type ScreenShareInput = z.infer<typeof ScreenShareBodySchema>
 
 export class CallError extends Error {
   constructor(
@@ -192,6 +200,11 @@ async function assertCanAccessCall(call: CallRecord, me: SessionUser): Promise<v
   if (!me.features.includes('apeluri.manage')) throw new CallError('forbidden', 403, 'apeluri.manage')
 }
 
+/** Who started the call runs it, and the company's admins in any call. */
+function isCallHost(call: CallRecord, me: SessionUser): boolean {
+  return call.createdByUserId === me.id || me.isPlatformAdmin || me.role?.kind === 'admin'
+}
+
 export async function issueCallToken(id: string, me: SessionUser): Promise<CallTokenResponse> {
   const call = await loadOpenable(id)
   await assertCanAccessCall(call, me)
@@ -204,11 +217,14 @@ export async function issueCallToken(id: string, me: SessionUser): Promise<CallT
 
   try {
     const ttlSeconds = Math.max(300, Math.floor((call.expiresAt.getTime() - Date.now()) / 1000))
+    const isHost = isCallHost(call, me)
+    const policy = isHost ? null : await readScreenSharePolicy(call.roomName)
     const { token, livekitUrl } = await createLiveKitToken({
       roomName: call.roomName,
       identity: me.id,
       name: displayName,
-      isHost: true,
+      isHost,
+      canShareScreen: policy ? mayShareScreen(policy, me.id, false) : true,
       ttlSeconds,
     })
     const guestKey = call.bookingId && call.guestKeyEnc ? await decryptField(call.guestKeyEnc) : null
@@ -233,6 +249,31 @@ export async function joinCall(id: string, me: SessionUser): Promise<CallTokenRe
   // Answered here: stop it ringing on the person's other phones and browsers.
   if (joined.conversationId) void closePushNotification(me.id, `call-${id}`)
   return joined
+}
+
+/** The host lets everyone, or one person, share the screen; applied at once to who is connected. */
+export async function setScreenShare(me: SessionUser, id: string, input: ScreenShareInput): Promise<ScreenSharePolicy> {
+  const call = await loadOpenable(id)
+  await assertCanAccessCall(call, me)
+  if (!isCallHost(call, me)) throw new CallError('forbidden', 403)
+  if (call.provider !== 'livekit' || call.status !== 'open') throw new CallError('closed', 410)
+  const current = await readScreenSharePolicy(call.roomName)
+  const next: ScreenSharePolicy =
+    'everyone' in input
+      ? { everyone: input.everyone, allowed: input.everyone ? current.allowed : [] }
+      : {
+          everyone: current.everyone,
+          allowed: input.allowed
+            ? [...new Set([...current.allowed, input.identity])]
+            : current.allowed.filter((identity) => identity !== input.identity),
+        }
+  try {
+    await applyScreenSharePolicy(call.roomName, next)
+  } catch (err) {
+    if (err instanceof LiveKitError) throw new CallError('provider', 502)
+    throw err
+  }
+  return next
 }
 
 export async function endCall(me: SessionUser, id: string): Promise<CallRow> {
@@ -314,11 +355,13 @@ export async function issuePublicCallToken(
   return runAsTenant(call.tenantId, async () => {
     try {
       const ttlSeconds = Math.max(300, Math.floor((call.expiresAt.getTime() - Date.now()) / 1000))
+      const identity = `guest:${randomBytes(6).toString('hex')}`
       const { token, livekitUrl } = await createLiveKitToken({
         roomName: call.roomName,
-        identity: `guest:${randomBytes(6).toString('hex')}`,
+        identity,
         name: guestName,
         isHost: false,
+        canShareScreen: mayShareScreen(await readScreenSharePolicy(call.roomName), identity, false),
         ttlSeconds,
       })
       return { provider: 'livekit', livekitUrl, token, roomName: call.roomName, kind: call.kind }

@@ -466,6 +466,10 @@ const SOURCES: GuideSource[] = [
         en: 'In a call, a click on a picture makes it big and the others move to the side; “Back to everyone” (or another click) brings the grid back. A colleague’s shared screen gets big on its own. One screen is shared at a time: whoever starts sharing takes over, and the previous share stops.',
       },
       {
+        ro: 'Ecranul îl partajează gazda apelului (cine l-a pornit) și adminii. Gazda le dă voie altora din butonul „Lasă-l să partajeze” de pe imaginea fiecăruia, sau tuturor cu „Oricine poate partaja”; invitații din link pot primi voie la fel. Dacă pleci de pe pagina apelului, apelul rămâne deschis într-o fereastră mică în colț; „Mărește apelul” te duce înapoi.',
+        en: 'The screen is shared by the call’s host (whoever started it) and by admins. The host lets someone share with “Let them share” on their picture, or everyone with “Anyone can share”; link guests can be let in the same way. If you leave the call page, the call stays open in a small window in the corner; “Open the call” takes you back.',
+      },
+      {
         ro: 'Scrie în câmpul de jos și trimite. Un fișier de până la 50 MB se pune din „Atașează”. Emoji: după două puncte și două litere (:so) apar emoji-urile cu numele acela, Enter alege; sau iconița de lângă câmp.',
         en: 'Type in the field at the bottom and send. A file of up to 50 MB is added with “Attach”. Emoji: a colon and two letters (:so) list the emoji with that name, Enter picks; or the icon next to the field.',
       },
