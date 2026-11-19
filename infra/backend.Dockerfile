@@ -10,10 +10,10 @@ RUN pnpm --filter @vana-dash/backend build
 
 FROM node:22-alpine
 RUN corepack enable
-# postgresql-client: pg_dump for jobs/backup.ts. curl: the healthcheck in compose.
+# postgresql-client: pg_dump for jobs/backup.ts, age: its encrypted off-site copy. curl: the healthcheck in compose.
 # poppler-utils: pdftoppm, for PDF thumbnails in the Archive (shared/lib/thumbnail.ts).
 # vips-tools: vipsthumbnail, for the photo thumbnails in Messages (same file).
-RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates openssl postgresql-client curl poppler-utils vips-tools
+RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates openssl postgresql-client age curl poppler-utils vips-tools
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true

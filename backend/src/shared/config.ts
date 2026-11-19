@@ -100,6 +100,15 @@ export const config = {
   // reuse config.databaseUrl (aceeași bază, evident).
   backupDir: process.env.BACKUP_DIR ?? '/backups',
   backupRetentionDays: Number(process.env.BACKUP_RETENTION_DAYS ?? 7),
+  // Off-site copy of the daily dump (jobs/backup.ts): its own R2 bucket and token, in the same
+  // Cloudflare account as r2 below, encrypted to an age public key whose private half never
+  // sits on this server. Empty = the dump stays only in backupDir.
+  backupOffsite: {
+    bucketName: process.env.BACKUP_R2_BUCKET_NAME ?? '',
+    accessKeyId: process.env.BACKUP_R2_ACCESS_KEY_ID ?? '',
+    secretAccessKey: process.env.BACKUP_R2_SECRET_ACCESS_KEY ?? '',
+    ageRecipient: process.env.BACKUP_AGE_RECIPIENT ?? '',
+  },
 
   // 2026-07-30 — secretul dedicat pt. POST /api/webhooks/vanagreen-alert (apelant: backend-ul
   // vanagreen, shared/lib/vanadash-alert.ts — nu o sesiune de browser). Aceeași valoare trebuie

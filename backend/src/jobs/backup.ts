@@ -1,9 +1,14 @@
 import { execFile } from 'node:child_process'
-import { createWriteStream, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { createReadStream, createWriteStream, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { basename } from 'node:path'
+import { promisify } from 'node:util'
 import { createGzip } from 'node:zlib'
 import { config } from '../shared/config.js'
 import { sendAlertEmail } from '../shared/lib/email.js'
 import { tr } from '../shared/lib/i18n.js'
+import { isBackupBucketConfigured, uploadToBackupBucket } from '../shared/lib/r2.js'
+
+const execFileAsync = promisify(execFile)
 
 // Track A: pg_dump zilnic, gzip, retenție + alertă pe eșec — a doua plasă de siguranță,
 // independentă de snapshot-ul automat Hetzner (decizie Stefan, 2026-07-16: cron local,
@@ -47,6 +52,15 @@ export async function runBackup(): Promise<void> {
 
     console.log(`[backup] backup scris: ${outPath}`)
 
+    try {
+      const key = await uploadOffsiteBackup(outPath)
+      if (key) console.log(`[backup] off-site copy uploaded: ${key}`) // slop-ok: the job logs to stdout like its other lines
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[backup] off-site upload failed:', err)
+      await sendAlertEmail(tr('emails.backup.offsiteFailedSubject'), tr('emails.backup.offsiteFailedBody', { dateStamp, message }))
+    }
+
     const cutoff = Date.now() - config.backupRetentionDays * 24 * 60 * 60 * 1000
     for (const file of readdirSync(config.backupDir)) {
       if (!file.startsWith('backup-') || !file.endsWith('.sql.gz')) continue
@@ -60,6 +74,28 @@ export async function runBackup(): Promise<void> {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[backup] backup eșuat:', err)
     await sendAlertEmail(tr('emails.backup.failedSubject'), tr('emails.backup.failedBody', { dateStamp, message }))
+  }
+}
+
+// Encrypted to a public key only, so whoever takes over this server cannot read the copies, and
+// the bucket lock keeps them from being deleted. Returns the R2 key, or null when not configured.
+export async function uploadOffsiteBackup(localPath: string): Promise<string | null> {
+  const { ageRecipient } = config.backupOffsite
+  if (!ageRecipient || !isBackupBucketConfigured()) return null
+
+  const encryptedPath = `${localPath}.age`
+  try {
+    // Encrypt to a file first: piping age straight into the upload would store a truncated
+    // object if age failed halfway, and the bucket lock would keep it there for weeks.
+    await execFileAsync('age', ['--encrypt', '--recipient', ageRecipient, '--output', encryptedPath, localPath])
+    // A timestamp, not just the date: the bucket lock refuses overwrites, so a second run on the
+    // same day needs its own key.
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const key = `${basename(localPath, '.sql.gz')}_${stamp}.sql.gz.age`
+    await uploadToBackupBucket(key, createReadStream(encryptedPath))
+    return key
+  } finally {
+    rmSync(encryptedPath, { force: true })
   }
 }
 

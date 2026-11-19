@@ -4,7 +4,9 @@
   },
   "backup": {
     "failedSubject": "Daily backup failed",
-    "failedBody": "The backup of {{dateStamp}} failed: {{message}}"
+    "failedBody": "The backup of {{dateStamp}} failed: {{message}}",
+    "offsiteFailedSubject": "Off-site backup copy failed",
+    "offsiteFailedBody": "The backup of {{dateStamp}} is on the server, but its encrypted copy did not reach R2: {{message}}"
   },
   "monthlyReport": {
     "subject": "[vana-dash] Monthly report {{month}}",

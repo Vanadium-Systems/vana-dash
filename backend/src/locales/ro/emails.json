@@ -4,7 +4,9 @@
   },
   "backup": {
     "failedSubject": "Backup zilnic eșuat",
-    "failedBody": "Backup-ul din {{dateStamp}} a eșuat: {{message}}"
+    "failedBody": "Backup-ul din {{dateStamp}} a eșuat: {{message}}",
+    "offsiteFailedSubject": "Copia backup-ului în R2 a eșuat",
+    "offsiteFailedBody": "Backup-ul din {{dateStamp}} e pe server, dar copia criptată nu a ajuns în R2: {{message}}"
   },
   "monthlyReport": {
     "subject": "[vana-dash] Raport lunar {{month}}",

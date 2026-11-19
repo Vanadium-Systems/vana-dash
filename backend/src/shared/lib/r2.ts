@@ -11,6 +11,17 @@ import { tr } from './i18n.js'
 // nu pe pornirea serverului, ca restul integrărilor opționale din acest proiect).
 
 let client: S3Client | undefined
+let backupClient: S3Client | undefined
+
+function makeClient(accessKeyId: string, secretAccessKey: string): S3Client {
+  return new S3Client({
+    region: 'auto',
+    // The buckets are created under the EU jurisdiction, which needs the jurisdictional
+    // endpoint (`eu.`); otherwise R2 answers AccessDenied although the credentials are right.
+    endpoint: `https://${config.r2.accountId}.eu.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId, secretAccessKey },
+  })
+}
 
 function r2Client(): S3Client {
   const { accountId, accessKeyId, secretAccessKey, bucketName } = config.r2
@@ -19,16 +30,24 @@ function r2Client(): S3Client {
       tr('errors.files.r2NotConfigured'),
     )
   }
-  if (!client) {
-    client = new S3Client({
-      region: 'auto',
-      // The bucket is created under the EU jurisdiction, which needs the jurisdictional
-      // endpoint (`eu.`); otherwise R2 answers AccessDenied although the credentials are right.
-      endpoint: `https://${accountId}.eu.r2.cloudflarestorage.com`,
-      credentials: { accessKeyId, secretAccessKey },
-    })
-  }
+  client ??= makeClient(accessKeyId, secretAccessKey)
   return client
+}
+
+export function isBackupBucketConfigured(): boolean {
+  const { bucketName, accessKeyId, secretAccessKey } = config.backupOffsite
+  return Boolean(config.r2.accountId && bucketName && accessKeyId && secretAccessKey)
+}
+
+/** Backups bucket, with a token scoped to it alone: the Archive token cannot touch backups. */
+export async function uploadToBackupBucket(key: string, body: Readable): Promise<void> {
+  const { bucketName, accessKeyId, secretAccessKey } = config.backupOffsite
+  backupClient ??= makeClient(accessKeyId, secretAccessKey)
+  const upload = new Upload({
+    client: backupClient,
+    params: { Bucket: bucketName, Key: key, Body: body, ContentType: 'application/octet-stream' },
+  })
+  await upload.done()
 }
 
 /** Upload streamed (multipart automat pt. fișiere mari via @aws-sdk/lib-storage). */

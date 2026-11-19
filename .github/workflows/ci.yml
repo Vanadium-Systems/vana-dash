@@ -100,7 +100,7 @@ jobs:
           node-version: 22
           cache: pnpm
       # pdftoppm renders the PDF thumbnails in the Archive; one test exercises it for real.
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils age
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate
       - run: pnpm db:seed
