@@ -49,6 +49,7 @@ Values per field:
 - isActive: "true" or "false".
 - employees, revenue, value, foundingYear: numbers, use "between".
 - expectedCloseAt, lastActivityAt, createdAt: dates as YYYY-MM-DD, use "between".
+- niche: reciclare (CAEN 36-39, 4677, 4687), inginerie (7112, 7120), instalatii (4321, 4322, 4329), service_industrial (3312, 3314, 3320, 4669, 4664), medical (4646, 8622, 8623, 8690), confectii_metalice (2511, 2512, 2223, 2553), facility_management (81xx), altele (other CAEN). Use not_in: ["reciclare"] to exclude recycling.
 - caen: CAEN code or prefix. source: free text. people.role: free text.
 - reachable: "yes" (has a phone or email), "no" (neither).
 - researchFines, researchBadNews, researchGrowth, researchCompetitor: "yes", "no", "unknown".

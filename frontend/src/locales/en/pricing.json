@@ -202,7 +202,19 @@
       "lastActivity": "Last activity",
       "createdAt": "Added on",
       "archivedOnly": "Archived only",
-      "archivedAny": "Including archived"
+      "archivedAny": "Including archived",
+      "niche": "Niche",
+      "caen": "CAEN code",
+      "niches": {
+        "reciclare": "Recycling & Waste",
+        "inginerie": "Engineering & Labs",
+        "instalatii": "MEP & Installations",
+        "service_industrial": "Industrial Service & Distribution",
+        "medical": "Medical & Pharma",
+        "confectii_metalice": "Metal Fabrication & CNC",
+        "facility_management": "Facility Management & Cleaning",
+        "altele": "Other"
+      }
     }
   },
   "scoring": {

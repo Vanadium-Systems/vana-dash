@@ -206,7 +206,19 @@
       "lastActivity": "Ultima activitate",
       "createdAt": "Adăugat la",
       "archivedOnly": "Doar arhivate",
-      "archivedAny": "Cu tot cu arhivate"
+      "archivedAny": "Cu tot cu arhivate",
+      "niche": "Nișă",
+      "caen": "Cod CAEN",
+      "niches": {
+        "reciclare": "Reciclare & Deșeuri",
+        "inginerie": "Inginerie & Laboratoare",
+        "instalatii": "Instalații & MEP",
+        "service_industrial": "Service Industrial & Distribuție",
+        "medical": "Medical & Farma",
+        "confectii_metalice": "Confecții Metalice & CNC",
+        "facility_management": "Facility Management & Curățenie",
+        "altele": "Altele"
+      }
     }
   },
   "scoring": {

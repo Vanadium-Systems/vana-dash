@@ -13,6 +13,7 @@ import {
 } from '../../shared/db/schema/index.js'
 import { escapeLike, foldDiacritics, PROSPECT_ID, visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import type { SessionUser } from '../../shared/lib/session.js'
+import { ALL_NICHE_PREFIXES, NICHE_PREFIXES_BY_KEY, PROSPECT_NICHE_OTHER } from './niches.js'
 import { RESEARCH_FIELD_KEYS, RESEARCH_UNKNOWN } from './research.js'
 
 // The one filter compiler (list, count, board, aggregates, export, lists from search, view alerts,
@@ -25,6 +26,7 @@ export const FILTER_FIELDS = [
   'score',
   'priority',
   'source',
+  'niche',
   'caen',
   'employees',
   'revenue',
@@ -151,6 +153,22 @@ function compileOne(f: ProspectFilter, ctx: FilterContext): SQL {
     case 'source':
       if (f.op === 'in' || f.op === 'not_in') return inList(f.op, prospects.source as never, f.value)
       return empty ? sql`coalesce(${prospects.source}, '') = ''` : sql`coalesce(${prospects.source}, '') <> ''`
+    case 'niche': {
+      if (f.op === 'is_empty' || f.op === 'not_empty') return empty ? sql`coalesce(${prospects.caenCode}, '') = ''` : sql`coalesce(${prospects.caenCode}, '') <> ''`
+      if (f.op !== 'in' && f.op !== 'not_in') break
+      const likeAny = (prefixes: readonly string[]) => or(prefixes.map((p) => sql`${prospects.caenCode} LIKE ${escapeLike(p) + '%'}`))
+      const parts: SQL[] = []
+      for (const v of f.value) {
+        if (v === PROSPECT_NICHE_OTHER) {
+          parts.push(sql`(coalesce(${prospects.caenCode}, '') <> '' AND NOT ${likeAny(ALL_NICHE_PREFIXES)})`)
+        } else {
+          const prefixes = NICHE_PREFIXES_BY_KEY[v]
+          if (prefixes?.length) parts.push(likeAny(prefixes))
+        }
+      }
+      if (parts.length === 0) return f.op === 'in' ? sql`false` : sql`true`
+      return f.op === 'in' ? or(parts) : sql`(${prospects.caenCode} IS NULL OR NOT ${or(parts)})`
+    }
     case 'caen': {
       if (f.op === 'is_empty' || f.op === 'not_empty') return empty ? sql`coalesce(${prospects.caenCode}, '') = ''` : sql`coalesce(${prospects.caenCode}, '') <> ''`
       if (f.op !== 'in' && f.op !== 'not_in') break

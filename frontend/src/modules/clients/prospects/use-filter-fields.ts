@@ -14,6 +14,17 @@ const RESEARCH_FILTERS = [
   { key: 'researchCompetitor', answers: YES_NO },
 ]
 
+const NICHE_KEYS = [
+  'reciclare',
+  'inginerie',
+  'instalatii',
+  'service_industrial',
+  'medical',
+  'confectii_metalice',
+  'facility_management',
+  'altele',
+] as const
+
 const NO_LISTS: ProspectList[] = []
 
 export function useFilterFields(kind: ProspectKind, statuses: ProspectStatusEntry[], assignees: ProspectAssignee[], lists: ProspectList[] = NO_LISTS): FilterField[] {
@@ -39,6 +50,15 @@ export function useFilterFields(kind: ProspectKind, statuses: ProspectStatusEntr
       { key: 'list', label: t('clients:lists.filterLabel'), type: 'enum', group: sales, options: lists.map((list) => ({ value: list.id, label: list.name })) },
       { key: 'score', label: t('pricing:prospects.score'), type: 'number', group: sales },
       { key: 'value', label: t('pricing:prospects.filters.value'), type: 'number', group: sales },
+      {
+        key: 'niche',
+        label: t('pricing:prospects.filters.niche'),
+        type: 'enum',
+        group: company,
+        defaultPinned: true,
+        options: NICHE_KEYS.map((value) => ({ value, label: t(`pricing:prospects.filters.niches.${value}` as TKey) })),
+      },
+      { key: 'caen', label: t('pricing:prospects.filters.caen'), type: 'text', group: company },
       { key: 'source', label: t('common:labels.source'), type: 'text', group: company },
       { key: 'lastActivityAt', label: t('pricing:prospects.filters.lastActivity'), type: 'date', group: activity },
       { key: 'createdAt', label: t('pricing:prospects.filters.createdAt'), type: 'date', group: activity },
