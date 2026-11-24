@@ -108,6 +108,11 @@ const contractIds: string[] = []
 const SETTINGS_KEY = 'contract.signing'
 
 describe.skipIf(!ready)('signing by link', async () => {
+  // A skipped describe still runs its body, and the body below renders PDFs.
+  if (!ready) {
+    it('needs pyHanko and Chromium', () => {})
+    return
+  }
   const app = await buildServer()
   await app.ready()
 
