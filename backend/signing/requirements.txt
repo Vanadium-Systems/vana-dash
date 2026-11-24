@@ -1,0 +1,9 @@
+# The PDF signing helper (pdfsign.py), installed in its own venv in the backend image.
+# pyHanko signs into an existing field as a new incremental revision, which pdf-lib cannot do,
+# so a qualified signature made before stays valid. tzdata: pyHanko loads a zone at import and
+# Alpine has no zone database.
+pyHanko==0.38.2
+pyhanko-certvalidator==0.33.0
+cryptography==50.0.2
+pillow==13.0.0
+tzdata==2026.6

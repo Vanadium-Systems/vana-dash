@@ -7,6 +7,7 @@ import * as templatesService from './templates-service.js'
 import * as registryService from './registry-service.js'
 import * as numbersService from './numbers.js'
 import * as settingsService from './settings-service.js'
+import { registerSigningRoutes } from './signing-routes.js'
 import { z } from 'zod'
 import {
   CreateContractSchema,
@@ -26,7 +27,6 @@ import {
   DocumentIdParamsSchema,
   GenerateDocumentSchema,
   MarkDocumentSignedSchema,
-  SignatureRectSchema,
 } from './schema.js'
 import { ContractTermsUpdateSchema, TemplateKeyParamsSchema, TemplateUpdateSchema } from './templates-schema.js'
 import { fail, HttpError } from '../../shared/lib/http-error.js'
@@ -40,6 +40,7 @@ export async function contractsRoutes(app: FastifyInstance) {
   await app.register(multipart, { limits: { fileSize: MAX_SIGNED_PDF_SIZE, files: 1 } })
 
   const server = app.withTypeProvider<ZodTypeProvider>()
+  registerSigningRoutes(app)
 
   // ── Registry: every contract of the company, visible per owner (admin sees all) ──────────────
 
@@ -352,38 +353,14 @@ export async function contractsRoutes(app: FastifyInstance) {
     },
   )
 
-  // ── Digital signature — Sign tab ────────────────────────────────────────────────────────────
-
-  server.patch(
-    '/api/contracts/documents/:id/signature-rect',
-    { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema, body: SignatureRectSchema } },
-    async (req, reply) => {
-      const row = await service.saveSignatureRect(req.params.id, req.body)
-      if (!row) return fail(reply, 404, 'CONTRACT_DOCUMENT_NOT_FOUND')
-      return { success: true, data: row }
-    },
-  )
-
-  server.get(
-    '/api/contracts/documents/:id/sign-package',
-    { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema } },
-    async (req, reply) => {
-      try {
-        const { buffer, fileName } = await service.buildSignPackage(req.params.id)
-        reply.header('Content-Disposition', `attachment; filename="${fileName}"`)
-        return reply.type('application/zip').send(buffer)
-      } catch (err) {
-        if (err instanceof HttpError) throw err
-        req.log.warn({ err }, 'sign package failed')
-        return fail(reply, 400, 'CONTRACT_SIGN_PACKAGE_FAILED')
-      }
-    },
-  )
+  // ── Digital signature: the signed PDF comes back as a new version ───────────────────────────
 
   server.post(
     '/api/contracts/documents/:id/signed',
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema } },
     async (req, reply) => {
+      // Someone else's confidential contract answers 404 before anything is written.
+      if (!(await registryService.getVisibleDocument(req.me, req.params.id))) return fail(reply, 404, 'CONTRACT_DOCUMENT_NOT_FOUND')
       const data = await req.file()
       if (!data) return fail(reply, 400, 'FILE_MISSING', { message: tr('errors.files.missing') })
       if (data.mimetype !== 'application/pdf') {

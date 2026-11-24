@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Check, Download, Pencil, Trash2, X } from 'lucide-react'
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { ArrowLeft, Check, Download, Pencil, Trash2, Upload, X } from 'lucide-react'
+import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Timeline, type TimelineEntry } from '@/shared/components/Timeline'
@@ -21,9 +21,11 @@ import { errorCode, toastError } from '@/shared/lib/errors'
 import { formatDate, formatDateTime } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
+import { useMe } from '@/shared/hooks/use-me'
 import { ContractDetail } from './ContractDetail'
+import { SigningSection } from './ContractSigning'
 import { ContractOwnerField, ContractTermsFields } from './ContractTermsFields'
-import type { RegistryContract, RegistryDocument, RegistryHistoryItem } from './contracts-api'
+import type { DocumentSignature, RegistryContract, RegistryDocument, RegistryHistoryItem } from './contracts-api'
 import { NEXT_STATUSES, noticeText, STATUS_TONE, statusLabel, termsBody, termsFormOf, validateTerms, type TermsErrors, type TermsForm } from './contracts-logic'
 
 const BACK_PATH = '/clients?tab=contracte'
@@ -33,6 +35,7 @@ const DOC_TYPE_LABEL: Record<RegistryDocument['docType'], () => string> = {
   anexa: () => t('accounting:docTypes.priceAnnex'),
   act_aditional: () => t('accounting:docTypes.addendum'),
   document: () => t('accounting:contracts.page.uploadedDocument'),
+  sign_certificate: () => t('accounting:contracts.signing.certificateDoc'),
 }
 
 const HISTORY_LABEL: Record<string, () => string> = {
@@ -186,8 +189,37 @@ function TermsSection({ contract }: { contract: RegistryContract }) {
   )
 }
 
+function signatureText(signature: DocumentSignature): string {
+  const date = signature.signingTime ? formatDate(signature.signingTime) : null
+  const name = signature.signerName
+  const base =
+    name && date
+      ? t('accounting:contracts.signing.signatures.signedByAt', { name, date })
+      : name
+        ? t('accounting:contracts.signing.signatures.signedBy', { name })
+        : date
+          ? t('accounting:contracts.signing.signatures.signedAt', { date })
+          : t('accounting:contracts.signing.signatures.signedPlain')
+  if (signature.intact === null || signature.intact === undefined) return base
+  return `${base} · ${signature.intact ? t('accounting:contracts.signing.signatures.intact') : t('accounting:contracts.signing.signatures.modified')}`
+}
+
 function DocumentsSection({ contract }: { contract: RegistryContract }) {
   const queryClient = useQueryClient()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const uploadTarget = useRef<string | null>(null)
+  const uploadSigned = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      return api.upload(`/api/contracts/documents/${id}/signed`, fd)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['contracts'] })
+      toast.success(t('accounting:sign.uploaded'))
+    },
+    onError: (err) => toastError(err),
+  })
   const toggleSigned = useMutation({
     mutationFn: ({ id, isSigned }: { id: string; isSigned: boolean }) => api.patch(`/api/contracts/documents/${id}`, { isSigned }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['contracts'] }),
@@ -220,19 +252,42 @@ function DocumentsSection({ contract }: { contract: RegistryContract }) {
                   {formatDateTime(doc.createdAt)}
                 </TableCell>
                 <TableCell>
-                  <StatePill tone={doc.isSigned ? 'success' : 'neutral'}>{doc.isSigned ? t('accounting:contracts.signed') : t('accounting:contracts.unsigned')}</StatePill>
+                  {doc.docType === 'sign_certificate' ? (
+                    '—'
+                  ) : (
+                    <StatePill tone={doc.isSigned ? 'success' : 'neutral'}>{doc.isSigned ? t('accounting:contracts.signed') : t('accounting:contracts.unsigned')}</StatePill>
+                  )}
+                  {(doc.signatures ?? []).map((signature, index) => (
+                    <p key={index} className="mt-1 max-w-60 break-words text-xs text-muted-foreground">
+                      {signatureText(signature)}
+                    </p>
+                  ))}
                 </TableCell>
                 <TableCell className="text-right">
                   <RowActions
                     actions={[
                       { key: 'pdf', icon: Download, label: t('common:actions.downloadPdf'), onClick: () => openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf') },
-                      {
-                        key: 'signed',
-                        icon: doc.isSigned ? X : Check,
-                        label: doc.isSigned ? t('accounting:contracts.markUnsigned') : t('accounting:contracts.markSigned'),
-                        disabled: toggleSigned.isPending,
-                        onClick: () => toggleSigned.mutate({ id: doc.id, isSigned: !doc.isSigned }),
-                      },
+                      ...(doc.docType === 'sign_certificate'
+                        ? []
+                        : [
+                            {
+                              key: 'upload',
+                              icon: Upload,
+                              label: t('accounting:contracts.signing.uploadSigned'),
+                              disabled: uploadSigned.isPending,
+                              onClick: () => {
+                                uploadTarget.current = doc.id
+                                fileInputRef.current?.click()
+                              },
+                            },
+                            {
+                              key: 'signed',
+                              icon: doc.isSigned ? X : Check,
+                              label: doc.isSigned ? t('accounting:contracts.markUnsigned') : t('accounting:contracts.markSigned'),
+                              disabled: toggleSigned.isPending,
+                              onClick: () => toggleSigned.mutate({ id: doc.id, isSigned: !doc.isSigned }),
+                            },
+                          ]),
                     ]}
                   />
                 </TableCell>
@@ -241,6 +296,18 @@ function DocumentsSection({ contract }: { contract: RegistryContract }) {
           </TableBody>
         </Table>
       )}
+      {/* native: hidden file picker */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file && uploadTarget.current) uploadSigned.mutate({ id: uploadTarget.current, file })
+          e.target.value = ''
+        }}
+      />
     </Section>
   )
 }
@@ -260,6 +327,7 @@ export function ContractPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const confirm = useConfirm()
+  const { can } = useMe()
   const detail = useQuery({
     queryKey: ['contracts', 'registry', id],
     queryFn: () => api.get<RegistryContract>(`/api/contracts/registry/${id}`),
@@ -381,7 +449,14 @@ export function ContractPage() {
 
       <TermsSection contract={contract} />
       {/* A SaaS contract keeps its own documents and addenda in ContractDetail. */}
-      {contract.origin === 'saas' && contract.billingClientId ? <ContractDetail clientId={contract.billingClientId} /> : <DocumentsSection contract={contract} />}
+      {contract.origin === 'saas' && contract.billingClientId ? (
+        <ContractDetail clientId={contract.billingClientId} />
+      ) : (
+        <>
+          <DocumentsSection contract={contract} />
+          {can('facturi.semnare-contracte') ? <SigningSection contract={contract} /> : null}
+        </>
+      )}
       {contract.history.length > 0 ? (
         <Section title={t('accounting:contracts.page.history.title')}>
           <Timeline entries={toTimeline(contract.history)} />

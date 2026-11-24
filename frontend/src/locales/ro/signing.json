@@ -1,0 +1,46 @@
+{
+  "from": "Trimis de {{company}}",
+  "intro": "Bună, {{name}}. {{company}} îți trimite documentul de mai sus la semnat. Ca să-l vezi, îți trimitem un cod pe email. Linkul e valabil până pe {{date}}.",
+  "sendCode": "Trimite-mi codul la {{email}}",
+  "codeLabel": "Codul primit la {{email}}",
+  "codeFormat": "Codul are 6 cifre.",
+  "confirmCode": "Confirmă codul",
+  "resendCode": "Trimite alt cod",
+  "sessionExpired": "Au trecut 15 minute de la cod. Cere unul nou ca să continui.",
+  "readFirst": "Citește documentul până la capăt. Semnătura ta intră în câmpurile tale din el.",
+  "pageAlt": "Pagina {{n}} din {{total}}",
+  "downloadToRead": "Descarcă PDF-ul ca să-l citești",
+  "signTitle": "Semnează",
+  "consent": "Am citit documentul și îl semnez electronic. Sunt de acord ca semnătura mea electronică să aibă între mine și {{company}} același efect ca o semnătură pe hârtie.",
+  "privacy": "Ca dovadă a semnării păstrăm numele și emailul tău, adresa IP, browserul și ora fiecărui pas. Le vede doar {{company}}, împreună cu documentul.",
+  "needSignature": "Desenează sau scrie semnătura.",
+  "needConsent": "Bifează acordul de mai sus.",
+  "sign": "Semnez",
+  "signing": "Se semnează…",
+  "decline": "Nu semnez",
+  "declineReason": "De ce nu semnezi?",
+  "declineConfirm": "Trimite refuzul",
+  "declined": "Am anunțat expeditorul că nu semnezi.",
+  "qesTitle": "Ai semnătură electronică calificată?",
+  "qesBody": "Descarcă PDF-ul de mai sus, semnează-l cu certificatul tău fără să-l modifici și încarcă-l aici.",
+  "qesUpload": "Încarcă PDF-ul semnat",
+  "done": {
+    "body": "Gata, {{name}}. Documentul e semnat. Ți l-am trimis pe email, împreună cu certificatul de semnare.",
+    "download": "Descarcă documentul semnat"
+  },
+  "closed": {
+    "title": "Linkul nu mai merge",
+    "declined": "Ai refuzat deja să semnezi documentul.",
+    "revoked": "Linkul a fost anulat de expeditor. Cere-i unul nou.",
+    "expired": "Linkul a expirat. Cere-i expeditorului unul nou.",
+    "locked": "Linkul s-a blocat după prea multe coduri greșite. Expeditorul a fost anunțat."
+  },
+  "pad": {
+    "mode": "Cum semnezi",
+    "draw": "Desenez",
+    "type": "Scriu numele",
+    "typedLabel": "Numele tău",
+    "canvas": "Spațiul pentru semnătură",
+    "clear": "Șterge"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "from": "Sent by {{company}}",
+  "intro": "Hello {{name}}. {{company}} sent you the document above to sign. To see it, we email you a code. The link works until {{date}}.",
+  "sendCode": "Email me the code at {{email}}",
+  "codeLabel": "The code sent to {{email}}",
+  "codeFormat": "The code has 6 digits.",
+  "confirmCode": "Confirm the code",
+  "resendCode": "Send another code",
+  "sessionExpired": "15 minutes have passed since the code. Ask for a new one to go on.",
+  "readFirst": "Read the document to the end. Your signature goes into your fields in it.",
+  "pageAlt": "Page {{n}} of {{total}}",
+  "downloadToRead": "Download the PDF to read it",
+  "signTitle": "Sign",
+  "consent": "I have read the document and sign it electronically. I agree that my electronic signature has the same effect between me and {{company}} as a signature on paper.",
+  "privacy": "As proof of signing we keep your name and email, IP address, browser and the time of each step. Only {{company}} sees them, with the document.",
+  "needSignature": "Draw or type your signature.",
+  "needConsent": "Tick the agreement above.",
+  "sign": "Sign",
+  "signing": "Signing…",
+  "decline": "I will not sign",
+  "declineReason": "Why are you not signing?",
+  "declineConfirm": "Send the refusal",
+  "declined": "We told the sender you are not signing.",
+  "qesTitle": "Do you have a qualified electronic signature?",
+  "qesBody": "Download the PDF above, sign it with your certificate without changing it and upload it here.",
+  "qesUpload": "Upload the signed PDF",
+  "done": {
+    "body": "Done, {{name}}. The document is signed. We emailed it to you with the signing certificate.",
+    "download": "Download the signed document"
+  },
+  "closed": {
+    "title": "This link no longer works",
+    "declined": "You already declined to sign the document.",
+    "revoked": "The sender cancelled the link. Ask them for a new one.",
+    "expired": "The link expired. Ask the sender for a new one.",
+    "locked": "The link locked after too many wrong codes. The sender was told."
+  },
+  "pad": {
+    "mode": "How you sign",
+    "draw": "Draw",
+    "type": "Type my name",
+    "typedLabel": "Your name",
+    "canvas": "Signature area",
+    "clear": "Clear"
+  }
+}

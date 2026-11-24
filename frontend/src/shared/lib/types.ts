@@ -417,14 +417,6 @@ export interface ContractDetails {
   calc?: PricingCalculateInput
 }
 
-export interface SignatureRect {
-  page: number
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
 export interface ContractDocument {
   id: string
   billingClientId: string
@@ -433,7 +425,6 @@ export interface ContractDocument {
   pdfStoragePath: string
   isSigned: boolean
   signedAt: string | null
-  signatureRect: SignatureRect | null
   sourceDocumentId: string | null
   createdAt: string
 }

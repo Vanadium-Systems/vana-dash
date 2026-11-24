@@ -36,7 +36,8 @@
       "clienti": "Billing clients",
       "cheltuieli": "Recurring expenses",
       "setari": "Invoice series and templates",
-      "sabloane-contracte": "Contract templates and number series"
+      "sabloane-contracte": "Contract templates and number series",
+      "semnare-contracte": "Send contracts to sign by link"
     },
     "financiar": {
       "view": "P&L, cash flow, KPIs",

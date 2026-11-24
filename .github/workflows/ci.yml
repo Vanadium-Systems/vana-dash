@@ -101,6 +101,8 @@ jobs:
           cache: pnpm
       # pdftoppm renders the PDF thumbnails in the Archive; one test exercises it for real.
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils age
+      # The contract signing helper (backend/signing/pdfsign.py), as in the backend image.
+      - run: python3 -m venv "$RUNNER_TEMP/pdfsign" && "$RUNNER_TEMP/pdfsign/bin/pip" install -q -r backend/signing/requirements.txt
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate
       - run: pnpm db:seed
@@ -114,6 +116,7 @@ jobs:
           OWNER: vanadash
       - run: pnpm --filter @vana-dash/backend exec vitest run --shard=${{ matrix.shard }}/3
         env:
+          PDFSIGN_PYTHON: ${{ runner.temp }}/pdfsign/bin/python
           RLS_ENABLED: ${{ matrix.rls == 'on' }}
           DATABASE_URL_APP: ${{ matrix.rls == 'on' && 'postgres://vanadash_app:ciThrowawayAppRolePassword2026@localhost:5433/vanadash' || '' }}
 

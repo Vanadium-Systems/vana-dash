@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-24T21:20:00+02:00',
+    title: {
+      ro: 'Semnare prin link',
+      en: 'Signing by link',
+    },
+    body: {
+      ro: 'Pe pagina unui contract, „Trimite la semnat” trimite un link pe email omului de pe partea cealaltă. El cere un cod pe email, citește documentul și semnează cu mouse-ul sau cu degetul, de pe telefon. PDF-ul semnat și certificatul de semnare apar în documentele contractului, iar el le poate descărca 30 de zile. Semnătura ta de pe webSIGN rămâne validă: semnezi întâi tu, urci PDF-ul cu „Încarcă versiunea semnată”, apoi trimiți linkul. Cine are semnătură calificată poate urca de pe pagina de semnare PDF-ul semnat de el. Înainte de primul link, adminul generează certificatul de semnare în Setări contracte. Dreptul nou din Module, „Trimitere la semnat prin link”, e oprit implicit.',
+      en: 'On a contract page, “Send to sign” emails a link to the person on the other side. They ask for a code by email, read the document and sign with the mouse or a finger, from a phone. The signed PDF and the signing certificate land in the contract’s documents, and they can download them for 30 days. Your webSIGN signature stays valid: you sign first, upload the PDF with “Upload the signed version”, then send the link. Someone with a qualified signature can upload the PDF they signed from the signing page. Before the first link, the admin generates the signing certificate in Contract settings. The new right on the Modules page, “Send contracts to sign by link”, is off by default.',
+    },
+    features: ['facturi.semnare-contracte'],
+  },
+  {
     publishedAt: '2026-11-24T18:00:00+02:00',
     title: {
       ro: 'Registrul de contracte',

@@ -26,13 +26,47 @@ export interface RegistryRow {
   latestDocument: { id: string; isSigned: boolean } | null
 }
 
+/** What the PDF says about one of its own signatures; any field can be missing. */
+export interface DocumentSignature {
+  field: string | null
+  signerName: string | null
+  signingTime: string | null
+  intact: boolean | null
+  valid: boolean | null
+  modificationLevel: string | null
+  coversWholeDocument: boolean | null
+}
+
 export interface RegistryDocument {
   id: string
-  docType: 'contract' | 'anexa' | 'act_aditional' | 'document'
+  docType: 'contract' | 'anexa' | 'act_aditional' | 'document' | 'sign_certificate'
   isSigned: boolean
   signedAt: string | null
   createdAt: string
   sourceDocumentId: string | null
+  signatures: DocumentSignature[] | null
+}
+
+export type SignRequestStatus = 'sent' | 'opened' | 'signed' | 'declined' | 'revoked' | 'expired' | 'locked'
+
+export interface SignRequest {
+  id: string
+  signerName: string
+  signerEmail: string
+  signerRole: string
+  status: SignRequestStatus
+  expiresAt: string
+  signedAt: string | null
+  signedDocumentId: string | null
+  certificateDocumentId: string | null
+  declineReason: string | null
+  createdAt: string
+}
+
+export interface SignRequestCreated {
+  id: string
+  link: string
+  expiresAt: string
 }
 
 export interface RegistryHistoryItem {

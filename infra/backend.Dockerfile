@@ -13,7 +13,13 @@ RUN corepack enable
 # postgresql-client: pg_dump for jobs/backup.ts, age: its encrypted off-site copy. curl: the healthcheck in compose.
 # poppler-utils: pdftoppm, for PDF thumbnails in the Archive (shared/lib/thumbnail.ts).
 # vips-tools: vipsthumbnail, for the photo thumbnails in Messages (same file).
-RUN apk upgrade --no-cache && apk add --no-cache chromium nss freetype harfbuzz ca-certificates openssl postgresql-client age curl poppler-utils vips-tools
+# python3 + a venv with pyHanko (backend/signing/requirements.txt): signs contracts into existing PDF fields
+# without breaking a qualified signature made before (shared/lib/pdf-signing.ts).
+RUN apk upgrade --no-cache && apk add --no-cache chromium nss freetype harfbuzz ca-certificates openssl postgresql-client age curl poppler-utils vips-tools python3
+COPY backend/signing/requirements.txt /tmp/pdfsign-requirements.txt
+RUN python3 -m venv /opt/pdfsign && /opt/pdfsign/bin/pip install --no-cache-dir -r /tmp/pdfsign-requirements.txt && rm -rf /tmp/pdfsign-requirements.txt /root/.cache
+# The root filesystem is read-only in production: no .pyc files to write.
+ENV PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -30,6 +36,7 @@ COPY --from=build /app/backend/dist backend/dist
 COPY --from=build /app/backend/src/shared/db/migrations backend/dist/shared/db/migrations
 # ANAF declaration forms (D301/D390), filled in by connectors/anaf/declarations/xfa-pdf.ts
 COPY --from=build /app/backend/src/connectors/anaf/declarations/templates backend/dist/connectors/anaf/declarations/templates
+COPY backend/signing/pdfsign.py backend/signing/pdfsign.py
 WORKDIR /app/backend
 # Non-root. The two volume mount points are created here owned by node, so a fresh named volume
 # inherits that owner; volumes created before this need a one-time chown to 1000.

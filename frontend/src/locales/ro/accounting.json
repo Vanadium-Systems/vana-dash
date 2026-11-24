@@ -349,6 +349,64 @@
       "submit": "Creează contractul",
       "fieldRequired": "Completează câmpul.",
       "notANumber": "Scrie o valoare numerică."
+    },
+    "signing": {
+      "title": "Semnare prin link",
+      "hint": "Trimiți un link omului de pe partea cealaltă. Semnează cu mouse-ul, iar documentul semnat se salvează aici și îl poate descărca și el.",
+      "send": "Trimite la semnat",
+      "resend": "Trimite din nou",
+      "cancel": "Anulează",
+      "cancelTitle": "Anulezi cererea pentru {{name}}?",
+      "cancelBody": "Linkul trimis nu va mai funcționa.",
+      "cancelConfirm": "Anulează cererea",
+      "cancelled": "Cererea e anulată",
+      "empty": "Nicio cerere de semnare încă.",
+      "loadFailed": "Nu am putut încărca cererile de semnare",
+      "colSigner": "Semnatar",
+      "colDate": "Dată",
+      "expiresValue": "Expiră {{date}}",
+      "signedAtValue": "Semnat la {{date}}",
+      "declineReason": "Motiv: {{reason}}",
+      "downloadSigned": "Descarcă documentul semnat",
+      "downloadCertificate": "Descarcă certificatul de semnare",
+      "uploadSigned": "Încarcă versiunea semnată",
+      "certificateDoc": "Certificat de semnare",
+      "status": {
+        "sent": "Trimis",
+        "opened": "Deschis",
+        "signed": "Semnat",
+        "declined": "Refuzat",
+        "revoked": "Anulat",
+        "expired": "Expirat",
+        "locked": "Blocat (prea multe coduri greșite)"
+      },
+      "signatures": {
+        "signedByAt": "Semnat de {{name}}, {{date}}",
+        "signedBy": "Semnat de {{name}}",
+        "signedAt": "Semnat, {{date}}",
+        "signedPlain": "Semnat",
+        "intact": "intactă",
+        "modified": "modificată"
+      },
+      "dialog": {
+        "title": "Trimite la semnat",
+        "name": "Numele semnatarului",
+        "email": "Email",
+        "role": "Rol",
+        "nameRequired": "Scrie numele semnatarului.",
+        "emailInvalid": "Scrie o adresă de email validă.",
+        "roleRequired": "Scrie rolul semnatarului.",
+        "submit": "Trimite",
+        "unsigned": "Trimite nesemnat de mine",
+        "certMissing": "Generează certificatul de semnare în Setări contracte, apoi încearcă din nou."
+      },
+      "created": {
+        "title": "Linkul e gata",
+        "body": "Am trimis linkul și pe email la {{email}}. Linkul se vede o singură dată: copiază-l acum dacă vrei să-l dai pe alt canal.",
+        "linkLabel": "Link de semnare",
+        "copy": "Copiază linkul",
+        "expires": "Linkul expiră {{date}}."
+      }
     }
   },
   "declarations": {
@@ -535,17 +593,10 @@
     "yearlyResetOff": "Resetare anuală a numerotării: nu. Nu schimba formatul în mijlocul anului fiscal fără motiv."
   },
   "sign": {
-    "rectSaved": "Dreptunghi salvat",
+    "title": "Încarcă PDF-ul semnat",
+    "hint": "Semnează documentul în Adobe cu certificatul tău, apoi încarcă aici PDF-ul semnat. Apare în listă ca versiune nouă, iar originalul rămâne în istoric.",
     "uploaded": "PDF semnat încărcat — apare în listă ca document nou",
-    "title": "Semnează document",
-    "hint": "Deschide PDF-ul într-un tab nou ca referință, apoi trage un dreptunghi mai jos exact unde vrei semnătura (cutia are proporția unei pagini A4).",
-    "openPdf": "Deschide PDF",
-    "page": "Pagina",
-    "saveRect": "Salvează dreptunghiul",
-    "downloading": "Se descarcă…",
-    "downloadPackage": "Descarcă pachet de semnat",
-    "uploadSigned": "Am semnat, încarcă PDF-ul",
-    "fallbackHint": "Dacă tokenul certSIGN nu merge cu JSignPdf, semnează manual în Adobe ca până acum și încarcă rezultatul aici oricum."
+    "uploadSigned": "Am semnat, încarcă PDF-ul"
   },
   "status": {
     "draft": "Draft",
@@ -1064,5 +1115,19 @@
     "leadDaysHint": "Primești alerta și evenimentul din calendar rămâne pe ziua termenului.",
     "leadDaysInvalid": "Un număr între 1 și 90.",
     "signatureLineText": "Semnătură, Data: __________"
+  },
+  "signingCertificate": {
+    "title": "Certificatul de semnare",
+    "intro": "Dash-ul semnează în numele firmei cu el când cineva semnează prin link. E autosemnat: Adobe îl arată ca semnatar necunoscut; certificatul de semnare din fiecare contract spune cum se verifică.",
+    "generate": "Generează certificatul",
+    "generated": "Certificatul e generat",
+    "fingerprint": "Amprenta",
+    "createdAt": "Generat la {{date}}",
+    "regenerate": "Regenerează",
+    "regenerateTitle": "Regenerezi certificatul de semnare?",
+    "regenerateBody": "Semnăturile vechi rămân valide. Cele noi folosesc certificatul nou.",
+    "downloadDays": "Cât timp poate descărca omul documentul semnat (zile)",
+    "downloadDaysInvalid": "Un număr între 1 și 365.",
+    "saved": "Setarea e salvată"
   }
 }

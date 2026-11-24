@@ -57,6 +57,7 @@ const loadCallRoomPage = () => import('@/modules/calls/CallRoomPage')
 const CallRoomPage = lazy(() => loadCallRoomPage().then((m) => ({ default: m.CallRoomPage })))
 const loadPublicCallPage = () => import('@/modules/calls/PublicCallPage')
 const PublicCallPage = lazy(() => loadPublicCallPage().then((m) => ({ default: m.PublicCallPage })))
+const PublicSignPage = lazy(() => import('@/modules/signing/PublicSignPage').then((m) => ({ default: m.PublicSignPage })))
 const loadCryptoPage = () => import('@/modules/crypto/CryptoPage')
 const CryptoPage = lazy(() => loadCryptoPage().then((m) => ({ default: m.CryptoPage })))
 const loadCoinDetailPage = () => import('@/modules/crypto/CoinDetailPage')
@@ -171,6 +172,7 @@ export function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/accept-invite" element={<AcceptInvitePage />} />
         <Route path="/apel/:publicId" element={<PublicCallPage />} />
+        <Route path="/semnare/:token" element={<PublicSignPage />} />
         <Route element={<RequireAuth />}>
           {/* Full screen, so outside the shell: no sidebar, no bottom nav. */}
           <Route path="/clients/tasks/session" element={<RequireFeature feature="clienti.view" page={t('common:nav.clients')}><CallSession /></RequireFeature>} />

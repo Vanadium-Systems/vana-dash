@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Plus, Save, Trash2 } from 'lucide-react'
+import { Copy, Download, Plus, Save, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { useMe } from '@/shared/hooks/use-me'
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/shared/components/ui/card'
 import { Checkbox } from '@/shared/components/ui/checkbox'
@@ -12,6 +13,7 @@ import { Select } from '@/shared/components/ui/select'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { api } from '@/shared/lib/api'
 import { toastError } from '@/shared/lib/errors'
+import { formatDate } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 
 type FieldType = 'text' | 'number' | 'date' | 'money' | 'list' | 'party'
@@ -414,8 +416,116 @@ function NoticeSettings() {
   )
 }
 
+interface SigningSettings {
+  hasCertificate: boolean
+  fingerprint: string | null
+  createdAt: string | null
+  downloadDays: number
+}
+
+const FINGERPRINT_SHOWN = 16
+
+function SigningCertificate() {
+  const queryClient = useQueryClient()
+  const confirm = useConfirm()
+  const settings = useQuery({ queryKey: ['contracts', 'signing'], queryFn: () => api.get<SigningSettings>('/api/contracts/signing') })
+  const [draft, setDraft] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const generate = useMutation({
+    mutationFn: () => api.post<SigningSettings>('/api/contracts/signing/certificate', {}),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['contracts'] })
+      toast.success(t('accounting:signingCertificate.generated'))
+    },
+    onError: (err) => toastError(err),
+  })
+  const saveDays = useMutation({
+    mutationFn: (downloadDays: number) => api.put<SigningSettings>('/api/contracts/signing', { downloadDays }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['contracts'] })
+      setDraft(null)
+      toast.success(t('accounting:signingCertificate.saved'))
+    },
+    onError: (err) => toastError(err),
+  })
+
+  if (settings.isPending) return <Skeleton className="h-24 w-full" />
+  if (!settings.data) return null
+  const { hasCertificate, fingerprint, createdAt, downloadDays } = settings.data
+  const days = draft ?? String(downloadDays)
+
+  const regenerate = async () => {
+    const ok = await confirm({
+      title: t('accounting:signingCertificate.regenerateTitle'),
+      consequence: t('accounting:signingCertificate.regenerateBody'),
+      confirmLabel: t('accounting:signingCertificate.regenerate'),
+    })
+    if (ok) generate.mutate()
+  }
+
+  return (
+    <section className="space-y-3">
+      <h3 className="text-sm font-medium">{t('accounting:signingCertificate.title')}</h3>
+      {hasCertificate ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+          <span className="text-muted-foreground">{t('accounting:signingCertificate.fingerprint')}</span>
+          <code className="font-mono text-xs">{fingerprint ? `${fingerprint.slice(0, FINGERPRINT_SHOWN)}…` : '—'}</code>
+          {fingerprint ? (
+            <Button
+              variant="outline"
+              size="icon"
+              title={t('common:actions.copy')}
+              aria-label={t('common:actions.copy')}
+              onClick={() =>
+                void navigator.clipboard?.writeText(fingerprint).then(
+                  () => toast.success(t('common:states.copied')),
+                  () => toast.error(t('messages:actions.copyFailed')),
+                )
+              }
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          ) : null}
+          {createdAt ? <span className="text-xs text-muted-foreground">{t('accounting:signingCertificate.createdAt', { date: formatDate(createdAt) })}</span> : null}
+          <Button variant="outline" size="sm" disabled={generate.isPending} onClick={() => void regenerate()}>
+            {t('accounting:signingCertificate.regenerate')}
+          </Button>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">{t('accounting:signingCertificate.intro')}</p>
+          <Button variant="outline" disabled={generate.isPending} onClick={() => generate.mutate()}>
+            {t('accounting:signingCertificate.generate')}
+          </Button>
+        </>
+      )}
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label={t('accounting:signingCertificate.downloadDays')} error={error}>
+          <Input className="w-24" inputMode="numeric" value={days} onChange={(e) => setDraft(e.target.value)} />
+        </Field>
+        <Button
+          disabled={draft === null || saveDays.isPending}
+          onClick={() => {
+            const next = Number(days)
+            if (!Number.isInteger(next) || next < 1 || next > 365) {
+              setError(t('accounting:signingCertificate.downloadDaysInvalid'))
+              return
+            }
+            setError(null)
+            saveDays.mutate(next)
+          }}
+        >
+          {t('common:actions.save')}
+        </Button>
+      </div>
+    </section>
+  )
+}
+
 /** The company's own templates (NDA, collaboration...), the number series and the notice alert. */
 export function CompanyTemplatesCard({ canEdit }: { canEdit: boolean }) {
+  const { can } = useMe()
   const [editing, setEditing] = useState<Draft | null>(null)
   const templates = useQuery({ queryKey: ['contract-templates'], queryFn: () => api.get<CompanyTemplate[]>('/api/contracts/templates') })
   const series = useQuery({ queryKey: ['contracts', 'series'], queryFn: () => api.get<Series[]>('/api/contracts/series') })
@@ -454,6 +564,7 @@ export function CompanyTemplatesCard({ canEdit }: { canEdit: boolean }) {
         )}
         {canEdit && !editing ? <SeriesEditor series={series.data ?? []} /> : null}
         {canEdit && !editing ? <NoticeSettings /> : null}
+        {can('facturi.semnare-contracte') && !editing ? <SigningCertificate /> : null}
       </CardContent>
     </Card>
   )

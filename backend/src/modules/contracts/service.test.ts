@@ -198,50 +198,7 @@ describe('markDocumentSigned', () => {
   })
 })
 
-describe('semnătură digitală — signatureRect / sign-package / upload PDF semnat (2026-09-03)', () => {
-  const rect = { page: 1, x: 0.6, y: 0.85, width: 0.25, height: 0.08 }
-
-  it('saveSignatureRect persistă dreptunghiul, returnat de getDocument', async () => {
-    const client = await makeCompleteClient()
-    const doc = await service.generateDocument(client.id, 'contract')
-
-    const row = await service.saveSignatureRect(doc.id, rect)
-    expect(row?.signatureRect).toEqual(rect)
-
-    const fetched = await service.getDocument(doc.id)
-    expect(fetched?.signatureRect).toEqual(rect)
-  })
-
-  it('saveSignatureRect returnează null pt. un document inexistent', async () => {
-    expect(await service.saveSignatureRect('00000000-0000-0000-0000-000000000000', rect)).toBeNull()
-  })
-
-  it('buildSignPackage aruncă dacă nu există încă un signatureRect salvat', async () => {
-    const client = await makeCompleteClient()
-    const doc = await service.generateDocument(client.id, 'contract')
-    await expect(service.buildSignPackage(doc.id)).rejects.toMatchObject({ code: 'CONTRACT_SIGNATURE_BOX_MISSING' })
-  })
-
-  it('buildSignPackage întoarce un .zip cu PDF-ul curent + un README cu comanda JSignPdf', async () => {
-    const { unzipSync } = await import('fflate')
-    const client = await makeCompleteClient()
-    const doc = await service.generateDocument(client.id, 'contract')
-    await service.saveSignatureRect(doc.id, rect)
-
-    const { buffer, fileName } = await service.buildSignPackage(doc.id)
-    expect(fileName).toMatch(/\.zip$/)
-    expect(readDocumentMock).toHaveBeenCalledWith(doc.pdfStoragePath)
-
-    const entries = unzipSync(new Uint8Array(buffer))
-    const pdfEntry = Object.keys(entries).find((name) => name.endsWith('.pdf'))
-    const readmeEntry = Object.keys(entries).find((name) => name.endsWith('.txt'))
-    expect(pdfEntry).toBeDefined()
-    expect(readmeEntry).toBeDefined()
-    const readme = Buffer.from(entries[readmeEntry!]!).toString('utf-8')
-    expect(readme).toContain('WINDOWS-MY')
-    expect(readme).toContain('-page 1')
-  })
-
+describe('digital signature: uploading the signed PDF', () => {
   it('uploadSignedDocument creează un document NOU (isSigned, signedAt, sourceDocumentId), nu suprascrie originalul', async () => {
     const client = await makeCompleteClient()
     const original = await service.generateDocument(client.id, 'contract')

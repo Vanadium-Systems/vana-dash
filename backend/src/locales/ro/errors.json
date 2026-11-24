@@ -270,7 +270,6 @@
     "clientNotFound": "Client inexistent",
     "addendumNotFound": "Act adițional inexistent",
     "missingData": "Date lipsă pentru generarea documentului: Număr contract, Data contract",
-    "pickSignatureBox": "Alege mai întâi dreptunghiul de semnătură pe pagină",
     "atLeastOneTerm": "Trimite cel puțin un termen",
     "templates": {
       "saas": "Contract de servicii SaaS (+ DPA)",
@@ -279,8 +278,6 @@
     },
     "unknownTokens": "Tokeni necunoscuți: {{unknown}}",
     "templateNotFound": "Șablon inexistent",
-    "signReadmeName": "CITEȘTE-MĂ.txt",
-    "signReadme": "Semnătură digitală — {{file}}\n=======================================\n\n1. Instalează Java (dacă nu-l ai deja) și descarcă JSignPdf: http://jsignpdf.sourceforge.net/\n2. Rulează din acest folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = citește certificatul din magazinul de certificate Windows (certSIGN,\n   token virtual) — la rulare, JSignPdf/Windows îți va cere PIN-ul tokenului.\n   -llx/-lly/-urx/-ury/-page = poziția dreptunghiului ales în dash (coordonate PDF, puncte).\n\n3. Rezultatul e \"semnat_{{file}}\" — încarcă-l înapoi în dash cu butonul\n   \"Am semnat, încarcă PDF-ul\" din tab-ul Semnează.\n\nDacă JSignPdf nu găsește certificatul certSIGN în -kst WINDOWS-MY, tokenul tău virtual nu-și\nexpune cheia privată în afara aplicației proprii a providerului — semnează manual în Adobe\nAcrobat ca până acum și încarcă rezultatul aici oricum, ca să rămână în istoricul documentului.\n",
     "saasTitle": "Contract SaaS"
   },
   "reconciliation": {
@@ -626,8 +623,6 @@
     "CONTRACT_DOCUMENT_NOT_FOUND": "Documentul nu există.",
     "CONTRACT_GENERATE_FAILED": "Documentul nu s-a putut genera. Încearcă din nou.",
     "CONTRACT_PREVIEW_FAILED": "Simularea nu s-a putut genera. Încearcă din nou.",
-    "CONTRACT_SIGNATURE_BOX_MISSING": "Alege mai întâi dreptunghiul de semnătură pe pagină.",
-    "CONTRACT_SIGN_PACKAGE_FAILED": "Pachetul de semnare nu s-a putut genera. Încearcă din nou.",
     "CONTRACT_TEMPLATE_TOKENS_UNKNOWN": "Șablonul conține tokeni necunoscuți: {{unknown}}.",
     "CONTRACT_UPLOAD_FAILED": "PDF-ul semnat nu s-a putut salva. Încearcă din nou.",
     "CRYPTO_NO_LIVE_PRICE": "Nu există preț live pentru {{symbol}} pe {{exchange}}.",
@@ -757,6 +752,28 @@
     "CONTRACT_TEMPLATE_SYSTEM": "Șabloanele SaaS nu se șterg.",
     "PROSPECT_NOT_FOUND": "Prospectul nu există.",
     "USER_NOT_FOUND": "Persoana nu există.",
-    "CONTRACT_TEMPLATE_FIELD_DUPLICATE": "Același câmp apare de două ori în șablon."
+    "CONTRACT_TEMPLATE_FIELD_DUPLICATE": "Același câmp apare de două ori în șablon.",
+    "PDF_SIGNING_UNAVAILABLE": "Semnarea PDF nu e instalată pe server.",
+    "PDF_SIGNATURE_RULE": "PDF-ul nu poate fi semnat: {{reason}}",
+    "CONTRACT_SIGNING_CERT_MISSING": "Generează întâi certificatul de semnare din Setări contracte.",
+    "CONTRACT_SIGN_LINK_NOT_ALLOWED": "Contractele de muncă nu se semnează prin link.",
+    "CONTRACT_SIGN_LINK_CLOSED": "Contractul e deja semnat sau încheiat.",
+    "CONTRACT_SIGN_NO_FIELD": "Documentul n-are niciun câmp de semnătură liber pentru „{{role}}”.",
+    "CONTRACT_SIGN_OWN_SIGNATURE_MISSING": "Ultima versiune nu are semnătura ta. Urc-o semnată sau trimite explicit nesemnat.",
+    "CONTRACT_SIGN_REQUEST_NOT_FOUND": "Cererea de semnare nu există.",
+    "CONTRACT_SIGN_REQUEST_CLOSED": "Cererea nu mai e activă.",
+    "CONTRACT_SIGN_LINK_NOT_FOUND": "Linkul nu există.",
+    "CONTRACT_SIGN_LINK_REVOKED": "Linkul a fost anulat. Cere unul nou.",
+    "CONTRACT_SIGN_LINK_LOCKED": "Linkul s-a blocat după prea multe coduri greșite.",
+    "CONTRACT_SIGN_LINK_DECLINED": "Ai refuzat deja semnarea.",
+    "CONTRACT_SIGN_LINK_EXPIRED": "Linkul a expirat. Cere unul nou.",
+    "CONTRACT_SIGN_ALREADY_SIGNED": "Documentul e deja semnat.",
+    "CONTRACT_SIGN_CODE_WRONG": "Codul nu e bun. Mai ai {{left}} încercări.",
+    "CONTRACT_SIGN_SESSION_REQUIRED": "Confirmă din nou codul primit pe email.",
+    "CONTRACT_SIGN_PAGE_NOT_FOUND": "Pagina nu există.",
+    "CONTRACT_SIGN_IMAGE_INVALID": "Semnătura nu s-a putut citi. Desenează-o din nou.",
+    "CONTRACT_SIGN_DOCUMENT_CHANGED": "Documentul s-a schimbat între timp. Cere un link nou.",
+    "CONTRACT_SIGN_NOT_AN_APPEND": "Fișierul nu e documentul nostru cu semnătura ta adăugată.",
+    "CONTRACT_SIGN_DOWNLOAD_EXPIRED": "Perioada de descărcare a trecut."
   }
 }

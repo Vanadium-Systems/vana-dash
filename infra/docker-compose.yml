@@ -26,7 +26,7 @@ services:
   backend:
     image: node:22-alpine
     working_dir: /app
-    command: sh -c "apk add --no-cache chromium nss freetype harfbuzz ca-certificates postgresql-client curl poppler-utils && corepack enable && pnpm install --frozen-lockfile && pnpm --filter @vana-dash/backend db:migrate && pnpm --filter @vana-dash/backend dev"
+    command: sh -c "apk add --no-cache chromium nss freetype harfbuzz ca-certificates postgresql-client curl poppler-utils python3 && (test -x /opt/pdfsign/bin/python || (python3 -m venv /opt/pdfsign && /opt/pdfsign/bin/pip install -q --no-cache-dir -r backend/signing/requirements.txt)) && corepack enable && pnpm install --frozen-lockfile && pnpm --filter @vana-dash/backend db:migrate && pnpm --filter @vana-dash/backend dev"
     environment:
       DATABASE_URL: postgres://vanadash:vanadash@postgres:5432/vanadash
     env_file:

@@ -66,6 +66,8 @@ function refreshSession(): Promise<boolean> {
 }
 
 function canRefresh(path: string): boolean {
+  // The public pages (signing, call guests) have no session to refresh: their 401 is an answer.
+  if (path.startsWith('/api/public/')) return false
   return !NO_REFRESH_PATHS.some((skipped) => path === skipped || path.startsWith(`${skipped}?`))
 }
 

@@ -4,6 +4,21 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-24: Signing contracts by link
+
+### Added
+- **Signing by link:** from a contract page, "Send to sign" emails a one-time link to the other party (`facturi.semnare-contracte`, "Send contracts to sign by link", off by default). The public page `/semnare/:token` asks for a 6-digit code sent by email, shows the document as page images and takes a drawn or typed signature. The server signs the prepared field incrementally with the company's own certificate (pyHanko, `backend/signing/pdfsign.py`), so a qualified signature already on the file stays valid. The signed PDF and a signing certificate (who, when, IP, document hash) are stored as new contract documents and stay downloadable for 30 days (setting in Contract settings).
+- **Qualified signature upload:** the signer can upload the PDF signed with their own qualified certificate instead; it is accepted only if it starts with the exact bytes of our revision and adds nothing beyond a valid signature and form filling.
+- **Signing certificate:** generated once in Contract settings (P-256, self-signed, 5 years); the private key is encrypted with the tenant key.
+- Every step of a request (sent, opened, code sent, code accepted or refused, signed, declined, revoked, downloaded) goes to an append-only log (`contract_sign_events`; the RLS policy allows no update or delete).
+
+### Changed
+- The backend image adds Python 3 with a pinned pyHanko venv (`backend/signing/requirements.txt`). JSignPdf and the routes `PATCH /api/contracts/documents/:id/signature-rect` and `GET /api/contracts/documents/:id/sign-package` are removed.
+- `POST /api/contracts/documents/:id/signed` answers `404` for a confidential contract the caller cannot see, before reading the upload.
+
+### Security
+- Public signing routes are rate limited per IP and per link; five wrong codes lock the request. A link is stored only as a hash and is revoked when the contract gets a new revision.
+
 ## 2026-11-24: Contracts register
 
 ### Added

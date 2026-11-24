@@ -92,5 +92,49 @@
     "icsFilename": "invitation.ics",
     "icsRequest": "Meeting with {{company}}, organized by {{organizer}}.",
     "icsCancel": "The meeting with {{company}} was canceled."
+  },
+  "contractSign": {
+    "linkSubject": "{{company}} sent you a document to sign: {{title}}",
+    "linkBody": "Hello {{name}},\n\n{{company}} sent you \"{{title}}\" to sign. Read and sign it here:\n\n{{link}}\n\nYou get a code at this address before you see the document. The link works for {{days}} days.\n",
+    "codeSubject": "Your signing code: {{code}}",
+    "codeBody": "The code for the document sent by {{company}} is {{code}}. It works for {{minutes}} minutes.\n\nIf you did not ask for it, ignore this email.\n",
+    "signedSubject": "Signed: {{title}}",
+    "signedBodySigner": "Hello {{name}},\n\nYou signed the document sent by {{company}}. The signed document and the signing certificate are attached. You can download them from the same link for {{days}} days.\n",
+    "signedBodyOwner": "{{name}} signed \"{{title}}\". The signed document and the signing certificate are attached and on the contract page.\n",
+    "owner": {
+      "lockedSubject": "Signing link locked: {{title}}",
+      "lockedBody": "The link sent to {{name}} for \"{{title}}\" locked after 5 wrong codes. If it was really them, send a new link from the contract page.\n",
+      "declinedSubject": "Declined: {{title}}",
+      "declinedBody": "{{name}} declined to sign \"{{title}}\". Reason: {{reason}}\n",
+      "signedSubject": "Signed: {{title}}",
+      "signedBody": "{{name}} signed \"{{title}}\" with their own certificate. The document is on the contract page.\n"
+    },
+    "certificate": {
+      "title": "Signing certificate",
+      "intro": "The document below was signed through VanaDash at the request of {{company}}. It is a simple electronic signature: the person confirmed a code sent by email, read the document and signed; the server applied the signature with the company certificate.",
+      "document": "Document",
+      "signer": "Signer",
+      "role": "Role",
+      "fields": "Signed fields",
+      "hashBefore": "SHA-256 before signing",
+      "hashAfter": "SHA-256 after signing",
+      "seal": "Company certificate fingerprint (SHA-256)",
+      "when": "When",
+      "what": "What",
+      "browser": "Browser",
+      "howToCheck": "To check: compute the SHA-256 of the PDF you received (e.g. sha256sum contract-semnat.pdf) and compare it with the \"after signing\" value. Adobe Reader shows the company signature as an unknown signer, since the certificate is the company's, not an authority's; the fingerprint above identifies it.",
+      "events": {
+        "sent": "Link sent",
+        "opened": "Link opened",
+        "otp_sent": "Code emailed",
+        "otp_ok": "Code confirmed",
+        "otp_fail": "Wrong code",
+        "signed": "Signed",
+        "declined": "Declined",
+        "revoked": "Link cancelled",
+        "downloaded": "Downloaded",
+        "locked": "Link locked"
+      }
+    }
   }
 }

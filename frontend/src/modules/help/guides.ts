@@ -943,6 +943,10 @@ const SOURCES: GuideSource[] = [
         en: 'Contracts are confidential: only the admin and the owner see them, and for anyone else the contract “does not exist”.',
       },
       {
+        ro: 'Semnare prin link (cu dreptul „Trimitere la semnat prin link”): semnezi întâi tu pe webSIGN și urci PDF-ul cu „Încarcă versiunea semnată”, apoi „Trimite la semnat” cu numele, emailul și rolul celuilalt. El primește linkul, cere un cod pe email, citește documentul și semnează pe telefon. PDF-ul semnat și certificatul de semnare apar în documente, iar starea cererii (trimis, deschis, semnat, refuzat) se vede pe pagină. Linkul îl poți anula oricând. Certificatul firmei se generează o singură dată, în Setări contracte.',
+        en: 'Signing by link (with the “Send contracts to sign by link” right): you sign first on webSIGN and upload the PDF with “Upload the signed version”, then “Send to sign” with the other person’s name, email and role. They get the link, ask for a code by email, read the document and sign on their phone. The signed PDF and the signing certificate show in the documents, and the request’s state (sent, opened, signed, declined) shows on the page. You can cancel the link at any time. The company certificate is generated once, in Contract settings.',
+      },
+      {
         ro: 'Contractul SaaS al unui client se generează în continuare din fișa lui, iar când aplici o ofertă din calculator pe un client cu contract semnat, aplicația propune și actul adițional.',
         en: 'A client’s SaaS contract is still generated from the client sheet, and when you apply an offer from the calculator to a client with a signed contract, the app also offers the addendum.',
       },

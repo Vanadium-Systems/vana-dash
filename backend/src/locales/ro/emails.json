@@ -92,5 +92,49 @@
     "icsFilename": "invitatie.ics",
     "icsRequest": "Întâlnire cu {{company}}, organizată de {{organizer}}.",
     "icsCancel": "Întâlnirea cu {{company}} a fost anulată."
+  },
+  "contractSign": {
+    "linkSubject": "{{company}} îți trimite la semnat: {{title}}",
+    "linkBody": "Bună, {{name}},\n\n{{company}} îți trimite la semnat documentul „{{title}}”. Îl citești și îl semnezi aici:\n\n{{link}}\n\nPrimești un cod pe emailul ăsta înainte să vezi documentul. Linkul e valabil {{days}} de zile.\n",
+    "codeSubject": "Codul tău pentru semnare: {{code}}",
+    "codeBody": "Codul pentru documentul trimis de {{company}} este {{code}}. E valabil {{minutes}} minute.\n\nDacă n-ai cerut tu codul, ignoră emailul.\n",
+    "signedSubject": "Semnat: {{title}}",
+    "signedBodySigner": "Bună, {{name}},\n\nAi semnat documentul trimis de {{company}}. Găsești atașate documentul semnat și certificatul de semnare. Le mai poți descărca de pe același link {{days}} de zile.\n",
+    "signedBodyOwner": "{{name}} a semnat „{{title}}”. Documentul semnat și certificatul de semnare sunt atașate și pe pagina contractului.\n",
+    "owner": {
+      "lockedSubject": "Link de semnare blocat: {{title}}",
+      "lockedBody": "Linkul trimis lui {{name}} pentru „{{title}}” s-a blocat după 5 coduri greșite. Dacă era chiar persoana, trimite-i un link nou din pagina contractului.\n",
+      "declinedSubject": "Refuzat: {{title}}",
+      "declinedBody": "{{name}} a refuzat să semneze „{{title}}”. Motivul: {{reason}}\n",
+      "signedSubject": "Semnat: {{title}}",
+      "signedBody": "{{name}} a semnat „{{title}}” cu certificatul propriu. Documentul e pe pagina contractului.\n"
+    },
+    "certificate": {
+      "title": "Certificat de semnare",
+      "intro": "Documentul de mai jos a fost semnat prin VanaDash, la cererea {{company}}. Semnătura e electronică simplă: persoana a confirmat un cod primit pe email, a citit documentul și a semnat; serverul a aplicat semnătura cu certificatul firmei.",
+      "document": "Document",
+      "signer": "Semnatar",
+      "role": "Rol",
+      "fields": "Câmpuri semnate",
+      "hashBefore": "SHA-256 înainte de semnare",
+      "hashAfter": "SHA-256 după semnare",
+      "seal": "Amprenta certificatului firmei (SHA-256)",
+      "when": "Când",
+      "what": "Ce",
+      "browser": "Browser",
+      "howToCheck": "Cum verifici: calculezi SHA-256 pentru fișierul PDF primit (de ex. sha256sum contract-semnat.pdf) și îl compari cu valoarea „după semnare”. Adobe Reader arată semnătura firmei ca semnatar necunoscut, pentru că certificatul e al firmei, nu al unei autorități; amprenta de mai sus îl identifică.",
+      "events": {
+        "sent": "Link trimis",
+        "opened": "Link deschis",
+        "otp_sent": "Cod trimis pe email",
+        "otp_ok": "Cod confirmat",
+        "otp_fail": "Cod greșit",
+        "signed": "Semnat",
+        "declined": "Refuzat",
+        "revoked": "Link anulat",
+        "downloaded": "Descărcat",
+        "locked": "Link blocat"
+      }
+    }
   }
 }

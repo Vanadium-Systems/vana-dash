@@ -269,7 +269,6 @@
     "clientNotFound": "The client does not exist",
     "addendumNotFound": "The addendum does not exist",
     "missingData": "Details missing for generating the document: contract number, contract date",
-    "pickSignatureBox": "First pick the signature rectangle on the page",
     "atLeastOneTerm": "Send at least one term",
     "templates": {
       "saas": "SaaS services contract (+ DPA)",
@@ -278,8 +277,6 @@
     },
     "unknownTokens": "Unknown tokens: {{unknown}}",
     "templateNotFound": "The template does not exist",
-    "signReadmeName": "README.txt",
-    "signReadme": "Digital signature: {{file}}\n=======================================\n\n1. Install Java (if you do not have it yet) and download JSignPdf: http://jsignpdf.sourceforge.net/\n2. Run from this folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = reads the certificate from the Windows certificate store (certSIGN,\n   virtual token); when it runs, JSignPdf/Windows asks for the token PIN.\n   -llx/-lly/-urx/-ury/-page = the position of the rectangle picked in the app (PDF coordinates, points).\n\n3. The result is \"semnat_{{file}}\". Upload it back with the button\n   \"I signed it, upload the PDF\" in the Sign tab.\n\nIf JSignPdf does not find the certSIGN certificate in -kst WINDOWS-MY, your virtual token does not\nexpose its private key outside the provider's own app. Sign by hand in Adobe Acrobat as before\nand upload the result here anyway, so it stays in the document's history.\n",
     "saasTitle": "SaaS contract"
   },
   "reconciliation": {
@@ -624,8 +621,6 @@
     "CONTRACT_DOCUMENT_NOT_FOUND": "The document doesn't exist.",
     "CONTRACT_GENERATE_FAILED": "The document couldn't be generated. Try again.",
     "CONTRACT_PREVIEW_FAILED": "The preview couldn't be generated. Try again.",
-    "CONTRACT_SIGNATURE_BOX_MISSING": "Pick the signature box on the page first.",
-    "CONTRACT_SIGN_PACKAGE_FAILED": "The signing package couldn't be generated. Try again.",
     "CONTRACT_TEMPLATE_TOKENS_UNKNOWN": "The template has unknown tokens: {{unknown}}.",
     "CONTRACT_UPLOAD_FAILED": "The signed PDF couldn't be saved. Try again.",
     "CRYPTO_NO_LIVE_PRICE": "There is no live price for {{symbol}} on {{exchange}}.",
@@ -755,6 +750,28 @@
     "CONTRACT_TEMPLATE_SYSTEM": "The SaaS templates cannot be deleted.",
     "PROSPECT_NOT_FOUND": "The prospect does not exist.",
     "USER_NOT_FOUND": "The person does not exist.",
-    "CONTRACT_TEMPLATE_FIELD_DUPLICATE": "The same field appears twice in the template."
+    "CONTRACT_TEMPLATE_FIELD_DUPLICATE": "The same field appears twice in the template.",
+    "PDF_SIGNING_UNAVAILABLE": "PDF signing is not installed on the server.",
+    "PDF_SIGNATURE_RULE": "The PDF cannot be signed: {{reason}}",
+    "CONTRACT_SIGNING_CERT_MISSING": "Generate the signing certificate in Contract settings first.",
+    "CONTRACT_SIGN_LINK_NOT_ALLOWED": "Employment contracts are not signed through a link.",
+    "CONTRACT_SIGN_LINK_CLOSED": "The contract is already signed or closed.",
+    "CONTRACT_SIGN_NO_FIELD": "The document has no empty signature field for \"{{role}}\".",
+    "CONTRACT_SIGN_OWN_SIGNATURE_MISSING": "The latest version has no signature of yours. Upload it signed or send it explicitly unsigned.",
+    "CONTRACT_SIGN_REQUEST_NOT_FOUND": "The signing request does not exist.",
+    "CONTRACT_SIGN_REQUEST_CLOSED": "The request is no longer active.",
+    "CONTRACT_SIGN_LINK_NOT_FOUND": "The link does not exist.",
+    "CONTRACT_SIGN_LINK_REVOKED": "The link was cancelled. Ask for a new one.",
+    "CONTRACT_SIGN_LINK_LOCKED": "The link locked after too many wrong codes.",
+    "CONTRACT_SIGN_LINK_DECLINED": "You already declined to sign.",
+    "CONTRACT_SIGN_LINK_EXPIRED": "The link expired. Ask for a new one.",
+    "CONTRACT_SIGN_ALREADY_SIGNED": "The document is already signed.",
+    "CONTRACT_SIGN_CODE_WRONG": "Wrong code. {{left}} tries left.",
+    "CONTRACT_SIGN_SESSION_REQUIRED": "Confirm the emailed code again.",
+    "CONTRACT_SIGN_PAGE_NOT_FOUND": "The page does not exist.",
+    "CONTRACT_SIGN_IMAGE_INVALID": "The signature could not be read. Draw it again.",
+    "CONTRACT_SIGN_DOCUMENT_CHANGED": "The document changed meanwhile. Ask for a new link.",
+    "CONTRACT_SIGN_NOT_AN_APPEND": "The file is not our document with your signature added.",
+    "CONTRACT_SIGN_DOWNLOAD_EXPIRED": "The download period is over."
   }
 }

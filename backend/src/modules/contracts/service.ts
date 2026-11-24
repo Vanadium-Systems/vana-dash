@@ -1,24 +1,19 @@
 import { and, desc, eq, isNull } from 'drizzle-orm'
-import { zipSync } from 'fflate'
 import { db } from '../../shared/db/client.js'
 import { billingClients, contractAddenda, contractDocuments } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
 import { assertContractDataComplete, formatMonthlyPrice, REQUIRED_FIELD_LABELS, type ContractTemplateKey } from '../../shared/lib/contract-templates.js'
 import { htmlToPdf, isPdfAvailable } from '../../shared/lib/pdf.js'
-import { readDocument, saveDocument } from '../../shared/lib/storage.js'
-import { ContractDetailsSchema, type ContractDetails, type CreateAddendumSchema, type SignatureRectSchema } from './schema.js'
+import { saveDocument } from '../../shared/lib/storage.js'
+import { ContractDetailsSchema, type ContractDetails, type CreateAddendumSchema } from './schema.js'
 import { renderAddendum, renderBlank, renderDocument } from './templates-service.js'
 import { ensureSaasContract, markSaasContractSigned } from './registry-service.js'
+import { revokeActive } from './signing-service.js'
+import { inspectPdf, isSigningAvailable } from '../../shared/lib/pdf-signing.js'
 import { currentActor } from '../../shared/lib/request-context.js'
 import { getCompany } from '../../shared/lib/company.js'
 import type { z } from 'zod'
 import { httpError } from '../../shared/lib/http-error.js'
-import { tr } from '../../shared/lib/i18n.js'
-
-// Format A4 (puncte PDF, 72dpi) — identic paginii generate de htmlToPdf (shared/lib/pdf.ts,
-// format: 'A4') — bază pt. conversia dreptunghiului normalizat (0..1) în coordonate JSignPdf.
-const PDF_PAGE_WIDTH_PT = 595
-const PDF_PAGE_HEIGHT_PT = 842
 
 // modules/contracts/ NU importă servicii din accounting/ sau invoicing/ (izolare, CLAUDE.md #5)
 // — doar schema DB (billing_clients), la fel cum reconciliation/ sau prospects/ citesc
@@ -204,57 +199,14 @@ export async function generateAddendumDocument(addendumId: string) {
   })
 }
 
-// ── Semnătură digitală — tab „Semnează" (2026-09-03) ──────────────────────────────────────────
-// Constrângere reală: tokenul virtual certSIGN al lui Stefan e legat de Windows, semnarea NU
-// poate rula pe backend-ul din Docker de pe VPS. Dash-ul doar (a) ține minte dreptunghiul ales,
-// (b) generează un pachet descărcabil cu PDF-ul + comanda JSignPdf gata completată, (c) primește
-// înapoi PDF-ul semnat ca document NOU (nu suprascrie originalul — pattern identic regenerării).
+// ── Digital signature: the PDF signed outside the app comes back as a new version ──
+// Semnarea cu tokenul certSIGN rulează pe calculatorul lui, nu pe backend; dash-ul primește PDF-ul semnat
+// ca document NOU (nu suprascrie originalul, pattern identic regenerării).
 
 async function getDocumentOrThrow(documentId: string) {
   const doc = await getDocument(documentId)
   if (!doc) throw httpError(400, 'CONTRACT_DOCUMENT_NOT_FOUND')
   return doc
-}
-
-export async function saveSignatureRect(documentId: string, rect: z.infer<typeof SignatureRectSchema>) {
-  const [row] = await db
-    .update(contractDocuments)
-    .set({ signatureRect: rect, updatedAt: new Date() })
-    .where(and(eq(contractDocuments.id, documentId), isNull(contractDocuments.deletedAt)))
-    .returning()
-  return row ?? null
-}
-
-/**
- * Pachet descărcabil (.zip): PDF-ul curent + un README cu comanda JSignPdf gata completată
- * (keystore Windows-MY/MSCAPI — certificatul certSIGN al lui Stefan trebuie să apară acolo ca
- * cert de utilizator Windows) pt. coordonatele salvate cu saveSignatureRect. Stefan rulează
- * comanda local pe Windows, apoi urcă rezultatul cu uploadSignedDocument.
- */
-export async function buildSignPackage(documentId: string): Promise<{ buffer: Buffer; fileName: string }> {
-  const doc = await getDocumentOrThrow(documentId)
-  if (!doc.signatureRect) throw httpError(400, 'CONTRACT_SIGNATURE_BOX_MISSING')
-
-  const pdfBuffer = await readDocument(doc.pdfStoragePath)
-  const rect = doc.signatureRect as z.infer<typeof SignatureRectSchema>
-  // JSignPdf: originea e colț stânga-jos, Y crește în sus — inversăm Y-ul normalizat (UI
-  // desenează de sus în jos, ca un PDF viewer obișnuit).
-  const llx = Math.round(rect.x * PDF_PAGE_WIDTH_PT)
-  const width = Math.round(rect.width * PDF_PAGE_WIDTH_PT)
-  const height = Math.round(rect.height * PDF_PAGE_HEIGHT_PT)
-  const ury = Math.round(PDF_PAGE_HEIGHT_PT - rect.y * PDF_PAGE_HEIGHT_PT)
-  const urx = llx + width
-  const lly = ury - height
-
-  const pdfFileName = `${doc.docType}_${doc.id.slice(0, 8)}.pdf`
-  const command = `jsignpdf.bat -klavecert -kst WINDOWS-MY -llx ${llx} -lly ${lly} -urx ${urx} -ury ${ury} -page ${rect.page} -d . -op semnat_ "${pdfFileName}"`
-  const readme = tr('errors.contracts.signReadme', { file: pdfFileName, command })
-
-  const zipEntries: Record<string, Uint8Array> = {
-    [pdfFileName]: new Uint8Array(pdfBuffer),
-    [tr('errors.contracts.signReadmeName')]: new TextEncoder().encode(readme),
-  }
-  return { buffer: Buffer.from(zipSync(zipEntries)), fileName: `semnare_${doc.id.slice(0, 8)}.zip` }
 }
 
 /**
@@ -265,6 +217,8 @@ export async function uploadSignedDocument(documentId: string, pdfBuffer: Buffer
   const source = await getDocumentOrThrow(documentId)
   const stamp = Date.now()
   const folder = source.billingClientId ?? `registry/${source.contractId}`
+  // What the file says about its own signatures, shown on the contract page; a file pyHanko cannot read is still kept.
+  const signatures = isSigningAvailable() ? await inspectPdf(pdfBuffer).then((r) => r.signatures, () => null) : null
   const pdfStoragePath = await saveDocument(`contracts/${folder}/semnat_${source.docType}_${stamp}.pdf`, pdfBuffer)
 
   const row = await db.transaction(async (tx) => {
@@ -281,9 +235,14 @@ export async function uploadSignedDocument(documentId: string, pdfBuffer: Buffer
         isSigned: true,
         signedAt,
         sourceDocumentId: source.id,
+        signatures,
       })
       .returning()
-    if (source.docType === 'contract' || source.docType === 'document') await markSaasContractSigned(tx, contractId, signedAt)
+    // A new revision makes the links sent for the old one useless.
+    await revokeActive(tx, contractId)
+    // A SaaS contract is signed by both sides on paper or in Adobe before it comes back. A registry document
+    // is often signed by us first and then sent by link, so its status is changed by hand or by the link.
+    if (source.docType === 'contract') await markSaasContractSigned(tx, contractId, signedAt)
     return row!
   })
   await recordAudit({

@@ -90,6 +90,7 @@ These are all of them; a test snapshot (`feature-guard.test.ts`) keeps the list 
 | `GET`/`POST /api/email/unsubscribe/:token` | HMAC token |
 | `GET /api/email-images/:filename` | unguessable generated name |
 | `GET /api/email/settings/logo` | serves only the current logo |
+| `/api/public/sign/:token…` | the link token (stored hashed) plus a code sent by email; rate limits per IP and per link (see Contracts) |
 | `GET /api/public/calls/:publicId` | rate limit, 30 per minute per IP; an unguessable id; answers only the time window and, while open, the room |
 | `POST /api/webhooks/resend-inbound` | Svix signature |
 | `POST /api/webhooks/sentry` | HMAC signature |
@@ -456,6 +457,30 @@ sample text if the row is missing.
 | POST | `/api/contracts/templates` | Creates a company template (fields, signatories, series) |
 | PUT/DELETE | `/api/contracts/templates/custom/:id` | Edits or deletes a company template |
 | GET | `/api/contracts/templates/custom/:id/preview` | The template as a PDF. Rendered with JavaScript off and no network access |
+
+**Signing by link.** Feature `facturi.semnare-contracte`. The server signs with pyHanko
+(`backend/signing/pdfsign.py`, run with `execFile`), always incrementally, so earlier signatures stay valid.
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/contracts/registry/:id/sign-requests` | The contract's requests with their state; `404` for a contract the caller cannot see |
+| POST | `/api/contracts/registry/:id/sign-requests` | `{ signerName, signerEmail, signerRole, unsigned? }`. Needs a valid company signature on the latest document, or `unsigned: true`. Emails the link and returns it once (`201`). `CONTRACT_SIGNING_CERT_MISSING` before the certificate exists, `CONTRACT_SIGN_LINK_CLOSED` for a contract already marked signed |
+| DELETE | `/api/contracts/sign-requests/:id` | Revokes a request; a new revision of the document revokes open requests by itself |
+| GET/PUT | `/api/contracts/signing` | Signing settings: whether the certificate exists, and `downloadDays` (1–365, 30 by default) |
+| POST | `/api/contracts/signing/certificate` | Generates the company's signing certificate (P-256, self-signed, 5 years) |
+
+Public, no session (`/semnare/:token` in the frontend):
+
+| Method | Route | Limit | Description |
+|---|---|---|---|
+| GET | `/api/public/sign/:token` | 30/min/IP | Company, title, signer and state; no PDF |
+| POST | `/api/public/sign/:token/otp` | 3 per 10 min per link | Emails a 6-digit code, valid 10 minutes |
+| POST | `/api/public/sign/:token/verify` | 10/min/IP | `{ code }`. Five wrong codes lock the request; a right one sets a 15-minute cookie bound to the request and returns `{ pageCount, documentSha256 }` |
+| GET | `/api/public/sign/:token/pages/:n` | 120/min/IP, cookie | Page `n` as PNG (`pdftoppm`) |
+| POST | `/api/public/sign/:token/sign` | 10/min/IP, cookie | `{ signaturePng, consent: true }`. Signs from the latest revision under a row lock; one of two simultaneous calls wins |
+| POST | `/api/public/sign/:token/decline` | 10/min/IP, cookie | `{ reason }` |
+| POST | `/api/public/sign/:token/upload-qes` | 5/min/IP, cookie | Multipart PDF signed with a qualified certificate; must start with our revision's bytes and add only a signature and form filling |
+| GET | `/api/public/sign/:token/download` | 10/min/IP | Before signing (cookie): the revision to sign. After: the signed PDF, until `download_until` |
 
 Each `POST .../documents` creates a new row in `contract_documents`: the full history is kept
 and no file on disk is overwritten. The UI warns when the latest document of that type is

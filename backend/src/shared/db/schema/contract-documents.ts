@@ -11,6 +11,16 @@ import { tenantColumns } from './tenant-column.js'
 // ulterior (status semnat/nesemnat per DOCUMENT, nu per client ca-n sistemul YAML vechi).
 // Fără protecție "nu regenera peste semnat": fiecare generare creează un rând nou (istoric
 // complet, niciun fișier suprascris pe disc) — FE avertizează, nu blochează.
+export interface PdfSignatureInfo {
+  field: string
+  signerName: string | null
+  signingTime: string | null
+  intact: boolean
+  valid: boolean
+  modificationLevel: string | null
+  coversWholeDocument: boolean
+}
+
 export const contractDocuments = pgTable(
   'contract_documents',
   {
@@ -22,7 +32,7 @@ export const contractDocuments = pgTable(
     contractId: uuid('contract_id')
       .notNull()
       .references(() => contracts.id),
-    docType: text('doc_type', { enum: ['contract', 'anexa', 'act_aditional', 'document'] }).notNull(),
+    docType: text('doc_type', { enum: ['contract', 'anexa', 'act_aditional', 'document', 'sign_certificate'] }).notNull(),
     // Doar pt. doc_type='act_aditional' — leagă documentul de actul adițional care l-a generat.
     addendumId: uuid('addendum_id').references(() => contractAddenda.id),
     pdfStoragePath: text('pdf_storage_path').notNull(),
@@ -34,11 +44,13 @@ export const contractDocuments = pgTable(
     signatureRect: jsonb('signature_rect').$type<{ page: number; x: number; y: number; width: number; height: number }>(),
     // Un document semnat e un RÂND NOU care referă originalul nesemnat (nu overwrite — același
     // pattern ca „regenerarea creează un document nou", vezi ContractsTab.tsx).
+    // What the PDF itself says about its signatures (pdfsign.py inspect), written when the file arrives.
+    signatures: jsonb('signatures').$type<PdfSignatureInfo[]>(),
     sourceDocumentId: uuid('source_document_id').references((): AnyPgColumn => contractDocuments.id, { onDelete: 'set null' }),
   },
   (t) => [
     index('idx_contract_documents_client_type').on(t.billingClientId, t.docType, t.addendumId),
     index('idx_contract_documents_contract').on(t.contractId),
-    check('contract_documents_saas_client', sql`${t.docType} = 'document' OR ${t.billingClientId} IS NOT NULL`),
+    check('contract_documents_saas_client', sql`${t.docType} IN ('document', 'sign_certificate') OR ${t.billingClientId} IS NOT NULL`),
   ],
 )

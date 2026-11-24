@@ -344,6 +344,64 @@
       "submit": "Create contract",
       "fieldRequired": "Fill in this field.",
       "notANumber": "Enter a numeric value."
+    },
+    "signing": {
+      "title": "Sign by link",
+      "hint": "You send a link to the other party. They sign with the mouse, and the signed document is saved here and available for them to download too.",
+      "send": "Send to sign",
+      "resend": "Send again",
+      "cancel": "Cancel",
+      "cancelTitle": "Cancel the request for {{name}}?",
+      "cancelBody": "The link that was sent will stop working.",
+      "cancelConfirm": "Cancel request",
+      "cancelled": "Request cancelled",
+      "empty": "No signing requests yet.",
+      "loadFailed": "Couldn't load the signing requests",
+      "colSigner": "Signer",
+      "colDate": "Date",
+      "expiresValue": "Expires {{date}}",
+      "signedAtValue": "Signed {{date}}",
+      "declineReason": "Reason: {{reason}}",
+      "downloadSigned": "Download the signed document",
+      "downloadCertificate": "Download the signing certificate",
+      "uploadSigned": "Upload the signed version",
+      "certificateDoc": "Signing certificate",
+      "status": {
+        "sent": "Sent",
+        "opened": "Opened",
+        "signed": "Signed",
+        "declined": "Declined",
+        "revoked": "Cancelled",
+        "expired": "Expired",
+        "locked": "Locked (too many wrong codes)"
+      },
+      "signatures": {
+        "signedByAt": "Signed by {{name}}, {{date}}",
+        "signedBy": "Signed by {{name}}",
+        "signedAt": "Signed, {{date}}",
+        "signedPlain": "Signed",
+        "intact": "intact",
+        "modified": "modified"
+      },
+      "dialog": {
+        "title": "Send to sign",
+        "name": "Signer's name",
+        "email": "Email",
+        "role": "Role",
+        "nameRequired": "Enter the signer's name.",
+        "emailInvalid": "Enter a valid email address.",
+        "roleRequired": "Enter the signer's role.",
+        "submit": "Send",
+        "unsigned": "Send without my signature",
+        "certMissing": "Generate the signing certificate in Contract settings, then try again."
+      },
+      "created": {
+        "title": "The link is ready",
+        "body": "The link was also sent by email to {{email}}. It is shown only once: copy it now if you want to send it another way.",
+        "linkLabel": "Signing link",
+        "copy": "Copy link",
+        "expires": "The link expires {{date}}."
+      }
     }
   },
   "declarations": {
@@ -530,17 +588,10 @@
     "yearlyResetOff": "Yearly reset of the numbering: no. Do not change the format in the middle of the fiscal year without a reason."
   },
   "sign": {
-    "rectSaved": "Rectangle saved",
+    "title": "Upload the signed PDF",
+    "hint": "Sign the document in Adobe with your certificate, then upload the signed PDF here. It appears in the list as a new version and the original stays in the history.",
     "uploaded": "Signed PDF uploaded. It shows up in the list as a new document",
-    "title": "Sign the document",
-    "hint": "Open the PDF in a new tab for reference, then drag a rectangle below exactly where you want the signature (the box has the proportions of an A4 page).",
-    "openPdf": "Open the PDF",
-    "page": "Page",
-    "saveRect": "Save the rectangle",
-    "downloading": "Downloading…",
-    "downloadPackage": "Download the package to sign",
-    "uploadSigned": "I signed it, upload the PDF",
-    "fallbackHint": "If the certSIGN token does not work with JSignPdf, sign by hand in Adobe as before and upload the result here anyway."
+    "uploadSigned": "I signed it, upload the PDF"
   },
   "status": {
     "draft": "Draft",
@@ -1055,5 +1106,19 @@
     "leadDaysHint": "You get the alert; the calendar event stays on the deadline day.",
     "leadDaysInvalid": "A number from 1 to 90.",
     "signatureLineText": "Signature, date: __________"
+  },
+  "signingCertificate": {
+    "title": "Signing certificate",
+    "intro": "Dash signs on behalf of the company with it when someone signs by link. It is self-signed: Adobe shows an unknown signer; the signing certificate in each contract explains how to verify it.",
+    "generate": "Generate certificate",
+    "generated": "Certificate generated",
+    "fingerprint": "Fingerprint",
+    "createdAt": "Generated {{date}}",
+    "regenerate": "Regenerate",
+    "regenerateTitle": "Regenerate the signing certificate?",
+    "regenerateBody": "Old signatures stay valid. New ones use the new certificate.",
+    "downloadDays": "How long the signer can download the signed document (days)",
+    "downloadDaysInvalid": "A number between 1 and 365.",
+    "saved": "Setting saved"
   }
 }

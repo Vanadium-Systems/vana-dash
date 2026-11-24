@@ -47,12 +47,3 @@ export const ClientIdParamsSchema = z.object({ clientId: z.string().uuid() })
 export const DocumentIdParamsSchema = z.object({ id: z.string().uuid() })
 export const AddendumIdParamsSchema = z.object({ id: z.string().uuid() })
 
-// Coordonate normalizate 0..1 față de pagină (independent de zoom-ul din UI la desenare) — tab
-// „Semnează", 2026-09-03.
-export const SignatureRectSchema = z.object({
-  page: z.number().int().min(1),
-  x: z.number().min(0).max(1),
-  y: z.number().min(0).max(1),
-  width: z.number().min(0).max(1),
-  height: z.number().min(0).max(1),
-})

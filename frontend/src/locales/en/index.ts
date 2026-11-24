@@ -24,6 +24,7 @@ import pricing from './pricing.json'
 import reconciliation from './reconciliation.json'
 import reports from './reports.json'
 import settings from './settings.json'
+import signing from './signing.json'
 import support from './support.json'
 import team from './team.json'
 import tenants from './tenants.json'
@@ -31,4 +32,4 @@ import tenders from './tenders.json'
 import updates from './updates.json'
 import wishlist from './wishlist.json'
 
-export default { access, accounting, alerts, archive, assets, assistant, auth, calendar, calls, clients, common, crypto, email, financials, help, meetings, messages, monitoring, notes, overview, plan, platforms, pricing, reconciliation, reports, settings, support, team, tenants, tenders, updates, wishlist }
+export default { access, accounting, alerts, archive, assets, assistant, auth, calendar, calls, clients, common, crypto, email, financials, help, meetings, messages, monitoring, notes, overview, plan, platforms, pricing, reconciliation, reports, settings, signing, support, team, tenants, tenders, updates, wishlist }

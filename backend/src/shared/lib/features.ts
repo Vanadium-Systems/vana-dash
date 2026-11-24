@@ -110,6 +110,12 @@ export const FEATURES: FeatureDef[] = [
     routes: [...write('/api/contracts/templates'), ...write('/api/contracts/series'), ...write('/api/contracts/settings')],
   },
   {
+    // Sending a contract to be signed by link, and the company's signing certificate.
+    key: 'facturi.semnare-contracte',
+    page: 'facturi',
+    routes: [...all('/api/contracts/registry/:id/sign-requests'), ...all('/api/contracts/sign-requests'), ...all('/api/contracts/signing')],
+  },
+  {
     key: 'facturi.clienti',
     page: 'facturi',
     routes: whole('/api/invoicing/clients', '/api/invoicing/anaf-lookup'),
@@ -724,6 +730,8 @@ const KNOWN_PREFIXES: Array<{
   { prefix: '/api/email-images', kind: 'public' },
   // The page a call guest opens: no account, rate limited, answers only the time window.
   { prefix: '/api/public/calls', kind: 'public' },
+  // The signing page: the link token and the emailed code stand in for an account (contracts/signing-service.ts).
+  { prefix: '/api/public/sign', kind: 'public' },
   // LiveKit token for a call: either a conversation member (mesaje.view) or a calls manager
   // (apeluri.manage), checked inside the service.
   { prefix: '/api/calls/:id/token', kind: 'self', methods: 'write' },
