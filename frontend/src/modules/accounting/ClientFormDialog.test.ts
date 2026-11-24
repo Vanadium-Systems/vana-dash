@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { BillingClient } from '@/shared/lib/types'
+import type { NumbersList } from './contracts-api'
 import { contractNumberConflict, formatContractDate, parseContractDate, suggestNextContractNumber } from './ClientFormDialog'
 
 describe('parseContractDate', () => {
@@ -33,62 +33,46 @@ describe('formatContractDate', () => {
 })
 
 describe('suggestNextContractNumber', () => {
-  function client(nrContract: string | undefined): BillingClient {
-    return { contractDetails: nrContract ? { nrContract } : null } as BillingClient
-  }
-
-  it('suggests 001 when there are no clients with a contract number yet', () => {
+  it('suggests 001 while the list has not arrived or the series is empty', () => {
     expect(suggestNextContractNumber(undefined)).toBe('001')
-    expect(suggestNextContractNumber([])).toBe('001')
+    expect(suggestNextContractNumber({ series: null, next: 1, items: [] })).toBe('001')
   })
 
-  it('suggests max + 1, padded to 3 digits', () => {
-    expect(suggestNextContractNumber([client('001'), client('002')])).toBe('003')
-  })
-
-  it('ignores clients without a contract number and non-numeric junk', () => {
-    expect(suggestNextContractNumber([client('001'), client(undefined), client('not-a-number')])).toBe('002')
-  })
-
-  it('does not assume list order — picks the true max', () => {
-    expect(suggestNextContractNumber([client('003'), client('001'), client('002')])).toBe('004')
-  })
-
-  const reserved = (...numbers: string[]) => numbers.map((number) => ({ number, note: `Contract ${number}`, date: '2026-09-28' }))
-
-  it('skips a reserved number: 001-002 used, 003 reserved → 004', () => {
-    expect(suggestNextContractNumber([client('001'), client('002')], reserved('003'))).toBe('004')
-  })
-
-  it('skips consecutive reserved numbers and ignores the ones below the max', () => {
-    expect(suggestNextContractNumber([client('004')], reserved('002', '005', '006'))).toBe('007')
+  it('takes the label the server proposes, which already skips reserved numbers', () => {
+    expect(suggestNextContractNumber({ series: null, next: 4, nextLabel: '004', items: [] })).toBe('004')
   })
 })
 
 describe('contractNumberConflict', () => {
-  const clients = [
-    { id: 'a', name: 'Acme Recycling', contractDetails: { nrContract: '001' } },
-    { id: 'b', name: 'Borealis Metal', contractDetails: { nrContract: '002' } },
-  ] as BillingClient[]
-  const reserved = [{ number: '003', note: 'Contract de colaborare', date: '2026-09-28' }]
+  const numbers: NumbersList = {
+    series: null,
+    next: 4,
+    nextLabel: '004',
+    items: [
+      { number: 3, label: '003', kind: 'reserved', reservationId: 'r1', note: 'Contract de colaborare' },
+      { number: 2, label: '002', kind: 'used', contractId: 'c2', counterpartyName: 'Borealis Metal' },
+      { number: 1, label: '001', kind: 'used', contractId: 'c1', counterpartyName: 'Acme Recycling' },
+    ],
+  }
 
   it('names what a reserved number is for, however it is typed', () => {
-    expect(contractNumberConflict('003', clients, reserved, null)).toBe('003 e rezervat: Contract de colaborare')
-    expect(contractNumberConflict(' 3', clients, reserved, null)).toBe('003 e rezervat: Contract de colaborare')
+    expect(contractNumberConflict('003', numbers, null)).toBe('003 e rezervat: Contract de colaborare')
+    expect(contractNumberConflict(' 3', numbers, null)).toBe('003 e rezervat: Contract de colaborare')
   })
 
-  it('names the client that already has the number', () => {
-    expect(contractNumberConflict('002', clients, reserved, null)).toBe('002 e deja folosit la Borealis Metal')
+  it('names the party that already has the number', () => {
+    expect(contractNumberConflict('002', numbers, 'Acme Recycling')).toBe('002 e deja folosit la Borealis Metal')
   })
 
-  it('does not flag a client against its own number', () => {
-    expect(contractNumberConflict('002', clients, reserved, 'b')).toBeNull()
+  it('does not flag a client against its own contract', () => {
+    expect(contractNumberConflict('002', numbers, 'Borealis Metal')).toBeNull()
   })
 
-  it('stays quiet for a free number, an empty field or free text', () => {
-    expect(contractNumberConflict('004', clients, reserved, null)).toBeNull()
-    expect(contractNumberConflict('', clients, reserved, null)).toBeNull()
-    expect(contractNumberConflict(undefined, clients, reserved, null)).toBeNull()
-    expect(contractNumberConflict('VS-12', clients, reserved, null)).toBeNull()
+  it('stays quiet for a free number, an empty field, no list or free text', () => {
+    expect(contractNumberConflict('004', numbers, null)).toBeNull()
+    expect(contractNumberConflict('', numbers, null)).toBeNull()
+    expect(contractNumberConflict(undefined, numbers, null)).toBeNull()
+    expect(contractNumberConflict('VS-12', numbers, null)).toBeNull()
+    expect(contractNumberConflict('002', undefined, null)).toBeNull()
   })
 })

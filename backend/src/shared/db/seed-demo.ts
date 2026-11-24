@@ -1,7 +1,8 @@
 import '../load-env.js'
 import argon2 from 'argon2'
 import { createHash } from 'node:crypto'
-import { eq } from 'drizzle-orm'
+import { eq, isNull } from 'drizzle-orm'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { config } from '../config.js'
 import { encryptField } from '../lib/crypto.js'
 import { ensureSpaceRootOf } from '../../modules/archive/access.js'
@@ -9,6 +10,7 @@ import { defaultIdentities } from '../../modules/email/settings-service.js'
 import { ENABLED_LOCALES, isLocale, type Locale } from '../lib/locale.js'
 import { getCompanyTimeZone } from '../lib/company.js'
 import { zonedTimeToUtc } from '../lib/schedule-recurrence.js'
+import { saveDocument } from '../lib/storage.js'
 import { tiptapToText, type TiptapNode } from '../lib/tiptap-text.js'
 import { db, sql } from './client.js'
 import {
@@ -29,6 +31,11 @@ import {
   calendarShares,
   calls,
   conversationMembers,
+  contractDocuments,
+  contractNumbers,
+  contractSeries,
+  contractTemplates,
+  contracts,
   conversations,
   dashboardConfig,
   emailDrafts,
@@ -1452,6 +1459,81 @@ const hitIndexes: Record<string, number[]> = {
 await db.insert(prospectSignalHits).values(
   Object.entries(hitIndexes).flatMap(([key, indexes]) => indexes.map((i) => ({ signalId: signalId(key), prospectId: prospectAt(i).id, computedAt: daysAgo(0, 6) }))),
 )
+
+// ── Contract registry ────────────────────────────────────────────────────────
+
+let [contractSeriesRow] = await db.select().from(contractSeries).where(isNull(contractSeries.deletedAt)).limit(1)
+if (!contractSeriesRow) {
+  ;[contractSeriesRow] = await db.insert(contractSeries).values({ code: 'C', name: L({ ro: 'Contracte', en: 'Contracts' }), numberFormat: '{n:3}' }).returning()
+}
+const seriesId = contractSeriesRow!.id
+// Numbers go above whatever the series already holds, so an imported registry is never renumbered.
+const usedNumbers = await db.select({ number: contractNumbers.number }).from(contractNumbers).where(eq(contractNumbers.seriesId, seriesId))
+const numberBase = usedNumbers.reduce((max, r) => Math.max(max, r.number), 0)
+
+const ndaFields = [
+  { key: 'parte_nume', label: { ro: 'Nume parte', en: 'Party name' }, type: 'party' as const, required: true },
+  { key: 'email', label: { ro: 'Email', en: 'Email' }, type: 'text' as const, required: true },
+  { key: 'telefon', label: { ro: 'Telefon', en: 'Phone' }, type: 'text' as const, required: false },
+]
+const ndaSignerRoles = [{ role: 'Beneficiar', own: true }, { role: 'Colaborator', own: false }]
+const ndaBody = L({
+  ro: '<h1>Acord de confidențialitate nr. {{contract.numar}}</h1><p>Încheiat la {{contract.data}} între societatea noastră și {{parte_nume}} (email {{email}}, telefon {{telefon}}).</p><p>Părțile se obligă să nu divulge informațiile confidențiale primite pe durata colaborării.</p><div class="signature-line" data-sign-role="Beneficiar">Semnătură, Data: __________</div><div class="signature-line" data-sign-role="Colaborator">Semnătură, Data: __________</div>',
+  en: '<h1>Non-disclosure agreement no. {{contract.numar}}</h1><p>Made on {{contract.data}} between our company and {{parte_nume}} (email {{email}}, phone {{telefon}}).</p><p>The parties will not disclose the confidential information received during the collaboration.</p><div class="signature-line" data-sign-role="Beneficiar">Signature, Date: __________</div><div class="signature-line" data-sign-role="Colaborator">Signature, Date: __________</div>',
+})
+const ndaName = L({ ro: 'Acord de confidențialitate', en: 'Non-disclosure agreement' })
+const [ndaTemplate] = await db
+  .insert(contractTemplates)
+  .values({ key: null, name: ndaName, bodyHtml: ndaBody, category: L({ ro: 'Confidențialitate', en: 'Confidentiality' }), fields: ndaFields, seriesId, signerRoles: ndaSignerRoles, isSystem: false })
+  .returning()
+
+const dateOnly = (d: Date) => d.toISOString().slice(0, 10)
+const plusDays = (n: number) => dateOnly(new Date(now + n * DAY))
+const minusDays = (n: number) => dateOnly(new Date(now - n * DAY))
+const cat = {
+  services: L({ ro: 'Servicii', en: 'Services' }),
+  supply: L({ ro: 'Furnizare', en: 'Supply' }),
+  nda: L({ ro: 'Confidențialitate', en: 'Confidentiality' }),
+}
+// number: offset from the series maximum; null = no number of ours.
+const contractSeeds: Array<Omit<typeof contracts.$inferInsert, 'ownerUserId' | 'seriesId' | 'number'> & { offset: number | null; withDoc?: boolean }> = [
+  { offset: 1, title: L({ ro: 'Contract de colectare deșeuri', en: 'Waste collection contract' }), category: cat.services, counterpartyKind: 'client', billingClientId: clients[0]!.id, counterpartyName: clients[0]!.name, status: 'signed', origin: 'saas', signedOn: minusDays(200), startsOn: minusDays(200), withDoc: true },
+  { offset: 2, title: L({ ro: 'Contract de transport', en: 'Transport contract' }), category: cat.services, counterpartyKind: 'other', counterpartyName: 'Acme Logistics SRL', status: 'signed', origin: 'template', signedOn: minusDays(355), startsOn: minusDays(355), endsOn: plusDays(10), noticeDays: 5, withDoc: true }, // slop-ok: invented demo party, the repo's rule for demo data
+  { offset: 4, title: L({ ro: 'Contract de mentenanță', en: 'Maintenance contract' }), category: cat.services, counterpartyKind: 'client', billingClientId: clients[2]!.id, counterpartyName: clients[2]!.name, status: 'signed', origin: 'template', signedOn: minusDays(90), startsOn: minusDays(90), endsOn: plusDays(275), autoRenew: true, renewalMonths: 12, noticeDays: 30 },
+  { offset: 5, title: L({ ro: 'Contract de prestări servicii', en: 'Service agreement' }), category: cat.services, counterpartyKind: 'prospect', prospectId: prospectAt(5).id, counterpartyName: prospectAt(5).name, status: 'to_sign', origin: 'template' },
+  { offset: 6, title: L({ ro: 'Contract-cadru de furnizare', en: 'Framework supply contract' }), category: cat.supply, counterpartyKind: 'other', counterpartyName: 'Acme Supplies SRL', status: 'draft', origin: 'template' }, // slop-ok: invented demo party, the repo's rule for demo data
+  { offset: 7, title: L({ ro: 'Contract de închiriere spațiu', en: 'Office lease' }), category: cat.services, counterpartyKind: 'other', counterpartyName: 'Acme Real Estate SRL', status: 'terminated', origin: 'template', signedOn: minusDays(400), startsOn: minusDays(400), endsOn: minusDays(30) }, // slop-ok: invented demo party, the repo's rule for demo data
+  { offset: 8, title: ndaName, category: cat.nda, counterpartyKind: 'other', counterpartyName: 'Ion Popescu', status: 'signed', origin: 'template', signedOn: minusDays(14), startsOn: minusDays(14), templateId: ndaTemplate!.id, templateSnapshot: { name: ndaName, bodyHtml: ndaBody, fields: ndaFields, signerRoles: ndaSignerRoles }, fieldValues: { parte_nume: 'Ion Popescu', email: 'ion.popescu@example.com', telefon: '0700000000' } }, // slop-ok: invented demo party, the repo's rule for demo data
+  { offset: null, title: L({ ro: 'Contract de furnizare energie', en: 'Energy supply contract' }), category: cat.supply, counterpartyKind: 'other', counterpartyName: 'Acme Energy SA', status: 'signed', origin: 'uploaded', externalNumber: 'FZ-2026-114', signedOn: minusDays(60), startsOn: minusDays(60), withDoc: true }, // slop-ok: invented demo party, the repo's rule for demo data
+]
+const contractRows = await db
+  .insert(contracts)
+  .values(contractSeeds.map(({ offset, withDoc: _withDoc, ...c }) => ({ ...c, seriesId: offset === null ? null : seriesId, number: offset === null ? null : numberBase + offset, ownerUserId: admin.id, createdByUserId: admin.id })))
+  .returning()
+await db.insert(contractNumbers).values([
+  ...contractRows.filter((c) => c.number !== null).map((c) => ({ seriesId, number: c.number!, kind: 'used' as const, contractId: c.id })),
+  { seriesId, number: numberBase + 9, kind: 'reserved' as const, note: L({ ro: 'Contract cu un furnizor, în lucru', en: 'Contract with a supplier, in progress' }) },
+])
+for (const [i, seed] of contractSeeds.entries()) {
+  if (!seed.withDoc) continue
+  const contract = contractRows[i]!
+  const pdf = await PDFDocument.create()
+  const font = await pdf.embedStandardFont(StandardFonts.Helvetica)
+  const page = pdf.addPage([595, 842])
+  ;[contract.title, contract.counterpartyName, L({ ro: 'Document demo, date inventate.', en: 'Demo document, invented data.' })].forEach((line, k) =>
+    page.drawText(line.normalize('NFD').replace(/\p{M}/gu, ''), { x: 50, y: 780 - k * 24, size: 12, font }),
+  )
+  const stored = await saveDocument(`demo/contracts/${contract.id}.pdf`, Buffer.from(await pdf.save()))
+  await db.insert(contractDocuments).values({
+    contractId: contract.id,
+    billingClientId: contract.billingClientId,
+    docType: 'document',
+    pdfStoragePath: stored,
+    isSigned: contract.status === 'signed',
+    signedAt: contract.signedOn ? new Date(contract.signedOn) : null,
+    createdByUserId: admin.id,
+  })
+}
 
 console.log(`Demo data added (${locale}): ${clients.length} clients, ${invoiceRows.length + stateRows.length + 1} invoices and expenses, 19 prospects with people, notes, tasks, lists, views, sequences, automations and signals, 90 days of metrics, notes and archive files.`)
 await sql.end()

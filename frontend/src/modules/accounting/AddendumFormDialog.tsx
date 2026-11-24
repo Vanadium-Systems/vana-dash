@@ -57,7 +57,7 @@ export function AddendumFormDialog({ open, onOpenChange, clientId, prefill }: Ad
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['contract-addenda', clientId] })
-      void queryClient.invalidateQueries({ queryKey: ['contracts', 'list'] })
+      void queryClient.invalidateQueries({ queryKey: ['contracts'] })
       toast.success(t('accounting:addendum.created'))
       onOpenChange(false)
     },

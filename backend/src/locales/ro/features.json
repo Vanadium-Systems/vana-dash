@@ -35,7 +35,8 @@
       "contracte": "Contracte și anexe",
       "clienti": "Clienți de facturare",
       "cheltuieli": "Cheltuieli recurente",
-      "setari": "Serie și șabloane de factură"
+      "setari": "Serie și șabloane de factură",
+      "sabloane-contracte": "Șabloane și serii de contracte"
     },
     "financiar": {
       "view": "P&L, cashflow, KPI-uri",

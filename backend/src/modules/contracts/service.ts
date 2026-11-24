@@ -1,16 +1,17 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull } from 'drizzle-orm'
 import { zipSync } from 'fflate'
 import { db } from '../../shared/db/client.js'
 import { billingClients, contractAddenda, contractDocuments } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
-import { escapeLike } from '../../shared/lib/prospect-access.js'
 import { assertContractDataComplete, formatMonthlyPrice, REQUIRED_FIELD_LABELS, type ContractTemplateKey } from '../../shared/lib/contract-templates.js'
 import { htmlToPdf, isPdfAvailable } from '../../shared/lib/pdf.js'
 import { readDocument, saveDocument } from '../../shared/lib/storage.js'
 import { ContractDetailsSchema, type ContractDetails, type CreateAddendumSchema, type SignatureRectSchema } from './schema.js'
 import { renderAddendum, renderBlank, renderDocument } from './templates-service.js'
+import { ensureSaasContract, markSaasContractSigned } from './registry-service.js'
+import { currentActor } from '../../shared/lib/request-context.js'
+import { getCompany } from '../../shared/lib/company.js'
 import type { z } from 'zod'
-import type { ContractListQuerySchema } from './schema.js'
 import { httpError } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -58,18 +59,21 @@ export async function generateDocument(clientId: string, docType: 'contract' | '
   const html = await renderDocument(docType, { client, details, monthlyPriceFormatted })
 
   if (!isPdfAvailable()) throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
-  // Empty signature fields, ready to sign in Adobe Reader with a qualified certificate.
-  const pdf = await htmlToPdf(html, { signatureFields: true })
+  // Empty signature fields for the client, ready to sign in Adobe Reader with a qualified certificate.
+  const pdf = await htmlToPdf(html, { signatureFields: await ownSignatureSkip(), offline: true })
 
   const safeName = client.name.replace(/[^A-Za-z0-9_-]/g, '_')
   const stamp = Date.now()
   const pdfStoragePath = await saveDocument(`contracts/${clientId}/${docType}_${safeName}_${stamp}.pdf`, pdf)
 
-  const [row] = await db
-    .insert(contractDocuments)
-    .values({ billingClientId: clientId, docType, pdfStoragePath })
-    .returning()
-  return row!
+  return db.transaction(async (tx) => {
+    const contractId = await ensureSaasContract(tx, clientId, actorUserId())
+    const [row] = await tx
+      .insert(contractDocuments)
+      .values({ billingClientId: clientId, contractId, docType, pdfStoragePath })
+      .returning()
+    return row!
+  })
 }
 
 // Randare + conversie PDF directă, fără `assertContractDataComplete` și fără persistare —
@@ -83,14 +87,14 @@ export async function previewDocument(clientId: string, docType: 'contract' | 'a
   const html = await renderDocument(docType, { client, details, monthlyPriceFormatted })
 
   if (!isPdfAvailable()) throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
-  return htmlToPdf(html)
+  return htmlToPdf(html, { offline: true })
 }
 
 // Like the preview, nothing is stored: the blank copy is generated again on every download.
 export async function blankDocumentPdf(key: ContractTemplateKey): Promise<Buffer> {
   const html = await renderBlank(key)
   if (!isPdfAvailable()) throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
-  return htmlToPdf(html)
+  return htmlToPdf(html, { offline: true })
 }
 
 export async function listDocuments(clientId: string) {
@@ -111,11 +115,15 @@ export async function getDocument(documentId: string) {
 }
 
 export async function markDocumentSigned(documentId: string, isSigned: boolean) {
-  const [row] = await db
-    .update(contractDocuments)
-    .set({ isSigned, signedAt: isSigned ? new Date() : null, updatedAt: new Date() })
-    .where(and(eq(contractDocuments.id, documentId), isNull(contractDocuments.deletedAt)))
-    .returning()
+  const row = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(contractDocuments)
+      .set({ isSigned, signedAt: isSigned ? new Date() : null, updatedAt: new Date() })
+      .where(and(eq(contractDocuments.id, documentId), isNull(contractDocuments.deletedAt)))
+      .returning()
+    if (row && isSigned && row.docType === 'contract') await markSaasContractSigned(tx, row.contractId, row.signedAt!)
+    return row
+  })
   if (row) {
     await recordAudit({
       action: isSigned ? 'contract.semnat' : 'contract.semnatura.anulata',
@@ -180,17 +188,20 @@ export async function generateAddendumDocument(addendumId: string) {
   const html = await renderAddendum(addendum, client, { nrContract: details.nrContract, dataContract: details.dataContract })
 
   if (!isPdfAvailable()) throw httpError(400, 'PDF_GENERATION_UNAVAILABLE')
-  const pdf = await htmlToPdf(html, { signatureFields: true })
+  const pdf = await htmlToPdf(html, { signatureFields: await ownSignatureSkip(), offline: true })
 
   const safeName = client.name.replace(/[^A-Za-z0-9_-]/g, '_')
   const stamp = Date.now()
   const pdfStoragePath = await saveDocument(`contracts/${addendum.billingClientId}/act_aditional_${addendum.number}_${safeName}_${stamp}.pdf`, pdf)
 
-  const [row] = await db
-    .insert(contractDocuments)
-    .values({ billingClientId: addendum.billingClientId, docType: 'act_aditional', addendumId: addendum.id, pdfStoragePath })
-    .returning()
-  return row!
+  return db.transaction(async (tx) => {
+    const contractId = await ensureSaasContract(tx, addendum.billingClientId, actorUserId())
+    const [row] = await tx
+      .insert(contractDocuments)
+      .values({ billingClientId: addendum.billingClientId, contractId, docType: 'act_aditional', addendumId: addendum.id, pdfStoragePath })
+      .returning()
+    return row!
+  })
 }
 
 // ── Semnătură digitală — tab „Semnează" (2026-09-03) ──────────────────────────────────────────
@@ -253,20 +264,28 @@ export async function buildSignPackage(documentId: string): Promise<{ buffer: Bu
 export async function uploadSignedDocument(documentId: string, pdfBuffer: Buffer) {
   const source = await getDocumentOrThrow(documentId)
   const stamp = Date.now()
-  const pdfStoragePath = await saveDocument(`contracts/${source.billingClientId}/semnat_${source.docType}_${stamp}.pdf`, pdfBuffer)
+  const folder = source.billingClientId ?? `registry/${source.contractId}`
+  const pdfStoragePath = await saveDocument(`contracts/${folder}/semnat_${source.docType}_${stamp}.pdf`, pdfBuffer)
 
-  const [row] = await db
-    .insert(contractDocuments)
-    .values({
-      billingClientId: source.billingClientId,
-      docType: source.docType,
-      addendumId: source.addendumId,
-      pdfStoragePath,
-      isSigned: true,
-      signedAt: new Date(),
-      sourceDocumentId: source.id,
-    })
-    .returning()
+  const row = await db.transaction(async (tx) => {
+    const contractId = source.billingClientId ? await ensureSaasContract(tx, source.billingClientId, actorUserId()) : source.contractId
+    const signedAt = new Date()
+    const [row] = await tx
+      .insert(contractDocuments)
+      .values({
+        billingClientId: source.billingClientId,
+        contractId,
+        docType: source.docType,
+        addendumId: source.addendumId,
+        pdfStoragePath,
+        isSigned: true,
+        signedAt,
+        sourceDocumentId: source.id,
+      })
+      .returning()
+    if (source.docType === 'contract' || source.docType === 'document') await markSaasContractSigned(tx, contractId, signedAt)
+    return row!
+  })
   await recordAudit({
     action: 'contract.pdf.semnat.incarcat',
     entityType: 'contract_document',
@@ -276,63 +295,15 @@ export async function uploadSignedDocument(documentId: string, pdfBuffer: Buffer
   return row!
 }
 
-export type ContractState = 'none' | 'generated' | 'signed' | 'addendum'
-
-/** One row per live client; the state is the strongest of: addendum, signed contract, generated contract. */
-export async function listContracts(query: z.infer<typeof ContractListQuerySchema>) {
-  const like = query.q ? `%${escapeLike(query.q)}%` : null
-  const states = query.state
-  const rows = await db.execute<{
-    client_id: string
-    client_name: string
-    contract_number: string | null
-    contract_date: string | null
-    plan: string | null
-    state: ContractState
-    doc_id: string | null
-    doc_kind: string | null
-    doc_created_at: string | null
-    total: number
-  }>(sql`
-    WITH base AS (
-      SELECT c."id" AS client_id, c."name" AS client_name,
-             c."contract_details"->>'nrContract' AS contract_number,
-             c."contract_details"->>'dataContract' AS contract_date,
-             c."contract_plan" AS plan,
-             CASE
-               WHEN EXISTS (SELECT 1 FROM ${contractAddenda} a WHERE a."billing_client_id" = c."id" AND a."deleted_at" IS NULL) THEN 'addendum'
-               WHEN EXISTS (SELECT 1 FROM ${contractDocuments} d WHERE d."billing_client_id" = c."id" AND d."doc_type" = 'contract'
-                              AND d."is_signed" AND d."deleted_at" IS NULL) THEN 'signed'
-               WHEN EXISTS (SELECT 1 FROM ${contractDocuments} d WHERE d."billing_client_id" = c."id" AND d."doc_type" = 'contract'
-                              AND d."deleted_at" IS NULL) THEN 'generated'
-               ELSE 'none'
-             END AS state
-        FROM ${billingClients} c
-       WHERE c."deleted_at" IS NULL
-    )
-    SELECT b.*, ld."id" AS doc_id, ld."doc_type" AS doc_kind, ld."created_at" AS doc_created_at,
-           count(*) OVER ()::int AS total
-      FROM base b
-      LEFT JOIN LATERAL (
-        SELECT d."id", d."doc_type", d."created_at" FROM ${contractDocuments} d
-         WHERE d."billing_client_id" = b.client_id AND d."deleted_at" IS NULL
-         ORDER BY d."created_at" DESC LIMIT 1
-      ) ld ON true
-     WHERE (${like}::text IS NULL OR b.client_name ILIKE ${like} OR b.contract_number ILIKE ${like})
-       ${states ? sql`AND b.state IN (${sql.join(states.map((s) => sql`${s}`), sql`, `)})` : sql``}
-     ORDER BY b.client_name, b.client_id
-     LIMIT ${query.pageSize} OFFSET ${(query.page - 1) * query.pageSize}
-  `)
-  return {
-    rows: rows.map((r) => ({
-      clientId: r.client_id,
-      clientName: r.client_name,
-      contractNumber: r.contract_number,
-      contractDate: r.contract_date,
-      plan: r.plan,
-      state: r.state,
-      lastDocument: r.doc_id ? { id: r.doc_id, kind: r.doc_kind!, createdAt: new Date(r.doc_created_at!).toISOString() } : null,
-    })),
-    total: rows[0]?.total ?? 0,
+function actorUserId(): string | null {
+  try {
+    return currentActor().userId ?? null
+  } catch {
+    return null
   }
+}
+
+/** Our own signature line gets no empty field: we sign on webSIGN, which draws its own. */
+async function ownSignatureSkip() {
+  return { skipPartyName: (await getCompany()).profile.name ?? '' }
 }

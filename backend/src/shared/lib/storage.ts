@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { config } from '../config.js'
 import { tr } from './i18n.js'
@@ -25,4 +25,9 @@ export async function saveDocument(relativePath: string, content: string | Buffe
 
 export async function readDocument(relativePath: string): Promise<Buffer> {
   return readFile(resolveSafe(relativePath))
+}
+
+/** For the cleanup after a failed write: a file that is already gone is not an error. */
+export async function deleteDocument(relativePath: string): Promise<void> {
+  await rm(resolveSafe(relativePath), { force: true })
 }

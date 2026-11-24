@@ -104,6 +104,12 @@ export const FEATURES: FeatureDef[] = [
     routes: whole('/api/contracts'),
   },
   {
+    // Editing templates and number series changes every contract made after it, so it is a right of its own.
+    key: 'facturi.sabloane-contracte',
+    page: 'facturi',
+    routes: [...write('/api/contracts/templates'), ...write('/api/contracts/series'), ...write('/api/contracts/settings')],
+  },
+  {
     key: 'facturi.clienti',
     page: 'facturi',
     routes: whole('/api/invoicing/clients', '/api/invoicing/anaf-lookup'),

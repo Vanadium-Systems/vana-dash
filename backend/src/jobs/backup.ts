@@ -52,18 +52,27 @@ export async function runBackup(): Promise<void> {
 
     console.log(`[backup] backup scris: ${outPath}`)
 
-    try {
-      const key = await uploadOffsiteBackup(outPath)
-      if (key) console.log(`[backup] off-site copy uploaded: ${key}`) // slop-ok: the job logs to stdout like its other lines
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      console.error('[backup] off-site upload failed:', err)
-      await sendAlertEmail(tr('emails.backup.offsiteFailedSubject'), tr('emails.backup.offsiteFailedBody', { dateStamp, message }))
+    // The files the database points to (contract PDFs, invoice XML, email attachments) live on disk,
+    // not in the dump: without this archive a restore brings back rows whose documents are gone.
+    const storagePath = `${config.backupDir}/storage-${dateStamp}.tar.gz`
+    await archiveStorage(storagePath)
+    console.log(`[backup] storage archived: ${storagePath}`) // slop-ok: the job logs to stdout like its other lines
+
+    for (const localPath of [outPath, storagePath]) {
+      try {
+        const key = await uploadOffsiteBackup(localPath)
+        if (key) console.log(`[backup] off-site copy uploaded: ${key}`) // slop-ok: the job logs to stdout like its other lines
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error('[backup] off-site upload failed:', err)
+        await sendAlertEmail(tr('emails.backup.offsiteFailedSubject'), tr('emails.backup.offsiteFailedBody', { dateStamp, message }))
+      }
     }
 
     const cutoff = Date.now() - config.backupRetentionDays * 24 * 60 * 60 * 1000
     for (const file of readdirSync(config.backupDir)) {
-      if (!file.startsWith('backup-') || !file.endsWith('.sql.gz')) continue
+      const ours = (file.startsWith('backup-') && file.endsWith('.sql.gz')) || (file.startsWith('storage-') && file.endsWith('.tar.gz'))
+      if (!ours) continue
       const fp = `${config.backupDir}/${file}`
       if (statSync(fp).mtimeMs < cutoff) {
         rmSync(fp)
@@ -75,6 +84,12 @@ export async function runBackup(): Promise<void> {
     console.error('[backup] backup eșuat:', err)
     await sendAlertEmail(tr('emails.backup.failedSubject'), tr('emails.backup.failedBody', { dateStamp, message }))
   }
+}
+
+/** The whole storage folder as one tar.gz; a missing folder (fresh install) gives an empty archive. */
+export async function archiveStorage(outPath: string): Promise<void> {
+  mkdirSync(config.storageDir, { recursive: true })
+  await execFileAsync('tar', ['-czf', outPath, '-C', config.storageDir, '.'])
 }
 
 // Encrypted to a public key only, so whoever takes over this server cannot read the copies, and
@@ -91,7 +106,8 @@ export async function uploadOffsiteBackup(localPath: string): Promise<string | n
     // A timestamp, not just the date: the bucket lock refuses overwrites, so a second run on the
     // same day needs its own key.
     const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const key = `${basename(localPath, '.sql.gz')}_${stamp}.sql.gz.age`
+    const extension = localPath.endsWith('.tar.gz') ? '.tar.gz' : '.sql.gz'
+    const key = `${basename(localPath, extension)}_${stamp}${extension}.age`
     await uploadToBackupBucket(key, createReadStream(encryptedPath))
     return key
   } finally {

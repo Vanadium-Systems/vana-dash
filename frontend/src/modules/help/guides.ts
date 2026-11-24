@@ -906,25 +906,45 @@ const SOURCES: GuideSource[] = [
     route: '/clients',
     feature: 'facturi.contracte',
     title: {
-      ro: 'Lista de contracte',
-      en: 'The contracts list',
+      ro: 'Registrul de contracte',
+      en: 'The contracts register',
     },
     summary: {
-      ro: 'Tab-ul Contracte arată toți clienții cu starea contractului lor, ca să vezi ce lipsește.',
-      en: 'The Contracts tab shows all clients with the state of their contract, so you can see what is missing.',
+      ro: 'Tab-ul Contracte ține toate contractele firmei, cu termenul, responsabilul și starea lor, ca să nu pierzi un preaviz.',
+      en: 'The Contracts tab holds all the company’s contracts, with their term, owner and state, so you do not miss a notice period.',
     },
     steps: [
       {
-        ro: 'Filtrează după stare: fără contract, generat, semnat sau cu act adițional, și caută după numele clientului. Lista se paginează.',
-        en: 'Filter by state: no contract, generated, signed or with an addendum, and search by client name. The list is paginated.',
+        ro: 'Lista cuprinde contractele SaaS cu clienții, colaborările, NDA-urile și contractele de la furnizori. Filtrezi după stare (ciornă, de semnat, semnat, expirat, reziliat) și cauți după nume sau număr.',
+        en: 'The list covers SaaS contracts with clients, collaborations, NDAs and supplier contracts. Filter by state (draft, to sign, signed, expired, terminated) and search by name or number.',
       },
       {
-        ro: 'Un click pe rând deschide clientul într-un panou lateral, de unde generezi contractul, anexa sau actul adițional. „Contract nou” alege clientul dintr-o listă.',
-        en: 'A click on a row opens the client in a side panel, where you generate the contract, the annex or the addendum. “New contract” picks the client from a list.',
+        ro: 'Un click pe rând deschide pagina contractului: termenul (început, sfârșit, reînnoire automată în luni, preaviz în zile), responsabilul, documentele și istoricul.',
+        en: 'A click on a row opens the contract page: the term (start, end, automatic renewal in months, notice in days), the owner, the documents and the history.',
       },
       {
-        ro: 'Când aplici o ofertă din calculator pe un client cu contract semnat, iar prețul sau modulele diferă, aplicația propune și actul adițional.',
-        en: 'When you apply an offer from the calculator to a client with a signed contract and the price or modules differ, the app also offers the addendum.',
+        ro: '„Contract nou” pornește dintr-un șablon al firmei: formularul se face din câmpurile șablonului, iar numărul propus vine din serie. Un număr ocupat nu se poate refolosi.',
+        en: '“New contract” starts from a company template: the form is built from the template’s fields, and the proposed number comes from the series. A number already taken cannot be reused.',
+      },
+      {
+        ro: '„Încarcă semnat” adaugă un contract venit din afară, cu numărul nostru sau cu al celeilalte părți.',
+        en: '“Upload signed” adds a contract that came from outside, with our number or the other party’s.',
+      },
+      {
+        ro: 'Lista „Numere” arată golurile libere din serie și te lasă să rezervi un număr pentru un contract făcut în afara aplicației.',
+        en: 'The “Numbers” list shows the free gaps in the series and lets you reserve a number for a contract made outside the app.',
+      },
+      {
+        ro: 'La salvare, termenul preavizului intră ca eveniment în calendarul responsabilului. În fiecare zi la 08:00 vine o alertă cu 14 zile înainte (sau cât ai setat). Contractele cu reînnoire automată își mută singure data de sfârșit, cele fără reînnoire trec în „expirat”.',
+        en: 'On save, the notice deadline becomes an event in the owner’s calendar. Every day at 08:00 an alert comes 14 days ahead (or as many as you set). Contracts with automatic renewal move their end date on their own; those without renewal become “expired”.',
+      },
+      {
+        ro: 'Contractele sunt confidențiale: le vede doar adminul și responsabilul, iar pentru oricine altcineva contractul „nu există”.',
+        en: 'Contracts are confidential: only the admin and the owner see them, and for anyone else the contract “does not exist”.',
+      },
+      {
+        ro: 'Contractul SaaS al unui client se generează în continuare din fișa lui, iar când aplici o ofertă din calculator pe un client cu contract semnat, aplicația propune și actul adițional.',
+        en: 'A client’s SaaS contract is still generated from the client sheet, and when you apply an offer from the calculator to a client with a signed contract, the app also offers the addendum.',
       },
     ],
   },

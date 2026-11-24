@@ -18,8 +18,9 @@ interface PlaceholderDoc {
   descriere: string
 }
 
+// The three SaaS templates; the company's own (no key) are edited in CompanyTemplatesCard.
 interface ContractTemplate {
-  key: string
+  key: string | null
   name: string
   bodyHtml: string
   placeholders: PlaceholderDoc[] | null
@@ -102,7 +103,7 @@ function TemplateEditor() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {(templates.data ?? []).map((template) => (
+        {(templates.data ?? []).filter((template) => template.key).map((template) => (
           <Button key={template.key} type="button" variant={selectedKey === template.key ? 'default' : 'outline'} onClick={() => select(template)}>
             {template.name}
           </Button>

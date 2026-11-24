@@ -73,7 +73,7 @@ export function ContractDetail({ clientId }: { clientId: string }) {
       api.post<ContractDocument>(`/api/contracts/clients/${clientId}/documents`, { docType }),
     onSuccess: (doc) => {
       void queryClient.invalidateQueries({ queryKey: ['contract-documents', clientId] })
-      void queryClient.invalidateQueries({ queryKey: ['contracts', 'list'] })
+      void queryClient.invalidateQueries({ queryKey: ['contracts'] })
       toast.success(t('accounting:contracts.documentGenerated', { type: DOC_TYPE_LABEL[doc.docType] }))
       openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf')
     },
@@ -85,7 +85,7 @@ export function ContractDetail({ clientId }: { clientId: string }) {
       api.patch<ContractDocument>(`/api/contracts/documents/${id}`, { isSigned }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['contract-documents', clientId] })
-      void queryClient.invalidateQueries({ queryKey: ['contracts', 'list'] })
+      void queryClient.invalidateQueries({ queryKey: ['contracts'] })
     },
     onError: (err) => toastError(err),
   })
@@ -94,7 +94,7 @@ export function ContractDetail({ clientId }: { clientId: string }) {
     mutationFn: (addendumId: string) => api.post<ContractDocument>(`/api/contracts/addenda/${addendumId}/document`, {}),
     onSuccess: (doc) => {
       void queryClient.invalidateQueries({ queryKey: ['contract-documents', clientId] })
-      void queryClient.invalidateQueries({ queryKey: ['contracts', 'list'] })
+      void queryClient.invalidateQueries({ queryKey: ['contracts'] })
       toast.success(t('accounting:contracts.addendumPdfGenerated'))
       openFile(`/api/contracts/documents/${doc.id}/pdf`, 'document.pdf')
     },

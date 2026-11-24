@@ -26,7 +26,9 @@
     "callRoomFailed": "Call room not created",
     "livekitRefused": "LiveKit refuses requests",
     "spvNotice": "Important SPV message",
-    "declarationNoReceipt": "Declaration without a receipt"
+    "declarationNoReceipt": "Declaration without a receipt",
+    "contractNotice": "Contract notice",
+    "contractNoticeStale": "Contract notice check not running"
   },
   "accounting": {
     "anafNeedsReauth": "ANAF needs manual re-authorization",
@@ -87,5 +89,11 @@
     "open": "Open in vanagreen: {{url}}",
     "buyer": "Buyer: {{name}}",
     "buyerWithCui": "Buyer: {{name}}, CUI {{cui}}"
+  },
+  "contracts": {
+    "noticeEventTitle": "Notice: {{title}}, {{party}}",
+    "noticeEventBody": "Last day to give notice. The contract ends on {{endsOn}} ({{days}} days of notice).",
+    "notice": "The notice period for \"{{title}}\" ({{party}}) ends on {{deadline}}.",
+    "jobStale": "The contract notice check has not run for more than 26 hours."
   }
 }

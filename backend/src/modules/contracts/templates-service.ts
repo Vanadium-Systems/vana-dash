@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import { db } from '../../shared/db/client.js'
 import { contractTemplates, dashboardConfig } from '../../shared/db/schema/index.js'
@@ -23,6 +23,9 @@ import {
 import type { ContractRenderData } from '../../shared/lib/contract-templates.js'
 import type { ContractAddendum } from '../../shared/db/schema/contract-addenda.js'
 import { ContractTermsUpdateSchema } from './templates-schema.js'
+import type { CustomTemplateSchema } from './registry-schema.js'
+import { unknownTokens } from './template-render.js'
+import { getSeries } from './numbers.js'
 import { tr } from '../../shared/lib/i18n.js'
 
 // Șabloanele de contract + termenii comerciali, editabile din UI (sprint de-hardcodare
@@ -47,10 +50,13 @@ async function ensureSeeded(): Promise<void> {
         name: TEMPLATE_NAMES[key],
         bodyHtml: CONTRACT_TEMPLATE_BODIES[key],
         placeholders: CONTRACT_TEMPLATE_PLACEHOLDERS[key],
+        category: 'saas',
+        isSystem: true,
       })),
     )
     .onConflictDoUpdate({
       target: [contractTemplates.tenantId, contractTemplates.key],
+      targetWhere: sql`${contractTemplates.key} IS NOT NULL`,
       set: { bodyHtml: sql`excluded.body_html`, placeholders: sql`excluded.placeholders` },
       setWhere: sql`${contractTemplates.updatedAt} = ${contractTemplates.createdAt}`,
     })
@@ -64,7 +70,11 @@ const TEMPLATE_NAMES: Record<ContractTemplateKey, string> = {
 
 export async function listTemplates(): Promise<TemplateRow[]> {
   await ensureSeeded()
-  return db.select().from(contractTemplates).orderBy(contractTemplates.key)
+  return db
+    .select()
+    .from(contractTemplates)
+    .where(isNull(contractTemplates.deletedAt))
+    .orderBy(desc(contractTemplates.isSystem), contractTemplates.name)
 }
 
 /** Corpul curent al șablonului — rândul din DB sau corpul canonical dacă nu există/editat. */
@@ -169,4 +179,45 @@ export async function renderAddendum(addendum: ContractAddendum, client: Paramet
 export async function renderBlank(key: ContractTemplateKey): Promise<string> {
   const [bodyHtml, terms, fragments, provider] = await Promise.all([getTemplateBody(key), getContractTerms(), getContractFragments(), currentProvider()])
   return renderBlankHtml(key, provider, terms, bodyHtml, fragments)
+}
+
+// ── The company's own templates (NDA, collaboration...) ──────────────────────────────────────
+
+async function checkCustomTemplate(input: z.infer<typeof CustomTemplateSchema>) {
+  const unknown = unknownTokens(input.bodyHtml, input.fields)
+  if (unknown.length > 0) throw httpError(400, 'CONTRACT_TEMPLATE_TOKENS_UNKNOWN', { unknown: unknown.join(', ') })
+  if (new Set(input.fields.map((f) => f.key)).size !== input.fields.length) throw httpError(400, 'CONTRACT_TEMPLATE_FIELD_DUPLICATE')
+  if (input.seriesId) await getSeries(input.seriesId)
+}
+
+export async function createCustomTemplate(input: z.infer<typeof CustomTemplateSchema>): Promise<TemplateRow> {
+  await checkCustomTemplate(input)
+  const [row] = await db.insert(contractTemplates).values({ ...input, key: null, isSystem: false }).returning()
+  await recordAudit({ action: 'contract.sablon.creat', entityType: 'contract_template', entityId: row!.id, changes: { nume: [null, input.name] } })
+  return row!
+}
+
+async function getCustomTemplate(id: string) {
+  const [row] = await db
+    .select()
+    .from(contractTemplates)
+    .where(and(eq(contractTemplates.id, id), isNull(contractTemplates.deletedAt)))
+  if (!row) throw httpError(404, 'TEMPLATE_NOT_FOUND')
+  if (row.isSystem) throw httpError(400, 'CONTRACT_TEMPLATE_SYSTEM')
+  return row
+}
+
+export async function updateCustomTemplate(id: string, input: z.infer<typeof CustomTemplateSchema>): Promise<TemplateRow> {
+  const before = await getCustomTemplate(id)
+  await checkCustomTemplate(input)
+  const [row] = await db.update(contractTemplates).set({ ...input, updatedAt: new Date() }).where(eq(contractTemplates.id, id)).returning()
+  // Contracts already made keep their template_snapshot: editing the template never changes them.
+  await recordAudit({ action: 'contract.sablon.modificat', entityType: 'contract_template', entityId: id, changes: { nume: [before.name, input.name] } })
+  return row!
+}
+
+export async function deleteCustomTemplate(id: string): Promise<void> {
+  const before = await getCustomTemplate(id)
+  await db.update(contractTemplates).set({ deletedAt: new Date() }).where(eq(contractTemplates.id, id))
+  await recordAudit({ action: 'contract.sablon.sters', entityType: 'contract_template', entityId: id, changes: { nume: [before.name, null] } })
 }

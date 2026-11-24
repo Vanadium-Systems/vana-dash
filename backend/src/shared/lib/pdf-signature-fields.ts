@@ -21,11 +21,19 @@ const FIELD_HEIGHT_PT = 30
  * Script run in the page before printing: puts a marker link above every short element that
  * starts with "Semnătură" (the innermost one). Plain JS in a string because the backend has no
  * DOM types. Returns how many areas it marked.
+ *
+ * The line of our own company is skipped (its block names the company): we sign on webSIGN, which
+ * draws its own field and does not fill an empty one.
  */
-export const MARK_SIGNATURE_AREAS = `(() => {
+export const MARK_SIGNATURE_AREAS = (skipPartyName: string) => `(() => {
+  const skip = ${JSON.stringify(skipPartyName.trim())}
   const starts = (el) => (el.textContent || '').trim().startsWith('Semnătură')
+  const ownLine = (el) => {
+    const block = el.closest('.signature-block') || el.parentElement
+    return Boolean(skip) && Boolean(block) && (block.textContent || '').includes(skip)
+  }
   const lines = Array.from(document.body.querySelectorAll('*')).filter(
-    (el) => starts(el) && (el.textContent || '').trim().length < 120 && !Array.from(el.children).some(starts),
+    (el) => starts(el) && (el.textContent || '').trim().length < 120 && !Array.from(el.children).some(starts) && !ownLine(el),
   )
   lines.forEach((line, i) => {
     if (getComputedStyle(line).position === 'static') line.style.position = 'relative'
@@ -39,11 +47,37 @@ export const MARK_SIGNATURE_AREAS = `(() => {
   return lines.length
 })()`
 
-/** Replaces the marker links Chromium printed with empty signature fields named Semnatura_N. */
+const ROLE_ATTRIBUTE = /<([a-zA-Z][a-zA-Z0-9]*)(\s[^>]*?)?\sdata-sign-role="([^"]{1,40})"([^>]*)>/g
+
+/**
+ * The template's own markers, in the HTML instead of a script (templates render with JavaScript
+ * off): each element with data-sign-role="Colaborator" gets a placeholder link as its first child,
+ * which becomes the field Semnatura_Colaborator. Roles of our own company get nothing.
+ */
+export function markSignatureRoles(html: string, ownRoles: string[]): string {
+  const own = new Set(ownRoles.map((r) => r.trim().toLowerCase()))
+  return html.replace(ROLE_ATTRIBUTE, (tag: string, _name: string, _before: string, role: string) => {
+    if (own.has(role.trim().toLowerCase())) return tag
+    // A zero-height holder, so the field sits just above the line without pushing it down.
+    const holder = 'position:relative;display:block;height:0'
+    const field = `position:absolute;display:block;left:50%;bottom:2pt;width:${FIELD_WIDTH_PT}pt;height:${FIELD_HEIGHT_PT}pt;margin-left:-${FIELD_WIDTH_PT / 2}pt`
+    return `${tag}<span style="${holder}"><a href="${MARKER}${encodeURIComponent(role.trim())}" aria-hidden="true" style="${field}"></a></span>`
+  })
+}
+
+/** Replaces the marker links Chromium printed with empty signature fields named Semnatura_N (or Semnatura_<role>). */
 export async function addSignatureFields(pdf: Uint8Array): Promise<Uint8Array> {
   const doc = await PDFDocument.load(pdf)
   const context = doc.context
   const fieldRefs: PDFRef[] = []
+  // A role that signs twice (the contract and its annex) gets Semnatura_Colaborator and Semnatura_Colaborator_2:
+  // two fields with one name would be one field in the PDF, and signing it would fill both places.
+  const seen = new Map<string, number>()
+  const uniqueName = (name: string) => {
+    const count = (seen.get(name) ?? 0) + 1
+    seen.set(name, count)
+    return count === 1 ? name : `${name}_${count}`
+  }
 
   doc.getPages().forEach((page) => {
     const annots = page.node.lookupMaybe(PDFName.of('Annots'), PDFArray)
@@ -58,7 +92,7 @@ export async function addSignatureFields(pdf: Uint8Array): Promise<Uint8Array> {
         FT: 'Sig',
         Type: 'Annot',
         Subtype: 'Widget',
-        T: PDFString.of(`Semnatura_${uri.slice(MARKER.length)}`),
+        T: PDFString.of(uniqueName(`Semnatura_${decodeURIComponent(uri.slice(MARKER.length))}`)),
         Rect: annot.lookup(PDFName.of('Rect')),
         F: PDFNumber.of(4),
         P: page.ref,

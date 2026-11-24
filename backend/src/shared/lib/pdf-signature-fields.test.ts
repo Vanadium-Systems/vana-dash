@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PDFDocument, PDFName, PDFString } from 'pdf-lib'
-import { addSignatureFields } from './pdf-signature-fields.js'
+import { addSignatureFields, markSignatureRoles } from './pdf-signature-fields.js'
+import { htmlToPdf, isPdfAvailable } from './pdf.js'
 
 // Chromium is not available in tests, so the PDF is built by hand with the same link
 // annotations Chromium prints for the marker anchors.
@@ -36,5 +37,24 @@ describe('addSignatureFields', () => {
     const input = await pdfWithLinks(['https://example.com'])
     const out = await addSignatureFields(input)
     expect(out).toBe(input)
+  })
+})
+
+const SAAS_SIGNATURES = `<div class="signatures">
+  <div class="signature-block"><strong>PRESTATOR</strong><br>Acme Software SRL<div class="signature-line">Semnătură și ștampilă</div></div>
+  <div class="signature-block"><strong>CLIENT</strong><br>Example Client SRL<div class="signature-line">Semnătură și ștampilă</div></div>
+</div>`
+
+describe.skipIf(!isPdfAvailable())('signature fields in a printed document', () => {
+  it('leaves our own line without a field, since we sign on webSIGN', async () => {
+    const pdf = await htmlToPdf(SAAS_SIGNATURES, { signatureFields: { skipPartyName: 'Acme Software SRL' }, offline: true })
+    expect((await PDFDocument.load(pdf)).getForm().getFields().map((f) => f.getName())).toEqual(['Semnatura_1'])
+  })
+
+  it('names a role that signs twice apart, so each place is its own field', async () => {
+    const line = '<div class="signature-line" data-sign-role="Colaborator">Semnătură</div>'
+    const html = markSignatureRoles(`${line}<div style="page-break-before:always"></div>${line}`, ['Beneficiar'])
+    const pdf = await htmlToPdf(html, { signatureFields: true, isolated: true })
+    expect((await PDFDocument.load(pdf)).getForm().getFields().map((f) => f.getName()).sort()).toEqual(['Semnatura_Colaborator', 'Semnatura_Colaborator_2'])
   })
 })

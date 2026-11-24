@@ -1,8 +1,10 @@
-import { boolean, index, jsonb, pgTable, text, timestamp, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { boolean, check, index, jsonb, pgTable, text, timestamp, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { billingClients } from './billing-clients.js'
 import { contractAddenda } from './contract-addenda.js'
+import { contracts } from './contracts.js'
 import { tenantColumns } from './tenant-column.js'
 
 // Ledger-ul PDF-urilor contractuale generate — servește și ca bază pt. wave-ul CertSign
@@ -15,10 +17,12 @@ export const contractDocuments = pgTable(
     ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
-    billingClientId: uuid('billing_client_id')
+    // Set on the SaaS documents only; the registry's own documents hang off contract_id.
+    billingClientId: uuid('billing_client_id').references(() => billingClients.id),
+    contractId: uuid('contract_id')
       .notNull()
-      .references(() => billingClients.id),
-    docType: text('doc_type', { enum: ['contract', 'anexa', 'act_aditional'] }).notNull(),
+      .references(() => contracts.id),
+    docType: text('doc_type', { enum: ['contract', 'anexa', 'act_aditional', 'document'] }).notNull(),
     // Doar pt. doc_type='act_aditional' — leagă documentul de actul adițional care l-a generat.
     addendumId: uuid('addendum_id').references(() => contractAddenda.id),
     pdfStoragePath: text('pdf_storage_path').notNull(),
@@ -32,5 +36,9 @@ export const contractDocuments = pgTable(
     // pattern ca „regenerarea creează un document nou", vezi ContractsTab.tsx).
     sourceDocumentId: uuid('source_document_id').references((): AnyPgColumn => contractDocuments.id, { onDelete: 'set null' }),
   },
-  (t) => [index('idx_contract_documents_client_type').on(t.billingClientId, t.docType, t.addendumId)],
+  (t) => [
+    index('idx_contract_documents_client_type').on(t.billingClientId, t.docType, t.addendumId),
+    index('idx_contract_documents_contract').on(t.contractId),
+    check('contract_documents_saas_client', sql`${t.docType} = 'document' OR ${t.billingClientId} IS NOT NULL`),
+  ],
 )

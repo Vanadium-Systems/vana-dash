@@ -52,12 +52,37 @@ export async function closeBrowser(): Promise<void> {
   }
 }
 
-export async function htmlToPdf(html: string, options: { signatureFields?: boolean } = {}): Promise<Buffer> {
+export interface HtmlToPdfOptions {
+  /** Empty signature fields over the "Semnătură" lines, except those of the party with this name (our own company). */
+  signatureFields?: boolean | { skipPartyName?: string }
+  /**
+   * For HTML a user wrote (contract templates): no JavaScript and no request leaves the page, so an
+   * <img src="http://internal-host/"> cannot reach the network from the server. Only data: URLs load.
+   * Signature fields then come from the marker links already in the HTML (see markSignatureRoles).
+   */
+  isolated?: boolean
+  /** Only the network off; the page script that marks the signature lines still runs (the SaaS templates). */
+  offline?: boolean
+}
+
+export async function htmlToPdf(html: string, options: HtmlToPdfOptions = {}): Promise<Buffer> {
   const browser = await getBrowser()
   const page = await browser.newPage()
   try {
+    if (options.isolated) await page.setJavaScriptEnabled(false)
+    if (options.isolated || options.offline) {
+      await page.setRequestInterception(true)
+      page.on('request', (request) => {
+        const url = request.url()
+        if (url.startsWith('data:') || url === 'about:blank') void request.continue()
+        else void request.abort('blockedbyclient')
+      })
+    }
     await page.setContent(html, { waitUntil: 'load' })
-    if (options.signatureFields) await page.evaluate(MARK_SIGNATURE_AREAS)
+    if (options.signatureFields && !options.isolated) {
+      const skip = typeof options.signatureFields === 'object' ? options.signatureFields.skipPartyName ?? '' : ''
+      await page.evaluate(MARK_SIGNATURE_AREAS(skip))
+    }
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,

@@ -1,7 +1,8 @@
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { auditLog, billingClients, contractDocuments } from '../../shared/db/schema/index.js'
+import { auditLog, billingClients, contractDocuments, contracts } from '../../shared/db/schema/index.js'
+import { ensureSaasContract } from '../contracts/registry-service.js'
 import { ClientPricingSchema, planPricingApply } from './pricing-apply.js'
 import { applyClientPricing, previewClientPricing } from './service.js'
 
@@ -52,6 +53,7 @@ describe('client pricing apply', () => {
   afterAll(async () => {
     if (clientIds.length) {
       await db.delete(contractDocuments).where(inArray(contractDocuments.billingClientId, clientIds))
+      await db.delete(contracts).where(inArray(contracts.billingClientId, clientIds))
       await db.delete(billingClients).where(inArray(billingClients.id, clientIds))
     }
   })
@@ -70,7 +72,8 @@ describe('client pricing apply', () => {
       .returning()
     clientIds.push(row!.id)
     if (withSignedContract) {
-      await db.insert(contractDocuments).values({ billingClientId: row!.id, docType: 'contract', pdfStoragePath: 'x.pdf', isSigned: true })
+      const contractId = await db.transaction((tx) => ensureSaasContract(tx, row!.id, null))
+      await db.insert(contractDocuments).values({ billingClientId: row!.id, contractId, docType: 'contract', pdfStoragePath: 'x.pdf', isSigned: true })
     }
     return row!
   }

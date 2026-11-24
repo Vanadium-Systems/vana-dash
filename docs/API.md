@@ -418,11 +418,19 @@ Own series (`PRO`), never sent to e-Factura and never counted in the financial r
 Isolated from `accounting` and `invoicing`: it reads `billing_clients` straight from the schema
 and imports no service of another module. The contract fields are written only through
 `PATCH /api/invoicing/clients/:id`; this module reads them and validates the jsonb shape
-(`ContractDetailsSchema`). Feature: `facturi.contracte`.
+(`ContractDetailsSchema`). Features: `facturi.contracte`; writes to templates, series and settings also need `facturi.sabloane-contracte`.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/contracts/list` | The clients with the state of their contract. Query: `q?` (client name, up to 100 characters), `state?` (comma-separated: `none`, `generated`, `signed`, `addendum`), `page?`, `pageSize?` (10, 25 or 50) |
+| GET | `/api/contracts/registry` | The register. Only the admin and the owner see a contract. Filters by state, kind and text, paginated |
+| POST | `/api/contracts/registry` | Creates a draft contract from one of the company templates and renders its PDF; the number comes from the series and a taken number is refused (409). A contract made elsewhere goes through `/registry/upload` |
+| POST | `/api/contracts/registry/upload` | Multipart: the JSON field `meta` must come before the file. Adds a signed contract received from outside, with our number or the other party's |
+| GET/PATCH/DELETE | `/api/contracts/registry/:id` | One contract with its term, owner, documents and history; `404` for anyone who is neither admin nor owner. Saving re-creates the notice event in the owner's calendar |
+| GET | `/api/contracts/numbers` | The shared series: used numbers, free gaps and reservations |
+| POST | `/api/contracts/numbers/reservations` | Reserves a number for a contract made outside the app |
+| DELETE | `/api/contracts/numbers/reservations/:id` | Releases a reservation |
+| GET/POST | `/api/contracts/series` | The number series; `PUT /api/contracts/series/:id` edits one |
+| GET/PUT | `/api/contracts/settings` | Contract settings, including the notice alert lead time in days (14 by default) |
 | GET | `/api/contracts/settings-summary` | `{ reservedNumbers, templates }`, the counts shown on the settings tab headers |
 | GET | `/api/contracts/clients/:clientId/info` | The client and the parsed, validated `contractDetails` |
 | GET | `/api/contracts/clients/:clientId/documents` | The documents generated for the client (contract, annex, addendum) |
@@ -445,8 +453,9 @@ sample text if the row is missing.
 | GET | `/api/contracts/templates/:key/blank` | The document as a PDF with the client's fields as dotted lines, from the current body and terms. Nothing is stored |
 | GET | `/api/contracts/terms` | The commercial terms from `dashboard_config['contract.terms']` |
 | PUT | `/api/contracts/terms` | Partial update on the known keys |
-| GET | `/api/contracts/reserved-numbers` | Contract numbers taken outside the app, `[{ number, note, date }]` from `dashboard_config['contract.reservedNumbers']` |
-| PUT | `/api/contracts/reserved-numbers` | Replaces the whole list. `number` is 1-4 digits, normalized to 3 (`3` → `003`); `note` 1-120 characters; `date` `YYYY-MM-DD`. The same number twice → `400 RESERVED_NUMBER_DUPLICATE` |
+| POST | `/api/contracts/templates` | Creates a company template (fields, signatories, series) |
+| PUT/DELETE | `/api/contracts/templates/custom/:id` | Edits or deletes a company template |
+| GET | `/api/contracts/templates/custom/:id/preview` | The template as a PDF. Rendered with JavaScript off and no network access |
 
 Each `POST .../documents` creates a new row in `contract_documents`: the full history is kept
 and no file on disk is overwritten. The UI warns when the latest document of that type is

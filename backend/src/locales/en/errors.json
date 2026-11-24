@@ -280,7 +280,7 @@
     "templateNotFound": "The template does not exist",
     "signReadmeName": "README.txt",
     "signReadme": "Digital signature: {{file}}\n=======================================\n\n1. Install Java (if you do not have it yet) and download JSignPdf: http://jsignpdf.sourceforge.net/\n2. Run from this folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = reads the certificate from the Windows certificate store (certSIGN,\n   virtual token); when it runs, JSignPdf/Windows asks for the token PIN.\n   -llx/-lly/-urx/-ury/-page = the position of the rectangle picked in the app (PDF coordinates, points).\n\n3. The result is \"semnat_{{file}}\". Upload it back with the button\n   \"I signed it, upload the PDF\" in the Sign tab.\n\nIf JSignPdf does not find the certSIGN certificate in -kst WINDOWS-MY, your virtual token does not\nexpose its private key outside the provider's own app. Sign by hand in Adobe Acrobat as before\nand upload the result here anyway, so it stays in the document's history.\n",
-    "reservedSeedNote": "Collaboration contract, outside the app"
+    "saasTitle": "SaaS contract"
   },
   "reconciliation": {
     "configureFirst": "set the client_id and generate the certificate first",
@@ -741,6 +741,20 @@
     "WEBHOOK_NOT_CONFIGURED": "The webhook is not configured.",
     "WEBHOOK_SIGNATURE_INVALID": "The signature is not valid.",
     "WIDGET_NOT_AVAILABLE": "A widget in the layout is not available to you.",
-    "ZIP_TOO_LARGE": "The attachments exceed {{limitMb}} MB and cannot be downloaded as an archive."
+    "ZIP_TOO_LARGE": "The attachments exceed {{limitMb}} MB and cannot be downloaded as an archive.",
+    "CONTRACT_NOT_FOUND": "The contract does not exist.",
+    "CONTRACT_NUMBER_TAKEN": "Number {{number}} is already taken in the series.",
+    "CONTRACT_NUMBER_NOT_FOUND": "The reservation does not exist.",
+    "CONTRACT_SERIES_NOT_FOUND": "The number series does not exist.",
+    "CONTRACT_SERIES_CODE_TAKEN": "A series with code {{code}} already exists.",
+    "CONTRACT_STATUS_TRANSITION": "The contract cannot go from \"{{from}}\" to \"{{to}}\".",
+    "CONTRACT_RENEWAL_MONTHS_REQUIRED": "Automatic renewal needs the number of months.",
+    "CONTRACT_END_REQUIRED": "A notice period needs an end date.",
+    "CONTRACT_NOT_DRAFT": "Only a draft can be deleted. A signed contract is terminated instead.",
+    "CONTRACT_OWNER_ADMIN_ONLY": "Only the admin can hand the contract to someone else.",
+    "CONTRACT_TEMPLATE_SYSTEM": "The SaaS templates cannot be deleted.",
+    "PROSPECT_NOT_FOUND": "The prospect does not exist.",
+    "USER_NOT_FOUND": "The person does not exist.",
+    "CONTRACT_TEMPLATE_FIELD_DUPLICATE": "The same field appears twice in the template."
   }
 }

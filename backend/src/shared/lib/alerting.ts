@@ -39,7 +39,7 @@ export async function ensureAlertRule(metricKey: string, name: string, severity:
 export async function raiseAlert(
   ruleId: string,
   text: LocalizedText,
-  opts?: { severity?: Severity; emailBody?: string; url?: string; email?: boolean },
+  opts?: { severity?: Severity; emailBody?: string; url?: string; email?: boolean; dedupeOnMessage?: boolean },
 ): Promise<void> {
   // The stored row and the operator's email are in the installation's language; the push
   // below is written again for each person.
@@ -50,7 +50,7 @@ export async function raiseAlert(
   const [existing] = await db
     .select({ id: alerts.id })
     .from(alerts)
-    .where(and(eq(alerts.ruleId, ruleId), isNull(alerts.acknowledgedAt)))
+    .where(and(eq(alerts.ruleId, ruleId), isNull(alerts.acknowledgedAt), opts?.dedupeOnMessage ? eq(alerts.message, message) : undefined))
   if (existing) return
 
   const severity = opts?.severity ?? 'critical'

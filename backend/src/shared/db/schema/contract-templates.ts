@@ -1,4 +1,5 @@
-import { jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { boolean, jsonb, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { standardColumns } from './helpers.js'
 import { tenantColumns } from './tenant-column.js'
 
@@ -11,8 +12,14 @@ export const contractTemplates = pgTable('contract_templates', {
   ...tenantColumns,
   ...standardColumns,
   // 'contract-saas' | 'anexa-preturi' | 'act-aditional'
-  key: text('key').notNull(),
+  // Set only on the three SaaS templates; the company's own templates have none.
+  key: text('key'),
   name: text('name').notNull(),
   bodyHtml: text('body_html').notNull(),
   placeholders: jsonb('placeholders').notNull().default([]),
-}, (t) => [uniqueIndex('uq_contract_templates_tenant_key').on(t.tenantId, t.key)])
+  category: text('category'),
+  fields: jsonb('fields').notNull().default([]),
+  seriesId: uuid('series_id'),
+  signerRoles: jsonb('signer_roles').notNull().default([]),
+  isSystem: boolean('is_system').notNull().default(false),
+}, (t) => [uniqueIndex('uq_contract_templates_tenant_key').on(t.tenantId, t.key).where(sql`${t.key} IS NOT NULL`)])

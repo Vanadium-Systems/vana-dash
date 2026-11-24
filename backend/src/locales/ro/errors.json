@@ -281,7 +281,7 @@
     "templateNotFound": "Șablon inexistent",
     "signReadmeName": "CITEȘTE-MĂ.txt",
     "signReadme": "Semnătură digitală — {{file}}\n=======================================\n\n1. Instalează Java (dacă nu-l ai deja) și descarcă JSignPdf: http://jsignpdf.sourceforge.net/\n2. Rulează din acest folder (Windows, cmd/PowerShell):\n\n   {{command}}\n\n   -kst WINDOWS-MY = citește certificatul din magazinul de certificate Windows (certSIGN,\n   token virtual) — la rulare, JSignPdf/Windows îți va cere PIN-ul tokenului.\n   -llx/-lly/-urx/-ury/-page = poziția dreptunghiului ales în dash (coordonate PDF, puncte).\n\n3. Rezultatul e \"semnat_{{file}}\" — încarcă-l înapoi în dash cu butonul\n   \"Am semnat, încarcă PDF-ul\" din tab-ul Semnează.\n\nDacă JSignPdf nu găsește certificatul certSIGN în -kst WINDOWS-MY, tokenul tău virtual nu-și\nexpune cheia privată în afara aplicației proprii a providerului — semnează manual în Adobe\nAcrobat ca până acum și încarcă rezultatul aici oricum, ca să rămână în istoricul documentului.\n",
-    "reservedSeedNote": "Contract de colaborare, în afara aplicației"
+    "saasTitle": "Contract SaaS"
   },
   "reconciliation": {
     "configureFirst": "configurează client_id și generează certificatul mai întâi",
@@ -743,6 +743,20 @@
     "WEBHOOK_NOT_CONFIGURED": "Webhook-ul nu e configurat.",
     "WEBHOOK_SIGNATURE_INVALID": "Semnătura nu e validă.",
     "WIDGET_NOT_AVAILABLE": "Un widget din layout nu e disponibil pentru tine.",
-    "ZIP_TOO_LARGE": "Atașamentele depășesc {{limitMb}} MB și nu pot fi descărcate într-o arhivă."
+    "ZIP_TOO_LARGE": "Atașamentele depășesc {{limitMb}} MB și nu pot fi descărcate într-o arhivă.",
+    "CONTRACT_NOT_FOUND": "Contractul nu există.",
+    "CONTRACT_NUMBER_TAKEN": "Numărul {{number}} e deja luat în serie.",
+    "CONTRACT_NUMBER_NOT_FOUND": "Rezervarea nu există.",
+    "CONTRACT_SERIES_NOT_FOUND": "Seria de numere nu există.",
+    "CONTRACT_SERIES_CODE_TAKEN": "Există deja o serie cu codul {{code}}.",
+    "CONTRACT_STATUS_TRANSITION": "Contractul nu poate trece din „{{from}}” în „{{to}}”.",
+    "CONTRACT_RENEWAL_MONTHS_REQUIRED": "Reînnoirea automată cere numărul de luni.",
+    "CONTRACT_END_REQUIRED": "Preavizul cere data de sfârșit.",
+    "CONTRACT_NOT_DRAFT": "Doar o ciornă se poate șterge. Un contract semnat se reziliază.",
+    "CONTRACT_OWNER_ADMIN_ONLY": "Doar adminul poate da contractul altcuiva.",
+    "CONTRACT_TEMPLATE_SYSTEM": "Șabloanele SaaS nu se șterg.",
+    "PROSPECT_NOT_FOUND": "Prospectul nu există.",
+    "USER_NOT_FOUND": "Persoana nu există.",
+    "CONTRACT_TEMPLATE_FIELD_DUPLICATE": "Același câmp apare de două ori în șablon."
   }
 }

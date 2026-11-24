@@ -26,7 +26,9 @@
     "callRoomFailed": "Camera de apel nu s-a creat",
     "livekitRefused": "LiveKit refuză cererile",
     "spvNotice": "Mesaj important în SPV",
-    "declarationNoReceipt": "Declarație fără recipisă"
+    "declarationNoReceipt": "Declarație fără recipisă",
+    "contractNotice": "Preaviz la contract",
+    "contractNoticeStale": "Verificarea preavizelor nu rulează"
   },
   "accounting": {
     "anafNeedsReauth": "ANAF necesită reautentificare manuală",
@@ -89,5 +91,11 @@
     "open": "Deschide în vanagreen: {{url}}",
     "buyer": "Cumpărător: {{name}}",
     "buyerWithCui": "Cumpărător: {{name}} — CUI {{cui}}"
+  },
+  "contracts": {
+    "noticeEventTitle": "Preaviz: {{title}}, {{party}}",
+    "noticeEventBody": "Ultima zi de preaviz. Contractul se încheie pe {{endsOn}} (preaviz de {{days}} de zile).",
+    "notice": "Preavizul pentru „{{title}}” ({{party}}) expiră pe {{deadline}}.",
+    "jobStale": "Verificarea preavizelor la contracte n-a mai rulat de peste 26 de ore."
   }
 }

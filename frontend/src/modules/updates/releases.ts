@@ -25,6 +25,30 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-24T18:00:00+02:00',
+    title: {
+      ro: 'Registrul de contracte',
+      en: 'The contracts register',
+    },
+    body: {
+      ro: 'Clienți → Contracte ține acum toate contractele: cele SaaS cu clienții, colaborările, NDA-urile și cele primite de la furnizori. Fiecare are pagina lui, cu termen, responsabil, documente și istoric. „Contract nou” pornește dintr-un șablon al firmei, iar „Încarcă semnat” adaugă un contract venit din afară. Numerele vin dintr-o singură serie, cu lista golurilor libere. La preaviz, calendarul responsabilului primește un eveniment, iar cu 14 zile înainte (sau cât setezi) vine o alertă. Contractele sunt confidențiale: le văd doar adminul și responsabilul.',
+      en: 'Clients → Contracts now holds every contract: the SaaS ones with clients, collaborations, NDAs and the ones received from suppliers. Each has its own page with the term, owner, documents and history. “New contract” starts from a company template, and “Upload signed” adds a contract that came from outside. Numbers come from one series, with the list of free gaps. For the notice period, the owner’s calendar gets an event, and an alert arrives 14 days ahead (or as many as you set). Contracts are confidential: only the admin and the owner see them.',
+    },
+    features: ['facturi.contracte'],
+  },
+  {
+    publishedAt: '2026-11-24T17:50:00+02:00',
+    title: {
+      ro: 'Șabloane și serii de contracte',
+      en: 'Contract templates and series',
+    },
+    body: {
+      ro: 'Un drept nou în pagina Module, „Șabloane și serii de contracte”, oprit implicit. Cu el editezi în Setări contracte șabloanele firmei: câmpurile, cine semnează, seriile de numere și câte zile înainte vine alerta de preaviz. Partea noastră nu primește câmp gol de semnătură, fiindcă semnăm pe webSIGN.',
+      en: 'A new right on the Modules page, “Contract templates and series”, off by default. It lets you edit the company templates in Contract settings: the fields, who signs, the number series and how many days ahead the notice alert comes. Our side gets no empty signature field, since we sign on webSIGN.',
+    },
+    features: ['facturi.sabloane-contracte'],
+  },
+  {
     publishedAt: '2026-11-19T13:00:00Z',
     title: {
       ro: 'Ceas în apel și „Prelungește”',
@@ -787,8 +811,8 @@ const SOURCES: ReleaseSource[] = [
       en: 'Contracts can be downloaded blank',
     },
     body: {
-      ro: 'În Facturi → Contracte, cardul cu șabloane are trei butoane: contractul, anexa de prețuri și actul adițional, ca PDF fără un client anume. Datele firmei și termenii sunt completați, câmpurile clientului rămân linii punctate.',
-      en: 'In Invoices → Contracts, the templates card has three buttons: the contract, the price annex and the addendum, as a PDF without a particular client. The company details and terms are filled in, the client\'s fields are dotted lines.',
+      ro: 'În Clienți → Contracte, cardul cu șabloane are trei butoane: contractul, anexa de prețuri și actul adițional, ca PDF fără un client anume. Datele firmei și termenii sunt completați, câmpurile clientului rămân linii punctate.',
+      en: 'In Clients → Contracts, the templates card has three buttons: the contract, the price annex and the addendum, as a PDF without a particular client. The company details and terms are filled in, the client\'s fields are dotted lines.',
     },
     features: ['facturi.contracte'],
   },

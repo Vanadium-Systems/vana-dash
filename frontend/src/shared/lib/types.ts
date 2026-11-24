@@ -397,14 +397,6 @@ export interface BillingClient {
   contractDetails: ContractDetails | null
 }
 
-// Număr de contract ocupat în afara dash-ului (dashboard_config['contract.reservedNumbers']).
-export interface ReservedContractNumber {
-  number: string
-  note: string
-  /** YYYY-MM-DD */
-  date: string
-}
-
 // modules/contracts — shape validat Zod server-side (ContractDetailsSchema), toate opționale.
 export interface ContractDetails {
   nrContract?: string

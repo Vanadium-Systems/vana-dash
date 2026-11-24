@@ -56,28 +56,3 @@ export const SignatureRectSchema = z.object({
   width: z.number().min(0).max(1),
   height: z.number().min(0).max(1),
 })
-
-// Numere de contract ocupate în afara dash-ului (PLAN.md C0): generatorul de sugestii le sare.
-export const ReservedNumberSchema = z.object({
-  number: z
-    .string()
-    .trim()
-    .regex(/^\d{1,4}$/)
-    .transform((v) => v.padStart(3, '0')),
-  note: z.string().trim().min(1).max(120),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-})
-export const ReservedNumbersSchema = z.array(ReservedNumberSchema)
-export type ReservedNumber = z.infer<typeof ReservedNumberSchema>
-
-export const ContractListQuerySchema = z.object({
-  q: z.string().trim().max(100).optional(),
-  // Comma-separated, like the other multi-value query params (`?state=signed,addendum`).
-  state: z
-    .string()
-    .transform((value) => value.split(',').map((s) => s.trim()).filter(Boolean))
-    .pipe(z.array(z.enum(['none', 'generated', 'signed', 'addendum'])).min(1).max(4))
-    .optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().refine((n) => [10, 25, 50].includes(n)).default(25),
-})

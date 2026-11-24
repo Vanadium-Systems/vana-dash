@@ -26,6 +26,8 @@ const ImportPage = lazy(() => import('@/modules/clients/import/ImportPage').then
 const CallSession = lazy(() => import('@/modules/clients/tasks/CallSession').then((m) => ({ default: m.CallSession })))
 const ProspectPage = lazy(() => import('@/modules/clients/sheet/ProspectPage').then((m) => ({ default: m.ProspectPage })))
 const loadAccountingPage = () => import('@/modules/accounting/AccountingPage')
+const ContractPage = lazy(() => import('@/modules/accounting/ContractPage').then((m) => ({ default: m.ContractPage })))
+const ContractNewPage = lazy(() => import('@/modules/accounting/ContractNewPage').then((m) => ({ default: m.ContractNewPage })))
 const InvoiceEditorPage = lazy(() => import('@/modules/accounting/InvoiceEditorPage').then((m) => ({ default: m.InvoiceEditorPage })))
 const RecordPage = lazy(() => import('@/modules/accounting/RecordPage').then((m) => ({ default: m.RecordPage })))
 const AccountingPage = lazy(() => loadAccountingPage().then((m) => ({ default: m.AccountingPage })))
@@ -205,6 +207,8 @@ export function App() {
             <Route path="/assets" element={<RequireFeature feature="investitii.view" page={t('common:nav.investments')}><LinkedSection title={t('common:nav.investments')} links={INVESTMENT_LINKS}><AssetsPage /></LinkedSection></RequireFeature>} />
             <Route path="/assets/:category/:symbol" element={<RequireFeature feature="investitii.view" page={t('common:nav.investments')}><AssetDetailPage /></RequireFeature>} />
             <Route path="/clients" element={<RequireFeature feature={CLIENTS_FEATURES} page={t('common:nav.clients')}><ClientsPage /></RequireFeature>} />
+            <Route path="/clients/contracte/nou" element={<RequireFeature feature="facturi.contracte" page={t('common:nav.clients')}><ContractNewPage /></RequireFeature>} />
+            <Route path="/clients/contracte/:id" element={<RequireFeature feature="facturi.contracte" page={t('common:nav.clients')}><ContractPage /></RequireFeature>} />
             <Route path="/clients/import" element={<RequireFeature feature="clienti.prospectare" page={t('common:nav.clients')}><ImportPage /></RequireFeature>} />
             <Route path="/clients/lists/from-search" element={<RequireFeature feature="clienti.prospectare" page={t('common:nav.clients')}><FromSearchPage /></RequireFeature>} />
             <Route path="/clients/:id" element={<RequireFeature feature="clienti.view" page={t('common:nav.clients')}><ProspectPage /></RequireFeature>} />

@@ -9,7 +9,8 @@ import { Label } from '@/shared/components/ui/label'
 import { EntityHistory } from '@/shared/components/EntityHistory'
 import { api } from '@/shared/lib/api'
 import { useMe } from '@/shared/hooks/use-me'
-import type { AnafCompanyInfo, BillingClient, ContractDetails, Platform, PricingConfigRow, ReservedContractNumber, VanagreenTenant } from '@/shared/lib/types'
+import type { AnafCompanyInfo, BillingClient, ContractDetails, Platform, PricingConfigRow, VanagreenTenant } from '@/shared/lib/types'
+import { useContractNumbers, type NumbersList } from './contracts-api'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
@@ -47,41 +48,20 @@ export function formatContractDate(iso: string): string {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : ''
 }
 
-// Contract numbers run globally (001, 002, 003…, in the order clients are onboarded), not per
-// client like addenda. This is only a suggestion and can be overwritten by hand. Reserved
-// numbers (contracts made outside the app) are skipped.
-export function suggestNextContractNumber(
-  clients: BillingClient[] | undefined,
-  reserved: ReservedContractNumber[] = [],
-): string {
-  const used = (clients ?? [])
-    .map((c) => c.contractDetails?.nrContract)
-    .filter((v): v is string => Boolean(v))
-    .map((v) => parseInt(v, 10))
-    .filter((n) => !Number.isNaN(n))
-  const taken = new Set(reserved.map((r) => parseInt(r.number, 10)))
-  let next = (used.length > 0 ? Math.max(...used) : 0) + 1
-  while (taken.has(next)) next += 1
-  return String(next).padStart(3, '0')
+// Contract numbers run globally per series (001, 002, 003…), not per client like addenda; the
+// server knows what is used and reserved. This is only a suggestion and can be overwritten by hand.
+export function suggestNextContractNumber(numbers: NumbersList | undefined): string {
+  return numbers?.nextLabel ?? '001'
 }
 
-/** Mesajul de sub câmp când numărul tastat e deja rezervat sau pus pe alt client; altfel null. */
-export function contractNumberConflict(
-  value: string | undefined,
-  clients: BillingClient[] | undefined,
-  reserved: ReservedContractNumber[],
-  currentClientId: string | null,
-): string | null {
+/** Mesajul de sub câmp când numărul tastat e rezervat sau folosit la alt contract decât al clientului; altfel null. */
+export function contractNumberConflict(value: string | undefined, numbers: NumbersList | undefined, clientName: string | null): string | null {
   const typed = (value ?? '').trim()
   if (!/^\d+$/.test(typed)) return null
-  const n = parseInt(typed, 10)
-  const label = typed.padStart(3, '0')
-  const hit = reserved.find((r) => parseInt(r.number, 10) === n)
-  if (hit) return `${label} e rezervat: ${hit.note}`
-  const owner = (clients ?? []).find(
-    (c) => c.id !== currentClientId && /^\d+$/.test(c.contractDetails?.nrContract?.trim() ?? '') && parseInt(c.contractDetails!.nrContract!, 10) === n,
-  )
-  return owner ? t('accounting:clientForm.alreadyUsed', { label, name: owner.name }) : null
+  const hit = numbers?.items.find((item) => item.number === parseInt(typed, 10))
+  if (hit?.kind === 'reserved') return t('accounting:clientForm.reservedNumber', { label: hit.label, note: hit.note ?? '' })
+  if (hit?.kind === 'used' && hit.counterpartyName !== clientName) return t('accounting:clientForm.alreadyUsed', { label: hit.label, name: hit.counterpartyName ?? '' })
+  return null
 }
 
 export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialogProps) {
@@ -130,25 +110,12 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
   const cd = (key: keyof ContractDetails) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setContractDetails((d) => ({ ...d, [key]: e.target.value }))
 
-  // Aceeași listă deja încărcată de ClientsTab (React Query dedup pe queryKey) — folosită doar
-  // pt. sugestia de „Număr contract" (max existent + 1).
-  const clients = useQuery({
-    queryKey: ['billing-clients'],
-    queryFn: () => api.get<BillingClient[]>('/api/invoicing/clients'),
-    enabled: open,
-  })
-
   // Not gated on `open`: the list must already be cached when the dialog opens, or the first
   // suggestion goes out without it. Without `facturi.contracte` there is no list to ask for (a 403
   // on every visit otherwise), so the suggestion runs on an empty one.
   const canContracts = can('facturi.contracte')
-  const reservedNumbers = useQuery({
-    queryKey: ['contract-reserved-numbers'],
-    queryFn: () => api.get<ReservedContractNumber[]>('/api/contracts/reserved-numbers'),
-    enabled: canContracts,
-    retry: false,
-  })
-  const reserved = canContracts ? reservedNumbers.data : []
+  const contractNumbers = useContractNumbers(null, canContracts)
+  const numbers = canContracts ? contractNumbers.data : undefined
 
   // Listă goală (fără eroare) dacă platforma vanagreen nu e configurată încă — dropdown-ul
   // devine pur decorativ, id-ul se introduce manual (validat oricum la salvare).
@@ -224,7 +191,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
       setContractPlan(client?.contractPlan ?? '')
       const details = client?.contractDetails ?? {}
       setContractDetails(
-        !details.nrContract ? { ...details, nrContract: suggestNextContractNumber(clients.data, reserved) } : details,
+        !details.nrContract ? { ...details, nrContract: suggestNextContractNumber(numbers) } : details,
       )
       setContractDateIso(details.dataContract ? parseContractDate(details.dataContract) : '')
       // "Ciclu de facturare": select LUNAR/ANUAL/SPECIAL — orice altă valoare existentă (text
@@ -239,16 +206,14 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
     // deschidere, nu vrem re-rulare la fiecare refetch în fundal.
   }, [open, client])
 
-  // Lista de rezervate sosită după deschidere: sugestia se recalculează doar dacă omul n-a
+  // Lista de numere sosită după deschidere: sugestia se recalculează doar dacă omul n-a
   // atins câmpul (valoarea e încă sugestia făcută fără listă).
   useEffect(() => {
-    if (!open || client?.contractDetails?.nrContract || !reserved) return
+    if (!open || client?.contractDetails?.nrContract || !numbers) return
     setContractDetails((current) =>
-      current.nrContract === suggestNextContractNumber(clients.data)
-        ? { ...current, nrContract: suggestNextContractNumber(clients.data, reserved) }
-        : current,
+      current.nrContract === suggestNextContractNumber(undefined) ? { ...current, nrContract: suggestNextContractNumber(numbers) } : current,
     )
-  }, [reservedNumbers.data])
+  }, [contractNumbers.data])
 
   // "Module add-on active": checkbox-uri din catalogul platformei + reziduu text liber pt.
   // valori vechi care nu se mapează 1:1 (ex: "E-Factura (ANAF SPV)", importat din
@@ -371,7 +336,7 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
     onError: (err) => toastError(err),
   })
 
-  const nrContractConflict = contractNumberConflict(contractDetails.nrContract, clients.data, reservedNumbers.data ?? [], client?.id ?? null)
+  const nrContractConflict = contractNumberConflict(contractDetails.nrContract, numbers, client?.name ?? null)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

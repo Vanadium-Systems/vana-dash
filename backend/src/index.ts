@@ -15,6 +15,7 @@ import { startProspectAutomationsJob } from './jobs/prospect-automations.js'
 import { startTrashPurgeJob } from './jobs/trash-purge.js'
 import { startCallsCloseJob } from './jobs/calls-close.js'
 import { startCalendarRemindersJob } from './jobs/calendar-reminders.js'
+import { startContractNoticeJob } from './jobs/contract-notice.js'
 import { startChatCleanupJob } from './jobs/chat-cleanup.js'
 import { startCryptoPriceSyncJob } from './jobs/crypto-price-sync.js'
 import { startAssetsPriceSyncJob } from './jobs/assets-price-sync.js'
@@ -88,6 +89,7 @@ startServer1AlertsJob()
 startBackupJob()
 startArchiveMonthlyFoldersJob()
 startCalendarRemindersJob()
+startContractNoticeJob()
 startAssistantCleanupJob()
 startSessionsCleanupJob()
 startChatCleanupJob()

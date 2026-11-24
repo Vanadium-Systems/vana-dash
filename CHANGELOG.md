@@ -4,6 +4,24 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-24: Contracts register
+
+### Added
+- **Contracts register:** Clients → Contracts lists every contract: SaaS with clients, collaborations, NDAs and uploaded supplier contracts. Each has a page (`/clients/contracte/:id`) with the term (start, end, automatic renewal in months, notice in days), an owner, documents, history and a state (`draft`, `to_sign`, `signed`, `expired`, `terminated`).
+- **New contract** from a company template (the form is built from the template's fields, the proposed number comes from the series, a taken number cannot be reused) and **Upload signed** for contracts that come from outside, with our number or the other party's.
+- **Numbers:** one shared series (001, 002, ...) with the free gaps and reservations; it replaces the reserved-numbers list in Settings.
+- **Company templates:** an editor in contract settings for fields, signatories, series and the notice alert lead time. Our side gets no empty signature field, since we sign externally. New feature `facturi.sabloane-contracte` ("Contract templates and series"), off by default.
+- **Notice period:** saving a contract puts the notice deadline in the owner's calendar. A daily job at 08:00 (company time zone) raises an alert N days ahead (14 by default), moves the end date of contracts with automatic renewal and sets the others to `expired`.
+- **Backup:** the daily job also archives the `storage/` folder (contract PDFs, invoice XML, attachments) as `storage-<date>.tar.gz`, encrypted and uploaded next to the dump. Restore steps in `docs/BACKUP.md`.
+
+### Changed
+- **API:** new routes under `/api/contracts` (`registry`, `numbers`, `series`, `settings`, custom `templates`). `GET /api/contracts/list` and `GET/PUT /api/contracts/reserved-numbers` are removed. See `docs/API.md`.
+- Contracts are confidential: only an admin and the contract's owner can open one; anyone else gets `404`.
+- SaaS contracts generated from the client sheet work as before; our side no longer gets an empty signature field.
+
+### Security
+- Template PDFs are rendered with JavaScript disabled and no network access, so an `<img>` in a template cannot make the server fetch anything.
+
 ## 2026-11-19: VanaGreen billing mirror as one versioned document
 
 ### Changed

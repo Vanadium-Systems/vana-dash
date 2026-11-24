@@ -6,7 +6,7 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { auditLog, billingClients, contractAddenda, contractDocuments, contractTemplates } from '../../shared/db/schema/index.js'
+import { auditLog, billingClients, contractAddenda, contractDocuments, contracts, contractTemplates } from '../../shared/db/schema/index.js'
 import { CONTRACT_TEMPLATE_BODIES } from '../../shared/lib/contract-templates.js'
 
 const isPdfAvailableMock = vi.fn(() => true)
@@ -65,6 +65,8 @@ afterEach(async () => {
   if (clientIds.length) {
     await db.delete(contractDocuments).where(inArray(contractDocuments.billingClientId, clientIds))
     await db.delete(contractAddenda).where(inArray(contractAddenda.billingClientId, clientIds))
+    // The number of a client's contract is held in the series: free it, or the next test's client 99 is "taken".
+    await db.delete(contracts).where(inArray(contracts.billingClientId, clientIds))
   }
   // Rândurile de istor sunt șterse cu același id client ca documentele, ca să nu se piardă în
   // suita care Rulează secvențial pe aceeași bază.
@@ -72,7 +74,10 @@ afterEach(async () => {
 })
 
 afterAll(async () => {
-  if (clientIds.length) await db.delete(billingClients).where(inArray(billingClients.id, clientIds.splice(0)))
+  if (clientIds.length) {
+    await db.delete(contracts).where(inArray(contracts.billingClientId, clientIds))
+    await db.delete(billingClients).where(inArray(billingClients.id, clientIds.splice(0)))
+  }
 })
 
 describe('getContractInfo', () => {
