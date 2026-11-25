@@ -990,7 +990,7 @@
     "series": "Number series",
     "defaultSeries": "Default series",
     "signers": "Who signs",
-    "signersHint": "The party marked as ours gets no empty signature field: you sign on webSIGN, which draws its own field.",
+    "signersHint": "Every role gets an empty signature field. You sign the party marked as ours with your token before sending the link.",
     "roleName": "Role",
     "ownRole": "This is us",
     "addRole": "Add a signer",

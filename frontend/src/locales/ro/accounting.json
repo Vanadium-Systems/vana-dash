@@ -999,7 +999,7 @@
     "series": "Serie de numere",
     "defaultSeries": "Seria implicită",
     "signers": "Cine semnează",
-    "signersHint": "Partea bifată ca „a noastră” nu primește câmp gol de semnătură: semnezi pe webSIGN, care își face singur câmpul.",
+    "signersHint": "Fiecare rol primește un câmp gol de semnătură. Partea bifată ca „a noastră” o semnezi tu, cu tokenul, înainte să trimiți linkul.",
     "roleName": "Rol",
     "ownRole": "E partea noastră",
     "addRole": "Adaugă un semnatar",
