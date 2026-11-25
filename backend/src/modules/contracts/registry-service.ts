@@ -7,16 +7,16 @@ import { listEntityHistory, recordAudit } from '../../shared/lib/audit.js'
 import { createCalendarEvent, deleteCalendarEvent, updateCalendarEvent } from '../../shared/lib/calendar-write.js'
 import { getCompany } from '../../shared/lib/company.js'
 import { httpError } from '../../shared/lib/http-error.js'
-import { tr, trFor } from '../../shared/lib/i18n.js'
+import { trFor } from '../../shared/lib/i18n.js'
 import { htmlToPdf, isPdfAvailable } from '../../shared/lib/pdf.js'
 import { escapeLike } from '../../shared/lib/prospect-access.js'
 import { zonedTimeToUtc } from '../../shared/lib/schedule-recurrence.js'
 import type { SessionUser } from '../../shared/lib/session.js'
 import { deleteDocument, saveDocument } from '../../shared/lib/storage.js'
 import { claimNumber, defaultSeries, formatContractNumber, getSeries, nextNumber, releaseNumber } from './numbers.js'
-import type { CounterpartySchema, CreateContractSchema, RegistryQuerySchema, UpdateContractSchema, UploadContractMetaSchema } from './registry-schema.js'
+import type { CounterpartySchema, CreateContractSchema, PartyQuerySchema, RegistryQuerySchema, UpdateContractSchema, UploadContractMetaSchema } from './registry-schema.js'
 import { TemplateFieldSchema, SignerRoleSchema } from './registry-schema.js'
-import { missingFields, renderCustomTemplate } from './template-render.js'
+import { companyDetails, missingFields, PARTY_DETAIL_KEYS, renderCustomTemplate, type PartyDetails } from './template-render.js'
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 type Me = Pick<SessionUser, 'id' | 'isPlatformAdmin' | 'role'>
@@ -183,6 +183,34 @@ async function resolveCounterparty(counterparty: z.infer<typeof CounterpartySche
   }
 }
 
+/** What the app already knows about the other side, to fill the contract's party tokens. */
+export async function getPartyDetails(party: z.infer<typeof PartyQuerySchema>, executor: Tx | typeof db = db): Promise<PartyDetails> {
+  switch (party.kind) {
+    case 'client': {
+      const [row] = await executor.select().from(billingClients).where(and(eq(billingClients.id, party.id), isNull(billingClients.deletedAt)))
+      if (!row) throw httpError(404, 'CLIENT_NOT_FOUND')
+      return {
+        cui: row.cif,
+        nrRegCom: row.regCom ?? '',
+        adresa: [row.address, row.city, row.county].map((part) => part?.trim()).filter(Boolean).join(', '),
+        reprezentant: row.contactName ?? '',
+        functie: row.contactTitle ?? '',
+        email: row.email ?? '',
+      }
+    }
+    case 'prospect': {
+      const [row] = await executor.select({ cif: prospects.cif }).from(prospects).where(and(eq(prospects.id, party.id), isNull(prospects.deletedAt)))
+      if (!row) throw httpError(404, 'PROSPECT_NOT_FOUND')
+      return { cui: row.cif ?? '' }
+    }
+    case 'user': {
+      const [row] = await executor.select({ email: users.email }).from(users).where(and(eq(users.id, party.id), isNull(users.deletedAt)))
+      if (!row) throw httpError(404, 'USER_NOT_FOUND')
+      return { email: row.email }
+    }
+  }
+}
+
 /** Only the admin hands a contract to someone else; the person must exist in the company. */
 async function resolveOwner(me: Me, ownerUserId: string | undefined, executor: Tx | typeof db = db): Promise<string> {
   if (!ownerUserId || ownerUserId === me.id) return me.id
@@ -257,8 +285,7 @@ async function loadCustomTemplate(templateId: string, executor: Tx | typeof db =
     .select()
     .from(contractTemplates)
     .where(and(eq(contractTemplates.id, templateId), isNull(contractTemplates.deletedAt)))
-  // The SaaS templates are generated from the client's page, with the client's billing data.
-  if (!template || template.isSystem || template.key) throw httpError(400, 'TEMPLATE_NOT_FOUND')
+  if (!template) throw httpError(400, 'TEMPLATE_NOT_FOUND')
   return {
     ...template,
     fields: TemplateFieldSchema.array().parse(template.fields),
@@ -277,6 +304,10 @@ export async function createFromTemplate(me: Me, input: z.infer<typeof CreateCon
   try {
     const result = await db.transaction(async (tx) => {
       const party = await resolveCounterparty(input.counterparty, tx)
+      const stored = input.counterparty.kind === 'other' ? {} : await getPartyDetails(input.counterparty, tx)
+      const partyDetails: PartyDetails = Object.fromEntries(
+        PARTY_DETAIL_KEYS.map((key) => [key, input.partyDetails[key] || stored[key] || '']),
+      )
       const ownerUserId = await resolveOwner(me, input.ownerUserId, tx)
       const seriesId = input.seriesId ?? template.seriesId ?? (await defaultSeries(tx))?.id
       if (!seriesId) throw httpError(400, 'CONTRACT_SERIES_NOT_FOUND')
@@ -297,7 +328,8 @@ export async function createFromTemplate(me: Me, input: z.infer<typeof CreateCon
           origin: 'template',
           templateId: template.id,
           templateSnapshot: { name: template.name, bodyHtml: template.bodyHtml, fields: template.fields, signerRoles: template.signerRoles },
-          fieldValues: input.fieldValues,
+          // The party's details as printed, kept beside the fields for when the client's record changes.
+          fieldValues: { ...input.fieldValues, ...Object.fromEntries(PARTY_DETAIL_KEYS.map((key) => [`parte.${key}`, partyDetails[key] ?? ''])) },
           createdByUserId: me.id,
           updatedByUserId: me.id,
         })
@@ -314,6 +346,8 @@ export async function createFromTemplate(me: Me, input: z.infer<typeof CreateCon
         numberLabel: label,
         date: todayIso(company.timeZone),
         counterpartyName: party.counterpartyName,
+        party: partyDetails,
+        company: companyDetails(company.profile),
       })
       const pdf = await htmlToPdf(html, { signatureFields: true, isolated: true })
       savedPath = await saveDocument(`contracts/registry/${contract!.id}/${safeName(label)}_${Date.now()}.pdf`, pdf)
@@ -433,75 +467,6 @@ export async function deleteDraft(me: Me, id: string) {
 
 // ── SaaS contracts: the registry row behind the client's documents ──────────────────────────
 
-/**
- * The SaaS contract of a client, created on first use. Every path that makes or signs a SaaS
- * document goes through here, so the document always has its contract_id and the client's
- * contract number is held in the series (and cannot be handed out twice).
- */
-export async function ensureSaasContract(tx: Tx, clientId: string, actorUserId: string | null): Promise<string> {
-  const [client] = await tx.select().from(billingClients).where(eq(billingClients.id, clientId))
-  if (!client) throw httpError(400, 'CLIENT_NOT_FOUND')
-  let [contract] = await tx
-    .select()
-    .from(contracts)
-    .where(and(eq(contracts.billingClientId, clientId), eq(contracts.origin, 'saas'), isNull(contracts.deletedAt)))
-  if (!contract) {
-    const ownerUserId = actorUserId ?? (await companyAdminId(tx))
-    ;[contract] = await tx
-      .insert(contracts)
-      .values({
-        title: tr('errors.contracts.saasTitle'),
-        category: 'saas',
-        counterpartyKind: 'client',
-        billingClientId: clientId,
-        counterpartyName: client.name,
-        ownerUserId,
-        status: 'draft',
-        origin: 'saas',
-        createdByUserId: actorUserId,
-        updatedByUserId: actorUserId,
-      })
-      .returning()
-  } else if (contract.counterpartyName !== client.name) {
-    await tx.update(contracts).set({ counterpartyName: client.name }).where(eq(contracts.id, contract.id))
-  }
-
-  const raw = ((client.contractDetails ?? {}) as { nrContract?: string }).nrContract?.trim() ?? ''
-  const plain = /^\d{1,6}$/.test(raw) ? Number(raw) : null
-  if (plain !== null) {
-    const series = contract!.seriesId ? { id: contract!.seriesId } : await defaultSeries(tx)
-    if (series && contract!.number !== plain) {
-      if (contract!.number !== null) await releaseNumber(tx, contract!.id)
-      await claimNumber(tx, series.id, plain, contract!.id)
-      await tx.update(contracts).set({ externalNumber: null }).where(eq(contracts.id, contract!.id))
-    } else if (!series) {
-      await tx.update(contracts).set({ externalNumber: raw }).where(eq(contracts.id, contract!.id))
-    }
-  } else if (raw && contract!.externalNumber !== raw) {
-    if (contract!.number !== null) await releaseNumber(tx, contract!.id)
-    await tx.update(contracts).set({ externalNumber: raw }).where(eq(contracts.id, contract!.id))
-  }
-  return contract!.id
-}
-
-/** A SaaS document was signed: the contract is too, from that day. */
-export async function markSaasContractSigned(tx: Tx, contractId: string, signedAt: Date): Promise<void> {
-  await tx
-    .update(contracts)
-    .set({ status: 'signed', signedOn: sql`coalesce(${contracts.signedOn}, ${signedAt.toISOString().slice(0, 10)}::date)`, updatedAt: new Date() })
-    .where(and(eq(contracts.id, contractId), sql`${contracts.status} IN ('draft', 'to_sign')`))
-}
-
-async function companyAdminId(tx: Tx): Promise<string> {
-  const [row] = await tx.execute<{ id: string }>(sql`
-    SELECT u."id" FROM ${users} u LEFT JOIN "roles" r ON r."id" = u."role_id"
-     WHERE u."deleted_at" IS NULL
-     ORDER BY u."is_platform_admin" DESC, (r."kind" = 'admin') DESC NULLS LAST, u."created_at" LIMIT 1
-  `)
-  if (!row) throw new Error('no user to own the contract')
-  return row.id
-}
-
 /** A sample PDF of a company template: each field shows its label, so the layout can be checked before use. */
 export async function previewCustomTemplate(templateId: string): Promise<Buffer> {
   const template = await loadCustomTemplate(templateId)
@@ -517,6 +482,8 @@ export async function previewCustomTemplate(templateId: string): Promise<Buffer>
     numberLabel: series ? formatContractNumber(series.numberFormat, series.code, await nextNumber(series.id)) : '—',
     date: todayIso(company.timeZone),
     counterpartyName: '[…]',
+    party: Object.fromEntries(PARTY_DETAIL_KEYS.map((key) => [key, `[parte.${key}]`])),
+    company: companyDetails(company.profile),
   })
   return htmlToPdf(html, { signatureFields: true, isolated: true })
 }

@@ -362,7 +362,7 @@ The Home widget grid. The person's own layout is stored in `users.home_layout`; 
 
 | Method | Route | Description |
 |---|---|---|
-| GET/POST | `/api/invoicing/clients` | Billing clients (PATCH/DELETE on `/:id`). The contract fields used by the Contracts module live here too: `contactName`, `contactTitle`, `phone`, `contractPlan`, `contractDetails` (free jsonb). Leaves out `isDemo: true` |
+| GET/POST | `/api/invoicing/clients` | Billing clients (PATCH/DELETE on `/:id`). `contactName` and `contactTitle` prefill a contract's party details; `contractDetails.calc` keeps the calculator inputs the price came from. Leaves out `isDemo: true` |
 | GET | `/api/invoicing/clients/demo` | Demo tenants synced from VanaGreen, shown apart in the UI. Same shape |
 | GET/POST | `/api/invoicing/invoices` | Issued invoices; POST creates a draft `{ billingClientId, currency, dueAt?, note?, lines[] }` |
 | PATCH/DELETE | `/api/invoicing/invoices/:id` | Only while it is a draft (no number allocated) |
@@ -417,14 +417,13 @@ Own series (`PRO`), never sent to e-Factura and never counted in the financial r
 ## Contracts
 
 Isolated from `accounting` and `invoicing`: it reads `billing_clients` straight from the schema
-and imports no service of another module. The contract fields are written only through
-`PATCH /api/invoicing/clients/:id`; this module reads them and validates the jsonb shape
-(`ContractDetailsSchema`). Features: `facturi.contracte`; writes to templates, series and settings also need `facturi.sabloane-contracte`.
+and imports no service of another module. Features: `facturi.contracte`; writes to templates, series and settings also need `facturi.sabloane-contracte`.
 
 | Method | Route | Description |
 |---|---|---|
 | GET | `/api/contracts/registry` | The register. Only the admin and the owner see a contract. Filters by state, kind and text, paginated |
-| POST | `/api/contracts/registry` | Creates a draft contract from one of the company templates and renders its PDF; the number comes from the series and a taken number is refused (409). A contract made elsewhere goes through `/registry/upload` |
+| POST | `/api/contracts/registry` | Creates a draft contract from one of the company templates and renders its PDF; the number comes from the series and a taken number is refused (409). `partyDetails` (`cui`, `nrRegCom`, `adresa`, `reprezentant`, `functie`, `email`) overrides what the client's or prospect's record holds. A contract made elsewhere goes through `/registry/upload` |
+| GET | `/api/contracts/registry/party` | `?kind=client\|prospect\|user&id=`. What the app knows about the other party, to prefill the form's party details |
 | POST | `/api/contracts/registry/upload` | Multipart: the JSON field `meta` must come before the file. Adds a signed contract received from outside, with our number or the other party's |
 | GET/PATCH/DELETE | `/api/contracts/registry/:id` | One contract with its term, owner, documents and history; `404` for anyone who is neither admin nor owner. Saving re-creates the notice event in the owner's calendar |
 | GET | `/api/contracts/numbers` | The shared series: used numbers, free gaps and reservations |
@@ -433,27 +432,17 @@ and imports no service of another module. The contract fields are written only t
 | GET/POST | `/api/contracts/series` | The number series; `PUT /api/contracts/series/:id` edits one |
 | GET/PUT | `/api/contracts/settings` | Contract settings, including the notice alert lead time in days (14 by default) |
 | GET | `/api/contracts/settings-summary` | `{ reservedNumbers, templates }`, the counts shown on the settings tab headers |
-| GET | `/api/contracts/clients/:clientId/info` | The client and the parsed, validated `contractDetails` |
-| GET | `/api/contracts/clients/:clientId/documents` | The documents generated for the client (contract, annex, addendum) |
-| POST | `/api/contracts/clients/:clientId/documents` | `{ docType: 'contract' \| 'anexa' }`. Generates the PDF (HTML → PDF). 400 with the exact list of missing fields if the client's data is incomplete |
 | PATCH | `/api/contracts/documents/:id` | `{ isSigned: boolean }`, set by hand |
 | GET | `/api/contracts/documents/:id/pdf` | Downloads the document |
-| GET | `/api/contracts/clients/:clientId/addenda` | The client's addenda |
-| POST | `/api/contracts/clients/:clientId/addenda` | Creates an addendum; numbered per client (`MAX(number)+1` in a transaction) |
-| POST | `/api/contracts/addenda/:id/document` | Generates the addendum's PDF |
 
-**Editable templates.** The document bodies live in `contract_templates`, seeded on first read
-with the sample texts from the code. PDF rendering reads the database and falls back to the
-sample text if the row is missing.
+**Company templates.** Every template is the company's own; none ship with the app. A body uses
+its own fields plus the built-in tokens `contract.numar`, `contract.data`, `parte.nume`,
+`parte.cui|nrRegCom|adresa|reprezentant|functie|email` and `firma.nume|cui|nrRegCom|adresa|reprezentant|email|telefon`
+(our company, from the company sheet). Unknown tokens are refused on save.
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/contracts/templates` | The three templates (`contract-saas`, `anexa-preturi`, `act-aditional`) and the documented list of placeholders |
-| PUT | `/api/contracts/templates/:key` | `{ bodyHtml }`. Trusted source HTML; the per-client values injected at generation are escaped anyway |
-| POST | `/api/contracts/templates/:key/restore` | Replaces the body with the sample text from the code. The edited text cannot be recovered |
-| GET | `/api/contracts/templates/:key/blank` | The document as a PDF with the client's fields as dotted lines, from the current body and terms. Nothing is stored |
-| GET | `/api/contracts/terms` | The commercial terms from `dashboard_config['contract.terms']` |
-| PUT | `/api/contracts/terms` | Partial update on the known keys |
+| GET | `/api/contracts/templates` | The company templates |
 | POST | `/api/contracts/templates` | Creates a company template (fields, signatories, series) |
 | PUT/DELETE | `/api/contracts/templates/custom/:id` | Edits or deletes a company template |
 | GET | `/api/contracts/templates/custom/:id/preview` | The template as a PDF. Rendered with JavaScript off and no network access |

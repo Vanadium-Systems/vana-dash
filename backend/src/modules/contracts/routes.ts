@@ -14,21 +14,14 @@ import {
   CustomTemplateSchema,
   IdParamsSchema,
   NumbersQuerySchema,
+  PartyQuerySchema,
   RegistryQuerySchema,
   ReserveNumberSchema,
   SeriesSchema,
   UpdateContractSchema,
   UploadContractMetaSchema,
 } from './registry-schema.js'
-import {
-  AddendumIdParamsSchema,
-  ClientIdParamsSchema,
-  CreateAddendumSchema,
-  DocumentIdParamsSchema,
-  GenerateDocumentSchema,
-  MarkDocumentSignedSchema,
-} from './schema.js'
-import { ContractTermsUpdateSchema, TemplateKeyParamsSchema, TemplateUpdateSchema } from './templates-schema.js'
+import { DocumentIdParamsSchema, MarkDocumentSignedSchema } from './schema.js'
 import { fail, HttpError } from '../../shared/lib/http-error.js'
 import { tr } from '../../shared/lib/i18n.js'
 
@@ -48,6 +41,12 @@ export async function contractsRoutes(app: FastifyInstance) {
     '/api/contracts/registry',
     { preHandler: [app.authenticate], schema: { querystring: RegistryQuerySchema } },
     async (req) => ({ success: true, data: await registryService.listRegistry(req.me, req.query) }),
+  )
+
+  server.get(
+    '/api/contracts/registry/party',
+    { preHandler: [app.authenticate], schema: { querystring: PartyQuerySchema } },
+    async (req) => ({ success: true, data: await registryService.getPartyDetails(req.query) }),
   )
 
   server.get(
@@ -169,45 +168,6 @@ export async function contractsRoutes(app: FastifyInstance) {
     return { success: true, data: { reservedNumbers, templates: templates.length } }
   })
 
-  server.get(
-    '/api/contracts/clients/:clientId/documents',
-    { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema } },
-    async (req) => {
-      return { success: true, data: await service.listDocuments(req.params.clientId) }
-    },
-  )
-
-  server.post(
-    '/api/contracts/clients/:clientId/documents',
-    { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema, body: GenerateDocumentSchema } },
-    async (req, reply) => {
-      try {
-        const row = await service.generateDocument(req.params.clientId, req.body.docType)
-        return reply.code(201).send({ success: true, data: row })
-      } catch (err) {
-        if (err instanceof HttpError) throw err
-        req.log.warn({ err }, 'contract document generation failed')
-        return fail(reply, 400, 'CONTRACT_GENERATE_FAILED')
-      }
-    },
-  )
-
-  server.get(
-    '/api/contracts/clients/:clientId/preview',
-    { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema, querystring: GenerateDocumentSchema } },
-    async (req, reply) => {
-      try {
-        const pdf = await service.previewDocument(req.params.clientId, req.query.docType)
-        reply.header('Content-Disposition', 'inline; filename="simulare.pdf"')
-        return reply.type('application/pdf').send(pdf)
-      } catch (err) {
-        if (err instanceof HttpError) throw err
-        req.log.warn({ err }, 'contract preview failed')
-        return fail(reply, 400, 'CONTRACT_PREVIEW_FAILED')
-      }
-    },
-  )
-
   server.patch(
     '/api/contracts/documents/:id',
     { preHandler: [app.authenticate], schema: { params: DocumentIdParamsSchema, body: MarkDocumentSignedSchema } },
@@ -230,47 +190,7 @@ export async function contractsRoutes(app: FastifyInstance) {
     },
   )
 
-  server.get(
-    '/api/contracts/clients/:clientId/addenda',
-    { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema } },
-    async (req) => {
-      return { success: true, data: await service.listAddenda(req.params.clientId) }
-    },
-  )
-
-  server.post(
-    '/api/contracts/clients/:clientId/addenda',
-    { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema, body: CreateAddendumSchema } },
-    async (req, reply) => {
-      const row = await service.createAddendum(req.params.clientId, req.body)
-      return reply.code(201).send({ success: true, data: row })
-    },
-  )
-
-  server.post(
-    '/api/contracts/addenda/:id/document',
-    { preHandler: [app.authenticate], schema: { params: AddendumIdParamsSchema } },
-    async (req, reply) => {
-      try {
-        const row = await service.generateAddendumDocument(req.params.id)
-        return reply.code(201).send({ success: true, data: row })
-      } catch (err) {
-        if (err instanceof HttpError) throw err
-        req.log.warn({ err }, 'addendum document generation failed')
-        return fail(reply, 400, 'CONTRACT_GENERATE_FAILED')
-      }
-    },
-  )
-
-  server.get(
-    '/api/contracts/clients/:clientId/info',
-    { preHandler: [app.authenticate], schema: { params: ClientIdParamsSchema } },
-    async (req) => {
-      return { success: true, data: await service.getContractInfo(req.params.clientId) }
-    },
-  )
-
-  // ── Editable templates and commercial terms ─────────────────────────────────────────────────
+  // ── The company's templates ─────────────────────────────────────────────────────────────────
 
   server.get('/api/contracts/templates', { preHandler: [app.authenticate] }, async () => {
     return { success: true, data: await templatesService.listTemplates() }
@@ -304,52 +224,6 @@ export async function contractsRoutes(app: FastifyInstance) {
       const pdf = await registryService.previewCustomTemplate(req.params.id)
       reply.header('Content-Disposition', 'attachment; filename="sablon.pdf"')
       return reply.type('application/pdf').send(pdf)
-    },
-  )
-
-  server.put(
-    '/api/contracts/templates/:key',
-    { preHandler: [app.authenticate], schema: { params: TemplateKeyParamsSchema, body: TemplateUpdateSchema } },
-    async (req) => {
-      const row = await templatesService.updateTemplate(req.params.key, req.body.bodyHtml)
-      return { success: true, data: row }
-    },
-  )
-
-  server.get(
-    '/api/contracts/templates/:key/blank',
-    { preHandler: [app.authenticate], schema: { params: TemplateKeyParamsSchema } },
-    async (req, reply) => {
-      try {
-        const pdf = await service.blankDocumentPdf(req.params.key)
-        reply.header('Content-Disposition', `attachment; filename="${req.params.key}-gol.pdf"`)
-        return reply.type('application/pdf').send(pdf)
-      } catch (err) {
-        if (err instanceof HttpError) throw err
-        req.log.warn({ err }, 'blank contract copy failed')
-        return fail(reply, 400, 'CONTRACT_BLANK_FAILED')
-      }
-    },
-  )
-
-  server.post(
-    '/api/contracts/templates/:key/restore',
-    { preHandler: [app.authenticate], schema: { params: TemplateKeyParamsSchema } },
-    async (req) => {
-      const row = await templatesService.restoreTemplate(req.params.key)
-      return { success: true, data: row }
-    },
-  )
-
-  server.get('/api/contracts/terms', { preHandler: [app.authenticate] }, async () => {
-    return { success: true, data: await templatesService.getContractTerms() }
-  })
-
-  server.put(
-    '/api/contracts/terms',
-    { preHandler: [app.authenticate], schema: { body: ContractTermsUpdateSchema } },
-    async (req) => {
-      return { success: true, data: await templatesService.updateContractTerms(req.body) }
     },
   )
 

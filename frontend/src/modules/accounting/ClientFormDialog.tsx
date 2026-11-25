@@ -9,8 +9,7 @@ import { Label } from '@/shared/components/ui/label'
 import { EntityHistory } from '@/shared/components/EntityHistory'
 import { api } from '@/shared/lib/api'
 import { useMe } from '@/shared/hooks/use-me'
-import type { AnafCompanyInfo, BillingClient, ContractDetails, Platform, PricingConfigRow, VanagreenTenant } from '@/shared/lib/types'
-import { useContractNumbers, type NumbersList } from './contracts-api'
+import type { AnafCompanyInfo, BillingClient, Platform, PricingConfigRow, VanagreenTenant } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { Select } from '@/shared/components/ui/select'
 import { t } from '@/shared/lib/i18n'
@@ -23,45 +22,6 @@ interface ClientFormDialogProps {
   onOpenChange: (open: boolean) => void
   /** null = create */
   client: BillingClient | null
-}
-
-const ROMANIAN_MONTHS = [
-  'ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie',
-  'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie',
-]
-
-// Contracts imported from the older system have the date written as "4 iunie 2026" —
-// parsăm și formatul ăsta, ca inputul de dată nativ să nu arate gol la prima editare.
-export function parseContractDate(s: string): string {
-  const ddmm = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(s.trim())
-  if (ddmm) return `${ddmm[3]}-${ddmm[2]}-${ddmm[1]}`
-  const ro = /^(\d{1,2})\s+([a-zăâîșț]+)\s+(\d{4})$/i.exec(s.trim())
-  if (ro) {
-    const monthIdx = ROMANIAN_MONTHS.indexOf(ro[2]!.toLowerCase())
-    if (monthIdx >= 0) return `${ro[3]}-${String(monthIdx + 1).padStart(2, '0')}-${ro[1]!.padStart(2, '0')}`
-  }
-  return ''
-}
-
-export function formatContractDate(iso: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : ''
-}
-
-// Contract numbers run globally per series (001, 002, 003…), not per client like addenda; the
-// server knows what is used and reserved. This is only a suggestion and can be overwritten by hand.
-export function suggestNextContractNumber(numbers: NumbersList | undefined): string {
-  return numbers?.nextLabel ?? '001'
-}
-
-/** Mesajul de sub câmp când numărul tastat e rezervat sau folosit la alt contract decât al clientului; altfel null. */
-export function contractNumberConflict(value: string | undefined, numbers: NumbersList | undefined, clientName: string | null): string | null {
-  const typed = (value ?? '').trim()
-  if (!/^\d+$/.test(typed)) return null
-  const hit = numbers?.items.find((item) => item.number === parseInt(typed, 10))
-  if (hit?.kind === 'reserved') return t('accounting:clientForm.reservedNumber', { label: hit.label, note: hit.note ?? '' })
-  if (hit?.kind === 'used' && hit.counterpartyName !== clientName) return t('accounting:clientForm.alreadyUsed', { label: hit.label, name: hit.counterpartyName ?? '' })
-  return null
 }
 
 export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialogProps) {
@@ -102,20 +62,6 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
   const [contactTitle, setContactTitle] = useState('')
   const [contractPhone, setContractPhone] = useState('')
   const [contractPlan, setContractPlan] = useState('')
-  const [contractDetails, setContractDetails] = useState<ContractDetails>({})
-  const [contractDateIso, setContractDateIso] = useState('')
-  const [facturareTipOther, setFacturareTipOther] = useState('')
-  const [moduleAddonSelected, setModuleAddonSelected] = useState<string[]>([])
-  const [moduleAddonOther, setModuleAddonOther] = useState('')
-  const cd = (key: keyof ContractDetails) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setContractDetails((d) => ({ ...d, [key]: e.target.value }))
-
-  // Not gated on `open`: the list must already be cached when the dialog opens, or the first
-  // suggestion goes out without it. Without `facturi.contracte` there is no list to ask for (a 403
-  // on every visit otherwise), so the suggestion runs on an empty one.
-  const canContracts = can('facturi.contracte')
-  const contractNumbers = useContractNumbers(null, canContracts)
-  const numbers = canContracts ? contractNumbers.data : undefined
 
   // Listă goală (fără eroare) dacă platforma vanagreen nu e configurată încă — dropdown-ul
   // devine pur decorativ, id-ul se introduce manual (validat oricum la salvare).
@@ -139,19 +85,14 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
     queryFn: () => api.get<PricingConfigRow | null>(`/api/pricing/config?platformId=${platformId}`),
     enabled: open && Boolean(platformId) && can('clienti.view'),
   })
-  const moduleAddonOptions = pricingConfig.data?.config.addons.map((a) => a.label) ?? []
-  // Plan (2026-09-21) — dropdown-ul cu 2 opțiuni fixe ("Standard"/"Privat") înlocuit cu
-  // pachetele reale din Config preț (ConfigPretTab, aceeași sursă ca `pricingConfig` de mai
-  // sus) + "Privat" pt. condiții negociate individual. Alegerea unui pachet bifează automat
-  // modulele lui și completează prețul — Stefan nu le mai duplică manual la fiecare client nou.
+  // The plan list is the real bundles from the price config (same source as `pricingConfig` above)
+  // plus "Privat" for individually negotiated terms; picking a bundle fills in its price.
   const bundles = pricingConfig.data?.config.bundles ?? []
-  const addonLabelByKey = new Map((pricingConfig.data?.config.addons ?? []).map((a) => [a.key, a.label]))
 
   function selectContractPlan(planLabel: string) {
     setContractPlan(planLabel)
     const bundle = bundles.find((b) => b.label === planLabel)
     if (!bundle) return
-    setModuleAddonSelected(bundle.addonKeys.map((k) => addonLabelByKey.get(k)).filter((l): l is string => Boolean(l)))
     setSubscriptionPriceCurrency('eur')
     setSubscriptionPriceAmount(String(bundleMonthlyTotal(pricingConfig.data!.config, bundle)))
   }
@@ -189,46 +130,8 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
       setContactTitle(client?.contactTitle ?? '')
       setContractPhone(client?.phone ?? '')
       setContractPlan(client?.contractPlan ?? '')
-      const details = client?.contractDetails ?? {}
-      setContractDetails(
-        !details.nrContract ? { ...details, nrContract: suggestNextContractNumber(numbers) } : details,
-      )
-      setContractDateIso(details.dataContract ? parseContractDate(details.dataContract) : '')
-      // "Ciclu de facturare": select LUNAR/ANUAL/SPECIAL — orice altă valoare existentă (text
-      // liber vechi) intră automat pe "SPECIAL" cu textul păstrat, nu se pierde la editare.
-      setFacturareTipOther(
-        details.facturareTip && details.facturareTip !== 'LUNAR' && details.facturareTip !== 'ANUAL'
-          ? details.facturareTip
-          : '',
-      )
     }
-    // clients.data intenționat exclus din deps — doar pt. sugestia de nr. contract la
-    // deschidere, nu vrem re-rulare la fiecare refetch în fundal.
   }, [open, client])
-
-  // Lista de numere sosită după deschidere: sugestia se recalculează doar dacă omul n-a
-  // atins câmpul (valoarea e încă sugestia făcută fără listă).
-  useEffect(() => {
-    if (!open || client?.contractDetails?.nrContract || !numbers) return
-    setContractDetails((current) =>
-      current.nrContract === suggestNextContractNumber(undefined) ? { ...current, nrContract: suggestNextContractNumber(numbers) } : current,
-    )
-  }, [contractNumbers.data])
-
-  // "Module add-on active": checkbox-uri din catalogul platformei + reziduu text liber pt.
-  // valori vechi care nu se mapează 1:1 (ex: "E-Factura (ANAF SPV)", importat din
-  // recyclers_app) — păstrat, nu pierdut la prima editare. Efect SEPARAT (nu în cel de mai sus):
-  // `moduleAddonOptions` vine din pricingConfig, care se rezolvă async DUPĂ ce platformId e
-  // setat în efectul de mai sus — reclasificarea trebuie să ruleze din nou când sosește.
-  useEffect(() => {
-    if (!open) return
-    const existingAddons = (client?.contractDetails?.moduleAddon ?? '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    setModuleAddonSelected(existingAddons.filter((a) => moduleAddonOptions.includes(a)))
-    setModuleAddonOther(existingAddons.filter((a) => !moduleAddonOptions.includes(a)).join(', '))
-  }, [open, client, moduleAddonOptions.join('|')])
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -310,16 +213,6 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
       body.contactTitle = contactTitle || null
       body.phone = contractPhone || null
       body.contractPlan = contractPlan || null
-      const moduleAddon = [...moduleAddonSelected, ...(moduleAddonOther ? [moduleAddonOther] : [])].join(', ') || undefined
-      const finalContractDetails: ContractDetails = {
-        ...contractDetails,
-        dataContract: contractDateIso ? formatContractDate(contractDateIso) : contractDetails.dataContract,
-        facturareTip: contractDetails.facturareTip === 'SPECIAL' ? facturareTipOther : contractDetails.facturareTip,
-        moduleAddon,
-      }
-      body.contractDetails = Object.keys(finalContractDetails).some((k) => finalContractDetails[k as keyof ContractDetails])
-        ? finalContractDetails
-        : null
       return client
         ? api.patch<BillingClient>(`/api/invoicing/clients/${client.id}`, body)
         : api.post<BillingClient>('/api/invoicing/clients', body)
@@ -335,8 +228,6 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
     },
     onError: (err) => toastError(err),
   })
-
-  const nrContractConflict = contractNumberConflict(contractDetails.nrContract, numbers, client?.name ?? null)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -673,120 +564,6 @@ export function ClientFormDialog({ open, onOpenChange, client }: ClientFormDialo
                   <p className="text-xs text-muted-foreground">{t('accounting:clientForm.planHint')}</p>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="ct-nr-contract">{t('accounting:contract.fields.contractNumber')}</Label>
-                <Input
-                  id="ct-nr-contract"
-                  value={contractDetails.nrContract ?? ''}
-                  onChange={cd('nrContract')}
-                  placeholder={t('accounting:clientForm.contractNumberPlaceholder')}
-                  aria-describedby="ct-nr-contract-hint"
-                />
-                {nrContractConflict ? (
-                  <p id="ct-nr-contract-hint" className="text-xs text-warning">{nrContractConflict}</p>
-                ) : (
-                  <p id="ct-nr-contract-hint" className="text-xs text-muted-foreground">{t('accounting:clientForm.contractNumberHint')}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ct-data-contract">{t('accounting:contract.fields.contractDate')}</Label>
-                <Input id="ct-data-contract" type="date" value={contractDateIso} onChange={(e) => setContractDateIso(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ct-taxa-initiere">{t('accounting:contract.fields.setupFee')}</Label>
-                <Input id="ct-taxa-initiere" value={contractDetails.taxaInitiere ?? ''} onChange={cd('taxaInitiere')} placeholder={t('accounting:clientForm.setupFeePlaceholder')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ct-facturare-tip">{t('accounting:contract.fields.billingCycle')}</Label>
-                <Select
-                  id="ct-facturare-tip"
-                  value={contractDetails.facturareTip ?? ''}
-                  onChange={cd('facturareTip')}
-                >
-                  <option value="">—</option>
-                  <option value="LUNAR">{t('common:labels.monthly')}</option>
-                  <option value="ANUAL">{t('common:labels.yearly')}</option>
-                  <option value="SPECIAL">{t('accounting:clientForm.cycleSpecial')}</option>
-                </Select>
-              </div>
-              {contractDetails.facturareTip === 'SPECIAL' && (
-                <div className="space-y-2">
-                  <Label htmlFor="ct-facturare-tip-other">{t('accounting:clientForm.describeSpecialCycle')}</Label>
-                  <Input
-                    id="ct-facturare-tip-other"
-                    value={facturareTipOther}
-                    onChange={(e) => setFacturareTipOther(e.target.value)}
-                    placeholder={t('accounting:clientForm.specialCyclePlaceholder')}
-                  />
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="ct-onboarding-zile">{t('accounting:clientForm.onboardingDays')}</Label>
-                <Input id="ct-onboarding-zile" value={contractDetails.nrZileOnboarding ?? ''} onChange={cd('nrZileOnboarding')} placeholder={t('accounting:clientForm.onboardingDaysPlaceholder')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ct-operatori-gestiune">{t('accounting:clientForm.desktopOperators')}</Label>
-                <Input id="ct-operatori-gestiune" inputMode="numeric" value={contractDetails.operatoriGestiune ?? ''} onChange={cd('operatoriGestiune')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ct-operatori-teren">{t('accounting:clientForm.mobileOperators')}</Label>
-                <Input id="ct-operatori-teren" inputMode="numeric" value={contractDetails.operatoriTeren ?? ''} onChange={cd('operatoriTeren')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ct-puncte-lucru">{t('accounting:clientForm.workSites')}</Label>
-                <Input id="ct-puncte-lucru" inputMode="numeric" value={contractDetails.puncteLucru ?? ''} onChange={cd('puncteLucru')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ct-documente">{t('accounting:clientForm.documentsPerMonth')}</Label>
-                <Input id="ct-documente" inputMode="numeric" value={contractDetails.documenteIncluse ?? ''} onChange={cd('documenteIncluse')} placeholder="150" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ct-flux">{t('accounting:clientForm.flow')}</Label>
-                <Select
-                  id="ct-flux"
-                  value={contractDetails.flux ?? ''}
-                  onChange={cd('flux')}
-                >
-                  <option value="">—</option>
-                  <option value="Standard">{t('accounting:clientForm.flowStandard')}</option>
-                  <option value="DEEE / DBA">DEEE / DBA</option>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">{t('accounting:clientForm.activeAddons')}</Label>
-              {!platformId ? (
-                <p className="text-xs text-muted-foreground">{t('accounting:clientForm.mapPlatformForAddons')}</p>
-              ) : null}
-              <div className="flex flex-wrap gap-3">
-                {moduleAddonOptions.map((opt) => (
-                  <label key={opt} className="flex items-center gap-1.5 text-sm">
-                    <Checkbox
-                      checked={moduleAddonSelected.includes(opt)}
-                      onChange={(e) =>
-                        setModuleAddonSelected((sel) => (e.target.checked ? [...sel, opt] : sel.filter((o) => o !== opt)))
-                      }
-                    />
-                    {opt}
-                  </label>
-                ))}
-              </div>
-              <Input
-                value={moduleAddonOther}
-                onChange={(e) => setModuleAddonOther(e.target.value)}
-                placeholder={t('accounting:clientForm.otherAddonsPlaceholder')}
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={contractDetails.areLunaGratuita ?? true}
-                onChange={(e) => setContractDetails((d) => ({ ...d, areLunaGratuita: e.target.checked }))}
-              />
-              {t('accounting:clientForm.hasFreeMonth')}
-            </label>
-            <div className="space-y-2">
-              <Label htmlFor="ct-conditii">{t('accounting:clientForm.specialTerms')}</Label>
-              <Input id="ct-conditii" value={contractDetails.conditiiSpeciale ?? ''} onChange={cd('conditiiSpeciale')} placeholder={t('accounting:clientForm.noSpecialTerms')} />
             </div>
           </div>
 

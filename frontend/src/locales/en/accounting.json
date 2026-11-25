@@ -7,23 +7,7 @@
     "spvMessages": "SPV messages",
     "contracts": "Contracts"
   },
-  "addendum": {
-    "created": "Addendum created. Generate the PDF from the list",
-    "add": "Add an addendum",
-    "previousRate": "Previous rate",
-    "previousRatePlaceholder": "e.g. 100 RON/month (excl. VAT)",
-    "newRate": "New rate",
-    "newRatePlaceholder": "e.g. 40 EUR/month (excl. VAT)",
-    "changeReason": "Reason for the change",
-    "effectiveDate": "Effective date",
-    "effectiveDatePlaceholder": "e.g. the signing date of this addendum",
-    "temporary": "Temporary (automatic return to the old rate)",
-    "revertCondition": "Return condition",
-    "revertConditionPlaceholder": "e.g. Returns to the previous rate 3 months after the effective date.",
-    "save": "Save the addendum"
-  },
   "clientForm": {
-    "alreadyUsed": "{{label}} is already used by {{name}}",
     "tenantFound": "Tenant found in vanagreen",
     "tenantNotFound": "No vanagreen tenant with this id",
     "anafFoundWithState": "Company found, but its ANAF status is: {{stare}}",
@@ -72,28 +56,7 @@
     "representativeRolePlaceholder": "e.g. Director",
     "planPrivate": "Private",
     "planOld": "{{contractPlan}} (old)",
-    "planHint": "Modules and price filled in from the bundle; you can edit them below.",
-    "contractNumberPlaceholder": "e.g. 003",
-    "contractNumberHint": "Suggested automatically (last + 1, skipping the reserved ones). Overwrite it if needed.",
-    "setupFeePlaceholder": "e.g. 200 EUR",
-    "cycleSpecial": "Special",
-    "describeSpecialCycle": "Describe the special cycle",
-    "specialCyclePlaceholder": "e.g. quarterly",
-    "onboardingDays": "Onboarding days",
-    "onboardingDaysPlaceholder": "e.g. 3",
-    "desktopOperators": "Back-office operators (desktop)",
-    "mobileOperators": "Field operators (mobile)",
-    "workSites": "Work sites",
-    "documentsPerMonth": "Documents included / month",
-    "flow": "Flow",
-    "flowStandard": "Standard",
-    "activeAddons": "Active add-on modules",
-    "mapPlatformForAddons": "Map the client to a platform above to see the add-on catalog.",
-    "otherAddonsPlaceholder": "Others (free text, e.g. E-Factura ANAF SPV). Empty + nothing ticked = None",
-    "hasFreeMonth": "Has a Free Month (the length comes from Settings → Contract templates → Commercial terms)",
-    "specialTerms": "Negotiated special terms",
-    "noSpecialTerms": "(no special terms)",
-    "reservedNumber": "{{label}} is reserved: {{note}}"
+    "planHint": "The price is filled in from the bundle; you can change it below."
   },
   "clients": {
     "iban": "IBAN",
@@ -118,49 +81,15 @@
     "terminatedInVanagreen": "terminated in VanaGreen",
     "pendingDeletionHint": "Tenant terminated in vanagreen. Unless restored from there, it is deleted here automatically 30 days after termination (in step with the purge in vanagreen). Check the unsettled invoices before it disappears.",
     "needBillingInfo_one": "{{count}} new client from VanaGreen. Fill in the billing details: {{names}}",
-    "needBillingInfo_other": "{{count}} new clients from VanaGreen. Fill in the billing details: {{names}}"
+    "needBillingInfo_other": "{{count}} new clients from VanaGreen. Fill in the billing details: {{names}}",
+    "newContract": "New contract"
   },
   "contract": {
     "fields": {
       "representative": "Client representative",
       "representativeRole": "Representative's position",
-      "clientPhone": "Client phone",
-      "contractNumber": "Contract number",
-      "contractDate": "Contract date",
-      "setupFee": "Setup fee",
-      "billingCycle": "Billing cycle",
-      "subscriptionRate": "Subscription rate"
+      "clientPhone": "Client phone"
     }
-  },
-  "terms": {
-    "latePenalty": "Late payment penalty",
-    "dueTerm": "Due term",
-    "paymentGraceDays": "Payment grace days",
-    "terminationNotice": "Termination notice",
-    "continuationConfirmTerm": "Continuation confirmation term",
-    "freeMonthLength": "Free month: length",
-    "referralDiscount": "Referral: discount",
-    "referralLength": "Referral: length",
-    "referralCap": "Referral: cap",
-    "slaUptime": "SLA: uptime",
-    "slaMaintenanceWindow": "SLA: maintenance window",
-    "slaP1Response": "SLA: P1 response",
-    "slaP2Response": "SLA: P2 response",
-    "saved": "Commercial terms saved",
-    "title": "Commercial terms (TERMS)",
-    "notYetOnDisk": "not changed on disk yet",
-    "save": "Save the terms",
-    "injectedAtToken": "The values injected into the templates at the {{token}} tokens."
-  },
-  "templates": {
-    "saved": "Template saved",
-    "restored": "Restored to the original version",
-    "blankHint": "The documents as PDF without a particular client: the company details and terms are filled in, the client's fields are left empty.",
-    "pickHint": "Pick a template to edit. The text is HTML source; the PDF is generated from it.",
-    "restoreTitle": "Restore the original template",
-    "restoreBody": "Your text is replaced with the example template from the app and cannot be recovered.",
-    "restoreOriginal": "Restore the original",
-    "title": "Contract templates"
   },
   "docTypes": {
     "contract": "Contract",
@@ -168,31 +97,18 @@
     "addendum": "Addendum"
   },
   "contracts": {
-    "addendumPdfGenerated": "Addendum PDF generated",
-    "missingData": "Details missing for generation (fill them in under Clients → Edit → “Contract details”): {{missing}}",
-    "documentsFor": "Documents: {{name}}",
-    "generateContract": "Generate contract",
-    "generateAnnex": "Generate annex",
-    "simulateContract": "Simulate contract",
-    "simulateAnnex": "Simulate annex",
-    "alreadySigned": "You already have a signed {{value}}. Regenerating creates a new document; the signed one stays in the history.",
     "noDocuments": "No document generated yet.",
     "generated": "Generated",
     "signed": "Signed",
     "unsigned": "Unsigned",
-    "sign": "Sign",
     "markUnsigned": "Mark as unsigned",
     "markSigned": "Mark as signed",
-    "addendaTitle": "Addenda",
-    "noAddenda": "No addendum yet.",
-    "generatePdf": "Generate PDF",
     "list": {
       "new": "New contract",
       "settings": "Contract settings",
       "reservedLine_one": "{{n}} reserved number",
       "reservedLine_other": "{{n}} reserved numbers"
     },
-    "documentGenerated": "{{type}} generated",
     "kinds": {
       "client": "Client",
       "prospect": "Prospect",
@@ -343,7 +259,19 @@
       "reservedFor": "reserved: {{note}}",
       "submit": "Create contract",
       "fieldRequired": "Fill in this field.",
-      "notANumber": "Enter a numeric value."
+      "notANumber": "Enter a numeric value.",
+      "partyDetails": {
+        "title": "Party details",
+        "hint": "Taken from the party's record. What you type here takes priority.",
+        "fields": {
+          "cui": "Tax ID (CUI)",
+          "nrRegCom": "Trade register no.",
+          "adresa": "Address / Registered office",
+          "reprezentant": "Representative",
+          "functie": "Position",
+          "email": "Email"
+        }
+      }
     },
     "signing": {
       "title": "Sign by link",
@@ -588,10 +516,7 @@
     "yearlyResetOff": "Yearly reset of the numbering: no. Do not change the format in the middle of the fiscal year without a reason."
   },
   "sign": {
-    "title": "Upload the signed PDF",
-    "hint": "Sign the document in Adobe with your certificate, then upload the signed PDF here. It appears in the list as a new version and the original stays in the history.",
-    "uploaded": "Signed PDF uploaded. It shows up in the list as a new document",
-    "uploadSigned": "I signed it, upload the PDF"
+    "uploaded": "Signed PDF uploaded. It shows up in the list as a new document"
   },
   "status": {
     "draft": "Draft",

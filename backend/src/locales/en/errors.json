@@ -269,15 +269,8 @@
     "clientNotFound": "The client does not exist",
     "addendumNotFound": "The addendum does not exist",
     "missingData": "Details missing for generating the document: contract number, contract date",
-    "atLeastOneTerm": "Send at least one term",
-    "templates": {
-      "saas": "SaaS services contract (+ DPA)",
-      "priceAnnex": "Price annex",
-      "addendum": "Addendum"
-    },
     "unknownTokens": "Unknown tokens: {{unknown}}",
-    "templateNotFound": "The template does not exist",
-    "saasTitle": "SaaS contract"
+    "templateNotFound": "The template does not exist"
   },
   "reconciliation": {
     "configureFirst": "set the client_id and generate the certificate first",
@@ -615,12 +608,9 @@
     "CLIENT_NOT_FOUND": "The client doesn't exist.",
     "COMPANY_PROFILE_INCOMPLETE": "The company profile is incomplete.",
     "CONFIRMATION_PDF_FAILED": "The payment confirmation couldn't be generated. Try again.",
-    "CONTRACT_ADDENDUM_NOT_FOUND": "The addendum doesn't exist.",
-    "CONTRACT_BLANK_FAILED": "The blank copy couldn't be generated. Try again.",
     "CONTRACT_DATA_INCOMPLETE": "Missing data to generate the document: {{fields}}.",
     "CONTRACT_DOCUMENT_NOT_FOUND": "The document doesn't exist.",
     "CONTRACT_GENERATE_FAILED": "The document couldn't be generated. Try again.",
-    "CONTRACT_PREVIEW_FAILED": "The preview couldn't be generated. Try again.",
     "CONTRACT_TEMPLATE_TOKENS_UNKNOWN": "The template has unknown tokens: {{unknown}}.",
     "CONTRACT_UPLOAD_FAILED": "The signed PDF couldn't be saved. Try again.",
     "CRYPTO_NO_LIVE_PRICE": "There is no live price for {{symbol}} on {{exchange}}.",
@@ -747,7 +737,6 @@
     "CONTRACT_END_REQUIRED": "A notice period needs an end date.",
     "CONTRACT_NOT_DRAFT": "Only a draft can be deleted. A signed contract is terminated instead.",
     "CONTRACT_OWNER_ADMIN_ONLY": "Only the admin can hand the contract to someone else.",
-    "CONTRACT_TEMPLATE_SYSTEM": "The SaaS templates cannot be deleted.",
     "PROSPECT_NOT_FOUND": "The prospect does not exist.",
     "USER_NOT_FOUND": "The person does not exist.",
     "CONTRACT_TEMPLATE_FIELD_DUPLICATE": "The same field appears twice in the template.",

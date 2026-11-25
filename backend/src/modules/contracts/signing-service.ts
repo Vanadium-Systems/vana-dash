@@ -408,7 +408,6 @@ export async function signRequest(token: string, session: string | undefined, in
           contractId: request.contractId,
           billingClientId: latest.billingClientId,
           docType: latest.docType,
-          addendumId: latest.addendumId,
           pdfStoragePath: path,
           isSigned: true,
           signedAt: now,
@@ -505,7 +504,7 @@ export async function uploadQualified(token: string, session: string | undefined
       const path = await saveDocument(`contracts/registry/${request.contractId}/semnat_qes_${now.getTime()}.pdf`, pdf)
       const [doc] = await tx
         .insert(contractDocuments)
-        .values({ contractId: request.contractId, billingClientId: latest.billingClientId, docType: latest.docType, addendumId: latest.addendumId, pdfStoragePath: path, isSigned: true, signedAt: now, sourceDocumentId: latest.id, signatures: inspection.signatures })
+        .values({ contractId: request.contractId, billingClientId: latest.billingClientId, docType: latest.docType, pdfStoragePath: path, isSigned: true, signedAt: now, sourceDocumentId: latest.id, signatures: inspection.signatures })
         .returning()
       await event(tx, request.id, 'signed', { ...visitor, sha: sha256(pdf) })
       await tx

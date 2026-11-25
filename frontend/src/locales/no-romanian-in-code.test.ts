@@ -16,7 +16,6 @@ const KEPT_IN_ROMANIAN: Array<[path: string, why: string]> = [
   ['modules/help/guides.ts', 'guides carry both languages in the file'],
   ['modules/updates/releases.ts', 'release notes carry both languages in the file'],
   ['shared/lib/locale.ts', 'the name of the Romanian language, in Romanian'],
-  ['modules/accounting/AddendumFormDialog.tsx', 'a default clause that goes into a Romanian contract'],
 ]
 
 function sourceFiles(dir: string, out: string[] = []): string[] {

@@ -22,7 +22,6 @@ import { formatDate, formatDateTime } from '@/shared/lib/format'
 import { t } from '@/shared/lib/i18n'
 import { openFile } from '@/shared/lib/open-file'
 import { useMe } from '@/shared/hooks/use-me'
-import { ContractDetail } from './ContractDetail'
 import { SigningSection } from './ContractSigning'
 import { ContractOwnerField, ContractTermsFields } from './ContractTermsFields'
 import type { DocumentSignature, RegistryContract, RegistryDocument, RegistryHistoryItem } from './contracts-api'
@@ -448,15 +447,8 @@ export function ContractPage() {
       </header>
 
       <TermsSection contract={contract} />
-      {/* A SaaS contract keeps its own documents and addenda in ContractDetail. */}
-      {contract.origin === 'saas' && contract.billingClientId ? (
-        <ContractDetail clientId={contract.billingClientId} />
-      ) : (
-        <>
-          <DocumentsSection contract={contract} />
-          {can('facturi.semnare-contracte') ? <SigningSection contract={contract} /> : null}
-        </>
-      )}
+      <DocumentsSection contract={contract} />
+      {can('facturi.semnare-contracte') ? <SigningSection contract={contract} /> : null}
       {contract.history.length > 0 ? (
         <Section title={t('accounting:contracts.page.history.title')}>
           <Timeline entries={toTimeline(contract.history)} />

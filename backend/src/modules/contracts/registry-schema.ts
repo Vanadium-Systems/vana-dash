@@ -40,11 +40,26 @@ const termsRules = <T extends z.infer<typeof TermsSchema>>(v: T, ctx: z.Refineme
   if (v.startsOn && v.endsOn && v.endsOn < v.startsOn) ctx.addIssue({ code: 'custom', path: ['endsOn'], message: 'before startsOn' })
 }
 
+const PartyDetailsSchema = z
+  .object({
+    cui: z.string().trim().max(40),
+    nrRegCom: z.string().trim().max(60),
+    adresa: z.string().trim().max(300),
+    reprezentant: z.string().trim().max(120),
+    functie: z.string().trim().max(120),
+    email: z.string().trim().max(200),
+  })
+  .partial()
+
+export const PartyQuerySchema = z.object({ kind: z.enum(['client', 'prospect', 'user']), id: z.string().uuid() })
+
 export const CreateContractSchema = TermsSchema.extend({
   templateId: z.string().uuid(),
   title: z.string().trim().min(1).max(200).optional(),
   fieldValues: z.record(z.string(), z.union([z.string(), z.number(), z.null()])).default({}),
   counterparty: CounterpartySchema,
+  // What the form shows (and the person may have corrected) wins over what the client's record holds.
+  partyDetails: PartyDetailsSchema.default({}),
   seriesId: z.string().uuid().optional(),
   number: z.number().int().min(1).optional(),
 }).superRefine(termsRules)

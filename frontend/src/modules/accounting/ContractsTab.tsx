@@ -18,7 +18,6 @@ import { t } from '@/shared/lib/i18n'
 import { useMe } from '@/shared/hooks/use-me'
 import { ContractNumbersDialog } from './ContractNumbersDialog'
 import { CompanyTemplatesCard } from './CompanyTemplatesCard'
-import { ContractTemplatesCard } from './ContractTemplatesCard'
 import { UploadContractDialog } from './UploadContractDialog'
 import { COUNTERPARTY_KINDS, CONTRACT_STATUSES, useContractCategories, type RegistryRow } from './contracts-api'
 import { noticeText, STATUS_TONE, statusLabel } from './contracts-logic'
@@ -220,7 +219,6 @@ export function ContractsTab() {
           </DialogHeader>
           <div className="max-h-[70vh] space-y-4 overflow-y-auto">
             <CompanyTemplatesCard canEdit={can('facturi.sabloane-contracte')} />
-            <ContractTemplatesCard />
           </div>
         </DialogContent>
       </Dialog>

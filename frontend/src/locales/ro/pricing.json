@@ -253,7 +253,7 @@
     "noChanges": "Prețul și detaliile sunt deja la fel. Se salvează doar intrările calculatorului.",
     "empty": "gol",
     "confirm": "Aplică",
-    "confirmAddendum": "Aplică și generează act adițional",
+    "confirmAddendum": "Aplică și întocmește act adițional",
     "addendumNeeded": "Clientul are contract semnat, iar prețul sau modulele diferă. Trebuie un act adițional.",
     "addendumReason": "Modificarea abonamentului și a modulelor",
     "fields": {

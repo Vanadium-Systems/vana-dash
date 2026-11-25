@@ -18,8 +18,25 @@ import { t } from '@/shared/lib/i18n'
 
 type FieldType = 'text' | 'number' | 'date' | 'money' | 'list' | 'party'
 const FIELD_TYPES: FieldType[] = ['text', 'number', 'date', 'money', 'list', 'party']
-// The same three the server knows (template-render.ts BUILTIN_TOKENS).
-const BUILTIN_TOKENS = ['contract.numar', 'contract.data', 'parte.nume'] as const
+// The same ones the server knows (template-render.ts BUILTIN_TOKENS).
+const BUILTIN_TOKENS = [
+  'contract.numar',
+  'contract.data',
+  'parte.nume',
+  'parte.cui',
+  'parte.nrRegCom',
+  'parte.adresa',
+  'parte.reprezentant',
+  'parte.functie',
+  'parte.email',
+  'firma.nume',
+  'firma.cui',
+  'firma.nrRegCom',
+  'firma.adresa',
+  'firma.reprezentant',
+  'firma.email',
+  'firma.telefon',
+] as const
 
 interface TemplateField {
   key: string
@@ -34,14 +51,12 @@ interface SignerRole {
 }
 interface CompanyTemplate {
   id: string
-  key: string | null
   name: string
   category: string | null
   bodyHtml: string
   fields: TemplateField[]
   seriesId: string | null
   signerRoles: SignerRole[]
-  isSystem: boolean
 }
 interface Series {
   id: string
@@ -531,7 +546,7 @@ export function CompanyTemplatesCard({ canEdit }: { canEdit: boolean }) {
   const series = useQuery({ queryKey: ['contracts', 'series'], queryFn: () => api.get<Series[]>('/api/contracts/series') })
 
   if (templates.isPending || series.isPending) return <Skeleton className="h-40 w-full" />
-  const own = (templates.data ?? []).filter((template) => !template.isSystem)
+  const rows = templates.data ?? []
 
   return (
     <Card>
@@ -541,9 +556,9 @@ export function CompanyTemplatesCard({ canEdit }: { canEdit: boolean }) {
           <TemplateForm key={editing.id ?? 'new'} draft={editing} series={series.data ?? []} onDone={() => setEditing(null)} />
         ) : (
           <>
-            {own.length === 0 ? <p className="text-sm text-muted-foreground">{t('accounting:companyTemplates.empty')}</p> : null}
+            {rows.length === 0 ? <p className="text-sm text-muted-foreground">{t('accounting:companyTemplates.empty')}</p> : null}
             <ul className="space-y-1">
-              {own.map((template) => (
+              {rows.map((template) => (
                 <li key={template.id} className="flex flex-wrap items-center gap-3 text-sm">
                   <span>{template.name}</span>
                   <span className="text-muted-foreground">{template.category}</span>

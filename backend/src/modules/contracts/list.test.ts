@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises'
-import { eq, inArray, sql } from 'drizzle-orm'
+import { inArray, sql } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
 import { billingClients, contractDocuments, contracts, users } from '../../shared/db/schema/index.js'
-import { ensureSaasContract, listRegistry } from './registry-service.js'
+import { listRegistry } from './registry-service.js'
 
 const clientIds: string[] = []
 const scratchContractIds: string[] = []
@@ -76,15 +76,6 @@ describe('listRegistry', async () => {
     await runBackfill([bare.id])
     const { items } = await listRegistry(me, query)
     expect(items.map((i) => i.counterpartyName)).not.toContain(bare.name)
-  })
-
-  it('creates the contract of a client on first use, once', async () => {
-    const client = await makeClient('f ensured')
-    const first = await db.transaction((tx) => ensureSaasContract(tx, client.id, null))
-    const second = await db.transaction((tx) => ensureSaasContract(tx, client.id, null))
-    expect(second).toBe(first)
-    const rows = await db.select().from(contracts).where(eq(contracts.billingClientId, client.id))
-    expect(rows).toHaveLength(1)
   })
 
   it('treats LIKE wildcards in the search as plain text and paginates', async () => {

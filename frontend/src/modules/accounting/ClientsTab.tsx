@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Calculator, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { Calculator, FilePlus, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -98,6 +98,9 @@ function ClientsTable({ clients, showDemoEndsAt, showPendingDeletion, onEdit, on
                 actions={[
                   ...(c.contractDetails?.calc && can('clienti.calculator')
                     ? [{ key: 'calculator', icon: Calculator, label: t('pricing:apply.reopen'), onClick: () => navigate(`/clients?tab=calculator&clientId=${c.id}`) }]
+                    : []),
+                  ...(can('facturi.contracte')
+                    ? [{ key: 'contract', icon: FilePlus, label: t('accounting:clients.newContract'), onClick: () => navigate(`/clients/contracte/nou?client=${c.id}`) }]
                     : []),
                   { key: 'edit', icon: Pencil, label: t('common:actions.edit'), onClick: () => onEdit(c) },
                   { key: 'delete', icon: Trash2, label: t('common:actions.delete'), destructive: true, onClick: () => onDelete(c) },

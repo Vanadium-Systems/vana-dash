@@ -397,50 +397,9 @@ export interface BillingClient {
   contractDetails: ContractDetails | null
 }
 
-// modules/contracts — shape validat Zod server-side (ContractDetailsSchema), toate opționale.
+// What is left of the client's contract data: the calculator inputs, saved by "apply to client".
 export interface ContractDetails {
-  nrContract?: string
-  dataContract?: string
-  taxaInitiere?: string
-  nrZileOnboarding?: string
-  facturareTip?: string
-  operatoriGestiune?: string
-  operatoriTeren?: string
-  puncteLucru?: string
-  documenteIncluse?: string
-  flux?: string
-  moduleAddon?: string
-  /** Implicit true (nesetat = Luna Gratuită inclusă, comportamentul de dinainte). */
-  areLunaGratuita?: boolean
-  conditiiSpeciale?: string
-  /** The calculator inputs the price came from (saved by "apply to client"). */
   calc?: PricingCalculateInput
-}
-
-export interface ContractDocument {
-  id: string
-  billingClientId: string
-  docType: 'contract' | 'anexa' | 'act_aditional'
-  addendumId: string | null
-  pdfStoragePath: string
-  isSigned: boolean
-  signedAt: string | null
-  sourceDocumentId: string | null
-  createdAt: string
-}
-
-export interface ContractAddendum {
-  id: string
-  billingClientId: string
-  number: number
-  issuedAt: string
-  oldPriceNote: string
-  newPriceNote: string
-  reason: string
-  effectiveDateNote: string
-  temporary: boolean
-  reversionNote: string | null
-  createdAt: string
 }
 
 // Completare automată client din ANAF (după CIF) — vezi ClientFormDialog.

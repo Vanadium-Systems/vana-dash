@@ -9,7 +9,7 @@ import { db } from '../../shared/db/client.js'
 import { createdByUserId, recordAudit, updatedByUserId } from '../../shared/lib/audit.js'
 import {
   billingClients,
-  contractDocuments,
+  contracts,
   financialRecords,
   invoiceLineItems,
   invoiceSequences,
@@ -166,16 +166,9 @@ async function loadPricingPlan(id: string, input: ClientPricingInput) {
     .where(and(eq(billingClients.id, id), isNull(billingClients.deletedAt)))
   if (!client) return null
   const [signed] = await db
-    .select({ id: contractDocuments.id })
-    .from(contractDocuments)
-    .where(
-      and(
-        eq(contractDocuments.billingClientId, id),
-        eq(contractDocuments.docType, 'contract'),
-        eq(contractDocuments.isSigned, true),
-        isNull(contractDocuments.deletedAt),
-      ),
-    )
+    .select({ id: contracts.id })
+    .from(contracts)
+    .where(and(eq(contracts.billingClientId, id), eq(contracts.status, 'signed'), isNull(contracts.deletedAt)))
     .limit(1)
   return { client, plan: planPricingApply(client, input, Boolean(signed)) }
 }

@@ -3,7 +3,6 @@ import { boolean, check, index, jsonb, pgTable, text, timestamp, uuid, type AnyP
 import { standardColumns } from './helpers.js'
 import { auditColumns } from './users.js'
 import { billingClients } from './billing-clients.js'
-import { contractAddenda } from './contract-addenda.js'
 import { contracts } from './contracts.js'
 import { tenantColumns } from './tenant-column.js'
 
@@ -27,14 +26,12 @@ export const contractDocuments = pgTable(
     ...tenantColumns,
     ...standardColumns,
     ...auditColumns,
-    // Set on the SaaS documents only; the registry's own documents hang off contract_id.
+    // Set only on the documents of the old SaaS contracts, generated from the client's record.
     billingClientId: uuid('billing_client_id').references(() => billingClients.id),
     contractId: uuid('contract_id')
       .notNull()
       .references(() => contracts.id),
     docType: text('doc_type', { enum: ['contract', 'anexa', 'act_aditional', 'document', 'sign_certificate'] }).notNull(),
-    // Doar pt. doc_type='act_aditional' — leagă documentul de actul adițional care l-a generat.
-    addendumId: uuid('addendum_id').references(() => contractAddenda.id),
     pdfStoragePath: text('pdf_storage_path').notNull(),
     isSigned: boolean('is_signed').notNull().default(false),
     signedAt: timestamp('signed_at', { withTimezone: true }),
@@ -49,7 +46,6 @@ export const contractDocuments = pgTable(
     sourceDocumentId: uuid('source_document_id').references((): AnyPgColumn => contractDocuments.id, { onDelete: 'set null' }),
   },
   (t) => [
-    index('idx_contract_documents_client_type').on(t.billingClientId, t.docType, t.addendumId),
     index('idx_contract_documents_contract').on(t.contractId),
     check('contract_documents_saas_client', sql`${t.docType} IN ('document', 'sign_certificate') OR ${t.billingClientId} IS NOT NULL`),
   ],

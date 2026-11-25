@@ -147,15 +147,27 @@ export interface CustomTemplate {
   id: string
   name: string
   category: string
-  isSystem?: boolean
+  bodyHtml: string
   fields: TemplateField[]
   seriesId: string | null
+  signerRoles: Array<{ role: string; own: boolean }>
 }
 
 export type Counterparty = { kind: 'client' | 'prospect' | 'user'; id: string; label: string } | { kind: 'other'; name: string }
 
 export function counterpartyBody(party: Counterparty): { kind: 'client' | 'prospect' | 'user'; id: string } | { kind: 'other'; name: string } {
   return party.kind === 'other' ? { kind: 'other', name: party.name.trim() } : { kind: party.kind, id: party.id }
+}
+
+export const PARTY_DETAIL_KEYS = ['cui', 'nrRegCom', 'adresa', 'reprezentant', 'functie', 'email'] as const
+export type PartyDetailKey = (typeof PARTY_DETAIL_KEYS)[number]
+export type PartyDetails = Partial<Record<PartyDetailKey, string>>
+
+/** The party tokens a template body uses, in the order of PARTY_DETAIL_KEYS. */
+export function partyKeysUsed(bodyHtml: string): PartyDetailKey[] {
+  const used = new Set<string>()
+  for (const match of bodyHtml.matchAll(/\{\{\s*parte\.(\w+)\s*\}\}/g)) used.add(match[1]!)
+  return PARTY_DETAIL_KEYS.filter((key) => used.has(key))
 }
 
 export function useContractNumbers(seriesId: string | null | undefined, enabled = true) {
@@ -185,6 +197,6 @@ export function useContractCategories(enabled = true) {
 export function useCustomTemplates() {
   return useQuery({
     queryKey: ['contracts', 'templates', 'custom'],
-    queryFn: async () => (await api.get<CustomTemplate[]>('/api/contracts/templates')).filter((template) => !template.isSystem),
+    queryFn: () => api.get<CustomTemplate[]>('/api/contracts/templates'),
   })
 }

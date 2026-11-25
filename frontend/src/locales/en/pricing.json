@@ -248,7 +248,7 @@
     "noChanges": "The price and details are already the same. Only the calculator inputs are saved.",
     "empty": "empty",
     "confirm": "Apply",
-    "confirmAddendum": "Apply and generate an addendum",
+    "confirmAddendum": "Apply and draft an addendum",
     "addendumNeeded": "The client has a signed contract and the price or modules differ. An addendum is needed.",
     "addendumReason": "Change of subscription and modules",
     "fields": {

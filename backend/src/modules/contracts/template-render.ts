@@ -1,9 +1,39 @@
+import type { CompanyProfile } from '../../shared/lib/company.js'
 import { markSignatureRoles } from '../../shared/lib/pdf-signature-fields.js'
 import { currentLocale } from '../../shared/lib/request-context.js'
 import type { SignerRole, TemplateField } from './registry-schema.js'
 
+// The other side's details: read from the client or prospect picked, and editable on the form,
+// because a prospect has no address and a name typed by hand has nothing at all.
+export const PARTY_DETAIL_KEYS = ['cui', 'nrRegCom', 'adresa', 'reprezentant', 'functie', 'email'] as const
+export type PartyDetailKey = (typeof PARTY_DETAIL_KEYS)[number]
+export type PartyDetails = Partial<Record<PartyDetailKey, string>>
+
+const COMPANY_KEYS = ['nume', 'cui', 'nrRegCom', 'adresa', 'reprezentant', 'email', 'telefon'] as const
+type CompanyKey = (typeof COMPANY_KEYS)[number]
+
 // Tokens every company template may use besides its own fields.
-export const BUILTIN_TOKENS = ['contract.numar', 'contract.data', 'parte.nume'] as const
+export const BUILTIN_TOKENS = [
+  'contract.numar',
+  'contract.data',
+  'parte.nume',
+  ...PARTY_DETAIL_KEYS.map((key) => `parte.${key}` as const),
+  ...COMPANY_KEYS.map((key) => `firma.${key}` as const),
+] as const
+
+/** Our company, from the company sheet. The contract writes the office on one line, city first. */
+export function companyDetails(profile: CompanyProfile): Record<CompanyKey, string> {
+  const office = profile.registeredOffice
+  return {
+    nume: profile.name,
+    cui: profile.cui,
+    nrRegCom: profile.regCom,
+    adresa: [office.city, office.street, office.number, office.details].map((part) => part.trim()).filter(Boolean).join(', '),
+    reprezentant: profile.representative,
+    email: profile.email,
+    telefon: profile.phone,
+  }
+}
 
 const TOKEN = /\{\{\s*([a-zA-Z][a-zA-Z0-9_.]*)\s*\}\}/g
 
@@ -41,6 +71,8 @@ export interface RenderInput {
   numberLabel: string
   date: string
   counterpartyName: string
+  party: PartyDetails
+  company: Record<CompanyKey, string>
 }
 
 /** Values are escaped; the template HTML itself is the company's and is printed with JavaScript and the network off. */
@@ -50,6 +82,8 @@ export function renderCustomTemplate(input: RenderInput): string {
     'contract.numar': input.numberLabel,
     'contract.data': formatDate(input.date),
     'parte.nume': input.counterpartyName,
+    ...Object.fromEntries(PARTY_DETAIL_KEYS.map((key) => [`parte.${key}`, input.party[key] ?? ''])),
+    ...Object.fromEntries(COMPANY_KEYS.map((key) => [`firma.${key}`, input.company[key]])),
   }
   const html = input.bodyHtml.replace(TOKEN, (_m, key: string) => {
     if (key in builtins) return escapeHtml(builtins[key]!)

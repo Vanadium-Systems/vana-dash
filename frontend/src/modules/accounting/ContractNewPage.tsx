@@ -1,7 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Alert } from '@/shared/components/ui/alert'
 import { Button } from '@/shared/components/ui/button'
 import { EmptyState } from '@/shared/components/ui/empty-state'
@@ -13,10 +13,11 @@ import { api } from '@/shared/lib/api'
 import { errorCode, errorDetail, toastError } from '@/shared/lib/errors'
 import { formatDate } from '@/shared/lib/format'
 import { getLocale, t } from '@/shared/lib/i18n'
+import type { InvoicingClient } from '@/shared/lib/types'
 import { parseRoDecimal } from '@/shared/lib/utils'
 import { ContractPartyField } from './ContractPartyField'
 import { ContractOwnerField, ContractTermsFields } from './ContractTermsFields'
-import { counterpartyBody, useContractNumbers, useCustomTemplates, type Counterparty, type CustomTemplate, type TemplateField } from './contracts-api'
+import { counterpartyBody, partyKeysUsed, useContractNumbers, useCustomTemplates, type Counterparty, type CustomTemplate, type PartyDetails, type TemplateField, PARTY_DETAIL_KEYS } from './contracts-api'
 import { EMPTY_TERMS, termsBody, validateTerms, type TermsErrors, type TermsForm } from './contracts-logic'
 
 const BACK_PATH = '/clients?tab=contracte'
@@ -48,11 +49,13 @@ function FieldInput({ field, value, error, onChange }: { field: TemplateField; v
 export function ContractNewPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
   const templates = useCustomTemplates()
-  const [templateId, setTemplateId] = useState('')
+  const [templateId, setTemplateId] = useState(searchParams.get('template') ?? '')
   const [title, setTitle] = useState('')
   const [values, setValues] = useState<Record<string, string>>({})
   const [party, setParty] = useState<Counterparty | null>(null)
+  const [partyDetails, setPartyDetails] = useState<PartyDetails>({})
   const [pickedNumber, setPickedNumber] = useState<number | null>(null)
   const [choosingNumber, setChoosingNumber] = useState(false)
   const [terms, setTerms] = useState<TermsForm>(EMPTY_TERMS)
@@ -64,10 +67,47 @@ export function ContractNewPage() {
 
   const template: CustomTemplate | undefined = templates.data?.find((entry) => entry.id === templateId) ?? (templates.data?.length === 1 ? templates.data[0] : undefined)
   const numbers = useContractNumbers(template?.seriesId ?? null, Boolean(template))
+  const partyKeys = template ? partyKeysUsed(template.bodyHtml) : []
+
+  // `?client=<id>` comes from a client row or from applying a price change; the name is not in the URL.
+  const linkedClientId = searchParams.get('client')
+  const linkedClients = useQuery({ queryKey: ['billing-clients'], queryFn: () => api.get<InvoicingClient[]>('/api/invoicing/clients'), enabled: Boolean(linkedClientId) })
+  const linkedApplied = useRef(false)
+  useEffect(() => {
+    if (!linkedClientId || linkedApplied.current) return
+    const linked = linkedClients.data?.find((client) => client.id === linkedClientId)
+    if (!linked) return
+    linkedApplied.current = true
+    setParty({ kind: 'client', id: linked.id, label: linked.name })
+  }, [linkedClientId, linkedClients.data])
+
+  // The party's own data fills the boxes once per chosen party; what the person types afterwards stays.
+  const linkedParty = party && party.kind !== 'other' ? party : null
+  const partyKey = linkedParty ? `${linkedParty.kind}:${linkedParty.id}` : ''
+  const partyFile = useQuery({
+    queryKey: ['contracts', 'registry', 'party', partyKey],
+    queryFn: () => api.get<PartyDetails>(`/api/contracts/registry/party?kind=${linkedParty!.kind}&id=${linkedParty!.id}`),
+    enabled: partyKey !== '' && partyKeys.length > 0,
+  })
+  const filledFor = useRef('')
+  useEffect(() => {
+    setPartyDetails({})
+    filledFor.current = ''
+  }, [partyKey])
+  useEffect(() => {
+    if (!partyFile.data || filledFor.current === partyKey) return
+    filledFor.current = partyKey
+    const file = partyFile.data
+    setPartyDetails((current) => {
+      const next = { ...current }
+      for (const key of PARTY_DETAIL_KEYS) if (!next[key] && file[key]) next[key] = file[key]
+      return next
+    })
+  }, [partyFile.data, partyKey])
 
   useEffect(() => {
     if (!template) return
-    setValues(Object.fromEntries(template.fields.map((field) => [field.key, field.default ?? ''])))
+    setValues(Object.fromEntries(template.fields.map((field) => [field.key, searchParams.get(`f.${field.key}`) ?? field.default ?? ''])))
     setFieldErrors({})
     setPickedNumber(null)
     setChoosingNumber(false)
@@ -119,12 +159,14 @@ export function ContractNewPage() {
     setNumberError(null)
     setTermsErrors(nextTerms)
     if (Object.keys(errors).length > 0 || noParty || Object.keys(nextTerms).length > 0) return
+    const partyBody = Object.fromEntries(partyKeys.flatMap((key) => (partyDetails[key]?.trim() ? [[key, partyDetails[key]!.trim()]] : [])))
     const seriesId = pickedNumber !== null ? numbers.data?.series?.id : (template.seriesId ?? undefined)
     create.mutate({
       templateId: template.id,
       ...(title.trim() ? { title: title.trim() } : {}),
       fieldValues,
       counterparty: counterpartyBody(party!),
+      ...(Object.keys(partyBody).length > 0 ? { partyDetails: partyBody } : {}),
       ...(seriesId ? { seriesId } : {}),
       ...(pickedNumber !== null ? { number: pickedNumber } : {}),
       ...termsBody(terms),
@@ -179,6 +221,20 @@ export function ContractNewPage() {
                 <Input id="contract-title" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} />
               </Field>
               <ContractPartyField id="contract-party" value={party} onChange={setParty} error={partyError} />
+
+              {partyKeys.length > 0 ? (
+                <fieldset className="space-y-3">
+                  <legend className="text-sm font-medium">{t('accounting:contracts.newPage.partyDetails.title')}</legend>
+                  <p className="text-xs text-muted-foreground">{t('accounting:contracts.newPage.partyDetails.hint')}</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {partyKeys.map((key) => (
+                      <Field key={key} label={t(`accounting:contracts.newPage.partyDetails.fields.${key}`)} optional>
+                        <Input id={`contract-party-${key}`} maxLength={300} value={partyDetails[key] ?? ''} onChange={(e) => setPartyDetails((current) => ({ ...current, [key]: e.target.value }))} />
+                      </Field>
+                    ))}
+                  </div>
+                </fieldset>
+              ) : null}
 
               {template.fields.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">

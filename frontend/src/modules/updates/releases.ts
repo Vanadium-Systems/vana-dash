@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-25T19:00:00+02:00',
+    title: {
+      ro: 'Contractele SaaS se fac din Registru',
+      en: 'SaaS contracts are made from the register',
+    },
+    body: {
+      ro: 'Contractul SaaS, anexa de prețuri și actul adițional sunt acum șabloane ale firmei, ca NDA-ul: le editezi în Setări contracte, iar numărul vine din seria șablonului, fără să-l mai scrii de mână în fișa clientului. Pe rândul unui client, „Contract nou” deschide formularul cu clientul ales, iar CUI-ul, sediul și reprezentantul se completează din fișă și le poți corecta. Contractul are două variante, cu lună gratuită și fără.',
+      en: 'The SaaS contract, the price annex and the addendum are now company templates, like the NDA: you edit them in Contract settings, and the number comes from the template’s series instead of being typed on the client’s record. On a client row, “New contract” opens the form with the client chosen, and the tax ID, address and representative are filled in from the record, ready to correct. The contract comes in two versions, with a free month and without.',
+    },
+    features: ['facturi.contracte'],
+  },
+  {
     publishedAt: '2026-11-25T16:30:00+02:00',
     title: {
       ro: 'Emailurile automate apar la Trimise',

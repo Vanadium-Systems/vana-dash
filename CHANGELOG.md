@@ -4,6 +4,16 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-25: SaaS contracts become company templates
+
+### Changed
+- **No built-in contract templates.** The SaaS contract, price annex and addendum are no longer built into the app and generated from the client's record: they are company templates like any other, made from Clients → Contracts → New contract and numbered from the template's series. A client row has "New contract", which opens the form with the client chosen, and "Apply and draft an addendum" in the calculator opens it with the old and new price filled in.
+- **Party and company tokens:** a template can use `parte.cui`, `parte.nrRegCom`, `parte.adresa`, `parte.reprezentant`, `parte.functie`, `parte.email` (prefilled from the client or prospect, editable on the form) and `firma.*` (from the company sheet). New route `GET /api/contracts/registry/party`.
+- Whether a price change needs an addendum is now decided by a signed contract of the client in the register.
+
+### Removed
+- The built-in template rows, the commercial terms and clause variants (`dashboard_config` keys `contract.terms` and `contract.fragments`), the per-client addenda (`contract_addenda`) and their routes: `/api/contracts/clients/:clientId/{info,documents,preview,addenda}`, `/api/contracts/addenda/:id/document`, `/api/contracts/templates/:key` (edit, restore, blank) and `/api/contracts/terms`. Migration `0113` deletes them; an installation that had edited those templates should copy their text into a company template first. Documents already generated stay on their contracts.
+
 ## 2026-11-24: Signing contracts by link
 
 ### Added

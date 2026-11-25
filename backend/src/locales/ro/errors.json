@@ -270,15 +270,8 @@
     "clientNotFound": "Client inexistent",
     "addendumNotFound": "Act adițional inexistent",
     "missingData": "Date lipsă pentru generarea documentului: Număr contract, Data contract",
-    "atLeastOneTerm": "Trimite cel puțin un termen",
-    "templates": {
-      "saas": "Contract de servicii SaaS (+ DPA)",
-      "priceAnnex": "Anexa de prețuri",
-      "addendum": "Act adițional"
-    },
     "unknownTokens": "Tokeni necunoscuți: {{unknown}}",
-    "templateNotFound": "Șablon inexistent",
-    "saasTitle": "Contract SaaS"
+    "templateNotFound": "Șablon inexistent"
   },
   "reconciliation": {
     "configureFirst": "configurează client_id și generează certificatul mai întâi",
@@ -617,12 +610,9 @@
     "CLIENT_NOT_FOUND": "Clientul nu există.",
     "COMPANY_PROFILE_INCOMPLETE": "Fișa firmei nu e completă.",
     "CONFIRMATION_PDF_FAILED": "Confirmarea de plată nu s-a putut genera. Încearcă din nou.",
-    "CONTRACT_ADDENDUM_NOT_FOUND": "Actul adițional nu există.",
-    "CONTRACT_BLANK_FAILED": "Exemplarul gol nu s-a putut genera. Încearcă din nou.",
     "CONTRACT_DATA_INCOMPLETE": "Date lipsă pentru generarea documentului: {{fields}}.",
     "CONTRACT_DOCUMENT_NOT_FOUND": "Documentul nu există.",
     "CONTRACT_GENERATE_FAILED": "Documentul nu s-a putut genera. Încearcă din nou.",
-    "CONTRACT_PREVIEW_FAILED": "Simularea nu s-a putut genera. Încearcă din nou.",
     "CONTRACT_TEMPLATE_TOKENS_UNKNOWN": "Șablonul conține tokeni necunoscuți: {{unknown}}.",
     "CONTRACT_UPLOAD_FAILED": "PDF-ul semnat nu s-a putut salva. Încearcă din nou.",
     "CRYPTO_NO_LIVE_PRICE": "Nu există preț live pentru {{symbol}} pe {{exchange}}.",
@@ -749,7 +739,6 @@
     "CONTRACT_END_REQUIRED": "Preavizul cere data de sfârșit.",
     "CONTRACT_NOT_DRAFT": "Doar o ciornă se poate șterge. Un contract semnat se reziliază.",
     "CONTRACT_OWNER_ADMIN_ONLY": "Doar adminul poate da contractul altcuiva.",
-    "CONTRACT_TEMPLATE_SYSTEM": "Șabloanele SaaS nu se șterg.",
     "PROSPECT_NOT_FOUND": "Prospectul nu există.",
     "USER_NOT_FOUND": "Persoana nu există.",
     "CONTRACT_TEMPLATE_FIELD_DUPLICATE": "Același câmp apare de două ori în șablon.",

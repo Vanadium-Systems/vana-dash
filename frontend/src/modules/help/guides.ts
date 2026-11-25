@@ -915,16 +915,16 @@ const SOURCES: GuideSource[] = [
     },
     steps: [
       {
-        ro: 'Lista cuprinde contractele SaaS cu clienții, colaborările, NDA-urile și contractele de la furnizori. Filtrezi după stare (ciornă, de semnat, semnat, expirat, reziliat) și cauți după nume sau număr.',
-        en: 'The list covers SaaS contracts with clients, collaborations, NDAs and supplier contracts. Filter by state (draft, to sign, signed, expired, terminated) and search by name or number.',
+        ro: 'Lista cuprinde contractele cu clienții, colaborările, NDA-urile și contractele de la furnizori. Filtrezi după stare (ciornă, de semnat, semnat, expirat, reziliat) și cauți după nume sau număr.',
+        en: 'The list covers contracts with clients, collaborations, NDAs and supplier contracts. Filter by state (draft, to sign, signed, expired, terminated) and search by name or number.',
       },
       {
         ro: 'Un click pe rând deschide pagina contractului: termenul (început, sfârșit, reînnoire automată în luni, preaviz în zile), responsabilul, documentele și istoricul.',
         en: 'A click on a row opens the contract page: the term (start, end, automatic renewal in months, notice in days), the owner, the documents and the history.',
       },
       {
-        ro: '„Contract nou” pornește dintr-un șablon al firmei: formularul se face din câmpurile șablonului, iar numărul propus vine din serie. Un număr ocupat nu se poate refolosi.',
-        en: '“New contract” starts from a company template: the form is built from the template’s fields, and the proposed number comes from the series. A number already taken cannot be reused.',
+        ro: '„Contract nou” pornește dintr-un șablon al firmei: formularul se face din câmpurile șablonului, iar numărul propus vine din seria șablonului. Un număr ocupat nu se poate refolosi. Datele celeilalte părți (CUI, sediu, reprezentant) se completează din fișa clientului și le poți corecta înainte de generare.',
+        en: '“New contract” starts from a company template: the form is built from the template’s fields, and the proposed number comes from the template’s series. A number already taken cannot be reused. The other party’s details (tax ID, address, representative) are filled in from the client’s record, and you can correct them before generating.',
       },
       {
         ro: '„Încarcă semnat” adaugă un contract venit din afară, cu numărul nostru sau cu al celeilalte părți.',
@@ -947,8 +947,8 @@ const SOURCES: GuideSource[] = [
         en: 'Signing by link (with the “Send contracts to sign by link” right): you sign first on webSIGN and upload the PDF with “Upload the signed version”, then “Send to sign” with the other person’s name, email and role. They get the link, ask for a code by email, read the document and sign on their phone. The signed PDF and the signing certificate show in the documents, and the request’s state (sent, opened, signed, declined) shows on the page. You can cancel the link at any time. The company certificate is generated once, in Contract settings.',
       },
       {
-        ro: 'Contractul SaaS al unui client se generează în continuare din fișa lui, iar când aplici o ofertă din calculator pe un client cu contract semnat, aplicația propune și actul adițional.',
-        en: 'A client’s SaaS contract is still generated from the client sheet, and when you apply an offer from the calculator to a client with a signed contract, the app also offers the addendum.',
+        ro: 'Contractul SaaS, anexa de prețuri și actul adițional sunt șabloane ale firmei, ca oricare altul: le editezi în Setări contracte. „Contract nou” din lista de clienți deschide formularul cu clientul deja ales.',
+        en: 'The SaaS contract, the price annex and the addendum are company templates like any other: you edit them in Contract settings. “New contract” in the client list opens the form with the client already chosen.',
       },
     ],
   },
@@ -986,8 +986,8 @@ const SOURCES: GuideSource[] = [
         en: 'On a prospect, “Save offer on prospect” keeps the calculator inputs; on promotion, the offer moves to the client. On a client, “Apply to client” shows what changes (subscription, plan, modules, operators, work sites, fee) and asks for confirmation.',
       },
       {
-        ro: 'Dacă clientul are contract semnat și se schimbă prețul sau modulele, „Aplică și generează act adițional” face și actul. „Deschide în calculator” de pe fișa clientului reia intrările; apasă „Calculează” din nou.',
-        en: 'If the client has a signed contract and the price or modules change, “Apply and generate addendum” makes the addendum too. “Open in calculator” on the client sheet reloads the inputs; press “Calculate” again.',
+        ro: 'Dacă clientul are contract semnat și se schimbă prețul sau modulele, „Aplică și întocmește act adițional” deschide și un contract nou, cu tariful vechi și cel nou completate: alegi șablonul de act adițional și îl generezi. „Deschide în calculator” de pe fișa clientului reia intrările; apasă „Calculează” din nou.',
+        en: 'If the client has a signed contract and the price or modules change, “Apply and draft an addendum” also opens a new contract with the old and new price filled in: pick the addendum template and generate it. “Open in calculator” on the client sheet reloads the inputs; press “Calculate” again.',
       },
     ],
   },

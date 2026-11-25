@@ -1484,7 +1484,7 @@ const ndaBody = L({
 const ndaName = L({ ro: 'Acord de confidențialitate', en: 'Non-disclosure agreement' })
 const [ndaTemplate] = await db
   .insert(contractTemplates)
-  .values({ key: null, name: ndaName, bodyHtml: ndaBody, category: L({ ro: 'Confidențialitate', en: 'Confidentiality' }), fields: ndaFields, seriesId, signerRoles: ndaSignerRoles, isSystem: false })
+  .values({ name: ndaName, bodyHtml: ndaBody, category: L({ ro: 'Confidențialitate', en: 'Confidentiality' }), fields: ndaFields, seriesId, signerRoles: ndaSignerRoles })
   .returning()
 
 const dateOnly = (d: Date) => d.toISOString().slice(0, 10)
