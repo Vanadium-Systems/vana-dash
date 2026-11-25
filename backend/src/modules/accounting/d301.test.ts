@@ -6,14 +6,18 @@
 import { eq, inArray } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { db } from '../../shared/db/client.js'
-import { declarationFilings, financialRecords } from '../../shared/db/schema/index.js'
+import { declarationFilings, exchangeRates, financialRecords } from '../../shared/db/schema/index.js'
 import { declarationAddress, generateD301Preview, generateD390Preview, linesToCsv, saveFiling, updateDeclarationLine } from './d301.js'
 
 const recordIds: string[] = []
 // The month saveFiling writes to; nothing else in the suite uses it.
 const FILING_PERIOD = '2027-04'
 
+// Two rates on consecutive days, in a year no other suite touches.
+const RATE_DAYS = ['2031-03-02', '2031-03-03']
+
 afterAll(async () => {
+  await db.delete(exchangeRates).where(inArray(exchangeRates.date, RATE_DAYS))
   if (recordIds.length) await db.delete(financialRecords).where(inArray(financialRecords.id, recordIds))
   await db.delete(declarationFilings).where(eq(declarationFilings.period, FILING_PERIOD))
 })
@@ -88,23 +92,26 @@ describe('generateD301Preview', () => {
     expect(preview.warnings.some((w) => w.includes('curs BNR indisponibil'))).toBe(true)
   })
 
-  it('declares a reverse-charge adjustment in the credit note month, under its number, not in the invoice month', async () => {
+  it('converts at the rate published the day before the invoice, not on its own date', async () => {
+    await db.delete(exchangeRates).where(inArray(exchangeRates.date, RATE_DAYS))
+    await db.insert(exchangeRates).values([
+      { date: RATE_DAYS[0]!, currency: 'EUR', rate: '5.000000' },
+      { date: RATE_DAYS[1]!, currency: 'EUR', rate: '6.000000' },
+    ])
     await insertExpense({
-      documentNumber: 'ACME-ADJ-1',
-      currency: 'RON',
-      amount: '100.00',
-      reverseChargeType: 'non_eu_services',
-      counterpartyName: 'Acme Inc',
-      issuedAt: new Date('2027-05-25T00:00:00Z'),
-      meta: { reverseChargeAdjustment: { documentNumber: 'ACME-ADJ-1-CN', date: '2027-07-24' } },
+      documentNumber: 'HTZ-FX-1',
+      currency: 'EUR',
+      amount: '10.00',
+      reverseChargeType: 'eu_services',
+      counterpartyCountry: 'DE',
+      counterpartyCif: '123456789',
+      counterpartyName: 'Acme GmbH',
+      issuedAt: new Date(`${RATE_DAYS[1]}T00:00:00Z`),
     })
 
-    expect((await generateD301Preview('2027-05')).lines).toHaveLength(0)
-    const creditNoteMonth = await generateD301Preview('2027-07')
-    expect(creditNoteMonth.lines).toHaveLength(1)
-    expect(creditNoteMonth.lines[0]!.documentNumber).toBe('ACME-ADJ-1-CN')
-    expect(creditNoteMonth.lines[0]!.issuedAt.toISOString().slice(0, 10)).toBe('2027-07-24')
-    expect(creditNoteMonth.totals.vatRon).toBeCloseTo(21)
+    const [line] = (await generateD301Preview('2031-03')).lines
+    expect(line!.fxRate).toBe(5)
+    expect(line!.baseRon).toBe(50)
   })
 
   it('warns when an eu_services line lacks counterparty country/VAT id', async () => {

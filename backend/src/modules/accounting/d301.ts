@@ -1,4 +1,4 @@
-import { and, eq, gte, isNull, lt, ne, or, sql } from 'drizzle-orm'
+import { and, eq, gte, isNull, lt, ne, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import { buildD301 } from '../../connectors/anaf/declarations/d301-builder.js'
 import { buildD390 } from '../../connectors/anaf/declarations/d390-builder.js'
@@ -24,25 +24,14 @@ function monthBounds(period: string): { from: Date; to: Date } {
   return { from, to }
 }
 
-/**
- * Set on an invoice that was first billed with VAT and later turned into reverse charge by a credit
- * note: the invoice keeps its own date for the books, while D301 takes it in the month of the credit
- * note, under the credit note's number and at that day's rate.
- */
-interface ReverseChargeAdjustment {
-  documentNumber: string
-  date: string
-}
-
-function adjustmentOf(meta: unknown): ReverseChargeAdjustment | null {
-  const adj = (meta as { reverseChargeAdjustment?: Partial<ReverseChargeAdjustment> } | null)?.reverseChargeAdjustment
-  return adj?.documentNumber && adj.date ? { documentNumber: adj.documentNumber, date: adj.date } : null
+/** The rate published on the last banking day before the invoice date, as art. 290 and the accountant do. */
+function rateDayFor(issuedAt: Date): string {
+  return new Date(issuedAt.getTime() - 86_400_000).toISOString().slice(0, 10)
 }
 
 /** Rândurile brute din financial_records + conversia RON (curs BNR la data facturii) per linie. */
 async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; warnings: string[] }> {
   const { from, to } = monthBounds(period)
-  const adjustmentDate = sql`(${financialRecords.meta} -> 'reverseChargeAdjustment' ->> 'date')`
   const rows = await db
     .select()
     .from(financialRecords)
@@ -51,10 +40,8 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
         isNull(financialRecords.deletedAt),
         eq(financialRecords.direction, 'in'),
         ne(financialRecords.reverseChargeType, 'none'),
-        or(
-          and(sql`${adjustmentDate} IS NULL`, gte(financialRecords.issuedAt, from), lt(financialRecords.issuedAt, to)),
-          and(sql`${adjustmentDate} >= ${from.toISOString().slice(0, 10)}`, sql`${adjustmentDate} < ${to.toISOString().slice(0, 10)}`),
-        ),
+        gte(financialRecords.issuedAt, from),
+        lt(financialRecords.issuedAt, to),
       ),
     )
     .orderBy(financialRecords.issuedAt)
@@ -64,14 +51,12 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
   const lines: DeclarationLine[] = []
 
   for (const row of rows) {
-    const adjustment = adjustmentOf(row.meta)
-    const lineDate = adjustment ? new Date(`${adjustment.date}T00:00:00Z`) : row.issuedAt
     const amount = Number(row.amount)
     const currency = row.currency
     let fxRate = 1
     if (currency !== 'RON') {
       try {
-        const rate = await getRateForDate(lineDate.toISOString().slice(0, 10), currency)
+        const rate = await getRateForDate(rateDayFor(row.issuedAt), currency)
         fxRate = Number(rate.rate)
       } catch (err) {
         warnings.push(`${row.documentNumber ?? row.id}: curs BNR indisponibil pt. ${currency} — exclus din total (${String(err)})`)
@@ -103,8 +88,8 @@ async function loadLines(period: string): Promise<{ lines: DeclarationLine[]; wa
       recordId: row.id,
       confirmed,
       reverseChargeType: row.reverseChargeType as 'eu_services' | 'non_eu_services',
-      documentNumber: adjustment?.documentNumber ?? row.documentNumber ?? '',
-      issuedAt: lineDate,
+      documentNumber: row.documentNumber ?? '',
+      issuedAt: row.issuedAt,
       amountForeign: amount,
       currency,
       fxRate,
