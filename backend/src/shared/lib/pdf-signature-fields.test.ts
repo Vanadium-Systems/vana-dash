@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { PDFDocument, PDFName, PDFString } from 'pdf-lib'
 import { addSignatureFields, markSignatureRoles } from './pdf-signature-fields.js'
@@ -45,7 +46,10 @@ const SAAS_SIGNATURES = `<div class="signatures">
   <div class="signature-block"><strong>CLIENT</strong><br>Example Client SRL<div class="signature-line">Semnătură și ștampilă</div></div>
 </div>`
 
-describe.skipIf(!isPdfAvailable())('signature fields in a printed document', () => {
+// On a host, .env may carry the container's Chromium path, which does not exist here.
+const chromium = isPdfAvailable() && existsSync(process.env.PUPPETEER_EXECUTABLE_PATH!)
+
+describe.skipIf(!chromium)('signature fields in a printed document', () => {
   it('leaves our own line without a field, since we sign on webSIGN', async () => {
     const pdf = await htmlToPdf(SAAS_SIGNATURES, { signatureFields: { skipPartyName: 'Acme Software SRL' }, offline: true })
     expect((await PDFDocument.load(pdf)).getForm().getFields().map((f) => f.getName())).toEqual(['Semnatura_1'])

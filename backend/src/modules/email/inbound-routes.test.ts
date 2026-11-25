@@ -4,6 +4,7 @@
  * exhaustive în inbound-service.test.ts; aici verificăm doar GRANIȚA rutei (token
  * lipsă/greșit/neconfigurat, body invalid), care nu poate fi exercitată din service.
  */
+import { randomUUID } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, describe, expect, it } from 'vitest'
 import { buildServer } from '../../app.js'
@@ -87,7 +88,8 @@ describe('POST /api/webhooks/cloudflare-inbound — auth fail-closed', () => {
 describe('POST /api/webhooks/cloudflare-inbound — Sprint 3 (bodyHtml + contentId/disposition)', () => {
   it('bodyHtml și contentId/disposition pe atașamente SUPRAVIEȚUIESC validării Zod la nivel HTTP (regression: schema trebuie ținută sincron cu CloudflareInboundPayload)', async () => {
     if (!VALID_TOKEN) return
-    const subject = 'QA schema passthrough bodyHtml+cid'
+    // Unique per run: a run that failed before its cleanup leaves a thread with a fixed subject behind.
+    const subject = `QA schema passthrough bodyHtml+cid ${randomUUID()}`
     const res = await app.inject({
       method: 'POST',
       url: '/api/webhooks/cloudflare-inbound',

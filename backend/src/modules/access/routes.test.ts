@@ -402,15 +402,16 @@ describe('echipa', () => {
   })
 
   it('ultimul admin activ nu poate fi dezactivat', async () => {
-    const [adminRole] = await db.select().from(roles).where(eq(roles.name, 'Admin'))
     // Regula e globală („ultimul" din toată firma), deci testul trebuie să lase exact un admin
     // activ. ceilalți admini — inclusiv contul real din .env — sunt opriți temporar și
     // repuși în `finally`, ca o cursă întreruptă să nu lase aplicația locală fără om.
     const [me] = await db.select().from(users).where(eq(users.email, stefan.email))
+    // Every admin-kind role counts, not just the one named "Admin" (the rule counts roles.kind).
     const others = await db
       .select({ id: users.id })
       .from(users)
-      .where(and(eq(users.roleId, adminRole!.id), ne(users.id, me!.id), eq(users.status, 'active')))
+      .innerJoin(roles, eq(roles.id, users.roleId))
+      .where(and(eq(roles.kind, 'admin'), ne(users.id, me!.id), eq(users.status, 'active')))
     const saved = await db
       .select({ id: users.id, status: users.status })
       .from(users)
@@ -436,6 +437,8 @@ describe('echipa', () => {
       expect(retrogradat.json().error.code).toBe('LAST_ADMIN')
     } finally {
       for (const row of saved) await db.update(users).set({ status: row.status }).where(eq(users.id, row.id))
+      // If the rule ever fails, the PATCH above disables the test admin and every later test gets 401.
+      await db.update(users).set({ status: 'active', roleId: me!.roleId }).where(eq(users.id, me!.id))
     }
   })
 
