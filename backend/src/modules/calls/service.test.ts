@@ -11,7 +11,7 @@ import { calls, conversations, livekitSettings } from '../../shared/db/schema/in
 import type { SessionUser } from '../../shared/lib/session.js'
 import { getLiveKitSettingsView, saveLiveKitSettings } from '../../shared/lib/livekit.js'
 import { cleanupTestUsers, createTestUser } from '../../shared/testing/users.js'
-import { runCallsClose, runEmptyCallsClose } from '../../jobs/calls-close.js'
+import { runCallsClose, runEmptyCallsClose, sampleOpenCalls } from '../../jobs/calls-close.js'
 import { closeCallRoom } from '../../shared/lib/call-rooms.js'
 import { declineConversationCall, endConversationCall, listMessages, openDm, previewRef, startConversationCall } from '../chat/service.js'
 import './refs.js'
@@ -154,6 +154,47 @@ describe('calls', () => {
     for (let i = 0; i < 4; i++) await extendCall(me, call.id, 4)
     const [row] = await db.select().from(calls).where(eq(calls.id, call.id))
     expect(row!.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 8 * 3_600_000)
+  })
+
+  it('keeps when the call started, the most people in it and how long it lasted', async () => {
+    stubLiveKit([{ name: 'any', numParticipants: 1 }])
+    const call = await createCall(me, { title: 'Acme stats', expiresInHours: 1 })
+    callIds.push(call.id)
+    const read = async () => (await db.select().from(calls).where(eq(calls.id, call.id)))[0]!
+
+    expect(await read()).toMatchObject({ startedAt: null, participantCount: null })
+    await issueCallToken(call.id, me)
+    const joined = await read()
+    expect(joined.startedAt).not.toBeNull()
+    expect(joined.participantCount).toBe(2)
+
+    // Everyone left two minutes before the host hung up from the list.
+    const startedAt = new Date(Date.now() - 10 * 60_000)
+    const lastActiveAt = new Date(Date.now() - 2 * 60_000)
+    await db.update(calls).set({ startedAt, lastActiveAt }).where(eq(calls.id, call.id))
+    stubLiveKit([])
+    const ended = await endCall(me, call.id)
+    expect(ended).toMatchObject({ status: 'ended', durationSeconds: 480, participantCount: 2 })
+  })
+
+  it('the sampling job keeps the peak and the last moment the room had people', async () => {
+    stubLiveKit()
+    const call = await createCall(me, { title: 'Acme sampled', expiresInHours: 1 })
+    callIds.push(call.id)
+    const [row] = await db.select().from(calls).where(eq(calls.id, call.id))
+    const startedAt = new Date(Date.now() - 5 * 60_000)
+    await db.update(calls).set({ startedAt, lastActiveAt: startedAt, participantCount: 2 }).where(eq(calls.id, call.id))
+
+    stubLiveKit([{ name: row!.roomName, numParticipants: 4 }])
+    await sampleOpenCalls()
+    const [sampled] = await db.select().from(calls).where(eq(calls.id, call.id))
+    expect(sampled!.participantCount).toBe(4)
+    expect(sampled!.lastActiveAt!.getTime()).toBeGreaterThan(startedAt.getTime())
+
+    // Still in the room when the window closes: it lasted until now.
+    expect(await runCallsClose(new Date(Date.now() + 2 * 3_600_000))).toBeGreaterThanOrEqual(1)
+    const [closed] = await db.select().from(calls).where(eq(calls.id, call.id))
+    expect(closed!.durationSeconds).toBeGreaterThanOrEqual(300)
   })
 
   it('an unknown call is not found', async () => {

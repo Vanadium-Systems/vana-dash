@@ -4,6 +4,11 @@ Notable changes, newest first. The app is deployed continuously from `main`, so 
 dated rather than versioned. What users see is also listed in the app, under Updates
 (`frontend/src/modules/updates/releases.ts`).
 
+## 2026-11-25: Call duration and participants
+
+### Fixed
+- **Calls keep their duration and participants.** LiveKit only reports who is in a room at the moment, and the stats were read when the room closed, so they were always empty or zero. A call now records when the first person joins (`started_at`), the peak number of people at once, and the last moment the room had someone in it (`last_active_at`, sampled every 2 minutes with one request per batch). The duration runs from the first join to that moment, or to the close if people are still in. Migration `0114`. Calls that ended before this change keep empty values.
+
 ## 2026-11-25: SaaS contracts become company templates
 
 ### Changed

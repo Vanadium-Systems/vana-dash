@@ -799,6 +799,13 @@
       "when": 1795620965063,
       "tag": "0113_drop_system_contract_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1795630392871,
+      "tag": "0114_call_stats",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { db } from '../../shared/db/client.js'
 import { runAsTenant, withRlsBypass } from '../../shared/lib/tenancy.js'
 import { billingClients, calls, conversationMembers, prospects } from '../../shared/db/schema/index.js'
-import { callPublicUrl, closeCallRoom, isCallsConfigured, openCallRoom, type CallRecord } from '../../shared/lib/call-rooms.js'
+import { callPublicUrl, closeCallRoom, isCallsConfigured, openCallRoom, recordCallJoin, type CallRecord } from '../../shared/lib/call-rooms.js'
 import { decryptField } from '../../shared/lib/crypto.js'
 import {
   applyScreenSharePolicy,
@@ -232,6 +232,7 @@ export async function issueCallToken(id: string, me: SessionUser): Promise<CallT
       canShareScreen: mayShareScreen(room.state.screenShare, me.id, isHost),
       ttlSeconds,
     })
+    await recordCallJoin(call.id, room.participantCount)
     const guestKey = call.bookingId && call.guestKeyEnc ? await decryptField(call.guestKeyEnc) : null
     return {
       provider: 'livekit',
@@ -369,6 +370,7 @@ export async function issuePublicCallToken(
   const [call] = await withRlsBypass(() =>
     db
       .select({
+        id: calls.id,
         tenantId: calls.tenantId,
         status: calls.status,
         kind: calls.kind,
@@ -401,6 +403,7 @@ export async function issuePublicCallToken(
         canShareScreen: mayShareScreen(room.state.screenShare, identity, false),
         ttlSeconds,
       })
+      await recordCallJoin(call.id, room.participantCount)
       return {
         provider: 'livekit',
         livekitUrl,

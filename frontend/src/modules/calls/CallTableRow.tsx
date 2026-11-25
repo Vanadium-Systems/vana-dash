@@ -41,7 +41,7 @@ export function CallTableRow({ call }: { call: CallRow }) {
       <TableCell priority="lg" className="text-right tabular-nums">
         {call.durationSeconds === null
           ? '–'
-          : t('calls:minutes', { count: Math.round(call.durationSeconds / 60) })}
+          : t('calls:minutes', { count: Math.max(1, Math.round(call.durationSeconds / 60)) })}
       </TableCell>
       <TableCell priority="lg" className="text-right tabular-nums">{call.participantCount ?? '–'}</TableCell>
       <TableCell priority="md" className="max-w-48 truncate">

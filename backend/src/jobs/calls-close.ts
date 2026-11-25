@@ -3,8 +3,8 @@ import { forEachTenant } from '../shared/lib/tenant-loop.js'
 import { and, asc, eq, gt, isNotNull, isNull, lt, or } from 'drizzle-orm'
 import { db } from '../shared/db/client.js'
 import { calls } from '../shared/db/schema/index.js'
-import { closeCallRoom } from '../shared/lib/call-rooms.js'
-import { getLiveKitRoomStats, isLiveKitConfigured, LiveKitError } from '../shared/lib/livekit.js'
+import { closeCallRoom, recordCallActivity } from '../shared/lib/call-rooms.js'
+import { getLiveKitRoomCounts, getLiveKitRoomStats, isLiveKitConfigured, LiveKitError } from '../shared/lib/livekit.js'
 import { ensureAlertRule, raiseAlert } from '../shared/lib/alerting.js'
 import { tl, tr } from '../shared/lib/i18n.js'
 import { closePushNotification } from '../shared/lib/push.js'
@@ -32,10 +32,34 @@ export function startCallsCloseJob(): void {
   })
   cron.schedule(EMPTY_CRON_EXPR, () => {
     void forEachTenant(async () => {
+      await sampleOpenCalls()
       await runEmptyCallsClose()
     }).catch((err) => console.error('[calls-close] empty calls failed:', err))
   })
   console.log(`[calls-close] Scheduled (${CRON_EXPR}, empty Mesaje calls ${EMPTY_CRON_EXPR})`) // slop-ok: startup line every job prints
+}
+
+/**
+ * Notes who is in the rooms of started calls, one request for the batch, so a call that empties
+ * without anyone hanging up still ends with a duration close to the real one.
+ */
+export async function sampleOpenCalls(): Promise<void> {
+  const open = await db
+    .select({ id: calls.id, roomName: calls.roomName })
+    .from(calls)
+    .where(and(eq(calls.provider, 'livekit'), eq(calls.status, 'open'), isNotNull(calls.startedAt), isNull(calls.deletedAt)))
+    .orderBy(asc(calls.createdAt))
+    .limit(CLOSE_BATCH)
+  if (open.length === 0 || !(await isLiveKitConfigured())) return
+  try {
+    const counts = await getLiveKitRoomCounts(open.map((call) => call.roomName))
+    for (const call of open) {
+      const inRoom = counts.get(call.roomName) ?? 0
+      if (inRoom > 0) await recordCallActivity(call.id, inRoom)
+    }
+  } catch (err) {
+    console.error(`[calls-close] sample: ${String(err)}`)
+  }
 }
 
 export async function runEmptyCallsClose(now = new Date()): Promise<number> {
@@ -63,7 +87,7 @@ export async function runEmptyCallsClose(now = new Date()): Promise<number> {
     try {
       const stats = await getLiveKitRoomStats(call.roomName)
       if (stats && stats.participantCount > 0) continue
-      await closeCallRoom(call, 'ended', stats)
+      await closeCallRoom(call, 'ended', stats?.participantCount ?? 0)
       closed += 1
       const members = await memberIds(call.conversationId!)
       publish({ type: 'call.ended', conversationId: call.conversationId!, callId: call.id }, members)
@@ -106,7 +130,7 @@ export async function runCallsClose(now = new Date()): Promise<number> {
     if (!livekitReady) continue
     try {
       const stats = await getLiveKitRoomStats(call.roomName)
-      await closeCallRoom(call, 'ended', stats)
+      await closeCallRoom(call, 'ended', stats?.participantCount ?? 0)
       closed += 1
     } catch (err) {
       if (err instanceof LiveKitError && (err.status === 401 || err.status === 429)) {

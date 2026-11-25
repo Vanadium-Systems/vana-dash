@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-25T20:30:00+02:00',
+    title: {
+      ro: 'Apelurile își păstrează durata și participanții',
+      en: 'Calls keep their duration and participants',
+    },
+    body: {
+      ro: 'În lista de apeluri, coloanele Durată și Participanți rămâneau goale. Acum durata se măsoară de la primul om care intră până la ultimul moment în care cineva mai era în apel, iar la participanți apare cel mai mare număr de oameni prezenți deodată. Apelurile încheiate înainte de schimbare rămân fără ele.',
+      en: 'In the call list, the Duration and Participants columns stayed empty. The duration now runs from the first person joining to the last moment someone was still in the call, and Participants shows the most people in it at once. Calls that ended before this change stay without them.',
+    },
+    features: ['apeluri.view'],
+  },
+  {
     publishedAt: '2026-11-25T19:00:00+02:00',
     title: {
       ro: 'Contractele SaaS se fac din Registru',

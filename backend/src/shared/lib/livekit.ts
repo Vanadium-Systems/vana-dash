@@ -227,6 +227,18 @@ export async function getLiveKitRoomStats(name: string): Promise<{ participantCo
   }
 }
 
+/** How many people are in each of these rooms, in one request. A room missing from the map is gone. */
+export async function getLiveKitRoomCounts(names: string[]): Promise<Map<string, number>> {
+  const creds = await getLiveKitConfig()
+  if (!creds || names.length === 0) return new Map()
+  try {
+    const rooms = await makeRoomClient(creds).listRooms(names)
+    return new Map(rooms.map((room) => [room.name, room.numParticipants]))
+  } catch (err) {
+    throw new LiveKitError(statusFromError(err), 'listRooms')
+  }
+}
+
 // Screen sharing is the host's to give: the SFU refuses a source the token does not list, so a
 // client that skips our button still cannot share.
 function publishSources(canShareScreen: boolean): TrackSource[] {
@@ -280,15 +292,21 @@ function parseRoomState(metadata: string | undefined): RoomState {
  * The room as joiners need it: its state, and since when it runs (null: not created yet, the
  * caller is the first in). The SFU down reads as defaults: nobody but the host shares.
  */
-export async function readRoom(roomName: string): Promise<{ state: RoomState; startedAt: Date | null }> {
+export async function readRoom(
+  roomName: string,
+): Promise<{ state: RoomState; startedAt: Date | null; participantCount: number }> {
   const creds = await getLiveKitConfig()
-  if (!creds) return { state: parseRoomState(undefined), startedAt: null }
+  if (!creds) return { state: parseRoomState(undefined), startedAt: null, participantCount: 0 }
   try {
     const [room] = await makeRoomClient(creds).listRooms([roomName])
     const created = room?.creationTime ? Number(room.creationTime) : 0
-    return { state: parseRoomState(room?.metadata), startedAt: created > 0 ? new Date(created * 1000) : null }
+    return {
+      state: parseRoomState(room?.metadata),
+      startedAt: created > 0 ? new Date(created * 1000) : null,
+      participantCount: room?.numParticipants ?? 0,
+    }
   } catch {
-    return { state: parseRoomState(undefined), startedAt: null }
+    return { state: parseRoomState(undefined), startedAt: null, participantCount: 0 }
   }
 }
 

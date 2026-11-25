@@ -37,6 +37,10 @@ export const calls = pgTable(
     bookingId: uuid('booking_id').references(() => bookings.id),
     prospectId: uuid('prospect_id').references(() => prospects.id),
     billingClientId: uuid('billing_client_id').references(() => billingClients.id),
+    // LiveKit only says who is in a room now, so the stats are kept as the call runs: the first
+    // answer, the last moment someone was seen in it, and the most people at once.
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    lastActiveAt: timestamp('last_active_at', { withTimezone: true }),
     durationSeconds: integer('duration_seconds'),
     participantCount: integer('participant_count'),
     roomDeletedAt: timestamp('room_deleted_at', { withTimezone: true }),
