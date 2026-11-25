@@ -15,7 +15,7 @@ RUN corepack enable
 # vips-tools: vipsthumbnail, for the photo thumbnails in Messages (same file).
 # python3 + a venv with pyHanko (backend/signing/requirements.txt): signs contracts into existing PDF fields
 # without breaking a qualified signature made before (shared/lib/pdf-signing.ts).
-RUN apk upgrade --no-cache && apk add --no-cache chromium nss freetype harfbuzz ca-certificates openssl postgresql-client age curl poppler-utils vips-tools python3
+RUN apk upgrade --no-cache && apk add --no-cache chromium nss freetype harfbuzz font-liberation ca-certificates openssl postgresql-client age curl poppler-utils vips-tools python3
 COPY backend/signing/requirements.txt /tmp/pdfsign-requirements.txt
 RUN python3 -m venv /opt/pdfsign && /opt/pdfsign/bin/pip install --no-cache-dir -r /tmp/pdfsign-requirements.txt && rm -rf /tmp/pdfsign-requirements.txt /root/.cache
 # The root filesystem is read-only in production: no .pyc files to write.

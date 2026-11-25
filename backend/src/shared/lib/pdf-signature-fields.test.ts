@@ -57,7 +57,7 @@ describe.skipIf(!chromium)('signature fields in a printed document', () => {
 
   it('names a role that signs twice apart, so each place is its own field', async () => {
     const line = '<div class="signature-line" data-sign-role="Colaborator">Semnătură</div>'
-    const html = markSignatureRoles(`${line}<div style="page-break-before:always"></div>${line}`, ['Beneficiar'])
+    const html = markSignatureRoles(`${line}<div style="page-break-before:always"></div>${line}`)
     const pdf = await htmlToPdf(html, { signatureFields: true, isolated: true })
     expect((await PDFDocument.load(pdf)).getForm().getFields().map((f) => f.getName()).sort()).toEqual(['Semnatura_Colaborator', 'Semnatura_Colaborator_2'])
   })

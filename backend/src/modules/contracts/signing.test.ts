@@ -133,7 +133,7 @@ describe.skipIf(!ready)('signing by link', async () => {
   const noRight = await makeUser('noright', ['facturi.view', 'facturi.contracte'])
   const admin = await makeUser('admin', [], 'admin')
 
-  const blank = await htmlToPdf(markSignatureRoles(HTML, []), { isolated: true, signatureFields: true })
+  const blank = await htmlToPdf(markSignatureRoles(HTML), { isolated: true, signatureFields: true })
   const ownerSigned = await ownerSign(blank)
 
   // The company's real certificate (if the dev database has one) is put back at the end.

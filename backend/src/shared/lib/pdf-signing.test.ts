@@ -87,7 +87,7 @@ describe.skipIf(!ready)('pdf-signing', () => {
 
   beforeAll(async () => {
     ownerCert = await generateSigningCertificate('QA Owner')
-    blank = await htmlToPdf(markSignatureRoles(HTML, []), { isolated: true, signatureFields: true })
+    blank = await htmlToPdf(markSignatureRoles(HTML), { isolated: true, signatureFields: true })
     ownerSigned = await pyhankoSign(blank, ownerCert, 'Signature1', 'plain')
     ownerCertified = await pyhankoSign(blank, ownerCert, 'Signature1', 'certify')
   }, 120_000)

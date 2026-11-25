@@ -92,5 +92,5 @@ export function renderCustomTemplate(input: RenderInput): string {
     const text = field?.type === 'date' ? formatDate(String(raw)) : String(raw)
     return escapeHtml(text)
   })
-  return markSignatureRoles(html, input.signerRoles.filter((r) => r.own).map((r) => r.role))
+  return markSignatureRoles(html)
 }

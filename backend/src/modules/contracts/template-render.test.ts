@@ -32,15 +32,15 @@ describe('renderCustomTemplate', () => {
     expect(render('{{parte.cui}}|{{parte.adresa}}|{{parte.functie}}|{{firma.nume}}|{{firma.cui}}', {})).toBe('RO123|Str. Lungă 1||Beta SRL|RO999')
   })
 
-  it('links a signature field only for the roles that are not ours', () => {
+  it('links a signature field for every role, ours included', () => {
     const body = '<div data-sign-role="Furnizor">a</div><div data-sign-role="Beneficiar">b</div>'
     const html = render(body, {}, [
       { role: 'Furnizor', own: true },
       { role: 'Beneficiar', own: false },
     ])
-    expect(html.match(/<a href=/g)).toHaveLength(1)
+    expect(html.match(/<a href=/g)).toHaveLength(2)
     expect(html).toMatch(/<a href="[^"]*Beneficiar"/)
-    expect(html).not.toMatch(/<a href="[^"]*Furnizor"/)
+    expect(html).toMatch(/<a href="[^"]*Furnizor"/)
   })
 })
 

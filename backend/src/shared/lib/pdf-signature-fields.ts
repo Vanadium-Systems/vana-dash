@@ -11,11 +11,9 @@ import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFRef, PDFString }
 
 const MARKER = 'https://signature-field.invalid/'
 
-// 190 pt wide like contracte/pdf-semnatura.py, but only 30 pt tall: the templates leave about
-// 34 pt between the representative's name and the signature line, and the field must not cover
-// the name once Adobe draws the signature in it.
+// Same size as contracte/pdf-semnatura.py, so a contract generated here looks like one made locally.
 const FIELD_WIDTH_PT = 190
-const FIELD_HEIGHT_PT = 30
+const FIELD_HEIGHT_PT = 40
 
 /**
  * Script run in the page before printing: puts a marker link above every short element that
@@ -52,12 +50,11 @@ const ROLE_ATTRIBUTE = /<([a-zA-Z][a-zA-Z0-9]*)(\s[^>]*?)?\sdata-sign-role="([^"
 /**
  * The template's own markers, in the HTML instead of a script (templates render with JavaScript
  * off): each element with data-sign-role="Colaborator" gets a placeholder link as its first child,
- * which becomes the field Semnatura_Colaborator. Roles of our own company get nothing.
+ * which becomes the field Semnatura_Colaborator. Our own roles get one too: we sign it from Adobe
+ * with the qualified token before sending the link.
  */
-export function markSignatureRoles(html: string, ownRoles: string[]): string {
-  const own = new Set(ownRoles.map((r) => r.trim().toLowerCase()))
+export function markSignatureRoles(html: string): string {
   return html.replace(ROLE_ATTRIBUTE, (tag: string, _name: string, _before: string, role: string) => {
-    if (own.has(role.trim().toLowerCase())) return tag
     // A zero-height holder, so the field sits just above the line without pushing it down.
     const holder = 'position:relative;display:block;height:0'
     const field = `position:absolute;display:block;left:50%;bottom:2pt;width:${FIELD_WIDTH_PT}pt;height:${FIELD_HEIGHT_PT}pt;margin-left:-${FIELD_WIDTH_PT / 2}pt`
