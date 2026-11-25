@@ -198,3 +198,49 @@ describe('sendEmail — attachments', () => {
     ).resolves.toBeUndefined()
   })
 })
+
+describe('sendEmail — showInSent', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    process.env.RESEND_API_KEY = 'test-resend-key'
+  })
+
+  it('records an authorless email_sends row with the Resend id, so it shows under automatic sends', async () => {
+    const resendId = `auto-${crypto.randomUUID()}`
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ id: resendId }), { status: 200 })))
+    const { sendEmail } = await import('./email.js')
+    const { db } = await import('../db/client.js')
+    const { emailSends } = await import('../db/schema/index.js')
+    const { eq } = await import('drizzle-orm')
+
+    await sendEmail({ to: 'visitor@example.com', from: 'contact@example.com', subject: 'Booked', text: 'See you', showInSent: true })
+
+    const rows = await db.select().from(emailSends).where(eq(emailSends.resendEmailId, resendId))
+    try {
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toMatchObject({ recipient: 'visitor@example.com', fromAddress: 'contact@example.com', subject: 'Booked', bodyText: 'See you', status: 'sent', sentByUserId: null })
+    } finally {
+      await db.delete(emailSends).where(eq(emailSends.resendEmailId, resendId))
+    }
+  })
+
+  it('records a failed row when Resend rejects the email', async () => {
+    const subject = `Failed ${crypto.randomUUID()}`
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('bad', { status: 422 })))
+    const { sendEmail } = await import('./email.js')
+    const { db } = await import('../db/client.js')
+    const { emailSends } = await import('../db/schema/index.js')
+    const { eq } = await import('drizzle-orm')
+
+    await sendEmail({ to: 'visitor@example.com', subject, text: 'x', showInSent: true })
+
+    const rows = await db.select().from(emailSends).where(eq(emailSends.subject, subject))
+    try {
+      expect(rows).toHaveLength(1)
+      expect(rows[0]!.status).toBe('failed')
+      expect(rows[0]!.resendEmailId).toBeNull()
+    } finally {
+      await db.delete(emailSends).where(eq(emailSends.subject, subject))
+    }
+  })
+})

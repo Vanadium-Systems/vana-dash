@@ -149,6 +149,7 @@ export async function runBillingCycleRolloverJob(): Promise<void> {
         to: client.email,
         subject: SUBJECTS[plan.type](client.name),
         text: buildText(plan.type, client.name, paymentDue),
+        showInSent: true,
       })
       await db
         .update(billingClients)

@@ -170,6 +170,7 @@ export async function createSignRequest(me: Me, contractId: string, input: { sig
     from: config.emailFromNoreply || undefined,
     subject: tr('emails.contractSign.linkSubject', { company: company.profile.name, title: contract.title }),
     text: tr('emails.contractSign.linkBody', { name: request.signerName, company: company.profile.name, title: contract.title, link: publicLink(token), days: LINK_DAYS }),
+    showInSent: true,
   })
   await recordAudit({ action: 'contract.trimis.la.semnat', entityType: 'contract', entityId: contractId, changes: { semnatar: [null, request.signerEmail] } })
   return { id: request.id, link: publicLink(token), expiresAt: request.expiresAt.toISOString() }
@@ -456,6 +457,7 @@ export async function signRequest(token: string, session: string | undefined, in
       subject: tr('emails.contractSign.signedSubject', { title: contract?.title ?? '' }),
       text: tr('emails.contractSign.signedBodySigner', { name: request.signerName, company: company.profile.name, days: downloadDays }),
       attachments,
+      showInSent: true,
     })
     if (ownerEmail) {
       await sendEmail({

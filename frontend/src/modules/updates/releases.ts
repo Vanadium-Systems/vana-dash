@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-25T16:30:00+02:00',
+    title: {
+      ro: 'Emailurile automate apar la Trimise',
+      en: 'Automatic emails show in Sent',
+    },
+    body: {
+      ro: 'Emailurile pe care aplicația le trimite singură oamenilor din afară apar acum în Email → Trimise, la filtrul „Automat”, cu textul trimis și starea livrării: confirmarea și anularea unei programări de pe site, linkul de semnare și copia semnată a unui contract, confirmarea de încasare și reamintirea de plată. Până acum plecau fără să rămână vreo urmă în aplicație.',
+      en: 'Emails the app sends on its own to people outside the team now show in Email → Sent, under the “Automatic” filter, with the text sent and the delivery status: a website booking’s confirmation and cancellation, a contract’s signing link and signed copy, the payment confirmation and the payment reminder. Until now they left no trace in the app.',
+    },
+    features: ['email.view'],
+  },
+  {
     publishedAt: '2026-11-24T21:20:00+02:00',
     title: {
       ro: 'Semnare prin link',

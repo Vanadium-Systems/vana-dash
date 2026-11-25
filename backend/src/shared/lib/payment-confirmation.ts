@@ -61,5 +61,6 @@ export async function sendPaymentConfirmationEmail(financialRecordId: string): P
       `(${amount.toFixed(2)} ${record.currency}). Mulțumim!\n\n` +
       `Acesta este un mesaj automat, generat de ${profile.name}.`,
     attachments: pdfBuffer ? [{ filename: `confirmare-${documentNumber}.pdf`, content: pdfBuffer }] : [],
+    showInSent: true,
   })
 }

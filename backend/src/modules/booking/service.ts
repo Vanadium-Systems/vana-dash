@@ -345,6 +345,7 @@ async function notifyAfterBooking(booking: typeof bookings.$inferSelect, cancelT
         company.name,
       ].join('\n'),
       attachments: [{ filename: trFor(visitor, 'emails.booking.icsFilename'), content: Buffer.from(buildBookingIcs(booking, { name: company.name, email: company.email }, callUrl)) }],
+      showInSent: true,
     }),
     // Fără numele vizitatorului: notificarea nativă trece prin Firebase (docs/BOOKING.md, Legal).
     notifyPush('calendarReminder', (locale) => ({
@@ -384,6 +385,7 @@ async function cancelBooking(booking: typeof bookings.$inferSelect, by: 'visitor
             '',
             company.name,
           ].join('\n'),
+          showInSent: true,
         })
       : Promise.resolve(),
     by === 'visitor'

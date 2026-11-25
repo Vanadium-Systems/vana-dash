@@ -262,7 +262,7 @@
     "filterStatus": "Status",
     "filterSentBy": "Sent by",
     "sentByMe": "Me",
-    "sentByAuto": "Automatic (sequences)",
+    "sentByAuto": "Automatic",
     "clearFilters": "Clear filters",
     "statFilterHint": "Show only these emails; click again to remove the filter",
     "filters": "Filters"

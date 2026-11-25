@@ -1,4 +1,6 @@
 import { config } from '../config.js'
+import { db } from '../db/client.js'
+import { emailSends } from '../db/schema/index.js'
 import { tr } from './i18n.js'
 
 // Notificări email (alerte + trimiteri cu atașamente) prin Resend (fetch brut — un
@@ -45,6 +47,9 @@ interface SendEmailOpts {
   /** Headere custom RFC (In-Reply-To/References) — folosite la reply-uri de thread
    *  (modulul Email) ca destinatarul să vadă corect firul de discuție. */
   headers?: Record<string, string>
+  /** Automatic email to someone outside the team (booking, contract, payment): also written to
+   *  `email_sends` with no author, so it shows in Email → Sent and the Resend webhook updates its status. */
+  showInSent?: boolean
 }
 
 /**
@@ -109,7 +114,28 @@ async function sendEmailInternal(opts: SendEmailOpts): Promise<SendEmailResult> 
 }
 
 export async function sendEmail(opts: SendEmailOpts): Promise<void> {
-  await sendEmailInternal(opts)
+  const result = await sendEmailInternal(opts)
+  if (opts.showInSent) await recordAutomaticSend(opts, result)
+}
+
+async function recordAutomaticSend(opts: SendEmailOpts, result: SendEmailResult): Promise<void> {
+  try {
+    await db.insert(emailSends).values(
+      (Array.isArray(opts.to) ? opts.to : [opts.to]).map((recipient) => ({
+        recipient,
+        fromAddress: opts.from ?? config.alertEmailFrom,
+        subject: opts.subject,
+        bodyText: opts.text,
+        bodyHtml: opts.html ?? null,
+        status: result.ok ? ('sent' as const) : ('failed' as const),
+        errorMessage: result.ok ? null : (result.error ?? null),
+        resendEmailId: result.id ?? null,
+      })),
+    )
+  } catch (err) {
+    // The email already left; a missing Sent row must not fail the flow that sent it.
+    console.error(`[email] sent row not recorded for "${opts.subject}": ${String(err)}`)
+  }
 }
 
 /** Ca `sendEmail`, dar întoarce succes/eșec — pentru apelanți care trebuie să
