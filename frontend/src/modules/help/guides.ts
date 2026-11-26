@@ -392,6 +392,10 @@ const SOURCES: GuideSource[] = [
         en: 'If too many emails bounce, the sequence pauses itself, and Diagnostics shows why and since when. You restart it with “Resume” after checking the list; you can also pause it by hand.',
       },
       {
+        ro: 'În listă, starea spune ce face secvența: Activă trimite, Pe pauză așteaptă să o reiei (click o deschide), Oprită e scoasă de tine, iar Terminată nu mai are pe nimeni căruia să-i trimită.',
+        en: 'In the list, the state says what the sequence does: Active sends, Paused waits for you to resume it (a click opens it), Stopped was turned off by you, and Finished has nobody left to send to.',
+      },
+      {
         ro: 'Când există cutii de outreach configurate în Setările firmei, secvențele și trimiterile în masă de pe identitatea Outreach rotesc automat între cutiile active și arată câte mesaje mai pot pleca azi din fiecare.',
         en: 'When outreach mailboxes are configured in Company settings, sequences and bulk sends from the Outreach identity rotate automatically across active mailboxes and show how many messages remain today for each.',
       },

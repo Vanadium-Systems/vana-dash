@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-26T11:45:00+02:00',
+    title: {
+      ro: 'Secvențele arată când sunt terminate sau pe pauză',
+      en: 'Sequences show when they are finished or paused',
+    },
+    body: {
+      ro: 'În lista de secvențe, starea era doar Activă sau Pauzată, iar o secvență pusă pe pauză apărea tot Activă. Acum starea e Activă, Pe pauză, Oprită sau Terminată, când nu mai are pe nimeni căruia să-i trimită. Click pe o secvență pe pauză deschide secvența, unde vezi motivul pauzei și o poți relua.',
+      en: 'In the sequence list, the state was only Active or Paused, and a paused sequence still showed as Active. The state is now Active, Paused, Stopped or Finished, when it has nobody left to send to. Clicking a paused sequence opens it, where you see why it was paused and can resume it.',
+    },
+    features: ['email.bulk'],
+  },
+  {
     publishedAt: '2026-11-25T20:30:00+02:00',
     title: {
       ro: 'Apelurile își păstrează durata și participanții',

@@ -292,7 +292,11 @@
     "deleted": "Sequence deleted",
     "loadFailed": "The sequences could not be loaded.",
     "empty": "No sequence yet. Create the first one with the button above.",
-    "paused": "Paused",
+    "state": {
+      "paused": "Paused",
+      "stopped": "Stopped",
+      "finished": "Finished"
+    },
     "deleteTitle": "Delete the sequence “{{name}}”",
     "deleteBody": "The scheduled steps that have not gone out yet are no longer sent.",
     "deleteConfirm": "Delete the sequence",

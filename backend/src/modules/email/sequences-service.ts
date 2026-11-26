@@ -56,9 +56,32 @@ async function attachSteps(sequences: SequenceRow[]): Promise<SequenceWithSteps[
   return sequences.map((s) => ({ ...s, steps: byId.get(s.id) ?? [] }))
 }
 
-export async function listSequences(): Promise<SequenceWithSteps[]> {
+/** The list's state needs to tell a finished sequence (enrollments, none still active) from a stopped one. */
+export interface SequenceListItem extends SequenceWithSteps {
+  enrollmentCount: number
+  activeEnrollmentCount: number
+}
+
+export async function listSequences(): Promise<SequenceListItem[]> {
   const rows = await db.select().from(emailSequences).where(isNull(emailSequences.deletedAt)).orderBy(desc(emailSequences.createdAt))
-  return attachSteps(rows)
+  const [withSteps, counts] = await Promise.all([
+    attachSteps(rows),
+    db
+      .select({
+        sequenceId: emailSequenceEnrollments.sequenceId,
+        total: sql<number>`count(*)::int`,
+        active: sql<number>`count(*) filter (where ${emailSequenceEnrollments.status} = 'active')::int`,
+      })
+      .from(emailSequenceEnrollments)
+      .where(isNull(emailSequenceEnrollments.deletedAt))
+      .groupBy(emailSequenceEnrollments.sequenceId),
+  ])
+  const bySequence = new Map(counts.map((c) => [c.sequenceId, c]))
+  return withSteps.map((s) => ({
+    ...s,
+    enrollmentCount: bySequence.get(s.id)?.total ?? 0,
+    activeEnrollmentCount: bySequence.get(s.id)?.active ?? 0,
+  }))
 }
 
 export async function getSequence(id: string): Promise<SequenceWithSteps | null> {

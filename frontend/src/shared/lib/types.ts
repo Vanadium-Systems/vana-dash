@@ -927,6 +927,9 @@ export interface EmailSequence {
   steps: EmailSequenceStep[]
   createdAt: string
   updatedAt: string
+  /** Only on the list (`GET /api/email/sequences`). */
+  enrollmentCount?: number
+  activeEnrollmentCount?: number
 }
 
 export type EnrollSkipReason = 'SUPPRESSED' | 'BOUNCED' | 'UNSUBSCRIBED' | 'DO_NOT_CONTACT' | 'NO_PHONE' | 'NO_EMAIL' | 'ALREADY_ENROLLED'

@@ -18,6 +18,22 @@ import { useConfirm } from '@/shared/components/ui/confirm-dialog'
 import { t } from '@/shared/lib/i18n'
 import { toastError } from '@/shared/lib/errors'
 
+type SequenceState = 'finished' | 'paused' | 'stopped' | 'active'
+
+// Finished wins over paused: a paused sequence with nobody left to send to has nothing to resume.
+function sequenceState(s: EmailSequence): SequenceState {
+  if ((s.enrollmentCount ?? 0) > 0 && s.activeEnrollmentCount === 0) return 'finished'
+  if (s.pausedAt) return 'paused'
+  return s.active ? 'active' : 'stopped'
+}
+
+const STATE_TONE: Record<SequenceState, 'success' | 'warning' | 'neutral'> = {
+  active: 'success',
+  paused: 'warning',
+  stopped: 'neutral',
+  finished: 'neutral',
+}
+
 const FROM_LABEL: Record<string, string> = {
   contact: t('email:identity.contact'),
   stefan: t('email:identity.stefanPersonal'),
@@ -95,12 +111,7 @@ export function SequencesTab() {
                     <TableCell priority="lg" className="text-sm text-muted-foreground">{FROM_LABEL[s.fromIdentity] ?? s.fromIdentity}</TableCell>
                     <TableCell priority="md">{s.steps.length}</TableCell>
                     <TableCell>
-                      {/* native: wraps status pill */}
-                      <button type="button" onClick={() => toggleActive.mutate({ id: s.id, active: !s.active })}>
-                        <StatePill tone={s.active ? 'success' : 'neutral'}>
-                          {s.active ? t('common:states.activeF') : t('email:sequences.paused')}
-                        </StatePill>
-                      </button>
+                      <SequenceStatePill sequence={s} onToggle={() => toggleActive.mutate({ id: s.id, active: !s.active })} onOpen={() => setEditorTarget(s.id)} />
                     </TableCell>
                     <TableCell className="text-right">
                       <RowActions
@@ -132,5 +143,19 @@ export function SequencesTab() {
       </Card>
       <SequenceEnrollmentsDialog sequence={viewingEnrollments} onOpenChange={(open) => !open && setViewingEnrollments(null)} />
     </div>
+  )
+}
+
+// A paused sequence opens the editor, where the pause and its reason are shown: resuming from a
+// pill click would send to everyone waiting. A finished one has nothing to toggle.
+function SequenceStatePill({ sequence, onToggle, onOpen }: { sequence: EmailSequence; onToggle: () => void; onOpen: () => void }) {
+  const state = sequenceState(sequence)
+  const pill = <StatePill tone={STATE_TONE[state]}>{state === 'active' ? t('common:states.activeF') : t(`email:sequences.state.${state}`)}</StatePill>
+  if (state === 'finished') return pill
+  return (
+    // native: wraps status pill
+    <button type="button" onClick={state === 'paused' ? onOpen : onToggle}>
+      {pill}
+    </button>
   )
 }

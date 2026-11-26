@@ -301,7 +301,11 @@
     "deleted": "Secvență ștearsă",
     "loadFailed": "Nu am putut încărca secvențele.",
     "empty": "Nicio secvență încă. Creează prima cu butonul de sus.",
-    "paused": "Pauzată",
+    "state": {
+      "paused": "Pe pauză",
+      "stopped": "Oprită",
+      "finished": "Terminată"
+    },
     "deleteTitle": "Șterge secvența „{{name}}”",
     "deleteBody": "Pașii programați care n-au plecat încă nu se mai trimit.",
     "deleteConfirm": "Șterge secvența",
