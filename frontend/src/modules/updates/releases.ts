@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-28T17:00:00+02:00',
+    title: {
+      ro: 'Notificarea de secvență oprită deschide secvența',
+      en: 'The paused sequence notification opens the sequence',
+    },
+    body: {
+      ro: 'Când o secvență se oprește din cauza bounce-urilor, notificarea spune în titlu care secvență, iar dedesubt câte trimiteri au dat bounce și pragul. Click pe ea, din clopoțel sau de pe telefon, deschide direct secvența, unde vezi motivul și o poți reporni. Notificarea vine în limba interfeței tale.',
+      en: 'When a sequence pauses because of bounces, the notification names the sequence in its title, with the number of bounced sends and the limit below it. Clicking it, from the bell or on the phone, opens the sequence itself, where you see why it paused and can resume it. The notification comes in your interface language.',
+    },
+    features: ['email.bulk'],
+  },
+  {
     publishedAt: '2026-11-28T16:40:00+02:00',
     title: {
       ro: 'Data din contracte e scrisă în limba contractului',

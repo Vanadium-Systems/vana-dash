@@ -12,11 +12,12 @@ import {
   prospectListMembers,
   prospectPeople,
   prospects,
+  users,
 } from '../../shared/db/schema/index.js'
 import { recordAudit } from '../../shared/lib/audit.js'
 import { isPublicEmailDomain } from '../../shared/lib/email-domains.js'
 import { httpError } from '../../shared/lib/http-error.js'
-import { activeAdminIds, notify } from '../../shared/lib/notify.js'
+import { activeAdminIds, notifyMany } from '../../shared/lib/notify.js'
 import { visibleProspectsWhere } from '../../shared/lib/prospect-access.js'
 import type { DrizzleTx } from '../../shared/lib/sequences.js'
 import type { SessionUser } from '../../shared/lib/session.js'
@@ -579,13 +580,24 @@ export async function pauseSequenceIfBouncing(enrollmentId: string): Promise<boo
     .returning({ id: emailSequences.id })
   if (!paused) return false
 
-  await notify(await activeAdminIds(), {
-    kind: 'email.sequence_paused',
-    title: trFor(config.defaultLocale, 'errors.email.sequencePaused', { name: sequence.name, percent: Math.round(rate * 100) }),
-    url: '/email',
-    entityType: 'email_sequence',
-    entityId: sequence.id,
-  })
+  // The title alone reaches the phone, so it names the sequence; the numbers go in the body.
+  const adminIds = await activeAdminIds()
+  const admins = adminIds.length ? await db.select({ id: users.id, locale: users.locale }).from(users).where(inArray(users.id, adminIds)) : []
+  const percent = Math.round(rate * 100)
+  await notifyMany(
+    admins.map((admin) => {
+      const locale = admin.locale ?? config.defaultLocale
+      return {
+        userId: admin.id,
+        kind: 'email.sequence_paused',
+        title: trFor(locale, 'errors.email.sequencePaused', { name: sequence.name }),
+        body: trFor(locale, 'errors.email.sequencePausedBody', { percent, bounced: counts?.bounced ?? 0, total, threshold: Math.round(threshold * 100) }),
+        url: `/email?view=sequences&sequence=${sequence.id}`,
+        entityType: 'email_sequence',
+        entityId: sequence.id,
+      }
+    }),
+  )
   return true
 }
 

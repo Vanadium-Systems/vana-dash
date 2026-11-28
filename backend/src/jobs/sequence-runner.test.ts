@@ -373,6 +373,9 @@ describe('bounce-rate pause', () => {
     expect(paused!.pausedReason).toBe('BOUNCE_RATE:0.080:50')
     const alerts = await db.select().from(notifications).where(eq(notifications.entityId, seq.id))
     expect(alerts.length).toBeGreaterThan(0)
+    // The bell and the phone open the sequence itself, and the numbers sit in the body, not the cut-off title.
+    expect(alerts[0]!.url).toBe(`/email?view=sequences&sequence=${seq.id}`)
+    expect(alerts[0]!.body).toMatch(/\b4\b\D+\b50\b/)
     // Already paused: a further bounce does not pause (or notify) again.
     expect(await pauseSequenceIfBouncing(enrollment.id)).toBe(false)
   })

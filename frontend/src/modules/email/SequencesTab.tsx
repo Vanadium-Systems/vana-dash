@@ -15,6 +15,7 @@ import { SequenceEnrollmentsDialog } from './SequenceEnrollmentsDialog'
 import { SequenceEditor } from './sequence/SequenceEditor'
 import { OutreachMailboxesSummary } from './OutreachMailboxesSummary'
 import { useConfirm } from '@/shared/components/ui/confirm-dialog'
+import { useConsumeParam } from '@/shared/hooks/use-consume-param'
 import { t } from '@/shared/lib/i18n'
 import { toastError } from '@/shared/lib/errors'
 
@@ -46,6 +47,8 @@ export function SequencesTab() {
   // 'new' = the editor on a blank sequence; an id = the editor on that sequence.
   const [editorTarget, setEditorTarget] = useState<string | null>(null)
   const [viewingEnrollments, setViewingEnrollments] = useState<EmailSequence | null>(null)
+  // A notification links here as ?sequence=<id>; the editor opens once the list has loaded.
+  useConsumeParam('sequence', setEditorTarget)
 
   const sequences = useQuery({
     queryKey: ['email', 'sequences'],
