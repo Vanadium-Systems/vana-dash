@@ -1,4 +1,5 @@
 import type { CompanyProfile } from '../../shared/lib/company.js'
+import { config } from '../../shared/config.js'
 import { markSignatureRoles } from '../../shared/lib/pdf-signature-fields.js'
 import { currentLocale } from '../../shared/lib/request-context.js'
 import type { SignerRole, TemplateField } from './registry-schema.js'
@@ -50,9 +51,11 @@ export function unknownTokens(bodyHtml: string, fields: TemplateField[]): string
 const escapeHtml = (value: string) =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
+// The document is written in the company's language, so its dates follow the installation default,
+// not the interface language of whoever generates it (an English UI printed "November 28" in a Romanian contract).
 function formatDate(iso: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
-  return new Intl.DateTimeFormat(currentLocale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`))
+  return new Intl.DateTimeFormat(config.defaultLocale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`))
 }
 
 /** Required fields left empty, by label, for the 400 the form shows. */

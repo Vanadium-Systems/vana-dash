@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { runWithFreshActor } from '../../shared/lib/request-context.js'
 import type { SignerRole, TemplateField } from './registry-schema.js'
 import { renderCustomTemplate, unknownTokens } from './template-render.js'
 
@@ -26,6 +27,11 @@ describe('renderCustomTemplate', () => {
 
   it('fills the built-in tokens', () => {
     expect(render('{{contract.numar}}', {})).toBe('C-001')
+  })
+
+  it('writes the date in the document language, whatever the interface language', () => {
+    const inLocale = (locale: 'ro' | 'en') => runWithFreshActor({ userId: null, ip: null, locale }, () => render('{{contract.data}}', {}))
+    expect(inLocale('en')).toBe(inLocale('ro'))
   })
 
   it('fills the party and company tokens, empty when the party detail is missing', () => {

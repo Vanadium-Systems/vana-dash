@@ -25,6 +25,18 @@ export interface Release {
 
 const SOURCES: ReleaseSource[] = [
   {
+    publishedAt: '2026-11-28T16:40:00+02:00',
+    title: {
+      ro: 'Data din contracte e scrisă în limba contractului',
+      en: 'Contract dates are written in the contract language',
+    },
+    body: {
+      ro: 'Cu interfața pe engleză, un contract generat din șablon primea data în engleză („November 28, 2026”). Acum data se scrie în limba firmei („28 noiembrie 2026”), oricare ar fi limba interfeței celui care generează contractul.',
+      en: 'With the interface in English, a contract generated from a template got its date in English ("November 28, 2026"). The date is now written in the company language ("28 noiembrie 2026"), whatever the interface language of the person generating it.',
+    },
+    features: ['facturi.contracte'],
+  },
+  {
     publishedAt: '2026-11-26T11:45:00+02:00',
     title: {
       ro: 'Secvențele arată când sunt terminate sau pe pauză',
